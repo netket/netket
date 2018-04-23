@@ -57,9 +57,9 @@ of many-body quantum systems with artificial neural networks and machine learnin
 * I/O
   * Python/JSON Interface   
 
-# Installation and Usage 
+# Installation and Usage
 
-Please visit our [homepage](www.netket.org) for further information.
+Please visit our [homepage](http://www.netket.org) for further information.
 
 # License
 
