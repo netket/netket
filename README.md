@@ -1,5 +1,5 @@
 # ![NetKet Logo](Headers/logo_small.jpg)
-# __NetKet__ 
+# __NetKet__
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
@@ -8,15 +8,16 @@ of many-body quantum systems with artificial neural networks and machine learnin
 # Major Features
 
 * Graphs
-  * Built-in graphs
+  * Built-in Graphs
     * Hypercube
-  * Custom graphs
-    * Any graph with given adjacency matrix [from input file]
+  * Custom Graphs
+    * Any Graph With Given Adjacency Matrix [from input file]
 
 * Hamiltonians
-  * Built-in hamiltonians
+  * Built-in Hamiltonians
     * Transverse-field Ising
     * Heisenberg
+    * Bose-Hubbard
   * Custom Hamiltonians
     * Any k-local Hamiltonian [from input file]
 
@@ -24,35 +25,39 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Steppers
     * Stochastic Gradient Descent
     * AdaMax
-  * Ground-state learning
+  * Ground-state Learning
     * Gradient Descent
     * Stochastic Reconfiguration Method
+      * Direct Solver
+      * Iterative Solver for Large Number of Parameters  
 
 * Machines
   * Restricted Boltzmann Machines
     * Standard
-    * For Custom local Hilbert spaces
+    * For Custom Local Hilbert Spaces
     * With Permutation Symmetry
   * Custom Machines
-    * Any machine satisfying prototype of abstract machine [extending C++ code]
+    * Any Machine Satisfying Prototype of Abstract Machine [extending C++ code]
 
 * Observables
-  * Custom observables
-    * Any k-local operator [from input file]
+  * Custom Observables
+    * Any k-local Operator [from input file]
 
 * Sampling
-  * Local Metropolis moves
-    * Local Hilbert space sampling
-    * Parallel tempering versions
-  * Hamiltonian moves
-    * Automatic moves with Hamiltonian symmetry
-    * Parallel tempering versions
+  * Local Metropolis Moves
+    * Local Hilbert Space Sampling
+    * Parallel Tempering Versions
+  * Hamiltonian Moves
+    * Automatic Moves with Hamiltonian Symmetry
+    * Parallel Tempering Versions
 
 * Statistics
-  * Automatic estimate of correlation times
+  * Automatic Estimate of Correlation Times
 
 * I/O
-  * Python/JSON interface   
+  * Python/JSON Interface   
+
+# Installation and Usage 
 
 Please visit our [homepage](www.netket.org) for further information.
 
