@@ -13,6 +13,7 @@
 #limitations under the License.
 
 
+from __future__ import print_function
 import json
 
 pars={}
@@ -74,7 +75,7 @@ json_file="sigmax.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
-print "\nGenerated Json input file: ",json_file
-print "\nNow you have two options to run NetKet: "
-print "\n1) Serial mode: ../../netket "+json_file
-print "\n2) Parallel mode: mpirun -n N_proc ../../netket "+json_file
+print("\nGenerated Json input file: ", json_file)
+print("\nNow you have two options to run NetKet: ")
+print("\n1) Serial mode: ../../netket " + json_file)
+print("\n2) Parallel mode: mpirun -n N_proc ../../netket " + json_file)
