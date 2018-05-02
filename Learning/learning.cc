@@ -15,10 +15,15 @@
 #ifndef NETKET_LEARNING_CC
 #define NETKET_LEARNING_CC
 
+#include <memory>
+
 namespace netket{
 
 template<class Ham,class Psi,class Samp,class Opt> class Learning : public AbstractLearning<Ham, Psi, Samp, Opt> {
-  AbstractLearning<Ham, Psi, Samp, Opt> * s_;
+
+  using Ptype=std::unique_ptr<AbstractLearning<Ham, Psi, Samp, Opt>>;
+  Ptype s_;
+
 public:
   Learning(Ham & ham, Samp & sam, Opt & opt, const json & pars){
 
@@ -33,7 +38,7 @@ public:
     }
 
     if(pars["Learning"]["Method"]=="Gd" || pars["Learning"]["Method"]=="Sr"){
-      s_=new Sr<Ham,Psi,Samp,Opt>(ham,sam,opt,pars);
+      s_=Ptype(new Sr<Ham,Psi,Samp,Opt>(ham,sam,opt,pars));
     }
     else{
       cout<<"Learning method not found"<<endl;

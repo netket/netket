@@ -22,7 +22,10 @@
 namespace netket{
 
 class Graph:public AbstractGraph{
-  netket::AbstractGraph * g_;
+
+  using Ptype=std::unique_ptr<AbstractGraph>;
+  Ptype g_;
+
 public:
   Graph(const json & pars){
 
@@ -32,7 +35,7 @@ public:
       //Checking if we are using a graph in the hard-coded library
       if(FieldExists(pars["Graph"],"Name")){
         if(pars["Graph"]["Name"]=="Hypercube"){
-          g_=new Hypercube(pars);
+          g_=Ptype(new Hypercube(pars));
         }
         else{
           std::cout<<"Graph not found"<<std::endl;
@@ -41,12 +44,12 @@ public:
       }
       //Otherwise using a user-defined graph
       else{
-        g_=new CustomGraph(pars);
+        g_=Ptype(new CustomGraph(pars));
       }
     }
     else{
       //Otherwise try to construct a custom graph using Hilbert space information
-      g_=new CustomGraph(pars);
+      g_=Ptype(new CustomGraph(pars));
     }
   }
 

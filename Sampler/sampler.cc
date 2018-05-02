@@ -15,10 +15,15 @@
 #ifndef NETKET_SAMPLER_CC
 #define NETKET_SAMPLER_CC
 
+#include <memory>
+
 namespace netket{
 
 template<class WfType> class Sampler:public AbstractSampler<WfType>{
-  AbstractSampler<WfType> * s_;
+
+  using Ptype=std::unique_ptr<AbstractSampler<WfType>>;
+  Ptype s_;
+
 public:
   Sampler(Graph & graph,Hamiltonian<Graph> & hamiltonian,WfType & psi,const json & pars){
 
@@ -33,25 +38,25 @@ public:
     }
 
     if(pars["Sampler"]["Name"]=="MetropolisLocal"){
-      s_=new MetropolisLocal<WfType>(graph,psi,pars);
+      s_=Ptype(new MetropolisLocal<WfType>(graph,psi,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisLocalPt"){
-      s_=new MetropolisLocalPt<WfType>(graph,psi,pars);
+      s_=Ptype(new MetropolisLocalPt<WfType>(graph,psi,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisExchange"){
-      s_=new MetropolisExchange<WfType>(graph,psi,pars);
+      s_=Ptype(new MetropolisExchange<WfType>(graph,psi,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisExchangePt"){
-      s_=new MetropolisExchangePt<WfType>(graph,psi,pars);
+      s_=Ptype(new MetropolisExchangePt<WfType>(graph,psi,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisHop"){
-      s_=new MetropolisHop<WfType>(graph,psi,pars);
+      s_=Ptype(new MetropolisHop<WfType>(graph,psi,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisHamiltonian"){
-      s_=new MetropolisHamiltonian<WfType,Hamiltonian<Graph>>(graph,psi,hamiltonian,pars);
+      s_=Ptype(new MetropolisHamiltonian<WfType,Hamiltonian<Graph>>(graph,psi,hamiltonian,pars));
     }
     else if(pars["Sampler"]["Name"]=="MetropolisHamiltonianPt"){
-      s_=new MetropolisHamiltonianPt<WfType,Hamiltonian<Graph>>(graph,psi,hamiltonian,pars);
+      s_=Ptype(new MetropolisHamiltonianPt<WfType,Hamiltonian<Graph>>(graph,psi,hamiltonian,pars));
     }
     else{
       cout<<"Sampler not found"<<endl;

@@ -15,10 +15,14 @@
 #ifndef NETKET_HAMILTONIAN_CC
 #define NETKET_HAMILTONIAN_CC
 
+#include <memory>
+
 namespace netket{
 
 template<class G> class Hamiltonian:public AbstractHamiltonian{
-  AbstractHamiltonian * h_;
+  using Ptype=std::unique_ptr<AbstractHamiltonian>;
+
+  Ptype h_;
 
 public:
 
@@ -31,13 +35,13 @@ public:
 
     if(FieldExists(pars["Hamiltonian"],"Name")){
       if(pars["Hamiltonian"]["Name"]=="Ising"){
-        h_=new Ising<G>(graph,pars);
+        h_=Ptype(new Ising<G>(graph,pars));
       }
       else if(pars["Hamiltonian"]["Name"]=="Heisenberg"){
-        h_=new Heisenberg<G>(graph,pars);
+        h_=Ptype(new Heisenberg<G>(graph,pars));
       }
       else if(pars["Hamiltonian"]["Name"]=="BoseHubbard"){
-        h_=new BoseHubbard<G>(graph,pars);
+        h_=Ptype(new BoseHubbard<G>(graph,pars));
       }
       else{
         cout<<"Hamiltonian name not found"<<endl;
@@ -45,7 +49,7 @@ public:
       }
     }
     else{
-      h_=new CustomHamiltonian(pars);
+      h_=Ptype(new CustomHamiltonian(pars));
     }
   }
 

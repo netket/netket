@@ -15,11 +15,14 @@
 #ifndef NETKET_HILBERT_CC
 #define NETKET_HILBERT_CC
 
+#include <memory>
+
 namespace netket{
 
 class Hilbert:public AbstractHilbert{
 
-  AbstractHilbert* h_;
+  using Ptype=std::unique_ptr<AbstractHilbert>;
+  Ptype h_;
 
 public:
 
@@ -39,13 +42,13 @@ public:
 
     if(FieldExists(pars["Hilbert"],"Name")){
       if(pars["Hilbert"]["Name"]=="Spin"){
-        h_=new Spin(pars);
+        h_=Ptype(new Spin(pars));
       }
       else if(pars["Hilbert"]["Name"]=="Boson"){
-        h_=new Boson(pars);
+        h_=Ptype(new Boson(pars));
       }
       else if(pars["Hilbert"]["Name"]=="Qubit"){
-        h_=new Qubit(pars);
+        h_=Ptype(new Qubit(pars));
       }
       else{
         cout<<"Hilbert Name not found"<<endl;
@@ -53,7 +56,7 @@ public:
       }
     }
     else{
-      h_=new CustomHilbert(pars);
+      h_=Ptype(new CustomHilbert(pars));
     }
   }
 

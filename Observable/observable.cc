@@ -22,7 +22,8 @@ namespace netket{
 
 class Observable:public AbstractObservable{
 
-  AbstractObservable *o_;
+  using Ptype=std::unique_ptr<AbstractObservable>;
+  Ptype o_;
 
 public:
 
@@ -47,7 +48,7 @@ public:
       auto sites=obspars.at("ActingOn").get<std::vector<vector<int>>>();
       string name=obspars.at("Name");
 
-      o_=new CustomObservable(hilbert,jop,sites,name);
+      o_=Ptype(new CustomObservable(hilbert,jop,sites,name));
 
   }
 

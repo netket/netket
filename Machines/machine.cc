@@ -17,12 +17,14 @@
 
 
 #include <fstream>
+#include <memory>
 
 namespace netket{
 
 template<class T> class Machine:public AbstractMachine<T>{
+  using Ptype=std::unique_ptr<AbstractMachine<T>>;
 
-  AbstractMachine<T> * m_;
+  Ptype m_;
 
   const Hilbert & hilbert_;
   const Hamiltonian<Graph> & hamiltonian_;
@@ -35,6 +37,7 @@ public:
   using MatrixType=typename AbstractMachine<T>::MatrixType;
   using StateType=typename AbstractMachine<T>::StateType;
   using LookupType=typename AbstractMachine<T>::LookupType;
+
 
   Machine(const Graph & graph,const Hamiltonian<Graph> & hamiltonian,const json & pars):
     hilbert_(hamiltonian.GetHilbert()),hamiltonian_(hamiltonian){
@@ -54,13 +57,13 @@ public:
     }
 
     if(pars["Machine"]["Name"]=="RbmSpin"){
-      m_=new RbmSpin<T>(graph,hamiltonian,pars);
+      m_=Ptype(new RbmSpin<T>(graph,hamiltonian,pars));
     }
     else if(pars["Machine"]["Name"]=="RbmSpinSymm"){
-      m_=new RbmSpinSymm<T>(graph,hamiltonian,pars);
+      m_=Ptype(new RbmSpinSymm<T>(graph,hamiltonian,pars));
     }
     else if(pars["Machine"]["Name"]=="RbmMultival"){
-      m_=new RbmMultival<T>(graph,hamiltonian,pars);
+      m_=Ptype(new RbmMultival<T>(graph,hamiltonian,pars));
     }
     else{
       if(mynode_==0)
