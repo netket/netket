@@ -54,5 +54,20 @@ template<class T,class V> V FieldOrDefaultVal(const T & pars,std::string field,V
     return defval;
   }
 }
+
+json ReadJsonFromFile(std::string filename){
+  json pars;
+
+  std::ifstream filein(filename);
+  if (filein.is_open()){
+    filein >> pars;
+  }
+  else{
+    std::cerr<<"Cannot read Json from file: "<<filename<<std::endl;
+    std::abort();
+  }
+  return pars;
+}
+
 }
 #endif

@@ -27,16 +27,7 @@ int main(int argc,char * argv[]){
     std::abort();
   }
 
-  json pars;
-
-  std::ifstream filein(argv[1]);
-  if (filein.is_open()){
-    filein >> pars;
-  }
-  else{
-    std::cerr<<"Cannot open input file: "<<argv[1]<<endl;
-    std::abort();
-  }
+  auto pars=ReadJsonFromFile(argv[1]);
 
   Graph graph(pars);
 
