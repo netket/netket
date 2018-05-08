@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License. 
+// limitations under the License.
 
 #ifndef NETKET_STEPPER_CC
 #define NETKET_STEPPER_CC
@@ -19,7 +19,9 @@ namespace netket{
 
 class Stepper:public AbstractStepper{
 
-  AbstractStepper * s_;
+  using Ptype=std::unique_ptr<AbstractStepper>;
+
+  Ptype s_;
 
 public:
 
@@ -36,10 +38,10 @@ public:
     }
 
     if(pars["Learning"]["StepperType"]=="Sgd"){
-      s_=new Sgd(pars);
+      s_=Ptype(new Sgd(pars));
     }
     else if(pars["Learning"]["StepperType"]=="AdaMax"){
-      s_=new AdaMax(pars);
+      s_=Ptype(new AdaMax(pars));
     }
     else{
       cout<<"StepperType not found"<<endl;
