@@ -96,7 +96,7 @@ public:
   }
 
   //Json constructor
-  RbmSpinSymm(const Graph & graph,const Hamiltonian<Graph> & hamiltonian,const json & pars):
+  RbmSpinSymm(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
     nv_(graph.Nsites()),
     hilbert_(hamiltonian.GetHilbert()),
     graph_(graph){

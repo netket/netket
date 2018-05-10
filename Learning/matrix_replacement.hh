@@ -26,6 +26,11 @@
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
 
+namespace netket{
+  //Forward declaration
+  class MatrixReplacement;
+}
+
 namespace Eigen {
 namespace internal {
   // MatrixReplacement looks-like a SparseMatrix, so let's inherits its traits:

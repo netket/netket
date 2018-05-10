@@ -15,19 +15,66 @@
 #ifndef NETKET_GRAPH_HH
 #define NETKET_GRAPH_HH
 
-
-namespace netket{
-
-  class AbstractGraph;
-  class Hypercube;
-  class CustomGraph;
-  class Graph;
-}
+#include <iostream>
+#include <map>
+#include <vector>
 
 #include "abstract_graph.hh"
 #include "distance.hh"
 #include "hypercube.hh"
 #include "custom_graph.hh"
-#include "graph.cc"
+
+namespace netket{
+
+class Graph:public AbstractGraph{
+
+  using Ptype=std::unique_ptr<AbstractGraph>;
+  Ptype g_;
+
+public:
+  Graph(const json & pars){
+
+    //Check if a graph is explicitely defined in the input
+    if(FieldExists(pars,"Graph")){
+
+      //Checking if we are using a graph in the hard-coded library
+      if(FieldExists(pars["Graph"],"Name")){
+        if(pars["Graph"]["Name"]=="Hypercube"){
+          g_=Ptype(new Hypercube(pars));
+        }
+        else{
+          std::cout<<"Graph not found"<<std::endl;
+          std::abort();
+        }
+      }
+      //Otherwise using a user-defined graph
+      else{
+        g_=Ptype(new CustomGraph(pars));
+      }
+    }
+    else{
+      //Otherwise try to construct a custom graph using Hilbert space information
+      g_=Ptype(new CustomGraph(pars));
+    }
+  }
+
+  int Nsites()const{
+    return g_->Nsites();
+  }
+  std::vector<std::vector<int>> AdjacencyList()const{
+    return g_->AdjacencyList();
+  }
+  std::vector<std::vector<int>> SymmetryTable()const{
+    return g_->SymmetryTable();
+  }
+  std::vector<std::vector<int>> Distances()const{
+    return g_->Distances();
+  }
+  bool IsBipartite()const{
+    return g_->IsBipartite();
+  }
+
+};
+}
 
 #endif

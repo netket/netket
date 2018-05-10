@@ -29,17 +29,7 @@ int main(int argc,char * argv[]){
 
   auto pars=ReadJsonFromFile(argv[1]);
 
-  Graph graph(pars);
-
-  Hamiltonian<Graph> hamiltonian(graph,pars);
-
-  using Psi=Machine<complex<double>>;
-  Psi machine(graph,hamiltonian,pars);
-
-  Sampler<Psi> sampler(graph,hamiltonian,machine,pars);
-
-  Stepper stepper(pars);
-  Learning<Hamiltonian<Graph>,Psi,Sampler<Psi>,Stepper> learning(hamiltonian,sampler,stepper,pars);
+  Learning learning(pars);
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();

@@ -15,15 +15,64 @@
 #ifndef NETKET_OBSERVABLE_HH
 #define NETKET_OBSERVABLE_HH
 
-namespace netket{
-  class AbstractObservable;
-  class CustomObservable;
-  class Observable;
-  class Observables;
-}
+#include <vector>
+#include <string>
 
 #include "abstract_observable.hh"
 #include "custom_observable.hh"
-#include "observable.cc"
+
+namespace netket{
+
+class Observable:public AbstractObservable{
+
+  using Ptype=std::unique_ptr<AbstractObservable>;
+  Ptype o_;
+
+public:
+
+  using MatType=LocalOperator::MatType;
+
+  Observable(const Hilbert & hilbert,const json & obspars){
+
+      if(!FieldExists(obspars,"Operators")){
+        cerr<<"Observable's Operators not defined"<<endl;
+        std::abort();
+      }
+      if(!FieldExists(obspars,"ActingOn")){
+        cerr<<"Observable's ActingOn not defined"<<endl;
+        std::abort();
+      }
+      if(!FieldExists(obspars,"Name")){
+        cerr<<"Observable's Name not defined"<<endl;
+        std::abort();
+      }
+
+      auto jop=obspars.at("Operators").get<std::vector<MatType>>();
+      auto sites=obspars.at("ActingOn").get<std::vector<vector<int>>>();
+      string name=obspars.at("Name");
+
+      o_=Ptype(new CustomObservable(hilbert,jop,sites,name));
+
+  }
+
+  void FindConn(const VectorXd & v,
+    vector<std::complex<double>> & mel,
+    vector<vector<int>> & connectors,
+    vector<vector<double>> & newconfs)
+  {
+    return o_->FindConn(v,mel,connectors,newconfs);
+  }
+
+  const Hilbert & GetHilbert()const{
+    return o_->GetHilbert();
+  }
+
+  const std::string Name()const{
+    return o_->Name();
+  }
+};
+}
+
 #include "observables.hh"
+
 #endif

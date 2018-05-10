@@ -16,6 +16,7 @@
 #define NETKET_CUSTOM_HAMILTONIAN_CC
 
 #include <vector>
+#include "local_operator.hh"
 
 namespace netket{
 
@@ -63,7 +64,7 @@ public:
     connectors.clear();
     newconfs.clear();
     mel.resize(0);
-    
+
     for(int i=0;i<operators_.size();i++){
       operators_[i].AddConn(v,mel,connectors,newconfs);
     }

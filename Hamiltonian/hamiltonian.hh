@@ -15,19 +15,61 @@
 #ifndef NETKET_HAMILTONIAN_HH
 #define NETKET_HAMILTONIAN_HH
 
-namespace netket{
-  class AbstractHamiltonian;
-  template<class G> class Ising;
-  template<class G> class Heisenberg;
-  template<class G> class BoseHubbard;
-  class CustomHamiltonian;
-  template<class G> class Hamiltonian;
-}
+#include <memory>
 
 #include "abstract_hamiltonian.hh"
 #include "ising.hh"
 #include "heisenberg.hh"
 #include "bosonhubbard.hh"
 #include "custom_hamiltonian.hh"
-#include "hamiltonian.cc"
+
+namespace netket{
+
+class Hamiltonian:public AbstractHamiltonian{
+  using Ptype=std::unique_ptr<AbstractHamiltonian>;
+
+  Ptype h_;
+
+public:
+
+  Hamiltonian(const Graph & graph,const json & pars){
+
+    if(!FieldExists(pars,"Hamiltonian")){
+      cerr<<"Hamiltonian is not defined in the input"<<endl;
+      std::abort();
+    }
+
+    if(FieldExists(pars["Hamiltonian"],"Name")){
+      if(pars["Hamiltonian"]["Name"]=="Ising"){
+        h_=Ptype(new Ising<Graph>(graph,pars));
+      }
+      else if(pars["Hamiltonian"]["Name"]=="Heisenberg"){
+        h_=Ptype(new Heisenberg<Graph>(graph,pars));
+      }
+      else if(pars["Hamiltonian"]["Name"]=="BoseHubbard"){
+        h_=Ptype(new BoseHubbard<Graph>(graph,pars));
+      }
+      else{
+        cout<<"Hamiltonian name not found"<<endl;
+        std::abort();
+      }
+    }
+    else{
+      h_=Ptype(new CustomHamiltonian(pars));
+    }
+  }
+
+  void FindConn(const VectorXd & v,
+    vector<std::complex<double>> & mel,
+    vector<vector<int>> & connectors,
+    vector<vector<double>> & newconfs)
+  {
+      return h_->FindConn(v,mel,connectors,newconfs);
+  }
+
+  const Hilbert & GetHilbert()const{
+    return h_->GetHilbert();
+  }
+};
+}
 #endif

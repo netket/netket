@@ -77,7 +77,7 @@ public:
   }
 
   //Json constructor
-  RbmSpin(const Graph & graph,const Hamiltonian<Graph> & hamiltonian,const json & pars):
+  RbmSpin(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
     nv_(graph.Nsites()),
     hilbert_(hamiltonian.GetHilbert()){
 

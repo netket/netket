@@ -12,28 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MACHINES_HH
-#define NETKET_MACHINES_HH
 
-/** @defgroup machines Machines module
- *
- * Machines module contains implementations of wave-functions. 
- */
+#include "catch.hpp"
+#include <iostream>
+#include <fstream>
 
-namespace netket{
-  template<class T> class AbstractMachine;
-  template<class T> class RbmSpin;
-  template<class T> class RbmSpinSymm;
-  template<class T> class RbmMultival;
+#include "netket.hh"
 
-  template<class T> class Machine;
+TEST_CASE( "graphs have consistent number of sites", "[graph]" ) {
+
+  int ntests=3;
+
+  for(int i=0;i<ntests;i++){
+    std::string filename="Graph/test"+std::to_string(i+1)+".json";
+    SECTION( "Graph test on "+filename ) {
+
+      auto pars=netket::ReadJsonFromFile(filename);
+
+      netket::Graph graph(pars);
+
+      REQUIRE( graph.Nsites() > 0 );
+    }
+  }
+
 }
-
-#include "abstract_machine.hh"
-
-#include "rbm_spin.hh"
-#include "rbm_spin_symm.hh"
-#include "rbm_multival.hh"
-
-#include "machine.cc"
-#endif

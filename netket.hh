@@ -22,7 +22,7 @@ namespace netket{
   using default_random_engine = std::mt19937;
 }
 
-#include "External/Json/json.hpp"
+
 #include "Json/json.hh"
 #include "Parallel/parallel.hh"
 #include "Lookup/lookup.hh"
@@ -31,7 +31,7 @@ namespace netket{
 #include "Graph/graph.hh"
 #include "Hamiltonian/hamiltonian.hh"
 #include "Observable/observable.hh"
-#include "Machines/machines.hh"
+#include "Machine/machine.hh"
 #include "Sampler/sampler.hh"
 #include "Learning/learning.hh"
 

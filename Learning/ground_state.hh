@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_SR_HH
-#define NETKET_SR_HH
+#ifndef NETKET_GROUNDSTATE_HH
+#define NETKET_GROUNDSTATE_HH
 
 #include <iostream>
 #include <iomanip>
@@ -25,22 +25,29 @@
 #include <string>
 #include <vector>
 #include <mpi.h>
+#include "matrix_replacement.hh"
+#include "stepper.hh"
 
 namespace netket{
 
 using namespace std;
 using namespace Eigen;
 
-//Stochastic reconfiguration optimizer
-//both direct and sparse version available
-template<class Ham,class Psi,class Samp,class Opt> class Sr : public AbstractLearning<Ham, Psi, Samp, Opt>{
+//Learning schemes for the ground state
+//Available methods:
+//1) Stochastic reconfiguration optimizer
+//   both direct and sparse version
+//2) Gradient Descent optimizer
+class GroundState {
 
-  typedef Matrix<typename Psi::StateType, Dynamic, 1 > VectorT;
-  typedef Matrix<typename Psi::StateType, Dynamic, Dynamic > MatrixT;
+  using GsType=std::complex<double>;
 
-  Ham & ham_;
-  Samp & sampler_;
-  Psi & psi_;
+  using VectorT=Matrix<typename Machine<GsType>::StateType, Dynamic, 1 > ;
+  using MatrixT=Matrix<typename Machine<GsType>::StateType, Dynamic, Dynamic > ;
+
+  Hamiltonian & ham_;
+  Sampler<Machine<GsType>> & sampler_;
+  Machine<GsType> & psi_;
 
   vector<vector<int>> connectors_;
   vector<vector<double>> newconfs_;
@@ -72,7 +79,7 @@ template<class Ham,class Psi,class Samp,class Opt> class Sr : public AbstractLea
   string filewfname_;
   double freqbackup_;
 
-  Opt & opt_;
+  Stepper & opt_;
 
   Observables obs_;
   ObsManager obsmanager_;
@@ -82,14 +89,8 @@ template<class Ham,class Psi,class Samp,class Opt> class Sr : public AbstractLea
 
 public:
 
-  Sr(Ham & ham,Samp & sampler,Opt & opt):
-  ham_(ham),sampler_(sampler),psi_(sampler.Psi()),opt_(opt){
-
-    Init();
-  }
-
   //JSON constructor
-  Sr(Ham & ham, Samp & sampler, Opt & opt,const json & pars):
+  GroundState(Hamiltonian & ham, Sampler<Machine<GsType>> & sampler, Stepper & opt,const json & pars):
   ham_(ham),sampler_(sampler),psi_(sampler.Psi()),opt_(opt),
   obs_(ham.GetHilbert(),pars){
 
@@ -412,15 +413,15 @@ public:
     for(int i=0;i<npar_;i++){
       pars(i)+=eps;
       psi_.SetParameters(pars);
-      typename Psi::StateType valp=psi_.LogVal(sampler_.Visible());
+      typename Machine<GsType>::StateType valp=psi_.LogVal(sampler_.Visible());
 
       pars(i)-=2*eps;
       psi_.SetParameters(pars);
-      typename Psi::StateType valm=psi_.LogVal(sampler_.Visible());
+      typename Machine<GsType>::StateType valm=psi_.LogVal(sampler_.Visible());
 
       pars(i)+=eps;
 
-      typename Psi::StateType numder=(-valm+valp)/(eps*2);
+      typename Machine<GsType>::StateType numder=(-valm+valp)/(eps*2);
 
       if(std::abs(numder-ders(i))>eps*eps){
         cerr<<" Possible error on parameter "<<i<<". Expected: "<<ders(i)<<" Found: "<<numder<<endl;

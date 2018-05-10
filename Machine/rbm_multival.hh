@@ -89,7 +89,7 @@ public:
   }
 
   //Json constructor
-  RbmMultival(const Graph & graph,const Hamiltonian<Graph> & hamiltonian,
+  RbmMultival(const Graph & graph,const Hamiltonian & hamiltonian,
     const json & pars):
     nv_(graph.Nsites()),
     hilbert_(hamiltonian.GetHilbert()),

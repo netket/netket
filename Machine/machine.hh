@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MACHINE_CC
-#define NETKET_MACHINE_CC
+#ifndef NETKET_MACHINE_HH
+#define NETKET_MACHINE_HH
 
 
 #include <fstream>
 #include <memory>
+
+#include "abstract_machine.hh"
+#include "rbm_spin.hh"
+#include "rbm_spin_symm.hh"
+#include "rbm_multival.hh"
 
 namespace netket{
 
@@ -27,7 +32,7 @@ template<class T> class Machine:public AbstractMachine<T>{
   Ptype m_;
 
   const Hilbert & hilbert_;
-  const Hamiltonian<Graph> & hamiltonian_;
+  const Hamiltonian & hamiltonian_;
 
   int mynode_;
 
@@ -39,7 +44,7 @@ public:
   using LookupType=typename AbstractMachine<T>::LookupType;
 
 
-  Machine(const Graph & graph,const Hamiltonian<Graph> & hamiltonian,const json & pars):
+  Machine(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
     hilbert_(hamiltonian.GetHilbert()),hamiltonian_(hamiltonian){
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
@@ -177,7 +182,7 @@ public:
     return hilbert_;
   }
 
-  const Hamiltonian<Graph>& GetHamiltonian()const{
+  const Hamiltonian& GetHamiltonian()const{
     return hamiltonian_;
   }
 

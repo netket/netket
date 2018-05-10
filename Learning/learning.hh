@@ -12,32 +12,56 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_LEARNING_HH
-#define NETKET_LEARNING_HH
+#ifndef NETKET_LEARNING_CC
+#define NETKET_LEARNING_CC
+
+#include <memory>
+
+#include "stepper.hh"
+#include "ground_state.hh"
+
 
 namespace netket{
-  class AbstractStepper;
-  class Sgd;
-  class AdaDelta;
-  class AdaMax;
-  class Rprop;
-  class Stepper;
-  template<class Hamiltonian,class Psi,class Sampler,class Optimizer> class Sr;
-  class MatrixReplacement;
 
-  template<class Hamiltonian,class Psi,class Sampler,class Opt> class AbstractLearning;
-  template<class Hamiltonian,class Psi,class Sampler,class Opt> class Learning;
+class Learning {
+
+public:
+
+  Learning(const json & pars){
+
+    if(!FieldExists(pars,"Learning")){
+      cerr<<"Learning field is not defined in the input"<<endl;
+      std::abort();
+    }
+
+    if(!FieldExists(pars["Learning"],"Method")){
+      cerr<<"Learning Method is not defined in the input"<<endl;
+      std::abort();
+    }
+
+    if(pars["Learning"]["Method"]=="Gd" || pars["Learning"]["Method"]=="Sr"){
+
+      Graph graph(pars);
+
+      Hamiltonian hamiltonian(graph,pars);
+
+      using MachineType=Machine<std::complex<double>>;
+      MachineType machine(graph,hamiltonian,pars);
+
+      Sampler<MachineType> sampler(graph,hamiltonian,machine,pars);
+
+      Stepper stepper(pars);
+
+      GroundState le(hamiltonian,sampler,stepper,pars);
+    }
+    else{
+      cout<<"Learning method not found"<<endl;
+      cout<<pars["Learning"]["Method"]<<endl;
+      std::abort();
+    }
+  }
+};
+
 }
-
-#include "abstract_stepper.hh"
-#include "abstract_learning.hh"
-#include "sgd.hh"
-#include "ada_delta.hh"
-#include "ada_max.hh"
-#include "rprop.hh"
-#include "stepper.cc"
-#include "matrix_replacement.hh"
-#include "sr.hh"
-#include "learning.cc"
 
 #endif

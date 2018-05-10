@@ -12,8 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_STEPPER_CC
-#define NETKET_STEPPER_CC
+#ifndef NETKET_STEPPER_HH
+#define NETKET_STEPPER_HH
+
+#include "abstract_stepper.hh"
+#include "sgd.hh"
+#include "ada_delta.hh"
+#include "ada_max.hh"
+#include "rprop.hh"
 
 namespace netket{
 
