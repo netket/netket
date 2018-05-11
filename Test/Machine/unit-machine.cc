@@ -191,17 +191,22 @@ TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
           //picking a random state
           int newstate=diststate(rgen);
           newconf[k]=localstates[newstate];
-
         }
 
         const auto lvd=machine.LogValDiff(v,tochange,newconf,lt);
 
-        hilbert.UpdateConf(v,tochange,newconf);
-        auto valnew=machine.LogVal(v);
+        if(nchange>0){
+          hilbert.UpdateConf(v,tochange,newconf);
+          auto valnew=machine.LogVal(v);
 
+          REQUIRE( Approx(std::real(std::exp(lvd)))==std::real(std::exp(valnew-valold))  );
+          REQUIRE( Approx(std::imag(std::exp(lvd)))==std::imag(std::exp(valnew-valold))  );
+        }
+        else{
+          REQUIRE( Approx(std::real(std::exp(lvd)))==1.0  );
+          REQUIRE( Approx(std::imag(std::exp(lvd)))==0.0  );
+        }
 
-        REQUIRE( Approx(std::real(std::exp(lvd))).epsilon(1.0e-6)==std::real(std::exp(valnew-valold))  );
-        REQUIRE( Approx(std::imag(std::exp(lvd))).epsilon(1.0e-6)==std::imag(std::exp(valnew-valold))  );
       }
     }
   }

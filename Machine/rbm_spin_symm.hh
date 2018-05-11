@@ -231,7 +231,7 @@ public:
 
     if(tochange.size()!=0){
 
-      for(int s=0;s<tochange.size();s++){
+      for(std::size_t s=0;s<tochange.size();s++){
         const int sf=tochange[s];
         lt.V(0)+=W_.row(sf)*(newconf[s]-v(sf));
       }
@@ -374,7 +374,7 @@ public:
     const vector<vector<double>> & newconf){
 
 
-    const int nconn=tochange.size();
+    const std::size_t nconn=tochange.size();
     VectorType logvaldiffs=VectorType::Zero(nconn);
 
     thetas_=(W_.transpose()*v+b_);
@@ -382,13 +382,13 @@ public:
 
     T logtsum=lnthetas_.sum();
 
-    for(int k=0;k<nconn;k++){
+    for(std::size_t k=0;k<nconn;k++){
 
       if(tochange[k].size()!=0){
 
         thetasnew_=thetas_;
 
-        for(int s=0;s<tochange[k].size();s++){
+        for(std::size_t s=0;s<tochange[k].size();s++){
           const int sf=tochange[k][s];
 
           logvaldiffs(k)+=a_(sf)*(newconf[k][s]-v(sf));
@@ -417,7 +417,7 @@ public:
 
       thetasnew_=lt.V(0);
 
-      for(int s=0;s<tochange.size();s++){
+      for(std::size_t s=0;s<tochange.size();s++){
         const int sf=tochange[s];
 
         logvaldiff+=a_(sf)*(newconf[s]-v(sf));

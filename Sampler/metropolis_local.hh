@@ -62,12 +62,6 @@ public:
     Init();
   }
 
-  //Json constructor
-  MetropolisLocal(Graph & graph,WfType & psi,const json & pars):
-    psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()){
-    Init();
-  }
-
   void Init(){
     v_.resize(nv_);
 

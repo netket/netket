@@ -16,6 +16,7 @@
 #define NETKET_SAMPLER_HH
 
 #include <memory>
+#include <set>
 #include "abstract_sampler.hh"
 #include "metropolis_local.hh"
 #include "metropolis_exchange.hh"
@@ -33,8 +34,61 @@ template<class WfType> class Sampler:public AbstractSampler<WfType>{
   Ptype s_;
 
 public:
-  Sampler(Graph & graph,Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+  Sampler(WfType & psi,const json & pars){
+    CheckInput(pars);
+    InitSampler(psi,pars);
+  }
 
+  Sampler(Graph & graph,WfType & psi,const json & pars){
+    CheckInput(pars);
+    InitSampler(psi,pars);
+    InitSampler(graph,psi,pars);
+  }
+
+  Sampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+    CheckInput(pars);
+    InitSampler(psi,pars);
+    InitSampler(hamiltonian,psi,pars);
+  }
+
+  Sampler(Graph & graph,Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+    CheckInput(pars);
+    InitSampler(psi,pars);
+    InitSampler(graph,psi,pars);
+    InitSampler(hamiltonian,psi,pars);
+  }
+
+  void InitSampler(WfType & psi,const json & pars){
+    if(pars["Sampler"]["Name"]=="MetropolisLocal"){
+      s_=Ptype(new MetropolisLocal<WfType>(psi));
+    }
+    else if(pars["Sampler"]["Name"]=="MetropolisLocalPt"){
+      s_=Ptype(new MetropolisLocalPt<WfType>(psi,pars));
+    }
+  }
+
+  void InitSampler(Graph & graph,WfType & psi,const json & pars){
+    if(pars["Sampler"]["Name"]=="MetropolisExchange"){
+      s_=Ptype(new MetropolisExchange<WfType>(graph,psi,pars));
+    }
+    else if(pars["Sampler"]["Name"]=="MetropolisExchangePt"){
+      s_=Ptype(new MetropolisExchangePt<WfType>(graph,psi,pars));
+    }
+    else if(pars["Sampler"]["Name"]=="MetropolisHop"){
+      s_=Ptype(new MetropolisHop<WfType>(graph,psi,pars));
+    }
+  }
+
+  void InitSampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+    if(pars["Sampler"]["Name"]=="MetropolisHamiltonian"){
+      s_=Ptype(new MetropolisHamiltonian<WfType,Hamiltonian>(psi,hamiltonian));
+    }
+    else if(pars["Sampler"]["Name"]=="MetropolisHamiltonianPt"){
+      s_=Ptype(new MetropolisHamiltonianPt<WfType,Hamiltonian>(psi,hamiltonian,pars));
+    }
+  }
+
+  void CheckInput(const json & pars){
     if(!FieldExists(pars,"Sampler")){
       cerr<<"Sampler is not defined in the input"<<endl;
       std::abort();
@@ -45,29 +99,21 @@ public:
       std::abort();
     }
 
-    if(pars["Sampler"]["Name"]=="MetropolisLocal"){
-      s_=Ptype(new MetropolisLocal<WfType>(graph,psi,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisLocalPt"){
-      s_=Ptype(new MetropolisLocalPt<WfType>(graph,psi,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisExchange"){
-      s_=Ptype(new MetropolisExchange<WfType>(graph,psi,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisExchangePt"){
-      s_=Ptype(new MetropolisExchangePt<WfType>(graph,psi,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisHop"){
-      s_=Ptype(new MetropolisHop<WfType>(graph,psi,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisHamiltonian"){
-      s_=Ptype(new MetropolisHamiltonian<WfType,Hamiltonian>(graph,psi,hamiltonian,pars));
-    }
-    else if(pars["Sampler"]["Name"]=="MetropolisHamiltonianPt"){
-      s_=Ptype(new MetropolisHamiltonianPt<WfType,Hamiltonian>(graph,psi,hamiltonian,pars));
-    }
-    else{
-      cout<<"Sampler not found"<<endl;
+    std::set<std::string> samplers=
+    {
+      "MetropolisLocal",
+      "MetropolisLocalPt",
+      "MetropolisExchange",
+      "MetropolisExchangePt",
+      "MetropolisHamiltonian",
+      "MetropolisHamiltonianPt",
+      "MetropolisHop"
+    };
+
+    const auto sampl_name=pars["Sampler"]["Name"];
+
+    if(samplers.count(sampl_name)==0){
+      std::cerr<<"Sampler "<<sampl_name<<" not found."<<std::endl;
       std::abort();
     }
   }

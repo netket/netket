@@ -25,6 +25,7 @@
 #include <Eigen/Dense>
 #include <string>
 #include <map>
+#include <type_traits>
 
 namespace netket{
 
@@ -39,36 +40,11 @@ public:
   ObsManager(){
 
   }
-
-  void AddObservable(std::string name,double obs){
-    if(scalar_real_obs_.count(name)==0){
-      scalar_real_obs_[name]=Binning<double>();
-    }
-    else{
-      cerr<<"Cannot add the desired observable "<<name<<endl;
-      std::abort();
-    }
-  }
-
-  void AddObservable(std::string name,const VectorXd & obs){
-    if(vector_real_obs_.count(name)==0){
-      vector_real_obs_[name]=Binning<VectorXd>();
-    }
-    else{
-      cerr<<"Cannot add the desired observable "<<name<<endl;
-      std::abort();
-    }
-  }
-
   inline void Push(std::string name,const double & data){
-    assert(scalar_real_obs_.count(name)>0);
-
     scalar_real_obs_[name]<<data;
   }
 
   inline void Push(std::string name,const VectorXd & data){
-    assert(vector_real_obs_.count(name)>0);
-
     vector_real_obs_[name]<<data;
   }
 

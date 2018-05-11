@@ -144,12 +144,12 @@ public:
 
     setSrParameters();
 
-    obsmanager_.AddObservable("Energy",double());
-    obsmanager_.AddObservable("EnergyVariance",double());
-
-    for(int i=0;i<obs_.Size();i++){
-      obsmanager_.AddObservable(obs_(i).Name(),double());
-    }
+    // obsmanager_.AddObservable("Energy",double());
+    // obsmanager_.AddObservable("EnergyVariance",double());
+    //
+    // for(std::size_t i=0;i<obs_.Size();i++){
+    //   obsmanager_.AddObservable(obs_(i).Name(),double());
+    // }
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
@@ -187,7 +187,7 @@ public:
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for(int i=0;i<obs_.Size();i++){
+    for(std::size_t i=0;i<obs_.Size();i++){
       obsmanager_.Reset(obs_(i).Name());
     }
 
@@ -200,7 +200,7 @@ public:
       Ok_.row(i)=psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy",elocs_(i).real());
 
-      for(int k=0;k<obs_.Size();k++){
+      for(std::size_t k=0;k<obs_.Size();k++){
         obsmanager_.Push(obs_(k).Name(),ObSamp(obs_(k),vsamp_.row(i)));
       }
     }

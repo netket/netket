@@ -73,7 +73,7 @@ public:
   }
 
   //Json constructor
-  MetropolisHamiltonianPt(Graph & graph,WfType & psi,H & hamiltonian,const json & pars):
+  MetropolisHamiltonianPt(WfType & psi,H & hamiltonian,const json & pars):
     psi_(psi),hilbert_(psi.GetHilbert()),hamiltonian_(hamiltonian),nv_(hilbert_.Size()),
     nrep_(FieldVal(pars["Sampler"],"Nreplicas")) {
     Init();

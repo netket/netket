@@ -66,11 +66,11 @@ public:
     last2_=0;
     nb1_=0;
 
-    for(int i=0;i<bins1_.size();i++){
+    for(std::size_t i=0;i<bins1_.size();i++){
       bins1_[i].Reset();
     }
 
-    for(int i=0;i<bins2_.size();i++){
+    for(std::size_t i=0;i<bins2_.size();i++){
       bins2_[i].Reset();
     }
   }
@@ -96,29 +96,29 @@ public:
   }
 
   void Print(){
-    for(int i=0;i<last1_;i++){
+    for(std::size_t i=0;i<last1_;i++){
       std::cout<<bins1_[i].Mean()<<"  "<<bins1_[i].N()<<std::endl;
     }
-    for(int i=0;i<last2_;i++){
+    for(std::size_t i=0;i<last2_;i++){
       std::cout<<bins2_[i].Mean()<<"  "<<bins2_[i].N()<<std::endl;
     }
   }
 
   void Merge(){
 
-    for(int i=0;i<bins1_.size();i+=2){
+    for(std::size_t i=0;i<bins1_.size();i+=2){
       bins1_[i]<<bins1_[i+1];
       bins2_[i]<<bins2_[i+1];
     }
-    for(int i=0;i<bins1_.size()/2;i++){
+    for(std::size_t i=0;i<bins1_.size()/2;i++){
       bins1_[i]=bins1_[2*i];
     }
-    for(int i=0;i<bins1_.size()/2;i++){
+    for(std::size_t i=0;i<bins1_.size()/2;i++){
       bins1_[i+bins1_.size()/2]=bins2_[2*i];
     }
 
     last2_=0;
-    for(int i=0;i<bins2_.size();i++){
+    for(std::size_t i=0;i<bins2_.size();i++){
       bins2_[i].Reset();
     }
 

@@ -194,7 +194,7 @@ public:
 
     if(tochange.size()!=0){
 
-      for(int s=0;s<tochange.size();s++){
+      for(std::size_t s=0;s<tochange.size();s++){
         const int sf=tochange[s];
         const int oldtilde=confindex_[v[sf]];
         const int newtilde=confindex_[newconf[s]];
@@ -312,7 +312,7 @@ public:
   //Difference between logarithms of values, when one or more visible variables are being changed
   VectorType LogValDiff(const VectorXd & v,const vector<vector<int> >  & tochange,const vector<vector<double>> & newconf){
 
-    const int nconn=tochange.size();
+    const std::size_t nconn=tochange.size();
     VectorType logvaldiffs=VectorType::Zero(nconn);
 
     ComputeTheta(v,thetas_);
@@ -320,13 +320,13 @@ public:
 
     T logtsum=lnthetas_.sum();
 
-    for(int k=0;k<nconn;k++){
+    for(std::size_t k=0;k<nconn;k++){
 
       if(tochange[k].size()!=0){
 
         thetasnew_=thetas_;
 
-        for(int s=0;s<tochange[k].size();s++){
+        for(std::size_t s=0;s<tochange[k].size();s++){
           const int sf=tochange[k][s];
           const int oldtilde=confindex_[v[sf]];
           const int newtilde=confindex_[newconf[k][s]];
@@ -359,7 +359,7 @@ public:
 
       thetasnew_=lt.V(0);
 
-      for(int s=0;s<tochange.size();s++){
+      for(std::size_t s=0;s<tochange.size();s++){
         const int sf=tochange[s];
         const int oldtilde=confindex_[v[sf]];
         const int newtilde=confindex_[newconf[s]];

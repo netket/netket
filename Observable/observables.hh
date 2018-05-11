@@ -35,7 +35,7 @@ public:
 
       if(obspar.is_array()){
         //multiple observables case
-        for(int i=0;i<obspar.size();i++){
+        for(std::size_t i=0;i<obspar.size();i++){
 
           observables_.push_back(Observable(hilbert,obspar[i]));
         }
@@ -48,12 +48,12 @@ public:
 
   }
 
-  Observable & operator()(int i){
+  Observable & operator()(std::size_t i){
     assert(i<observables_.size());
     return observables_[i];
   }
 
-  const int Size()const{
+  std::size_t Size()const{
     return observables_.size();
   }
 

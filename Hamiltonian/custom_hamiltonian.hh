@@ -50,7 +50,7 @@ public:
       std::abort();
     }
 
-    for(int i=0;i<jop.size();i++){
+    for(std::size_t i=0;i<jop.size();i++){
       operators_.push_back(LocalOperator(hilbert_,jop[i],sites[i]));
     }
 
@@ -65,7 +65,7 @@ public:
     newconfs.clear();
     mel.resize(0);
 
-    for(int i=0;i<operators_.size();i++){
+    for(std::size_t i=0;i<operators_.size();i++){
       operators_[i].AddConn(v,mel,connectors,newconfs);
     }
   }

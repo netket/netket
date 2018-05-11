@@ -69,7 +69,7 @@ public:
   }
 
   //Json constructor
-  MetropolisLocalPt(Graph & graph,WfType & psi,const json & pars):
+  MetropolisLocalPt(WfType & psi,const json & pars):
     psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),
     nrep_(FieldVal(pars["Sampler"],"Nreplicas")){
 

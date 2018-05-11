@@ -66,14 +66,8 @@ template<class WfType,class H> class MetropolisHamiltonian: public AbstractSampl
 public:
 
   MetropolisHamiltonian(WfType & psi, H & hamiltonian):
-       psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),
-       hamiltonian_(hamiltonian){
-    Init();
-  }
-
-  //Json constructor
-  MetropolisHamiltonian(Graph & graph,WfType & psi,H & hamiltonian,const json & pars):
-    psi_(psi),hilbert_(psi.GetHilbert()),hamiltonian_(hamiltonian),nv_(hilbert_.Size()){
+       psi_(psi),hilbert_(psi.GetHilbert()),hamiltonian_(hamiltonian),
+       nv_(hilbert_.Size()){
     Init();
   }
 

@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License. 
+// limitations under the License.
 
 #ifndef NETKET_FINDDIST_HH
 #define NETKET_FINDDIST_HH
@@ -36,7 +36,7 @@ std::vector<int> FindDist(const std::vector<std::vector<int> > & g,int root){
     int node=tovisit.front();
     tovisit.pop();
 
-    for(int j=0;j<g[node].size();j++){
+    for(std::size_t j=0;j<g[node].size();j++){
       int nj=g[node][j];
 
       if(dists[nj]==-1){

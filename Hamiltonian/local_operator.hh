@@ -87,8 +87,8 @@ public:
       std::abort();
     }
 
-    for(int i=0;i<mat_.size();i++){
-      for(int j=0;j<mat_[i].size();j++){
+    for(std::size_t i=0;i<mat_.size();i++){
+      for(std::size_t j=0;j<mat_[i].size();j++){
 
         if(mat_.size()!=mat_[i].size()){
           cerr<<"Matrix size in operator is inconsistent with Hilbert space"<<endl;
@@ -110,8 +110,8 @@ public:
     }
     while( netket::next_variation(st.begin(), st.end(),localsize_-1) );
 
-    for(int i=0;i<states_.size();i++){
-      for(int k=0;k<states_[i].size();k++){
+    for(std::size_t i=0;i<states_.size();i++){
+      for(std::size_t k=0;k<states_[i].size();k++){
         states_[i][k]=localstates[states_[i][k]];
       }
     }
@@ -176,7 +176,7 @@ public:
 
   inline int StateNumber(const VectorXd & v)const{
     vector<double> state(sites_.size());
-    for(int i=0;i<sites_.size();i++){
+    for(std::size_t i=0;i<sites_.size();i++){
       state[i]=v(sites_[i]);
     }
     return invstate_.at(state);
