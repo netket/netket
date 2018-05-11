@@ -95,7 +95,7 @@ TEST_CASE( "machines compute log derivatives correctly", "[machine]" ) {
       int nv=hilbert.Size();
       Eigen::VectorXd v(nv);
 
-      double eps=std::sqrt(std::numeric_limits<double>::epsilon())*100;
+      double eps=std::sqrt(std::numeric_limits<double>::epsilon())*1000;
 
       for(int i=0;i<100;i++){
         hilbert.RandomVals(v,rgen);
@@ -200,8 +200,8 @@ TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
         auto valnew=machine.LogVal(v);
 
 
-        REQUIRE( Approx(std::real(std::exp(lvd)))==std::real(std::exp(valnew-valold))  );
-        REQUIRE( Approx(std::imag(std::exp(lvd)))==std::imag(std::exp(valnew-valold))  );
+        REQUIRE( Approx(std::real(std::exp(lvd))).epsilon(1.0e-6)==std::real(std::exp(valnew-valold))  );
+        REQUIRE( Approx(std::imag(std::exp(lvd))).epsilon(1.0e-6)==std::imag(std::exp(valnew-valold))  );
       }
     }
   }
@@ -284,16 +284,16 @@ TEST_CASE( "machines update look-up tables correctly", "[machine]" ) {
 
         for(int v=0;v<lt.VectorSize();v++){
           for(int k=0;k<lt.V(v).size();k++){
-            REQUIRE( Approx(std::real(lt.V(v)(k)))==std::real(ltnew.V(v)(k))  );
-            REQUIRE( Approx(std::imag(lt.V(v)(k)))==std::imag(ltnew.V(v)(k))  );
+            REQUIRE( Approx(std::real(lt.V(v)(k))).epsilon(1.0e-6)==std::real(ltnew.V(v)(k))  );
+            REQUIRE( Approx(std::imag(lt.V(v)(k))).epsilon(1.0e-6)==std::imag(ltnew.V(v)(k))  );
           }
         }
 
         for(int v=0;v<lt.MatrixSize();v++){
           for(int k=0;k<lt.M(v).rows();k++){
             for(int kp=0;kp<lt.M(v).cols();kp++){
-              REQUIRE( Approx(std::real(lt.M(v)(k,kp)) ) == std::real(ltnew.M(v)(k,kp))  );
-              REQUIRE( Approx(std::imag(lt.M(v)(k,kp)) ) == std::imag(ltnew.M(v)(k,kp))  );
+              REQUIRE( Approx(std::real(lt.M(v)(k,kp)) ).epsilon(1.0e-6) == std::real(ltnew.M(v)(k,kp))  );
+              REQUIRE( Approx(std::imag(lt.M(v)(k,kp)) ).epsilon(1.0e-6) == std::imag(ltnew.M(v)(k,kp))  );
             }
           }
         }
