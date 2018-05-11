@@ -31,7 +31,7 @@ public:
   using MatType=LocalOperator::MatType;
 
   CustomObservable(const Hilbert & hilbert,const std::vector<MatType> & jop,
-                   const std::vector<vector<int>> & sites,std::string name):
+                   const std::vector<vector<int>> & sites,const std::string & name):
     hilbert_(hilbert),name_(name){
 
 

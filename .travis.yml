@@ -1,0 +1,57 @@
+#########################
+# project configuration #
+#########################
+
+# C++ project
+language: cpp
+
+dist: trusty
+sudo: required
+
+
+
+################
+# build matrix #
+################
+
+matrix:
+  include:
+
+  # Linux / GCC
+
+  - os: linux
+    compiler: gcc
+    env: COMPILER=g++-4.9
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-4.9','mpich','libmpich-dev']
+
+
+
+
+################
+# build script #
+################
+
+script:
+  # get CMake (only for systems with brew - macOS)
+  - |
+     if [[ (-x $(which brew)) ]]; then
+       brew update
+       brew install cmake
+       brew upgrade cmake
+       cmake --version
+     fi
+  # make sure CXX is correctly set
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # show OS/compiler version
+  - uname -a
+  - $CXX --version
+
+  # compile and execute unit tests
+  - mkdir -p build && cd build
+  - cmake .. ${CMAKE_OPTIONS} && cmake --build . --config Release
+  - ctest -C Release -V -j
+  - cd ..

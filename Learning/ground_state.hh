@@ -175,7 +175,7 @@ public:
 
   //Sets the name of the files on which the logs and the wave-function parameters are saved
   //the wave-function is saved every freq steps
-  void SetOutName(string filebase, double freq=50){
+  void SetOutName(const string & filebase, double freq=50){
     filelog_.open(filebase+string(".log"));
     freqbackup_=freq;
 
