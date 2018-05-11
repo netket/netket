@@ -396,47 +396,6 @@ public:
     dosr_=true;
   }
 
-
-  //Debug function to check that the logarithm of the derivative is
-  //computed correctly
-  void CheckDerLog(double eps=1.0e-4){
-
-    std::cout<<"# Debugging Derivatives of Wave-Function Logarithm"<<std::endl;
-    std::flush(std::cout);
-
-    sampler_.Reset(true);
-
-    auto ders=psi_.DerLog(sampler_.Visible());
-
-    auto pars=psi_.GetParameters();
-
-    for(int i=0;i<npar_;i++){
-      pars(i)+=eps;
-      psi_.SetParameters(pars);
-      typename Machine<GsType>::StateType valp=psi_.LogVal(sampler_.Visible());
-
-      pars(i)-=2*eps;
-      psi_.SetParameters(pars);
-      typename Machine<GsType>::StateType valm=psi_.LogVal(sampler_.Visible());
-
-      pars(i)+=eps;
-
-      typename Machine<GsType>::StateType numder=(-valm+valp)/(eps*2);
-
-      if(std::abs(numder-ders(i))>eps*eps){
-        cerr<<" Possible error on parameter "<<i<<". Expected: "<<ders(i)<<" Found: "<<numder<<endl;
-      }
-    }
-    std::cout<<"# Test completed"<<std::endl;
-    std::flush(std::cout);
-  }
-
-  inline double real_part(double val)const{
-    return val;
-  }
-  inline double real_part(const std::complex<double> & val)const{
-    return val.real();
-  }
 };
 
 

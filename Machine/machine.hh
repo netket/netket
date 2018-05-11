@@ -82,6 +82,7 @@ public:
       if(mynode_==0)
       cout<<"# Machine initialized with random parameters"<<endl;
     }
+
     if(FieldExists(pars["Machine"],"InitFile")){
       std::string filename=pars["Machine"]["InitFile"];
 
@@ -118,14 +119,10 @@ public:
   }
 
   //Updates Lookup tables
-  void UpdateLookup(const VectorXd & v,const vector<int>  & toflip,
+  void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
     const vector<double> & newconf,LookupType & lt){
 
-    return m_->UpdateLookup(v,toflip,newconf,lt);
-  }
-
-  void UpdateConf(VectorXd & v,const vector<int>  & toflip,const vector<double> & newconf){
-    return m_->UpdateConf(v,toflip,newconf);
+    return m_->UpdateLookup(v,tochange,newconf,lt);
   }
 
   VectorType DerLog(const VectorXd & v){

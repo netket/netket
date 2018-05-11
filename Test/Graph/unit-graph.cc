@@ -18,23 +18,19 @@
 #include <fstream>
 #include <vector>
 
+#include "graph_input_tests.hh"
+
 TEST_CASE( "graphs have consistent number of sites", "[graph]" ) {
 
-  int ntests=3;
+  auto input_tests=GetGraphInputs();
+  auto ntests=input_tests.size();
 
-  std::vector<std::string> inputjson(ntests);
+  for(auto i=0;i<ntests;i++){
+    std::string name=input_tests[i]["Graph"].dump();
 
-  inputjson[0]="{\"Graph\": {\"Name\": \"Hypercube\", \"L\": 5, \"Dimension\": 1, \"Pbc\": true}}";
-  inputjson[1]="{\"Graph\": {\"Name\": \"Hypercube\", \"L\": 5, \"Dimension\": 2, \"Pbc\": true}}";
-  inputjson[2]="{\"Graph\": {\"Name\": \"Hypercube\", \"L\": 5, \"Dimension\": 3, \"Pbc\": true}}";
+    SECTION( "Graph test on "+ name ) {
 
-  for(int i=0;i<ntests;i++){
-    std::string filename="Graph/test"+std::to_string(i+1)+".json";
-    SECTION( "Graph test on "+filename ) {
-
-      auto pars=json::parse(inputjson[i]);
-
-      netket::Graph graph(pars);
+      netket::Graph graph(input_tests[i]);
 
       REQUIRE( graph.Nsites() > 0 );
     }
