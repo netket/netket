@@ -21,23 +21,12 @@
 #include "netket.hh"
 #include "machine_input_tests.hh"
 
-template<class T>
-typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
-    almost_equal(T x, T y, int ulp)
-{
-    // the machine epsilon has to be scaled to the magnitude of the values used
-    // and multiplied by the desired precision in ULPs (units in the last place)
-    return std::abs(x-y) <= std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
-    // unless the result is subnormal
-           || std::abs(x-y) < std::numeric_limits<T>::min();
-}
-
 TEST_CASE( "machines set/get correctly parameters", "[machine]" ) {
 
   auto input_tests=GetMachineInputs();
-  auto ntests=input_tests.size();
+  std::size_t ntests=input_tests.size();
 
-  for(auto i=0;i<ntests;i++){
+  for(std::size_t i=0;i<ntests;i++){
 
 
     SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
@@ -68,11 +57,11 @@ TEST_CASE( "machines set/get correctly parameters", "[machine]" ) {
 TEST_CASE( "machines compute log derivatives correctly", "[machine]" ) {
 
   auto input_tests=GetMachineInputs();
-  auto ntests=input_tests.size();
+  std::size_t ntests=input_tests.size();
 
   netket::default_random_engine rgen;
 
-  for(auto i=0;i<ntests;i++){
+  for(std::size_t i=0;i<ntests;i++){
 
     SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
 
@@ -129,11 +118,11 @@ TEST_CASE( "machines compute log derivatives correctly", "[machine]" ) {
 TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
 
   auto input_tests=GetMachineInputs();
-  auto ntests=input_tests.size();
+  std::size_t ntests=input_tests.size();
 
   netket::default_random_engine rgen;
 
-  for(auto i=0;i<ntests;i++){
+  for(std::size_t i=0;i<ntests;i++){
 
     SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
 
@@ -180,7 +169,7 @@ TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
         std::vector<int> tochange(nchange);
         std::vector<double> newconf(nchange);
 
-        //picking k unique random site to be changed
+        //picking k unique random sites to be changed
         std::random_shuffle ( randperm.begin(), randperm.end());
 
         for(int k=0;k<nchange;k++){
@@ -215,11 +204,11 @@ TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
 TEST_CASE( "machines update look-up tables correctly", "[machine]" ) {
 
   auto input_tests=GetMachineInputs();
-  auto ntests=input_tests.size();
+  std::size_t ntests=input_tests.size();
 
   netket::default_random_engine rgen;
 
-  for(auto i=0;i<ntests;i++){
+  for(std::size_t i=0;i<ntests;i++){
 
     SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
 

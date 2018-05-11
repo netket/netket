@@ -87,18 +87,10 @@ public:
   using StateType=typename AbstractMachine<T>::StateType;
   using LookupType=typename AbstractMachine<T>::LookupType;
 
-  template<class Ham> RbmSpinSymm(int alpha,const Graph & graph,
-    const Ham & hamiltonian,bool usea=true,bool useb=true):
-  nv_(graph.Nsites()),alpha_(alpha),usea_(usea),useb_(useb),
-  hilbert_(hamiltonian.GetHilbert()),graph_(graph){
-
-    Init(graph);
-  }
-
   //Json constructor
-  RbmSpinSymm(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
-    nv_(graph.Nsites()),
-    hilbert_(hamiltonian.GetHilbert()),
+  RbmSpinSymm(const Graph & graph,const Hilbert & hilbert,const json & pars):
+    nv_(hilbert.Size()),
+    hilbert_(hilbert),
     graph_(graph){
 
     from_json(pars);

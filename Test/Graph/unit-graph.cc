@@ -23,9 +23,9 @@
 TEST_CASE( "graphs have consistent number of sites", "[graph]" ) {
 
   auto input_tests=GetGraphInputs();
-  auto ntests=input_tests.size();
+  std::size_t ntests=input_tests.size();
 
-  for(auto i=0;i<ntests;i++){
+  for(std::size_t i=0;i<ntests;i++){
     std::string name=input_tests[i]["Graph"].dump();
 
     SECTION( "Graph test on "+ name ) {

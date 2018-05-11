@@ -17,16 +17,146 @@ sudo: required
 matrix:
   include:
 
-  # Linux / GCC
+  - os: osx
+    osx_image: xcode6.4
 
-  - os: linux
+  - os: osx
+    osx_image: xcode7.3
+
+  - os: osx
+    osx_image: xcode8
+
+  - os: osx
+    osx_image: xcode8.1
+
+  - os: osx
+    osx_image: xcode8.2
+
+  - os: osx
+    osx_image: xcode8.3
+
+  - os: osx
+    osx_image: xcode9
+
+  - os: osx
+    osx_image: xcode9.1
+
+  - os: osx
+    osx_image: xcode9.2
+
+  - os: osx
+    osx_image: xcode9.3
+
+  # Linux / GCC
+   - os: linux
     compiler: gcc
     env: COMPILER=g++-4.9
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-4.9','mpich','libmpich-dev']
+        packages: ['g++-4.9', 'mpich','libmpich-dev']
 
+  - os: linux
+    compiler: gcc
+    env: COMPILER=g++-5
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-5', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env: COMPILER=g++-6
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-6', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env: COMPILER=g++-7
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-7', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-7
+      - CXXFLAGS=-std=c++17
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-7', 'mpich','libmpich-dev']
+
+
+# Linux / Clang
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-3.5
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.5']
+        packages: ['g++-6', 'clang-3.5', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-3.6
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
+        packages: ['g++-6', 'clang-3.6', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-3.7
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
+        packages: ['g++-6', 'clang-3.7', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-3.8
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-6', 'clang-3.8', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-3.9
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-6', 'clang-3.9', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-4.0
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
+        packages: ['g++-6', 'clang-4.0', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env: COMPILER=clang++-5.0
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env:
+      - COMPILER=clang++-5.0
+      - CXXFLAGS=-std=c++1z
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
 
 
 
@@ -35,12 +165,14 @@ matrix:
 ################
 
 script:
-  # get CMake (only for systems with brew - macOS)
+  # get CMake and Mpi (only for systems with brew - macOS)
   - |
      if [[ (-x $(which brew)) ]]; then
        brew update
        brew install cmake
+       brew install openmpi
        brew upgrade cmake
+       brew upgrade openmpi
        cmake --version
      fi
   # make sure CXX is correctly set

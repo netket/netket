@@ -36,29 +36,29 @@ template<class WfType> class Sampler:public AbstractSampler<WfType>{
 public:
   Sampler(WfType & psi,const json & pars){
     CheckInput(pars);
-    InitSampler(psi,pars);
+    Init(psi,pars);
   }
 
   Sampler(Graph & graph,WfType & psi,const json & pars){
     CheckInput(pars);
-    InitSampler(psi,pars);
-    InitSampler(graph,psi,pars);
+    Init(psi,pars);
+    Init(graph,psi,pars);
   }
 
   Sampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
     CheckInput(pars);
-    InitSampler(psi,pars);
-    InitSampler(hamiltonian,psi,pars);
+    Init(psi,pars);
+    Init(hamiltonian,psi,pars);
   }
 
   Sampler(Graph & graph,Hamiltonian & hamiltonian,WfType & psi,const json & pars){
     CheckInput(pars);
-    InitSampler(psi,pars);
-    InitSampler(graph,psi,pars);
-    InitSampler(hamiltonian,psi,pars);
+    Init(psi,pars);
+    Init(graph,psi,pars);
+    Init(hamiltonian,psi,pars);
   }
 
-  void InitSampler(WfType & psi,const json & pars){
+  void Init(WfType & psi,const json & pars){
     if(pars["Sampler"]["Name"]=="MetropolisLocal"){
       s_=Ptype(new MetropolisLocal<WfType>(psi));
     }
@@ -67,7 +67,7 @@ public:
     }
   }
 
-  void InitSampler(Graph & graph,WfType & psi,const json & pars){
+  void Init(Graph & graph,WfType & psi,const json & pars){
     if(pars["Sampler"]["Name"]=="MetropolisExchange"){
       s_=Ptype(new MetropolisExchange<WfType>(graph,psi,pars));
     }
@@ -79,7 +79,7 @@ public:
     }
   }
 
-  void InitSampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+  void Init(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
     if(pars["Sampler"]["Name"]=="MetropolisHamiltonian"){
       s_=Ptype(new MetropolisHamiltonian<WfType,Hamiltonian>(psi,hamiltonian));
     }
@@ -89,13 +89,18 @@ public:
   }
 
   void CheckInput(const json & pars){
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
     if(!FieldExists(pars,"Sampler")){
-      cerr<<"Sampler is not defined in the input"<<endl;
+      if(mynode==0)
+      std::cerr<<"Sampler is not defined in the input"<<std::endl;
       std::abort();
     }
 
     if(!FieldExists(pars["Sampler"],"Name")){
-      cerr<<"Sampler Name is not defined in the input"<<endl;
+      if(mynode==0)
+      std::cerr<<"Sampler Name is not defined in the input"<<std::endl;
       std::abort();
     }
 
@@ -110,10 +115,10 @@ public:
       "MetropolisHop"
     };
 
-    const auto sampl_name=pars["Sampler"]["Name"];
+    const auto name=pars["Sampler"]["Name"];
 
-    if(samplers.count(sampl_name)==0){
-      std::cerr<<"Sampler "<<sampl_name<<" not found."<<std::endl;
+    if(samplers.count(name)==0){
+      std::cerr<<"Sampler "<<name<<" not found."<<std::endl;
       std::abort();
     }
   }

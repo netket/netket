@@ -32,7 +32,6 @@ template<class T> class Machine:public AbstractMachine<T>{
   Ptype m_;
 
   const Hilbert & hilbert_;
-  const Hamiltonian & hamiltonian_;
 
   int mynode_;
 
@@ -44,42 +43,59 @@ public:
   using LookupType=typename AbstractMachine<T>::LookupType;
 
 
+  Machine(const Hilbert & hilbert,const json & pars):
+    hilbert_(hilbert){
+    CheckInput(pars);
+    Init(hilbert_,pars);
+    InitParameters(pars);
+  }
+
+  Machine(const Hamiltonian & hamiltonian,const json & pars):
+    hilbert_(hamiltonian.GetHilbert()){
+    CheckInput(pars);
+    Init(hilbert_,pars);
+    InitParameters(pars);
+  }
+
+  Machine(const Graph & graph,const Hilbert & hilbert,const json & pars):
+    hilbert_(hilbert){
+    CheckInput(pars);
+    Init(hilbert_,pars);
+    Init(graph,hilbert,pars);
+    InitParameters(pars);
+  }
+
   Machine(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
-    hilbert_(hamiltonian.GetHilbert()),hamiltonian_(hamiltonian){
+    hilbert_(hamiltonian.GetHilbert()){
+    CheckInput(pars);
+    Init(hilbert_,pars);
+    Init(graph,hilbert_,pars);
+    InitParameters(pars);
+  }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if(!FieldExists(pars,"Machine")){
-      if(mynode_==0)
-      cerr<<"Machine is not defined in the input"<<endl;
-      std::abort();
-    }
-
-    if(!FieldExists(pars["Machine"],"Name")){
-      if(mynode_==0)
-      cerr<<"Machine Name is not defined in the input"<<endl;
-      std::abort();
-    }
-
+  void Init(const Hilbert & hilbert,const json & pars){
     if(pars["Machine"]["Name"]=="RbmSpin"){
-      m_=Ptype(new RbmSpin<T>(graph,hamiltonian,pars));
-    }
-    else if(pars["Machine"]["Name"]=="RbmSpinSymm"){
-      m_=Ptype(new RbmSpinSymm<T>(graph,hamiltonian,pars));
+      m_=Ptype(new RbmSpin<T>(hilbert,pars));
     }
     else if(pars["Machine"]["Name"]=="RbmMultival"){
-      m_=Ptype(new RbmMultival<T>(graph,hamiltonian,pars));
+      m_=Ptype(new RbmMultival<T>(hilbert,pars));
     }
-    else{
-      if(mynode_==0)
-      cerr<<"Machine Name not found"<<endl;
-      std::abort();
+  }
+
+  void Init(const Graph & graph,const Hilbert & hilbert,const json & pars){
+    if(pars["Machine"]["Name"]=="RbmSpinSymm"){
+      m_=Ptype(new RbmSpinSymm<T>(graph,hilbert,pars));
     }
+  }
+
+  void InitParameters(const json & pars){
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
 
     if(FieldOrDefaultVal(pars["Machine"],"InitRandom",true)){
       double sigma_rand=FieldOrDefaultVal(pars["Machine"],"SigmaRand",0.1);
       m_->InitRandomPars(1232,sigma_rand);
-      if(mynode_==0)
+      if(mynode==0)
       cout<<"# Machine initialized with random parameters"<<endl;
     }
 
@@ -94,13 +110,44 @@ public:
         m_->from_json(jmachine);
       }
       else{
-        if(mynode_==0)
+        if(mynode==0)
         std::cerr<< "Error opening file : "<<filename<<endl;
         std::abort();
       }
 
-      if(mynode_==0)
+      if(mynode==0)
       cout<<"# Machine initialized from file: "<<filename<<endl;
+    }
+  }
+
+  void CheckInput(const json & pars){
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
+    if(!FieldExists(pars,"Machine")){
+      if(mynode==0)
+      std::cerr<<"Machine is not defined in the input"<<std::endl;
+      std::abort();
+    }
+
+    if(!FieldExists(pars["Machine"],"Name")){
+      if(mynode==0)
+      std::cerr<<"Machine Name is not defined in the input"<<std::endl;
+      std::abort();
+    }
+
+    std::set<std::string> machines=
+    {
+      "RbmSpin",
+      "RbmSpinSymm",
+      "RbmMultival"
+    };
+
+    const auto name=pars["Machine"]["Name"];
+
+    if(machines.count(name)==0){
+      std::cerr<<"Machine "<<name<<" not found."<<std::endl;
+      std::abort();
     }
   }
 
@@ -177,10 +224,6 @@ public:
 
   const Hilbert& GetHilbert()const{
     return hilbert_;
-  }
-
-  const Hamiltonian& GetHamiltonian()const{
-    return hamiltonian_;
   }
 
   void to_json(json &j)const{
