@@ -23,9 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Metropolis sampling generating transitions using the Hamiltonian
 template<class WfType,class H> class MetropolisHamiltonian: public AbstractSampler<WfType>{
 
@@ -41,10 +38,10 @@ template<class WfType,class H> class MetropolisHamiltonian: public AbstractSampl
   netket::default_random_engine rgen_;
 
   //states of visible units
-  VectorXd v_;
+  Eigen::VectorXd v_;
 
-  VectorXd accept_;
-  VectorXd moves_;
+  Eigen::VectorXd accept_;
+  Eigen::VectorXd moves_;
 
   int mynode_;
   int totalnodes_;
@@ -53,15 +50,15 @@ template<class WfType,class H> class MetropolisHamiltonian: public AbstractSampl
   typename WfType::LookupType lt_;
 
 
-  vector<vector<int>> tochange_;
-  vector<vector<double>> newconfs_;
-  vector<std::complex<double>> mel_;
+  std::vector<std::vector<int>> tochange_;
+  std::vector<std::vector<double>> newconfs_;
+  std::vector<std::complex<double>> mel_;
 
-  vector<vector<int>> tochange1_;
-  vector<vector<double>> newconfs1_;
-  vector<std::complex<double>> mel1_;
+  std::vector<std::vector<int>> tochange1_;
+  std::vector<std::vector<double>> newconfs1_;
+  std::vector<std::complex<double>> mel1_;
 
-  VectorXd v1_;
+  Eigen::VectorXd v1_;
 
 public:
 
@@ -79,7 +76,7 @@ public:
 
     if(!hilbert_.IsDiscrete()){
       if(mynode_==0){
-        cerr<<"# Hamiltonian Metropolis sampler works only for discrete Hilbert spaces"<<endl;
+        std::cerr<<"# Hamiltonian Metropolis sampler works only for discrete Hilbert spaces"<<std::endl;
       }
       std::abort();
     }
@@ -93,13 +90,13 @@ public:
 
 
     if(mynode_==0){
-      cout<<"# Hamiltonian Metropolis sampler is ready "<<endl;
+      std::cout<<"# Hamiltonian Metropolis sampler is ready "<<std::endl;
     }
   }
 
   void Seed(int baseseed=0){
     std::random_device rd;
-    vector<int> seeds(totalnodes_);
+    std::vector<int> seeds(totalnodes_);
 
     if(mynode_==0){
       for(int i=0;i<totalnodes_;i++){
@@ -120,8 +117,8 @@ public:
 
     psi_.InitLookup(v_,lt_);
 
-    accept_=VectorXd::Zero(1);
-    moves_=VectorXd::Zero(1);
+    accept_=Eigen::VectorXd::Zero(1);
+    moves_=Eigen::VectorXd::Zero(1);
   }
 
   void Sweep(){
@@ -177,11 +174,11 @@ public:
   }
 
 
-  VectorXd Visible(){
+  Eigen::VectorXd Visible(){
     return v_;
   }
 
-  void SetVisible(const VectorXd & v){
+  void SetVisible(const Eigen::VectorXd & v){
     v_=v;
   }
 
@@ -194,8 +191,8 @@ public:
     return hilbert_;
   }
 
-  VectorXd Acceptance()const{
-    VectorXd acc=accept_;
+  Eigen::VectorXd Acceptance()const{
+    Eigen::VectorXd acc=accept_;
     for(int i=0;i<1;i++){
       acc(i)/=moves_(i);
     }

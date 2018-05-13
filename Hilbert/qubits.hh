@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /**
   Hilbert space for qubits.
 */
@@ -43,9 +40,9 @@ public:
     int nqubits;
 
     if(FieldExists(pars["Hilbert"],"Nqubits")){
-      cerr<<"Nqubits is not defined"<<endl;
+      std::cerr<<"Nqubits is not defined"<<std::endl;
     }
-    
+
     nqubits=pars["Hilbert"]["Nqubits"];
 
     Init(nqubits);
@@ -73,11 +70,12 @@ public:
     return nqubits_;
   }
 
-  vector<double> LocalStates()const{
+  std::vector<double> LocalStates()const{
     return local_;
   }
 
-  void RandomVals(VectorXd & state,netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd & state,
+    netket::default_random_engine & rgen)const{
     std::uniform_int_distribution<int> distribution(0,1);
 
     assert(state.size()==nqubits_);
@@ -88,8 +86,9 @@ public:
     }
   }
 
-  void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const{
 
     assert(v.size()==nqubits_);
 

@@ -25,11 +25,11 @@ namespace netket{
   //Generic look-up table
   template<class T> class Lookup{
 
-    using VectorType=Matrix<T,Dynamic,1>;
-    using MatrixType=Matrix<T,Dynamic,Dynamic>;
+    using VectorType=Eigen::Matrix<T,Eigen::Dynamic,1>;
+    using MatrixType=Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic>;
 
-    vector<VectorType> v_;
-    vector<MatrixType> m_;
+    std::vector<VectorType> v_;
+    std::vector<MatrixType> m_;
 
   public:
 
@@ -51,22 +51,22 @@ namespace netket{
       return m_.size();
     }
 
-    VectorType & V(int i){
+    VectorType & V(std::size_t i){
       assert(i<v_.size() && i>=0);
       return v_[i];
     }
 
-    const VectorType & V(int i)const{
+    const VectorType & V(std::size_t i)const{
       assert(i<v_.size() && i>=0);
       return v_[i];
     }
 
-    MatrixType & M(int i){
+    MatrixType & M(std::size_t i){
       assert(i<m_.size() && i>=0);
       return m_[i];
     }
 
-    const MatrixType & M(int i)const{
+    const MatrixType & M(std::size_t i)const{
       assert(i<m_.size() && i>=0);
       return m_[i];
     }

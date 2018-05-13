@@ -42,11 +42,11 @@ public:
     }
 
     auto jop=pars["Hamiltonian"]["Operators"].get<std::vector<MatType>>();
-    auto sites=pars["Hamiltonian"]["ActingOn"].get<std::vector<vector<int>>>();
+    auto sites=pars["Hamiltonian"]["ActingOn"].get<std::vector<std::vector<int>>>();
 
     if(sites.size()!=jop.size()){
-      std::cerr<<"The custom Hamiltonian definition is inconsistent:"<<endl;
-      std::cerr<<"Check that ActingOn is defined"<<endl;
+      std::cerr<<"The custom Hamiltonian definition is inconsistent:"<<std::endl;
+      std::cerr<<"Check that ActingOn is defined"<<std::endl;
       std::abort();
     }
 
@@ -56,10 +56,10 @@ public:
 
   }
 
-  void FindConn(const VectorXd & v,
-    vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,
-    vector<vector<double>> & newconfs)
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs)
   {
     connectors.clear();
     newconfs.clear();

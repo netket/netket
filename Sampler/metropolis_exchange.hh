@@ -22,8 +22,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
 
 //Metropolis sampling generating local exchanges
 template<class WfType> class MetropolisExchange: public AbstractSampler<WfType>{
@@ -38,10 +36,10 @@ template<class WfType> class MetropolisExchange: public AbstractSampler<WfType>{
   netket::default_random_engine rgen_;
 
   //states of visible units
-  VectorXd v_;
+  Eigen::VectorXd v_;
 
-  VectorXd accept_;
-  VectorXd moves_;
+  Eigen::VectorXd accept_;
+  Eigen::VectorXd moves_;
 
   int mynode_;
   int totalnodes_;
@@ -85,15 +83,15 @@ public:
     Reset(true);
 
     if(mynode_==0){
-      cout<<"# Metropolis Exchange sampler is ready "<<endl;
-      cout<<"# "<<dmax<<" is the maximum distance for exchanges"<<endl;
+      std::cout<<"# Metropolis Exchange sampler is ready "<<std::endl;
+      std::cout<<"# "<<dmax<<" is the maximum distance for exchanges"<<std::endl;
     }
   }
 
   template<class G> void GenerateClusters(G & graph,int dmax){
     auto dist=graph.Distances();
 
-    assert(dist.size()==nv_);
+    assert(int(dist.size())==nv_);
 
     for(int i=0;i<nv_;i++){
       for(int j=0;j<nv_;j++){
@@ -106,7 +104,7 @@ public:
 
   void Seed(int baseseed=0){
     std::random_device rd;
-    vector<int> seeds(totalnodes_);
+    std::vector<int> seeds(totalnodes_);
 
     if(mynode_==0){
       for(int i=0;i<totalnodes_;i++){
@@ -129,22 +127,22 @@ public:
 
     psi_.InitLookup(v_,lt_);
 
-    accept_=VectorXd::Zero(1);
-    moves_=VectorXd::Zero(1);
+    accept_=Eigen::VectorXd::Zero(1);
+    moves_=Eigen::VectorXd::Zero(1);
   }
 
   void Sweep(){
 
-    vector<int> tochange(2);
+    std::vector<int> tochange(2);
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distcl(0,clusters_.size()-1);
 
-    vector<double> newconf(2);
+    std::vector<double> newconf(2);
 
     for(int i=0;i<nv_;i++){
 
       int rcl=distcl(rgen_);
-      assert(rcl<clusters_.size());
+      assert(rcl<int(clusters_.size()));
       int si=clusters_[rcl][0];
       int sj=clusters_[rcl][1];
 
@@ -170,11 +168,11 @@ public:
   }
 
 
-  VectorXd Visible(){
+  Eigen::VectorXd Visible(){
     return v_;
   }
 
-  void SetVisible(const VectorXd & v){
+  void SetVisible(const Eigen::VectorXd & v){
     v_=v;
   }
 
@@ -188,8 +186,8 @@ public:
     return hilbert_;
   }
 
-  VectorXd Acceptance()const{
-    VectorXd acc=accept_;
+  Eigen::VectorXd Acceptance()const{
+    Eigen::VectorXd acc=accept_;
     for(int i=0;i<1;i++){
       acc(i)/=moves_(i);
     }

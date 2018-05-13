@@ -23,9 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Restricted Boltzman Machine wave function
 //for generic (finite) local hilbert space
 template<typename T> class RbmMultival : public AbstractMachine<T>{
@@ -63,10 +60,10 @@ template<typename T> class RbmMultival : public AbstractMachine<T>{
 
   const Hilbert & hilbert_;
 
-  VectorXd localconfs_;
-  MatrixXd mask_;
+  Eigen::VectorXd localconfs_;
+  Eigen::MatrixXd mask_;
 
-  VectorXd vtilde_;
+  Eigen::VectorXd vtilde_;
 
   //local size of hilbert space
   int ls_;
@@ -79,7 +76,7 @@ public:
   using LookupType=typename AbstractMachine<T>::LookupType;
 
   //Json constructor
-  RbmMultival(const Hilbert & hilbert,const json & pars):
+  explicit RbmMultival(const Hilbert & hilbert,const json & pars):
     nv_(hilbert.Size()),
     hilbert_(hilbert),
     ls_(hilbert.LocalSize()){
@@ -139,10 +136,10 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# RBM Multival Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<endl;
-      cout<<"# Using visible bias = "<<usea_<<endl;
-      cout<<"# Using hidden bias  = "<<useb_<<endl;
-      cout<<"# Local size is      = "<<ls_<<endl;
+      std::cout<<"# RBM Multival Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<std::endl;
+      std::cout<<"# Using visible bias = "<<usea_<<std::endl;
+      std::cout<<"# Using hidden bias  = "<<useb_<<std::endl;
+      std::cout<<"# Local size is      = "<<ls_<<std::endl;
     }
   }
 
@@ -168,7 +165,7 @@ public:
   }
 
 
-  void InitLookup(const VectorXd & v,LookupType & lt){
+  void InitLookup(const Eigen::VectorXd & v,LookupType & lt){
     if(lt.VectorSize()==0){
       lt.AddVector(b_.size());
     }
@@ -178,8 +175,8 @@ public:
     ComputeTheta(v,lt.V(0));
   }
 
-  void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,LookupType & lt){
+  void UpdateLookup(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,LookupType & lt){
 
     if(tochange.size()!=0){
 
@@ -195,7 +192,7 @@ public:
     }
   }
 
-  VectorType DerLog(const VectorXd & v){
+  VectorType DerLog(const Eigen::VectorXd & v){
     VectorType der(npar_);
     der.setZero();
 
@@ -282,7 +279,7 @@ public:
   }
 
   //Value of the logarithm of the wave-function
-  T LogVal(const VectorXd & v){
+  T LogVal(const Eigen::VectorXd & v){
     ComputeTheta(v,thetas_);
     RbmSpin<T>::lncosh(thetas_,lnthetas_);
 
@@ -291,7 +288,7 @@ public:
 
   //Value of the logarithm of the wave-function
   //using pre-computed look-up tables for efficiency
-  T LogVal(const VectorXd & v,LookupType & lt){
+  T LogVal(const Eigen::VectorXd & v,LookupType & lt){
     RbmSpin<T>::lncosh(lt.V(0),lnthetas_);
 
     ComputeVtilde(v,vtilde_);
@@ -299,7 +296,9 @@ public:
   }
 
   //Difference between logarithms of values, when one or more visible variables are being changed
-  VectorType LogValDiff(const VectorXd & v,const vector<vector<int> >  & tochange,const vector<vector<double>> & newconf){
+  VectorType LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & tochange,
+    const std::vector<std::vector<double>> & newconf){
 
     const std::size_t nconn=tochange.size();
     VectorType logvaldiffs=VectorType::Zero(nconn);
@@ -337,8 +336,8 @@ public:
 
   //Difference between logarithms of values, when one or more visible variables are being changed
   //Version using pre-computed look-up tables for efficiency on a small number of local changes
-  T LogValDiff(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,const LookupType & lt){
+  T LogValDiff(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,const LookupType & lt){
 
     T logvaldiff=0.;
 
@@ -367,17 +366,17 @@ public:
   }
 
   //Computhes the values of the theta pseudo-angles
-  inline void ComputeTheta(const VectorXd &v,VectorType & theta){
+  inline void ComputeTheta(const Eigen::VectorXd &v,VectorType & theta){
     ComputeVtilde(v,vtilde_);
     theta=(W_.transpose()*vtilde_+b_);
   }
 
-  inline void ComputeVtilde(const VectorXd &v,VectorXd & vtilde){
+  inline void ComputeVtilde(const Eigen::VectorXd &v,Eigen::VectorXd & vtilde){
     auto t=(localconfs_.array()==(mask_*v).array());
     vtilde=t.template cast<double>();
   }
 
-  static void RandomGaussian(Matrix<double,Dynamic,1> & par,int seed,double sigma){
+  static void RandomGaussian(Eigen::Matrix<double,Eigen::Dynamic,1> & par,int seed,double sigma){
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0,sigma);
     for(int i=0;i<par.size();i++){
@@ -385,7 +384,7 @@ public:
     }
   }
 
-  static void RandomGaussian(Matrix<std::complex<double>,Dynamic,1> & par,int seed,double sigma){
+  static void RandomGaussian(Eigen::Matrix<std::complex<double>,Eigen::Dynamic,1> & par,int seed,double sigma){
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0,sigma);
     for(int i=0;i<par.size();i++){
@@ -413,7 +412,7 @@ public:
 
     if(pars.at("Machine").at("Name")!="RbmMultival"){
       if(mynode_==0){
-        cerr<<"# Error while constructing RbmMultival from Json input"<<endl;
+        std::cerr<<"# Error while constructing RbmMultival from Json input"<<std::endl;
       }
       std::abort();
     }
@@ -423,7 +422,7 @@ public:
     }
     if(nv_!=hilbert_.Size()){
       if(mynode_==0){
-        cerr<<"# Loaded wave-function has incompatible Hilbert space"<<endl;
+        std::cerr<<"# Loaded wave-function has incompatible Hilbert space"<<std::endl;
       }
       std::abort();
     }
@@ -433,7 +432,7 @@ public:
     }
     if(ls_!=hilbert_.LocalSize()){
       if(mynode_==0){
-        cerr<<"# Loaded wave-function has incompatible Hilbert space"<<endl;
+        std::cerr<<"# Loaded wave-function has incompatible Hilbert space"<<std::endl;
       }
       std::abort();
     }

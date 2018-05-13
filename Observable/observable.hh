@@ -35,30 +35,30 @@ public:
   Observable(const Hilbert & hilbert,const json & obspars){
 
       if(!FieldExists(obspars,"Operators")){
-        cerr<<"Observable's Operators not defined"<<endl;
+        std::cerr<<"Observable's Operators not defined"<<std::endl;
         std::abort();
       }
       if(!FieldExists(obspars,"ActingOn")){
-        cerr<<"Observable's ActingOn not defined"<<endl;
+        std::cerr<<"Observable's ActingOn not defined"<<std::endl;
         std::abort();
       }
       if(!FieldExists(obspars,"Name")){
-        cerr<<"Observable's Name not defined"<<endl;
+        std::cerr<<"Observable's Name not defined"<<std::endl;
         std::abort();
       }
 
       auto jop=obspars.at("Operators").get<std::vector<MatType>>();
-      auto sites=obspars.at("ActingOn").get<std::vector<vector<int>>>();
-      string name=obspars.at("Name");
+      auto sites=obspars.at("ActingOn").get<std::vector<std::vector<int>>>();
+      std::string name=obspars.at("Name");
 
       o_=Ptype(new CustomObservable(hilbert,jop,sites,name));
 
   }
 
-  void FindConn(const VectorXd & v,
-    vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,
-    vector<vector<double>> & newconfs)
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs)
   {
     return o_->FindConn(v,mel,connectors,newconfs);
   }

@@ -62,21 +62,21 @@ public:
   }
   // Custom API:
   MatrixReplacement() : shift_(0),scale_(1) {}
-  void attachMatrix(const MatrixXcd &mat) {
+  void attachMatrix(const Eigen::MatrixXcd &mat) {
     mp_mat_ = mat;
   }
-  void attachMatrix(const MatrixXd &mat) {
+  void attachMatrix(const Eigen::MatrixXd &mat) {
     mp_mat_ = mat;
   }
   void setShift(double shift){
     shift_=shift;
   }
-  MatrixXcd my_matrix() const { return mp_mat_; }
+  Eigen::MatrixXcd my_matrix() const { return mp_mat_; }
   double shift()const {return shift_; }
   void setScale(double scale){scale_=scale;}
   double getScale()const{return scale_;}
 private:
-  MatrixXcd mp_mat_;
+  Eigen::MatrixXcd mp_mat_;
   double shift_;
   double scale_;
 };
@@ -96,7 +96,7 @@ namespace internal {
       // This method should implement "dst += alpha * lhs * rhs" inplace,
 
       auto vtilde=lhs.my_matrix()*rhs;
-      VectorXcd res=lhs.my_matrix().adjoint()*vtilde;
+      Eigen::VectorXcd res=lhs.my_matrix().adjoint()*vtilde;
       netket::SumOnNodes(res);
 
       double nor= lhs.getScale();

@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /**
   Hilbert space for integer or half-integer spins.
   Notice that here integer values are always used to represent the local quantum
@@ -54,13 +51,13 @@ public:
     double S;
 
     if(!FieldExists(pars["Hilbert"],"Nspins")){
-      cerr<<"Nspins is not defined"<<endl;
+      std::cerr<<"Nspins is not defined"<<std::endl;
     }
 
     nspins=pars["Hilbert"]["Nspins"];
 
     if(!FieldExists(pars["Hilbert"],"S")){
-      cerr<<"S is not defined"<<endl;
+      std::cerr<<"S is not defined"<<std::endl;
     }
 
     S=pars["Hilbert"]["S"];
@@ -80,12 +77,12 @@ public:
     nspins_=nspins;
 
     if(S<=0){
-      cerr<<"Invalid spin value"<<endl;
+      std::cerr<<"Invalid spin value"<<std::endl;
       std::abort();
     }
 
     if(std::floor(2.*S) != 2.*S){
-      cerr<<"Spin value is hot integer or half integer"<<endl;
+      std::cerr<<"Spin value is hot integer or half integer"<<std::endl;
       std::abort();
     }
 
@@ -118,11 +115,13 @@ public:
     return nspins_;
   }
 
-  vector<double> LocalStates()const{
+  std::vector<double> LocalStates()const{
     return local_;
   }
 
-  void RandomVals(VectorXd & state,netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd & state,
+    netket::default_random_engine & rgen)const{
+
     std::uniform_int_distribution<int> distribution(0,nstates_-1);
 
     assert(state.size()==nspins_);
@@ -140,11 +139,11 @@ public:
         int ndown=nspins_-nup;
 
         if((nup-ndown)!=int(2*totalS_)){
-          cerr<<"#Cannot fix the total magnetization "<<endl;
+          std::cerr<<"#Cannot fix the total magnetization "<<std::endl;
           std::abort();
         }
 
-        vector<double> vect(nspins_);
+        std::vector<double> vect(nspins_);
 
         for(int i=0;i<nup;i++){
           vect[i]=+1.;
@@ -162,7 +161,7 @@ public:
         return;
       }
       else{
-        vector<int> sites;
+        std::vector<int> sites;
         for(int i=0; i<nspins_; ++i) sites.push_back(i);
 
         state.setConstant(-2*S_);
@@ -182,8 +181,9 @@ public:
     }
   }
 
-  void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const{
 
     assert(v.size()==nspins_);
 

@@ -237,8 +237,8 @@ public:
     return 0.5*(std::pow(erbinned/erunbinned,2.)-1.);
   }
 
-  VectorXd TauCorrOp(const VectorXd & erbinned,const VectorXd & erunbinned)const{
-    VectorXd result(erbinned.size());
+  Eigen::VectorXd TauCorrOp(const Eigen::VectorXd & erbinned,const Eigen::VectorXd & erunbinned)const{
+    Eigen::VectorXd result(erbinned.size());
 
     for(int i=0;i<result.size();i++){
       result(i)=0.5*(std::pow(erbinned(i)/erunbinned(i),2.)-1.);
@@ -246,8 +246,8 @@ public:
     return result;
   }
 
-  template<class P> vector<P> TauCorrOp(const vector<P> & erbinned,const vector<P> & erunbinned)const{
-    vector<P> result(erbinned.size());
+  template<class P> std::vector<P> TauCorrOp(const std::vector<P> & erbinned,const std::vector<P> & erunbinned)const{
+    std::vector<P> result(erbinned.size());
 
     for(int i=0;i<result.size();i++){
       result[i]=0.5*(std::pow(erbinned[i]/erunbinned[i],2.)-1.);
@@ -255,7 +255,7 @@ public:
     return result;
   }
 
-  template<class P> valarray<P> TauCorrOp(const valarray<P> & erbinned,const valarray<P> & erunbinned)const{
+  template<class P> std::valarray<P> TauCorrOp(const std::valarray<P> & erbinned,const std::valarray<P> & erunbinned)const{
     return 0.5*(std::pow(erbinned/erunbinned,2.)-1.);
   }
 
@@ -263,8 +263,8 @@ public:
     return std::sqrt(sigma2)/(double(nproc_));
   }
 
-  VectorXd EoMeanOp(const VectorXd & sigma2)const{
-    VectorXd result(sigma2.size());
+  Eigen::VectorXd EoMeanOp(const Eigen::VectorXd & sigma2)const{
+    Eigen::VectorXd result(sigma2.size());
 
     for(int i=0;i<result.size();i++){
       result(i)=EoMeanOp(sigma2(i));
@@ -272,8 +272,8 @@ public:
     return result;
   }
 
-  template<class P> vector<P> EoMeanOp(const vector<P> & sigma2)const{
-    vector<P> result(sigma2.size());
+  template<class P> std::vector<P> EoMeanOp(const std::vector<P> & sigma2)const{
+    std::vector<P> result(sigma2.size());
 
     for(int i=0;i<result.size();i++){
       result[i]=EoMeanOp(sigma2(i));
@@ -281,7 +281,7 @@ public:
     return result;
   }
 
-  template<class P> valarray<P> EoMeanOp(const valarray<P> & sigma2)const{
+  template<class P> std::valarray<P> EoMeanOp(const std::valarray<P> & sigma2)const{
     return std::sqrt(sigma2)/(double(nproc_));
   }
 
@@ -289,8 +289,8 @@ public:
     return sigma2*sigma2;
   }
 
-  VectorXd Sigma2Op(const VectorXd & sigma2)const{
-    VectorXd result(sigma2.size());
+  Eigen::VectorXd Sigma2Op(const Eigen::VectorXd & sigma2)const{
+    Eigen::VectorXd result(sigma2.size());
 
     for(int i=0;i<result.size();i++){
       result(i)=Sigma2Op(sigma2(i));
@@ -298,8 +298,8 @@ public:
     return result;
   }
 
-  template<class P> vector<P> Sigma2Op(const vector<P> & sigma2)const{
-    vector<P> result(sigma2.size());
+  template<class P> std::vector<P> Sigma2Op(const std::vector<P> & sigma2)const{
+    std::vector<P> result(sigma2.size());
 
     for(int i=0;i<result.size();i++){
       result[i]=Sigma2Op(sigma2(i));
@@ -307,7 +307,7 @@ public:
     return result;
   }
 
-  template<class P> valarray<P> Sigma2Op(const valarray<P> & sigma2)const{
+  template<class P> std::valarray<P> Sigma2Op(const std::valarray<P> & sigma2)const{
     return sigma2*sigma2;
   }
 };

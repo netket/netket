@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /**
   User-Define Hilbert space
 */
@@ -47,18 +44,18 @@ public:
       local_=pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
     }
     else{
-      cerr<<"QuantumNumbers are not defined"<<endl;
+      std::cerr<<"QuantumNumbers are not defined"<<std::endl;
     }
 
     if(FieldExists(pars["Hilbert"],"Size")){
       size_=pars["Hilbert"]["Size"];
       if(size_<=0){
-        cerr<<"Hilbert Size parameter must be positive"<<endl;
+        std::cerr<<"Hilbert Size parameter must be positive"<<std::endl;
         std::abort();
       }
     }
     else{
-      cerr<<"Hilbert space extent is not defined"<<endl;
+      std::cerr<<"Hilbert space extent is not defined"<<std::endl;
     }
 
     nstates_=local_.size();
@@ -76,11 +73,12 @@ public:
     return size_;
   }
 
-  vector<double> LocalStates()const{
+  std::vector<double> LocalStates()const{
     return local_;
   }
 
-  void RandomVals(VectorXd & state,netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd & state,
+    netket::default_random_engine & rgen)const{
     std::uniform_int_distribution<int> distribution(0,nstates_-1);
 
     assert(state.size()==size_);
@@ -92,8 +90,9 @@ public:
 
   }
 
-  void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const{
 
     assert(v.size()==size_);
 

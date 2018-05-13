@@ -22,9 +22,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Metropolis sampling generating local changes
 //Parallel tempering is also used
 template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
@@ -40,10 +37,10 @@ template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
 
   //states of visible units
   //for each sampled temperature
-  std::vector<VectorXd> v_;
+  std::vector<Eigen::VectorXd> v_;
 
-  VectorXd accept_;
-  VectorXd moves_;
+  Eigen::VectorXd accept_;
+  Eigen::VectorXd moves_;
 
   int mynode_;
   int totalnodes_;
@@ -56,10 +53,10 @@ template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
 
   int nrep_;
 
-  vector<double> beta_;
+  std::vector<double> beta_;
 
   int nstates_;
-  vector<double> localstates_;
+  std::vector<double> localstates_;
 
 public:
 
@@ -92,8 +89,8 @@ public:
     SetNreplicas(nrep_);
 
     if(mynode_==0){
-      cout<<"# Metropolis sampler with parallel tempering is ready "<<endl;
-      cout<<"# Nreplicas is equal to "<<nrep_<<endl;
+      std::cout<<"# Metropolis sampler with parallel tempering is ready "<<std::endl;
+      std::cout<<"# Nreplicas is equal to "<<nrep_<<std::endl;
     }
   }
 
@@ -121,7 +118,7 @@ public:
 
   void Seed(int baseseed=0){
     std::random_device rd;
-    vector<int> seeds(totalnodes_);
+    std::vector<int> seeds(totalnodes_);
 
     if(mynode_==0){
       for(int i=0;i<totalnodes_;i++){
@@ -147,15 +144,15 @@ public:
       psi_.InitLookup(v_[i],lt_[i]);
     }
 
-    accept_=VectorXd::Zero(2*nrep_);
-    moves_=VectorXd::Zero(2*nrep_);
+    accept_=Eigen::VectorXd::Zero(2*nrep_);
+    moves_=Eigen::VectorXd::Zero(2*nrep_);
   }
 
 
   //Exchange sweep at given temperature
   void LocalSweep(int rep){
-    vector<int> tochange(1);
-    vector<double> newconf(1);
+    std::vector<int> tochange(1);
+    std::vector<double> newconf(1);
 
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distrs(0,nv_-1);
@@ -253,11 +250,11 @@ public:
     std::swap(lt_[r1],lt_[r2]);
   }
 
-  VectorXd Visible(){
+  Eigen::VectorXd Visible(){
     return v_[0];
   }
 
-  void SetVisible(const VectorXd & v){
+  void SetVisible(const Eigen::VectorXd & v){
     v_[0]=v;
   }
 
@@ -266,8 +263,8 @@ public:
     return psi_;
   }
 
-  VectorXd Acceptance()const{
-    VectorXd acc=accept_;
+  Eigen::VectorXd Acceptance()const{
+    Eigen::VectorXd acc=accept_;
     for(int i=0;i<acc.size();i++){
       acc(i)/=moves_(i);
     }

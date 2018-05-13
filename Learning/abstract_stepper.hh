@@ -24,11 +24,11 @@ namespace netket{
 class AbstractStepper{
 public:
 
-  virtual void Init(const VectorXd & pars)=0;
-  virtual void Init(const VectorXcd & pars)=0;
-  virtual void Update(const VectorXd & grad,VectorXd & pars)=0;
-  virtual void Update(const VectorXcd & grad,VectorXd & pars)=0;
-  virtual void Update(const VectorXcd & grad,VectorXcd & pars)=0;
+  virtual void Init(const Eigen::VectorXd & pars)=0;
+  virtual void Init(const Eigen::VectorXcd & pars)=0;
+  virtual void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars)=0;
+  virtual void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars)=0;
+  virtual void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars)=0;
   virtual void Reset()=0;
 };
 }

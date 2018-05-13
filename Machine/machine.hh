@@ -43,21 +43,21 @@ public:
   using LookupType=typename AbstractMachine<T>::LookupType;
 
 
-  Machine(const Hilbert & hilbert,const json & pars):
+  explicit Machine(const Hilbert & hilbert,const json & pars):
     hilbert_(hilbert){
     CheckInput(pars);
     Init(hilbert_,pars);
     InitParameters(pars);
   }
 
-  Machine(const Hamiltonian & hamiltonian,const json & pars):
+  explicit Machine(const Hamiltonian & hamiltonian,const json & pars):
     hilbert_(hamiltonian.GetHilbert()){
     CheckInput(pars);
     Init(hilbert_,pars);
     InitParameters(pars);
   }
 
-  Machine(const Graph & graph,const Hilbert & hilbert,const json & pars):
+  explicit Machine(const Graph & graph,const Hilbert & hilbert,const json & pars):
     hilbert_(hilbert){
     CheckInput(pars);
     Init(hilbert_,pars);
@@ -65,7 +65,7 @@ public:
     InitParameters(pars);
   }
 
-  Machine(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
+  explicit Machine(const Graph & graph,const Hamiltonian & hamiltonian,const json & pars):
     hilbert_(hamiltonian.GetHilbert()){
     CheckInput(pars);
     Init(hilbert_,pars);
@@ -96,7 +96,7 @@ public:
       double sigma_rand=FieldOrDefaultVal(pars["Machine"],"SigmaRand",0.1);
       m_->InitRandomPars(1232,sigma_rand);
       if(mynode==0)
-      cout<<"# Machine initialized with random parameters"<<endl;
+      std::cout<<"# Machine initialized with random parameters"<<std::endl;
     }
 
     if(FieldExists(pars["Machine"],"InitFile")){
@@ -111,12 +111,12 @@ public:
       }
       else{
         if(mynode==0)
-        std::cerr<< "Error opening file : "<<filename<<endl;
+        std::cerr<< "Error opening file : "<<filename<<std::endl;
         std::abort();
       }
 
       if(mynode==0)
-      cout<<"# Machine initialized from file: "<<filename<<endl;
+      std::cout<<"# Machine initialized from file: "<<filename<<std::endl;
     }
   }
 
@@ -161,24 +161,25 @@ public:
   }
 
   //Initializes Lookup tables
-  void InitLookup(const VectorXd & v,LookupType & lt){
+  void InitLookup(const Eigen::VectorXd & v,LookupType & lt){
     return m_->InitLookup(v,lt);
   }
 
   //Updates Lookup tables
-  void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,LookupType & lt){
+  void UpdateLookup(const Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,LookupType & lt){
 
     return m_->UpdateLookup(v,tochange,newconf,lt);
   }
 
-  VectorType DerLog(const VectorXd & v){
+  VectorType DerLog(const Eigen::VectorXd & v){
     return m_->DerLog(v);
   }
 
-  MatrixType DerLogDiff(const VectorXd & v,
-    const vector<vector<int> >  & toflip,
-    const vector<vector<double>> & newconf){
+  MatrixType DerLogDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & toflip,
+    const std::vector<std::vector<double>> & newconf){
 
     return m_->DerLogDiff(v,toflip,newconf);
   }
@@ -192,28 +193,30 @@ public:
   }
 
   //Value of the logarithm of the wave-function
-  T LogVal(const VectorXd & v){
+  T LogVal(const Eigen::VectorXd & v){
     return m_->LogVal(v);
   }
 
   //Value of the logarithm of the wave-function
   //using pre-computed look-up tables for efficiency
-  T LogVal(const VectorXd & v,LookupType & lt){
+  T LogVal(const Eigen::VectorXd & v,LookupType & lt){
     return m_->LogVal(v,lt);
   }
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
-  VectorType LogValDiff(const VectorXd & v,
-    const vector<vector<int> >  & toflip,
-    const vector<vector<double>> & newconf){
+  VectorType LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & toflip,
+    const std::vector<std::vector<double>> & newconf){
 
     return m_->LogValDiff(v,toflip,newconf);
   }
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
   //Version using pre-computed look-up tables for efficiency on a small number of spin flips
-  T LogValDiff(const VectorXd & v,const vector<int>  & toflip,
-      const vector<double> & newconf,const LookupType & lt){
+  T LogValDiff(const Eigen::VectorXd & v,
+      const std::vector<int>  & toflip,
+      const std::vector<double> & newconf,
+      const LookupType & lt){
 
     return m_->LogValDiff(v,toflip,newconf,lt);
   }

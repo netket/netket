@@ -23,8 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
 
 class Sgd: public AbstractStepper{
 
@@ -57,16 +55,16 @@ public:
     SetDecayFactor(FieldOrDefaultVal(pars["Learning"],"DecayFactor",1.0));
   }
 
-  void Init(const VectorXd & pars){
+  void Init(const Eigen::VectorXd & pars){
     npar_=pars.size();
   }
 
-  void Init(const VectorXcd & pars){
+  void Init(const Eigen::VectorXcd & pars){
 
     npar_=2*pars.size();
   }
 
-  void Update(const VectorXd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
     assert(npar_>0);
 
     eta_*=decay_factor_;
@@ -76,11 +74,11 @@ public:
     }
   }
 
-  void Update(const VectorXcd & grad,VectorXd & pars){
-    Update(VectorXd(grad.real()),pars);
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars){
+    Update(Eigen::VectorXd(grad.real()),pars);
   }
 
-  void Update(const VectorXcd & grad,VectorXcd & pars){
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars){
 
     eta_*=decay_factor_;
 

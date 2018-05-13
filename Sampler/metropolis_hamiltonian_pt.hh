@@ -23,8 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
 
 //Metropolis sampling generating transitions using the Hamiltonian
 template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSampler<WfType>{
@@ -41,11 +39,11 @@ template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSam
   netket::default_random_engine rgen_;
 
   //states of visible units
-  std::vector<VectorXd> v_;
-  VectorXd v1_;
+  std::vector<Eigen::VectorXd> v_;
+  Eigen::VectorXd v1_;
 
-  VectorXd accept_;
-  VectorXd moves_;
+  Eigen::VectorXd accept_;
+  Eigen::VectorXd moves_;
 
   int mynode_;
   int totalnodes_;
@@ -53,16 +51,16 @@ template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSam
   //Look-up tables
   std::vector<typename WfType::LookupType> lt_;
 
-  vector<vector<int>> tochange_;
-  vector<vector<double>> newconfs_;
-  vector<std::complex<double>> mel_;
+  std::vector<std::vector<int>> tochange_;
+  std::vector<std::vector<double>> newconfs_;
+  std::vector<std::complex<double>> mel_;
 
-  vector<vector<int>> tochange1_;
-  vector<vector<double>> newconfs1_;
-  vector<std::complex<double>> mel1_;
+  std::vector<std::vector<int>> tochange1_;
+  std::vector<std::vector<double>> newconfs1_;
+  std::vector<std::complex<double>> mel1_;
 
   const int nrep_;
-  vector<double> beta_;
+  std::vector<double> beta_;
 
 public:
 
@@ -85,7 +83,7 @@ public:
 
     if(!hilbert_.IsDiscrete()){
       if(mynode_==0){
-        cerr<<"# Hamiltonian Metropolis sampler works only for discrete Hilbert spaces"<<endl;
+        std::cerr<<"# Hamiltonian Metropolis sampler works only for discrete Hilbert spaces"<<std::endl;
       }
       std::abort();
     }
@@ -110,14 +108,14 @@ public:
 
 
     if(mynode_==0){
-      cout<<"# Hamiltonian Metropolis sampler with parallel tempering is ready "<<endl;
-      cout<<"# "<<nrep_<<" replicas are being used"<<endl;
+      std::cout<<"# Hamiltonian Metropolis sampler with parallel tempering is ready "<<std::endl;
+      std::cout<<"# "<<nrep_<<" replicas are being used"<<std::endl;
     }
   }
 
   void Seed(int baseseed=0){
     std::random_device rd;
-    vector<int> seeds(totalnodes_);
+    std::vector<int> seeds(totalnodes_);
 
     if(mynode_==0){
       for(int i=0;i<totalnodes_;i++){
@@ -142,8 +140,8 @@ public:
       psi_.InitLookup(v_[i],lt_[i]);
     }
 
-    accept_=VectorXd::Zero(2*nrep_);
-    moves_=VectorXd::Zero(2*nrep_);
+    accept_=Eigen::VectorXd::Zero(2*nrep_);
+    moves_=Eigen::VectorXd::Zero(2*nrep_);
   }
 
   void LocalSweep(int rep){
@@ -241,11 +239,11 @@ public:
   }
 
 
-  VectorXd Visible(){
+  Eigen::VectorXd Visible(){
     return v_[0];
   }
 
-  void SetVisible(const VectorXd & v){
+  void SetVisible(const Eigen::VectorXd & v){
     v_[0]=v;
   }
 
@@ -258,8 +256,8 @@ public:
     return hilbert_;
   }
 
-  VectorXd Acceptance()const{
-    VectorXd acc=accept_;
+  Eigen::VectorXd Acceptance()const{
+    Eigen::VectorXd acc=accept_;
     for(int i=0;i<1;i++){
       acc(i)/=moves_(i);
     }

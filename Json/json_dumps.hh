@@ -21,7 +21,7 @@
 
 namespace Eigen{
 
-  template<class T> void to_json(json &j,const Matrix<T, Dynamic, 1> & v){
+  template<class T> void to_json(json &j,const Matrix<T, Eigen::Dynamic, 1> & v){
     std::vector<T> temp(v.size());
     for(std::size_t i=0;i<std::size_t(v.size());i++){
       temp[i]=v(i);
@@ -29,7 +29,7 @@ namespace Eigen{
     j=json(temp);
   }
 
-  template<class T> void from_json(const json& j, Matrix<T, Dynamic, 1> & v) {
+  template<class T> void from_json(const json& j, Matrix<T, Eigen::Dynamic, 1> & v) {
     std::vector<T> temp=j.get<std::vector<T>>();
     v.resize(temp.size());
     for(std::size_t i=0;i<temp.size();i++){
@@ -37,7 +37,7 @@ namespace Eigen{
     }
   }
 
-  template<class T> void to_json(json &j,const Matrix<T, Dynamic, Dynamic> & v){
+  template<class T> void to_json(json &j,const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v){
     std::vector<std::vector<T>> temp(v.rows());
     for(std::size_t i=0;i<std::size_t(v.rows());i++){
       temp[i].resize(v.cols());
@@ -48,7 +48,7 @@ namespace Eigen{
     j=json(temp);
   }
 
-  template<class T> void from_json(const json& j, Matrix<T, Dynamic, Dynamic> & v) {
+  template<class T> void from_json(const json& j, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v) {
     std::vector<std::vector<T>> temp=j.get<std::vector<std::vector<T>>>();
 
     if(temp[0].size()==0){

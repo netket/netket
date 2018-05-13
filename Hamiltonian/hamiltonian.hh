@@ -35,7 +35,7 @@ public:
   Hamiltonian(const Graph & graph,const json & pars){
 
     if(!FieldExists(pars,"Hamiltonian")){
-      cerr<<"Hamiltonian is not defined in the input"<<endl;
+      std::cerr<<"Hamiltonian is not defined in the input"<<std::endl;
       std::abort();
     }
 
@@ -50,7 +50,7 @@ public:
         h_=Ptype(new BoseHubbard<Graph>(graph,pars));
       }
       else{
-        cout<<"Hamiltonian name not found"<<endl;
+        std::cout<<"Hamiltonian name not found"<<std::endl;
         std::abort();
       }
     }
@@ -59,10 +59,10 @@ public:
     }
   }
 
-  void FindConn(const VectorXd & v,
-    vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,
-    vector<vector<double>> & newconfs)
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs)
   {
       return h_->FindConn(v,mel,connectors,newconfs);
   }

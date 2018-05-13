@@ -30,12 +30,12 @@ public:
   Learning(const json & pars){
 
     if(!FieldExists(pars,"Learning")){
-      cerr<<"Learning field is not defined in the input"<<endl;
+      std::cerr<<"Learning field is not defined in the input"<<std::endl;
       std::abort();
     }
 
     if(!FieldExists(pars["Learning"],"Method")){
-      cerr<<"Learning Method is not defined in the input"<<endl;
+      std::cerr<<"Learning Method is not defined in the input"<<std::endl;
       std::abort();
     }
 
@@ -55,8 +55,8 @@ public:
       GroundState le(hamiltonian,sampler,stepper,pars);
     }
     else{
-      cout<<"Learning method not found"<<endl;
-      cout<<pars["Learning"]["Method"]<<endl;
+      std::cout<<"Learning method not found"<<std::endl;
+      std::cout<<pars["Learning"]["Method"]<<std::endl;
       std::abort();
     }
   }

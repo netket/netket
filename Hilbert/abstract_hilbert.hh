@@ -56,7 +56,7 @@ public:
   the local quantum numbers are continous, the vector contains lower and higher
   bounds for the local quantum numbers.
   */
-  virtual vector<double> LocalStates()const=0;
+  virtual std::vector<double> LocalStates()const=0;
 
   /**
   Member function generating uniformely distributed local random states
@@ -64,7 +64,7 @@ public:
   the random state.
   @param rgen the random number generator to be used
   */
-  virtual void RandomVals(VectorXd & state,
+  virtual void RandomVals(Eigen::VectorXd & state,
     netket::default_random_engine & rgen)const=0;
 
   /**
@@ -74,8 +74,9 @@ public:
   @param tochange contains a list of which quantum numbers are to be modified.
   @param newconf contains the value that those quantum numbers should take
   */
-  virtual void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const=0;
+  virtual void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const=0;
 
 };
 

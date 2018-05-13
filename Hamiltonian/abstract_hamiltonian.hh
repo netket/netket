@@ -45,10 +45,10 @@ public:
   affected sites, such that: v'(k,connectors(k,j))=newconfs(k,j). For the other
   sites v'(k)=v, i.e. they are equal to the starting visible configuration.
   */
-  virtual void FindConn(const VectorXd & v,
-    vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,
-    vector<vector<double>> & newconfs)=0;
+  virtual void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs)=0;
 
   /**
   Member function returning the hilbert space associated with this Hamiltonian.

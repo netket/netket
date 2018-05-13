@@ -23,10 +23,10 @@ template<class WfType> class AbstractSampler{
 public:
   virtual void Reset(bool initrandom)=0;
   virtual void Sweep()=0;
-  virtual VectorXd Visible()=0;
-  virtual void SetVisible(const VectorXd & v)=0;
+  virtual Eigen::VectorXd Visible()=0;
+  virtual void SetVisible(const Eigen::VectorXd & v)=0;
   virtual WfType & Psi()=0;
-  virtual VectorXd Acceptance()const=0;
+  virtual Eigen::VectorXd Acceptance()const=0;
 
 };
 

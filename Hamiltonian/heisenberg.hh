@@ -22,9 +22,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Heisenberg model on an arbitrary graph
 template<class G> class Heisenberg: public AbstractHamiltonian{
 
@@ -84,7 +81,7 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# Heisenberg model created "<<endl;
+      std::cout<<"# Heisenberg model created "<<std::endl;
     }
   }
 
@@ -112,8 +109,11 @@ public:
     }
   }
 
-  void FindConn(const VectorXd & v,vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,vector<vector<double>> & newconfs){
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs){
+      
     connectors.clear();
     connectors.resize(1);
     newconfs.clear();

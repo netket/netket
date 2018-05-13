@@ -30,9 +30,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Learning schemes for the ground state
 //Available methods:
 //1) Stochastic reconfiguration optimizer
@@ -42,27 +39,27 @@ class GroundState {
 
   using GsType=std::complex<double>;
 
-  using VectorT=Matrix<typename Machine<GsType>::StateType, Dynamic, 1 > ;
-  using MatrixT=Matrix<typename Machine<GsType>::StateType, Dynamic, Dynamic > ;
+  using VectorT=Eigen::Matrix<typename Machine<GsType>::StateType, Eigen::Dynamic, 1 > ;
+  using MatrixT=Eigen::Matrix<typename Machine<GsType>::StateType, Eigen::Dynamic, Eigen::Dynamic > ;
 
   Hamiltonian & ham_;
   Sampler<Machine<GsType>> & sampler_;
   Machine<GsType> & psi_;
 
-  vector<vector<int>> connectors_;
-  vector<vector<double>> newconfs_;
-  vector<std::complex<double> > mel_;
+  std::vector<std::vector<int>> connectors_;
+  std::vector<std::vector<double>> newconfs_;
+  std::vector<std::complex<double> > mel_;
 
-  VectorXcd elocs_;
+  Eigen::VectorXcd elocs_;
   MatrixT Ok_;
   VectorT Okmean_;
 
-  MatrixXd vsamp_;
+  Eigen::MatrixXd vsamp_;
 
-  VectorXcd grad_;
-  VectorXcd gradprev_;
+  Eigen::VectorXcd grad_;
+  Eigen::VectorXcd gradprev_;
 
-  complex<double> elocmean_;
+  std::complex<double> elocmean_;
   double elocvar_;
   int npar_;
 
@@ -75,8 +72,8 @@ class GroundState {
   int totalnodes_;
   int mynode_;
 
-  ofstream filelog_;
-  string filewfname_;
+  std::ofstream filelog_;
+  std::string filewfname_;
   double freqbackup_;
 
   Stepper & opt_;
@@ -116,13 +113,13 @@ public:
 
     if(mynode_==0){
       if(dosr_){
-        cout<<"# Using the Stochastic reconfiguration method"<<endl;
+        std::cout<<"# Using the Stochastic reconfiguration method"<<std::endl;
         if(use_iterative_){
-          cout<<"# With iterative solver"<<endl;
+          std::cout<<"# With iterative solver"<<std::endl;
         }
       }
       else{
-        cout<<"# Using a gradient-descent based method"<<endl;
+        std::cout<<"# Using a gradient-descent based method"<<std::endl;
       }
     }
 
@@ -155,7 +152,7 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# Learning running on "<<totalnodes_<<" processes"<<endl;
+      std::cout<<"# Learning running on "<<totalnodes_<<" processes"<<std::endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
@@ -175,11 +172,11 @@ public:
 
   //Sets the name of the files on which the logs and the wave-function parameters are saved
   //the wave-function is saved every freq steps
-  void SetOutName(const string & filebase, double freq=50){
-    filelog_.open(filebase+string(".log"));
+  void SetOutName(const std::string & filebase, double freq=50){
+    filelog_.open(filebase+std::string(".log"));
     freqbackup_=freq;
 
-    filewfname_=filebase+string(".wf");
+    filewfname_=filebase+std::string(".wf");
   }
 
   void Gradient(){
@@ -215,7 +212,7 @@ public:
 
     Ok_=Ok_.rowwise()-Okmean_.transpose();
 
-    elocs_-=elocmean_*VectorXd::Ones(nsamp);
+    elocs_-=elocmean_*Eigen::VectorXd::Ones(nsamp);
 
     for(int i=0;i<nsamp;i++){
       obsmanager_.Push("EnergyVariance",std::norm(elocs_(i)));
@@ -230,7 +227,7 @@ public:
   }
 
 
-  std::complex<double> Eloc(const VectorXd & v){
+  std::complex<double> Eloc(const Eigen::VectorXd & v){
 
     ham_.FindConn(v,mel_,connectors_,newconfs_);
 
@@ -238,7 +235,7 @@ public:
 
     auto logvaldiffs=(psi_.LogValDiff(v,connectors_,newconfs_));
 
-    assert(mel_.size()==logvaldiffs.size());
+    assert(mel_.size()==std::size_t(logvaldiffs.size()));
 
     std::complex<double> eloc=0;
 
@@ -249,14 +246,14 @@ public:
     return eloc;
   }
 
-  double ObSamp(Observable & ob,const VectorXd & v){
+  double ObSamp(Observable & ob,const Eigen::VectorXd & v){
     ob.FindConn(v,mel_,connectors_,newconfs_);
 
     assert(connectors_.size()==mel_.size());
 
     auto logvaldiffs=(psi_.LogValDiff(v,connectors_,newconfs_));
 
-    assert(mel_.size()==logvaldiffs.size());
+    assert(mel_.size()==std::size_t(logvaldiffs.size()));
 
     std::complex<double> obval=0;
 
@@ -300,31 +297,31 @@ public:
 
       const int nsamp=vsamp_.rows();
 
-      VectorXcd b=Ok_.adjoint()*elocs_;
+      Eigen::VectorXcd b=Ok_.adjoint()*elocs_;
       SumOnNodes(b);
       b/=double(nsamp*totalnodes_);
 
       if(!use_iterative_){
 
         //Explicit construction of the S matrix
-        MatrixXcd S=Ok_.adjoint()*Ok_;
+        Eigen::MatrixXcd S=Ok_.adjoint()*Ok_;
         SumOnNodes(S);
         S/=double(nsamp*totalnodes_);
 
         //Adding diagonal shift
-        S+=MatrixXd::Identity(pars.size(),pars.size())*sr_diag_shift_;
+        S+=Eigen::MatrixXd::Identity(pars.size(),pars.size())*sr_diag_shift_;
 
-        FullPivHouseholderQR<MatrixXcd> qr(S.rows(), S.cols());
+        Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
         qr.setThreshold(1.0e-6);
         qr.compute(S);
-        const VectorXcd deltaP=qr.solve(b);
-        // VectorXcd deltaP=S.jacobiSvd(ComputeThinU | ComputeThinV).solve(b);
+        const Eigen::VectorXcd deltaP=qr.solve(b);
+        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU | ComputeThinV).solve(b);
 
         assert(deltaP.size()==grad_.size());
         grad_=deltaP;
 
         if(sr_rescale_shift_){
-          complex<double> nor=(deltaP.dot(S*deltaP));
+          std::complex<double> nor=(deltaP.dot(S*deltaP));
           grad_/=std::sqrt(nor.real());
         }
 
@@ -348,7 +345,7 @@ public:
         }
 
         // if(mynode_==0){
-        //   cerr<<it_solver.iterations()<<"  "<<it_solver.error()<<endl;
+        //   std::cerr<<it_solver.iterations()<<"  "<<it_solver.error()<<std::endl;
         // }
         MPI_Barrier(MPI_COMM_WORLD);
       }
@@ -374,10 +371,10 @@ public:
         long pos = filelog_.tellp();
         filelog_.seekp(pos - 3);
         filelog_.write(",  ",3);
-        filelog_<<jiter<< "]}"<<endl;
+        filelog_<<jiter<< "]}"<<std::endl;
       }
       else {
-        filelog_<<outputjson_ <<endl;
+        filelog_<<outputjson_ <<std::endl;
       }
     }
 

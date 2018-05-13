@@ -32,8 +32,8 @@ template<typename T> class AbstractMachine{
 
 public:
 
-  using VectorType=Matrix<T,Dynamic,1>;
-  using MatrixType=Matrix<T,Dynamic,Dynamic>;
+  using VectorType=Eigen::Matrix<T,Eigen::Dynamic,1>;
+  using MatrixType=Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic>;
   using StateType=T;
   using LookupType=Lookup<T>;
 
@@ -77,7 +77,7 @@ public:
   @param v a constant reference to a visible configuration.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(const VectorXd & v)=0;
+  virtual T LogVal(const Eigen::VectorXd & v)=0;
 
   /**
   Member function computing the logarithm of the wave function for a given visible vector.
@@ -88,7 +88,7 @@ public:
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(const VectorXd & v,LookupType & lt)=0;
+  virtual T LogVal(const Eigen::VectorXd & v,LookupType & lt)=0;
 
   /**
   Member function initializing the look-up tables.
@@ -101,7 +101,7 @@ public:
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual void InitLookup(const VectorXd & v,LookupType & lt)=0;
+  virtual void InitLookup(const Eigen::VectorXd & v,LookupType & lt)=0;
 
   /**
   Member function updating the look-up tables.
@@ -118,8 +118,8 @@ public:
   here newconf(i)=v'(tochange(i)), where v' is the new visible state.
   @param lt a reference to the look-up table to be updated.
   */
-  virtual void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,LookupType & lt)=0;
+  virtual void UpdateLookup(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,LookupType & lt)=0;
 
   /**
   Member function computing the difference between the logarithm of the wave-function
@@ -130,9 +130,9 @@ public:
   here for each v', newconf(i)=v'(tochange(i)), where v' is the new visible state.
   @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
   */
-  virtual VectorType LogValDiff(const VectorXd & v,
-    const vector<vector<int> >  & tochange,
-    const vector<vector<double>> & newconf)=0;
+  virtual VectorType LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & tochange,
+    const std::vector<std::vector<double>> & newconf)=0;
 
   /**
   Member function computing the difference between the logarithm of the wave-function
@@ -145,8 +145,8 @@ public:
   @param lt a constant eference to the look-up table.
   @return The value of log(Psi(v')) - log(Psi(v))
   */
-  virtual T LogValDiff(const VectorXd & v,const vector<int>  & toflip,
-      const vector<double> & newconf,const LookupType & lt)=0;
+  virtual T LogValDiff(const Eigen::VectorXd & v,const std::vector<int>  & toflip,
+      const std::vector<double> & newconf,const LookupType & lt)=0;
 
 
 
@@ -155,13 +155,13 @@ public:
   @param v a constant reference to a visible configuration.
   @return Derivatives of the logarithm of the wave function with respect to the set of parameters.
   */
-  virtual VectorType DerLog(const VectorXd & v)=0;    
+  virtual VectorType DerLog(const Eigen::VectorXd & v)=0;
 
   virtual void to_json(json &j)const=0;
   virtual void from_json(const json&j)=0;
 
   void Save(std::string filename)const{
-    ofstream filewf(filename);
+    std::ofstream filewf(filename);
 
     json j;
     to_json(j);

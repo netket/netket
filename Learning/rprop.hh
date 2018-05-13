@@ -23,8 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
 
 class Rprop{
 
@@ -34,8 +32,8 @@ class Rprop{
 
   int npar_;
 
-  VectorXd oldgrad_;
-  VectorXd delta_;
+  Eigen::VectorXd oldgrad_;
+  Eigen::VectorXd delta_;
 
   double deltamin_;
   double deltamax_;
@@ -52,13 +50,13 @@ public:
     npar_=npar;
 
     oldgrad_.resize(npar_);
-    oldgrad_=VectorXd::Ones(npar_);
+    oldgrad_=Eigen::VectorXd::Ones(npar_);
     delta_.resize(npar_);
-    delta_=delta0_*VectorXd::Ones(npar_);
+    delta_=delta0_*Eigen::VectorXd::Ones(npar_);
 
   }
 
-  void Update(const VectorXd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
     assert(npar_>0);
     double normgrad=1./std::sqrt(grad.norm());
 
@@ -81,7 +79,7 @@ public:
         pars(i)+=std::min(delta_(i),normgrad);
       }
     }
-    cerr<<delta_.mean()<<endl;
+    std::cerr<<delta_.mean()<<std::endl;
   }
 
 

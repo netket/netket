@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /**
   Hilbert space for integer or bosons.
   The hilbert space is truncated to some maximum occupation number.
@@ -55,13 +52,13 @@ public:
   Boson(const json & pars){
 
     if(!FieldExists(pars["Hilbert"],"Nsites")){
-      cerr<<"Nsites is not defined"<<endl;
+      std::cerr<<"Nsites is not defined"<<std::endl;
     }
 
     nsites_=pars["Hilbert"]["Nsites"];
 
     if(!FieldExists(pars["Hilbert"],"Nmax")){
-      cerr<<"Nmax is not defined"<<endl;
+      std::cerr<<"Nmax is not defined"<<std::endl;
     }
 
     nmax_=pars["Hilbert"]["Nmax"];
@@ -79,7 +76,7 @@ public:
   void Init(){
 
     if(nsites_<=0){
-      cerr<<"Invalid number of sites"<<endl;
+      std::cerr<<"Invalid number of sites"<<std::endl;
       std::abort();
     }
 
@@ -87,7 +84,7 @@ public:
       nmax_=nsites_;
     }
     if(nmax_<=0){
-      cerr<<"Invalid maximum occupation number"<<endl;
+      std::cerr<<"Invalid maximum occupation number"<<std::endl;
       std::abort();
     }
 
@@ -106,7 +103,7 @@ public:
     nbosons_=nbosons;
 
     if(nbosons_>nsites_*nmax_){
-      cerr<<"Cannot set the desired number of bosons"<<endl;
+      std::cerr<<"Cannot set the desired number of bosons"<<std::endl;
       std::abort();
     }
   }
@@ -123,11 +120,12 @@ public:
     return nsites_;
   }
 
-  vector<double> LocalStates()const{
+  std::vector<double> LocalStates()const{
     return local_;
   }
 
-  void RandomVals(VectorXd & state,netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd & state,
+    netket::default_random_engine & rgen)const{
 
     assert(state.size()==nsites_);
 
@@ -155,7 +153,7 @@ public:
     }
   }
 
-  bool CheckConstraint(VectorXd & v)const{
+  bool CheckConstraint(Eigen::VectorXd & v)const{
 
     int tot=0;
     for(int i=0;i<v.size();i++){
@@ -166,8 +164,9 @@ public:
 
   }
 
-  void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const{
 
     assert(v.size()==nsites_);
 

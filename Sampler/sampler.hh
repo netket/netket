@@ -34,24 +34,24 @@ template<class WfType> class Sampler:public AbstractSampler<WfType>{
   Ptype s_;
 
 public:
-  Sampler(WfType & psi,const json & pars){
+  explicit Sampler(WfType & psi,const json & pars){
     CheckInput(pars);
     Init(psi,pars);
   }
 
-  Sampler(Graph & graph,WfType & psi,const json & pars){
+  explicit Sampler(Graph & graph,WfType & psi,const json & pars){
     CheckInput(pars);
     Init(psi,pars);
     Init(graph,psi,pars);
   }
 
-  Sampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+  explicit Sampler(Hamiltonian & hamiltonian,WfType & psi,const json & pars){
     CheckInput(pars);
     Init(psi,pars);
     Init(hamiltonian,psi,pars);
   }
 
-  Sampler(Graph & graph,Hamiltonian & hamiltonian,WfType & psi,const json & pars){
+  explicit Sampler(Graph & graph,Hamiltonian & hamiltonian,WfType & psi,const json & pars){
     CheckInput(pars);
     Init(psi,pars);
     Init(graph,psi,pars);
@@ -129,16 +129,16 @@ public:
   void Sweep(){
     return s_->Sweep();
   }
-  VectorXd Visible(){
+  Eigen::VectorXd Visible(){
     return s_->Visible();
   }
-  void SetVisible(const VectorXd & v){
+  void SetVisible(const Eigen::VectorXd & v){
     return s_->SetVisible(v);
   }
   WfType & Psi(){
     return s_->Psi();
   }
-  VectorXd Acceptance()const{
+  Eigen::VectorXd Acceptance()const{
     return s_->Acceptance();
   }
 

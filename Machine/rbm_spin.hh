@@ -22,9 +22,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
 *
 */
@@ -70,7 +67,7 @@ public:
 
 
   //constructor
-  RbmSpin(const Hilbert & hilbert,const json & pars):
+  explicit RbmSpin(const Hilbert & hilbert,const json & pars):
     nv_(hilbert.Size()),
     hilbert_(hilbert){
 
@@ -106,9 +103,9 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# RBM Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<endl;
-      cout<<"# Using visible bias = "<<usea_<<endl;
-      cout<<"# Using hidden bias  = "<<useb_<<endl;
+      std::cout<<"# RBM Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<std::endl;
+      std::cout<<"# Using visible bias = "<<usea_<<std::endl;
+      std::cout<<"# Using hidden bias  = "<<useb_<<std::endl;
     }
   }
 
@@ -134,7 +131,7 @@ public:
   }
 
 
-  void InitLookup(const VectorXd & v,LookupType & lt){
+  void InitLookup(const Eigen::VectorXd & v,LookupType & lt){
     if(lt.VectorSize()==0){
       lt.AddVector(b_.size());
     }
@@ -145,8 +142,10 @@ public:
     lt.V(0)=(W_.transpose()*v+b_);
   }
 
-  void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,LookupType & lt){
+  void UpdateLookup(const Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,
+    LookupType & lt){
 
     if(tochange.size()!=0){
 
@@ -158,7 +157,7 @@ public:
     }
   }
 
-  VectorType DerLog(const VectorXd & v){
+  VectorType DerLog(const Eigen::VectorXd & v){
     VectorType der(npar_);
 
     int k=0;
@@ -243,7 +242,7 @@ public:
   }
 
   //Value of the logarithm of the wave-function
-  T LogVal(const VectorXd & v){
+  T LogVal(const Eigen::VectorXd & v){
     RbmSpin::lncosh(W_.transpose()*v+b_,lnthetas_);
 
     return (v.dot(a_)+lnthetas_.sum());
@@ -251,16 +250,16 @@ public:
 
   //Value of the logarithm of the wave-function
   //using pre-computed look-up tables for efficiency
-  T LogVal(const VectorXd & v,LookupType & lt){
+  T LogVal(const Eigen::VectorXd & v,LookupType & lt){
     RbmSpin::lncosh(lt.V(0),lnthetas_);
 
     return (v.dot(a_)+lnthetas_.sum());
   }
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
-  VectorType LogValDiff(const VectorXd & v,
-    const vector<vector<int> >  & tochange,
-    const vector<vector<double>> & newconf){
+  VectorType LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & tochange,
+    const std::vector<std::vector<double>> & newconf){
 
 
     const std::size_t nconn=tochange.size();
@@ -295,8 +294,10 @@ public:
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
   //Version using pre-computed look-up tables for efficiency on a small number of spin flips
-  T LogValDiff(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,const LookupType & lt){
+  T LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,
+    const LookupType & lt){
 
     T logvaldiff=0.;
 
@@ -320,7 +321,7 @@ public:
     return logvaldiff;
   }
 
-  static void RandomGaussian(Matrix<double,Dynamic,1> & par,int seed,double sigma){
+  static void RandomGaussian(Eigen::Matrix<double,Eigen::Dynamic,1> & par,int seed,double sigma){
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0,sigma);
     for(int i=0;i<par.size();i++){
@@ -328,7 +329,7 @@ public:
     }
   }
 
-  static void RandomGaussian(Matrix<std::complex<double>,Dynamic,1> & par,int seed,double sigma){
+  static void RandomGaussian(Eigen::Matrix<std::complex<double>,Eigen::Dynamic,1> & par,int seed,double sigma){
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0,sigma);
     for(int i=0;i<par.size();i++){
@@ -347,7 +348,7 @@ public:
     }
   }
 
-  //ln(cos(x)) for complex argument
+  //ln(cos(x)) for std::complex argument
   //the modulus is computed by means of the previously defined function
   //for real argument
   inline static std::complex<double> lncosh(std::complex<double> x){
@@ -391,7 +392,7 @@ public:
 
     if(pars.at("Machine").at("Name")!="RbmSpin"){
       if(mynode_==0){
-        cerr<<"# Error while constructing RbmSpin from Json input"<<endl;
+        std::cerr<<"# Error while constructing RbmSpin from Json input"<<std::endl;
       }
       std::abort();
     }
@@ -401,7 +402,7 @@ public:
     }
     if(nv_!=hilbert_.Size()){
       if(mynode_==0){
-        cerr<<"# Number of visible units is incompatible with given Hilbert space"<<endl;
+        std::cerr<<"# Number of visible units is incompatible with given Hilbert space"<<std::endl;
       }
       std::abort();
     }

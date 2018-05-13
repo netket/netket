@@ -22,16 +22,13 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Rbm with permutation symmetries
 template<typename T> class RbmSpinSymm: public AbstractMachine<T>{
 
   using VectorType=typename AbstractMachine<T>::VectorType;
   using MatrixType=typename AbstractMachine<T>::MatrixType;
 
-  vector<vector<int>> permtable_;
+  std::vector<std::vector<int>> permtable_;
   int permsize_;
 
   //number of visible units
@@ -70,7 +67,7 @@ template<typename T> class RbmSpinSymm: public AbstractMachine<T>{
   VectorType thetasnew_;
   VectorType lnthetasnew_;
 
-  MatrixXd DerMatSymm_;
+  Eigen::MatrixXd DerMatSymm_;
 
 
   bool usea_;
@@ -88,7 +85,7 @@ public:
   using LookupType=typename AbstractMachine<T>::LookupType;
 
   //Json constructor
-  RbmSpinSymm(const Graph & graph,const Hilbert & hilbert,const json & pars):
+  explicit RbmSpinSymm(const Graph & graph,const Hilbert & hilbert,const json & pars):
     nv_(hilbert.Size()),
     hilbert_(hilbert),
     graph_(graph){
@@ -96,14 +93,14 @@ public:
     from_json(pars);
   }
 
-  template<class G> void Init(const G & graph){
+  void Init(const Graph & graph){
 
     permtable_=graph.SymmetryTable();
     permsize_=permtable_.size();
     nh_=(alpha_*permsize_);
 
     for(int i=0;i<permsize_;i++){
-      assert(permtable_[i].size()==nv_);
+      assert(int(permtable_[i].size())==nv_);
     }
 
     W_.resize(nv_,nh_);
@@ -140,7 +137,7 @@ public:
     }
 
     //Constructing the matrix that maps the bare derivatives to the symmetric ones
-    DerMatSymm_=MatrixXd::Zero(npar_,nbarepar_);
+    DerMatSymm_=Eigen::MatrixXd::Zero(npar_,nbarepar_);
 
     int k=0;
     int kbare=0;
@@ -182,8 +179,8 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# RBM Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<endl;
-      cout<<"# Symmetry are being used : "<<npar_<<" parameters left, instead of "<<nbarepar_<<endl;
+      std::cout<<"# RBM Initizialized with nvisible = "<<nv_<<" and nhidden = "<<nh_<<std::endl;
+      std::cout<<"# Symmetries are being used : "<<npar_<<" parameters left, instead of "<<nbarepar_<<std::endl;
     }
   }
 
@@ -209,7 +206,7 @@ public:
   }
 
 
-  void InitLookup(const VectorXd & v,LookupType & lt){
+  void InitLookup(const Eigen::VectorXd & v,LookupType & lt){
     if(lt.VectorSize()==0){
       lt.AddVector(b_.size());
     }
@@ -219,8 +216,8 @@ public:
     lt.V(0)=(W_.transpose()*v+b_);
   }
 
-  void UpdateLookup(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,LookupType & lt){
+  void UpdateLookup(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,LookupType & lt){
 
     if(tochange.size()!=0){
 
@@ -232,7 +229,7 @@ public:
     }
   }
 
-  VectorType BareDerLog(const VectorXd & v){
+  VectorType BareDerLog(const Eigen::VectorXd & v){
     VectorType der(nbarepar_);
 
     int k=0;
@@ -262,7 +259,7 @@ public:
   }
 
 
-  VectorType DerLog(const VectorXd & v){
+  VectorType DerLog(const Eigen::VectorXd & v){
     return DerMatSymm_*BareDerLog(v);
   }
 
@@ -347,7 +344,7 @@ public:
   }
 
   //Value of the logarithm of the wave-function
-  T LogVal(const VectorXd & v){
+  T LogVal(const Eigen::VectorXd & v){
     RbmSpin<T>::lncosh(W_.transpose()*v+b_,lnthetas_);
 
     return (v.dot(a_)+lnthetas_.sum());
@@ -355,16 +352,16 @@ public:
 
   //Value of the logarithm of the wave-function
   //using pre-computed look-up tables for efficiency
-  T LogVal(const VectorXd & v,LookupType & lt){
+  T LogVal(const Eigen::VectorXd & v,LookupType & lt){
     RbmSpin<T>::lncosh(lt.V(0),lnthetas_);
 
     return (v.dot(a_)+lnthetas_.sum());
   }
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
-  VectorType LogValDiff(const VectorXd & v,
-    const vector<vector<int> >  & tochange,
-    const vector<vector<double>> & newconf){
+  VectorType LogValDiff(const Eigen::VectorXd & v,
+    const std::vector<std::vector<int> >  & tochange,
+    const std::vector<std::vector<double>> & newconf){
 
 
     const std::size_t nconn=tochange.size();
@@ -399,8 +396,8 @@ public:
 
   //Difference between logarithms of values, when one or more visible variables are being flipped
   //Version using pre-computed look-up tables for efficiency on a small number of spin flips
-  T LogValDiff(const VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf,const LookupType & lt){
+  T LogValDiff(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
+    const std::vector<double> & newconf,const LookupType & lt){
 
     T logvaldiff=0.;
 
@@ -444,7 +441,7 @@ public:
 
     if(pars.at("Machine").at("Name")!="RbmSpinSymm"){
       if(mynode_==0){
-        cerr<<"# Error while constructing RbmSpinSymm from Json input"<<endl;
+        std::cerr<<"# Error while constructing RbmSpinSymm from Json input"<<std::endl;
       }
       std::abort();
     }
@@ -454,7 +451,7 @@ public:
     }
     if(nv_!=hilbert_.Size()){
       if(mynode_==0){
-        cerr<<"# Number of visible units is incompatible with given Hilbert space"<<endl;
+        std::cerr<<"# Number of visible units is incompatible with given Hilbert space"<<std::endl;
       }
       std::abort();
     }

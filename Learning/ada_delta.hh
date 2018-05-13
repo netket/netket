@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License. 
+// limitations under the License.
 
 #ifndef NETKET_ADADELTA_HH
 #define NETKET_ADADELTA_HH
@@ -23,9 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 class AdaDelta{
 
   int npar_;
@@ -36,8 +33,8 @@ class AdaDelta{
   //small parameter
   double eps_;
 
-  VectorXd Eg2_;
-  VectorXd Edx2_;
+  Eigen::VectorXd Eg2_;
+  Eigen::VectorXd Edx2_;
 
 
 public:
@@ -52,12 +49,12 @@ public:
     Edx2_.setZero(npar);
   }
 
-  void Update(const VectorXd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
     assert(npar_>0);
 
     Eg2_=rho_*Eg2_+(1.-rho_)*grad.cwiseAbs2();
 
-    VectorXd Dx(npar_);
+    Eigen::VectorXd Dx(npar_);
 
     for(int i=0;i<npar_;i++){
       Dx(i)=-std::sqrt(Edx2_(i)+eps_)*grad(i);
@@ -71,8 +68,8 @@ public:
 
 
   void Reset(){
-    Eg2_=VectorXd::Zero(npar_);
-    Edx2_=VectorXd::Zero(npar_);
+    Eg2_=Eigen::VectorXd::Zero(npar_);
+    Edx2_=Eigen::VectorXd::Zero(npar_);
   }
 };
 

@@ -1,17 +1,17 @@
 CXX	=	mpicxx
 
-EIGEN_INCLUDE=External/
+EXTERNAL_INCLUDE=External/
 
 #Optimized running flags
-CXXFLAGS	= -Ofast -DNDEBUG -I $(EIGEN_INCLUDE)  -I . -std=c++11 -Wall -Wextra
+CXXFLAGS	= -Ofast -DNDEBUG -I $(EXTERNAL_INCLUDE)  -I . -std=c++11 -Wall -Wextra
 
 
 #Debug-mode flags
-# CXXFLAGS =     -O2 -I $(EIGEN_INCLUDE) -I . -std=c++11 -Wall -Wextra
+#CXXFLAGS =     -O2 -I $(EXTERNAL_INCLUDE) -I . -std=c++11 -Wall -Wextra
 
 
 netket :
-	$(CXX) netket.cc $(CXXFLAGS) $(LFLAGS) -o netket
+	$(CXX) netket.cc $(CXXFLAGS) -o netket
 
 
 clean	:	cleano cleant cleanout cleanlog

@@ -31,13 +31,13 @@ public:
   using MatType=LocalOperator::MatType;
 
   CustomObservable(const Hilbert & hilbert,const std::vector<MatType> & jop,
-                   const std::vector<vector<int>> & sites,const std::string & name):
+                   const std::vector<std::vector<int>> & sites,const std::string & name):
     hilbert_(hilbert),name_(name){
 
 
     if(sites.size()!=jop.size()){
-      std::cerr<<"The custom Observable definition is inconsistent:"<<endl;
-      std::cerr<<"Check that ActingOn is defined"<<endl;
+      std::cerr<<"The custom Observable definition is inconsistent:"<<std::endl;
+      std::cerr<<"Check that ActingOn is defined"<<std::endl;
       std::abort();
     }
 
@@ -47,10 +47,10 @@ public:
 
   }
 
-  void FindConn(const VectorXd & v,
-    vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,
-    vector<vector<double>> & newconfs)
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs)
   {
     connectors.clear();
     newconfs.clear();

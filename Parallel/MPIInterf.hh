@@ -24,8 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
 
 inline void SendToAll(double & val,int sendnode=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&val,1,MPI_DOUBLE,sendnode,comm);
@@ -33,26 +31,26 @@ inline void SendToAll(double & val,int sendnode=0,const MPI_Comm comm=MPI_COMM_W
 inline void SendToAll(int & val,int sendnode=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&val,1,MPI_INT,sendnode,comm);
 }
-inline void SendToAll(complex<double> & val,int sendnode=0,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SendToAll(std::complex<double> & val,int sendnode=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&val,1,MPI_DOUBLE_COMPLEX,sendnode,comm);
 }
 
-void SendToAll(vector<int> & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(std::vector<int> & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&value[0],value.size(),MPI_INT,root,comm);
 }
-void SendToAll(vector<double> & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(std::vector<double> & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&value[0],value.size(),MPI_DOUBLE,root,comm);
 }
-void SendToAll(vector<complex<double> > & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(std::vector<std::complex<double> > & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(&value[0],value.size(),MPI_DOUBLE_COMPLEX,root,comm);
 }
-void SendToAll(VectorXi & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(Eigen::VectorXi & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(value.data(),value.size(),MPI_INT,root,comm);
 }
-void SendToAll(VectorXd & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(Eigen::VectorXd & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(value.data(),value.size(),MPI_DOUBLE,root,comm);
 }
-void SendToAll(VectorXcd & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
+void SendToAll(Eigen::VectorXcd & value,int root=0,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Bcast(value.data(),value.size(),MPI_DOUBLE_COMPLEX,root,comm);
 }
 
@@ -68,40 +66,47 @@ inline void SumOnNodes(int & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,&value,1,MPI_INT,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(complex<double> & val,complex<double> & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::complex<double> & val,
+  std::complex<double> & sum,
+  const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(&val,&sum,1,MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(vector<double> & val,vector<double> & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::vector<double> & val,
+  std::vector<double> & sum,
+  const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(&val[0],&sum[0],val.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(vector<double> & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::vector<double> & value,
+  const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,&value[0],value.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(valarray<double> & val,valarray<double> & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::valarray<double> & val,
+  std::valarray<double> & sum,
+  const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(&val[0],&sum[0],val.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(valarray<double> & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::valarray<double> & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,&value[0],value.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(VectorXd & val,VectorXd & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::VectorXd & val,Eigen::VectorXd & sum,const MPI_Comm comm=MPI_COMM_WORLD){
   assert(sum.size()>=val.size());
   MPI_Allreduce(val.data(),sum.data(),val.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(VectorXd & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::VectorXd & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,value.data(),value.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(MatrixXd & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::MatrixXd & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,value.data(),value.size(),MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(MatrixXcd & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::MatrixXcd & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,value.data(),value.size(),MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
@@ -113,27 +118,28 @@ inline void SumOnNodes(double* value,int size,const MPI_Comm comm=MPI_COMM_WORLD
   MPI_Allreduce(MPI_IN_PLACE,value,size,MPI_DOUBLE,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(complex<double> *value,int size,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::complex<double> *value,int size,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,value,size,MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(vector<complex<double> > & val,vector<complex<double> > & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::vector<std::complex<double> > & val,std::vector<std::complex<double> > & sum,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(&val[0],&sum[0],val.size(),MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(vector<complex<double> > & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::vector<std::complex<double> > & value,
+  const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,&value[0],value.size(),MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(complex<double> & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(std::complex<double> & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,&value,1,MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(VectorXcd & value,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::VectorXcd & value,const MPI_Comm comm=MPI_COMM_WORLD){
   MPI_Allreduce(MPI_IN_PLACE,value.data(),value.size(),MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }
 
-inline void SumOnNodes(VectorXcd & val,VectorXcd & sum,const MPI_Comm comm=MPI_COMM_WORLD){
+inline void SumOnNodes(Eigen::VectorXcd & val,Eigen::VectorXcd & sum,const MPI_Comm comm=MPI_COMM_WORLD){
   assert(sum.size()>=val.size());
   MPI_Allreduce(val.data(),sum.data(),val.size(),MPI_DOUBLE_COMPLEX,MPI_SUM,comm);
 }

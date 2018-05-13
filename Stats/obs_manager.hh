@@ -33,7 +33,7 @@ namespace netket{
 class ObsManager{
 
   std::map<std::string,Binning<double>> scalar_real_obs_;
-  std::map<std::string,Binning<VectorXd>> vector_real_obs_;
+  std::map<std::string,Binning<Eigen::VectorXd>> vector_real_obs_;
 
 public:
 
@@ -44,7 +44,7 @@ public:
     scalar_real_obs_[name]<<data;
   }
 
-  inline void Push(std::string name,const VectorXd & data){
+  inline void Push(std::string name,const Eigen::VectorXd & data){
     vector_real_obs_[name]<<data;
   }
 
@@ -57,8 +57,8 @@ public:
     }
   }
 
-  vector<string> Names()const{
-    vector<string> names;
+  std::vector<std::string> Names()const{
+    std::vector<std::string> names;
     for(auto it=scalar_real_obs_.begin();it!=scalar_real_obs_.end();++it){
       names.push_back(it->first);
     }
@@ -68,7 +68,7 @@ public:
     return names;
   }
 
-  json AllStats(string name)const{
+  json AllStats(std::string name)const{
     json j;
     if(scalar_real_obs_.count(name)>0){
       j=scalar_real_obs_.at(name).AllStats();

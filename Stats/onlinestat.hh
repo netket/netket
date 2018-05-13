@@ -113,7 +113,6 @@ public:
 
 };
 
-using namespace Eigen;
 
 ///Online statistics
 //for scalars
@@ -121,22 +120,22 @@ using namespace Eigen;
 //with minimal memory requirements
 //simple statistics can then be obtained
 //or merged with other bins
-template<> class OnlineStat<VectorXd>{
+template<> class OnlineStat<Eigen::VectorXd>{
 
   //Number of samples in this bin
   int N_;
 
   //current mean
-  VectorXd mean_;
+  Eigen::VectorXd mean_;
 
   //Running sum of squares of differences from the current mean
-  VectorXd m2_;
+  Eigen::VectorXd m2_;
 
   bool firstcall_;
 
 public:
 
-  using DataType=VectorXd;
+  using DataType=Eigen::VectorXd;
 
   OnlineStat(){
     Reset();
@@ -155,7 +154,7 @@ public:
   }
 
   //Merging with another bin
-  inline void operator<<(const OnlineStat<VectorXd> & obin){
+  inline void operator<<(const OnlineStat<Eigen::VectorXd> & obin){
     CheckCall(obin.Mean());
 
     N_+=obin.N();

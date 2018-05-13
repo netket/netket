@@ -34,12 +34,12 @@ public:
   Stepper(const json & pars){
 
     if(!FieldExists(pars,"Learning")){
-      cerr<<"Learning is not defined in the input"<<endl;
+      std::cerr<<"Learning is not defined in the input"<<std::endl;
       std::abort();
     }
 
     if(!FieldExists(pars["Learning"],"StepperType")){
-      cerr<<"Stepper Type is not defined in the input"<<endl;
+      std::cerr<<"Stepper Type is not defined in the input"<<std::endl;
       std::abort();
     }
 
@@ -50,28 +50,28 @@ public:
       s_=Ptype(new AdaMax(pars));
     }
     else{
-      cout<<"StepperType not found"<<endl;
+      std::cout<<"StepperType not found"<<std::endl;
       std::abort();
     }
   }
 
-  void Init(const VectorXd & pars){
+  void Init(const Eigen::VectorXd & pars){
     return s_->Init(pars);
   }
 
-  void Init(const VectorXcd & pars){
+  void Init(const Eigen::VectorXcd & pars){
     return s_->Init(pars);
   }
 
-  void Update(const VectorXd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
     return s_->Update(grad,pars);
   }
 
-  void Update(const VectorXcd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars){
     return s_->Update(grad,pars);
   }
 
-  void Update(const VectorXcd & grad,VectorXcd & pars){
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars){
     return s_->Update(grad,pars);
   }
 

@@ -23,9 +23,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 //Heisenberg model on an arbitrary graph
 template<class G> class BoseHubbard: public AbstractHamiltonian{
 
@@ -67,7 +64,7 @@ public:
       nmax_=pars["Hamiltonian"]["Nmax"];
     }
     else{
-      cerr<<"Nmax is not specified for bosons"<<endl;
+      std::cerr<<"Nmax is not specified for bosons"<<std::endl;
       std::abort();
     }
 
@@ -75,7 +72,7 @@ public:
       U_=pars["Hamiltonian"]["U"];
     }
     else{
-      cerr<<"U interaction is not specified"<<endl;
+      std::cerr<<"U interaction is not specified"<<std::endl;
       std::abort();
     }
 
@@ -116,7 +113,7 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if(mynode_==0){
-      cout<<"# Bose Hubbard model created "<<endl;
+      std::cout<<"# Bose Hubbard model created "<<std::endl;
     }
   }
 
@@ -144,8 +141,10 @@ public:
     }
   }
 
-  void FindConn(const VectorXd & v,vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,vector<vector<double>> & newconfs){
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs){
 
     connectors.clear();
     connectors.resize(1);

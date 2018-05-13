@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 class AdaMax: public AbstractStepper{
 
   int npar_;
@@ -35,8 +32,8 @@ class AdaMax: public AbstractStepper{
   double beta1_;
   double beta2_;
 
-  VectorXd ut_;
-  VectorXd mt_;
+  Eigen::VectorXd ut_;
+  Eigen::VectorXd mt_;
 
   double niter_;
   double niter_reset_;
@@ -77,15 +74,15 @@ public:
   void PrintParameters(){
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
     if(mynode_==0){
-      cout<<"# Adamax stepper initialized with these parameters : "<<endl;
-      cout<<"# Alpha = "<<alpha_<<endl;
-      cout<<"# Beta1 = "<<beta1_<<endl;
-      cout<<"# Beta2 = "<<beta2_<<endl;
-      cout<<"# Epscut = "<<epscut_<<endl;
+      std::cout<<"# Adamax stepper initialized with these parameters : "<<std::endl;
+      std::cout<<"# Alpha = "<<alpha_<<std::endl;
+      std::cout<<"# Beta1 = "<<beta1_<<std::endl;
+      std::cout<<"# Beta2 = "<<beta2_<<std::endl;
+      std::cout<<"# Epscut = "<<epscut_<<std::endl;
     }
   }
 
-  void Init(const VectorXd & pars){
+  void Init(const Eigen::VectorXd & pars){
 
     npar_=pars.size();
     ut_.setZero(npar_);
@@ -94,7 +91,7 @@ public:
     niter_=0;
   }
 
-  void Init(const VectorXcd & pars){
+  void Init(const Eigen::VectorXcd & pars){
 
     npar_=2*pars.size();
     ut_.setZero(npar_);
@@ -103,7 +100,7 @@ public:
     niter_=0;
   }
 
-  void Update(const VectorXd & grad,VectorXd & pars){
+  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
 
     assert(npar_>0);
 
@@ -125,11 +122,11 @@ public:
     }
   }
 
-  void Update(const VectorXcd & grad,VectorXd & pars){
-    Update(VectorXd(grad.real()),pars);
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars){
+    Update(Eigen::VectorXd(grad.real()),pars);
   }
 
-  void Update(const VectorXcd & grad,VectorXcd & pars){
+  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars){
 
     assert(npar_==2*pars.size());
 
@@ -158,8 +155,8 @@ public:
   }
 
   void Reset(){
-    ut_=VectorXd::Zero(npar_);
-    mt_=VectorXd::Zero(npar_);
+    ut_=Eigen::VectorXd::Zero(npar_);
+    mt_=Eigen::VectorXd::Zero(npar_);
     niter_=0;
   }
 

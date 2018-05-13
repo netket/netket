@@ -24,9 +24,6 @@
 
 namespace netket{
 
-using namespace std;
-using namespace Eigen;
-
 /**
   Transverse field Ising model on an arbitrary graph.
 */
@@ -92,9 +89,9 @@ public:
     hilbert_.Init(hil);
 
     if(mynode_==0){
-      cout<<"# Transverse-Field Ising model created "<<endl;
-      cout<<"# h = "<<h_<<endl;
-      cout<<"# J = "<<J_<<endl;
+      std::cout<<"# Transverse-Field Ising model created "<<std::endl;
+      std::cout<<"# h = "<<h_<<std::endl;
+      std::cout<<"# J = "<<J_<<std::endl;
     }
   }
 
@@ -130,8 +127,10 @@ public:
   affected sites, such that: v'(k,connectors(k,j))=newconfs(k,j). For the other
   sites v'(k)=v, i.e. they are equal to the starting visible configuration.
   */
-  void FindConn(const VectorXd & v,vector<std::complex<double>> & mel,
-    vector<vector<int>> & connectors,vector<vector<double>> & newconfs){
+  void FindConn(const Eigen::VectorXd & v,
+    std::vector<std::complex<double>> & mel,
+    std::vector<std::vector<int>> & connectors,
+    std::vector<std::vector<double>> & newconfs){
 
     connectors.clear();
     connectors.resize(nspins_+1);

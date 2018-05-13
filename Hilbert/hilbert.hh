@@ -43,7 +43,7 @@ public:
 
   void Init(const json & pars){
     if(!FieldExists(pars,"Hilbert")){
-      cerr<<"Hilbert is not defined in the input"<<endl;
+      std::cerr<<"Hilbert is not defined in the input"<<std::endl;
       std::abort();
     }
 
@@ -58,7 +58,7 @@ public:
         h_=Ptype(new Qubit(pars));
       }
       else{
-        cout<<"Hilbert Name not found"<<endl;
+        std::cout<<"Hilbert Name not found"<<std::endl;
         std::abort();
       }
     }
@@ -79,16 +79,18 @@ public:
     return h_->Size();
   }
 
-  vector<double> LocalStates()const{
+  std::vector<double> LocalStates()const{
     return h_->LocalStates();
   }
 
-  void RandomVals(VectorXd & state,netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd & state,
+    netket::default_random_engine & rgen)const{
     return h_->RandomVals(state,rgen);
   }
 
-  void UpdateConf(VectorXd & v,const vector<int>  & tochange,
-    const vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd & v,
+    const std::vector<int>  & tochange,
+    const std::vector<double> & newconf)const{
     return h_->UpdateConf(v,tochange,newconf);
   }
 };
