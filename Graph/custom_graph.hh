@@ -51,10 +51,16 @@ public:
 
     //Try to construct from explicit graph definition
     if(FieldExists(pars,"Graph")){
+
       if(FieldExists(pars["Graph"],"AdjacencyList")){
         adjlist_=pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
       }
-      else if(FieldExists(pars["Graph"],"Size")){
+      if(FieldExists(pars["Graph"],"Edges")){
+        std::vector<std::vector<int>> edges=pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
+        std::cout<<"Here "<<edges.size()<<std::endl;
+        AdjacencyListFromEdges(edges);
+      }
+      if(FieldExists(pars["Graph"],"Size")){
         assert(pars["Graph"]["Size"]>0);
         adjlist_.resize(pars["Graph"]["Size"]);
       }
@@ -67,7 +73,7 @@ public:
     }
     else {
       if(mynode_==0){
-        cerr<<"Graph: one among Size, AdjacencyList, or Hilbert Space Size must be specified"<<endl;
+        cerr<<"Graph: one among Size, AdjacencyList, Edges, or Hilbert Space Size must be specified"<<endl;
       }
       std::abort();
     }
@@ -80,6 +86,33 @@ public:
       std::cout<<"# Graph created "<<std::endl;
       std::cout<<"# Number of nodes = "<<nsites_<<std::endl;
     }
+  }
+
+
+  void AdjacencyListFromEdges(const std::vector<std::vector<int>>& edges){
+    nsites_=0;
+
+    for(auto edge : edges){
+      if(edge.size()!=2){
+        std::cerr<<"# The edge list is invalid"<<std::endl;
+        std::abort();
+      }
+      if(edge[0]<0 || edge[1]<0){
+        std::cerr<<"# The edge list is invalid"<<std::endl;
+        std::abort();
+      }
+
+      nsites_=std::max(std::max(edge[0],edge[1]),nsites_);
+    }
+
+    nsites_++;
+    adjlist_.resize(nsites_);
+
+    for(auto edge : edges){
+      adjlist_[edge[0]].push_back(edge[1]);
+      adjlist_[edge[1]].push_back(edge[0]);
+    }
+
   }
 
   void CheckGraph(){
