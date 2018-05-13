@@ -168,7 +168,7 @@ public:
     for(int i=0;i<nv_;i++){
       for(int j=0;j<nh_;j++){
 
-        int isymm=permtable_[i][j%permsize_];
+        int isymm=permtable_.at(j%permsize_).at(i);
         int jsymm=std::floor(double(j)/double(permsize_));
         int ksymm=jsymm+alpha_*isymm;
 
@@ -177,6 +177,7 @@ public:
         kbare++;
       }
     }
+
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
@@ -340,7 +341,7 @@ public:
     for(int i=0;i<nv_;i++){
       for(int j=0;j<nh_;j++){
         int jsymm=std::floor(double(j)/double(permsize_));
-        W_(i,j)=Wsymm_(permtable_[i][j%permsize_],jsymm);
+        W_(i,j)=Wsymm_(permtable_[j%permsize_][i],jsymm);
       }
     }
   }

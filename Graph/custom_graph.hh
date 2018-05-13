@@ -37,6 +37,10 @@ class CustomGraph: public AbstractGraph{
 
   int mynode_;
 
+  std::vector<std::vector<int>> automorphisms_;
+
+  bool isbipartite_;
+
 public:
 
   //Json constructor
@@ -57,7 +61,6 @@ public:
       }
       if(FieldExists(pars["Graph"],"Edges")){
         std::vector<std::vector<int>> edges=pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
-        std::cout<<"Here "<<edges.size()<<std::endl;
         AdjacencyListFromEdges(edges);
       }
       if(FieldExists(pars["Graph"],"Size")){
@@ -79,6 +82,24 @@ public:
     }
 
     nsites_=adjlist_.size();
+
+    if(FieldExists(pars["Graph"],"Automorphisms")){
+      automorphisms_=pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
+    }
+    else{
+      automorphisms_.resize(1,std::vector<int>(nsites_));
+      for(int i=0;i<nsites_;i++){
+        //If no automorphism is specified, we stick to the identity one
+        automorphisms_[0][i]=i;
+      }
+    }
+
+    if(FieldExists(pars["Graph"],"IsBipartite")){
+      isbipartite_=pars["Graph"]["IsBipartite"];
+    }
+    else{
+      isbipartite_=false;
+    }
 
     CheckGraph();
 
@@ -136,18 +157,19 @@ public:
         }
       }
     }
+    for(std::size_t i=0;i<automorphisms_.size();i++){
+      if(int(automorphisms_[i].size())!=nsites_){
+        if(mynode_==0){
+          std::cerr<<"# The automorphism list is invalid"<<std::endl;
+        }
+        std::abort();
+      }
+    }
   }
 
-  //Returns a list of permuted sites equivalent with respect to
-  //translation symmetry
+  //Returns a list of permuted sites constituting an automorphism of the graph
   std::vector<std::vector<int>> SymmetryTable()const{
-
-    std::cerr<<"Cannot generate translation symmetries in a custom graph"<<std::endl;
-    std::abort();
-
-    std::vector<std::vector<int>> permtable;
-
-    return permtable;
+    return automorphisms_;
   }
 
   int Nsites()const{
@@ -160,7 +182,7 @@ public:
   }
 
   bool IsBipartite()const{
-    return false;
+    return isbipartite_;
   }
 
   //returns the distances of each point from the others

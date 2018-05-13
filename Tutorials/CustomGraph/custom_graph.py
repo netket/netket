@@ -16,13 +16,13 @@
 from __future__ import print_function
 import json
 import networkx as nx
-from networkx import grid_graph
+
 
 pars={}
 
 #defining a custom graph
 #here we use networkx to generate a star graph
-#and pass its edges list to NetKet 
+#and pass its edges list to NetKet
 G=nx.star_graph(10)
 print (list(G.edges))
 pars['Graph']={
