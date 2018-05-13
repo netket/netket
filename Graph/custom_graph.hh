@@ -15,22 +15,25 @@
 #ifndef NETKET_CUSTOM_GRAPH_HH
 #define NETKET_CUSTOM_GRAPH_HH
 
-#include <vector>
-#include <iostream>
-#include <cassert>
+#include "Hilbert/hilbert.hh"
+#include "distance.hh"
+#include "Json/json.hh"
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 #include <map>
 #include <mpi.h>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
 /**
     Class for user-defined graphs
     The list of edges and nodes is read from a json input file.
 */
-class CustomGraph: public AbstractGraph{
+class CustomGraph : public AbstractGraph {
 
-  //adjacency list
+  // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
   int nsites_;
@@ -42,160 +45,147 @@ class CustomGraph: public AbstractGraph{
   bool isbipartite_;
 
 public:
+  // Json constructor
+  CustomGraph(const json &pars) { Init(pars); }
 
-  //Json constructor
-  CustomGraph(const json & pars)
-  {
-    Init(pars);
-  }
-
-  void Init(const json & pars){
+  void Init(const json &pars) {
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    //Try to construct from explicit graph definition
-    if(FieldExists(pars,"Graph")){
+    // Try to construct from explicit graph definition
+    if (FieldExists(pars, "Graph")) {
 
-      if(FieldExists(pars["Graph"],"AdjacencyList")){
-        adjlist_=pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
+      if (FieldExists(pars["Graph"], "AdjacencyList")) {
+        adjlist_ =
+            pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
       }
-      if(FieldExists(pars["Graph"],"Edges")){
-        std::vector<std::vector<int>> edges=pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
+      if (FieldExists(pars["Graph"], "Edges")) {
+        std::vector<std::vector<int>> edges =
+            pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
         AdjacencyListFromEdges(edges);
       }
-      if(FieldExists(pars["Graph"],"Size")){
-        assert(pars["Graph"]["Size"]>0);
+      if (FieldExists(pars["Graph"], "Size")) {
+        assert(pars["Graph"]["Size"] > 0);
         adjlist_.resize(pars["Graph"]["Size"]);
       }
-    }
-    else if(FieldExists(pars,"Hilbert")){
+    } else if (FieldExists(pars, "Hilbert")) {
       Hilbert hilbert(pars);
-      nsites_=hilbert.Size();
-      assert(nsites_>0);
+      nsites_ = hilbert.Size();
+      assert(nsites_ > 0);
       adjlist_.resize(nsites_);
-    }
-    else {
-      if(mynode_==0){
-        std::cerr<<"Graph: one among Size, AdjacencyList, Edges, or Hilbert Space Size must be specified"<<std::endl;
+    } else {
+      if (mynode_ == 0) {
+        std::cerr << "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
+                     "Space Size must be specified"
+                  << std::endl;
       }
       std::abort();
     }
 
-    nsites_=adjlist_.size();
+    nsites_ = adjlist_.size();
 
-    if(FieldExists(pars["Graph"],"Automorphisms")){
-      automorphisms_=pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
-    }
-    else{
-      automorphisms_.resize(1,std::vector<int>(nsites_));
-      for(int i=0;i<nsites_;i++){
-        //If no automorphism is specified, we stick to the identity one
-        automorphisms_[0][i]=i;
+    if (FieldExists(pars["Graph"], "Automorphisms")) {
+      automorphisms_ =
+          pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
+    } else {
+      automorphisms_.resize(1, std::vector<int>(nsites_));
+      for (int i = 0; i < nsites_; i++) {
+        // If no automorphism is specified, we stick to the identity one
+        automorphisms_[0][i] = i;
       }
     }
 
-    if(FieldExists(pars["Graph"],"IsBipartite")){
-      isbipartite_=pars["Graph"]["IsBipartite"];
-    }
-    else{
-      isbipartite_=false;
+    if (FieldExists(pars["Graph"], "IsBipartite")) {
+      isbipartite_ = pars["Graph"]["IsBipartite"];
+    } else {
+      isbipartite_ = false;
     }
 
     CheckGraph();
 
-    if(mynode_==0){
-      std::cout<<"# Graph created "<<std::endl;
-      std::cout<<"# Number of nodes = "<<nsites_<<std::endl;
+    if (mynode_ == 0) {
+      std::cout << "# Graph created " << std::endl;
+      std::cout << "# Number of nodes = " << nsites_ << std::endl;
     }
   }
 
+  void AdjacencyListFromEdges(const std::vector<std::vector<int>> &edges) {
+    nsites_ = 0;
 
-  void AdjacencyListFromEdges(const std::vector<std::vector<int>>& edges){
-    nsites_=0;
-
-    for(auto edge : edges){
-      if(edge.size()!=2){
-        std::cerr<<"# The edge list is invalid"<<std::endl;
+    for (auto edge : edges) {
+      if (edge.size() != 2) {
+        std::cerr << "# The edge list is invalid" << std::endl;
         std::abort();
       }
-      if(edge[0]<0 || edge[1]<0){
-        std::cerr<<"# The edge list is invalid"<<std::endl;
+      if (edge[0] < 0 || edge[1] < 0) {
+        std::cerr << "# The edge list is invalid" << std::endl;
         std::abort();
       }
 
-      nsites_=std::max(std::max(edge[0],edge[1]),nsites_);
+      nsites_ = std::max(std::max(edge[0], edge[1]), nsites_);
     }
 
     nsites_++;
     adjlist_.resize(nsites_);
 
-    for(auto edge : edges){
+    for (auto edge : edges) {
       adjlist_[edge[0]].push_back(edge[1]);
       adjlist_[edge[1]].push_back(edge[0]);
     }
-
   }
 
-  void CheckGraph(){
-    for(int i=0;i<nsites_;i++){
-      for(auto s : adjlist_[i]){
-        //Checking if the referenced nodes are within the expected range
-        if(s>=nsites_ || s<0){
-          if(mynode_==0){
-            std::cerr<<"# The graph is invalid"<<std::endl;
+  void CheckGraph() {
+    for (int i = 0; i < nsites_; i++) {
+      for (auto s : adjlist_[i]) {
+        // Checking if the referenced nodes are within the expected range
+        if (s >= nsites_ || s < 0) {
+          if (mynode_ == 0) {
+            std::cerr << "# The graph is invalid" << std::endl;
           }
           std::abort();
         }
-        //Checking if the adjacency list is symmetric
-        //i.e. if site s is declared neihgbor of site i
-        //when site i is declared neighbor of site s
-        if(std::count(adjlist_[s].begin(),adjlist_[s].end(),i)!=1){
-          if(mynode_==0){
-            std::cerr<<"# The graph adjacencylist is not symmetric"<<std::endl;
+        // Checking if the adjacency list is symmetric
+        // i.e. if site s is declared neihgbor of site i
+        // when site i is declared neighbor of site s
+        if (std::count(adjlist_[s].begin(), adjlist_[s].end(), i) != 1) {
+          if (mynode_ == 0) {
+            std::cerr << "# The graph adjacencylist is not symmetric"
+                      << std::endl;
           }
           std::abort();
         }
       }
     }
-    for(std::size_t i=0;i<automorphisms_.size();i++){
-      if(int(automorphisms_[i].size())!=nsites_){
-        if(mynode_==0){
-          std::cerr<<"# The automorphism list is invalid"<<std::endl;
+    for (std::size_t i = 0; i < automorphisms_.size(); i++) {
+      if (int(automorphisms_[i].size()) != nsites_) {
+        if (mynode_ == 0) {
+          std::cerr << "# The automorphism list is invalid" << std::endl;
         }
         std::abort();
       }
     }
   }
 
-  //Returns a list of permuted sites constituting an automorphism of the graph
-  std::vector<std::vector<int>> SymmetryTable()const{
-    return automorphisms_;
-  }
+  // Returns a list of permuted sites constituting an automorphism of the graph
+  std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
 
-  int Nsites()const{
-    return nsites_;
-  }
+  int Nsites() const { return nsites_; }
 
+  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
 
-  std::vector<std::vector<int>> AdjacencyList()const{
-    return adjlist_;
-  }
+  bool IsBipartite() const { return isbipartite_; }
 
-  bool IsBipartite()const{
-    return isbipartite_;
-  }
-
-  //returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances()const{
+  // returns the distances of each point from the others
+  std::vector<std::vector<int>> Distances() const {
     std::vector<std::vector<int>> distances;
 
-    for(int i=0;i<nsites_;i++){
-      distances.push_back(FindDist(adjlist_,i));
+    for (int i = 0; i < nsites_; i++) {
+      distances.push_back(FindDist(adjlist_, i));
     }
 
     return distances;
   }
 };
 
-}
+} // namespace netket
 #endif

@@ -10,27 +10,26 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License. 
+// limitations under the License.
 
 #ifndef NETKET_ABSTRACTSTEPPER_HH
 #define NETKET_ABSTRACTSTEPPER_HH
 
-#include <vector>
-#include <complex>
 #include <Eigen/Dense>
+#include <complex>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
-class AbstractStepper{
+class AbstractStepper {
 public:
-
-  virtual void Init(const Eigen::VectorXd & pars)=0;
-  virtual void Init(const Eigen::VectorXcd & pars)=0;
-  virtual void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars)=0;
-  virtual void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars)=0;
-  virtual void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars)=0;
-  virtual void Reset()=0;
+  virtual void Init(const Eigen::VectorXd &pars) = 0;
+  virtual void Init(const Eigen::VectorXcd &pars) = 0;
+  virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
+  virtual void Reset() = 0;
 };
-}
+} // namespace netket
 
 #endif

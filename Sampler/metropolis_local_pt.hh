@@ -15,28 +15,31 @@
 #ifndef NETKET_METROPOLISFLIPT_HH
 #define NETKET_METROPOLISFLIPT_HH
 
-#include <iostream>
+#include "Parallel/parallel.hh"
+#include "abstract_sampler.hh"
 #include <Eigen/Dense>
-#include <random>
+#include <iostream>
 #include <mpi.h>
+#include <random>
 
-namespace netket{
+namespace netket {
 
-//Metropolis sampling generating local changes
-//Parallel tempering is also used
-template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
+// Metropolis sampling generating local changes
+// Parallel tempering is also used
+template <class WfType>
+class MetropolisLocalPt : public AbstractSampler<WfType> {
 
-  WfType & psi_;
+  WfType &psi_;
 
-  const Hilbert & hilbert_;
+  const Hilbert &hilbert_;
 
-  //number of visible units
+  // number of visible units
   const int nv_;
 
   netket::default_random_engine rgen_;
 
-  //states of visible units
-  //for each sampled temperature
+  // states of visible units
+  // for each sampled temperature
   std::vector<Eigen::VectorXd> v_;
 
   Eigen::VectorXd accept_;
@@ -45,10 +48,10 @@ template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
   int mynode_;
   int totalnodes_;
 
-  //clusters to do updates
+  // clusters to do updates
   std::vector<std::vector<int>> clusters_;
 
-  //Look-up tables
+  // Look-up tables
   std::vector<typename WfType::LookupType> lt_;
 
   int nrep_;
@@ -59,70 +62,70 @@ template<class WfType> class MetropolisLocalPt: public AbstractSampler<WfType>{
   std::vector<double> localstates_;
 
 public:
-
-  MetropolisLocalPt(WfType & psi,int nrep):
-       psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),nrep_(nrep){
+  MetropolisLocalPt(WfType &psi, int nrep)
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
+        nrep_(nrep) {
     Init();
   }
 
-  //Json constructor
-  MetropolisLocalPt(WfType & psi,const json & pars):
-    psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),
-    nrep_(FieldVal(pars["Sampler"],"Nreplicas")){
+  // Json constructor
+  MetropolisLocalPt(WfType &psi, const json &pars)
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
+        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
 
     Init();
   }
 
-  //Constructor with one replica
-  MetropolisLocalPt(WfType & psi):
-       psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),nrep_(1){
+  // Constructor with one replica
+  MetropolisLocalPt(WfType &psi)
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()), nrep_(1) {
     Init();
   }
 
-  void Init(){
+  void Init() {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    nstates_=hilbert_.LocalSize();
-    localstates_=hilbert_.LocalStates();
+    nstates_ = hilbert_.LocalSize();
+    localstates_ = hilbert_.LocalStates();
 
     SetNreplicas(nrep_);
 
-    if(mynode_==0){
-      std::cout<<"# Metropolis sampler with parallel tempering is ready "<<std::endl;
-      std::cout<<"# Nreplicas is equal to "<<nrep_<<std::endl;
+    if (mynode_ == 0) {
+      std::cout << "# Metropolis sampler with parallel tempering is ready "
+                << std::endl;
+      std::cout << "# Nreplicas is equal to " << nrep_ << std::endl;
     }
   }
 
-  void SetNreplicas(int nrep){
-    nrep_=nrep;
+  void SetNreplicas(int nrep) {
+    nrep_ = nrep;
     v_.resize(nrep_);
-    for(int i=0;i<nrep_;i++){
+    for (int i = 0; i < nrep_; i++) {
       v_[i].resize(nv_);
     }
 
-    for(int i=0;i<nrep_;i++){
-      beta_.push_back(1.-double(i)/double(nrep_));
+    for (int i = 0; i < nrep_; i++) {
+      beta_.push_back(1. - double(i) / double(nrep_));
     }
 
     lt_.resize(nrep_);
 
-    accept_.resize(2*nrep_);
-    moves_.resize(2*nrep_);
+    accept_.resize(2 * nrep_);
+    moves_.resize(2 * nrep_);
 
     Seed();
 
     Reset(true);
-
   }
 
-  void Seed(int baseseed=0){
+  void Seed(int baseseed = 0) {
     std::random_device rd;
     std::vector<int> seeds(totalnodes_);
 
-    if(mynode_==0){
-      for(int i=0;i<totalnodes_;i++){
-        seeds[i]=rd()+baseseed;
+    if (mynode_ == 0) {
+      for (int i = 0; i < totalnodes_; i++) {
+        seeds[i] = rd() + baseseed;
       }
     }
 
@@ -131,150 +134,143 @@ public:
     rgen_.seed(seeds[mynode_]);
   }
 
+  void Reset(bool initrandom = false) {
 
-  void Reset(bool initrandom=false){
-
-    if(initrandom){
-      for(int i=0;i<nrep_;i++){
-        hilbert_.RandomVals(v_[i],rgen_);
+    if (initrandom) {
+      for (int i = 0; i < nrep_; i++) {
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
-    for(int i=0;i<nrep_;i++){
-      psi_.InitLookup(v_[i],lt_[i]);
+    for (int i = 0; i < nrep_; i++) {
+      psi_.InitLookup(v_[i], lt_[i]);
     }
 
-    accept_=Eigen::VectorXd::Zero(2*nrep_);
-    moves_=Eigen::VectorXd::Zero(2*nrep_);
+    accept_ = Eigen::VectorXd::Zero(2 * nrep_);
+    moves_ = Eigen::VectorXd::Zero(2 * nrep_);
   }
 
-
-  //Exchange sweep at given temperature
-  void LocalSweep(int rep){
+  // Exchange sweep at given temperature
+  void LocalSweep(int rep) {
     std::vector<int> tochange(1);
     std::vector<double> newconf(1);
 
     std::uniform_real_distribution<double> distu;
-    std::uniform_int_distribution<int> distrs(0,nv_-1);
-    std::uniform_int_distribution<int> diststate(0,nstates_-1);
+    std::uniform_int_distribution<int> distrs(0, nv_ - 1);
+    std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
-    for(int i=0;i<nv_;i++){
+    for (int i = 0; i < nv_; i++) {
 
-      //picking a random site to be changed
-      int si=distrs(rgen_);
-      assert(si<nv_);
-      tochange[0]=si;
+      // picking a random site to be changed
+      int si = distrs(rgen_);
+      assert(si < nv_);
+      tochange[0] = si;
 
-      //picking a random state
-      int newstate=diststate(rgen_);
-      newconf[0]=localstates_[newstate];
+      // picking a random state
+      int newstate = diststate(rgen_);
+      newconf[0] = localstates_[newstate];
 
-      //make sure that the new state is not equal to the current one
-      while(std::abs(newconf[0]-v_[rep](si))<std::numeric_limits<double>::epsilon() ){
-        newstate=diststate(rgen_);
-        newconf[0]=localstates_[newstate];
+      // make sure that the new state is not equal to the current one
+      while (std::abs(newconf[0] - v_[rep](si)) <
+             std::numeric_limits<double>::epsilon()) {
+        newstate = diststate(rgen_);
+        newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd=psi_.LogValDiff(v_[rep],tochange,newconf,lt_[rep]);
-      double ratio=std::norm(std::exp(beta_[rep]*lvd));
+      const auto lvd = psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
+      double ratio = std::norm(std::exp(beta_[rep] * lvd));
 
-      #ifndef NDEBUG
-      const auto psival1=psi_.LogVal(v_[rep]);
-      if(std::abs(std::exp(psi_.LogVal(v_[rep])-psi_.LogVal(v_[rep],lt_[rep]))-1.)>1.0e-8){
-        std::cerr<<psi_.LogVal(v_[rep])<<"  and LogVal with Lt is "<<psi_.LogVal(v_[rep],lt_[rep])<<std::endl;
+#ifndef NDEBUG
+      const auto psival1 = psi_.LogVal(v_[rep]);
+      if (std::abs(
+              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
+              1.) > 1.0e-8) {
+        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
-      #endif
-      //Metropolis acceptance test
-      if(ratio>distu(rgen_)){
-        accept_(rep)+=1;
+#endif
+      // Metropolis acceptance test
+      if (ratio > distu(rgen_)) {
+        accept_(rep) += 1;
 
-        psi_.UpdateLookup(v_[rep],tochange,newconf,lt_[rep]);
-        hilbert_.UpdateConf(v_[rep],tochange,newconf);
+        psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
+        hilbert_.UpdateConf(v_[rep], tochange, newconf);
 
-        #ifndef NDEBUG
-        const auto psival2=psi_.LogVal(v_[rep]);
-        if(std::abs(std::exp(psival2-psival1-lvd)-1.)>1.0e-8){
-          std::cerr<<psival2-psival1<<" and logvaldiff is "<<lvd<<std::endl;
-          std::cerr<<psival2<<" and LogVal with Lt is "<<psi_.LogVal(v_[rep],lt_[rep])<<std::endl;
+#ifndef NDEBUG
+        const auto psival2 = psi_.LogVal(v_[rep]);
+        if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
+          std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
+                    << std::endl;
+          std::cerr << psival2 << " and LogVal with Lt is "
+                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
-        #endif
+#endif
       }
-      moves_(rep)+=1;
+      moves_(rep) += 1;
     }
   }
 
-  void Sweep(){
+  void Sweep() {
 
-    //First we do local sweeps
-    for(int i=0;i<nrep_;i++){
+    // First we do local sweeps
+    for (int i = 0; i < nrep_; i++) {
       LocalSweep(i);
     }
 
-    //Tempearture exchanges
-    std::uniform_real_distribution<double> distribution(0,1);
+    // Tempearture exchanges
+    std::uniform_real_distribution<double> distribution(0, 1);
 
-    for(int r=1;r<nrep_;r+=2){
-      if(ExchangeProb(r,r-1)>distribution(rgen_)){
-        Exchange(r,r-1);
-        accept_(nrep_+r)+=1.;
-        accept_(nrep_+r-1)+=1;
+    for (int r = 1; r < nrep_; r += 2) {
+      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+        Exchange(r, r - 1);
+        accept_(nrep_ + r) += 1.;
+        accept_(nrep_ + r - 1) += 1;
       }
-      moves_(nrep_+r)+=1.;
-      moves_(nrep_+r-1)+=1;
+      moves_(nrep_ + r) += 1.;
+      moves_(nrep_ + r - 1) += 1;
     }
 
-    for(int r=2;r<nrep_;r+=2){
-      if(ExchangeProb(r,r-1)>distribution(rgen_)){
-        Exchange(r,r-1);
-        accept_(nrep_+r)+=1.;
-        accept_(nrep_+r-1)+=1;
+    for (int r = 2; r < nrep_; r += 2) {
+      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+        Exchange(r, r - 1);
+        accept_(nrep_ + r) += 1.;
+        accept_(nrep_ + r - 1) += 1;
       }
-      moves_(nrep_+r)+=1.;
-      moves_(nrep_+r-1)+=1;
+      moves_(nrep_ + r) += 1.;
+      moves_(nrep_ + r - 1) += 1;
     }
-
   }
 
-  //computes the probability to exchange two replicas
-  double ExchangeProb(int r1,int r2){
-    const double lf1=2*std::real(psi_.LogVal(v_[r1],lt_[r1]));
-    const double lf2=2*std::real(psi_.LogVal(v_[r2],lt_[r2]));
+  // computes the probability to exchange two replicas
+  double ExchangeProb(int r1, int r2) {
+    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
 
-    return std::exp((beta_[r1]-beta_[r2])*(lf2-lf1));
+    return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
 
-  void Exchange(int r1,int r2){
-    std::swap(v_[r1],v_[r2]);
-    std::swap(lt_[r1],lt_[r2]);
+  void Exchange(int r1, int r2) {
+    std::swap(v_[r1], v_[r2]);
+    std::swap(lt_[r1], lt_[r2]);
   }
 
-  Eigen::VectorXd Visible(){
-    return v_[0];
-  }
+  Eigen::VectorXd Visible() { return v_[0]; }
 
-  void SetVisible(const Eigen::VectorXd & v){
-    v_[0]=v;
-  }
+  void SetVisible(const Eigen::VectorXd &v) { v_[0] = v; }
 
+  WfType &Psi() { return psi_; }
 
-  WfType & Psi(){
-    return psi_;
-  }
-
-  Eigen::VectorXd Acceptance()const{
-    Eigen::VectorXd acc=accept_;
-    for(int i=0;i<acc.size();i++){
-      acc(i)/=moves_(i);
+  Eigen::VectorXd Acceptance() const {
+    Eigen::VectorXd acc = accept_;
+    for (int i = 0; i < acc.size(); i++) {
+      acc(i) /= moves_(i);
     }
     return acc;
   }
-
-
 };
 
-
-}
+} // namespace netket
 
 #endif

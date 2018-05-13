@@ -15,48 +15,42 @@
 #ifndef NETKET_OBSERVABLES_HH
 #define NETKET_OBSERVABLES_HH
 
-#include <vector>
 #include <string>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
-class Observables{
+class Observables {
 
   std::vector<Observable> observables_;
 
 public:
+  using MatType = LocalOperator::MatType;
 
-  using MatType=LocalOperator::MatType;
+  Observables(const Hilbert &hilbert, const json &pars) {
 
-  Observables(const Hilbert & hilbert,const json & pars){
+    if (FieldExists(pars, "Observables")) {
+      auto obspar = pars["Observables"];
 
-    if(FieldExists(pars,"Observables")){
-      auto obspar=pars["Observables"];
+      if (obspar.is_array()) {
+        // multiple observables case
+        for (std::size_t i = 0; i < obspar.size(); i++) {
 
-      if(obspar.is_array()){
-        //multiple observables case
-        for(std::size_t i=0;i<obspar.size();i++){
-
-          observables_.push_back(Observable(hilbert,obspar[i]));
+          observables_.push_back(Observable(hilbert, obspar[i]));
         }
-      }
-      else{
-        //single observable case
-        observables_.push_back(Observable(hilbert,obspar));
+      } else {
+        // single observable case
+        observables_.push_back(Observable(hilbert, obspar));
       }
     }
-
   }
 
-  Observable & operator()(std::size_t i){
-    assert(i<observables_.size());
+  Observable &operator()(std::size_t i) {
+    assert(i < observables_.size());
     return observables_[i];
   }
 
-  std::size_t Size()const{
-    return observables_.size();
-  }
-
+  std::size_t Size() const { return observables_.size(); }
 };
-}
+} // namespace netket
 #endif

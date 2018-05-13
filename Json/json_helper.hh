@@ -15,60 +15,63 @@
 #ifndef NETKET_JSONHELPER_HH
 #define NETKET_JSONHELPER_HH
 
-#include <string>
-#include <iostream>
-#include <vector>
+#include "Json/json.hpp"
 #include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 using json = nlohmann::json;
 
-namespace netket{
+namespace netket {
 
-template<class T> bool FieldExists(const T & pars,std::string field){
-  return pars.count(field)>0;
+template <class T> bool FieldExists(const T &pars, std::string field) {
+  return pars.count(field) > 0;
 }
 
-template<class T> T FieldVal(const T & pars,std::string field){
-  if(!FieldExists(pars,field)){
-    std::cerr<<"Field "<<field<<" is not defined in the input"<<std::endl;
+template <class T> T FieldVal(const T &pars, std::string field) {
+  if (!FieldExists(pars, field)) {
+    std::cerr << "Field " << field << " is not defined in the input"
+              << std::endl;
     std::abort();
   }
   return pars[field];
 }
 
-template<class T> void FieldArray(const T & pars,std::string field, std::vector<int> & arr){
-  if(!FieldExists(pars,field)){
-    std::cerr<<"Field "<<field<<" is not defined in the input"<<std::endl;
+template <class T>
+void FieldArray(const T &pars, std::string field, std::vector<int> &arr) {
+  if (!FieldExists(pars, field)) {
+    std::cerr << "Field " << field << " is not defined in the input"
+              << std::endl;
     std::abort();
   }
   arr.resize(pars[field].size());
-  for (int i=0; i<pars[field].size(); i++){
+  for (int i = 0; i < pars[field].size(); i++) {
     arr[i] = pars[field][i];
   }
 }
 
-template<class T,class V> V FieldOrDefaultVal(const T & pars,std::string field,V defval){
-  if(FieldExists(pars,field)){
+template <class T, class V>
+V FieldOrDefaultVal(const T &pars, std::string field, V defval) {
+  if (FieldExists(pars, field)) {
     return pars[field];
-  }
-  else{
+  } else {
     return defval;
   }
 }
 
-json ReadJsonFromFile(std::string filename){
+json ReadJsonFromFile(std::string filename) {
   json pars;
 
   std::ifstream filein(filename);
-  if (filein.is_open()){
+  if (filein.is_open()) {
     filein >> pars;
-  }
-  else{
-    std::cerr<<"Cannot read Json from file: "<<filename<<std::endl;
+  } else {
+    std::cerr << "Cannot read Json from file: " << filename << std::endl;
     std::abort();
   }
   return pars;
 }
 
-}
+} // namespace netket
 #endif

@@ -16,62 +16,55 @@
 #define NETKET_LOOKUP_HH
 
 #include <Eigen/Dense>
-#include <vector>
 #include <cassert>
+#include <vector>
 
+namespace netket {
 
-namespace netket{
+// Generic look-up table
+template <class T> class Lookup {
 
-  //Generic look-up table
-  template<class T> class Lookup{
+  using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
-    using VectorType=Eigen::Matrix<T,Eigen::Dynamic,1>;
-    using MatrixType=Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic>;
+  std::vector<VectorType> v_;
+  std::vector<MatrixType> m_;
 
-    std::vector<VectorType> v_;
-    std::vector<MatrixType> m_;
+public:
+  int AddVector(int a) {
+    v_.push_back(VectorType(a));
+    return v_.size() - 1;
+  }
 
-  public:
+  int AddMatrix(int a, int b) {
+    m_.push_back(MatrixType(a, b));
+    return m_.size() - 1;
+  }
 
-    int AddVector(int a){
-      v_.push_back(VectorType(a));
-      return v_.size()-1;
-    }
+  int VectorSize() { return v_.size(); }
 
-    int AddMatrix(int a,int b){
-      m_.push_back(MatrixType(a,b));
-      return m_.size()-1;
-    }
+  int MatrixSize() { return m_.size(); }
 
-    int VectorSize(){
-      return v_.size();
-    }
+  VectorType &V(std::size_t i) {
+    assert(i < v_.size() && i >= 0);
+    return v_[i];
+  }
 
-    int MatrixSize(){
-      return m_.size();
-    }
+  const VectorType &V(std::size_t i) const {
+    assert(i < v_.size() && i >= 0);
+    return v_[i];
+  }
 
-    VectorType & V(std::size_t i){
-      assert(i<v_.size() && i>=0);
-      return v_[i];
-    }
+  MatrixType &M(std::size_t i) {
+    assert(i < m_.size() && i >= 0);
+    return m_[i];
+  }
 
-    const VectorType & V(std::size_t i)const{
-      assert(i<v_.size() && i>=0);
-      return v_[i];
-    }
-
-    MatrixType & M(std::size_t i){
-      assert(i<m_.size() && i>=0);
-      return m_[i];
-    }
-
-    const MatrixType & M(std::size_t i)const{
-      assert(i<m_.size() && i>=0);
-      return m_[i];
-    }
-  };
-}
-
+  const MatrixType &M(std::size_t i) const {
+    assert(i < m_.size() && i >= 0);
+    return m_[i];
+  }
+};
+} // namespace netket
 
 #endif

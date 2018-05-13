@@ -15,79 +15,73 @@
 #ifndef NETKET_OBS_MANAGER_HH
 #define NETKET_OBS_MANAGER_HH
 
-#include <iostream>
-#include <random>
-#include <vector>
-#include <random>
-#include <cassert>
-#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include <string>
+#include <cassert>
+#include <iostream>
 #include <map>
+#include <mpi.h>
+#include <random>
+#include <string>
 #include <type_traits>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
+class ObsManager {
 
-class ObsManager{
-
-  std::map<std::string,Binning<double>> scalar_real_obs_;
-  std::map<std::string,Binning<Eigen::VectorXd>> vector_real_obs_;
+  std::map<std::string, Binning<double>> scalar_real_obs_;
+  std::map<std::string, Binning<Eigen::VectorXd>> vector_real_obs_;
 
 public:
-
-  ObsManager(){
-
-  }
-  inline void Push(std::string name,const double & data){
-    scalar_real_obs_[name]<<data;
+  ObsManager() {}
+  inline void Push(std::string name, const double &data) {
+    scalar_real_obs_[name] << data;
   }
 
-  inline void Push(std::string name,const Eigen::VectorXd & data){
-    vector_real_obs_[name]<<data;
+  inline void Push(std::string name, const Eigen::VectorXd &data) {
+    vector_real_obs_[name] << data;
   }
 
-  inline void Reset(std::string name){
-    if(scalar_real_obs_.count(name)>0){
+  inline void Reset(std::string name) {
+    if (scalar_real_obs_.count(name) > 0) {
       scalar_real_obs_[name].Reset();
-    }
-    else if(vector_real_obs_.count(name)>0){
+    } else if (vector_real_obs_.count(name) > 0) {
       vector_real_obs_[name].Reset();
     }
   }
 
-  std::vector<std::string> Names()const{
+  std::vector<std::string> Names() const {
     std::vector<std::string> names;
-    for(auto it=scalar_real_obs_.begin();it!=scalar_real_obs_.end();++it){
+    for (auto it = scalar_real_obs_.begin(); it != scalar_real_obs_.end();
+         ++it) {
       names.push_back(it->first);
     }
-    for(auto it=vector_real_obs_.begin();it!=vector_real_obs_.end();++it){
+    for (auto it = vector_real_obs_.begin(); it != vector_real_obs_.end();
+         ++it) {
       names.push_back(it->first);
     }
     return names;
   }
 
-  json AllStats(std::string name)const{
+  json AllStats(std::string name) const {
     json j;
-    if(scalar_real_obs_.count(name)>0){
-      j=scalar_real_obs_.at(name).AllStats();
-    }
-    else if(vector_real_obs_.count(name)>0){
-      j=vector_real_obs_.at(name).AllStats();
+    if (scalar_real_obs_.count(name) > 0) {
+      j = scalar_real_obs_.at(name).AllStats();
+    } else if (vector_real_obs_.count(name) > 0) {
+      j = vector_real_obs_.at(name).AllStats();
     }
     return j;
   }
-
 };
 
-void to_json(json& j, const ObsManager& om) {
-  auto names=om.Names();
-  j=json();
-  for (auto name : names){
-    j[name]=om.AllStats(name);
+void to_json(json &j, const ObsManager &om) {
+  auto names = om.Names();
+  j = json();
+  for (auto name : names) {
+    j[name] = om.AllStats(name);
   }
 }
 
-}
+} // namespace netket
 #endif

@@ -15,186 +15,160 @@
 #ifndef NETKET_ONLINESTAT_HH
 #define NETKET_ONLINESTAT_HH
 
-#include <iostream>
-#include <random>
-#include <vector>
-#include <random>
-#include <cassert>
-#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <cassert>
+#include <iostream>
+#include <mpi.h>
+#include <random>
+#include <vector>
 
+namespace netket {
 
-namespace netket{
+/// Online statistics
+// for general types
+// this class accumulates results
+// with minimal memory requirements
+// simple statistics can then be obtained
+// or merged with other bins
 
-///Online statistics
-//for general types
-//this class accumulates results
-//with minimal memory requirements
-//simple statistics can then be obtained
-//or merged with other bins
+template <class T> class OnlineStat {
 
-template<class T> class OnlineStat{
-
-  //Number of samples in this bin
+  // Number of samples in this bin
   int N_;
 
-  //current mean
+  // current mean
   T mean_;
 
-  //Running sum of squares of differences from the current mean
+  // Running sum of squares of differences from the current mean
   T m2_;
 
   bool firstcall_;
 
 public:
+  using DataType = T;
 
-  using DataType=T;
+  OnlineStat() { Reset(); }
 
-  OnlineStat(){
-    Reset();
-  }
-
-  //Adding data to this bin
-  inline void operator<<(const DataType & data){
+  // Adding data to this bin
+  inline void operator<<(const DataType &data) {
 
     CheckCall(data);
 
-    N_+=1;
-    const T delta=data-mean_;
-    mean_+=delta/double(N_);
+    N_ += 1;
+    const T delta = data - mean_;
+    mean_ += delta / double(N_);
 
-    const T delta2=data-mean_;
-    m2_+=delta*delta2;
+    const T delta2 = data - mean_;
+    m2_ += delta * delta2;
   }
 
-  //Merging with another bin
-  inline void operator<<(const OnlineStat<T> & obin){
+  // Merging with another bin
+  inline void operator<<(const OnlineStat<T> &obin) {
 
     CheckCall(obin.Mean());
 
-    N_+=obin.N();
-    const T delta=obin.Mean()-Mean();
-    mean_+=delta*obin.N()/double(N_);
+    N_ += obin.N();
+    const T delta = obin.Mean() - Mean();
+    mean_ += delta * obin.N() / double(N_);
 
-    m2_+=obin.m2_+delta*delta*obin.N()*(1.-obin.N()/double(N_));
+    m2_ += obin.m2_ + delta * delta * obin.N() * (1. - obin.N() / double(N_));
   }
 
-  inline int N()const{
-    return N_;
+  inline int N() const { return N_; }
+
+  inline DataType Mean() const { return mean_; }
+
+  inline DataType Variance() const { return m2_ / double(N_ - 1.); }
+
+  inline DataType ErrorOfMean() const {
+    return sqrt(m2_ / double(N_ * (N_ - 1.)));
   }
 
-  inline DataType Mean()const{
-    return mean_;
-  }
+  void Reset() { firstcall_ = true; }
 
-  inline DataType Variance()const{
-    return m2_/double(N_-1.);
-  }
-
-  inline DataType ErrorOfMean()const{
-    return sqrt(m2_/double(N_*(N_-1.)));
-  }
-
-  void Reset(){
-    firstcall_=true;
-  }
-
-  void CheckCall(const DataType & data){
-    if(firstcall_){
-      N_=0;
-      mean_=DataType(data);
-      mean_=0;
-      m2_=DataType(data);
-      m2_=0;
-      firstcall_=false;
+  void CheckCall(const DataType &data) {
+    if (firstcall_) {
+      N_ = 0;
+      mean_ = DataType(data);
+      mean_ = 0;
+      m2_ = DataType(data);
+      m2_ = 0;
+      firstcall_ = false;
     }
   }
-
 };
 
+/// Online statistics
+// for scalars
+// this class accumulates results
+// with minimal memory requirements
+// simple statistics can then be obtained
+// or merged with other bins
+template <> class OnlineStat<Eigen::VectorXd> {
 
-///Online statistics
-//for scalars
-//this class accumulates results
-//with minimal memory requirements
-//simple statistics can then be obtained
-//or merged with other bins
-template<> class OnlineStat<Eigen::VectorXd>{
-
-  //Number of samples in this bin
+  // Number of samples in this bin
   int N_;
 
-  //current mean
+  // current mean
   Eigen::VectorXd mean_;
 
-  //Running sum of squares of differences from the current mean
+  // Running sum of squares of differences from the current mean
   Eigen::VectorXd m2_;
 
   bool firstcall_;
 
 public:
+  using DataType = Eigen::VectorXd;
 
-  using DataType=Eigen::VectorXd;
+  OnlineStat() { Reset(); }
 
-  OnlineStat(){
-    Reset();
-  }
-
-  //Adding data to this bin
-  inline void operator<<(const DataType & data){
+  // Adding data to this bin
+  inline void operator<<(const DataType &data) {
     CheckCall(data);
 
-    N_+=1;
-    const DataType delta=data-mean_;
-    mean_+=delta/double(N_);
+    N_ += 1;
+    const DataType delta = data - mean_;
+    mean_ += delta / double(N_);
 
-    const DataType delta2=data-mean_;
-    m2_+=delta.cwiseProduct(delta2);
+    const DataType delta2 = data - mean_;
+    m2_ += delta.cwiseProduct(delta2);
   }
 
-  //Merging with another bin
-  inline void operator<<(const OnlineStat<Eigen::VectorXd> & obin){
+  // Merging with another bin
+  inline void operator<<(const OnlineStat<Eigen::VectorXd> &obin) {
     CheckCall(obin.Mean());
 
-    N_+=obin.N();
-    const DataType delta=obin.Mean()-Mean();
-    mean_+=delta*obin.N()/double(N_);
-    m2_+=obin.m2_+delta.cwiseProduct(delta)*obin.N()*(1.-obin.N()/double(N_));
+    N_ += obin.N();
+    const DataType delta = obin.Mean() - Mean();
+    mean_ += delta * obin.N() / double(N_);
+    m2_ += obin.m2_ +
+           delta.cwiseProduct(delta) * obin.N() * (1. - obin.N() / double(N_));
   }
 
-  inline int N()const{
-    return N_;
+  inline int N() const { return N_; }
+
+  inline DataType Mean() const { return mean_; }
+
+  inline DataType Variance() const { return m2_ / double(N_ - 1.); }
+
+  inline DataType ErrorOfMean() const {
+    return m2_.cwiseSqrt() / std::sqrt(double(N_ * (N_ - 1.)));
   }
 
-  inline DataType Mean()const{
-    return mean_;
-  }
+  void Reset() { firstcall_ = true; }
 
-  inline DataType Variance()const{
-    return m2_/double(N_-1.);
-  }
-
-  inline DataType ErrorOfMean()const{
-    return m2_.cwiseSqrt()/std::sqrt(double(N_*(N_-1.)));
-  }
-
-  void Reset(){
-    firstcall_=true;
-  }
-
-  void CheckCall(const DataType & data){
-    if(firstcall_){
-      N_=0;
+  void CheckCall(const DataType &data) {
+    if (firstcall_) {
+      N_ = 0;
       mean_.resize(data.size());
       mean_.setZero();
       m2_.resize(data.size());
       m2_.setZero();
-      firstcall_=false;
+      firstcall_ = false;
     }
   }
-
 };
 
-}
+} // namespace netket
 #endif

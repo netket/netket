@@ -15,64 +15,62 @@
 #ifndef NETKET_CUSTOM_HAMILTONIAN_CC
 #define NETKET_CUSTOM_HAMILTONIAN_CC
 
-#include <vector>
 #include "local_operator.hh"
+#include <vector>
 
-namespace netket{
+namespace netket {
 
-class CustomHamiltonian:public AbstractHamiltonian{
+class CustomHamiltonian : public AbstractHamiltonian {
 
   std::vector<LocalOperator> operators_;
   Hilbert hilbert_;
 
 public:
+  using MatType = LocalOperator::MatType;
 
-  using MatType=LocalOperator::MatType;
+  CustomHamiltonian(const json &pars) : hilbert_(pars) {
 
-  CustomHamiltonian(const json & pars):
-    hilbert_(pars){
-
-    if(!FieldExists(pars["Hamiltonian"],"Operators")){
-      std::cerr<<"Local operators in the Hamiltonian are not defined"<<std::endl;
+    if (!FieldExists(pars["Hamiltonian"], "Operators")) {
+      std::cerr << "Local operators in the Hamiltonian are not defined"
+                << std::endl;
       std::abort();
     }
-    if(!FieldExists(pars["Hamiltonian"],"ActingOn")){
-      std::cerr<<"Local operators support in the Hamiltonian is not defined"<<std::endl;
-      std::abort();
-    }
-
-    auto jop=pars["Hamiltonian"]["Operators"].get<std::vector<MatType>>();
-    auto sites=pars["Hamiltonian"]["ActingOn"].get<std::vector<std::vector<int>>>();
-
-    if(sites.size()!=jop.size()){
-      std::cerr<<"The custom Hamiltonian definition is inconsistent:"<<std::endl;
-      std::cerr<<"Check that ActingOn is defined"<<std::endl;
+    if (!FieldExists(pars["Hamiltonian"], "ActingOn")) {
+      std::cerr << "Local operators support in the Hamiltonian is not defined"
+                << std::endl;
       std::abort();
     }
 
-    for(std::size_t i=0;i<jop.size();i++){
-      operators_.push_back(LocalOperator(hilbert_,jop[i],sites[i]));
+    auto jop = pars["Hamiltonian"]["Operators"].get<std::vector<MatType>>();
+    auto sites =
+        pars["Hamiltonian"]["ActingOn"].get<std::vector<std::vector<int>>>();
+
+    if (sites.size() != jop.size()) {
+      std::cerr << "The custom Hamiltonian definition is inconsistent:"
+                << std::endl;
+      std::cerr << "Check that ActingOn is defined" << std::endl;
+      std::abort();
     }
 
+    for (std::size_t i = 0; i < jop.size(); i++) {
+      operators_.push_back(LocalOperator(hilbert_, jop[i], sites[i]));
+    }
   }
 
-  void FindConn(const Eigen::VectorXd & v,
-    std::vector<std::complex<double>> & mel,
-    std::vector<std::vector<int>> & connectors,
-    std::vector<std::vector<double>> & newconfs)
-  {
+  void FindConn(const Eigen::VectorXd &v,
+                std::vector<std::complex<double>> &mel,
+                std::vector<std::vector<int>> &connectors,
+                std::vector<std::vector<double>> &newconfs) {
     connectors.clear();
     newconfs.clear();
     mel.resize(0);
 
-    for(std::size_t i=0;i<operators_.size();i++){
-      operators_[i].AddConn(v,mel,connectors,newconfs);
+    for (std::size_t i = 0; i < operators_.size(); i++) {
+      operators_[i].AddConn(v, mel, connectors, newconfs);
     }
   }
 
-  const Hilbert & GetHilbert()const{
-    return hilbert_;
-  }
+  const Hilbert &GetHilbert() const { return hilbert_; }
 };
-}
+} // namespace netket
 #endif

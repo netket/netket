@@ -18,58 +18,50 @@
 #include <memory>
 
 #include "abstract_hamiltonian.hh"
-#include "ising.hh"
-#include "heisenberg.hh"
 #include "bosonhubbard.hh"
 #include "custom_hamiltonian.hh"
+#include "heisenberg.hh"
+#include "ising.hh"
 
-namespace netket{
+namespace netket {
 
-class Hamiltonian:public AbstractHamiltonian{
-  using Ptype=std::unique_ptr<AbstractHamiltonian>;
+class Hamiltonian : public AbstractHamiltonian {
+  using Ptype = std::unique_ptr<AbstractHamiltonian>;
 
   Ptype h_;
 
 public:
+  Hamiltonian(const Graph &graph, const json &pars) {
 
-  Hamiltonian(const Graph & graph,const json & pars){
-
-    if(!FieldExists(pars,"Hamiltonian")){
-      std::cerr<<"Hamiltonian is not defined in the input"<<std::endl;
+    if (!FieldExists(pars, "Hamiltonian")) {
+      std::cerr << "Hamiltonian is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(FieldExists(pars["Hamiltonian"],"Name")){
-      if(pars["Hamiltonian"]["Name"]=="Ising"){
-        h_=Ptype(new Ising<Graph>(graph,pars));
-      }
-      else if(pars["Hamiltonian"]["Name"]=="Heisenberg"){
-        h_=Ptype(new Heisenberg<Graph>(graph,pars));
-      }
-      else if(pars["Hamiltonian"]["Name"]=="BoseHubbard"){
-        h_=Ptype(new BoseHubbard<Graph>(graph,pars));
-      }
-      else{
-        std::cout<<"Hamiltonian name not found"<<std::endl;
+    if (FieldExists(pars["Hamiltonian"], "Name")) {
+      if (pars["Hamiltonian"]["Name"] == "Ising") {
+        h_ = Ptype(new Ising<Graph>(graph, pars));
+      } else if (pars["Hamiltonian"]["Name"] == "Heisenberg") {
+        h_ = Ptype(new Heisenberg<Graph>(graph, pars));
+      } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
+        h_ = Ptype(new BoseHubbard<Graph>(graph, pars));
+      } else {
+        std::cout << "Hamiltonian name not found" << std::endl;
         std::abort();
       }
-    }
-    else{
-      h_=Ptype(new CustomHamiltonian(pars));
+    } else {
+      h_ = Ptype(new CustomHamiltonian(pars));
     }
   }
 
-  void FindConn(const Eigen::VectorXd & v,
-    std::vector<std::complex<double>> & mel,
-    std::vector<std::vector<int>> & connectors,
-    std::vector<std::vector<double>> & newconfs)
-  {
-      return h_->FindConn(v,mel,connectors,newconfs);
+  void FindConn(const Eigen::VectorXd &v,
+                std::vector<std::complex<double>> &mel,
+                std::vector<std::vector<int>> &connectors,
+                std::vector<std::vector<double>> &newconfs) {
+    return h_->FindConn(v, mel, connectors, newconfs);
   }
 
-  const Hilbert & GetHilbert()const{
-    return h_->GetHilbert();
-  }
+  const Hilbert &GetHilbert() const { return h_->GetHilbert(); }
 };
-}
+} // namespace netket
 #endif

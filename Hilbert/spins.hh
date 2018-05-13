@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
+#include "abstract_hilbert.hh"
+#include "Json/json.hh"
 #include <Eigen/Dense>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 #include <random>
 #include <vector>
-#include <cmath>
-#include <algorithm>
 
 #ifndef NETKET_SPIN_HH
 #define NETKET_SPIN_HH
 
-namespace netket{
+namespace netket {
 
 /**
   Hilbert space for integer or half-integer spins.
@@ -31,7 +33,7 @@ namespace netket{
   numbers are -3,-1,1,3, and if S=1 we have -2,0,2.
 */
 
-class Spin : public AbstractHilbert{
+class Spin : public AbstractHilbert {
 
   double S_;
   double totalS_;
@@ -44,158 +46,141 @@ class Spin : public AbstractHilbert{
   int nspins_;
 
 public:
-
-
-  Spin(const json & pars){
+  Spin(const json &pars) {
     int nspins;
     double S;
 
-    if(!FieldExists(pars["Hilbert"],"Nspins")){
-      std::cerr<<"Nspins is not defined"<<std::endl;
+    if (!FieldExists(pars["Hilbert"], "Nspins")) {
+      std::cerr << "Nspins is not defined" << std::endl;
     }
 
-    nspins=pars["Hilbert"]["Nspins"];
+    nspins = pars["Hilbert"]["Nspins"];
 
-    if(!FieldExists(pars["Hilbert"],"S")){
-      std::cerr<<"S is not defined"<<std::endl;
+    if (!FieldExists(pars["Hilbert"], "S")) {
+      std::cerr << "S is not defined" << std::endl;
     }
 
-    S=pars["Hilbert"]["S"];
+    S = pars["Hilbert"]["S"];
 
-    Init(nspins,S);
+    Init(nspins, S);
 
-    if(FieldExists(pars["Hilbert"],"TotalSz")){
+    if (FieldExists(pars["Hilbert"], "TotalSz")) {
       SetConstraint(pars["Hilbert"]["TotalSz"]);
-    }
-    else{
-      constraintSz_=false;
+    } else {
+      constraintSz_ = false;
     }
   }
 
-  void Init(int nspins,double S){
-    S_=S;
-    nspins_=nspins;
+  void Init(int nspins, double S) {
+    S_ = S;
+    nspins_ = nspins;
 
-    if(S<=0){
-      std::cerr<<"Invalid spin value"<<std::endl;
+    if (S <= 0) {
+      std::cerr << "Invalid spin value" << std::endl;
       std::abort();
     }
 
-    if(std::floor(2.*S) != 2.*S){
-      std::cerr<<"Spin value is hot integer or half integer"<<std::endl;
+    if (std::floor(2. * S) != 2. * S) {
+      std::cerr << "Spin value is hot integer or half integer" << std::endl;
       std::abort();
     }
 
-    nstates_=std::floor(2.*S)+1;
+    nstates_ = std::floor(2. * S) + 1;
 
     local_.resize(nstates_);
 
-    int sp=-std::floor(2.*S);
-    for(int i=0;i<nstates_;i++){
-      local_[i]=sp;
-      sp+=2;
+    int sp = -std::floor(2. * S);
+    for (int i = 0; i < nstates_; i++) {
+      local_[i] = sp;
+      sp += 2;
     }
-
   }
 
-  void SetConstraint(double totalS){
-    constraintSz_=true;
-    totalS_=totalS;
+  void SetConstraint(double totalS) {
+    constraintSz_ = true;
+    totalS_ = totalS;
   }
 
-  bool IsDiscrete()const{
-    return true;
-  }
+  bool IsDiscrete() const { return true; }
 
-  int LocalSize()const{
-    return nstates_;
-  }
+  int LocalSize() const { return nstates_; }
 
-  int Size()const{
-    return nspins_;
-  }
+  int Size() const { return nspins_; }
 
-  std::vector<double> LocalStates()const{
-    return local_;
-  }
+  std::vector<double> LocalStates() const { return local_; }
 
-  void RandomVals(Eigen::VectorXd & state,
-    netket::default_random_engine & rgen)const{
+  void RandomVals(Eigen::VectorXd &state,
+                  netket::default_random_engine &rgen) const {
 
-    std::uniform_int_distribution<int> distribution(0,nstates_-1);
+    std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
 
-    assert(state.size()==nspins_);
+    assert(state.size() == nspins_);
 
-    if(!constraintSz_){
-      //unconstrained random
-      for(int i=0;i<state.size();i++){
-        state(i)=2.*(distribution(rgen)-S_);
+    if (!constraintSz_) {
+      // unconstrained random
+      for (int i = 0; i < state.size(); i++) {
+        state(i) = 2. * (distribution(rgen) - S_);
       }
-    }
-    else{
+    } else {
 
-      if(S_==0.5){
-        int nup=nspins_/2 + int(totalS_);
-        int ndown=nspins_-nup;
+      if (S_ == 0.5) {
+        int nup = nspins_ / 2 + int(totalS_);
+        int ndown = nspins_ - nup;
 
-        if((nup-ndown)!=int(2*totalS_)){
-          std::cerr<<"#Cannot fix the total magnetization "<<std::endl;
+        if ((nup - ndown) != int(2 * totalS_)) {
+          std::cerr << "#Cannot fix the total magnetization " << std::endl;
           std::abort();
         }
 
         std::vector<double> vect(nspins_);
 
-        for(int i=0;i<nup;i++){
-          vect[i]=+1.;
+        for (int i = 0; i < nup; i++) {
+          vect[i] = +1.;
         }
-        for(int i=nup;i<nspins_;i++){
-          vect[i]=-1.;
+        for (int i = nup; i < nspins_; i++) {
+          vect[i] = -1.;
         }
 
-        //now random shuffle
-        std::shuffle(vect.begin(),vect.end(),rgen);
+        // now random shuffle
+        std::shuffle(vect.begin(), vect.end(), rgen);
 
-        for(int i=0;i<nspins_;i++){
-          state(i)=vect[i];
+        for (int i = 0; i < nspins_; i++) {
+          state(i) = vect[i];
         }
         return;
-      }
-      else{
+      } else {
         std::vector<int> sites;
-        for(int i=0; i<nspins_; ++i) sites.push_back(i);
+        for (int i = 0; i < nspins_; ++i)
+          sites.push_back(i);
 
-        state.setConstant(-2*S_);
+        state.setConstant(-2 * S_);
         int ss = nspins_;
 
-        for(int i=0; i<S_*nspins_+totalS_; ++i){
-          std::uniform_int_distribution<int> distribution_ss(0,ss-1);
+        for (int i = 0; i < S_ * nspins_ + totalS_; ++i) {
+          std::uniform_int_distribution<int> distribution_ss(0, ss - 1);
           int s = distribution_ss(rgen);
           state(sites[s]) += 2;
-          if(state(sites[s]) > 2*S_-1){
+          if (state(sites[s]) > 2 * S_ - 1) {
             sites.erase(sites.begin() + s);
             ss -= 1;
           }
         }
-
       }
     }
   }
 
-  void UpdateConf(Eigen::VectorXd & v,
-    const std::vector<int>  & tochange,
-    const std::vector<double> & newconf)const{
+  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+                  const std::vector<double> &newconf) const {
 
-    assert(v.size()==nspins_);
+    assert(v.size() == nspins_);
 
-    int i=0;
-    for(auto sf: tochange){
-      v(sf)=newconf[i];
+    int i = 0;
+    for (auto sf : tochange) {
+      v(sf) = newconf[i];
       i++;
     }
   }
-
-
 };
 
-}
+} // namespace netket
 #endif

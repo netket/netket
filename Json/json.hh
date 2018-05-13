@@ -15,7 +15,6 @@
 #ifndef NETKET_JSON_HH
 #define NETKET_JSON_HH
 
-#include "Json/json.hpp"
-#include "json_helper.hh"
 #include "json_dumps.hh"
+#include "json_helper.hh"
 #endif

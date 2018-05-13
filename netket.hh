@@ -12,27 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #ifndef NETKET_HEADER_HH
 #define NETKET_HEADER_HH
 
 #include <random>
 
-namespace netket{
-  using default_random_engine = std::mt19937;
+namespace netket {
+using default_random_engine = std::mt19937;
 }
 
-
-#include "Json/json.hh"
-#include "Parallel/parallel.hh"
-#include "Lookup/lookup.hh"
-#include "Stats/stats.hh"
-#include "Hilbert/hilbert.hh"
 #include "Graph/graph.hh"
 #include "Hamiltonian/hamiltonian.hh"
-#include "Observable/observable.hh"
-#include "Machine/machine.hh"
-#include "Sampler/sampler.hh"
+#include "Hilbert/hilbert.hh"
 #include "Learning/learning.hh"
+#include "Lookup/lookup.hh"
+#include "Machine/machine.hh"
+#include "Observable/observable.hh"
+#include "Parallel/parallel.hh"
+#include "Sampler/sampler.hh"
+#include "Stats/stats.hh"
+#include "Json/json.hh"
 
 #endif

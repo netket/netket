@@ -15,33 +15,32 @@
 #ifndef NETKET_FINDDIST_HH
 #define NETKET_FINDDIST_HH
 
-#include <vector>
-#include <set>
 #include <queue>
+#include <set>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
+std::vector<int> FindDist(const std::vector<std::vector<int>> &g, int root) {
+  int n = g.size();
+  std::vector<int> dists(n, -1);
 
-std::vector<int> FindDist(const std::vector<std::vector<int> > & g,int root){
-  int n=g.size();
-  std::vector<int> dists(n,-1);
-
-  dists[root]=0;
+  dists[root] = 0;
 
   std::queue<int> tovisit;
 
   tovisit.push(root);
 
-  while(tovisit.size()>0){
-    int node=tovisit.front();
+  while (tovisit.size() > 0) {
+    int node = tovisit.front();
     tovisit.pop();
 
-    for(std::size_t j=0;j<g[node].size();j++){
-      int nj=g[node][j];
+    for (std::size_t j = 0; j < g[node].size(); j++) {
+      int nj = g[node][j];
 
-      if(dists[nj]==-1){
+      if (dists[nj] == -1) {
         tovisit.push(nj);
-        dists[nj]=dists[node]+1;
+        dists[nj] = dists[node] + 1;
       }
     }
   }
@@ -49,5 +48,5 @@ std::vector<int> FindDist(const std::vector<std::vector<int> > & g,int root){
   return dists;
 }
 
-}
+} // namespace netket
 #endif

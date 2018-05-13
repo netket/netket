@@ -16,69 +16,59 @@
 #define NETKET_STEPPER_HH
 
 #include "abstract_stepper.hh"
-#include "sgd.hh"
 #include "ada_delta.hh"
 #include "ada_max.hh"
 #include "rprop.hh"
+#include "sgd.hh"
 
-namespace netket{
+namespace netket {
 
-class Stepper:public AbstractStepper{
+class Stepper : public AbstractStepper {
 
-  using Ptype=std::unique_ptr<AbstractStepper>;
+  using Ptype = std::unique_ptr<AbstractStepper>;
 
   Ptype s_;
 
 public:
+  Stepper(const json &pars) {
 
-  Stepper(const json & pars){
-
-    if(!FieldExists(pars,"Learning")){
-      std::cerr<<"Learning is not defined in the input"<<std::endl;
+    if (!FieldExists(pars, "Learning")) {
+      std::cerr << "Learning is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(!FieldExists(pars["Learning"],"StepperType")){
-      std::cerr<<"Stepper Type is not defined in the input"<<std::endl;
+    if (!FieldExists(pars["Learning"], "StepperType")) {
+      std::cerr << "Stepper Type is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(pars["Learning"]["StepperType"]=="Sgd"){
-      s_=Ptype(new Sgd(pars));
-    }
-    else if(pars["Learning"]["StepperType"]=="AdaMax"){
-      s_=Ptype(new AdaMax(pars));
-    }
-    else{
-      std::cout<<"StepperType not found"<<std::endl;
+    if (pars["Learning"]["StepperType"] == "Sgd") {
+      s_ = Ptype(new Sgd(pars));
+    } else if (pars["Learning"]["StepperType"] == "AdaMax") {
+      s_ = Ptype(new AdaMax(pars));
+    } else {
+      std::cout << "StepperType not found" << std::endl;
       std::abort();
     }
   }
 
-  void Init(const Eigen::VectorXd & pars){
-    return s_->Init(pars);
+  void Init(const Eigen::VectorXd &pars) { return s_->Init(pars); }
+
+  void Init(const Eigen::VectorXcd &pars) { return s_->Init(pars); }
+
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+    return s_->Update(grad, pars);
   }
 
-  void Init(const Eigen::VectorXcd & pars){
-    return s_->Init(pars);
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) {
+    return s_->Update(grad, pars);
   }
 
-  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
-    return s_->Update(grad,pars);
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) {
+    return s_->Update(grad, pars);
   }
 
-  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars){
-    return s_->Update(grad,pars);
-  }
-
-  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars){
-    return s_->Update(grad,pars);
-  }
-
-  void Reset(){
-    return s_->Reset();
-  }
-
+  void Reset() { return s_->Reset(); }
 };
-}
+} // namespace netket
 #endif

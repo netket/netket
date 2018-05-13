@@ -15,18 +15,18 @@
 #ifndef NETKET_RPROP_HH
 #define NETKET_RPROP_HH
 
-#include <iostream>
+#include "abstract_stepper.hh"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
-namespace netket{
+namespace netket {
 
+class Rprop {
 
-class Rprop{
-
-  //decay constant
+  // decay constant
   double etap_;
   double etam_;
 
@@ -40,55 +40,48 @@ class Rprop{
   double delta0_;
 
 public:
-
-  Rprop(double etam,double etap,double delta0,double deltamin,double deltamax):
-    etap_(etap),etam_(etam),deltamin_(deltamin),deltamax_(deltamax),delta0_(delta0){
-    npar_=-1;
+  Rprop(double etam, double etap, double delta0, double deltamin,
+        double deltamax)
+      : etap_(etap), etam_(etam), deltamin_(deltamin), deltamax_(deltamax),
+        delta0_(delta0) {
+    npar_ = -1;
   }
 
-  void SetNpar(int npar){
-    npar_=npar;
+  void SetNpar(int npar) {
+    npar_ = npar;
 
     oldgrad_.resize(npar_);
-    oldgrad_=Eigen::VectorXd::Ones(npar_);
+    oldgrad_ = Eigen::VectorXd::Ones(npar_);
     delta_.resize(npar_);
-    delta_=delta0_*Eigen::VectorXd::Ones(npar_);
-
+    delta_ = delta0_ * Eigen::VectorXd::Ones(npar_);
   }
 
-  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
-    assert(npar_>0);
-    double normgrad=1./std::sqrt(grad.norm());
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+    assert(npar_ > 0);
+    double normgrad = 1. / std::sqrt(grad.norm());
 
-    for(int i=0;i<npar_;i++){
-      if(grad(i)*oldgrad_(i)>0){
-        delta_(i)=std::min(deltamax_,delta_(i)*etap_);
-        oldgrad_(i)=grad(i);
+    for (int i = 0; i < npar_; i++) {
+      if (grad(i) * oldgrad_(i) > 0) {
+        delta_(i) = std::min(deltamax_, delta_(i) * etap_);
+        oldgrad_(i) = grad(i);
+      } else if (grad(i) * oldgrad_(i) < 0) {
+        delta_(i) = std::max(deltamin_, delta_(i) * etam_);
+        oldgrad_(i) = 0;
+      } else {
+        oldgrad_(i) = grad(i);
       }
-      else if(grad(i)*oldgrad_(i)<0){
-        delta_(i)=std::max(deltamin_,delta_(i)*etam_);
-        oldgrad_(i)=0;
-      }
-      else{
-        oldgrad_(i)=grad(i);
-      }
-      if(grad(i)>0){
-        pars(i)-=std::min(delta_(i),normgrad);
-      }
-      else if(grad(i)<0){
-        pars(i)+=std::min(delta_(i),normgrad);
+      if (grad(i) > 0) {
+        pars(i) -= std::min(delta_(i), normgrad);
+      } else if (grad(i) < 0) {
+        pars(i) += std::min(delta_(i), normgrad);
       }
     }
-    std::cerr<<delta_.mean()<<std::endl;
+    std::cerr << delta_.mean() << std::endl;
   }
 
-
-  void Reset(){
-
-  }
+  void Reset() {}
 };
 
-
-}
+} // namespace netket
 
 #endif

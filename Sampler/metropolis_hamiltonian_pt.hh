@@ -15,30 +15,31 @@
 #ifndef NETKET_METROPOLISHAMILTONIAN_PT_HH
 #define NETKET_METROPOLISHAMILTONIAN_PT_HH
 
-#include <iostream>
+#include "abstract_sampler.hh"
 #include <Eigen/Dense>
-#include <random>
-#include <mpi.h>
+#include <iostream>
 #include <limits>
+#include <mpi.h>
+#include <random>
 
-namespace netket{
+namespace netket {
 
+// Metropolis sampling generating transitions using the Hamiltonian
+template <class WfType, class H>
+class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
-//Metropolis sampling generating transitions using the Hamiltonian
-template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSampler<WfType>{
+  WfType &psi_;
 
-  WfType & psi_;
+  const Hilbert &hilbert_;
 
-  const Hilbert & hilbert_;
+  H &hamiltonian_;
 
-  H & hamiltonian_;
-
-  //number of visible units
+  // number of visible units
   const int nv_;
 
   netket::default_random_engine rgen_;
 
-  //states of visible units
+  // states of visible units
   std::vector<Eigen::VectorXd> v_;
   Eigen::VectorXd v1_;
 
@@ -48,7 +49,7 @@ template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSam
   int mynode_;
   int totalnodes_;
 
-  //Look-up tables
+  // Look-up tables
   std::vector<typename WfType::LookupType> lt_;
 
   std::vector<std::vector<int>> tochange_;
@@ -63,42 +64,43 @@ template<class WfType,class H> class MetropolisHamiltonianPt: public AbstractSam
   std::vector<double> beta_;
 
 public:
-
-  MetropolisHamiltonianPt(WfType & psi, H & hamiltonian, int nrep):
-       psi_(psi),hilbert_(psi.GetHilbert()),nv_(hilbert_.Size()),
-       hamiltonian_(hamiltonian),nrep_(nrep){
+  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
+        hamiltonian_(hamiltonian), nrep_(nrep) {
     Init();
   }
 
-  //Json constructor
-  MetropolisHamiltonianPt(WfType & psi,H & hamiltonian,const json & pars):
-    psi_(psi),hilbert_(psi.GetHilbert()),hamiltonian_(hamiltonian),nv_(hilbert_.Size()),
-    nrep_(FieldVal(pars["Sampler"],"Nreplicas")) {
+  // Json constructor
+  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const json &pars)
+      : psi_(psi), hilbert_(psi.GetHilbert()), hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()), nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
     Init();
   }
 
-  void Init(){
+  void Init() {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if(!hilbert_.IsDiscrete()){
-      if(mynode_==0){
-        std::cerr<<"# Hamiltonian Metropolis sampler works only for discrete Hilbert spaces"<<std::endl;
+    if (!hilbert_.IsDiscrete()) {
+      if (mynode_ == 0) {
+        std::cerr << "# Hamiltonian Metropolis sampler works only for discrete "
+                     "Hilbert spaces"
+                  << std::endl;
       }
       std::abort();
     }
 
     v_.resize(nrep_);
-    for(int i=0;i<nrep_;i++){
+    for (int i = 0; i < nrep_; i++) {
       v_[i].resize(nv_);
     }
 
-    for(int i=0;i<nrep_;i++){
-      beta_.push_back(1.-double(i)/double(nrep_));
+    for (int i = 0; i < nrep_; i++) {
+      beta_.push_back(1. - double(i) / double(nrep_));
     }
 
-    accept_.resize(2*nrep_);
-    moves_.resize(2*nrep_);
+    accept_.resize(2 * nrep_);
+    moves_.resize(2 * nrep_);
 
     lt_.resize(nrep_);
 
@@ -106,20 +108,21 @@ public:
 
     Reset(true);
 
-
-    if(mynode_==0){
-      std::cout<<"# Hamiltonian Metropolis sampler with parallel tempering is ready "<<std::endl;
-      std::cout<<"# "<<nrep_<<" replicas are being used"<<std::endl;
+    if (mynode_ == 0) {
+      std::cout << "# Hamiltonian Metropolis sampler with parallel tempering "
+                   "is ready "
+                << std::endl;
+      std::cout << "# " << nrep_ << " replicas are being used" << std::endl;
     }
   }
 
-  void Seed(int baseseed=0){
+  void Seed(int baseseed = 0) {
     std::random_device rd;
     std::vector<int> seeds(totalnodes_);
 
-    if(mynode_==0){
-      for(int i=0;i<totalnodes_;i++){
-        seeds[i]=rd()+baseseed;
+    if (mynode_ == 0) {
+      for (int i = 0; i < totalnodes_; i++) {
+        seeds[i] = rd() + baseseed;
       }
     }
 
@@ -128,152 +131,143 @@ public:
     rgen_.seed(seeds[mynode_]);
   }
 
-
-  void Reset(bool initrandom=false){
-    if(initrandom){
-      for(int i=0;i<nrep_;i++){
-        hilbert_.RandomVals(v_[i],rgen_);
+  void Reset(bool initrandom = false) {
+    if (initrandom) {
+      for (int i = 0; i < nrep_; i++) {
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
-    for(int i=0;i<nrep_;i++){
-      psi_.InitLookup(v_[i],lt_[i]);
+    for (int i = 0; i < nrep_; i++) {
+      psi_.InitLookup(v_[i], lt_[i]);
     }
 
-    accept_=Eigen::VectorXd::Zero(2*nrep_);
-    moves_=Eigen::VectorXd::Zero(2*nrep_);
+    accept_ = Eigen::VectorXd::Zero(2 * nrep_);
+    moves_ = Eigen::VectorXd::Zero(2 * nrep_);
   }
 
-  void LocalSweep(int rep){
+  void LocalSweep(int rep) {
 
-    for(int i=0;i<nv_;i++){
-      hamiltonian_.FindConn(v_[rep], mel_,tochange_,newconfs_);
+    for (int i = 0; i < nv_; i++) {
+      hamiltonian_.FindConn(v_[rep], mel_, tochange_, newconfs_);
 
-      const double w1=tochange_.size();
+      const double w1 = tochange_.size();
 
-      std::uniform_int_distribution<int> distrs(0,tochange_.size()-1);
-      std::uniform_real_distribution<double> distu(0,1);
+      std::uniform_int_distribution<int> distrs(0, tochange_.size() - 1);
+      std::uniform_real_distribution<double> distu(0, 1);
 
-      //picking a random state to transit to
-      int si=distrs(rgen_);
+      // picking a random state to transit to
+      int si = distrs(rgen_);
 
-      //Inverse transition
-      v1_=v_[rep];
-      hilbert_.UpdateConf(v1_,tochange_[si],newconfs_[si]);
+      // Inverse transition
+      v1_ = v_[rep];
+      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
-      hamiltonian_.FindConn(v1_, mel1_,tochange1_,newconfs1_);
+      hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
-      double w2=tochange1_.size();
+      double w2 = tochange1_.size();
 
-      const auto lvd=psi_.LogValDiff(v_[rep],tochange_[si],newconfs_[si],lt_[rep]);
-      double ratio=std::norm(std::exp(beta_[rep]*lvd)*w1/w2);
+      const auto lvd =
+          psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+      double ratio = std::norm(std::exp(beta_[rep] * lvd) * w1 / w2);
 
-      #ifndef NDEBUG
-      const auto psival1=psi_.LogVal(v_[rep]);
-      if(std::abs(std::exp(psi_.LogVal(v_[rep])-psi_.LogVal(v_[rep],lt_[rep]))-1.)>1.0e-8){
-        std::cerr<<psi_.LogVal(v_[rep])<<"  and LogVal with Lt is "<<psi_.LogVal(v_[rep],lt_[rep])<<std::endl;
+#ifndef NDEBUG
+      const auto psival1 = psi_.LogVal(v_[rep]);
+      if (std::abs(
+              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
+              1.) > 1.0e-8) {
+        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
-      #endif
+#endif
 
-      //Metropolis acceptance test
-      if(ratio>distu(rgen_)){
-        accept_[0]+=1;
-        psi_.UpdateLookup(v_[rep],tochange_[si],newconfs_[si],lt_[rep]);
-        v_[rep]=v1_;
+      // Metropolis acceptance test
+      if (ratio > distu(rgen_)) {
+        accept_[0] += 1;
+        psi_.UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+        v_[rep] = v1_;
 
-        #ifndef NDEBUG
-        const auto psival2=psi_.LogVal(v_[rep]);
-        if(std::abs(std::exp(psival2-psival1-lvd)-1.)>1.0e-8){
-          std::cerr<<psival2-psival1<<" and logvaldiff is "<<lvd<<std::endl;
-          std::cerr<<psival2<<" and LogVal with Lt is "<<psi_.LogVal(v_[rep],lt_[rep])<<std::endl;
+#ifndef NDEBUG
+        const auto psival2 = psi_.LogVal(v_[rep]);
+        if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
+          std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
+                    << std::endl;
+          std::cerr << psival2 << " and LogVal with Lt is "
+                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
-        #endif
+#endif
       }
-      moves_[rep]+=1;
+      moves_[rep] += 1;
     }
   }
 
-  void Sweep(){
-    //First we do local exchange sweeps
-    for(int i=0;i<nrep_;i++){
+  void Sweep() {
+    // First we do local exchange sweeps
+    for (int i = 0; i < nrep_; i++) {
       LocalSweep(i);
     }
 
-    //Tempearture exchanges
-    std::uniform_real_distribution<double> distribution(0,1);
+    // Tempearture exchanges
+    std::uniform_real_distribution<double> distribution(0, 1);
 
-    for(int r=1;r<nrep_;r+=2){
-      if(ExchangeProb(r,r-1)>distribution(rgen_)){
-        Exchange(r,r-1);
-        accept_(nrep_+r)+=1.;
-        accept_(nrep_+r-1)+=1;
+    for (int r = 1; r < nrep_; r += 2) {
+      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+        Exchange(r, r - 1);
+        accept_(nrep_ + r) += 1.;
+        accept_(nrep_ + r - 1) += 1;
       }
-      moves_(nrep_+r)+=1.;
-      moves_(nrep_+r-1)+=1;
+      moves_(nrep_ + r) += 1.;
+      moves_(nrep_ + r - 1) += 1;
     }
 
-    for(int r=2;r<nrep_;r+=2){
-      if(ExchangeProb(r,r-1)>distribution(rgen_)){
-        Exchange(r,r-1);
-        accept_(nrep_+r)+=1.;
-        accept_(nrep_+r-1)+=1;
+    for (int r = 2; r < nrep_; r += 2) {
+      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+        Exchange(r, r - 1);
+        accept_(nrep_ + r) += 1.;
+        accept_(nrep_ + r - 1) += 1;
       }
-      moves_(nrep_+r)+=1.;
-      moves_(nrep_+r-1)+=1;
+      moves_(nrep_ + r) += 1.;
+      moves_(nrep_ + r - 1) += 1;
     }
   }
 
-  //computes the probability to exchange two replicas
-  double ExchangeProb(int r1,int r2){
-    const double lf1=2*realpart(psi_.LogVal(v_[r1],lt_[r1]));
-    const double lf2=2*realpart(psi_.LogVal(v_[r2],lt_[r2]));
+  // computes the probability to exchange two replicas
+  double ExchangeProb(int r1, int r2) {
+    const double lf1 = 2 * realpart(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * realpart(psi_.LogVal(v_[r2], lt_[r2]));
 
-    return std::exp((beta_[r1]-beta_[r2])*(lf2-lf1));
+    return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
 
-  void Exchange(int r1,int r2){
-    std::swap(v_[r1],v_[r2]);
-    std::swap(lt_[r1],lt_[r2]);
+  void Exchange(int r1, int r2) {
+    std::swap(v_[r1], v_[r2]);
+    std::swap(lt_[r1], lt_[r2]);
   }
 
+  Eigen::VectorXd Visible() { return v_[0]; }
 
-  Eigen::VectorXd Visible(){
-    return v_[0];
-  }
+  void SetVisible(const Eigen::VectorXd &v) { v_[0] = v; }
 
-  void SetVisible(const Eigen::VectorXd & v){
-    v_[0]=v;
-  }
+  WfType &Psi() { return psi_; }
 
+  Hilbert &HilbSpace() const { return hilbert_; }
 
-  WfType & Psi(){
-    return psi_;
-  }
-
-  Hilbert & HilbSpace()const{
-    return hilbert_;
-  }
-
-  Eigen::VectorXd Acceptance()const{
-    Eigen::VectorXd acc=accept_;
-    for(int i=0;i<1;i++){
-      acc(i)/=moves_(i);
+  Eigen::VectorXd Acceptance() const {
+    Eigen::VectorXd acc = accept_;
+    for (int i = 0; i < 1; i++) {
+      acc(i) /= moves_(i);
     }
     return acc;
   }
 
-  inline double realpart(const std::complex<double> & val)const{
+  inline double realpart(const std::complex<double> &val) const {
     return val.real();
   }
-  inline double realpart(const double & val)const{
-    return val;
-  }
-
+  inline double realpart(const double &val) const { return val; }
 };
 
-
-}
+} // namespace netket
 
 #endif

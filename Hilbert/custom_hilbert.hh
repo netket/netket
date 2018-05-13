@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
+#include "abstract_hilbert.hh"
+#include "Json/json.hh"
 #include <Eigen/Dense>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 #include <random>
 #include <vector>
-#include <cmath>
-#include <algorithm>
 
 #ifndef NETKET_CUSTOM_HILBERT_HH
 #define NETKET_CUSTOM_HILBERT_HH
 
-namespace netket{
+namespace netket {
 
 /**
   User-Define Hilbert space
 */
 
-class CustomHilbert : public AbstractHilbert{
+class CustomHilbert : public AbstractHilbert {
 
   std::vector<double> local_;
 
@@ -37,74 +39,59 @@ class CustomHilbert : public AbstractHilbert{
   int size_;
 
 public:
+  CustomHilbert(const json &pars) {
 
-  CustomHilbert(const json & pars){
-
-    if(FieldExists(pars["Hilbert"],"QuantumNumbers")){
-      local_=pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
-    }
-    else{
-      std::cerr<<"QuantumNumbers are not defined"<<std::endl;
+    if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
+      local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
+    } else {
+      std::cerr << "QuantumNumbers are not defined" << std::endl;
     }
 
-    if(FieldExists(pars["Hilbert"],"Size")){
-      size_=pars["Hilbert"]["Size"];
-      if(size_<=0){
-        std::cerr<<"Hilbert Size parameter must be positive"<<std::endl;
+    if (FieldExists(pars["Hilbert"], "Size")) {
+      size_ = pars["Hilbert"]["Size"];
+      if (size_ <= 0) {
+        std::cerr << "Hilbert Size parameter must be positive" << std::endl;
         std::abort();
       }
-    }
-    else{
-      std::cerr<<"Hilbert space extent is not defined"<<std::endl;
-    }
-
-    nstates_=local_.size();
-  }
-
-  bool IsDiscrete()const{
-    return true;
-  }
-
-  int LocalSize()const{
-    return nstates_;
-  }
-
-  int Size()const{
-    return size_;
-  }
-
-  std::vector<double> LocalStates()const{
-    return local_;
-  }
-
-  void RandomVals(Eigen::VectorXd & state,
-    netket::default_random_engine & rgen)const{
-    std::uniform_int_distribution<int> distribution(0,nstates_-1);
-
-    assert(state.size()==size_);
-
-    //unconstrained random
-    for(int i=0;i<state.size();i++){
-      state(i)=local_[distribution(rgen)];
+    } else {
+      std::cerr << "Hilbert space extent is not defined" << std::endl;
     }
 
+    nstates_ = local_.size();
   }
 
-  void UpdateConf(Eigen::VectorXd & v,
-    const std::vector<int>  & tochange,
-    const std::vector<double> & newconf)const{
+  bool IsDiscrete() const { return true; }
 
-    assert(v.size()==size_);
+  int LocalSize() const { return nstates_; }
 
-    int i=0;
-    for(auto sf: tochange){
-      v(sf)=newconf[i];
+  int Size() const { return size_; }
+
+  std::vector<double> LocalStates() const { return local_; }
+
+  void RandomVals(Eigen::VectorXd &state,
+                  netket::default_random_engine &rgen) const {
+    std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
+
+    assert(state.size() == size_);
+
+    // unconstrained random
+    for (int i = 0; i < state.size(); i++) {
+      state(i) = local_[distribution(rgen)];
+    }
+  }
+
+  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+                  const std::vector<double> &newconf) const {
+
+    assert(v.size() == size_);
+
+    int i = 0;
+    for (auto sf : tochange) {
+      v(sf) = newconf[i];
       i++;
     }
   }
-
-
 };
 
-}
+} // namespace netket
 #endif

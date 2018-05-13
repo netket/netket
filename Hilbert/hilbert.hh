@@ -15,84 +15,66 @@
 #ifndef NETKET_HILBERT_HH
 #define NETKET_HILBERT_HH
 
-#include <memory>
 #include "abstract_hilbert.hh"
-#include "next_variation.hh"
-#include "spins.hh"
 #include "bosons.hh"
-#include "qubits.hh"
 #include "custom_hilbert.hh"
+#include "next_variation.hh"
+#include "qubits.hh"
+#include "spins.hh"
+#include "Json/json.hh"
+#include <memory>
 
+namespace netket {
 
-namespace netket{
+class Hilbert : public AbstractHilbert {
 
-class Hilbert:public AbstractHilbert{
-
-  using Ptype=std::unique_ptr<AbstractHilbert>;
+  using Ptype = std::unique_ptr<AbstractHilbert>;
   Ptype h_;
 
 public:
+  Hilbert() {}
 
-  Hilbert(){
+  Hilbert(const json &pars) { Init(pars); }
 
-  }
-
-  Hilbert(const json & pars){
-    Init(pars);
-  }
-
-  void Init(const json & pars){
-    if(!FieldExists(pars,"Hilbert")){
-      std::cerr<<"Hilbert is not defined in the input"<<std::endl;
+  void Init(const json &pars) {
+    if (!FieldExists(pars, "Hilbert")) {
+      std::cerr << "Hilbert is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(FieldExists(pars["Hilbert"],"Name")){
-      if(pars["Hilbert"]["Name"]=="Spin"){
-        h_=Ptype(new Spin(pars));
-      }
-      else if(pars["Hilbert"]["Name"]=="Boson"){
-        h_=Ptype(new Boson(pars));
-      }
-      else if(pars["Hilbert"]["Name"]=="Qubit"){
-        h_=Ptype(new Qubit(pars));
-      }
-      else{
-        std::cout<<"Hilbert Name not found"<<std::endl;
+    if (FieldExists(pars["Hilbert"], "Name")) {
+      if (pars["Hilbert"]["Name"] == "Spin") {
+        h_ = Ptype(new Spin(pars));
+      } else if (pars["Hilbert"]["Name"] == "Boson") {
+        h_ = Ptype(new Boson(pars));
+      } else if (pars["Hilbert"]["Name"] == "Qubit") {
+        h_ = Ptype(new Qubit(pars));
+      } else {
+        std::cout << "Hilbert Name not found" << std::endl;
         std::abort();
       }
+    } else {
+      h_ = Ptype(new CustomHilbert(pars));
     }
-    else{
-      h_=Ptype(new CustomHilbert(pars));
-    }
   }
 
-  bool IsDiscrete()const{
-    return h_->IsDiscrete();
+  bool IsDiscrete() const { return h_->IsDiscrete(); }
+
+  int LocalSize() const { return h_->LocalSize(); }
+
+  int Size() const { return h_->Size(); }
+
+  std::vector<double> LocalStates() const { return h_->LocalStates(); }
+
+  void RandomVals(Eigen::VectorXd &state,
+                  netket::default_random_engine &rgen) const {
+    return h_->RandomVals(state, rgen);
   }
 
-  int LocalSize()const{
-    return h_->LocalSize();
-  }
-
-  int Size()const{
-    return h_->Size();
-  }
-
-  std::vector<double> LocalStates()const{
-    return h_->LocalStates();
-  }
-
-  void RandomVals(Eigen::VectorXd & state,
-    netket::default_random_engine & rgen)const{
-    return h_->RandomVals(state,rgen);
-  }
-
-  void UpdateConf(Eigen::VectorXd & v,
-    const std::vector<int>  & tochange,
-    const std::vector<double> & newconf)const{
-    return h_->UpdateConf(v,tochange,newconf);
+  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+                  const std::vector<double> &newconf) const {
+    return h_->UpdateConf(v, tochange, newconf);
   }
 };
-}
+} // namespace netket
 #endif

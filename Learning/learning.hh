@@ -17,51 +17,49 @@
 
 #include <memory>
 
-#include "stepper.hh"
 #include "ground_state.hh"
+#include "stepper.hh"
 
-
-namespace netket{
+namespace netket {
 
 class Learning {
 
 public:
+  Learning(const json &pars) {
 
-  Learning(const json & pars){
-
-    if(!FieldExists(pars,"Learning")){
-      std::cerr<<"Learning field is not defined in the input"<<std::endl;
+    if (!FieldExists(pars, "Learning")) {
+      std::cerr << "Learning field is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(!FieldExists(pars["Learning"],"Method")){
-      std::cerr<<"Learning Method is not defined in the input"<<std::endl;
+    if (!FieldExists(pars["Learning"], "Method")) {
+      std::cerr << "Learning Method is not defined in the input" << std::endl;
       std::abort();
     }
 
-    if(pars["Learning"]["Method"]=="Gd" || pars["Learning"]["Method"]=="Sr"){
+    if (pars["Learning"]["Method"] == "Gd" ||
+        pars["Learning"]["Method"] == "Sr") {
 
       Graph graph(pars);
 
-      Hamiltonian hamiltonian(graph,pars);
+      Hamiltonian hamiltonian(graph, pars);
 
-      using MachineType=Machine<std::complex<double>>;
-      MachineType machine(graph,hamiltonian,pars);
+      using MachineType = Machine<std::complex<double>>;
+      MachineType machine(graph, hamiltonian, pars);
 
-      Sampler<MachineType> sampler(graph,hamiltonian,machine,pars);
+      Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
 
       Stepper stepper(pars);
 
-      GroundState le(hamiltonian,sampler,stepper,pars);
-    }
-    else{
-      std::cout<<"Learning method not found"<<std::endl;
-      std::cout<<pars["Learning"]["Method"]<<std::endl;
+      GroundState le(hamiltonian, sampler, stepper, pars);
+    } else {
+      std::cout << "Learning method not found" << std::endl;
+      std::cout << pars["Learning"]["Method"] << std::endl;
       std::abort();
     }
   }
 };
 
-}
+} // namespace netket
 
 #endif

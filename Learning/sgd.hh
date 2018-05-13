@@ -15,18 +15,18 @@
 #ifndef NETKET_SGD_HH
 #define NETKET_SGD_HH
 
-#include <iostream>
+#include "abstract_stepper.hh"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
-namespace netket{
+namespace netket {
 
+class Sgd : public AbstractStepper {
 
-class Sgd: public AbstractStepper{
-
-  //decay constant
+  // decay constant
   double eta_;
 
   int npar_;
@@ -35,68 +35,58 @@ class Sgd: public AbstractStepper{
 
   double decay_factor_;
 
-
 public:
-
-  Sgd(double eta,double l2reg=0):
-    eta_(eta),l2reg_(l2reg){
-    npar_=-1;
+  Sgd(double eta, double l2reg = 0) : eta_(eta), l2reg_(l2reg) {
+    npar_ = -1;
 
     SetDecayFactor(1.0);
   }
 
-  //Json constructor
-  Sgd(const json & pars):
-    eta_(FieldVal(pars["Learning"],"LearningRate")),
-    l2reg_(FieldOrDefaultVal(pars["Learning"],"L2Reg",0.0)){
+  // Json constructor
+  Sgd(const json &pars)
+      : eta_(FieldVal(pars["Learning"], "LearningRate")),
+        l2reg_(FieldOrDefaultVal(pars["Learning"], "L2Reg", 0.0)) {
 
-    npar_=-1;
+    npar_ = -1;
 
-    SetDecayFactor(FieldOrDefaultVal(pars["Learning"],"DecayFactor",1.0));
+    SetDecayFactor(FieldOrDefaultVal(pars["Learning"], "DecayFactor", 1.0));
   }
 
-  void Init(const Eigen::VectorXd & pars){
-    npar_=pars.size();
-  }
+  void Init(const Eigen::VectorXd &pars) { npar_ = pars.size(); }
 
-  void Init(const Eigen::VectorXcd & pars){
+  void Init(const Eigen::VectorXcd &pars) { npar_ = 2 * pars.size(); }
 
-    npar_=2*pars.size();
-  }
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+    assert(npar_ > 0);
 
-  void Update(const Eigen::VectorXd & grad,Eigen::VectorXd & pars){
-    assert(npar_>0);
+    eta_ *= decay_factor_;
 
-    eta_*=decay_factor_;
-
-    for(int i=0;i<npar_;i++){
-      pars(i)=pars(i) - (grad(i)+l2reg_*pars(i))*eta_;
+    for (int i = 0; i < npar_; i++) {
+      pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
     }
   }
 
-  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXd & pars){
-    Update(Eigen::VectorXd(grad.real()),pars);
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) {
+    Update(Eigen::VectorXd(grad.real()), pars);
   }
 
-  void Update(const Eigen::VectorXcd & grad,Eigen::VectorXcd & pars){
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) {
 
-    eta_*=decay_factor_;
+    eta_ *= decay_factor_;
 
-    for(int i=0;i<pars.size();i++){
-      pars(i)=pars(i) - (grad(i)+l2reg_*pars(i))*eta_;
+    for (int i = 0; i < pars.size(); i++) {
+      pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
     }
   }
 
-  void SetDecayFactor(double decay_factor){
-    assert(decay_factor<=1.00001);
-    decay_factor_=decay_factor;
+  void SetDecayFactor(double decay_factor) {
+    assert(decay_factor <= 1.00001);
+    decay_factor_ = decay_factor;
   }
 
-  void Reset(){
-  }
+  void Reset() {}
 };
 
-
-}
+} // namespace netket
 
 #endif

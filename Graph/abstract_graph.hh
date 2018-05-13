@@ -16,47 +16,45 @@
 #define NETKET_ABSTRACTGRAPH_HH
 
 #include <vector>
-#include <map>
 
-namespace netket{
+namespace netket {
 /**
     Abstract class for Graphs.
     This class prototypes the methods needed
     by a class satisfying the Graph concept.
     These include lattices and non-regular graphs.
 */
-class AbstractGraph{
+class AbstractGraph {
 public:
   /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
   */
-  virtual int Nsites()const=0;
+  virtual int Nsites() const = 0;
   /**
   Member function returning the integer distances between pair of nodes.
   @return dist[i][j] is the integer distance between site i and j.
   */
-  virtual std::vector<std::vector<int>> Distances()const=0;
+  virtual std::vector<std::vector<int>> Distances() const = 0;
 
   /**
   Member function returning the adjacency list of the graph.
   @return adl[i][k] is the k-th neighbour of site i.
   */
-  virtual std::vector<std::vector<int>> AdjacencyList()const=0;
+  virtual std::vector<std::vector<int>> AdjacencyList() const = 0;
 
   /**
   Member function returning the symmetry table of the graph.
   @return st[i][k] contains the i-th equivalent permutation of the sites.
   */
-  virtual std::vector<std::vector<int>> SymmetryTable()const=0;
+  virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
 
   /**
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
-  virtual bool IsBipartite()const=0;
-
+  virtual bool IsBipartite() const = 0;
 };
 
-}
+} // namespace netket
 #endif

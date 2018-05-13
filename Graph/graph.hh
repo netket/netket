@@ -20,61 +20,53 @@
 #include <vector>
 
 #include "abstract_graph.hh"
-#include "distance.hh"
-#include "hypercube.hh"
 #include "custom_graph.hh"
+#include "hypercube.hh"
+#include "Json/json.hh"
 
-namespace netket{
+namespace netket {
 
-class Graph:public AbstractGraph{
+class Graph : public AbstractGraph {
 
-  using Ptype=std::unique_ptr<AbstractGraph>;
+  using Ptype = std::unique_ptr<AbstractGraph>;
   Ptype g_;
 
 public:
-  Graph(const json & pars){
+  Graph(const json &pars) {
 
-    //Check if a graph is explicitely defined in the input
-    if(FieldExists(pars,"Graph")){
+    // Check if a graph is explicitely defined in the input
+    if (FieldExists(pars, "Graph")) {
 
-      //Checking if we are using a graph in the hard-coded library
-      if(FieldExists(pars["Graph"],"Name")){
-        if(pars["Graph"]["Name"]=="Hypercube"){
-          g_=Ptype(new Hypercube(pars));
-        }
-        else{
-          std::cout<<"Graph not found"<<std::endl;
+      // Checking if we are using a graph in the hard-coded library
+      if (FieldExists(pars["Graph"], "Name")) {
+        if (pars["Graph"]["Name"] == "Hypercube") {
+          g_ = Ptype(new Hypercube(pars));
+        } else {
+          std::cout << "Graph not found" << std::endl;
           std::abort();
         }
       }
-      //Otherwise using a user-defined graph
-      else{
-        g_=Ptype(new CustomGraph(pars));
+      // Otherwise using a user-defined graph
+      else {
+        g_ = Ptype(new CustomGraph(pars));
       }
-    }
-    else{
-      //Otherwise try to construct a custom graph using Hilbert space information
-      g_=Ptype(new CustomGraph(pars));
+    } else {
+      // Otherwise try to construct a custom graph using Hilbert space
+      // information
+      g_ = Ptype(new CustomGraph(pars));
     }
   }
 
-  int Nsites()const{
-    return g_->Nsites();
-  }
-  std::vector<std::vector<int>> AdjacencyList()const{
+  int Nsites() const { return g_->Nsites(); }
+  std::vector<std::vector<int>> AdjacencyList() const {
     return g_->AdjacencyList();
   }
-  std::vector<std::vector<int>> SymmetryTable()const{
+  std::vector<std::vector<int>> SymmetryTable() const {
     return g_->SymmetryTable();
   }
-  std::vector<std::vector<int>> Distances()const{
-    return g_->Distances();
-  }
-  bool IsBipartite()const{
-    return g_->IsBipartite();
-  }
-
+  std::vector<std::vector<int>> Distances() const { return g_->Distances(); }
+  bool IsBipartite() const { return g_->IsBipartite(); }
 };
-}
+} // namespace netket
 
 #endif

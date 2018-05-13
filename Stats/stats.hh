@@ -15,14 +15,14 @@
 #ifndef NETKET_STATS_HH
 #define NETKET_STATS_HH
 
-namespace netket{
-  template<class T> class OnlineStat;
-  template<class T> class Binning;
-  class ObsManager;
-}
+namespace netket {
+template <class T> class OnlineStat;
+template <class T> class Binning;
+class ObsManager;
+} // namespace netket
 
-#include "onlinestat.hh"
 #include "binning.hh"
 #include "obs_manager.hh"
+#include "onlinestat.hh"
 
 #endif

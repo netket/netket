@@ -15,59 +15,54 @@
 #ifndef NETKET_CUSTOM_OBSERVABLE_HH
 #define NETKET_CUSTOM_OBSERVABLE_HH
 
-#include <vector>
+#include "abstract_observable.hh"
 #include <string>
+#include <vector>
 
-namespace netket{
+namespace netket {
 
-class CustomObservable:public AbstractObservable{
+class CustomObservable : public AbstractObservable {
 
   std::vector<LocalOperator> operators_;
-  const Hilbert & hilbert_;
+  const Hilbert &hilbert_;
   std::string name_;
 
 public:
+  using MatType = LocalOperator::MatType;
 
-  using MatType=LocalOperator::MatType;
+  CustomObservable(const Hilbert &hilbert, const std::vector<MatType> &jop,
+                   const std::vector<std::vector<int>> &sites,
+                   const std::string &name)
+      : hilbert_(hilbert), name_(name) {
 
-  CustomObservable(const Hilbert & hilbert,const std::vector<MatType> & jop,
-                   const std::vector<std::vector<int>> & sites,const std::string & name):
-    hilbert_(hilbert),name_(name){
-
-
-    if(sites.size()!=jop.size()){
-      std::cerr<<"The custom Observable definition is inconsistent:"<<std::endl;
-      std::cerr<<"Check that ActingOn is defined"<<std::endl;
+    if (sites.size() != jop.size()) {
+      std::cerr << "The custom Observable definition is inconsistent:"
+                << std::endl;
+      std::cerr << "Check that ActingOn is defined" << std::endl;
       std::abort();
     }
 
-    for(std::size_t i=0;i<jop.size();i++){
-      operators_.push_back(LocalOperator(hilbert_,jop[i],sites[i]));
+    for (std::size_t i = 0; i < jop.size(); i++) {
+      operators_.push_back(LocalOperator(hilbert_, jop[i], sites[i]));
     }
-
   }
 
-  void FindConn(const Eigen::VectorXd & v,
-    std::vector<std::complex<double>> & mel,
-    std::vector<std::vector<int>> & connectors,
-    std::vector<std::vector<double>> & newconfs)
-  {
+  void FindConn(const Eigen::VectorXd &v,
+                std::vector<std::complex<double>> &mel,
+                std::vector<std::vector<int>> &connectors,
+                std::vector<std::vector<double>> &newconfs) {
     connectors.clear();
     newconfs.clear();
     mel.resize(0);
 
-    for(std::size_t i=0;i<operators_.size();i++){
-      operators_[i].AddConn(v,mel,connectors,newconfs);
+    for (std::size_t i = 0; i < operators_.size(); i++) {
+      operators_[i].AddConn(v, mel, connectors, newconfs);
     }
   }
 
-  const Hilbert & GetHilbert()const{
-    return hilbert_;
-  }
+  const Hilbert &GetHilbert() const { return hilbert_; }
 
-  const std::string Name()const{
-    return name_;
-  }
+  const std::string Name() const { return name_; }
 };
-}
+} // namespace netket
 #endif

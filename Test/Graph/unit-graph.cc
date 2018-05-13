@@ -12,28 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "netket.hh"
 #include "catch.hpp"
-#include <iostream>
+#include "netket.hh"
 #include <fstream>
+#include <iostream>
 #include <vector>
 
 #include "graph_input_tests.hh"
 
-TEST_CASE( "graphs have consistent number of sites", "[graph]" ) {
+TEST_CASE("graphs have consistent number of sites", "[graph]") {
 
-  auto input_tests=GetGraphInputs();
-  std::size_t ntests=input_tests.size();
+  auto input_tests = GetGraphInputs();
+  std::size_t ntests = input_tests.size();
 
-  for(std::size_t i=0;i<ntests;i++){
-    std::string name=input_tests[i]["Graph"].dump();
+  for (std::size_t i = 0; i < ntests; i++) {
+    std::string name = input_tests[i]["Graph"].dump();
 
-    SECTION( "Graph test on "+ name ) {
+    SECTION("Graph test on " + name) {
 
       netket::Graph graph(input_tests[i]);
 
-      REQUIRE( graph.Nsites() > 0 );
+      REQUIRE(graph.Nsites() > 0);
     }
   }
-
 }

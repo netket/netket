@@ -14,41 +14,41 @@
 #ifndef NETKET_ABSTRACTHILBERT_HH
 #define NETKET_ABSTRACTHILBERT_HH
 
-#include <vector>
-#include <complex>
 #include <Eigen/Dense>
+#include <complex>
 #include <random>
+#include <vector>
 
-namespace netket{
+namespace netket {
 /**
   Abstract class for Hilbert spaces.
   This class prototypes the methods needed
   by a class satisfying the Hilbert concept.
 */
 
-class AbstractHilbert{
+class AbstractHilbert {
 
 public:
-
   /**
-  Member function returning true if the hilbert space has discrete quantum numbers.
+  Member function returning true if the hilbert space has discrete quantum
+  numbers.
   @return true if the local hilbert space is discrete
   */
-  virtual bool IsDiscrete()const=0;
+  virtual bool IsDiscrete() const = 0;
 
   /**
   Member function returning the size of the local hilbert space.
   @return Size of the discrete local hilbert space. For continous spaces an
   error message is returned.
   */
-  virtual int LocalSize()const=0;
+  virtual int LocalSize() const = 0;
 
   /**
   Member function returning the number of visible units needed to describe the
   system.
   @return Number of visible units needed to described the system.
   */
-  virtual int Size()const=0;
+  virtual int Size() const = 0;
 
   /**
   Member function returning the local states.
@@ -56,7 +56,7 @@ public:
   the local quantum numbers are continous, the vector contains lower and higher
   bounds for the local quantum numbers.
   */
-  virtual std::vector<double> LocalStates()const=0;
+  virtual std::vector<double> LocalStates() const = 0;
 
   /**
   Member function generating uniformely distributed local random states
@@ -64,8 +64,8 @@ public:
   the random state.
   @param rgen the random number generator to be used
   */
-  virtual void RandomVals(Eigen::VectorXd & state,
-    netket::default_random_engine & rgen)const=0;
+  virtual void RandomVals(Eigen::VectorXd &state,
+                          netket::default_random_engine &rgen) const = 0;
 
   /**
   Member function updating a visible configuration using the information on
@@ -74,12 +74,10 @@ public:
   @param tochange contains a list of which quantum numbers are to be modified.
   @param newconf contains the value that those quantum numbers should take
   */
-  virtual void UpdateConf(Eigen::VectorXd & v,
-    const std::vector<int>  & tochange,
-    const std::vector<double> & newconf)const=0;
-
+  virtual void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+                          const std::vector<double> &newconf) const = 0;
 };
 
-}
+} // namespace netket
 
 #endif

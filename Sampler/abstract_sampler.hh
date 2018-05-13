@@ -10,25 +10,24 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License. 
+// limitations under the License.
 
 #ifndef NETKET_ABSTRACTSAMPLER_HH
 #define NETKET_ABSTRACTSAMPLER_HH
 
 #include <vector>
 
-namespace netket{
+namespace netket {
 
-template<class WfType> class AbstractSampler{
+template <class WfType> class AbstractSampler {
 public:
-  virtual void Reset(bool initrandom)=0;
-  virtual void Sweep()=0;
-  virtual Eigen::VectorXd Visible()=0;
-  virtual void SetVisible(const Eigen::VectorXd & v)=0;
-  virtual WfType & Psi()=0;
-  virtual Eigen::VectorXd Acceptance()const=0;
-
+  virtual void Reset(bool initrandom) = 0;
+  virtual void Sweep() = 0;
+  virtual Eigen::VectorXd Visible() = 0;
+  virtual void SetVisible(const Eigen::VectorXd &v) = 0;
+  virtual WfType &Psi() = 0;
+  virtual Eigen::VectorXd Acceptance() const = 0;
 };
 
-}
+} // namespace netket
 #endif
