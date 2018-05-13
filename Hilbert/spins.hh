@@ -168,8 +168,8 @@ public:
         int ss = nspins_;
 
         for(int i=0; i<S_*nspins_+totalS_; ++i){
-          std::uniform_int_distribution<int> distribution(0,ss-1);
-          int s = distribution(rgen);
+          std::uniform_int_distribution<int> distribution_ss(0,ss-1);
+          int s = distribution_ss(rgen);
           state(sites[s]) += 2;
           if(state(sites[s]) > 2*S_-1){
             sites.erase(sites.begin() + s);

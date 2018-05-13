@@ -26,12 +26,12 @@ TEST_CASE( "machines set/get correctly parameters", "[machine]" ) {
   auto input_tests=GetMachineInputs();
   std::size_t ntests=input_tests.size();
 
-  for(std::size_t i=0;i<ntests;i++){
+  for(std::size_t it=0;it<ntests;it++){
 
 
-    SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
+    SECTION( "Machine test on "+ input_tests[it]["Machine"].dump()) {
 
-      auto pars=input_tests[i];
+      auto pars=input_tests[it];
 
       netket::Graph graph(pars);
 
@@ -61,11 +61,11 @@ TEST_CASE( "machines compute log derivatives correctly", "[machine]" ) {
 
   netket::default_random_engine rgen;
 
-  for(std::size_t i=0;i<ntests;i++){
+  for(std::size_t it=0;it<ntests;it++){
 
-    SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
+    SECTION( "Machine test on "+ input_tests[it]["Machine"].dump()) {
 
-      auto pars=input_tests[i];
+      auto pars=input_tests[it];
 
       netket::Graph graph(pars);
 
@@ -91,24 +91,24 @@ TEST_CASE( "machines compute log derivatives correctly", "[machine]" ) {
 
         auto ders=machine.DerLog(v);
 
-        auto pars=machine.GetParameters();
+        auto machine_pars=machine.GetParameters();
 
-        for(int i=0;i<machine.Npar();i++){
-          pars(i)+=eps;
-          machine.SetParameters(pars);
+        for(int p=0;p<machine.Npar();p++){
+          machine_pars(p)+=eps;
+          machine.SetParameters(machine_pars);
           typename netket::Machine<MType>::StateType valp=machine.LogVal(v);
 
-          pars(i)-=2*eps;
-          machine.SetParameters(pars);
+          machine_pars(p)-=2*eps;
+          machine.SetParameters(machine_pars);
           typename netket::Machine<MType>::StateType valm=machine.LogVal(v);
 
-          pars(i)+=eps;
+          machine_pars(p)+=eps;
 
           typename netket::Machine<MType>::StateType numder=(-valm+valp)/(eps*2);
 
 
-          REQUIRE( Approx(std::real(numder)).epsilon(eps*100)==std::real(ders(i)) );
-          REQUIRE( Approx(std::exp(std::imag(numder))).epsilon(eps*100)==std::exp(std::imag(ders(i))) );
+          REQUIRE( Approx(std::real(numder)).epsilon(eps*100)==std::real(ders(p)) );
+          REQUIRE( Approx(std::exp(std::imag(numder))).epsilon(eps*100)==std::exp(std::imag(ders(p))) );
         }
       }
     }
@@ -122,11 +122,11 @@ TEST_CASE( "machines compute logval differences correctly", "[machine]" ) {
 
   netket::default_random_engine rgen;
 
-  for(std::size_t i=0;i<ntests;i++){
+  for(std::size_t it=0;it<ntests;it++){
 
-    SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
+    SECTION( "Machine test on "+ input_tests[it]["Machine"].dump()) {
 
-      auto pars=input_tests[i];
+      auto pars=input_tests[it];
 
       netket::Graph graph(pars);
 
@@ -208,11 +208,11 @@ TEST_CASE( "machines update look-up tables correctly", "[machine]" ) {
 
   netket::default_random_engine rgen;
 
-  for(std::size_t i=0;i<ntests;i++){
+  for(std::size_t it=0;it<ntests;it++){
 
-    SECTION( "Machine test on "+ input_tests[i]["Machine"].dump()) {
+    SECTION( "Machine test on "+ input_tests[it]["Machine"].dump()) {
 
-      auto pars=input_tests[i];
+      auto pars=input_tests[it];
 
       netket::Graph graph(pars);
 
@@ -276,18 +276,18 @@ TEST_CASE( "machines update look-up tables correctly", "[machine]" ) {
 
         machine.InitLookup(v,ltnew);
 
-        for(int v=0;v<lt.VectorSize();v++){
-          for(int k=0;k<lt.V(v).size();k++){
-            REQUIRE( Approx(std::real(lt.V(v)(k))).epsilon(1.0e-6)==std::real(ltnew.V(v)(k))  );
-            REQUIRE( Approx(std::imag(lt.V(v)(k))).epsilon(1.0e-6)==std::imag(ltnew.V(v)(k))  );
+        for(int vlt=0;vlt<lt.VectorSize();vlt++){
+          for(int k=0;k<lt.V(vlt).size();k++){
+            REQUIRE( Approx(std::real(lt.V(vlt)(k))).epsilon(1.0e-6)==std::real(ltnew.V(vlt)(k))  );
+            REQUIRE( Approx(std::imag(lt.V(vlt)(k))).epsilon(1.0e-6)==std::imag(ltnew.V(vlt)(k))  );
           }
         }
 
-        for(int v=0;v<lt.MatrixSize();v++){
-          for(int k=0;k<lt.M(v).rows();k++){
-            for(int kp=0;kp<lt.M(v).cols();kp++){
-              REQUIRE( Approx(std::real(lt.M(v)(k,kp)) ).epsilon(1.0e-6) == std::real(ltnew.M(v)(k,kp))  );
-              REQUIRE( Approx(std::imag(lt.M(v)(k,kp)) ).epsilon(1.0e-6) == std::imag(ltnew.M(v)(k,kp))  );
+        for(int mlt=0;mlt<lt.MatrixSize();mlt++){
+          for(int k=0;k<lt.M(mlt).rows();k++){
+            for(int kp=0;kp<lt.M(mlt).cols();kp++){
+              REQUIRE( Approx(std::real(lt.M(mlt)(k,kp)) ).epsilon(1.0e-6) == std::real(ltnew.M(mlt)(k,kp))  );
+              REQUIRE( Approx(std::imag(lt.M(mlt)(k,kp)) ).epsilon(1.0e-6) == std::imag(ltnew.M(mlt)(k,kp))  );
             }
           }
         }

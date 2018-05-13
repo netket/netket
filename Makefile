@@ -3,11 +3,11 @@ CXX	=	mpicxx
 EXTERNAL_INCLUDE=External/
 
 #Optimized running flags
-CXXFLAGS	= -Ofast -DNDEBUG -I $(EXTERNAL_INCLUDE)  -I . -std=c++11 -Wall -Wextra
+CXXFLAGS	= -Ofast -DNDEBUG -I $(EXTERNAL_INCLUDE)  -I . -std=c++11 -Wall -Wextra -Wshadow -pedantic
 
 
 #Debug-mode flags
-#CXXFLAGS =     -O2 -I $(EXTERNAL_INCLUDE) -I . -std=c++11 -Wall -Wextra
+#CXXFLAGS =     -O2 -I $(EXTERNAL_INCLUDE) -I . -std=c++11 -Wall -Wextra -Wshadow -pedantic
 
 
 netket :

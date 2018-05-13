@@ -21,23 +21,23 @@
 
 namespace Eigen{
 
-  template<class T> void to_json(json &j,const Matrix<T, Eigen::Dynamic, 1> & v){
+  template<class T> void to_json(json &js,const Matrix<T, Eigen::Dynamic, 1> & v){
     std::vector<T> temp(v.size());
     for(std::size_t i=0;i<std::size_t(v.size());i++){
       temp[i]=v(i);
     }
-    j=json(temp);
+    js=json(temp);
   }
 
-  template<class T> void from_json(const json& j, Matrix<T, Eigen::Dynamic, 1> & v) {
-    std::vector<T> temp=j.get<std::vector<T>>();
+  template<class T> void from_json(const json& js, Matrix<T, Eigen::Dynamic, 1> & v) {
+    std::vector<T> temp=js.get<std::vector<T>>();
     v.resize(temp.size());
     for(std::size_t i=0;i<temp.size();i++){
       v(i)=temp[i];
     }
   }
 
-  template<class T> void to_json(json &j,const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v){
+  template<class T> void to_json(json &js,const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v){
     std::vector<std::vector<T>> temp(v.rows());
     for(std::size_t i=0;i<std::size_t(v.rows());i++){
       temp[i].resize(v.cols());
@@ -45,11 +45,11 @@ namespace Eigen{
         temp[i][j]=v(i,j);
       }
     }
-    j=json(temp);
+    js=json(temp);
   }
 
-  template<class T> void from_json(const json& j, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v) {
-    std::vector<std::vector<T>> temp=j.get<std::vector<std::vector<T>>>();
+  template<class T> void from_json(const json& js, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & v) {
+    std::vector<std::vector<T>> temp=js.get<std::vector<std::vector<T>>>();
 
     if(temp[0].size()==0){
       std::cerr<<"Error while loading Eigen Matrix from Json"<<std::endl;
@@ -72,16 +72,16 @@ namespace Eigen{
 
 namespace std{
 
-  void to_json(json& j, const std::complex<double>& p) {
-    j = json{p.real(), p.imag()};
+  void to_json(json& js, const std::complex<double>& p) {
+    js = json{p.real(), p.imag()};
   }
 
-  void from_json(const json& j, std::complex<double>& p) {
-    if(j.is_array()){
-      p=std::complex<double>(j[0].get<double>(),j[1].get<double>());
+  void from_json(const json& js, std::complex<double>& p) {
+    if(js.is_array()){
+      p=std::complex<double>(js[0].get<double>(),js[1].get<double>());
     }
     else{
-      p=std::complex<double>(j.get<double>(),0.);
+      p=std::complex<double>(js.get<double>(),0.);
     }
   }
 
