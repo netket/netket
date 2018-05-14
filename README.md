@@ -1,4 +1,5 @@
 # ![NetKet Logo](Headers/logo_small.jpg)
+[![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
 # __NetKet__
 
 NetKet is an open-source project delivering cutting-edge methods for the study
