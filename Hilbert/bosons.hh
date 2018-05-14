@@ -49,7 +49,7 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
 public:
-  Boson(const json &pars) {
+  explicit Boson(const json &pars) {
 
     if (!FieldExists(pars["Hilbert"], "Nsites")) {
       std::cerr << "Nsites is not defined" << std::endl;

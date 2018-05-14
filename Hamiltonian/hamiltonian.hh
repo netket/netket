@@ -26,12 +26,10 @@
 namespace netket {
 
 class Hamiltonian : public AbstractHamiltonian {
-  using Ptype = std::unique_ptr<AbstractHamiltonian>;
-
-  Ptype h_;
+  std::shared_ptr<AbstractHamiltonian> h_;
 
 public:
-  Hamiltonian(const Graph &graph, const json &pars) {
+  explicit Hamiltonian(const Graph &graph, const json &pars) {
 
     if (!FieldExists(pars, "Hamiltonian")) {
       std::cerr << "Hamiltonian is not defined in the input" << std::endl;
@@ -40,17 +38,17 @@ public:
 
     if (FieldExists(pars["Hamiltonian"], "Name")) {
       if (pars["Hamiltonian"]["Name"] == "Ising") {
-        h_ = Ptype(new Ising<Graph>(graph, pars));
+        h_ = std::make_shared<Ising<Graph>>(graph, pars);
       } else if (pars["Hamiltonian"]["Name"] == "Heisenberg") {
-        h_ = Ptype(new Heisenberg<Graph>(graph, pars));
+        h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
       } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
-        h_ = Ptype(new BoseHubbard<Graph>(graph, pars));
+        h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
       } else {
         std::cout << "Hamiltonian name not found" << std::endl;
         std::abort();
       }
     } else {
-      h_ = Ptype(new CustomHamiltonian(pars));
+      h_ = std::make_shared<CustomHamiltonian>(pars);
     }
   }
 

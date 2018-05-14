@@ -46,7 +46,8 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
 public:
-  Spin(const json &pars) {
+  explicit Spin(const json &pars) {
+
     int nspins;
     double S;
 

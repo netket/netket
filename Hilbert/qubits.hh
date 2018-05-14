@@ -40,7 +40,7 @@ public:
   Qubit(const json &pars) {
     int nqubits;
 
-    if (FieldExists(pars["Hilbert"], "Nqubits")) {
+    if (!FieldExists(pars["Hilbert"], "Nqubits")) {
       std::cerr << "Nqubits is not defined" << std::endl;
     }
 

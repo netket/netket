@@ -15,6 +15,7 @@
 #ifndef NETKET_HILBERT_HH
 #define NETKET_HILBERT_HH
 
+#include "Parallel/parallel.hh"
 #include "abstract_hilbert.hh"
 #include "bosons.hh"
 #include "custom_hilbert.hh"
@@ -23,38 +24,66 @@
 #include "spins.hh"
 #include "Json/json.hh"
 #include <memory>
+#include <set>
 
 namespace netket {
 
 class Hilbert : public AbstractHilbert {
 
-  using Ptype = std::unique_ptr<AbstractHilbert>;
-  Ptype h_;
+  std::shared_ptr<AbstractHilbert> h_;
 
 public:
-  Hilbert() {}
+  explicit Hilbert() {}
 
-  Hilbert(const json &pars) { Init(pars); }
+  explicit Hilbert(const Hilbert &oh) { h_ = oh.h_; }
+
+  explicit Hilbert(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
-    if (!FieldExists(pars, "Hilbert")) {
-      std::cerr << "Hilbert is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckInput(pars);
 
     if (FieldExists(pars["Hilbert"], "Name")) {
       if (pars["Hilbert"]["Name"] == "Spin") {
-        h_ = Ptype(new Spin(pars));
+        h_ = std::make_shared<Spin>(pars);
       } else if (pars["Hilbert"]["Name"] == "Boson") {
-        h_ = Ptype(new Boson(pars));
+        h_ = std::make_shared<Boson>(pars);
       } else if (pars["Hilbert"]["Name"] == "Qubit") {
-        h_ = Ptype(new Qubit(pars));
-      } else {
-        std::cout << "Hilbert Name not found" << std::endl;
-        std::abort();
+        h_ = std::make_shared<Qubit>(pars);
       }
     } else {
-      h_ = Ptype(new CustomHilbert(pars));
+      h_ = std::make_shared<CustomHilbert>(pars);
+    }
+  }
+
+  void CheckInput(const json &pars) {
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
+    if (!FieldExists(pars, "Hilbert")) {
+      if (!FieldExists(pars, "Hamiltonian")) {
+        if (mynode == 0)
+          std::cerr << "Not enough information to construct Hilbert space"
+                    << std::endl;
+        std::abort();
+      } else {
+        if (!FieldExists(pars["Hamiltonian"], "Name")) {
+          if (mynode == 0)
+            std::cerr << "Not enough information to construct Hilbert space"
+                      << std::endl;
+          std::abort();
+        }
+      }
+    }
+
+    if (FieldExists(pars["Hilbert"], "Name")) {
+      std::set<std::string> hilberts = {"Spin", "Boson", "Qubit"};
+
+      const auto name = pars["Hilbert"]["Name"];
+
+      if (hilberts.count(name) == 0) {
+        std::cerr << "Hilbert " << name << " not found." << std::endl;
+        std::abort();
+      }
     }
   }
 
