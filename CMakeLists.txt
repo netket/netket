@@ -41,8 +41,8 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX  OR (CMAKE_CXX_COMPIL
 endif()
 
 
-
-add_executable(netket netket.cc)
+set (NETKAT_SOURCES netket.cc Hamiltonian Graph Hilbert Learning Lookup Machine Observable Parallel Sampler Stats)
+add_executable(netket ${NETKAT_SOURCES})
 
 target_link_libraries(netket  ${MPI_LIBRARIES})
 
