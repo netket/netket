@@ -43,6 +43,7 @@ std::vector<json> GetHilbertInputs() {
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}, {"TotalSz", 0}}}};
+  input_tests.push_back(pars);
 
   // Bose Hubbard
   pars = {
@@ -50,6 +51,7 @@ std::vector<json> GetHilbertInputs() {
        {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
       {"Hamiltonian",
        {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}, {"Nbosons", 20}}}};
+  input_tests.push_back(pars);
 
   return input_tests;
 }

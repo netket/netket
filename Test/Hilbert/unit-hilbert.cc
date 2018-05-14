@@ -28,11 +28,23 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
   std::size_t ntests = input_tests.size();
 
   for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i]["Hilbert"].dump();
+    std::string parname = "Hilbert";
+    if (!netket::FieldExists(input_tests[i], "Hilbert")) {
+      parname = "Hamiltonian";
+    }
+    std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test on " + name) {
 
-      netket::Hilbert hilbert(input_tests[i]);
+      netket::Hilbert hilbert;
+
+      if (netket::FieldExists(input_tests[i], "Hilbert")) {
+        hilbert = netket::Hilbert(input_tests[i]);
+      } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
+        netket::Graph graph(input_tests[i]);
+        netket::Hamiltonian hamiltonian(graph, input_tests[i]);
+        hilbert = netket::Hilbert(hamiltonian.GetHilbert());
+      }
 
       REQUIRE(hilbert.Size() > 0);
       REQUIRE(hilbert.LocalSize() > 0);
