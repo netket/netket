@@ -2,6 +2,9 @@
 # <img src="http://www.netket.org/img/logo_simple.jpg" width="400"> <img src="http://www.netket.org/img/logo_simple.jpg" width="400">
 
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/acfc9fcbedd54b77a2d45351f4518728)](https://www.codacy.com/app/gcarleo/netket?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=netket/netket&amp;utm_campaign=Badge_Grade)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 # __NetKet__
 
 NetKet is an open-source project delivering cutting-edge methods for the study
