@@ -1,5 +1,5 @@
 
-# <div style="text-align:center"><img src="http://www.netket.org/img/logo_simple.jpg" width="400"></div>
+# <img src="http://www.netket.org/img/logo_simple.jpg" width="400"> <img src="http://www.netket.org/img/logo_simple.jpg" width="400">
 
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
 # __NetKet__
