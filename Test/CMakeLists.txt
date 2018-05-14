@@ -1,15 +1,8 @@
-
 include_directories(${EXTERNAL_INCLUDE_DIR}/Catch)
 
 add_library(catch_main OBJECT
     "unit-tests.cc"
 )
-
-
-
-include_directories(InputTests/)
-
-
 
 
 file(GLOB TEST_SOURCES Graph/*.cc Machine/*.cc Hilbert/*.cc)
