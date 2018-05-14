@@ -1,4 +1,6 @@
-# ![NetKet Logo](Headers/logo_small.jpg)
+
+# <div style="text-align:center"><img src="http://www.netket.org/img/logo_simple.jpg" width="400"></div>
+
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
 # __NetKet__
 
@@ -6,7 +8,7 @@ NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 
 
-# Major Features
+## Major Features
 
 * Graphs
   * Built-in Graphs
@@ -58,10 +60,10 @@ of many-body quantum systems with artificial neural networks and machine learnin
 * I/O
   * Python/JSON Interface   
 
-# Installation and Usage
+## Installation and Usage
 
 Please visit our [homepage](http://www.netket.org) for further information.
 
-# License
+## License
 
 [Apache License 2.0](https://github.com/netket/netket/blob/master/LICENSE)
