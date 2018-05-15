@@ -34,11 +34,11 @@ std::vector<json> GetHamiltonianInputs() {
 
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
   std::vector<std::vector<double>> szsz = {
-      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
+      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}};
   std::complex<double> I(0, 1);
   std::vector<std::vector<std::complex<double>>> sy = {{0, I}, {-I, 0}};
 
-  pars = {};
+  pars.clear();
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 10;
   pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx,   sy, sy,

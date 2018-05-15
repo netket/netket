@@ -42,6 +42,10 @@ public:
   explicit CustomHilbert(const json &pars) {
 
     if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
+      if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
+        std::cerr << "QuantumNumbers is not an array" << std::endl;
+        std::abort();
+      }
       local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
     } else {
       std::cerr << "QuantumNumbers are not defined" << std::endl;

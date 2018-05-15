@@ -84,21 +84,24 @@ public:
 
     nsites_ = adjlist_.size();
 
-    if (FieldExists(pars["Graph"], "Automorphisms")) {
-      automorphisms_ =
-          pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
-    } else {
-      automorphisms_.resize(1, std::vector<int>(nsites_));
-      for (int i = 0; i < nsites_; i++) {
-        // If no automorphism is specified, we stick to the identity one
-        automorphisms_[0][i] = i;
-      }
+    automorphisms_.resize(1, std::vector<int>(nsites_));
+    for (int i = 0; i < nsites_; i++) {
+      // If no automorphism is specified, we stick to the identity one
+      automorphisms_[0][i] = i;
     }
 
-    if (FieldExists(pars["Graph"], "IsBipartite")) {
-      isbipartite_ = pars["Graph"]["IsBipartite"];
-    } else {
-      isbipartite_ = false;
+    isbipartite_ = false;
+
+    // Other graph properties
+    if (FieldExists(pars, "Graph")) {
+      if (FieldExists(pars["Graph"], "Automorphisms")) {
+        automorphisms_ =
+            pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
+      }
+
+      if (FieldExists(pars["Graph"], "IsBipartite")) {
+        isbipartite_ = pars["Graph"]["IsBipartite"];
+      }
     }
 
     CheckGraph();
@@ -166,7 +169,8 @@ public:
     }
   }
 
-  // Returns a list of permuted sites constituting an automorphism of the graph
+  // Returns a list of permuted sites constituting an automorphism of the
+  // graph
   std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
 
   int Nsites() const { return nsites_; }

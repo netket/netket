@@ -26,7 +26,7 @@ TEST_CASE("graphs have consistent number of sites", "[graph]") {
   std::size_t ntests = input_tests.size();
 
   for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i]["Graph"].dump();
+    std::string name = input_tests[i].dump();
 
     SECTION("Graph test on " + name) {
 

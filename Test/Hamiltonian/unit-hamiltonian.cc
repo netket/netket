@@ -68,6 +68,47 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
   }
 }
 
+TEST_CASE("hamiltonians do not have duplicate newconfs", "[hamiltonian]") {
+
+  auto input_tests = GetHamiltonianInputs();
+  std::size_t ntests = input_tests.size();
+
+  for (std::size_t it = 0; it < ntests; it++) {
+
+    SECTION("Hamiltonian test on " + input_tests[it]["Hamiltonian"].dump()) {
+
+      auto pars = input_tests[it];
+
+      netket::Graph graph(pars);
+
+      netket::Hamiltonian hamiltonian(graph, pars);
+
+      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
+
+      netket::default_random_engine rgen(3421);
+
+      Eigen::VectorXd v(hilbert.Size());
+
+      std::vector<std::complex<double>> mel;
+      std::vector<std::vector<int>> connectors;
+      std::vector<std::vector<double>> newconfs;
+
+      for (int i = 0; i < 1000; i++) {
+        hilbert.RandomVals(v, rgen);
+        hamiltonian.FindConn(v, mel, connectors, newconfs);
+
+        for (std::size_t k = 0; k < connectors.size(); k++) {
+          if (connectors[k].size() > 0) {
+            auto itu = std::unique(connectors[k].begin(), connectors[k].end());
+            bool isUniqueConnector = (itu == connectors[k].end());
+            REQUIRE(isUniqueConnector);
+          }
+        }
+      }
+    }
+  }
+}
+
 TEST_CASE("hamiltonians are hermitean", "[hamiltonian]") {
 
   auto input_tests = GetHamiltonianInputs();

@@ -35,9 +35,20 @@ public:
                 << std::endl;
       std::abort();
     }
+
+    if (!pars["Hamiltonian"]["Operators"].is_array()) {
+      std::cerr << "Local operators is not an array" << std::endl;
+      std::abort();
+    }
+
     if (!FieldExists(pars["Hamiltonian"], "ActingOn")) {
       std::cerr << "Local operators support in the Hamiltonian is not defined"
                 << std::endl;
+      std::abort();
+    }
+
+    if (!pars["Hamiltonian"]["ActingOn"].is_array()) {
+      std::cerr << "ActingOn is not an array" << std::endl;
       std::abort();
     }
 
