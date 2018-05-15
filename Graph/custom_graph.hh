@@ -46,7 +46,7 @@ class CustomGraph : public AbstractGraph {
 
 public:
   // Json constructor
-  CustomGraph(const json &pars) { Init(pars); }
+  explicit CustomGraph(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
 

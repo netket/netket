@@ -39,7 +39,7 @@ class CustomHilbert : public AbstractHilbert {
   int size_;
 
 public:
-  CustomHilbert(const json &pars) {
+  explicit CustomHilbert(const json &pars) {
 
     if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
       local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();

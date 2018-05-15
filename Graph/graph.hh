@@ -32,7 +32,7 @@ class Graph : public AbstractGraph {
   Ptype g_;
 
 public:
-  Graph(const json &pars) {
+  explicit Graph(const json &pars) {
 
     // Check if a graph is explicitely defined in the input
     if (FieldExists(pars, "Graph")) {

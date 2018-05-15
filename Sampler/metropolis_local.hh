@@ -53,7 +53,7 @@ template <class WfType> class MetropolisLocal : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
 public:
-  MetropolisLocal(WfType &psi)
+  explicit MetropolisLocal(WfType &psi)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init();
   }

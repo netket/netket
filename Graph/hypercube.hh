@@ -50,12 +50,8 @@ class Hypercube : public AbstractGraph {
   int mynode_;
 
 public:
-  Hypercube(int L, int ndim, bool pbc = true) : L_(L), ndim_(ndim), pbc_(pbc) {
-    Init();
-  }
-
   // Json constructor
-  Hypercube(const json &pars)
+  explicit Hypercube(const json &pars)
       : L_(FieldVal(pars["Graph"], "L")),
         ndim_(FieldVal(pars["Graph"], "Dimension")),
         pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {

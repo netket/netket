@@ -35,7 +35,7 @@ class Hilbert : public AbstractHilbert {
 public:
   explicit Hilbert() {}
 
-  explicit Hilbert(const Hilbert &oh) { h_ = oh.h_; }
+  explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
 
   explicit Hilbert(const json &pars) { Init(pars); }
 

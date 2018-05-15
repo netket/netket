@@ -46,18 +46,8 @@ class AdaMax : public AbstractStepper {
   const std::complex<double> I_;
 
 public:
-  AdaMax(double alpha = 0.001, double beta1 = 0.9, double beta2 = 0.999,
-         double epscut = 1.0e-7)
-      : alpha_(alpha), beta1_(beta1), beta2_(beta2), epscut_(epscut), I_(0, 1) {
-    npar_ = -1;
-    niter_ = 0;
-    niter_reset_ = -1;
-
-    PrintParameters();
-  }
-
   // Json constructor
-  AdaMax(const json &pars)
+  explicit AdaMax(const json &pars)
       : alpha_(FieldOrDefaultVal(pars["Learning"], "Alpha", 0.001)),
         beta1_(FieldOrDefaultVal(pars["Learning"], "Beta1", 0.9)),
         beta2_(FieldOrDefaultVal(pars["Learning"], "Beta2", 0.999)),

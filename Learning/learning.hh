@@ -25,7 +25,7 @@ namespace netket {
 class Learning {
 
 public:
-  Learning(const json &pars) {
+  explicit Learning(const json &pars) {
 
     if (!FieldExists(pars, "Learning")) {
       std::cerr << "Learning field is not defined in the input" << std::endl;

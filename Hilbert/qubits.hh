@@ -37,7 +37,7 @@ class Qubit : public AbstractHilbert {
   int nqubits_;
 
 public:
-  Qubit(const json &pars) {
+  explicit Qubit(const json &pars) {
     int nqubits;
 
     if (!FieldExists(pars["Hilbert"], "Nqubits")) {

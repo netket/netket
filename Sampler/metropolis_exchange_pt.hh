@@ -61,15 +61,9 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
 public:
-  template <class G>
-  MetropolisExchangePt(G &graph, WfType &psi, int nrep, int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
-        nrep_(nrep) {
-    Init(graph, dmax);
-  }
-
   // Json constructor
-  MetropolisExchangePt(Graph &graph, WfType &psi, const json &pars)
+  explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
+                                const json &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
         nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
 
@@ -77,7 +71,7 @@ public:
     Init(graph, dmax);
   }
 
-  template <class G> void Init(G &graph, int dmax) {
+  void Init(const Graph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 

@@ -30,7 +30,7 @@ class Stepper : public AbstractStepper {
   Ptype s_;
 
 public:
-  Stepper(const json &pars) {
+  explicit Stepper(const json &pars) {
 
     if (!FieldExists(pars, "Learning")) {
       std::cerr << "Learning is not defined in the input" << std::endl;

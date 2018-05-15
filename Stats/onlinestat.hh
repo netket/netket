@@ -121,7 +121,7 @@ template <> class OnlineStat<Eigen::VectorXd> {
 public:
   using DataType = Eigen::VectorXd;
 
-  OnlineStat() { Reset(); }
+  explicit OnlineStat() { Reset(); }
 
   // Adding data to this bin
   inline void operator<<(const DataType &data) {

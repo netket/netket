@@ -42,12 +42,12 @@ template <class G> class Heisenberg : public AbstractHamiltonian {
   Hilbert hilbert_;
 
 public:
-  Heisenberg(const G &graph) : graph_(graph), nspins_(graph.Nsites()) {
+  explicit Heisenberg(const G &graph) : graph_(graph), nspins_(graph.Nsites()) {
     Init();
   }
 
   // Json constructor
-  Heisenberg(const G &graph, const json &pars)
+  explicit Heisenberg(const G &graph, const json &pars)
       : nspins_(graph.Nsites()), graph_(graph) {
 
     Init();

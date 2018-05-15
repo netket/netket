@@ -36,14 +36,8 @@ class Sgd : public AbstractStepper {
   double decay_factor_;
 
 public:
-  Sgd(double eta, double l2reg = 0) : eta_(eta), l2reg_(l2reg) {
-    npar_ = -1;
-
-    SetDecayFactor(1.0);
-  }
-
   // Json constructor
-  Sgd(const json &pars)
+  explicit Sgd(const json &pars)
       : eta_(FieldVal(pars["Learning"], "LearningRate")),
         l2reg_(FieldOrDefaultVal(pars["Learning"], "L2Reg", 0.0)) {
 
