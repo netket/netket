@@ -59,7 +59,7 @@ of many-body quantum systems with artificial neural networks and machine learnin
 
 # Installation and Usage
 
-Please visit our [homepage](http://www.netket.org) for further information.
+Please visit our [homepage](https://www.netket.org) for further information.
 
 # License
 
