@@ -14,8 +14,13 @@ set (EXTERNAL_INCLUDE_DIR ${NETKET_SOURCE_DIR}/External/)
 set (EIGEN3_INCLUDE_DIR "${EXTERNAL_INCLUDE_DIR}" CACHE STRING "Eigen3 Include Directory" )
 set (JSON_INCLUDE_DIR "${EXTERNAL_INCLUDE_DIR}/Json/" CACHE STRING "JSON for Modern C++ Include Directory" )
 
-
-include(FindMPI)
+#Find MPI
+find_package(MPI REQUIRED)
+if (MPI_FOUND)
+    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+else (MPI_FOUND)
+    message(SEND_ERROR "This application cannot compile without MPI")
+endif (MPI_FOUND)
 
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(${NETKET_SOURCE_DIR})
