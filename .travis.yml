@@ -43,6 +43,51 @@ matrix:
     osx_image: xcode9.3
 
   - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-5
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-5', 'clang-5.0', 'mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-4.9
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-4.9','mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-5
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-5','mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-6
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-6','mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-7
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-7','mpich','libmpich-dev']
+
+  - os: linux
     compiler: clang
     env:
       - COMPILER=clang++-5.0
@@ -51,7 +96,6 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
-
 
 
 ################
