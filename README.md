@@ -20,6 +20,7 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Hypercube
   * Custom Graphs
     * Any Graph With Given Adjacency Matrix [from input file]
+    * Any Graph With Given Edges [from input file]
 
 * Hamiltonians
   * Built-in Hamiltonians
@@ -43,7 +44,7 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Restricted Boltzmann Machines
     * Standard
     * For Custom Local Hilbert Spaces
-    * With Permutation Symmetry
+    * With Permutation Symmetry Using Graph Isomorphisms 
   * Custom Machines
     * Any Machine Satisfying Prototype of Abstract Machine [extending C++ code]
 
