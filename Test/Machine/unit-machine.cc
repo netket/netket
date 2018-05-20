@@ -17,8 +17,8 @@
 #include <iostream>
 #include <limits>
 
-#include "machine_input_tests.hh"
-#include "netket.hh"
+#include "machine_input_tests.hpp"
+#include "netket.hpp"
 
 TEST_CASE("machines set/get correctly parameters", "[machine]") {
 

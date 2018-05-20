@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
-#include <fstream>
-#include <iostream>
+#ifndef NETKET_ABSTRACTSTEPPER_HPP
+#define NETKET_ABSTRACTSTEPPER_HPP
+
+#include <Eigen/Dense>
+#include <complex>
 #include <vector>
 
-#include "graph_input_tests.hpp"
+namespace netket {
 
-TEST_CASE("graphs have consistent number of sites", "[graph]") {
+class AbstractStepper {
+public:
+  virtual void Init(const Eigen::VectorXd &pars) = 0;
+  virtual void Init(const Eigen::VectorXcd &pars) = 0;
+  virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
+  virtual void Reset() = 0;
+};
+} // namespace netket
 
-  auto input_tests = GetGraphInputs();
-  std::size_t ntests = input_tests.size();
-
-  for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i].dump();
-
-    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
-
-      netket::Graph graph(input_tests[i]);
-
-      REQUIRE(graph.Nsites() > 0);
-    }
-  }
-}
+#endif

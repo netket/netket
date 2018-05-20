@@ -18,8 +18,8 @@
 #include <limits>
 #include <random>
 
-#include "netket.hh"
-#include "observable_input_tests.hh"
+#include "netket.hpp"
+#include "observable_input_tests.hpp"
 
 TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
 

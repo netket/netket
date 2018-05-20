@@ -12,27 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
-#include <fstream>
-#include <iostream>
+#ifndef NETKET_FINDDIST_HPP
+#define NETKET_FINDDIST_HPP
+
+#include <queue>
+#include <set>
 #include <vector>
 
-#include "graph_input_tests.hpp"
+namespace netket {
 
-TEST_CASE("graphs have consistent number of sites", "[graph]") {
+std::vector<int> FindDist(const std::vector<std::vector<int>> &g, int root) {
+  int n = g.size();
+  std::vector<int> dists(n, -1);
 
-  auto input_tests = GetGraphInputs();
-  std::size_t ntests = input_tests.size();
+  dists[root] = 0;
 
-  for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i].dump();
+  std::queue<int> tovisit;
 
-    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
+  tovisit.push(root);
 
-      netket::Graph graph(input_tests[i]);
+  while (tovisit.size() > 0) {
+    int node = tovisit.front();
+    tovisit.pop();
 
-      REQUIRE(graph.Nsites() > 0);
+    for (std::size_t j = 0; j < g[node].size(); j++) {
+      int nj = g[node][j];
+
+      if (dists[nj] == -1) {
+        tovisit.push(nj);
+        dists[nj] = dists[node] + 1;
+      }
     }
   }
+
+  return dists;
 }
+
+} // namespace netket
+#endif

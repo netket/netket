@@ -17,7 +17,7 @@
 #include <iostream>
 #include <limits>
 
-#include "netket.hh"
+#include "netket.hpp"
 
 double loggaussian(double x) { return -(x * x); }
 

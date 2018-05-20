@@ -13,14 +13,14 @@
 // limitations under the License.
 
 #include "catch.hpp"
-#include "netket.hh"
+#include "netket.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <vector>
 
-#include "sampler_input_tests.hh"
+#include "sampler_input_tests.hpp"
 
 TEST_CASE("sampler generates states in Hilbert space", "[sampler]") {
 
@@ -106,7 +106,8 @@ TEST_CASE("sampler generates states correctly distributed", "[sampler]") {
 
       std::vector<double> countsSampler(hilb_index.NStates(), 0);
 
-      std::size_t nsweeps = 10 * hilb_index.NStates();
+      std::size_t nsweeps =
+          std::max(10 * hilb_index.NStates(), std::size_t(10000));
 
       for (std::size_t sw = 0; sw < nsweeps; sw++) {
         auto visible = sampler.Visible();
@@ -119,7 +120,7 @@ TEST_CASE("sampler generates states correctly distributed", "[sampler]") {
 
       // Now generate samples from direct sampling
       // First let's make sure that the wave-function is computed without
-      // overflow
+      // overflowing
       double logmax = -std::numeric_limits<double>::infinity();
 
       std::vector<MachineType::StateType> logpsi(hilb_index.NStates());

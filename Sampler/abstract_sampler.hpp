@@ -12,27 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
-#include <fstream>
-#include <iostream>
+#ifndef NETKET_ABSTRACTSAMPLER_HPP
+#define NETKET_ABSTRACTSAMPLER_HPP
+
 #include <vector>
 
-#include "graph_input_tests.hpp"
+namespace netket {
 
-TEST_CASE("graphs have consistent number of sites", "[graph]") {
+template <class WfType> class AbstractSampler {
+public:
+  virtual void Reset(bool initrandom) = 0;
+  virtual void Sweep() = 0;
+  virtual Eigen::VectorXd Visible() = 0;
+  virtual void SetVisible(const Eigen::VectorXd &v) = 0;
+  virtual WfType &Psi() = 0;
+  virtual Eigen::VectorXd Acceptance() const = 0;
+};
 
-  auto input_tests = GetGraphInputs();
-  std::size_t ntests = input_tests.size();
-
-  for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i].dump();
-
-    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
-
-      netket::Graph graph(input_tests[i]);
-
-      REQUIRE(graph.Nsites() > 0);
-    }
-  }
-}
+} // namespace netket
+#endif

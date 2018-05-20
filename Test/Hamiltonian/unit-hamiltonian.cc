@@ -18,8 +18,8 @@
 #include <limits>
 #include <random>
 
-#include "hamiltonian_input_tests.hh"
-#include "netket.hh"
+#include "hamiltonian_input_tests.hpp"
+#include "netket.hpp"
 
 TEST_CASE("hamiltonians produce elements in the hilbert space",
           "[hamiltonian]") {

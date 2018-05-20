@@ -13,14 +13,14 @@
 // limitations under the License.
 
 #include "catch.hpp"
-#include "netket.hh"
+#include "netket.hpp"
 #include <cfloat>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <vector>
 
-#include "hilbert_input_tests.hh"
+#include "hilbert_input_tests.hpp"
 
 TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
 

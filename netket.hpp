@@ -12,27 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
-#include <fstream>
-#include <iostream>
-#include <vector>
+#ifndef NETKET_HEADER_HPP
+#define NETKET_HEADER_HPP
 
-#include "graph_input_tests.hpp"
+#include <random>
 
-TEST_CASE("graphs have consistent number of sites", "[graph]") {
-
-  auto input_tests = GetGraphInputs();
-  std::size_t ntests = input_tests.size();
-
-  for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i].dump();
-
-    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
-
-      netket::Graph graph(input_tests[i]);
-
-      REQUIRE(graph.Nsites() > 0);
-    }
-  }
+namespace netket {
+using default_random_engine = std::mt19937;
 }
+
+#include "Graph/graph.hpp"
+#include "Hamiltonian/hamiltonian.hpp"
+#include "Hilbert/hilbert.hpp"
+#include "Learning/learning.hpp"
+#include "Lookup/lookup.hpp"
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Parallel/parallel.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Json/json_helper.hpp"
+
+#endif
