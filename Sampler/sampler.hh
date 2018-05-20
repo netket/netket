@@ -118,12 +118,19 @@ public:
     }
   }
 
-  void Reset(bool initrandom = false) { return s_->Reset(initrandom); }
-  void Sweep() { return s_->Sweep(); }
-  Eigen::VectorXd Visible() { return s_->Visible(); }
-  void SetVisible(const Eigen::VectorXd &v) { return s_->SetVisible(v); }
-  WfType &Psi() { return s_->Psi(); }
-  Eigen::VectorXd Acceptance() const { return s_->Acceptance(); }
+  void Reset(bool initrandom = false) override { return s_->Reset(initrandom); }
+
+  void Sweep() override { return s_->Sweep(); }
+
+  Eigen::VectorXd Visible() override { return s_->Visible(); }
+
+  void SetVisible(const Eigen::VectorXd &v) override {
+    return s_->SetVisible(v);
+  }
+
+  WfType &Psi() override { return s_->Psi(); }
+
+  Eigen::VectorXd Acceptance() const override { return s_->Acceptance(); }
 };
 } // namespace netket
 

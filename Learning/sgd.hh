@@ -46,11 +46,11 @@ public:
     SetDecayFactor(FieldOrDefaultVal(pars["Learning"], "DecayFactor", 1.0));
   }
 
-  void Init(const Eigen::VectorXd &pars) { npar_ = pars.size(); }
+  void Init(const Eigen::VectorXd &pars) override { npar_ = pars.size(); }
 
-  void Init(const Eigen::VectorXcd &pars) { npar_ = 2 * pars.size(); }
+  void Init(const Eigen::VectorXcd &pars) override { npar_ = 2 * pars.size(); }
 
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
     eta_ *= decay_factor_;
@@ -60,11 +60,11 @@ public:
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
     Update(Eigen::VectorXd(grad.real()), pars);
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
 
     eta_ *= decay_factor_;
 
@@ -78,7 +78,7 @@ public:
     decay_factor_ = decay_factor;
   }
 
-  void Reset() {}
+  void Reset() override {}
 };
 
 } // namespace netket

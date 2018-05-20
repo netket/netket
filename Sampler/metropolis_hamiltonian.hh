@@ -110,7 +110,7 @@ public:
     rgen_.seed(seeds[mynode_]);
   }
 
-  void Reset(bool initrandom = false) {
+  void Reset(bool initrandom = false) override {
     if (initrandom) {
       hilbert_.RandomVals(v_, rgen_);
     }
@@ -121,7 +121,7 @@ public:
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep() {
+  void Sweep() override {
 
     for (int i = 0; i < nv_; i++) {
       hamiltonian_.FindConn(v_, mel_, tochange_, newconfs_);
@@ -176,15 +176,13 @@ public:
     }
   }
 
-  Eigen::VectorXd Visible() { return v_; }
+  Eigen::VectorXd Visible() override { return v_; }
 
-  void SetVisible(const Eigen::VectorXd &v) { v_ = v; }
+  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() { return psi_; }
+  WfType &Psi() override { return psi_; }
 
-  Hilbert &HilbSpace() const { return hilbert_; }
-
-  Eigen::VectorXd Acceptance() const {
+  Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
     for (int i = 0; i < 1; i++) {
       acc(i) /= moves_(i);

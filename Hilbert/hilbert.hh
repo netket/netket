@@ -87,21 +87,21 @@ public:
     }
   }
 
-  bool IsDiscrete() const { return h_->IsDiscrete(); }
+  bool IsDiscrete() const override { return h_->IsDiscrete(); }
 
-  int LocalSize() const { return h_->LocalSize(); }
+  int LocalSize() const override { return h_->LocalSize(); }
 
-  int Size() const { return h_->Size(); }
+  int Size() const override { return h_->Size(); }
 
-  std::vector<double> LocalStates() const { return h_->LocalStates(); }
+  std::vector<double> LocalStates() const override { return h_->LocalStates(); }
 
   void RandomVals(Eigen::VectorXd &state,
-                  netket::default_random_engine &rgen) const {
+                  netket::default_random_engine &rgen) const override {
     return h_->RandomVals(state, rgen);
   }
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const {
+                  const std::vector<double> &newconf) const override {
     return h_->UpdateConf(v, tochange, newconf);
   }
 };

@@ -50,25 +50,12 @@ template <class G> class Ising : public AbstractHamiltonian {
 
 public:
   /**
-    Contructor with explicit parameters.
-    @param G is a graph from which the number of spins and the bonds are
-    obtained.
-    @param h is the transverse field coupled to sigma_x.
-    @param J is the interaction constant for the sigma_z(i)*sigma_z(j) part.
-  */
-  Ising(const G &graph, double h, double J = 1)
-      : nspins_(graph.Nsites()), h_(h), J_(J), graph_(graph) {
-
-    Init();
-  }
-
-  /**
     Json constructor.
     @param G is a graph from which the number of spins and the bonds are
     obtained.
     @param pars is a json list of parameters. The default value of J is 1.0
   */
-  Ising(const G &graph, const json &pars)
+  explicit Ising(const G &graph, const json &pars)
       : nspins_(graph.Nsites()), h_(FieldVal(pars["Hamiltonian"], "h")),
         J_(FieldOrDefaultVal(pars["Hamiltonian"], "J", 1.0)), graph_(graph) {
 
@@ -131,7 +118,7 @@ public:
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) {
+                std::vector<std::vector<double>> &newconfs) override {
 
     connectors.clear();
     connectors.resize(nspins_ + 1);
@@ -156,7 +143,7 @@ public:
     }
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 
 } // namespace netket

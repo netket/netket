@@ -135,7 +135,7 @@ public:
     rgen_.seed(seeds[mynode_]);
   }
 
-  void Reset(bool initrandom = false) {
+  void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
         hilbert_.RandomVals(v_[i], rgen_);
@@ -190,7 +190,7 @@ public:
     }
   }
 
-  void Sweep() {
+  void Sweep() override {
 
     // First we do local exchange sweeps
     for (int i = 0; i < nrep_; i++) {
@@ -223,8 +223,8 @@ public:
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * realpart(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * realpart(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -234,26 +234,19 @@ public:
     std::swap(lt_[r1], lt_[r2]);
   }
 
-  Eigen::VectorXd Visible() { return v_[0]; }
+  Eigen::VectorXd Visible() override { return v_[0]; }
 
-  void SetVisible(const Eigen::VectorXd &v) { v_[0] = v; }
+  void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &Psi() { return psi_; }
+  WfType &Psi() override { return psi_; }
 
-  Hilbert &HilbSpace() const { return hilbert_; }
-
-  Eigen::VectorXd Acceptance() const {
+  Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
     for (int i = 0; i < acc.size(); i++) {
       acc(i) /= moves_(i);
     }
     return acc;
   }
-
-  inline double realpart(const std::complex<double> &val) const {
-    return val.real();
-  }
-  inline double realpart(const double &val) const { return val; }
 };
 
 } // namespace netket

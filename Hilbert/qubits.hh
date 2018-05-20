@@ -58,16 +58,16 @@ public:
     local_[1] = 1;
   }
 
-  bool IsDiscrete() const { return true; }
+  bool IsDiscrete() const override { return true; }
 
-  int LocalSize() const { return 2; }
+  int LocalSize() const override { return 2; }
 
-  int Size() const { return nqubits_; }
+  int Size() const override { return nqubits_; }
 
-  std::vector<double> LocalStates() const { return local_; }
+  std::vector<double> LocalStates() const override { return local_; }
 
   void RandomVals(Eigen::VectorXd &state,
-                  netket::default_random_engine &rgen) const {
+                  netket::default_random_engine &rgen) const override {
     std::uniform_int_distribution<int> distribution(0, 1);
 
     assert(state.size() == nqubits_);
@@ -79,7 +79,7 @@ public:
   }
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const {
+                  const std::vector<double> &newconf) const override {
 
     assert(v.size() == nqubits_);
 

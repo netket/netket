@@ -52,23 +52,23 @@ public:
     }
   }
 
-  void Init(const Eigen::VectorXd &pars) { return s_->Init(pars); }
+  void Init(const Eigen::VectorXd &pars) override { return s_->Init(pars); }
 
-  void Init(const Eigen::VectorXcd &pars) { return s_->Init(pars); }
+  void Init(const Eigen::VectorXcd &pars) override { return s_->Init(pars); }
 
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     return s_->Update(grad, pars);
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
     return s_->Update(grad, pars);
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
     return s_->Update(grad, pars);
   }
 
-  void Reset() { return s_->Reset(); }
+  void Reset() override { return s_->Reset(); }
 };
 } // namespace netket
 #endif

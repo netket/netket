@@ -72,7 +72,7 @@ public:
     }
   }
 
-  void Init(const Eigen::VectorXd &pars) {
+  void Init(const Eigen::VectorXd &pars) override {
 
     npar_ = pars.size();
     ut_.setZero(npar_);
@@ -81,7 +81,7 @@ public:
     niter_ = 0;
   }
 
-  void Init(const Eigen::VectorXcd &pars) {
+  void Init(const Eigen::VectorXcd &pars) override {
 
     npar_ = 2 * pars.size();
     ut_.setZero(npar_);
@@ -90,7 +90,7 @@ public:
     niter_ = 0;
   }
 
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
 
     assert(npar_ > 0);
 
@@ -112,11 +112,11 @@ public:
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
     Update(Eigen::VectorXd(grad.real()), pars);
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) {
+  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
 
     assert(npar_ == 2 * pars.size());
 
@@ -146,7 +146,7 @@ public:
     }
   }
 
-  void Reset() {
+  void Reset() override {
     ut_ = Eigen::VectorXd::Zero(npar_);
     mt_ = Eigen::VectorXd::Zero(npar_);
     niter_ = 0;

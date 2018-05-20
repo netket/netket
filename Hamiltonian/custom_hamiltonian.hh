@@ -71,7 +71,7 @@ public:
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) {
+                std::vector<std::vector<double>> &newconfs) override {
     connectors.clear();
     newconfs.clear();
     mel.resize(0);
@@ -81,7 +81,7 @@ public:
     }
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 } // namespace netket
 #endif

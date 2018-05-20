@@ -57,15 +57,21 @@ public:
     }
   }
 
-  int Nsites() const { return g_->Nsites(); }
-  std::vector<std::vector<int>> AdjacencyList() const {
+  int Nsites() const override { return g_->Nsites(); }
+
+  std::vector<std::vector<int>> AdjacencyList() const override {
     return g_->AdjacencyList();
   }
-  std::vector<std::vector<int>> SymmetryTable() const {
+
+  std::vector<std::vector<int>> SymmetryTable() const override {
     return g_->SymmetryTable();
   }
-  std::vector<std::vector<int>> Distances() const { return g_->Distances(); }
-  bool IsBipartite() const { return g_->IsBipartite(); }
+
+  std::vector<std::vector<int>> Distances() const override {
+    return g_->Distances();
+  }
+
+  bool IsBipartite() const override { return g_->IsBipartite(); }
 };
 } // namespace netket
 

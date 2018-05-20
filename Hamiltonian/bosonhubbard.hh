@@ -48,15 +48,8 @@ template <class G> class BoseHubbard : public AbstractHamiltonian {
   Hilbert hilbert_;
 
 public:
-  BoseHubbard(const G &graph, int nmax, double U, double V = 0, double mu = 0)
-      : graph_(graph), nmax_(nmax), nsites_(graph.Nsites()), U_(U), V_(V),
-        mu_(mu) {
-
-    Init();
-  }
-
   // Json constructor
-  BoseHubbard(const G &graph, const json &pars)
+  explicit BoseHubbard(const G &graph, const json &pars)
       : nsites_(graph.Nsites()), graph_(graph) {
 
     if (FieldExists(pars["Hamiltonian"], "Nmax")) {
@@ -139,7 +132,7 @@ public:
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) {
+                std::vector<std::vector<double>> &newconfs) override {
 
     connectors.clear();
     connectors.resize(1);
@@ -177,7 +170,7 @@ public:
     }
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 
 } // namespace netket

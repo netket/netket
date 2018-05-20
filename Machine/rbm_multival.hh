@@ -142,13 +142,13 @@ public:
     }
   }
 
-  int Nvisible() const { return nv_; }
+  int Nvisible() const override { return nv_; }
 
   int Nhidden() const { return nh_; }
 
-  int Npar() const { return npar_; }
+  int Npar() const override { return npar_; }
 
-  void InitRandomPars(int seed, double sigma) {
+  void InitRandomPars(int seed, double sigma) override {
 
     VectorType par(npar_);
 
@@ -157,7 +157,7 @@ public:
     SetParameters(par);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) {
+  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(b_.size());
     }
@@ -168,7 +168,8 @@ public:
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType &lt) {
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override {
 
     if (tochange.size() != 0) {
 
@@ -183,7 +184,7 @@ public:
     }
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) {
+  VectorType DerLog(const Eigen::VectorXd &v) override {
     VectorType der(npar_);
     der.setZero();
 
@@ -215,7 +216,7 @@ public:
     return der;
   }
 
-  VectorType GetParameters() {
+  VectorType GetParameters() override {
 
     VectorType pars(npar_);
 
@@ -244,7 +245,7 @@ public:
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) {
+  void SetParameters(const VectorType &pars) override {
     int k = 0;
 
     if (usea_) {
@@ -269,7 +270,7 @@ public:
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) {
+  T LogVal(const Eigen::VectorXd &v) override {
     ComputeTheta(v, thetas_);
     RbmSpin<T>::lncosh(thetas_, lnthetas_);
 
@@ -278,7 +279,7 @@ public:
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) {
+  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
     RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
 
     ComputeVtilde(v, vtilde_);
@@ -287,9 +288,10 @@ public:
 
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
-  VectorType LogValDiff(const Eigen::VectorXd &v,
-                        const std::vector<std::vector<int>> &tochange,
-                        const std::vector<std::vector<double>> &newconf) {
+  VectorType
+  LogValDiff(const Eigen::VectorXd &v,
+             const std::vector<std::vector<int>> &tochange,
+             const std::vector<std::vector<double>> &newconf) override {
 
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -328,7 +330,8 @@ public:
   // are being changed Version using pre-computed look-up tables for efficiency
   // on a small number of local changes
   T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf, const LookupType &lt) {
+               const std::vector<double> &newconf,
+               const LookupType &lt) override {
 
     T logvaldiff = 0.;
 
@@ -389,7 +392,7 @@ public:
 
   const Hilbert &GetHilbert() const { return hilbert_; }
 
-  void to_json(json &j) const {
+  void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmMultival";
     j["Machine"]["Nvisible"] = nv_;
     j["Machine"]["Nhidden"] = nh_;
@@ -401,7 +404,7 @@ public:
     j["Machine"]["W"] = W_;
   }
 
-  void from_json(const json &pars) {
+  void from_json(const json &pars) override {
 
     if (pars.at("Machine").at("Name") != "RbmMultival") {
       if (mynode_ == 0) {

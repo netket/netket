@@ -116,7 +116,7 @@ public:
 
   // Returns a list of permuted sites equivalent with respect to
   // translation symmetry
-  std::vector<std::vector<int>> SymmetryTable() const {
+  std::vector<std::vector<int>> SymmetryTable() const override {
 
     if (!pbc_) {
       std::cerr << "Cannot generate translation symmetries in the hypercube "
@@ -142,7 +142,7 @@ public:
     return permtable;
   }
 
-  int Nsites() const { return nsites_; }
+  int Nsites() const override { return nsites_; }
 
   int Length() const { return L_; }
 
@@ -152,7 +152,9 @@ public:
 
   std::vector<int> SiteCoord(int i) const { return sites_[i]; }
 
-  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return adjlist_;
+  }
 
   std::map<std::vector<int>, int> Coord2Site() const { return coord2sites_; }
 
@@ -160,10 +162,10 @@ public:
     return coord2sites_.at(coord);
   }
 
-  bool IsBipartite() const { return true; }
+  bool IsBipartite() const override { return true; }
 
   // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const {
+  std::vector<std::vector<int>> Distances() const override {
     std::vector<std::vector<int>> distances;
 
     for (int i = 0; i < nsites_; i++) {
