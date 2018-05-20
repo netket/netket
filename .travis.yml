@@ -71,6 +71,10 @@ matrix:
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
 
 
+cache:
+  apt: true
+
+
 ################
 # build script #
 ################

@@ -17,23 +17,75 @@
 
 #include "hilbert.hh"
 #include <Eigen/Dense>
+#include <algorithm>
+#include <cmath>
+#include <map>
 #include <vector>
 
 namespace netket {
 
 class HilbertIndex {
 
-  const Hilbert &hilbert_;
-
   const std::vector<double> localstates_;
+
+  const int localsize_;
+
+  const int size_;
+
+  std::map<double, int> statenumber_;
+
+  std::vector<std::size_t> basis_;
 
 public:
   explicit HilbertIndex(const Hilbert &hilbert)
-      : hilbert_(hilbert), localstates_(hilbert.LocalStates()) {}
+      : localstates_(hilbert.LocalStates()), localsize_(hilbert.LocalSize()),
+        size_(hilbert.Size()) {
 
-  std::size_t StateNumber(const Eigen::VectorXd &v) const {}
+    Init();
+  }
 
-  Eigen::VectorXd NumberToState(std::size_t i) const {}
+  void Init() {
+
+    std::size_t ba = 1;
+    for (int s = 0; s < size_; s++) {
+      basis_.push_back(ba);
+      ba *= localsize_;
+    }
+
+    for (std::size_t k = 0; k < localstates_.size(); k++) {
+      statenumber_[localstates_[k]] = k;
+    }
+  }
+
+  // converts a vector of quantum numbers into the unique integer identifier
+  std::size_t StateToNumber(const Eigen::VectorXd &v) const {
+    std::size_t number = 0;
+
+    for (int i = 0; i < size_; i++) {
+      number += statenumber_.at(v(size_ - i - 1)) * basis_[i];
+    }
+
+    return number;
+  }
+
+  // converts an integer into a vector of quantum numbers
+  Eigen::VectorXd NumberToState(std::size_t i) const {
+
+    Eigen::VectorXd result = Eigen::VectorXd::Constant(size_, localstates_[0]);
+
+    std::size_t ip = i;
+
+    int k = size_ - 1;
+
+    while (ip > 0) {
+      result(k) = localstates_[ip % localsize_];
+      ip /= localsize_;
+      k--;
+    }
+    return result;
+  }
+
+  std::size_t NStates() const { return std::pow(localsize_, size_); }
 };
 
 } // namespace netket

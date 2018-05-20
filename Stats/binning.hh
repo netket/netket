@@ -41,7 +41,7 @@ template <class T> class Binning {
   int nproc_;
 
 public:
-  Binning(int nbins = 16) { Init(nbins); }
+  explicit Binning(int nbins = 16) { Init(nbins); }
 
   void Init(int nbins) {
     MPI_Comm_size(MPI_COMM_WORLD, &nproc_);

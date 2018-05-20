@@ -79,9 +79,6 @@ public:
       std::abort();
     }
 
-    if (nmax_ > nsites_) {
-      nmax_ = nsites_;
-    }
     if (nmax_ <= 0) {
       std::cerr << "Invalid maximum occupation number" << std::endl;
       std::abort();

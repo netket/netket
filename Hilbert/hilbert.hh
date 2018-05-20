@@ -106,4 +106,7 @@ public:
   }
 };
 } // namespace netket
+
+#include "hilbert_index.hh"
+
 #endif
