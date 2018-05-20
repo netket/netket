@@ -28,7 +28,8 @@ TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Observable test on " + input_tests[it]["Observable"].dump()) {
+    SECTION("Observable test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Observable"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -75,7 +76,8 @@ TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Observable test on " + input_tests[it]["Observable"].dump()) {
+    SECTION("Observable test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Observable"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -118,7 +120,8 @@ TEST_CASE("observables are hermitean", "[observable]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Observable test on " + input_tests[it]["Observable"].dump()) {
+    SECTION("Observable test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Observable"].dump()) {
 
       auto pars = input_tests[it];
 

@@ -27,7 +27,8 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Machine test on " + input_tests[it]["Machine"].dump()) {
+    SECTION("Machine test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -60,7 +61,8 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Machine test on " + input_tests[it]["Machine"].dump()) {
+    SECTION("Machine test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -122,7 +124,8 @@ TEST_CASE("machines compute logval differences correctly", "[machine]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Machine test on " + input_tests[it]["Machine"].dump()) {
+    SECTION("Machine test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -208,7 +211,8 @@ TEST_CASE("machines update look-up tables correctly", "[machine]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Machine test on " + input_tests[it]["Machine"].dump()) {
+    SECTION("Machine test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
 
       auto pars = input_tests[it];
 

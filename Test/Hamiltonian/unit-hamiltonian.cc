@@ -29,7 +29,8 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Hamiltonian test on " + input_tests[it]["Hamiltonian"].dump()) {
+    SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Hamiltonian"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -75,7 +76,8 @@ TEST_CASE("hamiltonians do not have duplicate newconfs", "[hamiltonian]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Hamiltonian test on " + input_tests[it]["Hamiltonian"].dump()) {
+    SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Hamiltonian"].dump()) {
 
       auto pars = input_tests[it];
 
@@ -116,7 +118,8 @@ TEST_CASE("hamiltonians are hermitean", "[hamiltonian]") {
 
   for (std::size_t it = 0; it < ntests; it++) {
 
-    SECTION("Hamiltonian test on " + input_tests[it]["Hamiltonian"].dump()) {
+    SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Hamiltonian"].dump()) {
 
       auto pars = input_tests[it];
 

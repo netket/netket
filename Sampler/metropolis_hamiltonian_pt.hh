@@ -184,7 +184,7 @@ public:
 
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
-        accept_[0] += 1;
+        accept_(rep) += 1;
         psi_.UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
         v_[rep] = v1_;
 
@@ -199,7 +199,7 @@ public:
         }
 #endif
       }
-      moves_[rep] += 1;
+      moves_(rep) += 1;
     }
   }
 
@@ -254,7 +254,7 @@ public:
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < acc.size(); i++) {
       acc(i) /= moves_(i);
     }
     return acc;

@@ -34,7 +34,8 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
     }
     std::string name = input_tests[i][parname].dump();
 
-    SECTION("Hilbert test on " + name) {
+    SECTION("Hilbert test (" + std::to_string(i) + ") (" + std::to_string(i) +
+            ") on " + name) {
 
       netket::Hilbert hilbert;
 
@@ -74,7 +75,7 @@ TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
     }
     std::string name = input_tests[i][parname].dump();
 
-    SECTION("Hilbert test on " + name) {
+    SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
 
       netket::Hilbert hilbert;
 
@@ -121,7 +122,7 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
     }
     std::string name = input_tests[i][parname].dump();
 
-    SECTION("Hilbert test on " + name) {
+    SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
 
       netket::Hilbert hilbert;
 
@@ -136,10 +137,12 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
       REQUIRE(hilbert.Size() > 0);
       REQUIRE(hilbert.LocalSize() > 0);
 
-      netket::HilbertIndex hilb_index(hilbert);
-
       // Only do the test for small hilbert spaces
-      if (hilbert.Size() * std::log(hilbert.LocalSize()) < 20 * std::log(2.)) {
+      if (hilbert.Size() * std::log(hilbert.LocalSize()) <
+          std::log(netket::HilbertIndex::MaxStates)) {
+
+        netket::HilbertIndex hilb_index(hilbert);
+
         for (std::size_t k = 0; k < hilb_index.NStates(); k++) {
 
           const auto state = hilb_index.NumberToState(k);

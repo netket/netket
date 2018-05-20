@@ -28,7 +28,7 @@ TEST_CASE("graphs have consistent number of sites", "[graph]") {
   for (std::size_t i = 0; i < ntests; i++) {
     std::string name = input_tests[i].dump();
 
-    SECTION("Graph test on " + name) {
+    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
 
       netket::Graph graph(input_tests[i]);
 

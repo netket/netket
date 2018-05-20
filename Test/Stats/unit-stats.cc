@@ -56,15 +56,7 @@ TEST_CASE("stats miscellanea", "[stats]") {
     REQUIRE(binning.N() >= int(N / 2));
   }
 
-  SECTION("Averages are between extremes ") {
-    double mean = binning.Mean();
-    double minval = *std::min_element(vals.begin(), vals.end());
-    double maxval = *std::max_element(vals.begin(), vals.end());
-    REQUIRE(mean >= minval);
-    REQUIRE(mean <= maxval);
-  }
-
-  SECTION("Averages are between extremes ") {
+  SECTION("Averages are between extremes") {
     double mean = binning.Mean();
     double minval = *std::min_element(vals.begin(), vals.end());
     double maxval = *std::max_element(vals.begin(), vals.end());

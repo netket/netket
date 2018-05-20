@@ -19,6 +19,7 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <vector>
 
@@ -36,6 +37,8 @@ class HilbertIndex {
 
   std::vector<std::size_t> basis_;
 
+  int nstates_;
+
 public:
   explicit HilbertIndex(const Hilbert &hilbert)
       : localstates_(hilbert.LocalStates()), localsize_(hilbert.LocalSize()),
@@ -45,6 +48,13 @@ public:
   }
 
   void Init() {
+
+    if (size_ * std::log(localsize_) > std::log(MaxStates)) {
+      std::cerr << "Hilbert space is too large to be indexed" << std::endl;
+      std::abort();
+    }
+
+    nstates_ = std::pow(localsize_, size_);
 
     std::size_t ba = 1;
     for (int s = 0; s < size_; s++) {
@@ -85,7 +95,9 @@ public:
     return result;
   }
 
-  std::size_t NStates() const { return std::pow(localsize_, size_); }
+  std::size_t NStates() const { return nstates_; }
+
+  constexpr static int MaxStates = (std::numeric_limits<int>::max() - 1.);
 };
 
 } // namespace netket
