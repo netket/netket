@@ -1,0 +1,115 @@
+#########################
+# project configuration #
+#########################
+
+# C++ project
+language: cpp
+
+dist: trusty
+sudo: required
+
+################
+# build matrix #
+################
+
+matrix:
+  include:
+
+  # clang sanitizer
+  - os: linux
+    compiler: clang
+    env:
+      - COMPILER=clang++-5.0
+      - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+        packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev']
+
+  - os: osx
+    osx_image: xcode7.3
+
+  - os: osx
+    osx_image: xcode8
+
+  - os: osx
+    osx_image: xcode8.1
+
+  - os: osx
+    osx_image: xcode8.2
+
+  - os: osx
+    osx_image: xcode8.3
+
+  - os: osx
+    osx_image: xcode9
+
+  - os: osx
+    osx_image: xcode9.1
+
+  - os: osx
+    osx_image: xcode9.2
+
+  - os: osx
+    osx_image: xcode9.3
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-5
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-5','mpich','libmpich-dev']
+
+  - os: linux
+    compiler: gcc
+    env:
+      - COMPILER=g++-6
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test']
+        packages: ['g++-6','mpich','libmpich-dev']
+
+  - os: linux
+    compiler: clang
+    env:
+      - COMPILER=clang++-5.0
+      - CXXFLAGS=-std=c++1z
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
+
+
+cache:
+  apt: true
+
+
+################
+# build script #
+################
+
+script:
+  # get CMake and Mpi (only for systems with brew - macOS)
+  - |
+     if [[ (-x $(which brew)) ]]; then
+       brew update
+       brew install cmake
+       brew install openmpi
+       brew upgrade cmake
+       brew upgrade openmpi
+       cmake --version
+     fi
+  # make sure CXX is correctly set
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # show OS/compiler version
+  - uname -a
+  - $CXX --version
+
+  # compile and execute unit tests
+  - mkdir -p build && cd build
+  - cmake .. ${CMAKE_OPTIONS} && cmake --build . --config Release
+  - ctest -C Release -V -j
+  - cd ..
