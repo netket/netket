@@ -48,7 +48,7 @@ class AbstractHamiltonian {
   virtual void FindConn(const Eigen::VectorXd &v,
                         std::vector<std::complex<double>> &mel,
                         std::vector<std::vector<int>> &connectors,
-                        std::vector<std::vector<double>> &newconfs) = 0;
+                        std::vector<std::vector<double>> &newconfs) const = 0;
 
   /**
   Member function returning the hilbert space associated with this Hamiltonian.

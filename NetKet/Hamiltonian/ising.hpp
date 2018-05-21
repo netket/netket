@@ -119,7 +119,7 @@ class Ising : public AbstractHamiltonian {
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) override {
+                std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
     connectors.resize(nspins_ + 1);
     newconfs.clear();

@@ -69,7 +69,7 @@ class CustomHamiltonian : public AbstractHamiltonian {
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) override {
+                std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
     newconfs.clear();
     mel.resize(0);
