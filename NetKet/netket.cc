@@ -12,25 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_HEADER_HPP
-#define NETKET_HEADER_HPP
+#include "netket.hpp"
+#include <mpi.h>
 
-#include <random>
+int main(int argc, char *argv[]) {
+  MPI_Init(&argc, &argv);
 
-namespace netket {
-using default_random_engine = std::mt19937;
+  netket::Welcome(argc);
+
+  auto pars = netket::ReadJsonFromFile(argv[1]);
+
+  netket::Learning learning(pars);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Finalize();
+
+  return 0;
 }
-
-#include "Graph/graph.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
-#include "Hilbert/hilbert.hpp"
-#include "Learning/learning.hpp"
-#include "Lookup/lookup.hpp"
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Parallel/parallel.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Json/json_helper.hpp"
-
-#endif
