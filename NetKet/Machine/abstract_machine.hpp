@@ -18,7 +18,7 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <fstream>
-#include <random>
+#include "Utils/random_utils.hpp"
 #include <vector>
 #include "Lookup/lookup.hpp"
 

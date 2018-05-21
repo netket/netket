@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PARALLEL_HPP
-#define NETKET_PARALLEL_HPP
+#ifndef NETKET_JSONUTILS_HPP
+#define NETKET_JSONUTILS_HPP
 
-#include "MPIInterf.hpp"
+#include <json.hpp>
+#include "json_dumps.hpp"
+#include "json_helper.hpp"
 
 #endif

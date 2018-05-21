@@ -17,8 +17,8 @@
 
 #include <memory>
 #include <set>
-#include "Json/json_helper.hpp"
-#include "Parallel/parallel.hpp"
+#include "Utils/json_utils.hpp"
+#include "Utils/parallel_utils.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"

@@ -21,7 +21,7 @@
 #include <complex>
 #include <iostream>
 #include <unsupported/Eigen/IterativeSolvers>
-#include "Parallel/parallel.hpp"
+#include "Utils/parallel_utils.hpp"
 
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;

@@ -1,13 +1,12 @@
 
-#include "Json/json_helper.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
-std::vector<json> GetGraphInputs() {
-
-  std::vector<json> input_tests;
-  json pars;
+std::vector<netket::json> GetGraphInputs() {
+  std::vector<netket::json> input_tests;
+  netket::json pars;
 
   // Hypercube 1d
   pars = {

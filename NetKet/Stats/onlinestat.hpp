@@ -20,8 +20,8 @@
 #include <Eigen/Dense>
 #include <cassert>
 #include <iostream>
-#include <random>
 #include <vector>
+#include "Utils/random_utils.hpp"
 
 namespace netket {
 
@@ -48,7 +48,7 @@ class OnlineStat {
  public:
   using DataType = T;
 
-  OnlineStat() { Reset(); }
+  explicit OnlineStat() { Reset(); }
 
   // Adding data to this bin
   inline void operator<<(const DataType &data) {

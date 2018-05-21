@@ -16,9 +16,9 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <random>
+#include "Utils/random_utils.hpp"
 #include <vector>
-#include "Json/json_helper.hpp"
+#include "Utils/json_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_SPIN_HPP

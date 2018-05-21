@@ -17,7 +17,7 @@
 
 #include <memory>
 #include <set>
-#include "Parallel/parallel.hpp"
+#include "Utils/parallel_utils.hpp"
 #include "abstract_sampler.hpp"
 #include "metropolis_exchange.hpp"
 #include "metropolis_exchange_pt.hpp"

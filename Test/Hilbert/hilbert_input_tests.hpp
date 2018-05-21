@@ -1,13 +1,12 @@
 
-#include "Json/json_helper.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
-std::vector<json> GetHilbertInputs() {
-
-  std::vector<json> input_tests;
-  json pars;
+std::vector<netket::json> GetHilbertInputs() {
+  std::vector<netket::json> input_tests;
+  netket::json pars;
 
   // Spin 1/2
   pars = {{"Hilbert", {{"Name", "Spin"}, {"Nspins", 20}, {"S", 0.5}}}};

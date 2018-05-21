@@ -15,9 +15,9 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <map>
-#include <random>
 #include <vector>
 #include "Lookup/lookup.hpp"
+#include "Utils/all_utils.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -149,7 +149,7 @@ class RbmMultival : public AbstractMachine<T> {
   void InitRandomPars(int seed, double sigma) override {
     VectorType par(npar_);
 
-    RandomGaussian(par, seed, sigma);
+    netket::RandomGaussian(par, seed, sigma);
 
     SetParameters(par);
   }
@@ -356,26 +356,6 @@ class RbmMultival : public AbstractMachine<T> {
   inline void ComputeVtilde(const Eigen::VectorXd &v, Eigen::VectorXd &vtilde) {
     auto t = (localconfs_.array() == (mask_ * v).array());
     vtilde = t.template cast<double>();
-  }
-
-  static void RandomGaussian(Eigen::Matrix<double, Eigen::Dynamic, 1> &par,
-                             int seed, double sigma) {
-    std::default_random_engine generator(seed);
-    std::normal_distribution<double> distribution(0, sigma);
-    for (int i = 0; i < par.size(); i++) {
-      par(i) = distribution(generator);
-    }
-  }
-
-  static void RandomGaussian(
-      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> &par, int seed,
-      double sigma) {
-    std::default_random_engine generator(seed);
-    std::normal_distribution<double> distribution(0, sigma);
-    for (int i = 0; i < par.size(); i++) {
-      par(i) = std::complex<double>(distribution(generator),
-                                    distribution(generator));
-    }
   }
 
   const Hilbert &GetHilbert() const { return hilbert_; }

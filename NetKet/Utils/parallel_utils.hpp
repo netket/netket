@@ -12,19 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_HEADER_HPP
-#define NETKET_HEADER_HPP
+#ifndef NETKET_PARALLEL_UTILS_HPP
+#define NETKET_PARALLEL_UTILS_HPP
 
-#include "Graph/graph.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
-#include "Headers/welcome.hpp"
-#include "Hilbert/hilbert.hpp"
-#include "Learning/learning.hpp"
-#include "Lookup/lookup.hpp"
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Utils/all_utils.hpp"
+#include "mpi_interface.hpp"
 
 #endif

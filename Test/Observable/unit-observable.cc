@@ -16,7 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
-#include <random>
+#include "Utils/random_utils.hpp"
 
 #include "netket.hpp"
 #include "observable_input_tests.hpp"

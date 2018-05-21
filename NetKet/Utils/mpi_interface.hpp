@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MPIINTERF_HPP
-#define NETKET_MPIINTERF_HPP
+#ifndef NETKET_MPI_INTERFACE_HPP
+#define NETKET_MPI_INTERFACE_HPP
 
 #include <mpi.h>
 #include <Eigen/Dense>

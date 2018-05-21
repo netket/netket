@@ -16,7 +16,7 @@
 
 #include <Eigen/Dense>
 #include <complex>
-#include <random>
+#include "Utils/random_utils.hpp"
 #include <vector>
 
 namespace netket {

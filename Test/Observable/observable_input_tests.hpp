@@ -1,13 +1,12 @@
 
-#include "Json/json_helper.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
-std::vector<json> GetObservableInputs() {
-
-  std::vector<json> input_tests;
-  json pars;
+std::vector<netket::json> GetObservableInputs() {
+  std::vector<netket::json> input_tests;
+  netket::json pars;
 
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
   std::vector<std::vector<double>> szsz = {
@@ -19,7 +18,7 @@ std::vector<json> GetObservableInputs() {
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 10;
 
-  json parsobs;
+  netket::json parsobs;
   parsobs["Name"] = "Observable_1";
   parsobs["Operators"] = {sx, szsz, szsz, sx,   sy, sy,
                           sy, szsz, sx,   szsz, sy, szsz};

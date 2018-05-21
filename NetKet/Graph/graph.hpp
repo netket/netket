@@ -19,7 +19,7 @@
 #include <map>
 #include <vector>
 
-#include "Json/json_helper.hpp"
+#include "Utils/json_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
 #include "hypercube.hpp"

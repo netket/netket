@@ -1,13 +1,12 @@
 
-#include "Json/json_helper.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
-std::vector<json> GetMachineInputs() {
-
-  std::vector<json> input_tests;
-  json pars;
+std::vector<netket::json> GetMachineInputs() {
+  std::vector<netket::json> input_tests;
+  netket::json pars;
 
   // Ising 1d
   pars = {{"Graph",

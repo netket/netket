@@ -17,14 +17,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <json.hpp>
 #include <string>
 #include <vector>
-#include "json.hpp"
-#include "json_dumps.hpp"
-
-using json = nlohmann::json;
 
 namespace netket {
+
+using json = nlohmann::json;
 
 template <class T>
 bool FieldExists(const T &pars, std::string field) {

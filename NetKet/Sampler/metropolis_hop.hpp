@@ -18,7 +18,7 @@
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <random>
+#include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {

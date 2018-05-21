@@ -19,8 +19,8 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
-#include <random>
 #include <vector>
+#include "Utils/random_utils.hpp"
 #include "abstract_hamiltonian.hpp"
 
 namespace netket {

@@ -18,24 +18,22 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
+#include <json.hpp>
 #include <vector>
-#include "json.hpp"
-
-using json = nlohmann::json;
 
 namespace Eigen {
 
 template <class T>
-void to_json(json &js, const Matrix<T, Eigen::Dynamic, 1> &v) {
+void to_json(nlohmann::json &js, const Matrix<T, Eigen::Dynamic, 1> &v) {
   std::vector<T> temp(v.size());
   for (std::size_t i = 0; i < std::size_t(v.size()); i++) {
     temp[i] = v(i);
   }
-  js = json(temp);
+  js = nlohmann::json(temp);
 }
 
 template <class T>
-void from_json(const json &js, Matrix<T, Eigen::Dynamic, 1> &v) {
+void from_json(const nlohmann::json &js, Matrix<T, Eigen::Dynamic, 1> &v) {
   std::vector<T> temp = js.get<std::vector<T>>();
   v.resize(temp.size());
   for (std::size_t i = 0; i < temp.size(); i++) {
@@ -44,7 +42,8 @@ void from_json(const json &js, Matrix<T, Eigen::Dynamic, 1> &v) {
 }
 
 template <class T>
-void to_json(json &js, const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
+void to_json(nlohmann::json &js,
+             const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
   std::vector<std::vector<T>> temp(v.rows());
   for (std::size_t i = 0; i < std::size_t(v.rows()); i++) {
     temp[i].resize(v.cols());
@@ -52,11 +51,12 @@ void to_json(json &js, const Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
       temp[i][j] = v(i, j);
     }
   }
-  js = json(temp);
+  js = nlohmann::json(temp);
 }
 
 template <class T>
-void from_json(const json &js, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
+void from_json(const nlohmann::json &js,
+               Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
   std::vector<std::vector<T>> temp = js.get<std::vector<std::vector<T>>>();
 
   if (temp[0].size() == 0) {
@@ -80,11 +80,11 @@ void from_json(const json &js, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
 
 namespace std {
 
-void to_json(json &js, const std::complex<double> &p) {
-  js = json{p.real(), p.imag()};
+void to_json(nlohmann::json &js, const std::complex<double> &p) {
+  js = nlohmann::json{p.real(), p.imag()};
 }
 
-void from_json(const json &js, std::complex<double> &p) {
+void from_json(const nlohmann::json &js, std::complex<double> &p) {
   if (js.is_array()) {
     p = std::complex<double>(js[0].get<double>(), js[1].get<double>());
   } else {

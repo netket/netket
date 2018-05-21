@@ -19,8 +19,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include <random>
-#include "Parallel/parallel.hpp"
+#include "Utils/random_utils.hpp"
+#include "Utils/parallel_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {

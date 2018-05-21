@@ -21,12 +21,12 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <random>
+#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
-#include "Parallel/parallel.hpp"
+#include "Utils/parallel_utils.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "matrix_replacement.hpp"

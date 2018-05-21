@@ -22,7 +22,7 @@
 #include <map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
-#include "Json/json_helper.hpp"
+#include "Utils/json_utils.hpp"
 #include "distance.hpp"
 
 namespace netket {

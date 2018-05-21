@@ -14,9 +14,9 @@
 
 #include <Eigen/Dense>
 #include <iostream>
-#include <random>
 #include <vector>
 #include "Lookup/lookup.hpp"
+#include "Utils/all_utils.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -190,7 +190,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
   void InitRandomPars(int seed, double sigma) override {
     VectorType par(npar_);
 
-    RbmSpin<T>::RandomGaussian(par, seed, sigma);
+    netket::RandomGaussian(par, seed, sigma);
 
     SetParameters(par);
   }

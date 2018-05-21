@@ -66,7 +66,7 @@ Main differences with respect to Google standards include:
 2. Use of non-const reference arguments is allowed (exception to [this](https://google.github.io/styleguide/cppguide.html#Reference_Arguments))
 
 The Google C++ Style Guide also includes useful guidelines to format the code.
-Those can be conveniently enforced by means of automatic reformatting tools. 
+Those can be conveniently enforced by means of automatic reformatting tools.
 We strongly recommend that you use `clang-tidy` to check your C/C++ changes.
 To install clang-tidy on ubuntu, do:
 
@@ -88,9 +88,11 @@ clang-format --style=google <my_cc_file> > /tmp/my_cc_file.cc
 diff <my_cc_file> /tmp/my_cc_file.cc
 ```
 
-Most likely, your favorite code editor supports a plugin for `clang-tidy`.
+Most likely, your favorite code editor supports a plugin for `clang-format`.
 Those are typically very handy, since they allow to format the code in real time,
 at any point you save your code, and without recurring to the command line.
+Our editor of choice, `atom`, has a nice plugin [see here](https://atom.io/packages/clang-format)
+which can be configured with Google style.
 
 
 #### Running sanity check
@@ -109,13 +111,13 @@ This will compile NetKet with Clang sanitizer, and unit tests will report any is
 
 #### Including new unit tests
 
-New contributions **must** include associated unit tests.
-Unit tests in NetKet are based on [Catch 2](https://github.com/catchorg/Catch2) and are in the directory `Test`.
+Contributions implementing new features **must** include associated unit tests.
+Unit tests in NetKet are based on [Catch 2](https://github.com/catchorg/Catch2) and are located in the directory `Test`.
 
 In the most typical case, your contribution will be an extension of one of the many existing prototype classes (for example, deriving from `AbstractMachine`, `AbstractGraph` classes etc). In this case, you typically only need to add
 a corresponding input file for testing.
 
-For example, you can take a look at `Test/Machine/machine_input_tests.hpp`. If you add a new `Machine`, you must include in this file a json object which allows NetKet to construct your machine in a few test cases. All the units tests conceived for the `Machine` class will be then automatically executed on your new class.
+For an example, take a look at how the input cases for testing classes derived from `AbstractMachine` are structured, in file `Test/Machine/machine_input_tests.hpp`. If you were to add a new `Machine`, you would need to include in this file a json object which allows NetKet to construct your machine in a few test cases. All the units tests conceived for the `Machine` class would be then automatically executed on your new class.
 
 #### Running unit tests
 Unit tests are automatically compiled when you
@@ -126,4 +128,4 @@ make test
 ```
 in the CMake build directory.  
 
-Notice that if you add new test files (i.e. you do not simply extend the existing json input objects), before compiling you will need to tell CMake about your new files, editing `Test/CMakeLists.txt`.
+Notice that if you add new test files (i.e. you do not simply extend the existing json input objects), before compiling you will need to tell CMake about your new files, editing `Test/CMakeLists.txt` accordingly.

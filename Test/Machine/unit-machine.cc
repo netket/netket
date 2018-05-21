@@ -12,24 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include "catch.hpp"
 
 #include "machine_input_tests.hpp"
 #include "netket.hpp"
 
 TEST_CASE("machines set/get correctly parameters", "[machine]") {
-
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Machine test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -43,7 +40,7 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
       int seed = 12342;
       double sigma = 1;
       netket::Machine<MType>::VectorType params(machine.Npar());
-      netket::RbmSpin<MType>::RandomGaussian(params, seed, sigma);
+      netket::RandomGaussian(params, seed, sigma);
 
       machine.SetParameters(params);
 
@@ -53,17 +50,14 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
 }
 
 TEST_CASE("machines compute log derivatives correctly", "[machine]") {
-
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
 
   netket::default_random_engine rgen;
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Machine test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -116,17 +110,14 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
 }
 
 TEST_CASE("machines compute logval differences correctly", "[machine]") {
-
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
 
   netket::default_random_engine rgen;
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Machine test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -203,17 +194,14 @@ TEST_CASE("machines compute logval differences correctly", "[machine]") {
 }
 
 TEST_CASE("machines update look-up tables correctly", "[machine]") {
-
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
 
   netket::default_random_engine rgen;
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Machine test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -251,7 +239,6 @@ TEST_CASE("machines update look-up tables correctly", "[machine]") {
       machine.InitLookup(v, lt);
 
       for (int i = 0; i < 100; i++) {
-
         // we test on a random number of sites to be changed
         int nchange = distnchange(rgen);
         std::vector<int> tochange(nchange);
