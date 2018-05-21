@@ -24,7 +24,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-        packages: ['g++-6', 'clang-5.0']
+        packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev']
 
   # cppcheck
   - os: linux
@@ -35,7 +35,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-4.9', 'cppcheck']
+        packages: ['g++-4.9', 'cppcheck','mpich','libmpich-dev']
     after_success:
       - cppcheck --enable=warning --inconclusive --force --std=c++11 NetKet/ --error-exitcode=1
 
