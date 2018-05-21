@@ -1,17 +1,26 @@
-# ![NetKet Logo](Headers/logo_small.jpg)
+
+# <img src="http://www.netket.org/img/logo_simple.jpg" width="400"> <img src="http://www.netket.org/img/logo_simple.jpg" width="400">
+
+[![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
+[![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/acfc9fcbedd54b77a2d45351f4518728)](https://www.codacy.com/app/gcarleo/netket?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=netket/netket&amp;utm_campaign=Badge_Grade)
+[![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 # __NetKet__
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 
 
-# Major Features
+## Major Features
 
 * Graphs
   * Built-in Graphs
     * Hypercube
   * Custom Graphs
     * Any Graph With Given Adjacency Matrix [from input file]
+    * Any Graph With Given Edges [from input file]
 
 * Hamiltonians
   * Built-in Hamiltonians
@@ -35,7 +44,7 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Restricted Boltzmann Machines
     * Standard
     * For Custom Local Hilbert Spaces
-    * With Permutation Symmetry
+    * With Permutation Symmetry Using Graph Isomorphisms
   * Custom Machines
     * Any Machine Satisfying Prototype of Abstract Machine [extending C++ code]
 
@@ -57,10 +66,10 @@ of many-body quantum systems with artificial neural networks and machine learnin
 * I/O
   * Python/JSON Interface   
 
-# Installation and Usage
+## Installation and Usage
 
 Please visit our [homepage](https://www.netket.org) for further information.
 
-# License
+## License
 
 [Apache License 2.0](https://github.com/netket/netket/blob/master/LICENSE)

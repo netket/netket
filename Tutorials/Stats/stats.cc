@@ -3,7 +3,7 @@
 #include <vector>
 #include <random>
 #include <cassert>
-#include "netket.hh"
+#include "netket.hpp"
 
 using namespace std;
 using namespace netket;

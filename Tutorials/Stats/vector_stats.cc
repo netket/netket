@@ -5,7 +5,7 @@
 #include <cassert>
 #include <valarray>
 
-#include "netket.hh"
+#include "netket.hpp"
 
 using namespace std;
 using namespace netket;
