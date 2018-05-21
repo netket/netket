@@ -15,18 +15,17 @@
 #ifndef NETKET_HYPERCUBE_HPP
 #define NETKET_HYPERCUBE_HPP
 
-#include "distance.hpp"
-#include "Json/json_helper.hpp"
+#include <mpi.h>
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <mpi.h>
 #include <vector>
+#include "Json/json_helper.hpp"
+#include "distance.hpp"
 
 namespace netket {
 
 class Hypercube : public AbstractGraph {
-
   // edge of the hypercube
   const int L_;
 
@@ -49,7 +48,7 @@ class Hypercube : public AbstractGraph {
 
   int mynode_;
 
-public:
+ public:
   // Json constructor
   explicit Hypercube(const json &pars)
       : L_(FieldVal(pars["Graph"], "L")),
@@ -75,7 +74,6 @@ public:
   }
 
   void GenerateLatticePoints() {
-
     std::vector<int> coord(ndim_, 0);
 
     nsites_ = 0;
@@ -117,7 +115,6 @@ public:
   // Returns a list of permuted sites equivalent with respect to
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
-
     if (!pbc_) {
       std::cerr << "Cannot generate translation symmetries in the hypercube "
                    "without PBC"
@@ -176,5 +173,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

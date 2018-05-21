@@ -15,19 +15,18 @@
 #ifndef NETKET_METROPOLISEXCHANGE_HPP
 #define NETKET_METROPOLISEXCHANGE_HPP
 
-#include "Parallel/parallel.hpp"
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <mpi.h>
 #include <random>
+#include "Parallel/parallel.hpp"
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating local exchanges
 template <class WfType>
 class MetropolisExchange : public AbstractSampler<WfType> {
-
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -52,23 +51,22 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   // Look-up tables
   typename WfType::LookupType lt_;
 
-public:
+ public:
   template <class G>
   MetropolisExchange(G &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-
     Init(graph, dmax);
   }
 
   // Json constructor
   MetropolisExchange(Graph &graph, WfType &psi, const json &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-
     int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
     Init(graph, dmax);
   }
 
-  template <class G> void Init(G &graph, int dmax) {
+  template <class G>
+  void Init(G &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -90,7 +88,8 @@ public:
     }
   }
 
-  template <class G> void GenerateClusters(G &graph, int dmax) {
+  template <class G>
+  void GenerateClusters(G &graph, int dmax) {
     auto dist = graph.Distances();
 
     assert(int(dist.size()) == nv_);
@@ -133,7 +132,6 @@ public:
   }
 
   void Sweep() override {
-
     std::vector<int> tochange(2);
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distcl(0, clusters_.size() - 1);
@@ -141,7 +139,6 @@ public:
     std::vector<double> newconf(2);
 
     for (int i = 0; i < nv_; i++) {
-
       int rcl = distcl(rgen_);
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -150,7 +147,6 @@ public:
       assert(si < nv_ && sj < nv_);
 
       if (std::abs(v_(si) - v_(sj)) > std::numeric_limits<double>::epsilon()) {
-
         tochange = clusters_[rcl];
         newconf[0] = v_(sj);
         newconf[1] = v_(si);
@@ -183,6 +179,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

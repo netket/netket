@@ -15,13 +15,13 @@
 #ifndef NETKET_MATRIXREPLACEMENT_HPP
 #define NETKET_MATRIXREPLACEMENT_HPP
 
-#include "Parallel/parallel.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
 #include <iostream>
 #include <unsupported/Eigen/IterativeSolvers>
+#include "Parallel/parallel.hpp"
 
 using Eigen::MatrixXcd;
 using Eigen::MatrixXd;
@@ -29,7 +29,7 @@ using Eigen::MatrixXd;
 namespace netket {
 // Forward declaration
 class MatrixReplacement;
-} // namespace netket
+}  // namespace netket
 
 namespace Eigen {
 namespace internal {
@@ -38,14 +38,14 @@ template <>
 struct traits<netket::MatrixReplacement>
     : public Eigen::internal::traits<
           Eigen::SparseMatrix<std::complex<double>>> {};
-} // namespace internal
-} // namespace Eigen
+}  // namespace internal
+}  // namespace Eigen
 
 // Example of a matrix-free wrapper from a user type to Eigen's compatible type
 // For the sake of simplicity, this example simply wrap a Eigen::SparseMatrix.
 namespace netket {
 class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
-public:
+ public:
   // Required typedefs, constants, and method:
   typedef std::complex<double> Scalar;
   typedef double RealScalar;
@@ -73,12 +73,12 @@ public:
   void setScale(double scale) { scale_ = scale; }
   double getScale() const { return scale_; }
 
-private:
+ private:
   Eigen::MatrixXcd mp_mat_;
   double shift_;
   double scale_;
 };
-} // namespace netket
+}  // namespace netket
 
 // Implementation of MatrixReplacement * Eigen::DenseVector though a
 // specialization of internal::generic_product_impl:
@@ -87,7 +87,7 @@ namespace internal {
 template <typename Rhs>
 struct generic_product_impl<netket::MatrixReplacement, Rhs, SparseShape,
                             DenseShape,
-                            GemvProduct> // GEMV stands for matrix-vector
+                            GemvProduct>  // GEMV stands for matrix-vector
     : generic_product_impl_base<
           netket::MatrixReplacement, Rhs,
           generic_product_impl<netket::MatrixReplacement, Rhs>> {
@@ -106,7 +106,7 @@ struct generic_product_impl<netket::MatrixReplacement, Rhs, SparseShape,
     dst += alpha * (rhs * lhs.shift() + res * nor);
   }
 };
-} // namespace internal
-} // namespace Eigen
+}  // namespace internal
+}  // namespace Eigen
 
 #endif

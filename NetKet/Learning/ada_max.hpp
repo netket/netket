@@ -15,18 +15,17 @@
 #ifndef NETKET_ADAMAX_HPP
 #define NETKET_ADAMAX_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
 class AdaMax : public AbstractStepper {
-
   int npar_;
 
   double alpha_;
@@ -45,7 +44,7 @@ class AdaMax : public AbstractStepper {
 
   const std::complex<double> I_;
 
-public:
+ public:
   // Json constructor
   explicit AdaMax(const json &pars)
       : alpha_(FieldOrDefaultVal(pars["Learning"], "Alpha", 0.001)),
@@ -73,7 +72,6 @@ public:
   }
 
   void Init(const Eigen::VectorXd &pars) override {
-
     npar_ = pars.size();
     ut_.setZero(npar_);
     mt_.setZero(npar_);
@@ -82,7 +80,6 @@ public:
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
-
     npar_ = 2 * pars.size();
     ut_.setZero(npar_);
     mt_.setZero(npar_);
@@ -91,7 +88,6 @@ public:
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
-
     assert(npar_ > 0);
 
     mt_ = beta1_ * mt_ + (1. - beta1_) * grad;
@@ -117,7 +113,6 @@ public:
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-
     assert(npar_ == 2 * pars.size());
 
     for (int i = 0; i < pars.size(); i++) {
@@ -155,6 +150,6 @@ public:
   void SetResetEvery(double niter_reset) { niter_reset_ = niter_reset; }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

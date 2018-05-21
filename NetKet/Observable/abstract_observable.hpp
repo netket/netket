@@ -30,7 +30,7 @@ namespace netket {
       class from this class.
 */
 class AbstractObservable {
-public:
+ public:
   /**
   Member function finding the connected elements of the Hamiltonian.
   Starting from a given visible state v, it finds all other visible states v'
@@ -61,6 +61,6 @@ public:
 
   virtual ~AbstractObservable() {}
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

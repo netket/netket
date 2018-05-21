@@ -15,6 +15,8 @@
 #ifndef NETKET_SAMPLER_HPP
 #define NETKET_SAMPLER_HPP
 
+#include <memory>
+#include <set>
 #include "Parallel/parallel.hpp"
 #include "abstract_sampler.hpp"
 #include "metropolis_exchange.hpp"
@@ -24,17 +26,15 @@
 #include "metropolis_hop.hpp"
 #include "metropolis_local.hpp"
 #include "metropolis_local_pt.hpp"
-#include <memory>
-#include <set>
 
 namespace netket {
 
-template <class WfType> class Sampler : public AbstractSampler<WfType> {
-
+template <class WfType>
+class Sampler : public AbstractSampler<WfType> {
   using Ptype = std::unique_ptr<AbstractSampler<WfType>>;
   Ptype s_;
 
-public:
+ public:
   explicit Sampler(WfType &psi, const json &pars) {
     CheckInput(pars);
     Init(psi, pars);
@@ -132,6 +132,6 @@ public:
 
   Eigen::VectorXd Acceptance() const override { return s_->Acceptance(); }
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

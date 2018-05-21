@@ -15,15 +15,15 @@
 #ifndef NETKET_CUSTOM_GRAPH_HPP
 #define NETKET_CUSTOM_GRAPH_HPP
 
-#include "Hilbert/hilbert.hpp"
-#include "distance.hpp"
-#include "Json/json_helper.hpp"
+#include <mpi.h>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <mpi.h>
 #include <vector>
+#include "Hilbert/hilbert.hpp"
+#include "Json/json_helper.hpp"
+#include "distance.hpp"
 
 namespace netket {
 
@@ -32,7 +32,6 @@ namespace netket {
     The list of edges and nodes is read from a json input file.
 */
 class CustomGraph : public AbstractGraph {
-
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
@@ -44,17 +43,15 @@ class CustomGraph : public AbstractGraph {
 
   bool isbipartite_;
 
-public:
+ public:
   // Json constructor
   explicit CustomGraph(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
-
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     // Try to construct from explicit graph definition
     if (FieldExists(pars, "Graph")) {
-
       if (FieldExists(pars["Graph"], "AdjacencyList")) {
         adjlist_ =
             pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
@@ -191,5 +188,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

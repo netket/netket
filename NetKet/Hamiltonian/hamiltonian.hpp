@@ -28,9 +28,8 @@ namespace netket {
 class Hamiltonian : public AbstractHamiltonian {
   std::shared_ptr<AbstractHamiltonian> h_;
 
-public:
+ public:
   explicit Hamiltonian(const Graph &graph, const json &pars) {
-
     if (!FieldExists(pars, "Hamiltonian")) {
       std::cerr << "Hamiltonian is not defined in the input" << std::endl;
       std::abort();
@@ -61,5 +60,5 @@ public:
 
   const Hilbert &GetHilbert() const override { return h_->GetHilbert(); }
 };
-} // namespace netket
+}  // namespace netket
 #endif

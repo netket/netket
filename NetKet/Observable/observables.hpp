@@ -21,21 +21,18 @@
 namespace netket {
 
 class Observables {
-
   std::vector<Observable> observables_;
 
-public:
+ public:
   using MatType = LocalOperator::MatType;
 
   Observables(const Hilbert &hilbert, const json &pars) {
-
     if (FieldExists(pars, "Observables")) {
       auto obspar = pars["Observables"];
 
       if (obspar.is_array()) {
         // multiple observables case
         for (std::size_t i = 0; i < obspar.size(); i++) {
-
           observables_.push_back(Observable(hilbert, obspar[i]));
         }
       } else {
@@ -52,5 +49,5 @@ public:
 
   std::size_t Size() const { return observables_.size(); }
 };
-} // namespace netket
+}  // namespace netket
 #endif

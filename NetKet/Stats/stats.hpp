@@ -16,10 +16,12 @@
 #define NETKET_STATS_HPP
 
 namespace netket {
-template <class T> class OnlineStat;
-template <class T> class Binning;
+template <class T>
+class OnlineStat;
+template <class T>
+class Binning;
 class ObsManager;
-} // namespace netket
+}  // namespace netket
 
 #include "binning.hpp"
 #include "obs_manager.hpp"

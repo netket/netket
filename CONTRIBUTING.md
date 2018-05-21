@@ -57,9 +57,16 @@ Include a license at the top of new files.
 #### C++ coding style
 
 NetKet C++ generally follows the
-[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). The most evident exception is that in NetKet header files end in `.hpp` instead of the suggested `.h` as per
-Google C++ Style.
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html),
+with a few differences.
 
+Main differences with respect to Google standards include:
+
+1. Header files should end in `.hpp` (not in `.h` as per [this](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers))
+2. Use of non-const reference arguments is allowed (exception to [this](https://google.github.io/styleguide/cppguide.html#Reference_Arguments))
+
+The Google C++ Style Guide also includes useful guidelines to format the code.
+Those can be conveniently enforced by means of automatic reformatting tools. 
 We strongly recommend that you use `clang-tidy` to check your C/C++ changes.
 To install clang-tidy on ubuntu, do:
 
@@ -119,4 +126,4 @@ make test
 ```
 in the CMake build directory.  
 
-Notice that if you add new test files (i.e. you do not simply extend the existing json input objects), before compiling you will need to tell CMake about your new files, editing `Test/CMakeLists.txt`. 
+Notice that if you add new test files (i.e. you do not simply extend the existing json input objects), before compiling you will need to tell CMake about your new files, editing `Test/CMakeLists.txt`.

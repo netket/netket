@@ -15,13 +15,6 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Parallel/parallel.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "matrix_replacement.hpp"
-#include "stepper.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
@@ -31,6 +24,13 @@
 #include <random>
 #include <string>
 #include <vector>
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Parallel/parallel.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "matrix_replacement.hpp"
+#include "stepper.hpp"
 
 namespace netket {
 
@@ -40,7 +40,6 @@ namespace netket {
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class GroundState {
-
   using GsType = std::complex<double>;
 
   using VectorT =
@@ -90,13 +89,15 @@ class GroundState {
 
   bool dosr_;
 
-public:
+ public:
   // JSON constructor
   GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
               const json &pars)
-      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
+      : ham_(ham),
+        sampler_(sampler),
+        psi_(sampler.Psi()),
+        opt_(opt),
         obs_(ham.GetHilbert(), pars) {
-
     Init();
 
     int nsamples = FieldVal(pars["Learning"], "Nsamples");
@@ -180,7 +181,6 @@ public:
   }
 
   void Gradient() {
-
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
@@ -226,7 +226,6 @@ public:
   }
 
   std::complex<double> Eloc(const Eigen::VectorXd &v) {
-
     ham_.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -282,11 +281,9 @@ public:
   }
 
   void UpdateParameters() {
-
     auto pars = psi_.GetParameters();
 
     if (dosr_) {
-
       const int nsamp = vsamp_.rows();
 
       Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
@@ -294,7 +291,6 @@ public:
       b /= double(nsamp * totalnodes_);
 
       if (!use_iterative_) {
-
         // Explicit construction of the S matrix
         Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
         SumOnNodes(S);
@@ -390,6 +386,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

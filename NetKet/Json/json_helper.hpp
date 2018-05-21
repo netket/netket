@@ -15,22 +15,24 @@
 #ifndef NETKET_JSONHELPER_HPP
 #define NETKET_JSONHELPER_HPP
 
-#include "json.hpp"
-#include "json_dumps.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+#include "json.hpp"
+#include "json_dumps.hpp"
 
 using json = nlohmann::json;
 
 namespace netket {
 
-template <class T> bool FieldExists(const T &pars, std::string field) {
+template <class T>
+bool FieldExists(const T &pars, std::string field) {
   return pars.count(field) > 0;
 }
 
-template <class T> T FieldVal(const T &pars, std::string field) {
+template <class T>
+T FieldVal(const T &pars, std::string field) {
   if (!FieldExists(pars, field)) {
     std::cerr << "Field " << field << " is not defined in the input"
               << std::endl;
@@ -74,5 +76,5 @@ json ReadJsonFromFile(std::string filename) {
   return pars;
 }
 
-} // namespace netket
+}  // namespace netket
 #endif

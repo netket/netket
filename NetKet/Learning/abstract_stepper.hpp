@@ -22,7 +22,7 @@
 namespace netket {
 
 class AbstractStepper {
-public:
+ public:
   virtual void Init(const Eigen::VectorXd &pars) = 0;
   virtual void Init(const Eigen::VectorXcd &pars) = 0;
   virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
@@ -31,6 +31,6 @@ public:
   virtual void Reset() = 0;
   virtual ~AbstractStepper() {}
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

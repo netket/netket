@@ -15,19 +15,18 @@
 #ifndef NETKET_METROPOLISHAMILTONIAN_PT_HPP
 #define NETKET_METROPOLISHAMILTONIAN_PT_HPP
 
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include <mpi.h>
 #include <random>
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
-
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -63,17 +62,23 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   const int nrep_;
   std::vector<double> beta_;
 
-public:
+ public:
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
-        hamiltonian_(hamiltonian), nrep_(nrep) {
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
+        hamiltonian_(hamiltonian),
+        nrep_(nrep) {
     Init();
   }
 
   // Json constructor
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()), nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()),
+        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
     Init();
   }
 
@@ -147,7 +152,6 @@ public:
   }
 
   void LocalSweep(int rep) {
-
     for (int i = 0; i < nv_; i++) {
       hamiltonian_.FindConn(v_[rep], mel_, tochange_, newconfs_);
 
@@ -261,6 +265,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

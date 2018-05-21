@@ -15,21 +15,21 @@
 #ifndef NETKET_ISING1D_HPP
 #define NETKET_ISING1D_HPP
 
-#include "abstract_hamiltonian.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
-#include <mpi.h>
 #include <random>
 #include <vector>
+#include "abstract_hamiltonian.hpp"
 
 namespace netket {
 
 /**
   Transverse field Ising model on an arbitrary graph.
 */
-template <class G> class Ising : public AbstractHamiltonian {
-
+template <class G>
+class Ising : public AbstractHamiltonian {
   const int nspins_;
   double h_;
   double J_;
@@ -48,7 +48,7 @@ template <class G> class Ising : public AbstractHamiltonian {
   */
   Hilbert hilbert_;
 
-public:
+ public:
   /**
     Json constructor.
     @param G is a graph from which the number of spins and the bonds are
@@ -56,9 +56,10 @@ public:
     @param pars is a json list of parameters. The default value of J is 1.0
   */
   explicit Ising(const G &graph, const json &pars)
-      : nspins_(graph.Nsites()), h_(FieldVal(pars["Hamiltonian"], "h")),
-        J_(FieldOrDefaultVal(pars["Hamiltonian"], "J", 1.0)), graph_(graph) {
-
+      : nspins_(graph.Nsites()),
+        h_(FieldVal(pars["Hamiltonian"], "h")),
+        J_(FieldOrDefaultVal(pars["Hamiltonian"], "J", 1.0)),
+        graph_(graph) {
     Init();
   }
 
@@ -119,7 +120,6 @@ public:
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) override {
-
     connectors.clear();
     connectors.resize(nspins_ + 1);
     newconfs.clear();
@@ -146,6 +146,6 @@ public:
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -22,15 +22,15 @@
 namespace netket {
 
 // Generic look-up table
-template <class T> class Lookup {
-
+template <class T>
+class Lookup {
   using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
   std::vector<VectorType> v_;
   std::vector<MatrixType> m_;
 
-public:
+ public:
   int AddVector(int a) {
     v_.push_back(VectorType(a));
     return v_.size() - 1;
@@ -65,6 +65,6 @@ public:
     return m_[i];
   }
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

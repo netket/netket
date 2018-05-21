@@ -24,15 +24,13 @@
 namespace netket {
 
 class Observable : public AbstractObservable {
-
   using Ptype = std::unique_ptr<AbstractObservable>;
   Ptype o_;
 
-public:
+ public:
   using MatType = LocalOperator::MatType;
 
   Observable(const Hilbert &hilbert, const json &obspars) {
-
     if (!FieldExists(obspars, "Operators")) {
       std::cerr << "Observable's Operators not defined" << std::endl;
       std::abort();
@@ -64,7 +62,7 @@ public:
 
   const std::string Name() const override { return o_->Name(); }
 };
-} // namespace netket
+}  // namespace netket
 
 #include "observables.hpp"
 

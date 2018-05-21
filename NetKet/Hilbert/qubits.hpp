@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "abstract_hilbert.hpp"
-#include "Json/json_helper.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
 #include <vector>
+#include "Json/json_helper.hpp"
+#include "abstract_hilbert.hpp"
 
 #ifndef NETKET_QUBITS_HPP
 #define NETKET_QUBITS_HPP
@@ -31,12 +31,11 @@ namespace netket {
 */
 
 class Qubit : public AbstractHilbert {
-
   std::vector<double> local_;
 
   int nqubits_;
 
-public:
+ public:
   explicit Qubit(const json &pars) {
     int nqubits;
 
@@ -80,7 +79,6 @@ public:
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
-
     assert(v.size() == nqubits_);
 
     int i = 0;
@@ -91,5 +89,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

@@ -15,19 +15,18 @@
 #ifndef NETKET_METROPOLISHAMILTONIAN_HPP
 #define NETKET_METROPOLISHAMILTONIAN_HPP
 
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include <mpi.h>
 #include <random>
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
 class MetropolisHamiltonian : public AbstractSampler<WfType> {
-
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -61,9 +60,11 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
   Eigen::VectorXd v1_;
 
-public:
+ public:
   MetropolisHamiltonian(WfType &psi, H &hamiltonian)
-      : psi_(psi), hilbert_(psi.GetHilbert()), hamiltonian_(hamiltonian),
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        hamiltonian_(hamiltonian),
         nv_(hilbert_.Size()) {
     Init();
   }
@@ -122,7 +123,6 @@ public:
   }
 
   void Sweep() override {
-
     for (int i = 0; i < nv_; i++) {
       hamiltonian_.FindConn(v_, mel_, tochange_, newconfs_);
 
@@ -191,6 +191,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "abstract_hilbert.hpp"
-#include "Json/json_helper.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
 #include <vector>
+#include "Json/json_helper.hpp"
+#include "abstract_hilbert.hpp"
 
 #ifndef NETKET_BOSONS_HPP
 #define NETKET_BOSONS_HPP
@@ -32,7 +32,6 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
-
   int nsites_;
 
   std::vector<double> local_;
@@ -48,9 +47,8 @@ class Boson : public AbstractHilbert {
 
   int nstates_;
 
-public:
+ public:
   explicit Boson(const json &pars) {
-
     if (!FieldExists(pars["Hilbert"], "Nsites")) {
       std::cerr << "Nsites is not defined" << std::endl;
     }
@@ -73,7 +71,6 @@ public:
   }
 
   void Init() {
-
     if (nsites_ <= 0) {
       std::cerr << "Invalid number of sites" << std::endl;
       std::abort();
@@ -113,7 +110,6 @@ public:
 
   void RandomVals(Eigen::VectorXd &state,
                   netket::default_random_engine &rgen) const override {
-
     assert(state.size() == nsites_);
 
     if (!constraintN_) {
@@ -139,7 +135,6 @@ public:
   }
 
   bool CheckConstraint(Eigen::VectorXd &v) const {
-
     int tot = 0;
     for (int i = 0; i < v.size(); i++) {
       tot += int(v(i));
@@ -150,7 +145,6 @@ public:
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
-
     assert(v.size() == nsites_);
 
     int i = 0;
@@ -166,5 +160,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

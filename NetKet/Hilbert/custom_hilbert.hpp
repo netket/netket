@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "abstract_hilbert.hpp"
-#include "Json/json_helper.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
 #include <vector>
+#include "Json/json_helper.hpp"
+#include "abstract_hilbert.hpp"
 
 #ifndef NETKET_CUSTOM_HILBERT_HPP
 #define NETKET_CUSTOM_HILBERT_HPP
@@ -31,16 +31,14 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
-
   std::vector<double> local_;
 
   int nstates_;
 
   int size_;
 
-public:
+ public:
   explicit CustomHilbert(const json &pars) {
-
     if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
       if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
         std::cerr << "QuantumNumbers is not an array" << std::endl;
@@ -86,7 +84,6 @@ public:
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
-
     assert(v.size() == size_);
 
     int i = 0;
@@ -97,5 +94,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

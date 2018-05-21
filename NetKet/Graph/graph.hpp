@@ -19,24 +19,21 @@
 #include <map>
 #include <vector>
 
+#include "Json/json_helper.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
 #include "hypercube.hpp"
-#include "Json/json_helper.hpp"
 
 namespace netket {
 
 class Graph : public AbstractGraph {
-
   using Ptype = std::unique_ptr<AbstractGraph>;
   Ptype g_;
 
-public:
+ public:
   explicit Graph(const json &pars) {
-
     // Check if a graph is explicitely defined in the input
     if (FieldExists(pars, "Graph")) {
-
       // Checking if we are using a graph in the hard-coded library
       if (FieldExists(pars["Graph"], "Name")) {
         if (pars["Graph"]["Name"] == "Hypercube") {
@@ -73,6 +70,6 @@ public:
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

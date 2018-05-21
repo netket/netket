@@ -21,8 +21,8 @@
 
 namespace netket {
 
-template <class T> class Binning {
-
+template <class T>
+class Binning {
   using StatType = OnlineStat<T>;
   using DataType = T;
 
@@ -40,7 +40,7 @@ template <class T> class Binning {
 
   int nproc_;
 
-public:
+ public:
   explicit Binning(int nbins = 16) { Init(nbins); }
 
   void Init(int nbins) {
@@ -101,7 +101,6 @@ public:
   }
 
   void Merge() {
-
     for (std::size_t i = 0; i < bins1_.size(); i += 2) {
       bins1_[i] << bins1_[i + 1];
       bins2_[i] << bins2_[i + 1];
@@ -314,6 +313,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

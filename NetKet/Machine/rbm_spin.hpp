@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "Lookup/lookup.hpp"
 #include <Eigen/Dense>
 #include <iostream>
 #include <random>
 #include <vector>
+#include "Lookup/lookup.hpp"
 
 #ifndef NETKET_RBM_SPIN_HPP
 #define NETKET_RBM_SPIN_HPP
@@ -26,8 +26,8 @@ namespace netket {
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
  *
  */
-template <typename T> class RbmSpin : public AbstractMachine<T> {
-
+template <typename T>
+class RbmSpin : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
@@ -61,14 +61,13 @@ template <typename T> class RbmSpin : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
-public:
+ public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
   explicit RbmSpin(const Hilbert &hilbert, const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert) {
-
     from_json(pars);
   }
 
@@ -113,7 +112,6 @@ public:
   int Npar() const override { return npar_; }
 
   void InitRandomPars(int seed, double sigma) override {
-
     VectorType par(npar_);
 
     RandomGaussian(par, seed, sigma);
@@ -135,9 +133,7 @@ public:
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-
     if (tochange.size() != 0) {
-
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
         lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
@@ -175,7 +171,6 @@ public:
   }
 
   VectorType GetParameters() override {
-
     VectorType pars(npar_);
 
     int k = 0;
@@ -244,11 +239,9 @@ public:
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
-  VectorType
-  LogValDiff(const Eigen::VectorXd &v,
-             const std::vector<std::vector<int>> &tochange,
-             const std::vector<std::vector<double>> &newconf) override {
-
+  VectorType LogValDiff(
+      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
@@ -258,9 +251,7 @@ public:
     T logtsum = lnthetas_.sum();
 
     for (std::size_t k = 0; k < nconn; k++) {
-
       if (tochange[k].size() != 0) {
-
         thetasnew_ = thetas_;
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
@@ -284,11 +275,9 @@ public:
   T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
-
     T logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-
       RbmSpin::lncosh(lt.V(0), lnthetas_);
 
       thetasnew_ = lt.V(0);
@@ -316,9 +305,9 @@ public:
     }
   }
 
-  static void
-  RandomGaussian(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> &par,
-                 int seed, double sigma) {
+  static void RandomGaussian(
+      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> &par, int seed,
+      double sigma) {
     std::default_random_engine generator(seed);
     std::normal_distribution<double> distribution(0, sigma);
     for (int i = 0; i < par.size(); i++) {
@@ -377,7 +366,6 @@ public:
   }
 
   void from_json(const json &pars) override {
-
     if (pars.at("Machine").at("Name") != "RbmSpin") {
       if (mynode_ == 0) {
         std::cerr << "# Error while constructing RbmSpin from Json input"
@@ -427,6 +415,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

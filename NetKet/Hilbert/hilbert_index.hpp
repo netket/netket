@@ -15,18 +15,17 @@
 #ifndef NETKET_HILBERT_INDEX_HPP
 #define NETKET_HILBERT_INDEX_HPP
 
-#include "hilbert.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <map>
 #include <vector>
+#include "hilbert.hpp"
 
 namespace netket {
 
 class HilbertIndex {
-
   const std::vector<double> localstates_;
 
   const int localsize_;
@@ -39,16 +38,15 @@ class HilbertIndex {
 
   int nstates_;
 
-public:
+ public:
   explicit HilbertIndex(const Hilbert &hilbert)
-      : localstates_(hilbert.LocalStates()), localsize_(hilbert.LocalSize()),
+      : localstates_(hilbert.LocalStates()),
+        localsize_(hilbert.LocalSize()),
         size_(hilbert.Size()) {
-
     Init();
   }
 
   void Init() {
-
     if (size_ * std::log(localsize_) > std::log(MaxStates)) {
       std::cerr << "Hilbert space is too large to be indexed" << std::endl;
       std::abort();
@@ -80,7 +78,6 @@ public:
 
   // converts an integer into a vector of quantum numbers
   Eigen::VectorXd NumberToState(std::size_t i) const {
-
     Eigen::VectorXd result = Eigen::VectorXd::Constant(size_, localstates_[0]);
 
     std::size_t ip = i;
@@ -100,5 +97,5 @@ public:
   constexpr static int MaxStates = (std::numeric_limits<int>::max() - 1.);
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

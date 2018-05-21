@@ -24,14 +24,12 @@
 namespace netket {
 
 class Stepper : public AbstractStepper {
-
   using Ptype = std::unique_ptr<AbstractStepper>;
 
   Ptype s_;
 
-public:
+ public:
   explicit Stepper(const json &pars) {
-
     if (!FieldExists(pars, "Learning")) {
       std::cerr << "Learning is not defined in the input" << std::endl;
       std::abort();
@@ -70,5 +68,5 @@ public:
 
   void Reset() override { return s_->Reset(); }
 };
-} // namespace netket
+}  // namespace netket
 #endif

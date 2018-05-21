@@ -15,17 +15,16 @@
 #ifndef NETKET_SGD_HPP
 #define NETKET_SGD_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
 class Sgd : public AbstractStepper {
-
   // decay constant
   double eta_;
 
@@ -35,12 +34,11 @@ class Sgd : public AbstractStepper {
 
   double decay_factor_;
 
-public:
+ public:
   // Json constructor
   explicit Sgd(const json &pars)
       : eta_(FieldVal(pars["Learning"], "LearningRate")),
         l2reg_(FieldOrDefaultVal(pars["Learning"], "L2Reg", 0.0)) {
-
     npar_ = -1;
 
     SetDecayFactor(FieldOrDefaultVal(pars["Learning"], "DecayFactor", 1.0));
@@ -65,7 +63,6 @@ public:
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-
     eta_ *= decay_factor_;
 
     for (int i = 0; i < pars.size(); i++) {
@@ -81,6 +78,6 @@ public:
   void Reset() override {}
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

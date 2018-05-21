@@ -15,19 +15,19 @@
 #ifndef NETKET_METROPOLISLOCAL_HPP
 #define NETKET_METROPOLISLOCAL_HPP
 
-#include "Parallel/parallel.hpp"
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include <mpi.h>
 #include <random>
+#include "Parallel/parallel.hpp"
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
-template <class WfType> class MetropolisLocal : public AbstractSampler<WfType> {
-
+template <class WfType>
+class MetropolisLocal : public AbstractSampler<WfType> {
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -52,7 +52,7 @@ template <class WfType> class MetropolisLocal : public AbstractSampler<WfType> {
   int nstates_;
   std::vector<double> localstates_;
 
-public:
+ public:
   explicit MetropolisLocal(WfType &psi)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init();
@@ -115,7 +115,6 @@ public:
   }
 
   void Sweep() override {
-
     std::vector<int> tochange(1);
     std::vector<double> newconf(1);
 
@@ -124,7 +123,6 @@ public:
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < nv_; i++) {
-
       // picking a random site to be changed
       int si = distrs(rgen_);
       assert(si < nv_);
@@ -190,6 +188,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -25,6 +25,7 @@ using default_random_engine = std::mt19937;
 #include "Hamiltonian/hamiltonian.hpp"
 #include "Headers/welcome.hpp"
 #include "Hilbert/hilbert.hpp"
+#include "Json/json_helper.hpp"
 #include "Learning/learning.hpp"
 #include "Lookup/lookup.hpp"
 #include "Machine/machine.hpp"
@@ -32,6 +33,5 @@ using default_random_engine = std::mt19937;
 #include "Parallel/parallel.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
-#include "Json/json_helper.hpp"
 
 #endif

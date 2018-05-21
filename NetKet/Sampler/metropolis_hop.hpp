@@ -15,17 +15,17 @@
 #ifndef NETKET_METROPOLISHOP_HPP
 #define NETKET_METROPOLISHOP_HPP
 
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <mpi.h>
 #include <random>
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating local hoppings
-template <class WfType> class MetropolisHop : public AbstractSampler<WfType> {
-
+template <class WfType>
+class MetropolisHop : public AbstractSampler<WfType> {
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -53,23 +53,22 @@ template <class WfType> class MetropolisHop : public AbstractSampler<WfType> {
   int nstates_;
   std::vector<double> localstates_;
 
-public:
+ public:
   template <class G>
   MetropolisHop(G &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-
     Init(graph, dmax);
   }
 
   // Json constructor
   explicit MetropolisHop(Graph &graph, WfType &psi, const json &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-
     int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
     Init(graph, dmax);
   }
 
-  template <class G> void Init(G &graph, int dmax) {
+  template <class G>
+  void Init(G &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -95,7 +94,8 @@ public:
     }
   }
 
-  template <class G> void GenerateClusters(G &graph, int dmax) {
+  template <class G>
+  void GenerateClusters(G &graph, int dmax) {
     auto dist = graph.Distances();
 
     assert(int(dist.size()) == nv_);
@@ -137,7 +137,6 @@ public:
   }
 
   void Sweep() override {
-
     std::vector<int> tochange(2);
     std::vector<double> newconf(2);
     std::vector<int> newstates(2);
@@ -147,7 +146,6 @@ public:
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < nv_; i++) {
-
       int rcl = distcl(rgen_);
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -222,6 +220,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

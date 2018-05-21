@@ -15,26 +15,24 @@
 #ifndef NETKET_CUSTOM_OBSERVABLE_HPP
 #define NETKET_CUSTOM_OBSERVABLE_HPP
 
-#include "abstract_observable.hpp"
 #include <string>
 #include <vector>
+#include "abstract_observable.hpp"
 
 namespace netket {
 
 class CustomObservable : public AbstractObservable {
-
   std::vector<LocalOperator> operators_;
   const Hilbert &hilbert_;
   std::string name_;
 
-public:
+ public:
   using MatType = LocalOperator::MatType;
 
   CustomObservable(const Hilbert &hilbert, const std::vector<MatType> &jop,
                    const std::vector<std::vector<int>> &sites,
                    const std::string &name)
       : hilbert_(hilbert), name_(name) {
-
     if (sites.size() != jop.size()) {
       std::cerr << "The custom Observable definition is inconsistent:"
                 << std::endl;
@@ -64,5 +62,5 @@ public:
 
   const std::string Name() const override { return name_; }
 };
-} // namespace netket
+}  // namespace netket
 #endif

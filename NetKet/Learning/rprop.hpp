@@ -15,17 +15,16 @@
 #ifndef NETKET_RPROP_HPP
 #define NETKET_RPROP_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
 class Rprop {
-
   // decay constant
   double etap_;
   double etam_;
@@ -39,10 +38,13 @@ class Rprop {
   double deltamax_;
   double delta0_;
 
-public:
+ public:
   Rprop(double etam, double etap, double delta0, double deltamin,
         double deltamax)
-      : etap_(etap), etam_(etam), deltamin_(deltamin), deltamax_(deltamax),
+      : etap_(etap),
+        etam_(etam),
+        deltamin_(deltamin),
+        deltamax_(deltamax),
         delta0_(delta0) {
     npar_ = -1;
   }
@@ -82,6 +84,6 @@ public:
   void Reset() {}
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

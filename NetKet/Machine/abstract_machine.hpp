@@ -15,12 +15,12 @@
 #ifndef NETKET_ABSTRACTMACHINE_HPP
 #define NETKET_ABSTRACTMACHINE_HPP
 
-#include "Lookup/lookup.hpp"
 #include <Eigen/Dense>
 #include <complex>
 #include <fstream>
 #include <random>
 #include <vector>
+#include "Lookup/lookup.hpp"
 
 namespace netket {
 /**
@@ -28,9 +28,9 @@ namespace netket {
   This class prototypes the methods needed
   by a class satisfying the Machine concept.
 */
-template <typename T> class AbstractMachine {
-
-public:
+template <typename T>
+class AbstractMachine {
+ public:
   using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
   using StateType = T;
@@ -133,10 +133,9 @@ public:
   the new visible state.
   @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
   */
-  virtual VectorType
-  LogValDiff(const Eigen::VectorXd &v,
-             const std::vector<std::vector<int>> &tochange,
-             const std::vector<std::vector<double>> &newconf) = 0;
+  virtual VectorType LogValDiff(
+      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf) = 0;
 
   /**
   Member function computing the difference between the logarithm of the
@@ -179,6 +178,6 @@ public:
 
   virtual ~AbstractMachine() {}
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

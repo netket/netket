@@ -15,6 +15,7 @@
 #ifndef NETKET_LOCAL_OPERATOR_HPP
 #define NETKET_LOCAL_OPERATOR_HPP
 
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>
@@ -22,7 +23,6 @@
 #include <iostream>
 #include <limits>
 #include <map>
-#include <mpi.h>
 #include <vector>
 
 namespace netket {
@@ -33,11 +33,10 @@ namespace netket {
 */
 
 class LocalOperator {
-
-public:
+ public:
   using MatType = std::vector<std::vector<std::complex<double>>>;
 
-private:
+ private:
   const Hilbert &hilbert_;
   MatType mat_;
 
@@ -49,16 +48,14 @@ private:
   std::vector<std::vector<double>> states_;
   std::vector<std::vector<int>> connected_;
 
-public:
+ public:
   LocalOperator(const Hilbert &hilbert, const MatType &mat,
                 const std::vector<int> &sites)
       : hilbert_(hilbert), mat_(mat), sites_(sites) {
-
     Init();
   }
 
   void Init() {
-
     if (!hilbert_.IsDiscrete()) {
       std::cerr << "Cannot construct operators on infinite local hilbert spaces"
                 << std::endl;
@@ -87,7 +84,6 @@ public:
 
     for (std::size_t i = 0; i < mat_.size(); i++) {
       for (std::size_t j = 0; j < mat_[i].size(); j++) {
-
         if (mat_.size() != mat_[i].size()) {
           std::cerr
               << "Matrix size in operator is inconsistent with Hilbert space"
@@ -130,7 +126,6 @@ public:
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const {
-
     assert(v.size() == hilbert_.Size());
 
     connectors.clear();
@@ -143,7 +138,6 @@ public:
   void AddConn(const Eigen::VectorXd &v, std::vector<std::complex<double>> &mel,
                std::vector<std::vector<int>> &connectors,
                std::vector<std::vector<double>> &newconfs) const {
-
     if (mel.size() == 0) {
       connectors.resize(1);
       newconfs.resize(1);
@@ -178,5 +172,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

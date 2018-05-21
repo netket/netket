@@ -15,21 +15,19 @@
 #ifndef NETKET_CUSTOM_HAMILTONIAN_CC
 #define NETKET_CUSTOM_HAMILTONIAN_CC
 
-#include "local_operator.hpp"
 #include <vector>
+#include "local_operator.hpp"
 
 namespace netket {
 
 class CustomHamiltonian : public AbstractHamiltonian {
-
   std::vector<LocalOperator> operators_;
   Hilbert hilbert_;
 
-public:
+ public:
   using MatType = LocalOperator::MatType;
 
   explicit CustomHamiltonian(const json &pars) : hilbert_(pars) {
-
     if (!FieldExists(pars["Hamiltonian"], "Operators")) {
       std::cerr << "Local operators in the Hamiltonian are not defined"
                 << std::endl;
@@ -83,5 +81,5 @@ public:
 
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
-} // namespace netket
+}  // namespace netket
 #endif

@@ -15,17 +15,16 @@
 #ifndef NETKET_ADADELTA_HPP
 #define NETKET_ADADELTA_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
 class AdaDelta {
-
   int npar_;
 
   // decay constant
@@ -37,7 +36,7 @@ class AdaDelta {
   Eigen::VectorXd Eg2_;
   Eigen::VectorXd Edx2_;
 
-public:
+ public:
   AdaDelta(double rho = 0.95, double eps = 1.0e-6) : rho_(rho), eps_(eps) {
     npar_ = -1;
   }
@@ -70,6 +69,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

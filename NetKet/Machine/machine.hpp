@@ -25,7 +25,8 @@
 
 namespace netket {
 
-template <class T> class Machine : public AbstractMachine<T> {
+template <class T>
+class Machine : public AbstractMachine<T> {
   using Ptype = std::unique_ptr<AbstractMachine<T>>;
 
   Ptype m_;
@@ -34,7 +35,7 @@ template <class T> class Machine : public AbstractMachine<T> {
 
   int mynode_;
 
-public:
+ public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
@@ -158,7 +159,6 @@ public:
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-
     return m_->UpdateLookup(v, tochange, newconf, lt);
   }
 
@@ -181,11 +181,9 @@ public:
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
-  VectorType
-  LogValDiff(const Eigen::VectorXd &v,
-             const std::vector<std::vector<int>> &toflip,
-             const std::vector<std::vector<double>> &newconf) override {
-
+  VectorType LogValDiff(
+      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &toflip,
+      const std::vector<std::vector<double>> &newconf) override {
     return m_->LogValDiff(v, toflip, newconf);
   }
 
@@ -195,7 +193,6 @@ public:
   T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
-
     return m_->LogValDiff(v, toflip, newconf, lt);
   }
 
@@ -209,5 +206,5 @@ public:
 
   void from_json(const json &j) override { m_->from_json(j); }
 };
-} // namespace netket
+}  // namespace netket
 #endif

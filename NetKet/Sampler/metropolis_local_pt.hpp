@@ -15,12 +15,12 @@
 #ifndef NETKET_METROPOLISFLIPT_HPP
 #define NETKET_METROPOLISFLIPT_HPP
 
-#include "Parallel/parallel.hpp"
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <mpi.h>
 #include <random>
+#include "Parallel/parallel.hpp"
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -28,7 +28,6 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
-
   WfType &psi_;
 
   const Hilbert &hilbert_;
@@ -61,12 +60,13 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   int nstates_;
   std::vector<double> localstates_;
 
-public:
+ public:
   // Json constructor
   explicit MetropolisLocalPt(WfType &psi, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
         nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-
     Init();
   }
 
@@ -129,7 +129,6 @@ public:
   }
 
   void Reset(bool initrandom = false) override {
-
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
         hilbert_.RandomVals(v_[i], rgen_);
@@ -154,7 +153,6 @@ public:
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < nv_; i++) {
-
       // picking a random site to be changed
       int si = distrs(rgen_);
       assert(si < nv_);
@@ -207,7 +205,6 @@ public:
   }
 
   void Sweep() override {
-
     // First we do local sweeps
     for (int i = 0; i < nrep_; i++) {
       LocalSweep(i);
@@ -265,6 +262,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

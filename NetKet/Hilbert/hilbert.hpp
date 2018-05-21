@@ -15,6 +15,9 @@
 #ifndef NETKET_HILBERT_HPP
 #define NETKET_HILBERT_HPP
 
+#include <memory>
+#include <set>
+#include "Json/json_helper.hpp"
 #include "Parallel/parallel.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
@@ -22,17 +25,13 @@
 #include "next_variation.hpp"
 #include "qubits.hpp"
 #include "spins.hpp"
-#include "Json/json_helper.hpp"
-#include <memory>
-#include <set>
 
 namespace netket {
 
 class Hilbert : public AbstractHilbert {
-
   std::shared_ptr<AbstractHilbert> h_;
 
-public:
+ public:
   explicit Hilbert() {}
 
   explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
@@ -105,7 +104,7 @@ public:
     return h_->UpdateConf(v, tochange, newconf);
   }
 };
-} // namespace netket
+}  // namespace netket
 
 #include "hilbert_index.hpp"
 

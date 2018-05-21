@@ -17,36 +17,42 @@
 
 #include <iterator>
 
-namespace netket{
+namespace netket {
 
-  //From StackOverflow, Matteo Gattanini's code
-  // Variations with repetition in lexicographic order
-  // k: length of alphabet (available symbols)
-  // n: number of places
-  // The number of possible variations (cardinality) is k^n (it's like counting)
-  // Sequence elements must be comparable and increaseable (operator<, operator++)
-  // The elements are associated to values 0÷(k-1), max=k-1
-  // The iterators are at least bidirectional and point to the type of 'max'
-  template <class Iter>
-  bool next_variation(Iter first, Iter last, const typename std::iterator_traits<Iter>::value_type max)
-  {
-    if(first == last) return false; // empty sequence (n==0)
+// From StackOverflow, Matteo Gattanini's code
+// Variations with repetition in lexicographic order
+// k: length of alphabet (available symbols)
+// n: number of places
+// The number of possible variations (cardinality) is k^n (it's like counting)
+// Sequence elements must be comparable and increaseable (operator<, operator++)
+// The elements are associated to values 0÷(k-1), max=k-1
+// The iterators are at least bidirectional and point to the type of 'max'
+template <class Iter>
+bool next_variation(Iter first, Iter last,
+                    const typename std::iterator_traits<Iter>::value_type max) {
+  if (first == last) return false;  // empty sequence (n==0)
 
-    Iter i(last); --i; // Point to the rightmost element
-    // Check if I can just increase it
-    if(*i < max) { ++(*i); return true; } // Increase this element and return
+  Iter i(last);
+  --i;  // Point to the rightmost element
+  // Check if I can just increase it
+  if (*i < max) {
+    ++(*i);
+    return true;
+  }  // Increase this element and return
 
-    // Find the rightmost element to increase
-    while( i != first )
-    {
-      *i = 0; // reset the right-hand element
-      --i; // point to the left adjacent
-      if(*i < max) { ++(*i); return true; } // Increase this element and return
-    }
-
-    return false;
+  // Find the rightmost element to increase
+  while (i != first) {
+    *i = 0;  // reset the right-hand element
+    --i;     // point to the left adjacent
+    if (*i < max) {
+      ++(*i);
+      return true;
+    }  // Increase this element and return
   }
 
+  return false;
 }
+
+}  // namespace netket
 
 #endif

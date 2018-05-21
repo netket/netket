@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "abstract_hilbert.hpp"
-#include "Json/json_helper.hpp"
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <random>
 #include <vector>
+#include "Json/json_helper.hpp"
+#include "abstract_hilbert.hpp"
 
 #ifndef NETKET_SPIN_HPP
 #define NETKET_SPIN_HPP
@@ -34,7 +34,6 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
-
   double S_;
   double totalS_;
   bool constraintSz_;
@@ -45,9 +44,8 @@ class Spin : public AbstractHilbert {
 
   int nspins_;
 
-public:
+ public:
   explicit Spin(const json &pars) {
-
     int nspins;
     double S;
 
@@ -112,7 +110,6 @@ public:
 
   void RandomVals(Eigen::VectorXd &state,
                   netket::default_random_engine &rgen) const override {
-
     std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
 
     assert(state.size() == nspins_);
@@ -123,7 +120,6 @@ public:
         state(i) = 2. * (distribution(rgen) - S_);
       }
     } else {
-
       if (S_ == 0.5) {
         int nup = nspins_ / 2 + int(totalS_);
         int ndown = nspins_ - nup;
@@ -151,8 +147,7 @@ public:
         return;
       } else {
         std::vector<int> sites;
-        for (int i = 0; i < nspins_; ++i)
-          sites.push_back(i);
+        for (int i = 0; i < nspins_; ++i) sites.push_back(i);
 
         state.setConstant(-2 * S_);
         int ss = nspins_;
@@ -172,7 +167,6 @@ public:
 
   void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
-
     assert(v.size() == nspins_);
 
     int i = 0;
@@ -183,5 +177,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

@@ -15,17 +15,17 @@
 #ifndef NETKET_BOSONHUBBARD_HPP
 #define NETKET_BOSONHUBBARD_HPP
 
-#include "abstract_hamiltonian.hpp"
 #include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include "abstract_hamiltonian.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G> class BoseHubbard : public AbstractHamiltonian {
-
+template <class G>
+class BoseHubbard : public AbstractHamiltonian {
   int nsites_;
   double U_;
   double V_;
@@ -47,11 +47,10 @@ template <class G> class BoseHubbard : public AbstractHamiltonian {
   */
   Hilbert hilbert_;
 
-public:
+ public:
   // Json constructor
   explicit BoseHubbard(const G &graph, const json &pars)
       : nsites_(graph.Nsites()), graph_(graph) {
-
     if (FieldExists(pars["Hamiltonian"], "Nmax")) {
       nmax_ = pars["Hamiltonian"]["Nmax"];
     } else {
@@ -87,7 +86,6 @@ public:
   }
 
   void Init() {
-
     GenerateBonds();
 
     // Specifying the hilbert space
@@ -133,7 +131,6 @@ public:
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) override {
-
     connectors.clear();
     connectors.resize(1);
     newconfs.clear();
@@ -145,7 +142,6 @@ public:
     newconfs[0].resize(0);
 
     for (int i = 0; i < nsites_; i++) {
-
       // chemical potential
       mel[0] -= mu_ * v(i);
 
@@ -173,6 +169,6 @@ public:
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

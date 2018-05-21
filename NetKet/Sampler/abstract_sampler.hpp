@@ -19,9 +19,9 @@
 
 namespace netket {
 
-template <class WfType> class AbstractSampler {
-
-public:
+template <class WfType>
+class AbstractSampler {
+ public:
   virtual void Reset(bool initrandom) = 0;
 
   virtual void Sweep() = 0;
@@ -37,5 +37,5 @@ public:
   virtual ~AbstractSampler() {}
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

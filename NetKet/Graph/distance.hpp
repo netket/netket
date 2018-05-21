@@ -48,5 +48,5 @@ std::vector<int> FindDist(const std::vector<std::vector<int>> &g, int root) {
   return dists;
 }
 
-} // namespace netket
+}  // namespace netket
 #endif

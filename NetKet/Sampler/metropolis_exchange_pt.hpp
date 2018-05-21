@@ -15,12 +15,12 @@
 #ifndef NETKET_METROPOLISEXCHANGEPT_HPP
 #define NETKET_METROPOLISEXCHANGEPT_HPP
 
-#include "Parallel/parallel.hpp"
-#include "abstract_sampler.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <mpi.h>
 #include <random>
+#include "Parallel/parallel.hpp"
+#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -28,7 +28,6 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisExchangePt : public AbstractSampler<WfType> {
-
   WfType &psi_;
   const Hilbert &hilbert_;
 
@@ -60,13 +59,14 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   std::vector<double> beta_;
 
-public:
+ public:
   // Json constructor
   explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
                                 const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()),
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
         nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-
     int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
     Init(graph, dmax);
   }
@@ -106,7 +106,8 @@ public:
     }
   }
 
-  template <class Graph> void GenerateClusters(Graph &graph, int dmax) {
+  template <class Graph>
+  void GenerateClusters(Graph &graph, int dmax) {
     auto dist = graph.Distances();
 
     assert(int(dist.size()) == nv_);
@@ -152,7 +153,6 @@ public:
 
   // Exchange sweep at given temperature
   void LocalExchangeSweep(int rep) {
-
     std::vector<int> tochange(2);
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distcl(0, clusters_.size() - 1);
@@ -160,7 +160,6 @@ public:
     std::vector<double> newconf(2);
 
     for (int i = 0; i < nv_; i++) {
-
       int rcl = distcl(rgen_);
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -170,7 +169,6 @@ public:
 
       if (std::abs(v_[rep](si) - v_[rep](sj)) >
           std::numeric_limits<double>::epsilon()) {
-
         tochange = clusters_[rcl];
         newconf[0] = v_[rep](sj);
         newconf[1] = v_[rep](si);
@@ -191,7 +189,6 @@ public:
   }
 
   void Sweep() override {
-
     // First we do local exchange sweeps
     for (int i = 0; i < nrep_; i++) {
       LocalExchangeSweep(i);
@@ -249,6 +246,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

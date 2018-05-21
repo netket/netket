@@ -15,10 +15,10 @@
 #ifndef NETKET_MPIINTERF_HPP
 #define NETKET_MPIINTERF_HPP
 
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <cassert>
 #include <complex>
-#include <mpi.h>
 #include <valarray>
 #include <vector>
 
@@ -173,6 +173,6 @@ inline void SumOnNodes(Eigen::VectorXcd &val, Eigen::VectorXcd &sum,
                 comm);
 }
 
-} // namespace netket
+}  // namespace netket
 
 #endif

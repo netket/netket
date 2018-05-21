@@ -15,8 +15,8 @@
 #ifndef NETKET_WELCOME_HPP
 #define NETKET_WELCOME_HPP
 
-#include <iostream>
 #include <mpi.h>
+#include <iostream>
 
 namespace netket {
 
@@ -43,5 +43,5 @@ void Welcome(int argc) {
     std::exit(0);
   }
 }
-} // namespace netket
+}  // namespace netket
 #endif

@@ -15,11 +15,11 @@
 #ifndef NETKET_ONLINESTAT_HPP
 #define NETKET_ONLINESTAT_HPP
 
+#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <iostream>
-#include <mpi.h>
 #include <random>
 #include <vector>
 
@@ -32,8 +32,8 @@ namespace netket {
 // simple statistics can then be obtained
 // or merged with other bins
 
-template <class T> class OnlineStat {
-
+template <class T>
+class OnlineStat {
   // Number of samples in this bin
   int N_;
 
@@ -45,14 +45,13 @@ template <class T> class OnlineStat {
 
   bool firstcall_;
 
-public:
+ public:
   using DataType = T;
 
   OnlineStat() { Reset(); }
 
   // Adding data to this bin
   inline void operator<<(const DataType &data) {
-
     CheckCall(data);
 
     N_ += 1;
@@ -65,7 +64,6 @@ public:
 
   // Merging with another bin
   inline void operator<<(const OnlineStat<T> &obin) {
-
     CheckCall(obin.Mean());
 
     N_ += obin.N();
@@ -105,8 +103,8 @@ public:
 // with minimal memory requirements
 // simple statistics can then be obtained
 // or merged with other bins
-template <> class OnlineStat<Eigen::VectorXd> {
-
+template <>
+class OnlineStat<Eigen::VectorXd> {
   // Number of samples in this bin
   int N_;
 
@@ -118,7 +116,7 @@ template <> class OnlineStat<Eigen::VectorXd> {
 
   bool firstcall_;
 
-public:
+ public:
   using DataType = Eigen::VectorXd;
 
   explicit OnlineStat() { Reset(); }
@@ -170,5 +168,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

@@ -15,17 +15,17 @@
 #ifndef NETKET_HEISENBERG_HPP
 #define NETKET_HEISENBERG_HPP
 
-#include "abstract_hamiltonian.hpp"
+#include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include <mpi.h>
 #include <vector>
+#include "abstract_hamiltonian.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G> class Heisenberg : public AbstractHamiltonian {
-
+template <class G>
+class Heisenberg : public AbstractHamiltonian {
   const int nspins_;
   double offdiag_;
 
@@ -41,7 +41,7 @@ template <class G> class Heisenberg : public AbstractHamiltonian {
   */
   Hilbert hilbert_;
 
-public:
+ public:
   explicit Heisenberg(const G &graph) : graph_(graph), nspins_(graph.Nsites()) {
     Init();
   }
@@ -49,7 +49,6 @@ public:
   // Json constructor
   explicit Heisenberg(const G &graph, const json &pars)
       : nspins_(graph.Nsites()), graph_(graph) {
-
     Init();
 
     if (FieldExists(pars["Hamiltonian"], "TotalSz")) {
@@ -59,7 +58,6 @@ public:
   }
 
   void Init() {
-
     if (graph_.IsBipartite()) {
       offdiag_ = -2;
     } else {
@@ -111,7 +109,6 @@ public:
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) override {
-
     connectors.clear();
     connectors.resize(1);
     newconfs.clear();
@@ -124,7 +121,6 @@ public:
     newconfs[0].resize(0);
 
     for (int i = 0; i < nspins_; i++) {
-
       for (auto bond : bonds_[i]) {
         // interaction part
         mel[0] += v(i) * v(bond);
@@ -142,6 +138,6 @@ public:
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

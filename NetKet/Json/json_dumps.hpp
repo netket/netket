@@ -15,11 +15,11 @@
 #ifndef NETKET_JSON_DUMPS_HPP
 #define NETKET_JSON_DUMPS_HPP
 
-#include "json.hpp"
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
 #include <vector>
+#include "json.hpp"
 
 using json = nlohmann::json;
 
@@ -76,7 +76,7 @@ void from_json(const json &js, Matrix<T, Eigen::Dynamic, Eigen::Dynamic> &v) {
   }
 }
 
-} // namespace Eigen
+}  // namespace Eigen
 
 namespace std {
 
@@ -92,6 +92,6 @@ void from_json(const json &js, std::complex<double> &p) {
   }
 }
 
-} // namespace std
+}  // namespace std
 
 #endif

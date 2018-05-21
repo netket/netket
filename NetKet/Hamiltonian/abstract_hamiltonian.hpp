@@ -29,7 +29,7 @@ namespace netket {
       class from this class.
 */
 class AbstractHamiltonian {
-public:
+ public:
   /**
   Member function finding the connected elements of the Hamiltonian.
   Starting from a given visible state v, it finds all other visible states v'
@@ -58,6 +58,6 @@ public:
 
   virtual ~AbstractHamiltonian() {}
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -23,10 +23,8 @@
 namespace netket {
 
 class Learning {
-
-public:
+ public:
   explicit Learning(const json &pars) {
-
     if (!FieldExists(pars, "Learning")) {
       std::cerr << "Learning field is not defined in the input" << std::endl;
       std::abort();
@@ -39,7 +37,6 @@ public:
 
     if (pars["Learning"]["Method"] == "Gd" ||
         pars["Learning"]["Method"] == "Sr") {
-
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -60,6 +57,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
