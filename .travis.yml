@@ -26,19 +26,6 @@ matrix:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
         packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev']
 
-  # cppcheck
-  - os: linux
-    compiler: gcc
-    env:
-      - COMPILER=g++-4.9
-      - SPECIAL=cppcheck
-    addons:
-      apt:
-        sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-4.9', 'cppcheck','mpich','libmpich-dev']
-    after_success:
-      - cppcheck --enable=warning --inconclusive --force --std=c++11 NetKet/ -iExternal/ -iTutorials/ -ibuild/ --error-exitcode=1
-
   - os: osx
     osx_image: xcode7.3
 
