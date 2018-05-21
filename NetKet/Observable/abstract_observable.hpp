@@ -58,6 +58,8 @@ public:
   virtual const Hilbert &GetHilbert() const = 0;
 
   virtual const std::string Name() const = 0;
+
+  virtual ~AbstractObservable() {}
 };
 } // namespace netket
 

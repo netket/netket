@@ -54,6 +54,8 @@ public:
   @return true if lattice is bipartite.
   */
   virtual bool IsBipartite() const = 0;
+
+  virtual ~AbstractGraph(){};
 };
 
 } // namespace netket

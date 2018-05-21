@@ -76,6 +76,8 @@ public:
   */
   virtual void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
+
+  virtual ~AbstractHilbert() {}
 };
 
 } // namespace netket

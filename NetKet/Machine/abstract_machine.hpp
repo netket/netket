@@ -176,6 +176,8 @@ public:
 
     filewf.close();
   }
+
+  virtual ~AbstractMachine() {}
 };
 } // namespace netket
 

@@ -29,6 +29,7 @@ public:
   virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
   virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
   virtual void Reset() = 0;
+  virtual ~AbstractStepper() {}
 };
 } // namespace netket
 
