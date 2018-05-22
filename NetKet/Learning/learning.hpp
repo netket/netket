@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "Hamiltonian/hamiltonian_matrix.hpp"
 #include "ground_state.hpp"
 #include "stepper.hpp"
 
@@ -49,6 +50,16 @@ class Learning {
       Stepper stepper(pars);
 
       GroundState le(hamiltonian, sampler, stepper, pars);
+    } else if (pars["Learning"]["Method"] == "Ed") {
+      Graph graph(pars);
+
+      Hamiltonian hamiltonian(graph, pars);
+
+      HamiltonianMatrix hm(hamiltonian);
+
+      std::string file_base = FieldVal(pars["Learning"], "OutputFile");
+      hm.SaveEigenValues(file_base + std::string(".log"));
+
     } else {
       std::cout << "Learning method not found" << std::endl;
       std::cout << pars["Learning"]["Method"] << std::endl;
