@@ -94,7 +94,7 @@ class HilbertIndex {
 
   std::size_t NStates() const { return nstates_; }
 
-  constexpr static int MaxStates = (std::numeric_limits<int>::max() - 1.);
+  constexpr static int MaxStates = std::numeric_limits<int>::max() - 1;
 };
 
 }  // namespace netket
