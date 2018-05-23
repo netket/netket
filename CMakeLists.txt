@@ -46,6 +46,15 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX  OR (CMAKE_CXX_COMPIL
 endif()
 
 
+if("Ninja" STREQUAL ${CMAKE_GENERATOR})
+    include(CheckCXXCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG("-fdiagnostics-color" COMPILER_SUPPORTS_-fdiagnostics-color)
+    if (COMPILER_SUPPORTS_-fdiagnostics-color)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color")
+    endif ()
+endif()
+
+
 set (NETKET_SOURCES ${NETKET_SOURCE_DIR}/netket.cc)
 set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Graph)
 set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Hamiltonian)
