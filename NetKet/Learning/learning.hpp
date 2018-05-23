@@ -54,11 +54,9 @@ class Learning {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
-
-      HamiltonianMatrix hm(hamiltonian);
-
       std::string file_base = FieldVal(pars["Learning"], "OutputFile");
-      hm.SaveEigenValues(file_base + std::string(".log"));
+
+      SaveEigenValues(hamiltonian, file_base + std::string(".log"));
 
     } else {
       std::cout << "Learning method not found" << std::endl;
@@ -66,6 +64,23 @@ class Learning {
       std::abort();
     }
   }
+
+  void SaveEigenValues(const AbstractHamiltonian &hamiltonian,
+                       const std::string &filename,
+                       int first_n = 1) {
+    std::ofstream file_ed(filename);
+
+    auto matrix = DenseMatrixWrapper<AbstractHamiltonian>(hamiltonian);
+    auto ed = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
+
+    auto eigs = ed.eigenvalues();
+    eigs.conservativeResize(first_n);
+
+    json j(eigs);
+    file_ed << j << std::endl;
+
+    file_ed.close();
+    }
 };
 
 }  // namespace netket
