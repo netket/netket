@@ -18,10 +18,10 @@
 #include <Hamiltonian/hamiltonian.hpp>
 #include <Observable/observables.hpp>
 #include <Observable/abstract_observable.hpp>
-#include <Observable/MatrixWrapper/dense_matrix_wrapper.hpp>
-#include <Observable/MatrixWrapper/sparse_matrix_wrapper.hpp>
+#include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
+#include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
 
-#include "observable_input_tests.hpp"
+#include "../Observable/observable_input_tests.hpp"
 
 std::vector<netket::json> GetHamiltonianInputs() {
     std::vector<netket::json> input_tests;
@@ -137,7 +137,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]")
         auto eigs = ed.eigenvalues();
         std::sort(eigs.data(), eigs.data() + eigs.size());
 
-        constexpr double sqrt5 = std::sqrt(5);
+        const double sqrt5 = std::sqrt(5);
         CHECK(eigs(0) == Approx(-sqrt5));
         CHECK(eigs(1) == Approx(sqrt5));
     }
@@ -148,7 +148,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]")
         auto eigs = ed.eigenvalues();
         std::sort(eigs.data(), eigs.data() + eigs.size());
 
-        constexpr double sqrt5 = std::sqrt(5);
+        const double sqrt5 = std::sqrt(5);
         CHECK(eigs(0) == Approx(-sqrt5));
         CHECK(eigs(1) == Approx(sqrt5));
     }

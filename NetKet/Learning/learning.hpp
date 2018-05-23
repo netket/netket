@@ -17,7 +17,7 @@
 
 #include <memory>
 
-#include "Observable/MatrixWrapper/dense_matrix_wrapper.hpp"
+#include "Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp"
 #include "ground_state.hpp"
 #include "stepper.hpp"
 
