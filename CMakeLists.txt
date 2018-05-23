@@ -25,7 +25,7 @@ endif (MPI_FOUND)
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(${NETKET_SOURCE_DIR})
 
-include_directories (${EIGEN3_INCLUDE_DIR})
+include_directories (SYSTEM ${EIGEN3_INCLUDE_DIR})
 include_directories (${JSON_INCLUDE_DIR})
 
 
