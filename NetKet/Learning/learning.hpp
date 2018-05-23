@@ -65,12 +65,12 @@ class Learning {
     }
   }
 
-  void SaveEigenValues(const AbstractHamiltonian &hamiltonian,
+  void SaveEigenValues(const Hamiltonian &hamiltonian,
                        const std::string &filename,
                        int first_n = 1) {
     std::ofstream file_ed(filename);
 
-    auto matrix = DenseMatrixWrapper<AbstractHamiltonian>(hamiltonian);
+    auto matrix = DenseMatrixWrapper<Hamiltonian>(hamiltonian);
     auto ed = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
 
     auto eigs = ed.eigenvalues();
