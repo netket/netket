@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp"
 #include "ground_state.hpp"
 #include "stepper.hpp"
 
@@ -49,12 +50,37 @@ class Learning {
       Stepper stepper(pars);
 
       GroundState le(hamiltonian, sampler, stepper, pars);
+    } else if (pars["Learning"]["Method"] == "Ed") {
+      Graph graph(pars);
+
+      Hamiltonian hamiltonian(graph, pars);
+      std::string file_base = FieldVal(pars["Learning"], "OutputFile");
+
+      SaveEigenValues(hamiltonian, file_base + std::string(".log"));
+
     } else {
       std::cout << "Learning method not found" << std::endl;
       std::cout << pars["Learning"]["Method"] << std::endl;
       std::abort();
     }
   }
+
+  void SaveEigenValues(const Hamiltonian &hamiltonian,
+                       const std::string &filename,
+                       int first_n = 1) {
+    std::ofstream file_ed(filename);
+
+    auto matrix = DenseMatrixWrapper<Hamiltonian>(hamiltonian);
+    auto ed = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
+
+    auto eigs = ed.eigenvalues();
+    eigs.conservativeResize(first_n);
+
+    json j(eigs);
+    file_ed << j << std::endl;
+
+    file_ed.close();
+    }
 };
 
 }  // namespace netket

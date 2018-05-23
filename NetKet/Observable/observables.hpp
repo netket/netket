@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "observable.hpp"
+
 namespace netket {
 
 class Observables {

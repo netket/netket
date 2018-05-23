@@ -54,7 +54,7 @@ class Observable : public AbstractObservable {
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) override {
+                std::vector<std::vector<double>> &newconfs) const override {
     return o_->FindConn(v, mel, connectors, newconfs);
   }
 
