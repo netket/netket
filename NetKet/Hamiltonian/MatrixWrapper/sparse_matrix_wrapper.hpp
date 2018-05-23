@@ -76,7 +76,7 @@ private:
         matrix_.resize(dim_, dim_);
         matrix_.setZero();
 
-        for(size_t i = 0; i < dim_; ++i)
+        for(int i = 0; i < dim_; ++i)
         {
             auto v = hilbert_index.NumberToState(i);
 
