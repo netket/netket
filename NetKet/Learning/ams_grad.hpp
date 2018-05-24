@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ADADELTA_HPP
-#define NETKET_ADADELTA_HPP
+#ifndef NETKET_AMSGRAD_HPP
+#define NETKET_AMSGRAD_HPP
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -25,14 +25,17 @@
 
 namespace netket {
 
-class AdaDelta : public AbstractStepper {
+class AMSGrad : public AbstractStepper {
   int npar_;
 
-  double rho_;
-  double epscut_;
+  double eta_;
+  double beta1_;
+  double beta2_;
 
-  Eigen::VectorXd Eg2_;
-  Eigen::VectorXd Edx2_;
+  Eigen::VectorXd mt_;
+  Eigen::VectorXd vt_;
+
+  double epscut_;
 
   int mynode_;
 
@@ -40,9 +43,11 @@ class AdaDelta : public AbstractStepper {
 
  public:
   // Json constructor
-  explicit AdaDelta(const json &pars)
-      : rho_(FieldOrDefaultVal(pars["Learning"], "Rho", 0.95)),
-        epscut_(FieldOrDefaultVal(pars["Learning"], "Epscut", 1.0e-7)),
+  explicit AMSGrad(const json &pars)
+      : eta_(FieldOrDefaultVal(pars["Learning"],"LearningRate",0.001)),
+        beta1_(FieldOrDefaultVal(pars["Learning"],"Beta1",0.9)),
+        beta2_(FieldOrDefaultVal(pars["Learning"],"Beta2",0.999)),
+        epscut_(FieldOrDefaultVal(pars["Learning"],"Epscut",1.0e-7)),
         I_(0, 1) {
     npar_ = -1;
 
@@ -52,42 +57,41 @@ class AdaDelta : public AbstractStepper {
   void PrintParameters() {
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
     if (mynode_ == 0) {
-      std::cout << "# Adadelta stepper initialized with these parameters : "
+      std::cout << "# AMSGrad stepper initialized with these parameters : "
                 << std::endl;
-      std::cout << "# Rho = " << rho_ << std::endl;
+      std::cout << "# Learning Rate = " << eta_ << std::endl;
+      std::cout << "# Beta1 = " << beta1_ << std::endl;
+      std::cout << "# Beta2 = " << beta2_ << std::endl;
       std::cout << "# Epscut = " << epscut_ << std::endl;
     }
   }
 
   void Init(const Eigen::VectorXd &pars) override {
     npar_ = pars.size();
-    Eg2_.setZero(npar_);
-    Edx2_.setZero(npar_);
+    mt_.setZero(npar_);
+    vt_.setZero(npar_);
 
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
     npar_ = 2 * pars.size();
-    Eg2_.setZero(npar_);
-    Edx2_.setZero(npar_);
+    mt_.setZero(npar_);
+    vt_.setZero(npar_);
 
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
-    Eg2_=rho_*Eg2_+(1.-rho_)*grad.cwiseAbs2();
-
-    Eigen::VectorXd Dx(npar_);
+    mt_=beta1_*mt_+(1.-beta1_)*grad;
 
     for(int i=0;i<npar_;i++){
-      Dx(i)=-std::sqrt(Edx2_(i)+epscut_)*grad(i);
-      Dx(i)/=std::sqrt(Eg2_(i)+epscut_);
-      pars(i)+=Dx(i);
+      vt_(i)=std::max(vt_(i),beta2_*vt_(i)+(1-beta2_)*std::pow(grad(i),2));
     }
 
-    Edx2_=rho_*Edx2_+(1.-rho_)*Dx.cwiseAbs2();
-
+    for(int i=0;i<npar_;i++){
+      pars(i)-=eta_*mt_(i)/(std::sqrt(vt_(i))+epscut_);
+    }
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
@@ -95,30 +99,27 @@ class AdaDelta : public AbstractStepper {
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_==2*pars.size());
-
-    Eigen::VectorXd Dx(npar_);
+    assert(npar_ == 2 * pars.size());
 
     for(int i=0;i<pars.size();i++){
-      Eg2_(2*i)=rho_*Eg2_(2*i)+(1.-rho_)*std::pow(grad(i).real(),2);
-      Eg2_(2*i+1)=rho_*Eg2_(2*i+1)+(1.-rho_)*std::pow(grad(i).imag(),2);
+      mt_(2*i)=beta1_*mt_(2*i)+(1.-beta1_)*grad(i).real();
+      mt_(2*i+1)=beta1_*mt_(2*i+1)+(1.-beta1_)*grad(i).imag();
+    }
 
-      Dx(2*i)=-std::sqrt(Edx2_(2*i)+epscut_)*grad(i).real();
-      Dx(2*i+1)=-std::sqrt(Edx2_(2*i+1)+epscut_)*grad(i).imag();
-      Dx(2*i)/=std::sqrt(Eg2_(2*i)+epscut_);
-      Dx(2*i+1)/=std::sqrt(Eg2_(2*i+1)+epscut_);
+    for(int i=0;i<pars.size();i++){
+      vt_(2*i)=std::max(vt_(2*i),beta2_*vt_(2*i)+(1-beta2_)*std::pow(grad(i).real(),2));
+      vt_(2*i+1)=std::max(vt_(2*i+1),beta2_*vt_(2*i+1)+(1-beta2_)*std::pow(grad(i).imag(),2));
+    }
 
-      pars(i)+=Dx(2*i);
-      pars(i)+=I_*Dx(2*i+1);
-
-      Edx2_(2*i)=rho_*Edx2_(2*i)+(1.-rho_)*std::pow(Dx(2*i),2);
-      Edx2_(2*i+1)=rho_*Edx2_(2*i+1)+(1.-rho_)*std::pow(Dx(2*i+1),2);
+    for(int i=0;i<pars.size();i++){
+      pars(i)-=eta_*mt_(2*i)/(std::sqrt(vt_(2*i))+epscut_);
+      pars(i)-=eta_*I_*mt_(2*i+1)/(std::sqrt(vt_(2*i+1))+epscut_);
     }
   }
 
   void Reset() override {
-    Eg2_= Eigen::VectorXd::Zero(npar_);
-    Edx2_= Eigen::VectorXd::Zero(npar_);
+    mt_ = Eigen::VectorXd::Zero(npar_);
+    vt_ = Eigen::VectorXd::Zero(npar_);
   }
 
 };
