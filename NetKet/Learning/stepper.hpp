@@ -18,6 +18,10 @@
 #include "abstract_stepper.hpp"
 #include "ada_delta.hpp"
 #include "ada_max.hpp"
+#include "momentum.hpp"
+#include "ams_grad.hpp"
+#include "ada_grad.hpp"
+#include "rms_prop.hpp"
 #include "rprop.hpp"
 #include "sgd.hpp"
 
@@ -44,6 +48,16 @@ class Stepper : public AbstractStepper {
       s_ = Ptype(new Sgd(pars));
     } else if (pars["Learning"]["StepperType"] == "AdaMax") {
       s_ = Ptype(new AdaMax(pars));
+    } else if (pars["Learning"]["StepperType"] == "AdaDelta") {
+      s_ = Ptype(new AdaDelta(pars));
+    } else if (pars["Learning"]["StepperType"] == "Momentum") {
+      s_ = Ptype(new Momentum(pars));
+    } else if (pars["Learning"]["StepperType"] == "AMSGrad") {
+      s_ = Ptype(new AMSGrad(pars));
+    } else if (pars["Learning"]["StepperType"] == "AdaGrad") {
+      s_ = Ptype(new AdaGrad(pars));
+    } else if (pars["Learning"]["StepperType"] == "RMSProp") {
+      s_ = Ptype(new RMSProp(pars));
     } else {
       std::cout << "StepperType not found" << std::endl;
       std::abort();
