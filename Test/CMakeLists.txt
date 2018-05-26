@@ -45,6 +45,12 @@ if(NETKET_Valgrind)
     separate_arguments(memcheck_command)
 endif()
 
+### Find boost odeint
+find_package(Boost)
+if(Boost_FOUND)
+    include_directories(Boost_INCLUDE_DIRS)
+    add_definitions(-DWITH_BOOST_ODEINT)
+endif()
 
 ### Catch unit tests
 include_directories(${EXTERNAL_INCLUDE_DIR}/Catch)
@@ -54,8 +60,15 @@ add_library(catch_main OBJECT
 )
 
 
-file(GLOB TEST_SOURCES Graph/*.cc Hamiltonian/*.cc Hilbert/*.cc Machine/*.cc)
-file(GLOB TEST_SOURCES ${TEST_SOURCES} Observable/*.cc Sampler/*.cc Stats/*.cc)
+file(GLOB TEST_SOURCES
+        Graph/*.cc
+        Hamiltonian/*.cc
+        Hilbert/*.cc
+        Machine/*.cc
+        Observable/*.cc
+        Sampler/*.cc
+        Stats/*.cc
+        UnitaryTimeEvolution/*.cpp)
 
 foreach(file ${TEST_SOURCES})
    get_filename_component(file_basename ${file} NAME_WE)

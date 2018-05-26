@@ -24,7 +24,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-        packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev']
+        packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev', 'libboost-all-dev']
 
   - os: osx
     osx_image: xcode7.3
@@ -54,7 +54,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-5','mpich','libmpich-dev']
+        packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev']
 
   - os: linux
     compiler: gcc
@@ -63,7 +63,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-6','mpich','libmpich-dev']
+        packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev']
 
   - os: linux
     compiler: clang
@@ -73,7 +73,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev']
+        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev']
 
 
 cache:
@@ -91,6 +91,7 @@ script:
        brew update
        brew install cmake
        brew install openmpi
+       brew install --without-python boost
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
