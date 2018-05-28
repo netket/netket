@@ -25,6 +25,7 @@ class ControlledStepperBase
 
     State last_x_;
     double last_norm_;
+    double current_dt_;
 
     static constexpr double safety_factor = 0.95;
     static constexpr double err_exponent = -1. / 5.;
@@ -43,10 +44,13 @@ public:
 
         int step = 0;
         double current_t = t;
-        double current_dt = dt / 10.; // TODO: better way to guess initial step size?
+        if(current_dt_ == .0)
+        {
+            current_dt_ = dt / 10.; // TODO: better way to guess initial step size?
+        }
         while(current_t < tmax)
         {
-            double next_dt = (current_t + current_dt < tmax) ? current_dt : tmax - current_t;
+            double next_dt = (current_t + current_dt_ < tmax) ? current_dt_ : tmax - current_t;
 
             double scaled_error = PerformSingleStepImpl(ode_system, x, current_t, next_dt);
 
@@ -60,18 +64,19 @@ public:
             else // error too large, try again with new step size
             {
                 x = last_x_;
+                ResetImpl();
             }
 
             // update time step
             double dt_factor = safety_factor * std::pow(scaled_error, err_exponent);
             dt_factor = std::clamp(dt_factor, 0.01, 10.);
-            current_dt *= dt_factor;
+            current_dt_ *= dt_factor;
         };
     }
 
 protected:
     explicit ControlledStepperBase(double atol, double rtol)
-            : atol_(atol), rtol_(rtol)
+            : atol_(atol), rtol_(rtol), current_dt_(0.)
     {
     }
 
@@ -91,6 +96,11 @@ protected:
 
         double scale = (atol_ + norm1 * rtol_) * std::sqrt(delta.size());
         return delta.norm() / scale;
+    }
+
+    void ResetImpl()
+    {
+        static_cast<Derived*>(this)->Reset();
     }
 };
 
@@ -133,6 +143,8 @@ public:
 
         return Base::LocalError(x - x_temp_, x.norm());
     }
+
+    void Reset() {}
 };
 
 /**
@@ -149,6 +161,8 @@ class Dopri54TimeStepper
     std::array<State, 7> k_;
     State x_temp1_;
     State delta_;
+
+    bool has_last_;
 
     /* Butcher tableau */
     static const int N_ = 7;
@@ -176,7 +190,8 @@ public:
     template<typename Size>
     Dopri54TimeStepper(double atol, double rtol, Size state_size)
             : Base(atol, rtol),
-              x_temp1_(state_size)
+              x_temp1_(state_size),
+              has_last_(false)
     {
         for(auto &k : k_)
         {
@@ -189,7 +204,16 @@ public:
     {
         //std::cout << "Dopri54 " << "t=" << t << "\t\tcurr_dt=" << dt << std::endl;
 
-        ode_system(x, k_[0], t);
+        if(has_last_) // use FSAL (first same as last)
+        {
+            k_[0] = std::move(k_[N_-1]);
+        }
+        else
+        {
+            ode_system(x, k_[0], t);
+            has_last_ = true;
+        }
+
         for(int i = 1; i < N_; i++)
         {
             x_temp1_ = x + dt * A_[i][0] * k_[0];
@@ -209,6 +233,11 @@ public:
         }
 
         return Base::LocalError(delta_, x.norm());
+    }
+
+    void Reset()
+    {
+        has_last_ = false;
     }
 };
 
