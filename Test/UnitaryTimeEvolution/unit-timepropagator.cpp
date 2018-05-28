@@ -1,9 +1,10 @@
+#include <chrono>
 #include <Catch/catch.hpp>
 #include <Utils/all_utils.hpp>
 #include <netket.hpp>
-#include <boost/numeric/odeint.hpp>
 
 #include "UnitaryTimeEvolution/TimeStepper/explicit_time_steppers.hpp"
+#include "UnitaryTimeEvolution/TimeStepper/controlled_time_steppers.hpp"
 
 using namespace netket;
 
@@ -54,6 +55,32 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
     {
         using Stepper = ode::RungeKutta4Stepper<State>;
         Stepper stepper(0.4 * dt, initial.size());
+        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+
+        CHECK(ts.size() == 21);
+        for(size_t j = 0; j < ts.size(); ++j)
+        {
+            double current_t = -10. + j;
+            CHECK(Approx(ts[j]) == current_t);
+        }
+    }
+    SECTION("controlled Heun")
+    {
+        using Stepper = ode::HeunTimeStepper<State>;
+        Stepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+
+        CHECK(ts.size() == 21);
+        for(size_t j = 0; j < ts.size(); ++j)
+        {
+            double current_t = -10. + j;
+            CHECK(Approx(ts[j]) == current_t);
+        }
+    }
+    SECTION("controlled Dopri54")
+    {
+        using Stepper = ode::Dopri54TimeStepper<State>;
+        Stepper stepper(1e-6, 1e-6, initial.size());
         ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
@@ -122,6 +149,28 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
             CHECK(Approx(xs[j](0)).margin(m) == ts[j]);
         }
     }
+    SECTION("controlled Heun")
+    {
+        using Stepper = ode::HeunTimeStepper<State>;
+        Stepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+
+        for(size_t j = 0; j < ts.size(); ++j)
+        {
+            CHECK(Approx(xs[j](0)).margin(m) == ts[j]);
+        }
+    }
+    SECTION("controlled Dopri54")
+    {
+        using Stepper = ode::Dopri54TimeStepper<State>;
+        Stepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+
+        for(size_t j = 0; j < ts.size(); ++j)
+        {
+            CHECK(Approx(xs[j](0)).margin(m) == ts[j]);
+        }
+    }
 }
 
 TEST_CASE("Integrators approximately conserve norm when propagating Schroedinger eq", "[time-evolution]")
@@ -167,10 +216,26 @@ TEST_CASE("Integrators approximately conserve norm when propagating Schroedinger
         const double m = 1e-2;
         CHECK(Approx(x.norm()).margin(m) == 1.);
     }
+    SECTION("controlled Heun")
+    {
+        using Stepper = ode::HeunTimeStepper<State>;
+        Stepper stepper(1e-6, 1e-6, x.size());
+        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+
+        CHECK(Approx(x.norm()) == 1.);
+    }
+    SECTION("controlled Dopri54")
+    {
+        using Stepper = ode::Dopri54TimeStepper<State>;
+        Stepper stepper(1e-9, 1e-9, x.size());
+        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+
+        CHECK(Approx(x.norm()) == 1.);
+    }
 }
 
 #ifdef WITH_BOOST_ODEINT
-
+#include <boost/numeric/odeint.hpp>
 namespace odeint = boost::numeric::odeint;
 
 TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]")
@@ -182,11 +247,14 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     const std::complex<double> im(0, 1);
 
     const std::complex<double> g(1/sqrt2, 1/sqrt2);
+    const auto gc = std::conj(g);
 
     const double delta = 1.;
 
-    Eigen::MatrixXcd hamiltonian(2, 2);
-    hamiltonian << -delta/2, g, std::conj(g), delta/2;
+    Eigen::MatrixXcd hamiltonian(3, 3);
+    hamiltonian << -delta/2, g, g,
+                    gc,      0, 0,
+                    gc,      0, delta/2;
 
     auto eom = [&](const State& x, State& dxdt, double /*t*/) {
         dxdt.noalias() = -im * hamiltonian * x;
@@ -200,13 +268,13 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     };
 
     const double t0 = 0.;
-    const double tmax = 10.;
-    const double dt = 1.;
+    const double tmax = 100.;
+    const double dt = 10.;
 
-    State x(2);
-    x << 1., 0.;
+    State x(3);
+    x << 1., 0., 0.;
 
-    OdeintState xo{{1., 0.}, {0., 0.}};
+    OdeintState xo{{1., 0.}, {0., 0.}, {0., 0.}};
 
     SECTION("explicit Euler")
     {
@@ -236,6 +304,33 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
         {
             REQUIRE(Approx(x(i).real()) == xo[i].real());
             REQUIRE(Approx(x(i).imag()) == xo[i].imag());
+        }
+    }
+    SECTION("controlled Dopri54")
+    {
+        using Stepper = ode::Dopri54TimeStepper<State>;
+        Stepper stepper(1e-9, 1e-9, x.size());
+
+        auto start = std::chrono::steady_clock::now();
+        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+        std::cout << "Dopri5 ellapsed time: " << elapsed.count() << "us" << std::endl;
+
+        using OdeintStepper = odeint::runge_kutta_dopri5<OdeintState>;
+        auto odeint_stepper = odeint::make_controlled<OdeintStepper>(1e-9, 1e-9);
+
+        start = std::chrono::steady_clock::now();
+        odeint::integrate_const(odeint_stepper, odeint_eom, xo, t0, tmax, dt);
+        end = std::chrono::steady_clock::now();
+        elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+        std::cout << "odeint ellapsed time: " << elapsed.count() << "us" << std::endl;
+
+        double m = 1e-16;
+        for(size_t i = 0; i < xo.size(); i++)
+        {
+            REQUIRE(Approx(x(i).real()).margin(m) == xo[i].real());
+            REQUIRE(Approx(x(i).imag()).margin(m) == xo[i].imag());
         }
     }
 }

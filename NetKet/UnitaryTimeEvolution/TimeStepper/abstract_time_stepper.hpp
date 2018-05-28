@@ -1,6 +1,9 @@
 #ifndef NETKET_ABSTRACT_TIME_STEPPER_HPP
 #define NETKET_ABSTRACT_TIME_STEPPER_HPP
 
+#include <functional>
+#include <iostream>
+
 namespace netket { namespace ode
 {
 

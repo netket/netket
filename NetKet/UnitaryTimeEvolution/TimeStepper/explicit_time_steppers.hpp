@@ -1,6 +1,7 @@
 #ifndef NETKET_EXPLICIT_TIME_STEPPERS_HPP
 #define NETKET_EXPLICIT_TIME_STEPPERS_HPP
 
+#include <array>
 #include <cassert>
 
 #include "abstract_time_stepper.hpp"
@@ -95,13 +96,13 @@ class RungeKutta4Stepper : public ExplicitStepperBase<RungeKutta4Stepper<State, 
 {
     using Base = ExplicitStepperBase<RungeKutta4Stepper, State, Time>;
 
-    std::vector<State> k_;
+    std::array<State, 4> k_;
     State x_temp_;
 
 public:
     template<typename Size>
     RungeKutta4Stepper(Time dt, Size state_size)
-            : Base(dt), k_(4)
+            : Base(dt)
 
     {
         for(auto& k : k_)
@@ -112,8 +113,8 @@ public:
     }
 
     void PerformSingleStep(OdeSystemFunction <State> &ode_system,
-                            State &x,
-                            double t, double dt)
+                           State &x,
+                           double t, double dt)
     {
         const double dt2 = dt / 2.0;
         const double dt6 = dt / 6.0;
