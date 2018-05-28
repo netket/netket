@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "abstract_time_stepper.hpp"
+#include "Utils/math_helpers.hpp"
 
 namespace netket { namespace ode {
 
@@ -69,7 +70,7 @@ public:
 
             // update time step
             double dt_factor = safety_factor * std::pow(scaled_error, err_exponent);
-            dt_factor = std::clamp(dt_factor, 0.01, 10.);
+            dt_factor = clamp(dt_factor, 0.01, 10.);
             current_dt_ *= dt_factor;
         };
     }
@@ -167,24 +168,24 @@ class Dopri54TimeStepper
     /* Butcher tableau */
     static const int N_ = 7;
 
-    static constexpr double A_[N_][N_-1] = {
-        .0,           .0,          .0,           .0,         .0,          .0,
-        1./5,         .0,          .0,           .0,         .0,          .0,
-        3./40,        9./40,       .0,           .0,         .0,          .0,
-        44./45,      -56./15,      32./9,        .0,         .0,          .0,
-        19372./6561, -25360./2187, 64448./6561, -212./729,   .0,          .0,
-        9017./3168,  -355./33,     46732./5247,  49./176,   -5103./18656, .0,
-        35./384,      .0,          500./1113,    125./192,  -2187./6784,  11./84
+    static constexpr double A_[7][6] = {
+        {.0,           .0,          .0,           .0,         .0,          .0},
+        {1./5,         .0,          .0,           .0,         .0,          .0},
+        {3./40,        9./40,       .0,           .0,         .0,          .0},
+        {44./45,      -56./15,      32./9,        .0,         .0,          .0},
+        {19372./6561, -25360./2187, 64448./6561, -212./729,   .0,          .0},
+        {9017./3168,  -355./33,     46732./5247,  49./176,   -5103./18656, .0},
+        {35./384,      .0,          500./1113,    125./192,  -2187./6784,  11./84}
     };
 
     // coefficients for 5th-order scheme
-    static constexpr double BA_[N_] = {35./384, .0, 500./1113,
+    static constexpr double BA_[7] = {35./384, .0, 500./1113,
                                       125./192, -2187./6784, 11./84, .0};
     // coefficients for embedded 4th-order scheme
-    static constexpr double BB_[N_] = {5179./57600, .0, 7571./16695, 393./640,
+    static constexpr double BB_[7] = {5179./57600, .0, 7571./16695, 393./640,
                                        -92097./339200, 187./2100, 1./40};
 
-    static constexpr double C_[N_] = {.0, 1./5, 3./10, 4./5, 8./9, 1., 1.};
+    static constexpr double C_[7] = {.0, 1./5, 3./10, 4./5, 8./9, 1., 1.};
 
 public:
     template<typename Size>
@@ -240,6 +241,17 @@ public:
         has_last_ = false;
     }
 };
+
+// Until C++17, an out-of-class definition of these static constexpr data
+// members is needed. Cf. http://en.cppreference.com/w/cpp/language/static.
+template<class S, class T>
+constexpr double Dopri54TimeStepper<S,T>::A_[7][6];
+template<class S, class T>
+constexpr double Dopri54TimeStepper<S,T>::BA_[7];
+template<class S, class T>
+constexpr double Dopri54TimeStepper<S,T>::BB_[7];
+template<class S, class T>
+constexpr double Dopri54TimeStepper<S,T>::C_[7];
 
 }}
 
