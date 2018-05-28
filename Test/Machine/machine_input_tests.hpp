@@ -18,7 +18,7 @@ std::vector<netket::json> GetMachineInputs() {
   // Heisenberg 1d
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 1.0}}},
+          {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 2.0}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
