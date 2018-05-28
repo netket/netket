@@ -93,6 +93,7 @@ private:
                 matrix_.coeffRef(i, j) += matrix_elements[k];
             }
         }
+        matrix_.makeCompressed();
     }
 };
 
