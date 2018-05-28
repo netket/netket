@@ -90,9 +90,10 @@ private:
                 auto vk = v;
                 hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
                 auto j = hilbert_index.StateToNumber(vk);
-                matrix_.insert(i, j) = matrix_elements[k];
+                matrix_.coeffRef(i, j) += matrix_elements[k];
             }
         }
+        matrix_.makeCompressed();
     }
 };
 
