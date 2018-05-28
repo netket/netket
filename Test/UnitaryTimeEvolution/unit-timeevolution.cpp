@@ -1,8 +1,14 @@
 #include <chrono>
-#include <Catch/catch.hpp>
-#include <Utils/all_utils.hpp>
-#include <netket.hpp>
 
+#ifdef WITH_BOOST_ODEINT
+#include <boost/numeric/odeint.hpp>
+#endif // WITH_BOOST_ODEINT
+
+#include <Catch/catch.hpp>
+#include <Eigen/Eigen>
+
+#include "netket.hpp"
+#include "UnitaryTimeEvolution/time_evolution.hpp"
 #include "UnitaryTimeEvolution/TimeStepper/explicit_time_steppers.hpp"
 #include "UnitaryTimeEvolution/TimeStepper/controlled_time_steppers.hpp"
 
@@ -27,9 +33,9 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
 
     SECTION("Euler with internal time step = dt")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
         for(size_t j = 0; j < ts.size(); ++j)
@@ -40,9 +46,9 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
     }
     SECTION("Euler with internal time step != dt")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(0.3 * dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(0.3 * dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
         for(size_t j = 0; j < ts.size(); ++j)
@@ -53,9 +59,9 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
     }
     SECTION("RK4")
     {
-        using Stepper = ode::RungeKutta4Stepper<State>;
-        Stepper stepper(0.4 * dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::RungeKutta4Stepper<State>;
+        TimeStepper stepper(0.4 * dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
         for(size_t j = 0; j < ts.size(); ++j)
@@ -66,9 +72,9 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
     }
     SECTION("controlled Heun")
     {
-        using Stepper = ode::HeunTimeStepper<State>;
-        Stepper stepper(1e-6, 1e-6, initial.size());
-        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::HeunTimeStepper<State>;
+        TimeStepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
         for(size_t j = 0; j < ts.size(); ++j)
@@ -79,9 +85,9 @@ TEST_CASE("Observer function is called once at each time step", "[time-evolution
     }
     SECTION("controlled Dopri54")
     {
-        using Stepper = ode::Dopri54TimeStepper<State>;
-        Stepper stepper(1e-6, 1e-6, initial.size());
-        ode::Integrate<Stepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::Dopri54TimeStepper<State>;
+        TimeStepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, noop, initial, t0, tmax, dt, observer);
 
         CHECK(ts.size() == 21);
         for(size_t j = 0; j < ts.size(); ++j)
@@ -118,9 +124,9 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
     const double m = 1e-14;
     SECTION("Euler with internal time step = dt")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
 
         for(size_t j = 0; j < ts.size(); ++j)
         {
@@ -129,9 +135,9 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
     }
     SECTION("Euler with internal time step != dt")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(0.3 * dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(0.3 * dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
 
         for(size_t j = 0; j < ts.size(); ++j)
         {
@@ -140,9 +146,9 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
     }
     SECTION("RK4")
     {
-        using Stepper = ode::RungeKutta4Stepper<State>;
-        Stepper stepper(0.4 * dt, initial.size());
-        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::RungeKutta4Stepper<State>;
+        TimeStepper stepper(0.4 * dt, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
 
         for(size_t j = 0; j < ts.size(); ++j)
         {
@@ -151,9 +157,9 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
     }
     SECTION("controlled Heun")
     {
-        using Stepper = ode::HeunTimeStepper<State>;
-        Stepper stepper(1e-6, 1e-6, initial.size());
-        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::HeunTimeStepper<State>;
+        TimeStepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
 
         for(size_t j = 0; j < ts.size(); ++j)
         {
@@ -162,9 +168,9 @@ TEST_CASE("Integrators can propagate trivial ODE", "[time-evolution]")
     }
     SECTION("controlled Dopri54")
     {
-        using Stepper = ode::Dopri54TimeStepper<State>;
-        Stepper stepper(1e-6, 1e-6, initial.size());
-        ode::Integrate<Stepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
+        using TimeStepper = ode::Dopri54TimeStepper<State>;
+        TimeStepper stepper(1e-6, 1e-6, initial.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, initial, t0, tmax, dt, observer);
 
         for(size_t j = 0; j < ts.size(); ++j)
         {
@@ -200,42 +206,40 @@ TEST_CASE("Integrators approximately conserve norm when propagating Schroedinger
 
     SECTION("explicit Euler")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(5e-5 * dt, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(5e-5 * dt, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, dt);
 
         const double m = 1e-3; // explicit Euler has a large error
         CHECK(Approx(x.norm()).margin(m) == 1.);
     }
     SECTION("RK4")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(5e-4 * dt, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+        using TimeStepper = ode::RungeKutta4Stepper<State>;
+        TimeStepper stepper(5e-4 * dt, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, dt);
 
-        const double m = 1e-2;
-        CHECK(Approx(x.norm()).margin(m) == 1.);
+        CHECK(Approx(x.norm()) == 1.);
     }
     SECTION("controlled Heun")
     {
-        using Stepper = ode::HeunTimeStepper<State>;
-        Stepper stepper(1e-6, 1e-6, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+        using TimeStepper = ode::HeunTimeStepper<State>;
+        TimeStepper stepper(1e-6, 1e-6, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, dt);
 
         CHECK(Approx(x.norm()) == 1.);
     }
     SECTION("controlled Dopri54")
     {
-        using Stepper = ode::Dopri54TimeStepper<State>;
-        Stepper stepper(1e-9, 1e-9, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
+        using TimeStepper = ode::Dopri54TimeStepper<State>;
+        TimeStepper stepper(1e-9, 1e-9, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, dt);
 
         CHECK(Approx(x.norm()) == 1.);
     }
 }
 
 #ifdef WITH_BOOST_ODEINT
-#include <boost/numeric/odeint.hpp>
 namespace odeint = boost::numeric::odeint;
 
 TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]")
@@ -278,9 +282,9 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
 
     SECTION("explicit Euler")
     {
-        using Stepper = ode::EulerTimeStepper<State>;
-        Stepper stepper(5e-5 * dt, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, 5e-5 * dt);
+        using TimeStepper = ode::EulerTimeStepper<State>;
+        TimeStepper stepper(5e-5 * dt, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, 5e-5 * dt);
 
         using OdeintStepper = odeint::euler<OdeintState>;
         odeint::integrate_const(OdeintStepper(), odeint_eom, xo, t0, tmax, 5e-5 * dt);
@@ -293,9 +297,9 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     }
     SECTION("RK4")
     {
-        using Stepper = ode::RungeKutta4Stepper<State>;
-        Stepper stepper(1e-4 * dt, x.size());
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, 1e-4 * dt);
+        using TimeStepper = ode::RungeKutta4Stepper<State>;
+        TimeStepper stepper(1e-4 * dt, x.size());
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, 1e-4 * dt);
 
         using OdeintStepper = odeint::runge_kutta4<OdeintState>;
         odeint::integrate_const(OdeintStepper(), odeint_eom, xo, t0, tmax, 1e-4 * dt);
@@ -308,25 +312,23 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     }
     SECTION("controlled Dopri54")
     {
-        using Stepper = ode::Dopri54TimeStepper<State>;
-        Stepper stepper(1e-9, 1e-9, x.size());
+        using TimeStepper = ode::Dopri54TimeStepper<State>;
+        TimeStepper stepper(1e-12, 1e-12, x.size());
 
-        auto start = std::chrono::steady_clock::now();
-        ode::Integrate<Stepper, State>(stepper, eom, x, t0, tmax, dt);
-        auto end = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-        std::cout << "Dopri5 ellapsed time: " << elapsed.count() << "us" << std::endl;
+        Stopwatch watch;
+        ode::Integrate<TimeStepper, State>(stepper, eom, x, t0, tmax, dt);
+        auto elapsed = watch.elapsed();
+        std::cout << "Dopri54 ellapsed time: " << elapsed.count() << "us" << std::endl;
 
         using OdeintStepper = odeint::runge_kutta_dopri5<OdeintState>;
-        auto odeint_stepper = odeint::make_controlled<OdeintStepper>(1e-9, 1e-9);
+        auto odeint_stepper = odeint::make_controlled<OdeintStepper>(1e-12, 1e-12);
 
-        start = std::chrono::steady_clock::now();
+        watch.restart();
         odeint::integrate_const(odeint_stepper, odeint_eom, xo, t0, tmax, dt);
-        end = std::chrono::steady_clock::now();
-        elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-        std::cout << "odeint ellapsed time: " << elapsed.count() << "us" << std::endl;
+        elapsed = watch.elapsed();
+        std::cout << " odeint ellapsed time: " << elapsed.count() << "us" << std::endl;
 
-        double m = 1e-16;
+        double m = 1e-17;
         for(size_t i = 0; i < xo.size(); i++)
         {
             REQUIRE(Approx(x(i).real()).margin(m) == xo[i].real());
@@ -335,3 +337,78 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     }
 }
 #endif
+
+TEST_CASE("Time evolution driver produces sensible output", "[time-evolution]")
+{
+    json pars;
+
+    pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
+    pars["Hilbert"]["Size"] = 1;
+
+    json observable_json;
+    observable_json["ActingOn"] = {{0}};
+    observable_json["Operators"] = {{{-1, 2}, {2, 1}}};
+
+    pars["Hamiltonian"] = observable_json;
+
+    pars["TimeEvolution"] = {
+            {"StepperType", "Dopri54"},
+            {"OutputFiles", "test_output_%i.log"},
+            {"AbsTol", 1e-9},
+            {"RelTol", 1e-9},
+            {"StartTime", 0.0},
+            {"EndTime", 100.0},
+            {"TimeStep", 1.0}
+    };
+
+    pars["TimeEvolution"]["Configurations"] = {
+        {{1, 0}, {0, 0}},
+        {{0, 0}, {1, 0}},
+    };
+
+    {
+        Stopwatch watch;
+        RunTimeEvolution(pars);
+        std::cout << "TimeEvolution elapsed: " << watch.elapsed().count() << "us" << std::endl;
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    auto outfiles = std::vector<std::string>{
+            "test_output_0.log",
+            "test_output_1.log"};
+
+    int mpirank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
+    int mpisize;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpisize);
+
+    for(size_t i = mpirank; i < outfiles.size(); i += mpisize)
+    {
+        auto fn = outfiles[i];
+        INFO(fn);
+        std::ifstream fin(fn);
+        CHECK(fin.good());
+
+        std::string line;
+        int pos = 0;
+        while(std::getline(fin, line))
+        {
+            INFO(line);
+            json js = json::parse(line);
+
+            REQUIRE(js.is_object());
+
+            REQUIRE(js.find("Time") != js.end());
+            double time = js["Time"].get<double>();
+            CHECK(Approx(time) == pos);
+
+            REQUIRE(js.find("State") != js.end());
+            REQUIRE(js["State"].size() == 2); // States have Hilbert space dimension
+            using StateType = std::vector<std::complex<double>>;
+            auto state = js["State"].get<StateType>();
+
+            pos++;
+        }
+    }
+}

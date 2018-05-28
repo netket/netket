@@ -22,7 +22,21 @@ int main(int argc, char *argv[]) {
 
   auto pars = netket::ReadJsonFromFile(argv[1]);
 
-  netket::Learning learning(pars);
+  if(netket::FieldExists(pars, "Learning"))
+  {
+      std::cout << "Hallo" << std::endl;
+      netket::Learning learning(pars);
+  }
+  else if(netket::FieldExists(pars, "TimeEvolution"))
+  {
+      netket::RunTimeEvolution(pars);
+  }
+  else
+  {
+      std::cout << "The configuration file does not contain a operation. "
+                   "Please include either a 'Learning' or 'TimeEvolution' "
+                   "section." << std::endl;
+  }
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();

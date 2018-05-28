@@ -19,7 +19,7 @@ namespace netket { namespace ode {
  */
 template<class Derived, class State, typename Time>
 class ControlledStepperBase
-        : AbstractTimeStepper<State, Time>
+        : public AbstractTimeStepper<State, Time>
 {
     const double atol_;
     const double rtol_;

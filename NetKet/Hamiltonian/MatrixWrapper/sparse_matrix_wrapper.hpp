@@ -30,8 +30,10 @@ namespace netket
 template<class Operator, class WfType = Eigen::VectorXcd>
 class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType>
 {
+public:
     using Matrix = Eigen::SparseMatrix<std::complex<double>>;
 
+private:
     Matrix matrix_;
     int dim_;
 

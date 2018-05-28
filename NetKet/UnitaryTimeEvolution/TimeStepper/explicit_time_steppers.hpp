@@ -20,7 +20,7 @@ namespace netket { namespace ode {
  * without needing a virtual function lookup.
  */
 template<class Derived, class State, typename Time>
-class ExplicitStepperBase : AbstractTimeStepper<State, Time>
+class ExplicitStepperBase : public AbstractTimeStepper<State, Time>
 {
     Time internal_dt_;
 
