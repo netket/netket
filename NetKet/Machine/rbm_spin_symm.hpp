@@ -151,7 +151,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     if (useb_) {
       // derivatives with respect to b
       for (int p = 0; p < nh_; p++) {
-        int ksymm = std::floor(double(k) / double(permsize_));
+        int ksymm = std::floor(double(p) / double(permsize_));
         DerMatSymm_(ksymm + k, kbare) = 1;
         kbare++;
       }
