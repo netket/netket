@@ -26,7 +26,7 @@ void Welcome(int argc) {
   MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
   if (mynode == 0) {
     std::cout << "############################################" << std::endl;
-    std::cout << "# NetKet version 1.0.2                     #" << std::endl;
+    std::cout << "# NetKet version 1.0.3                     #" << std::endl;
     std::cout << "# Website: https://www.netket.org          #" << std::endl;
     std::cout << "# Licensed under Apache-2.0 - see LICENSE  #" << std::endl;
     std::cout << "############################################" << std::endl;
