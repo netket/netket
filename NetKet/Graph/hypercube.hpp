@@ -54,6 +54,11 @@ class Hypercube : public AbstractGraph {
       : L_(FieldVal(pars["Graph"], "L")),
         ndim_(FieldVal(pars["Graph"], "Dimension")),
         pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {
+    if(pbc_ && L_ <= 2)
+    {
+        std::cout << "L<=2 hypercubes should not have periodic boundary conditions" << std::endl;
+        std::abort();
+    }
     Init();
   }
 
