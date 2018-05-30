@@ -105,5 +105,5 @@ script:
   # compile and execute unit tests
   - mkdir -p build && cd build
   - cmake .. ${CMAKE_OPTIONS} && cmake --build . --config Release
-  - ctest -C Release -V -j
+  - env ASAN_OPTIONS=fast_unwind_on_malloc=0 ctest -C Release -V -j
   - cd ..
