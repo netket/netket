@@ -43,7 +43,6 @@ public:
         last_x_ = x;
         last_norm_ = x.norm();
 
-        int step = 0;
         double current_t = t;
         if(current_dt_ == .0)
         {
@@ -57,7 +56,6 @@ public:
 
             if(scaled_error <= 1.0) // error is within bounds
             {
-                step++;
                 current_t += next_dt;
                 last_x_ = x;
                 last_norm_ = x.norm();
@@ -76,8 +74,8 @@ public:
     }
 
 protected:
-    explicit ControlledStepperBase(double atol, double rtol)
-            : atol_(atol), rtol_(rtol), current_dt_(0.)
+    ControlledStepperBase(double atol, double rtol)
+            : atol_(atol), rtol_(rtol), current_dt_(0.), last_norm_(0.)
     {
     }
 
