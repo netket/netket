@@ -69,7 +69,7 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
   }
 }
 
-TEST_CASE("hamiltonians do not have duplicate newconfs", "[hamiltonian]") {
+TEST_CASE("hamiltonians do not have duplicate connections or newconfs", "[hamiltonian]") {
 
   auto input_tests = GetHamiltonianInputs();
   std::size_t ntests = input_tests.size();
@@ -106,6 +106,10 @@ TEST_CASE("hamiltonians do not have duplicate newconfs", "[hamiltonian]") {
             REQUIRE(isUniqueConnector);
           }
         }
+
+        auto itu = std::unique(connectors.begin(), connectors.end());
+        bool noDuplicateConnectors = (itu == connectors.end());
+        REQUIRE(noDuplicateConnectors);
       }
     }
   }
