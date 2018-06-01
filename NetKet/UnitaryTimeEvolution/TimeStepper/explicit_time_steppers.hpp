@@ -14,12 +14,8 @@ namespace netket { namespace ode {
  * the outer time propagation loop and calls PerformSingleStep
  * on the derived class with the internal step size to perform a
  * single step from t to t + dt.
- *
- * This class uses the CRTP (i.e., using the derived class as
- * template parameter) in order to call the dervied class' methods
- * without needing a virtual function lookup.
  */
-template<class Derived, class State, typename Time>
+template<class State, typename Time>
 class ExplicitStepperBase : public AbstractTimeStepper<State, Time>
 {
     Time internal_dt_;
@@ -27,18 +23,18 @@ class ExplicitStepperBase : public AbstractTimeStepper<State, Time>
 public:
     void Propagate(OdeSystemFunction<State> ode_system,
                    State &x,
-                   Time t, Time dt) override
+                   Time t, Time dt) final override
     {
         assert(dt > .0);
-        double tmax = t + dt;
+        Time tmax = t + dt;
 
         int step = 0;
-        double current_t = t;
+        Time current_t = t;
         while(current_t < tmax)
         {
             double next_dt = (current_t + internal_dt_ < tmax) ? internal_dt_ : tmax - current_t;
 
-            PerformSingleStepImpl(ode_system, x, current_t, next_dt);
+            PerformSingleStep(ode_system, x, current_t, next_dt);
 
             step++;
             current_t = t + step * internal_dt_;
@@ -51,12 +47,16 @@ protected:
     {
     }
 
-    void PerformSingleStepImpl(OdeSystemFunction<State> ode_system,
-                           State &x,
-                           Time t, Time dt)
-    {
-        static_cast<Derived*>(this)->PerformSingleStep(ode_system, x, t, dt);
-    }
+    /**
+     * Perform a single step from t to t + dt.
+     * @param ode_system The ODE system function.
+     * @param x The current state, which is modified in place.
+     * @param t The current time.
+     * @param dt The time step.
+     */
+    virtual void PerformSingleStep(OdeSystemFunction<State> ode_system,
+                                   State &x,
+                                   Time t, Time dt) = 0;
 };
 
 /**
@@ -65,9 +65,9 @@ protected:
  * anything else, as other methods perform better numerically.
  */
 template<class State, typename Time = double>
-class EulerTimeStepper : public ExplicitStepperBase<EulerTimeStepper<State, Time>, State, Time>
+class EulerTimeStepper final : public ExplicitStepperBase<State, Time>
 {
-    using Base = ExplicitStepperBase<EulerTimeStepper, State, Time>;
+    using Base = ExplicitStepperBase<State, Time>;
 
     State dxdt_;
 
@@ -79,9 +79,10 @@ public:
     {
     }
 
-    void PerformSingleStep(OdeSystemFunction <State> &ode_system,
+protected:
+    void PerformSingleStep(OdeSystemFunction <State> ode_system,
                             State &x,
-                            double t, double dt)
+                            double t, double dt) override
     {
         ode_system(x, dxdt_, t);
         x = x + dt * dxdt_;
@@ -92,9 +93,9 @@ public:
  * Implements the classical 4th order Runge-Kutta method.
  */
 template<class State, typename Time = double>
-class RungeKutta4Stepper : public ExplicitStepperBase<RungeKutta4Stepper<State, Time>, State, Time>
+class RungeKutta4Stepper final : public ExplicitStepperBase<State, Time>
 {
-    using Base = ExplicitStepperBase<RungeKutta4Stepper, State, Time>;
+    using Base = ExplicitStepperBase<State, Time>;
 
     std::array<State, 4> k_;
     State x_temp_;
@@ -112,12 +113,13 @@ public:
         x_temp_.resize(state_size);
     }
 
-    void PerformSingleStep(OdeSystemFunction <State> &ode_system,
+protected:
+    void PerformSingleStep(OdeSystemFunction <State> ode_system,
                            State &x,
-                           double t, double dt)
+                           Time t, Time dt) override
     {
-        const double dt2 = dt / 2.0;
-        const double dt6 = dt / 6.0;
+        const Time dt2 = dt / 2.0;
+        const Time dt6 = dt / 6.0;
 
         ode_system(x, k_[0], t);
 

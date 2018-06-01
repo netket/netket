@@ -12,21 +12,16 @@ namespace netket { namespace ode {
 
 /**
  * Base class for error-controlled time-stepping methods.
- *
- * This class uses the CRTP (i.e., using the derived class as
- * template parameter) in order to call the dervied class methods
- * without needing a virtual function lookup.
  */
-template<class Derived, class State, typename Time>
-class ControlledStepperBase
-        : public AbstractTimeStepper<State, Time>
+template<class State, typename Time>
+class ControlledStepperBase : public AbstractTimeStepper<State, Time>
 {
     const double atol_;
     const double rtol_;
 
     State last_x_;
+    Time current_dt_;
     double last_norm_;
-    double current_dt_;
 
     static constexpr double safety_factor = 0.95;
     static constexpr double err_exponent = -1. / 5.;
@@ -34,10 +29,10 @@ class ControlledStepperBase
 public:
     void Propagate(OdeSystemFunction<State> ode_system,
                    State &x,
-                   Time t, Time dt) override
+                   Time t, Time dt) final override
     {
         assert(dt > .0);
-        double tmax = t + dt;
+        Time tmax = t + dt;
 
         last_x_.resize(x.size());
         last_x_ = x;
@@ -50,9 +45,9 @@ public:
         }
         while(current_t < tmax)
         {
-            double next_dt = (current_t + current_dt_ < tmax) ? current_dt_ : tmax - current_t;
+            Time next_dt = (current_t + current_dt_ < tmax) ? current_dt_ : tmax - current_t;
 
-            double scaled_error = PerformSingleStepImpl(ode_system, x, current_t, next_dt);
+            double scaled_error = PerformSingleStep(ode_system, x, current_t, next_dt);
 
             if(scaled_error <= 1.0) // error is within bounds
             {
@@ -63,7 +58,7 @@ public:
             else // error too large, try again with new step size
             {
                 x = last_x_;
-                ResetImpl();
+                Reset();
             }
 
             // update time step
@@ -79,13 +74,35 @@ protected:
     {
     }
 
-    double PerformSingleStepImpl(OdeSystemFunction<State> ode_system,
-                       State &x,
-                       Time t, Time dt)
-    {
-        return static_cast<Derived*>(this)->PerformSingleStep(ode_system, x, t, dt);
-    }
+    /**
+     * Perform a single step from t to t + dt.
+     * @param ode_system The ODE system function.
+     * @param x The current state, which is modified in place.
+     * @param t The current time.
+     * @param dt The time step.
+     * @return The scaled error for the performed step. This should be calculated
+     *      by calling LocalError.
+     */
+    virtual double PerformSingleStep(OdeSystemFunction<State> ode_system,
+                                     State &x,
+                                     Time t, Time dt) = 0;
 
+    /**
+     * Reset the internal state of the stepper, in case the next time step
+     * does not start at the end of the previous time step.
+     */
+    virtual void Reset() = 0;
+
+    /**
+     * Compute the relative local error from the error estimate delta, taking into account
+     * the atol and rtol values of the stepper.
+     * @param delta A local error estimate, usually computed as the difference between
+     *      the resulting state for two different-order methods.
+     * @param norm The norm of the current state, used for rescaling rtol.
+     * @return The relative local error of the solution. This will be a
+     *      non-negative number that is <= 1 iff the error is within the
+     *      bound given by atol and rtol.
+     */
     double LocalError(const State& delta, double norm) const
     {
         assert(norm >= .0);
@@ -96,11 +113,6 @@ protected:
         double scale = (atol_ + norm1 * rtol_) * std::sqrt(delta.size());
         return delta.norm() / scale;
     }
-
-    void ResetImpl()
-    {
-        static_cast<Derived*>(this)->Reset();
-    }
 };
 
 /**
@@ -109,10 +121,9 @@ protected:
  * embedded first-order methods (which is just Euler) for error estimation.
  */
 template<class State, typename Time = double>
-class HeunTimeStepper
-        : public ControlledStepperBase<HeunTimeStepper<State, Time>, State, Time>
+class HeunTimeStepper final : public ControlledStepperBase<State, Time>
 {
-    using Base = ControlledStepperBase<HeunTimeStepper, State, Time>;
+    using Base = ControlledStepperBase<State, Time>;
 
     State k1_;
     State k2_;
@@ -128,11 +139,10 @@ public:
     {
     }
 
-    double PerformSingleStep(OdeSystemFunction <State> &ode_system,
-                             State &x, double t, double dt)
+protected:
+    double PerformSingleStep(OdeSystemFunction<State> ode_system,
+                             State &x, Time t, Time dt) override
     {
-        //std::cout << "Heun    " << "t=" << t << "\t\tcurr_dt=" << dt << std::endl;
-
         ode_system(x, k1_, t);
 
         x_temp_ = x + dt * k1_;
@@ -143,7 +153,7 @@ public:
         return Base::LocalError(x - x_temp_, x.norm());
     }
 
-    void Reset() {}
+    void Reset() override {}
 };
 
 /**
@@ -152,10 +162,9 @@ public:
  * scheme for error estimation.
  */
 template<class State, typename Time = double>
-class Dopri54TimeStepper
-        : public ControlledStepperBase<Dopri54TimeStepper<State, Time>, State, Time>
+class Dopri54TimeStepper final : public ControlledStepperBase<State, Time>
 {
-    using Base = ControlledStepperBase<Dopri54TimeStepper, State, Time>;
+    using Base = ControlledStepperBase<State, Time>;
 
     std::array<State, 7> k_;
     State x_temp1_;
@@ -198,8 +207,9 @@ public:
         }
     }
 
-    double PerformSingleStep(OdeSystemFunction <State> &ode_system,
-                             State &x, double t, double dt)
+protected:
+    double PerformSingleStep(OdeSystemFunction<State> ode_system,
+                             State &x, Time t, Time dt) override
     {
         //std::cout << "Dopri54 " << "t=" << t << "\t\tcurr_dt=" << dt << std::endl;
 
@@ -234,7 +244,7 @@ public:
         return Base::LocalError(delta_, x.norm());
     }
 
-    void Reset()
+    void Reset() override
     {
         has_last_ = false;
     }
