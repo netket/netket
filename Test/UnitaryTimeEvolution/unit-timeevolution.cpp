@@ -338,6 +338,7 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
 }
 #endif
 
+/*
 TEST_CASE("Time evolution driver produces sensible output", "[time-evolution]")
 {
     json pars;
@@ -412,3 +413,4 @@ TEST_CASE("Time evolution driver produces sensible output", "[time-evolution]")
         }
     }
 }
+*/
