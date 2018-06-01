@@ -24,7 +24,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-        packages: ['g++-6', 'clang-5.0','mpich','libmpich-dev', 'libboost-all-dev']
+        packages: ['g++-6', 'clang-5.0','libopenmpi-dev', 'openmpi-bin','openmpi-doc', 'libboost-all-dev']
 
   - os: osx
     osx_image: xcode7.3
