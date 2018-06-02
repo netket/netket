@@ -46,7 +46,7 @@ std::vector<netket::json> GetHamiltonianInputs() {
             {"Graph",
                     {{"Name", "Hypercube"}, {"L", 2}, {"Dimension", 2}, {"Pbc", false}}},
             {"Hamiltonian",
-                    {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 2}, {"Nbosons", 2}}}};
+                    {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 2}}}};
 
     input_tests.push_back(pars);
 
