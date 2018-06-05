@@ -49,12 +49,11 @@ public:
         };
     }
 
-    void Run(VectorType& initial, ode::ObserverFunction<VectorType> observer_func)
+    void Run(VectorType& state, ode::ObserverFunction<VectorType> observer_func)
     {
-        assert(initial.size() == GetDimension());
+        assert(state.size() == GetDimension());
 
-        ode::Integrate<StepperType, VectorType>(
-                    *stepper_, ode_system_, initial, t0_, tmax_, dt_, observer_func);
+        ode::Integrate(*stepper_, ode_system_, state, t0_, tmax_, dt_, observer_func);
     }
 
     int GetDimension() const
@@ -76,8 +75,8 @@ void RunTimeEvolution(const json& pars)
 {
     auto driver = TimeEvolutionDriver::FromJson(pars);
 
-    auto pars_te = pars["TimeEvolution"];
-    auto confs = pars_te["InitialStates"];
+    auto pars_te = FieldVal(pars, "TimeEvolution");
+    auto confs = FieldVal(pars, "InitialStates");
     if(confs.size() == 0)
     {
         std::cerr << "No configurations specified for time evolution" << std::endl;
@@ -122,7 +121,7 @@ void RunTimeEvolution(const json& pars)
         using InitialStateType = std::vector<std::complex<double>>;
         auto initial_vec = conf.get<InitialStateType>();
 
-        if(initial_vec.size() != driver.GetDimension())
+        if(static_cast<std::ptrdiff_t>(initial_vec.size()) != driver.GetDimension())
         {
             std::cout << "Error: Initial states need to have " << driver.GetDimension()
                       << " entries." << std::endl;
@@ -134,6 +133,7 @@ void RunTimeEvolution(const json& pars)
                     initial_vec.data(), initial_vec.size());
 
         driver.Run(initial, observer_func);
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
 

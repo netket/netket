@@ -26,7 +26,7 @@ ConstructMatrixWrapper(const json &pars, const Wrapped& wrapped)
     }
     else if(wrapper_name == "Dense")
     {
-        return WrapperPtr(new SparseMatrixWrapper<Wrapped>(wrapped));
+        return WrapperPtr(new DenseMatrixWrapper<Wrapped>(wrapped));
     }
     else
     {

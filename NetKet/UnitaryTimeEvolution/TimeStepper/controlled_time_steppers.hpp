@@ -34,7 +34,6 @@ public:
         assert(dt > .0);
         double tmax = t + dt;
 
-        last_x_.resize(x.size());
         last_x_ = x;
         last_norm_ = x.norm();
 
@@ -63,7 +62,7 @@ public:
 
             // update time step
             double dt_factor = safety_factor * std::pow(scaled_error, err_exponent);
-            dt_factor = clamp(dt_factor, 0.01, 10.);
+            dt_factor = bound(dt_factor, 0.01, 10.);
             current_dt_ *= dt_factor;
         };
     }
@@ -105,6 +104,7 @@ protected:
      */
     double LocalError(const State& delta, double norm) const
     {
+        assert(delta.size() > 0);
         assert(norm >= .0);
 
         // use maximum of last norms in case one is close to zero
@@ -173,7 +173,7 @@ class Dopri54TimeStepper final : public ControlledStepperBase<State>
     bool has_last_;
 
     /* Butcher tableau */
-    static const int N_ = 7;
+    static constexpr int N_ = 7;
 
     static constexpr double A_[7][6] = {
         {.0,           .0,          .0,           .0,         .0,          .0},

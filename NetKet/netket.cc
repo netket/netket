@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
 
   if(netket::FieldExists(pars, "Learning"))
   {
-      std::cout << "Hallo" << std::endl;
       netket::Learning learning(pars);
   }
   else if(netket::FieldExists(pars, "TimeEvolution"))
