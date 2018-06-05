@@ -11,8 +11,8 @@ namespace netket { namespace ode
  * A function compatible with AbstractTimeStepper::ObserverFunction that does nothing.
  * To be used as default value.
  */
-template<class State, typename Time = double>
-void NullObserver(const State& /* x */, Time /* t */)
+template<class State>
+void NullObserver(const State& /* x */, double /* t */)
 {
     // do nothing
 }
@@ -27,15 +27,14 @@ using ObserverFunction = std::function<void(const OdeState&, double)>;
  * Represents a class to perform ODE time steps.
  * @tparam State The ODE state. Should be an Eigen dynamic-size matrix or
  *      a compatible type.
- * @tparam Time Type of the time variable. Should be float or double.
  */
-template<class State, typename Time = double>
+template<class State>
 class AbstractTimeStepper
 {
 public:
     virtual void Propagate(OdeSystemFunction<State> ode_system,
                            State &x,
-                           Time t, Time dt) = 0;
+                           double t, double dt) = 0;
 
     virtual ~AbstractTimeStepper() = default;
 };
@@ -56,12 +55,12 @@ public:
  * @param observer This callable is called at each time step, i.e., at times
  *      t0, t0 + dt, t0 + 2*dt, ..., tmax.
  */
-template<class Stepper, class State, typename Time = double>
+template<class Stepper, class State>
 void Integrate(Stepper& stepper,
                OdeSystemFunction<State> ode_system,
                State &state,
-               Time t0, Time tmax, Time dt,
-               ObserverFunction<State> observer = NullObserver<State, Time>)
+               double t0, double tmax, double dt,
+               ObserverFunction<State> observer = NullObserver<State>)
 {
     assert(t0 < tmax);
     assert(dt > .0);

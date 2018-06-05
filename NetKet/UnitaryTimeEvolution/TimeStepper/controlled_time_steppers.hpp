@@ -13,14 +13,14 @@ namespace netket { namespace ode {
 /**
  * Base class for error-controlled time-stepping methods.
  */
-template<class State, typename Time>
-class ControlledStepperBase : public AbstractTimeStepper<State, Time>
+template<class State>
+class ControlledStepperBase : public AbstractTimeStepper<State>
 {
     const double atol_;
     const double rtol_;
 
     State last_x_;
-    Time current_dt_;
+    double current_dt_;
     double last_norm_;
 
     static constexpr double safety_factor = 0.95;
@@ -29,10 +29,10 @@ class ControlledStepperBase : public AbstractTimeStepper<State, Time>
 public:
     void Propagate(OdeSystemFunction<State> ode_system,
                    State &x,
-                   Time t, Time dt) final override
+                   double t, double dt) final override
     {
         assert(dt > .0);
-        Time tmax = t + dt;
+        double tmax = t + dt;
 
         last_x_.resize(x.size());
         last_x_ = x;
@@ -45,7 +45,7 @@ public:
         }
         while(current_t < tmax)
         {
-            Time next_dt = (current_t + current_dt_ < tmax) ? current_dt_ : tmax - current_t;
+            double next_dt = (current_t + current_dt_ < tmax) ? current_dt_ : tmax - current_t;
 
             double scaled_error = PerformSingleStep(ode_system, x, current_t, next_dt);
 
@@ -85,7 +85,7 @@ protected:
      */
     virtual double PerformSingleStep(OdeSystemFunction<State> ode_system,
                                      State &x,
-                                     Time t, Time dt) = 0;
+                                     double t, double dt) = 0;
 
     /**
      * Reset the internal state of the stepper, in case the next time step
@@ -121,9 +121,9 @@ protected:
  * embedded first-order methods (which is just Euler) for error estimation.
  */
 template<class State, typename Time = double>
-class HeunTimeStepper final : public ControlledStepperBase<State, Time>
+class HeunTimeStepper final : public ControlledStepperBase<State>
 {
-    using Base = ControlledStepperBase<State, Time>;
+    using Base = ControlledStepperBase<State>;
 
     State k1_;
     State k2_;
@@ -141,7 +141,7 @@ public:
 
 protected:
     double PerformSingleStep(OdeSystemFunction<State> ode_system,
-                             State &x, Time t, Time dt) override
+                             State &x, double t, double dt) override
     {
         ode_system(x, k1_, t);
 
@@ -161,10 +161,10 @@ protected:
  * This is a controlled Runge-Kutta method with embedded an fourth-order
  * scheme for error estimation.
  */
-template<class State, typename Time = double>
-class Dopri54TimeStepper final : public ControlledStepperBase<State, Time>
+template<class State>
+class Dopri54TimeStepper final : public ControlledStepperBase<State>
 {
-    using Base = ControlledStepperBase<State, Time>;
+    using Base = ControlledStepperBase<State>;
 
     std::array<State, 7> k_;
     State x_temp1_;
@@ -209,7 +209,7 @@ public:
 
 protected:
     double PerformSingleStep(OdeSystemFunction<State> ode_system,
-                             State &x, Time t, Time dt) override
+                             State &x, double t, double dt) override
     {
         //std::cout << "Dopri54 " << "t=" << t << "\t\tcurr_dt=" << dt << std::endl;
 
@@ -252,14 +252,14 @@ protected:
 
 // Until C++17, an out-of-class definition of these static constexpr data
 // members is needed. Cf. http://en.cppreference.com/w/cpp/language/static.
-template<class S, class T>
-constexpr double Dopri54TimeStepper<S,T>::A_[7][6];
-template<class S, class T>
-constexpr double Dopri54TimeStepper<S,T>::BA_[7];
-template<class S, class T>
-constexpr double Dopri54TimeStepper<S,T>::BB_[7];
-template<class S, class T>
-constexpr double Dopri54TimeStepper<S,T>::C_[7];
+template<class S>
+constexpr double Dopri54TimeStepper<S>::A_[7][6];
+template<class S>
+constexpr double Dopri54TimeStepper<S>::BA_[7];
+template<class S>
+constexpr double Dopri54TimeStepper<S>::BB_[7];
+template<class S>
+constexpr double Dopri54TimeStepper<S>::C_[7];
 
 }}
 
