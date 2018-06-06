@@ -16,7 +16,9 @@
 #define NETKET_ALLUTILS_HPP
 
 #include "json_utils.hpp"
+#include "math_helpers.hpp"
 #include "parallel_utils.hpp"
 #include "random_utils.hpp"
+#include "stopwatch.hpp"
 
 #endif

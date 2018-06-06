@@ -25,6 +25,7 @@
 #include "Observable/observable.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
+#include "UnitaryTimeEvolution/time_evolution.hpp"
 #include "Utils/all_utils.hpp"
 
 #endif

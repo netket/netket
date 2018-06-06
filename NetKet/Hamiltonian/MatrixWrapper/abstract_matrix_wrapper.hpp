@@ -42,6 +42,8 @@ public:
      * Returns the Hilbert space dimension corresponding to the Hamiltonian.
      */
     virtual int GetDimension() const = 0;
+
+    virtual ~AbstractMatrixWrapper() = default;
 };
 
 }

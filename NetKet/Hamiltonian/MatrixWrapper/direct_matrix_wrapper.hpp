@@ -74,4 +74,6 @@ public:
     }
 };
 
+}
+
 #endif //NETKET_DIRECT_HAMILTONIAN_OPERATOR_HPP
