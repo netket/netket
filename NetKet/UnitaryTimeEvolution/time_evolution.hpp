@@ -76,7 +76,7 @@ void RunTimeEvolution(const json& pars)
     auto driver = TimeEvolutionDriver::FromJson(pars);
 
     auto pars_te = FieldVal(pars, "TimeEvolution");
-    auto confs = FieldVal(pars, "InitialStates");
+    auto confs = FieldVal(pars_te, "InitialStates");
     if(confs.size() == 0)
     {
         std::cerr << "No configurations specified for time evolution" << std::endl;
