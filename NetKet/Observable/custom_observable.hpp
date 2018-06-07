@@ -34,10 +34,8 @@ class CustomObservable : public AbstractObservable {
                    const std::string &name)
       : hilbert_(hilbert), name_(name) {
     if (sites.size() != jop.size()) {
-      std::cerr << "The custom Observable definition is inconsistent:"
-                << std::endl;
-      std::cerr << "Check that ActingOn is defined" << std::endl;
-      std::abort();
+      throw InvalidInputError("The custom Observable definition is inconsistent: "
+                              "Check that ActingOn is defined");
     }
 
     for (std::size_t i = 0; i < jop.size(); i++) {

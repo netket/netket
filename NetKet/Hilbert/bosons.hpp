@@ -72,13 +72,11 @@ class Boson : public AbstractHilbert {
 
   void Init() {
     if (nsites_ <= 0) {
-      std::cerr << "Invalid number of sites" << std::endl;
-      std::abort();
+      throw InvalidInputError("Invalid number of sites");
     }
 
     if (nmax_ <= 0) {
-      std::cerr << "Invalid maximum occupation number" << std::endl;
-      std::abort();
+      throw InvalidInputError("Invalid maximum occupation number");
     }
 
     nstates_ = nmax_ + 1;
@@ -95,8 +93,7 @@ class Boson : public AbstractHilbert {
     nbosons_ = nbosons;
 
     if (nbosons_ > nsites_ * nmax_) {
-      std::cerr << "Cannot set the desired number of bosons" << std::endl;
-      std::abort();
+      throw InvalidInputError("Cannot set the desired number of bosons");
     }
   }
 

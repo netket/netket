@@ -12,30 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "netket.hpp"
-#include <mpi.h>
+#ifndef NETKET_EXCEPTIONS_HPP
+#define NETKET_EXCEPTIONS_HPP
 
-int main(int argc, char *argv[]) {
-  MPI_Init(&argc, &argv);
+#include <exception>
+#include <string>
 
-  netket::Welcome(argc);
+namespace netket {
 
-  try
-  {
-    auto pars = netket::ReadJsonFromFile(argv[1]);
-    netket::Learning learning(pars);
-  }
-  catch(const netket::InvalidInputError& e)
-  {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if(rank == 0) {
-      std::cerr << "Error: " << e.what() << "\nExiting." << std::endl;
+class NetketBaseException : public std::exception
+{
+    std::string message_;
+
+public:
+    explicit NetketBaseException(const std::string& message)
+        : message_(message)
+    {
     }
-  }
 
-  MPI_Barrier(MPI_COMM_WORLD);
-  MPI_Finalize();
+    const char* what() const noexcept override
+    {
+        return message_.c_str();
+    }
+};
 
-  return 0;
+class InvalidInputError : public NetketBaseException
+{
+public:
+    explicit InvalidInputError(const std::string& message)
+        : NetketBaseException(message)
+    {
+    }
+};
+
 }
+
+#endif // NETKET_EXCEPTIONS_HPP
