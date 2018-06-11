@@ -34,33 +34,27 @@ class Stepper : public AbstractStepper {
 
  public:
   explicit Stepper(const json &pars) {
-    if (!FieldExists(pars, "Learning")) {
-      std::cerr << "Learning is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckFieldExists(pars, "Learning");
+    const std::string stepper_name = FieldVal(pars["Learning"], "StepperType", "Learning");
 
-    if (!FieldExists(pars["Learning"], "StepperType")) {
-      std::cerr << "Stepper Type is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (pars["Learning"]["StepperType"] == "Sgd") {
+    if (stepper_name == "Sgd") {
       s_ = Ptype(new Sgd(pars));
-    } else if (pars["Learning"]["StepperType"] == "AdaMax") {
+    } else if (stepper_name == "AdaMax") {
       s_ = Ptype(new AdaMax(pars));
-    } else if (pars["Learning"]["StepperType"] == "AdaDelta") {
+    } else if (stepper_name == "AdaDelta") {
       s_ = Ptype(new AdaDelta(pars));
-    } else if (pars["Learning"]["StepperType"] == "Momentum") {
+    } else if (stepper_name == "Momentum") {
       s_ = Ptype(new Momentum(pars));
-    } else if (pars["Learning"]["StepperType"] == "AMSGrad") {
+    } else if (stepper_name == "AMSGrad") {
       s_ = Ptype(new AMSGrad(pars));
-    } else if (pars["Learning"]["StepperType"] == "AdaGrad") {
+    } else if (stepper_name == "AdaGrad") {
       s_ = Ptype(new AdaGrad(pars));
-    } else if (pars["Learning"]["StepperType"] == "RMSProp") {
+    } else if (stepper_name == "RMSProp") {
       s_ = Ptype(new RMSProp(pars));
     } else {
-      std::cout << "StepperType not found" << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown StepperType: " << stepper_name;
+      throw InvalidInputError(s.str());
     }
   }
 

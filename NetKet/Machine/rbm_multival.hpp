@@ -374,33 +374,22 @@ class RbmMultival : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     if (pars.at("Machine").at("Name") != "RbmMultival") {
-      if (mynode_ == 0) {
-        std::cerr << "# Error while constructing RbmMultival from Json input"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Error while constructing RbmMultival from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {
       nv_ = pars["Machine"]["Nvisible"];
     }
+
     if (nv_ != hilbert_.Size()) {
-      if (mynode_ == 0) {
-        std::cerr << "# Loaded wave-function has incompatible Hilbert space"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Loaded wave-function has incompatible Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "LocalSize")) {
       ls_ = pars["Machine"]["LocalSize"];
     }
     if (ls_ != hilbert_.LocalSize()) {
-      if (mynode_ == 0) {
-        std::cerr << "# Loaded wave-function has incompatible Hilbert space"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Loaded wave-function has incompatible Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "Nhidden")) {

@@ -16,6 +16,9 @@
 #define NETKET_CUSTOM_HAMILTONIAN_CC
 
 #include <vector>
+
+#include "Utils/json_helper.hpp"
+
 #include "local_operator.hpp"
 
 namespace netket {
@@ -27,38 +30,27 @@ class CustomHamiltonian : public AbstractHamiltonian {
  public:
   using MatType = LocalOperator::MatType;
 
-  explicit CustomHamiltonian(const json &pars) : hilbert_(pars) {
-    if (!FieldExists(pars["Hamiltonian"], "Operators")) {
-      std::cerr << "Local operators in the Hamiltonian are not defined"
-                << std::endl;
-      std::abort();
+  explicit CustomHamiltonian(const json &pars) : hilbert_(pars)
+  {
+    auto pars_hamiltonian = pars["Hamiltonian"];
+
+    CheckFieldExists(pars_hamiltonian, "Operators");
+    if (!pars_hamiltonian["Operators"].is_array()) {
+      throw InvalidInputError("Hamiltonian: Local operators is not an array");
     }
 
-    if (!pars["Hamiltonian"]["Operators"].is_array()) {
-      std::cerr << "Local operators is not an array" << std::endl;
-      std::abort();
+    CheckFieldExists(pars_hamiltonian, "ActingOn");
+    if (!pars_hamiltonian["ActingOn"].is_array()) {
+      throw InvalidInputError("Hamiltonian.ActingOn is not an array");
     }
 
-    if (!FieldExists(pars["Hamiltonian"], "ActingOn")) {
-      std::cerr << "Local operators support in the Hamiltonian is not defined"
-                << std::endl;
-      std::abort();
-    }
-
-    if (!pars["Hamiltonian"]["ActingOn"].is_array()) {
-      std::cerr << "ActingOn is not an array" << std::endl;
-      std::abort();
-    }
-
-    auto jop = pars["Hamiltonian"]["Operators"].get<std::vector<MatType>>();
+    auto jop = pars_hamiltonian["Operators"].get<std::vector<MatType>>();
     auto sites =
-        pars["Hamiltonian"]["ActingOn"].get<std::vector<std::vector<int>>>();
+        pars_hamiltonian["ActingOn"].get<std::vector<std::vector<int>>>();
 
     if (sites.size() != jop.size()) {
-      std::cerr << "The custom Hamiltonian definition is inconsistent:"
-                << std::endl;
-      std::cerr << "Check that ActingOn is defined" << std::endl;
-      std::abort();
+      throw InvalidInputError("The custom Hamiltonian definition is inconsistent: "
+                              "Check that ActingOn is defined");
     }
 
     for (std::size_t i = 0; i < jop.size(); i++) {

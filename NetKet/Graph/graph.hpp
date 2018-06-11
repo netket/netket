@@ -36,11 +36,13 @@ class Graph : public AbstractGraph {
     if (FieldExists(pars, "Graph")) {
       // Checking if we are using a graph in the hard-coded library
       if (FieldExists(pars["Graph"], "Name")) {
-        if (pars["Graph"]["Name"] == "Hypercube") {
+        std::string graph_name = pars["Graph"]["Name"];
+        if (graph_name == "Hypercube") {
           g_ = Ptype(new Hypercube(pars));
         } else {
-          std::cout << "Graph not found" << std::endl;
-          std::abort();
+          std::stringstream s;
+          s << "Unknown Graph type: " << graph_name;
+          throw InvalidInputError(s.str());
         }
       }
       // Otherwise using a user-defined graph

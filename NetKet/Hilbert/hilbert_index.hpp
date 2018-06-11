@@ -48,8 +48,7 @@ class HilbertIndex {
 
   void Init() {
     if (size_ * std::log(localsize_) > std::log(MaxStates)) {
-      std::cerr << "Hilbert space is too large to be indexed" << std::endl;
-      std::abort();
+      throw InvalidInputError("Hilbert space is too large to be indexed");
     }
 
     nstates_ = std::pow(localsize_, size_);

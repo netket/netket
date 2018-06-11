@@ -41,22 +41,20 @@ class CustomHilbert : public AbstractHilbert {
   explicit CustomHilbert(const json &pars) {
     if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
       if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
-        std::cerr << "QuantumNumbers is not an array" << std::endl;
-        std::abort();
+        throw InvalidInputError("QuantumNumbers is not an array");
       }
       local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
     } else {
-      std::cerr << "QuantumNumbers are not defined" << std::endl;
+      throw InvalidInputError("QuantumNumbers are not defined");
     }
 
     if (FieldExists(pars["Hilbert"], "Size")) {
       size_ = pars["Hilbert"]["Size"];
       if (size_ <= 0) {
-        std::cerr << "Hilbert Size parameter must be positive" << std::endl;
-        std::abort();
+        throw InvalidInputError("Hilbert Size parameter must be positive");
       }
     } else {
-      std::cerr << "Hilbert space extent is not defined" << std::endl;
+      throw InvalidInputError("Hilbert space extent is not defined");
     }
 
     nstates_ = local_.size();

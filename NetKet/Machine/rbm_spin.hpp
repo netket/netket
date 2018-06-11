@@ -347,23 +347,15 @@ class RbmSpin : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     if (pars.at("Machine").at("Name") != "RbmSpin") {
-      if (mynode_ == 0) {
-        std::cerr << "# Error while constructing RbmSpin from Json input"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Error while constructing RbmSpin from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {
       nv_ = pars["Machine"]["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
-      if (mynode_ == 0) {
-        std::cerr << "# Number of visible units is incompatible with given "
-                     "Hilbert space"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Number of visible units is incompatible with given "
+                              "Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "Nhidden")) {

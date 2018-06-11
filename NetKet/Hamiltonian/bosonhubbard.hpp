@@ -19,6 +19,10 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+
+#include "Utils/exceptions.hpp"
+#include "Utils/json_helper.hpp"
+
 #include "abstract_hamiltonian.hpp"
 
 namespace netket {
@@ -50,32 +54,13 @@ class BoseHubbard : public AbstractHamiltonian {
  public:
   // Json constructor
   explicit BoseHubbard(const G &graph, const json &pars)
-      : nsites_(graph.Nsites()), graph_(graph) {
-    if (FieldExists(pars["Hamiltonian"], "Nmax")) {
-      nmax_ = pars["Hamiltonian"]["Nmax"];
-    } else {
-      std::cerr << "Nmax is not specified for bosons" << std::endl;
-      std::abort();
-    }
+      : nsites_(graph.Nsites()), graph_(graph)
+  {
+    nmax_ = FieldVal(pars["Hamiltonian"], "Nmax", "Hamiltonian");
+    U_ = FieldVal(pars["Hamiltonian"], "U", "Hamiltonian");
 
-    if (FieldExists(pars["Hamiltonian"], "U")) {
-      U_ = pars["Hamiltonian"]["U"];
-    } else {
-      std::cerr << "U interaction is not specified" << std::endl;
-      std::abort();
-    }
-
-    if (FieldExists(pars["Hamiltonian"], "V")) {
-      V_ = pars["Hamiltonian"]["V"];
-    } else {
-      V_ = 0;
-    }
-
-    if (FieldExists(pars["Hamiltonian"], "Mu")) {
-      mu_ = pars["Hamiltonian"]["Mu"];
-    } else {
-      mu_ = 0;
-    }
+    V_ = FieldOrDefaultVal(pars["Hamiltonian"], "V", .0);
+    mu_ = FieldOrDefaultVal(pars["Hamiltonian"], "Mu", .0);
 
     Init();
 
