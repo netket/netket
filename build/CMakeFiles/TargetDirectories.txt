@@ -1,0 +1,7 @@
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/install/local.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/install/strip.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/install.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/netket.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/list_install_components.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/rebuild_cache.dir
+/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/CMakeFiles/edit_cache.dir

@@ -74,14 +74,7 @@ add_executable(netket ${NETKET_SOURCES})
 target_link_libraries(netket  ${MPI_LIBRARIES})
 
 
-##testing
 
-include(CTest) #adds option BUILD_TESTING (default ON)
-
-if(BUILD_TESTING)
-   enable_testing()
-   add_subdirectory(Test)
-endif()
 
 ##installing
 install (TARGETS netket DESTINATION bin)
