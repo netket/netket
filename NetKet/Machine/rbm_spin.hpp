@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "Lookup/lookup.hpp"
+#include "Utils/all_utils.hpp"
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
-#include "Utils/all_utils.hpp"
 
 #ifndef NETKET_RBM_SPIN_HPP
 #define NETKET_RBM_SPIN_HPP
@@ -26,8 +26,7 @@ namespace netket {
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
  *
  */
-template <typename T>
-class RbmSpin : public AbstractMachine<T> {
+template <typename T> class RbmSpin : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
@@ -61,7 +60,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
- public:
+public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
@@ -231,7 +230,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -239,9 +238,10 @@ class RbmSpin : public AbstractMachine<T> {
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
-  VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
+  VectorType
+  LogValDiff(const Eigen::VectorXd &v,
+             const std::vector<std::vector<int>> &tochange,
+             const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
@@ -395,6 +395,6 @@ class RbmSpin : public AbstractMachine<T> {
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

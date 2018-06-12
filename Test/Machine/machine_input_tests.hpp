@@ -1,8 +1,8 @@
 
+#include "Utils/json_utils.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
-#include "Utils/json_utils.hpp"
 
 std::vector<netket::json> GetMachineInputs() {
   std::vector<netket::json> input_tests;
@@ -19,6 +19,14 @@ std::vector<netket::json> GetMachineInputs() {
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 2.0}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
+  // Heisenberg 1d with fully connected FFNN
+
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "FFNN"}, {"Layer Sizes", {20,20}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 

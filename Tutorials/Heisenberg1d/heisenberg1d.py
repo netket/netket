@@ -34,8 +34,9 @@ pars['Hamiltonian']={
 
 #defining the wave function
 pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
+    'Name'           : 'FFNN',
     'Alpha'          : 1.0,
+    'Layer Sizes'    : [20,20]
 }
 
 #defining the sampler
@@ -54,7 +55,8 @@ pars['Learning']={
     'Diagshift'      : 0.1,
     'UseIterative'   : False,
     'OutputFile'     : 'test',
-    'StepperType'    : 'AdaMax',
+    'StepperType'    : 'Sgd',
+    'LearningRate'   : 0.01,
 }
 
 json_file="heisenberg1d.json"

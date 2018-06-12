@@ -19,9 +19,15 @@
 #include <memory>
 
 #include "abstract_machine.hpp"
+#include "abstract_layer.hpp"
+#include "activations.hpp"
+#include "fullconn_layer.hpp"
+#include "layer.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
+#include "ffnn.hpp"
+
 
 namespace netket {
 
@@ -77,6 +83,8 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN"){
+      m_ = Ptype(new FFNN<T>(hilbert, pars));
     }
   }
 
@@ -135,7 +143,7 @@ class Machine : public AbstractMachine<T> {
       std::abort();
     }
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
+    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival", "FFNN"};
 
     const auto name = pars["Machine"]["Name"];
 
@@ -175,7 +183,7 @@ class Machine : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     return m_->LogVal(v, lt);
   }
 

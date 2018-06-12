@@ -84,7 +84,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(const Eigen::VectorXd &v, LookupType &lt) = 0;
+  virtual T LogVal(const Eigen::VectorXd &v, const LookupType &lt) = 0;
 
   /**
   Member function initializing the look-up tables.

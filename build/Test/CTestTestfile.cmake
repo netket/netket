@@ -1,0 +1,38 @@
+# CMake generated Testfile for 
+# Source directory: /Users/kennychoo/Documents/UZH/Neural_Networks/netket/Test
+# Build directory: /Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test
+# 
+# This file includes the relevant testing commands required for 
+# testing this directory and lists subdirectories to be tested as well.
+add_test(test-graph_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-graph")
+set_tests_properties(test-graph_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-graph_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-graph" "*")
+set_tests_properties(test-graph_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-hamiltonian_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-hamiltonian")
+set_tests_properties(test-hamiltonian_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-hamiltonian_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-hamiltonian" "*")
+set_tests_properties(test-hamiltonian_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-matrixwrapper_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-matrixwrapper")
+set_tests_properties(test-matrixwrapper_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-matrixwrapper_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-matrixwrapper" "*")
+set_tests_properties(test-matrixwrapper_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-hilbert_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-hilbert")
+set_tests_properties(test-hilbert_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-hilbert_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-hilbert" "*")
+set_tests_properties(test-hilbert_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-machine_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-machine")
+set_tests_properties(test-machine_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-machine_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-machine" "*")
+set_tests_properties(test-machine_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-observable_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-observable")
+set_tests_properties(test-observable_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-observable_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-observable" "*")
+set_tests_properties(test-observable_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-sampler_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-sampler")
+set_tests_properties(test-sampler_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-sampler_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-sampler" "*")
+set_tests_properties(test-sampler_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-stats_default "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-stats")
+set_tests_properties(test-stats_default PROPERTIES  LABELS "default" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
+add_test(test-stats_all "/Users/kennychoo/Documents/UZH/Neural_Networks/netket/build/Test/test-stats" "*")
+set_tests_properties(test-stats_all PROPERTIES  LABELS "all" WORKING_DIRECTORY "/Users/kennychoo/Documents/UZH/Neural_Networks/netket")
