@@ -39,5 +39,5 @@ ehthumbs.db
 Thumbs.db
 
 # Run and Build Directories
-./run/
-./build/
+run/
+build/
