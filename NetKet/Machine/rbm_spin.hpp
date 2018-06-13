@@ -231,7 +231,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
