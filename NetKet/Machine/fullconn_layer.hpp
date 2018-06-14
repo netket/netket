@@ -26,9 +26,6 @@
 
 namespace netket {
 
-using namespace std;
-using namespace Eigen;
-
 template <typename Activation, typename T>
 class FullyConnected : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
@@ -48,6 +45,7 @@ class FullyConnected : public AbstractLayer<T> {
                       // previous layer
 
   int mynode_;
+
 public:
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
@@ -55,8 +53,17 @@ public:
   /// Constructor
   FullyConnected(int input_size, int output_size)
       : in_size_(input_size), out_size_(output_size) {
+
     Init();
   }
+
+  FullyConnected(const json &pars, int i) {
+    in_size_ = pars["Machine"]["Layers"][i]["Inputs"];
+    out_size_ = pars["Machine"]["Layers"][i]["Outputs"];
+
+    Init();
+  }
+
   void Init() {
     weight_.resize(in_size_, out_size_);
     bias_.resize(out_size_);
@@ -67,7 +74,8 @@ public:
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (mynode_ == 0) {
-      std::cout << ": Fully Connected Layer " << in_size_ << " --> " << out_size_ << std::endl;
+      std::cout << ": Fully Connected Layer " << in_size_ << " --> "
+                << out_size_ << std::endl;
     }
   }
 
@@ -117,14 +125,14 @@ public:
     }
   }
 
-  void InitLookup(const VectorXd &v, LookupType &lt) override {
+  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(out_size_);
     }
     lt.V(0) = (weight_.transpose() * v + bias_);
   }
 
-  void UpdateLookup(const VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -147,7 +155,8 @@ public:
   }
 
   // Using lookup
-  void Forward(const VectorType &prev_layer_data, const LookupType &lt) override {
+  void Forward(const VectorType &prev_layer_data,
+               const LookupType &lt) override {
     z_.resize(out_size_);
     z_ = lt.V(0);
     // Apply activation function
