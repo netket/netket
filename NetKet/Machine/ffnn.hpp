@@ -46,7 +46,7 @@ public:
 
   // constructor
   explicit FFNN(const Hilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
+      : nv_(hilbert.Size()), hilbert_(hilbert) {
     from_json(pars);
   }
 
@@ -64,16 +64,16 @@ public:
         std::cout << "# Layer " << i + 1;
       }
 
-      layersizes_.push_back(pars["Machine"]["Layers"][i]["Outputs"]);
+      layers_.push_back(
+          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(pars, i)));
 
-      if (layersizes_[i] != pars["Machine"]["Layers"][i]["Inputs"]) {
+      layersizes_.push_back(layers_.back()->Noutput());
+
+      if (layersizes_[i] != layers_.back()->Ninput()) {
         std::cerr << "Error: input/output layer sizes do not match"
                   << std::endl;
         std::abort();
       }
-
-      layers_.push_back(
-          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(pars, i)));
     }
 
     // Check that final layer has only 1 unit otherwise add unit identity layer
@@ -95,9 +95,8 @@ public:
   void Init() {
 
     npar_ = 0;
-    for (int i = 0; i < depth_ - 1; ++i) {
-      npar_ += layersizes_[i + 1];
-      npar_ += layersizes_[i + 1] * layersizes_[i];
+    for (int i = 0; i < nlayer_; ++i) {
+      npar_ += layers_[i]->Npar();
     }
 
     if (mynode_ == 0) {
@@ -107,6 +106,7 @@ public:
       }
       std::cout << layersizes_[depth_ - 1];
       std::cout << std::endl;
+      std::cout << "# Total Number of Parameters = " << npar_ << std::endl;
     }
   }
 
