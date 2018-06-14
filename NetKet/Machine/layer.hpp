@@ -92,6 +92,6 @@ public:
   void GetDerivative(VectorType &der, int start_idx) override {
     return m_->GetDerivative(der, start_idx);
   }
-}; // namespace netket
+}; 
 } // namespace netket
 #endif

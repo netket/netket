@@ -26,7 +26,14 @@ std::vector<netket::json> GetMachineInputs() {
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine", {{"Name", "FFNN"}, {"Layer Sizes", {20,20}}}},
+          {"Machine",
+           {{"Name", "FFNN"},
+            {"Layers",
+             {{{"Name", "FullyConnected"},
+               {"Inputs", 20},
+               {"Outputs" , 20},
+               {"Activation", "Lncosh"}}}
+             }}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 

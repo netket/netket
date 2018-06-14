@@ -37,8 +37,9 @@ public:
   using StateType = T;
   using LookupType = Lookup<T>;
 
-  // AbstractLayer(const int in_size, const int out_size)
-  //     : m_in_size(in_size), m_out_size(out_size) {}
+  virtual int Ninput() const = 0;
+
+  virtual int Noutput() const = 0;
 
   virtual int Npar() const = 0;
 
@@ -47,10 +48,6 @@ public:
   virtual void SetParameters(const VectorType &pars, int start_idx) = 0;
 
   virtual void InitRandomPars(int seed, double sigma) = 0;
-
-  virtual int Ninput() const = 0;
-
-  virtual int Noutput() const = 0;
 
   virtual void InitLookup(const Eigen::VectorXd &v, LookupType &lt) = 0;
 
@@ -61,7 +58,8 @@ public:
 
   virtual void Forward(const VectorType &prev_layer_data) = 0;
 
-  virtual void Forward(const VectorType &prev_layer_data, const LookupType &lt) = 0;
+  virtual void Forward(const VectorType &prev_layer_data,
+                       const LookupType &lt) = 0;
 
   virtual VectorType Output() const = 0;
 

@@ -31,6 +31,10 @@ class FullyConnected : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
   using MatrixType = typename AbstractLayer<T>::MatrixType;
 
+  Activation activation_; // activation function class
+
+  bool usebias_;
+
   int in_size_;       // input size
   int out_size_;      // output size
   int npar_;          // number of parameters in layer
@@ -51,15 +55,18 @@ public:
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  FullyConnected(int input_size, int output_size)
-      : in_size_(input_size), out_size_(output_size) {
+  FullyConnected(const int input_size, const int output_size,
+                 const bool use_bias = true)
+      : activation_(), in_size_(input_size), out_size_(output_size),
+        usebias_(use_bias) {
 
     Init();
   }
 
-  FullyConnected(const json &pars, int i) {
+  FullyConnected(const json &pars, int i) : activation_() {
     in_size_ = pars["Machine"]["Layers"][i]["Inputs"];
     out_size_ = pars["Machine"]["Layers"][i]["Outputs"];
+    usebias_ = FieldOrDefaultVal(pars["Machine"]["Layers"][i], "UseBias", true);
 
     Init();
   }
@@ -69,13 +76,21 @@ public:
     bias_.resize(out_size_);
     dw_.resize(in_size_, out_size_);
     db_.resize(out_size_);
-    npar_ = in_size_ * out_size_ + out_size_;
+
+    npar_ = in_size_ * out_size_;
+
+    if (usebias_) {
+      npar_ += out_size_;
+    } else {
+      bias_.setZero();
+    }
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (mynode_ == 0) {
       std::cout << ": Fully Connected Layer " << in_size_ << " --> "
                 << out_size_ << std::endl;
+      std::cout << "# # UseBias = " << usebias_ << std::endl;
     }
   }
 
@@ -96,9 +111,11 @@ public:
   void GetParameters(VectorType &pars, int start_idx) override {
     int k = start_idx;
 
-    for (int i = 0; i < out_size_; ++i) {
-      pars(k) = bias_(i);
-      ++k;
+    if (usebias_) {
+      for (int i = 0; i < out_size_; ++i) {
+        pars(k) = bias_(i);
+        ++k;
+      }
     }
 
     for (int i = 0; i < in_size_; ++i) {
@@ -112,9 +129,11 @@ public:
   void SetParameters(const VectorType &pars, int start_idx) override {
     int k = start_idx;
 
-    for (int i = 0; i < out_size_; ++i) {
-      bias_(i) = pars(k);
-      ++k;
+    if (usebias_) {
+      for (int i = 0; i < out_size_; ++i) {
+        bias_(i) = pars(k);
+        ++k;
+      }
     }
 
     for (int i = 0; i < in_size_; ++i) {
@@ -136,7 +155,7 @@ public:
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
-      for (int s = 0; s < tochange.size(); s++) {
+      for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
         lt.V(0) += weight_.row(sf) * (newconf[s] - v(sf));
       }
@@ -151,7 +170,7 @@ public:
 
     // Apply activation function
     a_.resize(out_size_);
-    Activation::activate(z_, a_);
+    activation_.activate(z_, a_);
   }
 
   // Using lookup
@@ -161,7 +180,7 @@ public:
     z_ = lt.V(0);
     // Apply activation function
     a_.resize(out_size_);
-    Activation::activate(z_, a_);
+    activation_.activate(z_, a_);
   }
 
   VectorType Output() const override { return a_; }
@@ -175,14 +194,16 @@ public:
     // The Jacobian matrix J = d(a) / d(z) is determined by the activation
     // function
     VectorType &dLz = z_;
-    Activation::apply_jacobian(z_, a_, next_layer_data, dLz);
+    activation_.apply_jacobian(z_, a_, next_layer_data, dLz);
 
     // Now dLz contains d(L) / d(z)
     // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
     dw_.noalias() = prev_layer_data * dLz.transpose();
 
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
-    db_.noalias() = dLz;
+    if (usebias_) {
+      db_.noalias() = dLz;
+    }
 
     // Compute d(L) / d_in = W * [d(L) / d(z)]
     din_.resize(in_size_);
@@ -193,10 +214,14 @@ public:
 
   void GetDerivative(VectorType &der, int start_idx) override {
     int k = start_idx;
-    for (int i = 0; i < out_size_; ++i) {
-      der(k) = db_(i);
-      ++k;
+
+    if (usebias_) {
+      for (int i = 0; i < out_size_; ++i) {
+        der(k) = db_(i);
+        ++k;
+      }
     }
+
     for (int i = 0; i < in_size_; ++i) {
       for (int j = 0; j < out_size_; ++j) {
         der(k) = dw_(i, j);
