@@ -29,20 +29,14 @@ public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit Layer(const json &pars) {
-    Init(pars);
-  }
+  explicit Layer(const json &pars, int i) { Init(pars, i); }
 
-  void Init(const json &pars) {
-    if (pars["Layer"]["Name"] == "FullyConnected") {
-      int nin = pars["Layers"]["Inputs"];
-      int nout = pars["Layers"]["Outputs"];
-      if (pars["Layer"]["Activation"] == "Lncosh") {
-        m_ = Ptype(new FullyConnected<Lncosh, T>(nin, nout));
-      } else if (pars["Layer"]["Activation"] == "Identity") {
-        m_ = Ptype(new FullyConnected<Identity, T>(nin, nout));
-      } else {
-        m_ = Ptype(new FullyConnected<Identity, T>(nin, nout));
+  void Init(const json &pars, int i) {
+    if (pars["Machine"]["Layers"][i]["Name"] == "FullyConnected") {
+      if (pars["Machine"]["Layers"][i]["Activation"] == "Lncosh") {
+        m_ = Ptype(new FullyConnected<Lncosh, T>(pars, i));
+      } else if (pars["Machine"]["Layers"][i]["Activation"] == "Identity") {
+        m_ = Ptype(new FullyConnected<Identity, T>(pars, i));
       }
     }
   }
@@ -87,7 +81,7 @@ public:
   VectorType Output() const override { return m_->Output(); }
 
   void Backprop(const VectorType &prev_layer_data,
-           const VectorType &next_layer_data) override {
+                const VectorType &next_layer_data) override {
     return m_->Backprop(prev_layer_data, next_layer_data);
   }
 
@@ -98,6 +92,6 @@ public:
   void GetDerivative(VectorType &der, int start_idx) override {
     return m_->GetDerivative(der, start_idx);
   }
-};
+}; // namespace netket
 } // namespace netket
 #endif

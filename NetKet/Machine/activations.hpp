@@ -9,6 +9,16 @@
 
 namespace netket {
 
+// class AbstractActivation {
+// public:
+//   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+//
+//   virtual inline void activate(const VectorType &Z, VectorType &A) = 0;
+//   virtual inline void apply_jacobian(const VectorType &Z, const VectorType
+//   &A,
+//                                      const VectorType &F, VectorType &G) = 0;
+// };
+
 class Identity {
 private:
   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
@@ -16,7 +26,7 @@ private:
 public:
   // a = activation(z) = z
   // Z = [z1, ..., zn], A = [a1, ..., an], n observations
-  static inline void activate(const VectorType &Z, VectorType &A) {
+  inline static void activate(const VectorType &Z, VectorType &A) {
     A.noalias() = Z;
   }
 
@@ -25,7 +35,7 @@ public:
   // g = J * f = f
   // Z = [z1, ..., zn], G = [g1, ..., gn], F = [f1, ..., fn]
   // Note: When entering this function, Z and G may point to the same matrix
-  static inline void apply_jacobian(const VectorType &Z, const VectorType &A,
+  inline static void apply_jacobian(const VectorType &Z, const VectorType &A,
                                     const VectorType &F, VectorType &G) {
     G.noalias() = F;
   }
@@ -39,7 +49,7 @@ private:
 public:
   // a = activation(z) = z
   // Z = [z1, ..., zn], A = [a1, ..., an], n observations
-  static inline void activate(const VectorType &Z, VectorType &A) {
+  inline static void activate(const VectorType &Z, VectorType &A) {
     for (int i = 0; i < A.size(); ++i) {
       A(i) = std::log(std::cosh(Z(i)));
     }
@@ -50,13 +60,39 @@ public:
   // g = J * f = f
   // Z = [z1, ..., zn], G = [g1, ..., gn], F = [f1, ..., fn]
   // Note: When entering this function, Z and G may point to the same matrix
-  static inline void apply_jacobian(const VectorType &Z, const VectorType &A,
+  inline static void apply_jacobian(const VectorType &Z, const VectorType &A,
                                     const VectorType &F, VectorType &G) {
     for (int i = 0; i < G.size(); ++i) {
-      G(i) = F(i)*std::tanh(Z(i));
+      G(i) = F(i) * std::tanh(Z(i));
     }
   }
 };
+
+// class Activation : public AbstractActivation {
+//   using Ptype = std::unique_ptr<AbstractActivation>;
+//
+//   Ptype m_;
+//
+// public:
+//   explicit Activation(const json &pars) {
+//     if (pars["Name"] == "Identity") {
+//       m_ = Ptype(new Identity());
+//     } else if (pars["Name"] == "Lncosh") {
+//       m_ = Ptype(new Lncosh());
+//     }
+//   }
+//
+//   virtual inline void activate(const VectorType &Z, VectorType &A) override {
+//     return m_->activate(Z, A);
+//   }
+//
+//   virtual inline void apply_jacobian(const VectorType &Z, const VectorType
+//   &A,
+//                                      const VectorType &F,
+//                                      VectorType &G) override {
+//     return m_->apply_jacobian(Z, A, F, G);
+//   }
+// };
 
 } // namespace netket
 

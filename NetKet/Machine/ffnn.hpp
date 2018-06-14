@@ -23,9 +23,6 @@
 
 namespace netket {
 
-using namespace std;
-using namespace Eigen;
-
 template <typename T> class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
@@ -37,6 +34,7 @@ template <typename T> class FFNN : public AbstractMachine<T> {
   int depth_;
   int nlayer_;
   int npar_;
+  int nv_;
 
   int mynode_;
 
@@ -47,56 +45,69 @@ public:
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit FFNN(const Hilbert &hilbert, const json &pars) : hilbert_(hilbert) {
+  explicit FFNN(const Hilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
     from_json(pars);
   }
 
   void from_json(const json &pars) override {
-    if (FieldExists(pars["Machine"], "Layer Sizes")) {
-      FieldArray(pars["Machine"], "Layer Sizes", layersizes_);
-      depth_ = layersizes_.size();
+
+    nlayer_ = pars["Machine"]["Layers"].size();
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    // Initialise Layers
+    layersizes_.push_back(nv_);
+    for (int i = 0; i < nlayer_; ++i) {
+
+      if (mynode_ == 0) {
+        std::cout << "# Layer " << i + 1;
+      }
+
+      layersizes_.push_back(pars["Machine"]["Layers"][i]["Outputs"]);
+
+      if (layersizes_[i] != pars["Machine"]["Layers"][i]["Inputs"]) {
+        std::cerr << "Error: input/output layer sizes do not match"
+                  << std::endl;
+        std::abort();
+      }
+
+      layers_.push_back(
+          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(pars, i)));
     }
 
-    Init(pars);
+    // Check that final layer has only 1 unit otherwise add unit identity layer
+    if (layersizes_.back() != 1) {
+      nlayer_ += 1;
+      if (mynode_ == 0) {
+        std::cout << "# Layer " << nlayer_;
+      }
+      layers_.push_back(std::unique_ptr<FullyConnected<Identity, T>>(
+          new FullyConnected<Identity, T>(layersizes_.back(), 1)));
+
+      layersizes_.push_back(1);
+    }
+    depth_ = layersizes_.size();
+
+    Init();
   }
 
-  void Init(const json &pars) {
-
-    layersizes_.push_back(1);
-    nlayer_ = depth_;
-    depth_ += 1;
+  void Init() {
 
     npar_ = 0;
     for (int i = 0; i < depth_ - 1; ++i) {
       npar_ += layersizes_[i + 1];
       npar_ += layersizes_[i + 1] * layersizes_[i];
     }
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (mynode_ == 0) {
-      cout << "# FFNN Initizialized with " << nlayer_ << " Layers: ";
+      std::cout << "# FFNN Initizialized with " << nlayer_ << " Layers: ";
       for (int i = 0; i < depth_ - 1; ++i) {
-        cout << layersizes_[i] << " -> ";
+        std::cout << layersizes_[i] << " -> ";
       }
-      cout << layersizes_[depth_ - 1];
-      cout << endl;
+      std::cout << layersizes_[depth_ - 1];
+      std::cout << std::endl;
     }
-    // Initialise Layers
-    for (int i = 0; i < nlayer_ - 1; ++i) {
-      if (mynode_ == 0) {
-        cout << "# Layer " << i + 1;
-      }
-      layers_.push_back(std::unique_ptr<FullyConnected<Lncosh, T>>(
-          new FullyConnected<Lncosh, T>(layersizes_[i], layersizes_[i + 1])));
-    }
-    // identity output layer
-    if (mynode_ == 0) {
-      cout << "# Layer " << nlayer_;
-    }
-    layers_.push_back(std::unique_ptr<FullyConnected<Identity, T>>(
-        new FullyConnected<Identity, T>(layersizes_[depth_ - 2], 1)));
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
   }
 
   int Nvisible() const override { return layersizes_[0]; }
@@ -127,16 +138,17 @@ public:
     }
   }
 
-  void InitLookup(const VectorXd &v, LookupType &lt) override {
+  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
     layers_[0]->InitLookup(v, lt);
   }
 
-  void UpdateLookup(const VectorXd &v, const vector<int> &tochange,
-                    const vector<double> &newconf, LookupType &lt) override {
+  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override {
     layers_[0]->UpdateLookup(v, tochange, newconf, lt);
   }
 
-  T LogVal(const VectorXd &v) override {
+  T LogVal(const Eigen::VectorXd &v) override {
     // First layer
     layers_[0]->Forward(v);
     // The following layers
@@ -146,7 +158,7 @@ public:
     return (layers_.back()->Output())(0);
   }
 
-  T LogVal(const VectorXd &v, const LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     // First layer
     layers_[0]->Forward(v, lt);
     // The following layers
@@ -156,7 +168,7 @@ public:
     return (layers_.back()->Output())(0);
   }
 
-  VectorType DerLog(const VectorXd &v) override {
+  VectorType DerLog(const Eigen::VectorXd &v) override {
     VectorType der(npar_);
     int start_idx = 0;
 
@@ -188,8 +200,10 @@ public:
     return der;
   }
 
-  VectorType LogValDiff(const VectorXd &v, const vector<vector<int>> &tochange,
-                        const vector<vector<double>> &newconf) override {
+  VectorType
+  LogValDiff(const Eigen::VectorXd &v,
+             const std::vector<std::vector<int>> &tochange,
+             const std::vector<std::vector<double>> &newconf) override {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
@@ -212,8 +226,9 @@ public:
     return logvaldiffs;
   }
 
-  T LogValDiff(const VectorXd &v, const vector<int> &tochange,
-               const vector<double> &newconf, const LookupType &lt) override {
+  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+               const std::vector<double> &newconf,
+               const LookupType &lt) override {
     if (tochange.size() != 0) {
       T current_val = LogVal(v, lt);
 

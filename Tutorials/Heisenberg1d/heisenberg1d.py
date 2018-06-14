@@ -35,8 +35,8 @@ pars['Hamiltonian']={
 #defining the wave function
 pars['Machine']={
     'Name'           : 'FFNN',
-    'Alpha'          : 1.0,
-    'Layer Sizes'    : [20,20]
+    'Alpha'          : 1,
+    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20, 'Activation':'Lncosh'}],
 }
 
 #defining the sampler
@@ -51,7 +51,7 @@ pars['Sampler']={
 pars['Learning']={
     'Method'         : 'Sr',
     'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 4000,
+    'NiterOpt'       : 100,
     'Diagshift'      : 0.1,
     'UseIterative'   : False,
     'OutputFile'     : 'test',
