@@ -34,7 +34,7 @@ pars['Hamiltonian']={
 
 #defining the wave function
 pars['Machine']={
-    'Name'           : 'FFNN',
+    'Name'           : 'RbmSpin',
     'Alpha'          : 1,
     'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20, 'Activation':'Lncosh'}],
 }
