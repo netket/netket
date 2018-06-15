@@ -181,18 +181,17 @@ class FullyConnected : public AbstractLayer<T> {
 
     // Apply activation function
     a_.resize(out_size_);
-    activation_.activate(z_, a_);
+    activation_.Activate(z_, a_);
   }
 
   // Using lookup
-  void Forward(const VectorType &prev_layer_data,
+  void Forward(const VectorType & /*prev_layer_data*/,
                const LookupType &lt) override {
     z_.resize(out_size_);
     z_ = lt.V(0);
     // Apply activation function
     a_.resize(out_size_);
-    activation_.activate(z_, a_);
-    (void)prev_layer_data;
+    activation_.Activate(z_, a_);
   }
 
   VectorType Output() const override { return a_; }
@@ -205,7 +204,7 @@ class FullyConnected : public AbstractLayer<T> {
     // The Jacobian matrix J = d(a) / d(z) is determined by the activation
     // function
     VectorType &dLz = z_;
-    activation_.apply_jacobian(z_, a_, next_layer_data, dLz);
+    activation_.ApplyJacobian(z_, a_, next_layer_data, dLz);
 
     // Now dLz contains d(L) / d(z)
     // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
@@ -221,7 +220,7 @@ class FullyConnected : public AbstractLayer<T> {
     din_.noalias() = weight_ * dLz;
   }
 
-  const VectorType &Backprop_data() const override { return din_; }
+  const VectorType &BackpropData() const override { return din_; }
 
   void GetDerivative(VectorType &der, int start_idx) override {
     int k = start_idx;
