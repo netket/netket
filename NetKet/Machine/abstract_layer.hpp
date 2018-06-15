@@ -73,6 +73,8 @@ class AbstractLayer {
   virtual const VectorType &Backprop_data() const = 0;
 
   virtual void GetDerivative(VectorType &der, int start_idx) = 0;
+
+  virtual ~AbstractLayer() {}
 };
 }  // namespace netket
 

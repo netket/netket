@@ -53,8 +53,13 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    auto layers_par = pars["Machine"]["Layers"];
-    nlayer_ = layers_par.size();
+    if (FieldExists(pars["Machine"], "Layers")) {
+      auto layers_par = pars["Machine"]["Layers"];
+      nlayer_ = layers_par.size();
+    } else {
+      throw InvalidInputError(
+          "Error: Field (Layers) not defined for Machine (FFNN)");
+    }
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
