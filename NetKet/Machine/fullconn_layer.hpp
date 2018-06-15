@@ -64,7 +64,7 @@ class FullyConnected : public AbstractLayer<T> {
     Init();
   }
 
-  FullyConnected(const json &pars) : activation_() {
+  explicit FullyConnected(const json &pars) : activation_() {
     if (FieldExists(pars, "Inputs")) {
       in_size_ = pars["Inputs"];
     } else {
