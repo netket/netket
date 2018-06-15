@@ -26,8 +26,6 @@ class Layer : public AbstractLayer<T> {
 
   Ptype m_;
 
-  int mynode_;
-
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
