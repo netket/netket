@@ -92,17 +92,8 @@ class Sampler : public AbstractSampler<WfType> {
     int mynode;
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
 
-    if (!FieldExists(pars, "Sampler")) {
-      if (mynode == 0)
-        std::cerr << "Sampler is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (!FieldExists(pars["Sampler"], "Name")) {
-      if (mynode == 0)
-        std::cerr << "Sampler Name is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckFieldExists(pars, "Sampler");
+    CheckFieldExists(pars["Sampler"], "Name");
 
     std::set<std::string> samplers = {
         "MetropolisLocal",       "MetropolisLocalPt",
@@ -113,8 +104,9 @@ class Sampler : public AbstractSampler<WfType> {
     const auto name = pars["Sampler"]["Name"];
 
     if (samplers.count(name) == 0) {
-      std::cerr << "Sampler " << name << " not found." << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown Sampler.Name: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 

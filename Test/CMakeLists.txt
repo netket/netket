@@ -54,8 +54,15 @@ add_library(catch_main OBJECT
 )
 
 
-file(GLOB TEST_SOURCES Graph/*.cc Hamiltonian/*.cc Hilbert/*.cc Machine/*.cc)
-file(GLOB TEST_SOURCES ${TEST_SOURCES} Observable/*.cc Sampler/*.cc Stats/*.cc)
+file(GLOB TEST_SOURCES
+    Graph/*.cc
+    Hamiltonian/*.cc
+    Hilbert/*.cc
+    Machine/*.cc
+    Observable/*.cc
+    Sampler/*.cc
+    Stats/*.cc
+    Utils/*.cpp)
 
 foreach(file ${TEST_SOURCES})
    get_filename_component(file_basename ${file} NAME_WE)

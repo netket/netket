@@ -57,15 +57,12 @@ class LocalOperator {
 
   void Init() {
     if (!hilbert_.IsDiscrete()) {
-      std::cerr << "Cannot construct operators on infinite local hilbert spaces"
-                << std::endl;
-      std::abort();
+      throw InvalidInputError("Cannot construct operators on infinite local hilbert spaces");
     }
 
     if (*std::max_element(sites_.begin(), sites_.end()) >= hilbert_.Size() ||
         *std::min_element(sites_.begin(), sites_.end()) < 0) {
-      std::cerr << "Operator acts on an invalid set of sites" << std::endl;
-      std::abort();
+      throw InvalidInputError("Operator acts on an invalid set of sites");
     }
 
     auto localstates = hilbert_.LocalStates();
@@ -77,18 +74,13 @@ class LocalOperator {
     connected_.resize(mat_.size());
 
     if (mat_.size() != std::pow(localsize_, sites_.size())) {
-      std::cerr << "Matrix size in operator is inconsistent with Hilbert space"
-                << std::endl;
-      std::abort();
+      throw InvalidInputError("Matrix size in operator is inconsistent with Hilbert space");
     }
 
     for (std::size_t i = 0; i < mat_.size(); i++) {
       for (std::size_t j = 0; j < mat_[i].size(); j++) {
         if (mat_.size() != mat_[i].size()) {
-          std::cerr
-              << "Matrix size in operator is inconsistent with Hilbert space"
-              << std::endl;
-          std::abort();
+          throw InvalidInputError("Matrix size in operator is inconsistent with Hilbert space");
         }
 
         if (i != j && std::abs(mat_[i][j]) > epsilon) {
