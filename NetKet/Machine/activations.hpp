@@ -31,6 +31,11 @@ class AbstractActivation {
   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
 
   virtual inline void Activate(const VectorType &Z, VectorType &A) = 0;
+
+  // Z is the layer output before applying nonlinear function
+  // A = nonlinearfunction(Z)
+  // F = dL/dA is the derivative of A wrt the output L = log(psi(v))
+  // G is the place to write the output i.e. G = dL/dZ = dL/dA * dA/dZ
   virtual inline void ApplyJacobian(const VectorType &Z, const VectorType &A,
                                     const VectorType &F, VectorType &G) = 0;
   virtual ~AbstractActivation() {}
