@@ -1,11 +1,25 @@
+// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef NETKET_ACTIVATIONS_HPP
+#define NETKET_ACTIVATIONS_HPP
+
 #include <Eigen/Dense>
 #include <complex>
 #include <iostream>
 #include <random>
 #include <vector>
-
-#ifndef NETKET_ACTIVATIONS_HPP
-#define NETKET_ACTIVATIONS_HPP
 
 namespace netket {
 
@@ -16,6 +30,7 @@ class AbstractActivation {
   virtual inline void activate(const VectorType &Z, VectorType &A) = 0;
   virtual inline void apply_jacobian(const VectorType &Z, const VectorType &A,
                                      const VectorType &F, VectorType &G) = 0;
+  virtual ~AbstractActivation() {}
 };
 
 class Identity : public AbstractActivation {
@@ -60,11 +75,8 @@ class Lncosh : public AbstractActivation {
   // Note: When entering this function, Z and G may point to the same matrix
   inline void apply_jacobian(const VectorType &Z, const VectorType &A,
                              const VectorType &F, VectorType &G) {
-    for (int i = 0; i < G.size(); ++i) {
-      G(i) = F(i) * std::tanh(Z(i));
-    }
+    G.array() = F.array() * Z.array().tanh();
     (void)A;
-    // G.array() = F.array()*Z.array().tanh();
   }
 };
 
