@@ -12,31 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "abstract_layer.hpp"
+#include "activations.hpp"
+#include "fullconn_layer.hpp"
+
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
 
 namespace netket {
-template <class T> class Layer : public AbstractLayer<T> {
+template <class T>
+class Layer : public AbstractLayer<T> {
   using Ptype = std::unique_ptr<AbstractLayer<T>>;
 
   Ptype m_;
 
   int mynode_;
 
-public:
+ public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit Layer(const json &pars, int i) { Init(pars, i); }
+  explicit Layer(const json &pars) { Init(pars); }
 
-  void Init(const json &pars, int i) {
-    if (pars["Machine"]["Layers"][i]["Name"] == "FullyConnected") {
-      if (pars["Machine"]["Layers"][i]["Activation"] == "Lncosh") {
-        m_ = Ptype(new FullyConnected<Lncosh, T>(pars, i));
-      } else if (pars["Machine"]["Layers"][i]["Activation"] == "Identity") {
-        m_ = Ptype(new FullyConnected<Identity, T>(pars, i));
+  void Init(const json &pars) {
+    if (pars["Name"] == "FullyConnected") {
+      if (pars["Activation"] == "Lncosh") {
+        m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
+      } else if (pars["Activation"] == "Identity") {
+        m_ = Ptype(new FullyConnected<Identity, T>(pars));
       }
     }
   }
@@ -92,6 +97,6 @@ public:
   void GetDerivative(VectorType &der, int start_idx) override {
     return m_->GetDerivative(der, start_idx);
   }
-}; 
-} // namespace netket
+};
+}  // namespace netket
 #endif

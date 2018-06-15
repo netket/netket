@@ -1,8 +1,8 @@
 
-#include "Utils/json_utils.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
 std::vector<netket::json> GetMachineInputs() {
   std::vector<netket::json> input_tests;
@@ -30,7 +30,7 @@ std::vector<netket::json> GetMachineInputs() {
             {"Layers",
              {{{"Name", "FullyConnected"},
                {"Inputs", 20},
-               {"Outputs", 20},
+               {"Outputs", 40},
                {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);

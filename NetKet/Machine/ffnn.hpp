@@ -12,23 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "Lookup/lookup.hpp"
-#include "Utils/all_utils.hpp"
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
+#include "Lookup/lookup.hpp"
+#include "Utils/all_utils.hpp"
+#include "layer.hpp"
 
 #ifndef NETKET_FFNN_HPP
 #define NETKET_FFNN_HPP
 
 namespace netket {
 
-template <typename T> class FFNN : public AbstractMachine<T> {
+template <typename T>
+class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
   std::vector<std::unique_ptr<AbstractLayer<T>>>
-      layers_; // Pointers to hidden layers
+      layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
   int depth_;
@@ -40,7 +42,7 @@ template <typename T> class FFNN : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
-public:
+ public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
@@ -51,28 +53,25 @@ public:
   }
 
   void from_json(const json &pars) override {
-
-    nlayer_ = pars["Machine"]["Layers"].size();
+    auto layers_par = pars["Machine"]["Layers"];
+    nlayer_ = layers_par.size();
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     // Initialise Layers
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-
       if (mynode_ == 0) {
         std::cout << "# Layer " << i + 1;
       }
 
       layers_.push_back(
-          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(pars, i)));
+          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(layers_par[i])));
 
       layersizes_.push_back(layers_.back()->Noutput());
 
       if (layersizes_[i] != layers_.back()->Ninput()) {
-        std::cerr << "Error: input/output layer sizes do not match"
-                  << std::endl;
-        std::abort();
+        throw InvalidInputError("Error: input/output layer sizes do not match");
       }
     }
 
@@ -93,7 +92,6 @@ public:
   }
 
   void Init() {
-
     npar_ = 0;
     for (int i = 0; i < nlayer_; ++i) {
       npar_ += layers_[i]->Npar();
@@ -200,10 +198,9 @@ public:
     return der;
   }
 
-  VectorType
-  LogValDiff(const Eigen::VectorXd &v,
-             const std::vector<std::vector<int>> &tochange,
-             const std::vector<std::vector<double>> &newconf) override {
+  VectorType LogValDiff(
+      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf) override {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
@@ -243,9 +240,9 @@ public:
       return 0.0;
     }
   }
-  void to_json(json &j) const override {}
+  void to_json(json &j) const override { (void)j; }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -29,9 +29,9 @@ namespace netket {
   This class prototypes the methods needed
   by a class satisfying the Layer concept.
 */
-template <typename T> class AbstractLayer {
-
-public:
+template <typename T>
+class AbstractLayer {
+ public:
   using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
   using StateType = T;
@@ -56,6 +56,10 @@ public:
                             const std::vector<double> &newconf,
                             LookupType &lt) = 0;
 
+  /**
+  Member function doing..
+  @param prev_layer_data a constant reference to the visible configuration.
+  */
   virtual void Forward(const VectorType &prev_layer_data) = 0;
 
   virtual void Forward(const VectorType &prev_layer_data,
@@ -70,6 +74,6 @@ public:
 
   virtual void GetDerivative(VectorType &der, int start_idx) = 0;
 };
-} // namespace netket
+}  // namespace netket
 
 #endif
