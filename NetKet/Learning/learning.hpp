@@ -26,18 +26,11 @@ namespace netket {
 class Learning {
  public:
   explicit Learning(const json &pars) {
-    if (!FieldExists(pars, "Learning")) {
-      std::cerr << "Learning field is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckFieldExists(pars, "Learning");
+    const std::string method_name = FieldVal(pars["Learning"], "Method", "Learning");
 
-    if (!FieldExists(pars["Learning"], "Method")) {
-      std::cerr << "Learning Method is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (pars["Learning"]["Method"] == "Gd" ||
-        pars["Learning"]["Method"] == "Sr") {
+    if (method_name == "Gd" ||
+        method_name == "Sr") {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -50,7 +43,7 @@ class Learning {
       Stepper stepper(pars);
 
       GroundState le(hamiltonian, sampler, stepper, pars);
-    } else if (pars["Learning"]["Method"] == "Ed") {
+    } else if (method_name == "Ed") {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -59,9 +52,9 @@ class Learning {
       SaveEigenValues(hamiltonian, file_base + std::string(".log"));
 
     } else {
-      std::cout << "Learning method not found" << std::endl;
-      std::cout << pars["Learning"]["Method"] << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown Learning method: " << method_name;
+      throw InvalidInputError(s.str());
     }
   }
 

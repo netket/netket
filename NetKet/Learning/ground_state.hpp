@@ -100,10 +100,10 @@ class GroundState {
         obs_(ham.GetHilbert(), pars) {
     Init();
 
-    int nsamples = FieldVal(pars["Learning"], "Nsamples");
-    int niter_opt = FieldVal(pars["Learning"], "NiterOpt");
+    int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
+    int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile");
+    std::string file_base = FieldVal(pars["Learning"], "OutputFile", "Learning");
     double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
     SetOutName(file_base, freqbackup);
 

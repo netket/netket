@@ -111,9 +111,9 @@ class Machine : public AbstractMachine<T> {
         ifs >> jmachine;
         m_->from_json(jmachine);
       } else {
-        if (mynode == 0)
-          std::cerr << "Error opening file : " << filename << std::endl;
-        std::abort();
+        std::stringstream s;
+        s << "Error opening file: " << filename;
+        throw InvalidInputError(s.str());
       }
 
       if (mynode == 0)
@@ -126,26 +126,16 @@ class Machine : public AbstractMachine<T> {
     int mynode;
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
 
-    if (!FieldExists(pars, "Machine")) {
-      if (mynode == 0)
-        std::cerr << "Machine is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (!FieldExists(pars["Machine"], "Name")) {
-      if (mynode == 0)
-        std::cerr << "Machine Name is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckFieldExists(pars, "Machine");
+    const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
                                       "FFNN"};
 
-    const auto name = pars["Machine"]["Name"];
-
     if (machines.count(name) == 0) {
-      std::cerr << "Machine " << name << " not found." << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown Machine: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 

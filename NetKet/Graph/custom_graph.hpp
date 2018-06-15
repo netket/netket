@@ -71,12 +71,8 @@ class CustomGraph : public AbstractGraph {
       assert(nsites_ > 0);
       adjlist_.resize(nsites_);
     } else {
-      if (mynode_ == 0) {
-        std::cerr << "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
-                     "Space Size must be specified"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError("Graph: one among Size, AdjacencyList, Edges, or Hilbert "
+                              "Space Size must be specified");
     }
 
     nsites_ = adjlist_.size();
@@ -114,12 +110,11 @@ class CustomGraph : public AbstractGraph {
 
     for (auto edge : edges) {
       if (edge.size() != 2) {
-        std::cerr << "# The edge list is invalid" << std::endl;
-        std::abort();
+        throw InvalidInputError("The edge list is invalid (edges need "
+                                "to connect exactly two sites)");
       }
       if (edge[0] < 0 || edge[1] < 0) {
-        std::cerr << "# The edge list is invalid" << std::endl;
-        std::abort();
+        throw InvalidInputError("The edge list is invalid");
       }
 
       nsites_ = std::max(std::max(edge[0], edge[1]), nsites_);
@@ -139,29 +134,19 @@ class CustomGraph : public AbstractGraph {
       for (auto s : adjlist_[i]) {
         // Checking if the referenced nodes are within the expected range
         if (s >= nsites_ || s < 0) {
-          if (mynode_ == 0) {
-            std::cerr << "# The graph is invalid" << std::endl;
-          }
-          std::abort();
+          throw InvalidInputError("The graph is invalid");
         }
         // Checking if the adjacency list is symmetric
         // i.e. if site s is declared neihgbor of site i
         // when site i is declared neighbor of site s
         if (std::count(adjlist_[s].begin(), adjlist_[s].end(), i) != 1) {
-          if (mynode_ == 0) {
-            std::cerr << "# The graph adjacencylist is not symmetric"
-                      << std::endl;
-          }
-          std::abort();
+          throw InvalidInputError("The graph adjacencylist is not symmetric");
         }
       }
     }
     for (std::size_t i = 0; i < automorphisms_.size(); i++) {
       if (int(automorphisms_[i].size()) != nsites_) {
-        if (mynode_ == 0) {
-          std::cerr << "# The automorphism list is invalid" << std::endl;
-        }
-        std::abort();
+        throw InvalidInputError("The automorphism list is invalid");
       }
     }
   }
