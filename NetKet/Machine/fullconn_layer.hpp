@@ -65,18 +65,9 @@ class FullyConnected : public AbstractLayer<T> {
   }
 
   explicit FullyConnected(const json &pars) : activation_() {
-    if (FieldExists(pars, "Inputs")) {
-      in_size_ = pars["Inputs"];
-    } else {
-      throw InvalidInputError(
-          "Error: Field (Inputs) not specified in Layer (FullyConnected) ");
-    }
-    if (FieldExists(pars, "Outputs")) {
-      out_size_ = pars["Outputs"];
-    } else {
-      throw InvalidInputError(
-          "Error: Field (Outputs) not specified in Layer (FullyConnected) ");
-    }
+    in_size_ = FieldVal(pars, "Inputs");
+    out_size_ = FieldVal(pars, "Outputs");
+
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
     Init();
