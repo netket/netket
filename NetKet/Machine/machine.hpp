@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "abstract_machine.hpp"
+#include "ffnn.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
@@ -77,6 +78,8 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN") {
+      m_ = Ptype(new FFNN<T>(hilbert, pars));
     }
   }
 
@@ -126,7 +129,8 @@ class Machine : public AbstractMachine<T> {
     CheckFieldExists(pars, "Machine");
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
+    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
+                                      "FFNN"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
