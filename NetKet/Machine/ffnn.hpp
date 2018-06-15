@@ -188,10 +188,10 @@ class FFNN : public AbstractMachine<T> {
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         layers_[i]->Backprop(layers_[i - 1]->Output(),
-                             layers_[i + 1]->Backprop_data());
+                             layers_[i + 1]->BackpropData());
       }
       // First Layer
-      layers_[0]->Backprop(v, layers_[1]->Backprop_data());
+      layers_[0]->Backprop(v, layers_[1]->BackpropData());
     } else {
       // Only 1 layer
       layers_[0]->Backprop(v, last_dLda);

@@ -88,9 +88,7 @@ class Layer : public AbstractLayer<T> {
     return m_->Backprop(prev_layer_data, next_layer_data);
   }
 
-  const VectorType &Backprop_data() const override {
-    return m_->Backprop_data();
-  }
+  const VectorType &BackpropData() const override { return m_->BackpropData(); }
 
   void GetDerivative(VectorType &der, int start_idx) override {
     return m_->GetDerivative(der, start_idx);

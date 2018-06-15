@@ -26,8 +26,6 @@
 namespace netket {
 /**
   Abstract class for Neural Network layer.
-  This class prototypes the methods needed
-  by a class satisfying the Layer concept.
 */
 template <typename T>
 class AbstractLayer {
@@ -57,23 +55,43 @@ class AbstractLayer {
                             LookupType &lt) = 0;
 
   /**
-  Member function doing..
-  @param prev_layer_data a constant reference to the visible configuration.
+  Member function to feedforward through the layer.
+  @param prev_layer_data a constant reference to the output from previous layer.
   */
   virtual void Forward(const VectorType &prev_layer_data) = 0;
 
   virtual void Forward(const VectorType &prev_layer_data,
                        const LookupType &lt) = 0;
-
+  /**
+  Member function to return output of forward propagation.
+  */
   virtual VectorType Output() const = 0;
 
+  /**
+  Member function to perform backpropagation to compute derivates.
+  @param prev_layer_data a constant reference to the output from previous layer.
+  @param next_layer_data a constant reference to the derivative dL/dA where A is
+  the activations of the current layer and L is the the final output of the
+  Machine: L = log(psi(v))
+  */
   virtual void Backprop(const VectorType &prev_layer_data,
                         const VectorType &next_layer_data) = 0;
+  /**
+  Member function to return dL/d(in), where (in) is the input to the current
+  layer, and L = log(psi(v))
+  */
+  virtual const VectorType &BackpropData() const = 0;
 
-  virtual const VectorType &Backprop_data() const = 0;
-
+  /**
+  Member function to write derivatives into der.
+  @der reference to the vector containing derivatives of the whole machine.
+  @start_idx index to indicate where to start writing derivatives in der.
+  */
   virtual void GetDerivative(VectorType &der, int start_idx) = 0;
 
+  /**
+  destructor
+  */
   virtual ~AbstractLayer() {}
 };
 }  // namespace netket
