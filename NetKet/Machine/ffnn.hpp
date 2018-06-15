@@ -53,8 +53,9 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
+    json layers_par;
     if (FieldExists(pars["Machine"], "Layers")) {
-      auto layers_par = pars["Machine"]["Layers"];
+      layers_par = pars["Machine"]["Layers"];
       nlayer_ = layers_par.size();
     } else {
       throw InvalidInputError(
