@@ -28,9 +28,9 @@ template <typename T>
 class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using Ptype = std::unique_ptr<AbstractLayer<T>>;
 
-  std::vector<std::unique_ptr<AbstractLayer<T>>>
-      layers_;  // Pointers to hidden layers
+  std::vector<Ptype> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
   int depth_;
@@ -71,8 +71,7 @@ class FFNN : public AbstractMachine<T> {
         std::cout << "# Layer " << i + 1;
       }
 
-      layers_.push_back(
-          std::unique_ptr<AbstractLayer<T>>(new Layer<T>(layers_par[i])));
+      layers_.push_back(Ptype(new Layer<T>(layers_par[i])));
 
       layersizes_.push_back(layers_.back()->Noutput());
 
@@ -87,8 +86,8 @@ class FFNN : public AbstractMachine<T> {
       if (mynode_ == 0) {
         std::cout << "# Layer " << nlayer_;
       }
-      layers_.push_back(std::unique_ptr<FullyConnected<Identity, T>>(
-          new FullyConnected<Identity, T>(layersizes_.back(), 1)));
+      layers_.push_back(
+          Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
 
       layersizes_.push_back(1);
     }
