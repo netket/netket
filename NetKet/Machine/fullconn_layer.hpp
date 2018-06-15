@@ -16,13 +16,12 @@
 #define NETKET_FULLCONNLAYER_HH
 
 #include <Eigen/Dense>
-#include <Lookup/lookup.hpp>
 #include <complex>
 #include <fstream>
-#include <netket.hpp>
 #include <random>
-#include <unsupported/Eigen/CXX11/Tensor>
 #include <vector>
+#include "Lookup/lookup.hpp"
+#include "abstract_layer.hpp"
 
 namespace netket {
 
@@ -31,42 +30,53 @@ class FullyConnected : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
   using MatrixType = typename AbstractLayer<T>::MatrixType;
 
-  Activation activation_; // activation function class
+  Activation activation_;  // activation function class
 
   bool usebias_;
 
-  int in_size_;       // input size
-  int out_size_;      // output size
-  int npar_;          // number of parameters in layer
-  MatrixType weight_; // Weight parameters, W(in_size x out_size)
-  VectorType bias_;   // Bias parameters, b(out_size x 1)
-  MatrixType dw_;     // Derivative of weights
-  VectorType db_;     // Derivative of bias
-  VectorType z_;      // Linear term, z = W' * in + b
-  VectorType a_;      // Output of this layer, a = act(z)
-  VectorType din_;    // Derivative of the input of this layer.
-                      // Note that input of this layer is also the output of
-                      // previous layer
+  int in_size_;        // input size
+  int out_size_;       // output size
+  int npar_;           // number of parameters in layer
+  MatrixType weight_;  // Weight parameters, W(in_size x out_size)
+  VectorType bias_;    // Bias parameters, b(out_size x 1)
+  MatrixType dw_;      // Derivative of weights
+  VectorType db_;      // Derivative of bias
+  VectorType z_;       // Linear term, z = W' * in + b
+  VectorType a_;       // Output of this layer, a = act(z)
+  VectorType din_;     // Derivative of the input of this layer.
+                       // Note that input of this layer is also the output of
+                       // previous layer
 
   int mynode_;
 
-public:
+ public:
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
   FullyConnected(const int input_size, const int output_size,
                  const bool use_bias = true)
-      : activation_(), in_size_(input_size), out_size_(output_size),
-        usebias_(use_bias) {
-
+      : activation_(),
+        usebias_(use_bias),
+        in_size_(input_size),
+        out_size_(output_size) {
     Init();
   }
 
-  FullyConnected(const json &pars, int i) : activation_() {
-    in_size_ = pars["Machine"]["Layers"][i]["Inputs"];
-    out_size_ = pars["Machine"]["Layers"][i]["Outputs"];
-    usebias_ = FieldOrDefaultVal(pars["Machine"]["Layers"][i], "UseBias", true);
+  FullyConnected(const json &pars) : activation_() {
+    if (FieldExists(pars, "Inputs")) {
+      in_size_ = pars["Inputs"];
+    } else {
+      throw InvalidInputError(
+          "Error: Field (Inputs) not specified in Layer (FullyConnected) ");
+    }
+    if (FieldExists(pars, "Outputs")) {
+      out_size_ = pars["Outputs"];
+    } else {
+      throw InvalidInputError(
+          "Error: Field (Outputs) not specified in Layer (FullyConnected) ");
+    }
+    usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
     Init();
   }
@@ -181,13 +191,13 @@ public:
     // Apply activation function
     a_.resize(out_size_);
     activation_.activate(z_, a_);
+    (void)prev_layer_data;
   }
 
   VectorType Output() const override { return a_; }
 
   void Backprop(const VectorType &prev_layer_data,
                 const VectorType &next_layer_data) override {
-
     // After forward stage, m_z contains z = W' * in + b
     // Now we need to calculate d(L) / d(z) = [d(a) / d(z)] * [d(L) / d(a)]
     // d(L) / d(a) is computed in the next layer, contained in next_layer_data
@@ -230,6 +240,6 @@ public:
     }
   }
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

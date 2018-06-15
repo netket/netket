@@ -51,7 +51,7 @@ pars['Sampler']={
 pars['Learning']={
     'Method'         : 'Sr',
     'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 500,
+    'NiterOpt'       : 1000,
     'Diagshift'      : 0.01,
     'UseIterative'   : False,
     'OutputFile'     : 'test',

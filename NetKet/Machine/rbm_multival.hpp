@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "Lookup/lookup.hpp"
-#include "Utils/all_utils.hpp"
-#include "abstract_machine.hpp"
-#include "rbm_spin.hpp"
 #include <Eigen/Dense>
 #include <iostream>
 #include <map>
 #include <vector>
+#include "Lookup/lookup.hpp"
+#include "Utils/all_utils.hpp"
+#include "abstract_machine.hpp"
+#include "rbm_spin.hpp"
 
 #ifndef NETKET_RBM_MULTIVAL_HPP
 #define NETKET_RBM_MULTIVAL_HPP
@@ -28,7 +28,8 @@ namespace netket {
 
 // Restricted Boltzman Machine wave function
 // for generic (finite) local hilbert space
-template <typename T> class RbmMultival : public AbstractMachine<T> {
+template <typename T>
+class RbmMultival : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
@@ -72,7 +73,7 @@ template <typename T> class RbmMultival : public AbstractMachine<T> {
 
   std::map<double, int> confindex_;
 
-public:
+ public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
@@ -281,10 +282,9 @@ public:
 
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
-  VectorType
-  LogValDiff(const Eigen::VectorXd &v,
-             const std::vector<std::vector<int>> &tochange,
-             const std::vector<std::vector<double>> &newconf) override {
+  VectorType LogValDiff(
+      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
@@ -432,6 +432,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
