@@ -30,7 +30,7 @@ class AbstractActivation {
  public:
   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
 
-  virtual inline void Activate(const VectorType &Z, VectorType &A) = 0;
+  virtual inline void operator()(const VectorType &Z, VectorType &A) = 0;
 
   // Z is the layer output before applying nonlinear function
   // A = nonlinearfunction(Z)
@@ -47,7 +47,9 @@ class Identity : public AbstractActivation {
 
  public:
   // A = Z
-  inline void Activate(const VectorType &Z, VectorType &A) { A.noalias() = Z; }
+  inline void operator()(const VectorType &Z, VectorType &A) {
+    A.noalias() = Z;
+  }
 
   // Apply the (derivative of activation function) matrix J to a vector F
   // A = Z
@@ -65,7 +67,7 @@ class Lncosh : public AbstractActivation {
 
  public:
   // A = Lncosh(Z)
-  inline void Activate(const VectorType &Z, VectorType &A) {
+  inline void operator()(const VectorType &Z, VectorType &A) {
     for (int i = 0; i < A.size(); ++i) {
       A(i) = std::log(std::cosh(Z(i)));
     }

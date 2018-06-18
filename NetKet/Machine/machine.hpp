@@ -44,21 +44,18 @@ class Machine : public AbstractMachine<T> {
 
   explicit Machine(const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert, pars);
     InitParameters(pars);
@@ -67,13 +64,13 @@ class Machine : public AbstractMachine<T> {
   explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
                    const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert_, pars);
     InitParameters(pars);
   }
 
   void Init(const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpin") {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
@@ -84,6 +81,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
     }
