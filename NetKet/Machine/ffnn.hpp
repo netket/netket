@@ -68,7 +68,7 @@ class FFNN : public AbstractMachine<T> {
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
       if (mynode_ == 0) {
-        std::cout << "# Layer " << i + 1;
+        std::cout << "# Layer " << i + 1 << " : ";
       }
 
       layers_.push_back(Ptype(new Layer<T>(layers_par[i])));
@@ -84,7 +84,7 @@ class FFNN : public AbstractMachine<T> {
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
       if (mynode_ == 0) {
-        std::cout << "# Layer " << nlayer_;
+        std::cout << "# Layer " << nlayer_ << " : ";
       }
       layers_.push_back(
           Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
