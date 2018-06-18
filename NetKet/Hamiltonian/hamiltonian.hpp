@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "abstract_hamiltonian.hpp"
+#include "bond_hamiltonian.hpp"
 #include "bosonhubbard.hpp"
 #include "custom_hamiltonian.hpp"
 #include "heisenberg.hpp"
@@ -28,7 +29,7 @@ namespace netket {
 class Hamiltonian : public AbstractHamiltonian {
   std::shared_ptr<AbstractHamiltonian> h_;
 
- public:
+public:
   explicit Hamiltonian(const Graph &graph, const json &pars) {
     if (!FieldExists(pars, "Hamiltonian")) {
       throw InvalidInputError("Hamiltonian is not defined in the input");
@@ -41,6 +42,8 @@ class Hamiltonian : public AbstractHamiltonian {
         h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
       } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
         h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
+      } else if (pars["Hamiltonian"]["Name"] == "Bond") {
+        h_ = std::make_shared<BondHamiltonian<Graph>>(graph, pars);
       } else {
         throw InvalidInputError("Hamiltonian name not found");
       }
@@ -58,5 +61,5 @@ class Hamiltonian : public AbstractHamiltonian {
 
   const Hilbert &GetHilbert() const override { return h_->GetHilbert(); }
 };
-}  // namespace netket
+} // namespace netket
 #endif
