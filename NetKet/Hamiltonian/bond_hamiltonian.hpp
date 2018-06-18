@@ -17,6 +17,7 @@
 
 #include "Utils/json_helper.hpp"
 #include "local_operator.hpp"
+#include <Eigen/Dense>
 #include <iostream> // TODO remove
 #include <vector>
 
@@ -31,6 +32,7 @@ template <class G> class BondHamiltonian : public AbstractHamiltonian {
   const G &graph_;
 
   const std::size_t nvertices_;
+  // const int nvertices_;
 
   int mynode_;
 
@@ -96,22 +98,33 @@ public:
           "The sizes of BondOps, BondLabels, and BondCoupling do not match.");
     }
 
-    // Create interacting site list
+    // Interaction
     std::vector<std::vector<int>> adj_0(nvertices_, std::vector<int>(1));
     for (std::size_t i = 0; i < nvertices_; i++) {
       adj_0[i][0] = i;
       // adj_0[i][1] = i;
     }
 
-    // json hil;
-    // hil["Hilbert"]["Name"] = "Spin";
-    // hil["Hilbert"]["Nspins"] = nvertices_;
-    // hil["Hilbert"]["S"] = 0.5;
-    // hilbert_.Init(hil);
-
+    // Nearest-neighbors
     auto adj_1 = graph_.AdjacencyList();
-    std::cout << adj_1.size() << std::endl;
+    // std::cout << adj_1.size() << std::endl; // TODO
 
+    // Next-nearest-neighbors
+    // TODO make this more efficient
+    // std::cout << "nvertices_ " << nvertices_ << std::endl; // TODO
+    Eigen::MatrixXi adj_2 = Eigen::MatrixXi::Zero(nvertices_, nvertices_);
+    for (std::size_t e1 = 0; e1 < adj_1.size(); e1++) {
+      for (std::size_t e2 = 0; e2 < adj_1[e1].size(); e2++) {
+        // std::cout << e1 << " " << adj_1[e1][e2] << std::endl; // TODO
+        adj_2(e1, adj_1[e1][e2]) = 1;
+      }
+    }
+    adj_2 = adj_2 * adj_2;
+    // TODO
+    // std::cout << "Printing adj_2\n" << std::endl;
+    // std::cout << adj_2 << std::endl;
+
+    // Use labels and adjacency lists to populate operators_ vector
     for (std::size_t l = 0; l < b_label.size(); l++) {
       // Interaction
       if (b_label[l] == 0) {
@@ -120,12 +133,25 @@ public:
         }
       }
 
+      // Nearest-neighbors
       else if (b_label[l] == 1) {
-        for (std::size_t s = 0; s < adj_1.size(); s++) {
-          std::cout << "Label 1, site " << s << std::endl;
-          std::cout << adj_1[0].size() << std::endl;
-          std::cout << adj_1[0][0] << " " << adj_1[0][1] << std::endl;
-          operators_.push_back(LocalOperator(hilbert_, bop[l], adj_1[s]));
+        for (int s = 0; s < adj_1.size(); s++) {
+          for (std::size_t c = 0; c < adj_1[s].size(); c++) {
+            std::cout << s << " " << adj_1[s][c] << std::endl;
+            std::vector<int> edge = {s, adj_1[s][c]};
+            operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
+          }
+        }
+      }
+
+      else if (b_label[l] == 2) {
+        for (int e1 = 0; e1 < adj_2.rows(); e1++) {
+          for (int e2 = 0; e2 < adj_2.cols(); e2++) {
+            if (adj_2(e1, e2) == 2) {
+              std::vector<int> edge = {e1, e2};
+              operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
+            }
+          }
         }
       }
 
