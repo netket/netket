@@ -172,7 +172,7 @@ class FullyConnected : public AbstractLayer<T> {
 
     // Apply activation function
     a_.resize(out_size_);
-    activation_.Activate(z_, a_);
+    activation_(z_, a_);
   }
 
   // Using lookup
@@ -182,7 +182,7 @@ class FullyConnected : public AbstractLayer<T> {
     z_ = lt.V(0);
     // Apply activation function
     a_.resize(out_size_);
-    activation_.Activate(z_, a_);
+    activation_(z_, a_);
   }
 
   VectorType Output() const override { return a_; }
