@@ -90,8 +90,8 @@ class FullyConnected : public AbstractLayer<T> {
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (mynode_ == 0) {
-      std::cout << ": Fully Connected Layer " << in_size_ << " --> "
-                << out_size_ << std::endl;
+      std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
+                << std::endl;
       std::cout << "# # UseBias = " << usebias_ << std::endl;
     }
   }
