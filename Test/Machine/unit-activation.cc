@@ -43,8 +43,6 @@ TEST_CASE("activations compute derivatives correctly", "[activation]") {
             input_tests["Activations"][it].dump()) {
       auto pars = input_tests["Activations"][it];
 
-      std::cout << pars.dump() << std::endl;
-
       netket::Activation activation(pars);
 
       using MType = std::complex<double>;
