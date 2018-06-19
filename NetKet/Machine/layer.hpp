@@ -35,12 +35,28 @@ class Layer : public AbstractLayer<T> {
   explicit Layer(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
+    CheckInput(pars);
     if (pars["Name"] == "FullyConnected") {
       if (pars["Activation"] == "Lncosh") {
         m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new FullyConnected<Identity, T>(pars));
       }
+    }
+  }
+
+  void CheckInput(const json &pars) {
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
+    const std::string name = FieldVal(pars, "Name");
+
+    std::set<std::string> layers = {"FullyConnected"};
+
+    if (layers.count(name) == 0) {
+      std::stringstream s;
+      s << "Unknown Machine: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 
