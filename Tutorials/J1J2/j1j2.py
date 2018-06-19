@@ -12,79 +12,80 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-
 from __future__ import print_function
 import json
 import numpy as np
 
 #Sigma^z*Sigma^z interactions
-sigmaz=[[1,0],[0,-1]]
-mszsz=(np.kron(sigmaz,sigmaz))
+sigmaz = [[1, 0], [0, -1]]
+mszsz = (np.kron(sigmaz, sigmaz))
 
 #Exchange interactions
-exchange=np.asarray([[0,0,0,0],[0,0,2,0],[0,2,0,0],[0,0,0,0]])
+exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
 #Couplings J1 and J2
-J=[1,0.4]
+J = [1, 0.4]
 
-L=20
+L = 20
 
-operators=[]
-sites=[]
+operators = []
+sites = []
 for i in range(L):
 
-    for d in [0,1]:
+    for d in [0, 1]:
         #\sum_i J*sigma^z(i)*sigma^z(i+d)
-        operators.append((J[d]*mszsz).tolist())
-        sites.append([i,(i+d+1)%L])
+        operators.append((J[d] * mszsz).tolist())
+        sites.append([i, (i + d + 1) % L])
 
         #\sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        operators.append(((-1.)**(d+1)*J[d]*exchange).tolist())
-        sites.append([i,(i+d+1)%L])
+        operators.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
+        sites.append([i, (i + d + 1) % L])
 
-pars={}
+pars = {}
+print(np.array(operators).shape)
+# exit(0)
 
 #We chose a spin 1/2 hilbert space with total Sigmaz=0
-pars['Hilbert']={
-    'Name'           : 'Spin',
-    'S'              : 0.5,
-    'TotalSz'        : 0,
-    'Nspins'         : L,
+pars['Hilbert'] = {
+    'Name': 'Spin',
+    'S': 0.5,
+    'TotalSz': 0,
+    'Nspins': L,
 }
 
 #defining our custom hamiltonian
-pars['Hamiltonian']={
-    'Operators'      : operators,
-    'ActingOn'       : sites,
+pars['Hamiltonian'] = {
+    'Operators': operators,
+    'ActingOn': sites,
 }
 
 #defining the wave function
-pars['Machine']={
-    'Name'           : 'RbmSpin',
-    'Alpha'          : 1,
+pars['Machine'] = {
+    'Name': 'RbmSpin',
+    'Alpha': 1,
 }
 
 #defining the sampler
 #here we use Hamiltonian sampling to preserve simmetries
-pars['Sampler']={
-    'Name'           : 'MetropolisHamiltonianPt',
-    'Nreplicas'      : 16,
+pars['Sampler'] = {
+    'Name': 'MetropolisHamiltonianPt',
+    'Nreplicas': 16,
 }
 
 #defining the learning method
 #here we use the Stochastic Reconfiguration Method
-pars['Learning']={
-    'Method'         : 'Sr',
-    'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 10000,
-    'Diagshift'      : 0.1,
-    'UseIterative'   : True,
-    'OutputFile'     : "test",
-    'StepperType'    : 'Sgd',
-    'LearningRate'   : 0.01,
+pars['Learning'] = {
+    'Method': 'Sr',
+    'Nsamples': 1.0e3,
+    'NiterOpt': 10000,
+    'Diagshift': 0.1,
+    'UseIterative': True,
+    'OutputFile': "test",
+    'StepperType': 'Sgd',
+    'LearningRate': 0.01,
 }
 
-json_file="j1j2.json"
+json_file = "j1j2.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 

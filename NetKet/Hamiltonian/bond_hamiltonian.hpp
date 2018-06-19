@@ -34,6 +34,7 @@ template <class G> class BondHamiltonian : public AbstractHamiltonian {
   // const std::size_t nvertices_;
   const int nvertices_;
 
+  // Current node node for parallel jobs
   int mynode_;
 
   /**
@@ -42,15 +43,6 @@ template <class G> class BondHamiltonian : public AbstractHamiltonian {
 
   TODO In the immediate future I plan to add 2 (next-nearest neighbors).
   */
-
-  // // Bond operators
-  // std::vector<LocalOperator::MatType> bop_;
-  //
-  // // Labels distinguishing which bonds the operators act on
-  // std::vector<int> b_label_;
-  //
-  // // Couplings corresponding to b_label_ and bop_
-  // std::vector<double> b_couple_; // TODO Should this be complex?
 
 public:
   using MatType = LocalOperator::MatType;
@@ -81,16 +73,6 @@ public:
     auto b_label = pars_hamiltonian["BondLabels"].get<std::vector<int>>();
     auto b_couple = pars_hamiltonian["BondCoupling"].get<std::vector<double>>();
 
-    // auto jop = pars_hamiltonian["Operators"].get<std::vector<MatType>>();
-    // auto sites =
-    //     pars_hamiltonian["ActingOn"].get<std::vector<std::vector<int>>>();
-
-    // if (sites.size() != jop.size()) {
-    //   throw InvalidInputError(
-    //       "The custom Hamiltonian definition is inconsistent: "
-    //       "Check that ActingOn is defined");
-    // }
-
     if (bop.size() != b_label.size() || b_label.size() != b_couple.size() ||
         bop.size() != b_couple.size()) {
       throw InvalidInputError(
@@ -102,7 +84,6 @@ public:
     std::vector<std::vector<int>> adj_0(nvertices_, std::vector<int>(1));
     for (int i = 0; i < nvertices_; i++) {
       adj_0[i][0] = i;
-      // adj_0[i][1] = i;
     }
 
     // Nearest-neighbors
@@ -110,22 +91,17 @@ public:
     // std::cout << adj_1.size() << std::endl; // TODO
 
     // Next-nearest-neighbors
-    // TODO make this more efficient
-    // std::cout << "nvertices_ " << nvertices_ << std::endl; // TODO
     Eigen::MatrixXi adj_2 = Eigen::MatrixXi::Zero(nvertices_, nvertices_);
     for (std::size_t e1 = 0; e1 < adj_1.size(); e1++) {
       for (std::size_t e2 = 0; e2 < adj_1[e1].size(); e2++) {
-        // std::cout << e1 << " " << adj_1[e1][e2] << std::endl; // TODO
         adj_2(e1, adj_1[e1][e2]) = 1;
       }
     }
     adj_2 = adj_2 * adj_2;
-    // TODO
-    // std::cout << "Printing adj_2\n" << std::endl;
-    // std::cout << adj_2 << std::endl;
 
     // Use labels and adjacency lists to populate operators_ vector
     for (std::size_t l = 0; l < b_label.size(); l++) {
+
       // Interaction
       if (b_label[l] == 0) {
         for (std::size_t s = 0; s < adj_0.size(); s++) {
@@ -138,17 +114,18 @@ public:
         for (int s = 0; s < nvertices_; s++) {
           for (auto c : adj_1[s]) {
             if (s < c) {
-	      MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-	      if (mynode_ == 0) {
-		std::cout << "NN " << s << " " << c << std::endl;
-	      }
-	      std::vector<int> edge = {s, c};
+              MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+              if (mynode_ == 0) {
+                std::cout << "NN " << s << " " << c << std::endl;
+              }
+              std::vector<int> edge = {s, c};
               operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
             }
           }
         }
       }
 
+      // Next-nearest-neighbors
       else if (b_label[l] == 2) {
         for (int e1 = 0; e1 < adj_2.rows(); e1++) {
           for (int e2 = e1; e2 < adj_2.cols(); e2++) {
@@ -170,10 +147,6 @@ public:
     if (mynode_ == 0) {
       std::cout << "Size of operators_ " << operators_.size() << std::endl;
     }
-
-    // for (std::size_t i = 0; i < jop.size(); i++) {
-    //   operators_.push_back(LocalOperator(hilbert_, jop[i], sites[i]));
-    // }
   }
 
   void FindConn(const Eigen::VectorXd &v,
