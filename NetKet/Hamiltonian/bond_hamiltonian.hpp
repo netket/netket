@@ -137,9 +137,12 @@ public:
       else if (b_label[l] == 1) {
         for (int s = 0; s < nvertices_; s++) {
           for (auto c : adj_1[s]) {
-            std::cout << "NN " << s << " " << c << std::endl;
-            std::vector<int> edge = {s, c};
-            if (s < adj_1[s][c]) {
+            if (s < c) {
+	      MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+	      if (mynode_ == 0) {
+		std::cout << "NN " << s << " " << c << std::endl;
+	      }
+	      std::vector<int> edge = {s, c};
               operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
             }
           }
