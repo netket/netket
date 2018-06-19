@@ -80,6 +80,16 @@ public:
           "The sizes of BondOps, BondLabels, and BondCoupling do not match.");
     }
 
+
+    // Apply coupling constants to bond operators
+    for (std::size_t l=0; l < b_couple.size(); l++) {
+      for (std::size_t r=0; r < bop[l].size(); r++) {
+	for (std::size_t c=0; c < bop[l][r].size(); c++) {
+	  bop[l][r][c] *= b_couple[l];
+	}
+      }
+    }
+
     // Interaction
     std::vector<std::vector<int>> adj_0(nvertices_, std::vector<int>(1));
     for (int i = 0; i < nvertices_; i++) {
@@ -98,6 +108,11 @@ public:
       }
     }
     adj_2 = adj_2 * adj_2;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+    if (mynode_ == 0) {
+      std::cout << adj_2 << std::endl;
+    }
+    
 
     // Use labels and adjacency lists to populate operators_ vector
     for (std::size_t l = 0; l < b_label.size(); l++) {
@@ -129,7 +144,7 @@ public:
       else if (b_label[l] == 2) {
         for (int e1 = 0; e1 < adj_2.rows(); e1++) {
           for (int e2 = e1; e2 < adj_2.cols(); e2++) {
-            if (adj_2(e1, e2) == 2 && e2 >= e1) {
+            if (adj_2(e1, e2) == 1 && e2 > e1) {
               std::vector<int> edge = {e1, e2};
               operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
             }

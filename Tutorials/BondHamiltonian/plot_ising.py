@@ -11,9 +11,9 @@ exact = -1.274549484318e+00 * 20
 # exact=-1.273321360724e+00*80
 
 while (True):
-    plt.clf()
-    plt.ylabel('Energy')
-    plt.xlabel('Iteration #')
+    #plt.clf()
+    #plt.ylabel('Energy')
+    #plt.xlabel('Iteration #')
 
     iters = []
     energy = []
@@ -37,31 +37,31 @@ while (True):
         fity = energy[-cut:-1]
         z = np.polyfit(fitx, fity, deg=0)
         p = np.poly1d(z)
-
-        plt.xlim([nres - cut, nres])
+        print(z[0])
+        #plt.xlim([nres - cut, nres])
         maxval = np.max(energy[-cut:-1])
-        plt.ylim(
-            [exact - (np.abs(exact) * 0.01), maxval + np.abs(maxval) * 0.01])
+        #plt.ylim(
+        #    [exact - (np.abs(exact) * 0.01), maxval + np.abs(maxval) * 0.01])
         error = (z[0] - exact) / -exact
-        plt.gca().text(
-            0.95,
-            0.8,
-            'Relative Error : ' + "{:.2e}".format(error),
-            verticalalignment='bottom',
-            horizontalalignment='right',
-            color='green',
-            fontsize=15,
-            transform=plt.gca().transAxes)
+        #plt.gca().text(
+        #    0.95,
+        #    0.8,
+        #    'Relative Error : ' + "{:.2e}".format(error),
+        #    verticalalignment='bottom',
+        #    horizontalalignment='right',
+        #    color='green',
+        #    fontsize=15,
+        #    transform=plt.gca().transAxes)
 
-        plt.plot(fitx, p(fitx))
+        #plt.plot(fitx, p(fitx))
 
-    plt.errorbar(iters, energy, yerr=sigma, color='red')
-    plt.axhline(
-        y=exact, xmin=0, xmax=iters[-1], linewidth=2, color='k', label='Exact')
-
-    plt.legend(frameon=False)
-    plt.pause(1)
+    #plt.errorbar(iters, energy, yerr=sigma, color='red')
+    #plt.axhline(
+    #    y=exact, xmin=0, xmax=iters[-1], linewidth=2, color='k', label='Exact')
+    #
+    #plt.legend(frameon=False)
+    #plt.pause(1)
     # plt.draw()
 
-plt.ioff()
-plt.show()
+#plt.ioff()
+#plt.show()

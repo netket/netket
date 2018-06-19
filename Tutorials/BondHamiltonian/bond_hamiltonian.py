@@ -53,9 +53,9 @@ print(G.edges)
 # print([x[1] for x in nx.to_dict_of_lists(G).items()])
 # exit(0)
 
-import matplotlib.pyplot as plt
-nx.draw(G)
-plt.show()
+#import matplotlib.pyplot as plt
+#nx.draw(G)
+#plt.show()
 # print(list(G.edges))
 
 pars = {}
