@@ -34,8 +34,8 @@ pars['Hamiltonian']={
 
 #defining the wave function
 pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
-    'Alpha'          : 1,
+    'Name'           : 'FFNN',
+    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20, 'Activation':'Lncosh'}],
 }
 
 #defining the sampler

@@ -18,9 +18,9 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <fstream>
-#include "Utils/random_utils.hpp"
 #include <vector>
 #include "Lookup/lookup.hpp"
+#include "Utils/random_utils.hpp"
 
 namespace netket {
 /**
