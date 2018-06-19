@@ -83,6 +83,60 @@ class Lncosh : public AbstractActivation {
   }
 };
 
+class Activation : public AbstractActivation {
+  using Ptype = std::unique_ptr<AbstractActivation>;
+
+  Ptype m_;
+
+  int mynode_;
+
+ public:
+  using VectorType = typename AbstractActivation::VectorType;
+
+  explicit Activation(const json &pars) { Init(pars); }
+  void Init(const json &pars) {
+    CheckInput(pars);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+    if (pars["Activation"] == "Lncosh") {
+      m_ = Ptype(new Lncosh());
+      if (mynode_ == 0) {
+        std::cout << "# # Activation: "
+                  << "Lncosh" << std::endl;
+      }
+    } else if (pars["Activation"] == "Identity") {
+      m_ = Ptype(new Identity());
+      if (mynode_ == 0) {
+        std::cout << "# # Activation: "
+                  << "Identity" << std::endl;
+      }
+    }
+  }
+
+  void CheckInput(const json &pars) {
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
+    const std::string name = FieldVal(pars, "Activation");
+
+    std::set<std::string> layers = {"Lncosh", "Identity"};
+
+    if (layers.count(name) == 0) {
+      std::stringstream s;
+      s << "Unknown Activation: " << name;
+      throw InvalidInputError(s.str());
+    }
+  }
+
+  inline void operator()(const VectorType &Z, VectorType &A) override {
+    return m_->operator()(Z, A);
+  }
+
+  inline void ApplyJacobian(const VectorType &Z, const VectorType &A,
+                            const VectorType &F, VectorType &G) override {
+    return m_->ApplyJacobian(Z, A, F, G);
+  }
+};
+
 }  // namespace netket
 
 #endif
