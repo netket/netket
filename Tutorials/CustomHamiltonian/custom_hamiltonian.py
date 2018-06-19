@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import print_function
 import json
 import numpy as np
@@ -35,6 +34,9 @@ for i in range(L):
     # \sum_i sigma^z(i)*sigma^z(i+1)
     operators.append(mszsz)
     sites.append([i, (i + 1) % L])
+
+print(len(sites))
+print(sites)
 
 pars = {}
 

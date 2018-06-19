@@ -15,6 +15,7 @@
 from __future__ import print_function
 import json
 import numpy as np
+import scipy
 import networkx as nx
 
 sigmax = [[0, 1], [1, 0]]
@@ -28,23 +29,34 @@ mszsz = (np.kron(sigmaz, sigmaz)).tolist()
 operators = []
 sites = []
 L = 20
-for i in range(L):
-    # \sum_i sigma^x(i)
-    operators.append(sigmax)
-    sites.append([i])
-    # \sum_i sigma^z(i)*sigma^z(i+1)
-    operators.append(mszsz)
-    sites.append([i, (i + 1) % L])
+# for i in range(L):
+#     # \sum_i sigma^x(i)
+#     operators.append(sigmax)
+#     sites.append([i])
+#     # \sum_i sigma^z(i)*sigma^z(i+1)
+#     operators.append(mszsz)
+#     sites.append([i, (i + 1) % L])
 
-print(sites)
+# print(sites)
 
 bond_operator = [sigmax, mszsz]
 bond_label = [0, 1]
 bond_couple = [1.0, 1.0]
 
 # Defining a custom graph
-G = nx.cycle_graph(L)
-print(G)
+# G = nx.cycle_graph(L)
+G = nx.DiGraph()
+for i in range(L):
+    G.add_edge(i, (i + 1) % L)
+print(G.edges)
+# print(nx.to_scipy_sparse_matrix(G))
+# print([x[1] for x in nx.to_dict_of_lists(G).items()])
+# exit(0)
+
+import matplotlib.pyplot as plt
+nx.draw(G)
+plt.show()
+# print(list(G.edges))
 
 pars = {}
 

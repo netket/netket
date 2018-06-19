@@ -31,8 +31,8 @@ template <class G> class BondHamiltonian : public AbstractHamiltonian {
   // Arbitrary graph
   const G &graph_;
 
-  const std::size_t nvertices_;
-  // const int nvertices_;
+  // const std::size_t nvertices_;
+  const int nvertices_;
 
   int mynode_;
 
@@ -100,7 +100,7 @@ public:
 
     // Interaction
     std::vector<std::vector<int>> adj_0(nvertices_, std::vector<int>(1));
-    for (std::size_t i = 0; i < nvertices_; i++) {
+    for (int i = 0; i < nvertices_; i++) {
       adj_0[i][0] = i;
       // adj_0[i][1] = i;
     }
@@ -135,19 +135,21 @@ public:
 
       // Nearest-neighbors
       else if (b_label[l] == 1) {
-        for (int s = 0; s < adj_1.size(); s++) {
-          for (std::size_t c = 0; c < adj_1[s].size(); c++) {
-            std::cout << s << " " << adj_1[s][c] << std::endl;
-            std::vector<int> edge = {s, adj_1[s][c]};
-            operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
+        for (int s = 0; s < nvertices_; s++) {
+          for (auto c : adj_1[s]) {
+            std::cout << "NN " << s << " " << c << std::endl;
+            std::vector<int> edge = {s, c};
+            if (s < adj_1[s][c]) {
+              operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
+            }
           }
         }
       }
 
       else if (b_label[l] == 2) {
         for (int e1 = 0; e1 < adj_2.rows(); e1++) {
-          for (int e2 = 0; e2 < adj_2.cols(); e2++) {
-            if (adj_2(e1, e2) == 2) {
+          for (int e2 = e1; e2 < adj_2.cols(); e2++) {
+            if (adj_2(e1, e2) == 2 && e2 >= e1) {
               std::vector<int> edge = {e1, e2};
               operators_.push_back(LocalOperator(hilbert_, bop[l], edge));
             }
