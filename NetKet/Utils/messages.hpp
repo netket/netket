@@ -20,7 +20,7 @@
 
 namespace netket {
 
-void InfoMessage(std::string message) {
+void InfoMessage(const std::string & message) {
   int mynode;
   MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
   if (mynode == 0) {
@@ -28,7 +28,7 @@ void InfoMessage(std::string message) {
   }
 }
 
-void WarningMessage(std::string message) {
+void WarningMessage(const std::string & message) {
   int mynode;
   MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
   if (mynode == 0) {
@@ -37,7 +37,7 @@ void WarningMessage(std::string message) {
   }
 }
 
-void ErrorMessage(std::string message) {
+void ErrorMessage(const std::string & message) {
   int mynode;
   MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
   if (mynode == 0) {
