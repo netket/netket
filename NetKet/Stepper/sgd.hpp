@@ -15,12 +15,12 @@
 #ifndef NETKET_SGD_HPP
 #define NETKET_SGD_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -34,7 +34,7 @@ class Sgd : public AbstractStepper {
 
   double decay_factor_;
 
-public:
+ public:
   // Json constructor
   explicit Sgd(const json &pars) {
     npar_ = -1;
@@ -44,10 +44,11 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage("Sgd stepper initialized with these parameters :");
-    InfoMessage("Learning Rate = " + std::to_string(eta_));
-    InfoMessage("L2 Regularization = " + std::to_string(l2reg_));
-    InfoMessage("Decay Factor = " + std::to_string(decay_factor_));
+    InfoMessage() << "Sgd stepper initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "L2 Regularization = " << l2reg_ << std::endl;
+    InfoMessage() << "Decay Factor = " << decay_factor_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override { npar_ = pars.size(); }
@@ -84,6 +85,7 @@ public:
   void Reset() override {}
 
   void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
     std::string section = "Stepper";
     if (!FieldExists(pars, section)) {
       section = "Learning";
@@ -95,6 +97,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

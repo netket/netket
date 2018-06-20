@@ -18,8 +18,8 @@
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {
@@ -52,9 +52,6 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   // Look-up tables
   std::vector<typename WfType::LookupType> lt_;
 
-  bool do_sum_constraint_;
-  int sum_constraint_;
-
   const int nrep_;
 
   std::vector<double> beta_;
@@ -74,8 +71,6 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   void Init(const Graph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    do_sum_constraint_ = false;
 
     v_.resize(nrep_);
     for (int i = 0; i < nrep_; i++) {
@@ -97,13 +92,11 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
     Reset(true);
 
-    if (mynode_ == 0) {
-      std::cout << "# Metropolis sampler with parallel tempering is ready "
-                << std::endl;
-      std::cout << "# " << nrep_ << " replicas are being used" << std::endl;
-      std::cout << "# " << dmax << " is the maximum distance for exchanges"
-                << std::endl;
-    }
+    InfoMessage() << "Metropolis sampler with parallel tempering is ready "
+                  << std::endl;
+    InfoMessage() << nrep_ << " replicas are being used" << std::endl;
+    InfoMessage() << dmax << " is the maximum distance for exchanges"
+                  << std::endl;
   }
 
   template <class Graph>

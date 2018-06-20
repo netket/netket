@@ -15,13 +15,13 @@
 #ifndef NETKET_AMSGRAD_HPP
 #define NETKET_AMSGRAD_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -39,7 +39,7 @@ class AMSGrad : public AbstractStepper {
 
   const std::complex<double> I_;
 
-public:
+ public:
   // Json constructor
   explicit AMSGrad(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -48,11 +48,12 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage("AMSGrad stepper initialized with these parameters :");
-    InfoMessage("Learning Rate = " + std::to_string(eta_));
-    InfoMessage("Beta1 = " + std::to_string(beta1_));
-    InfoMessage("Beta2 = " + std::to_string(beta2_));
-    InfoMessage("Epscut = " + std::to_string(epscut_));
+    InfoMessage() << "AMSGrad stepper initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "Beta1 = " << beta1_ << std::endl;
+    InfoMessage() << "Beta2 = " << beta2_ << std::endl;
+    InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
@@ -98,9 +99,9 @@ public:
       vt_(2 * i) =
           std::max(vt_(2 * i), beta2_ * vt_(2 * i) +
                                    (1 - beta2_) * std::pow(grad(i).real(), 2));
-      vt_(2 * i + 1) = std::max(vt_(2 * i + 1),
-                                beta2_ * vt_(2 * i + 1) +
-                                    (1 - beta2_) * std::pow(grad(i).imag(), 2));
+      vt_(2 * i + 1) = std::max(
+          vt_(2 * i + 1),
+          beta2_ * vt_(2 * i + 1) + (1 - beta2_) * std::pow(grad(i).imag(), 2));
     }
 
     for (int i = 0; i < pars.size(); i++) {
@@ -116,6 +117,7 @@ public:
   }
 
   void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
     std::string section = "Stepper";
     if (!FieldExists(pars, section)) {
       section = "Learning";
@@ -127,6 +129,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

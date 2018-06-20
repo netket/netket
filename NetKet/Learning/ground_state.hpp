@@ -15,14 +15,6 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Stepper/stepper.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
@@ -31,6 +23,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Stepper/stepper.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "matrix_replacement.hpp"
 
 namespace netket {
 
@@ -89,11 +89,14 @@ class GroundState {
 
   bool dosr_;
 
-public:
+ public:
   // JSON constructor
   GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
               const json &pars)
-      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
+      : ham_(ham),
+        sampler_(sampler),
+        psi_(sampler.Psi()),
+        opt_(opt),
         obs_(ham.GetHilbert(), pars) {
     Init();
 
@@ -117,16 +120,14 @@ public:
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
 
-    if (mynode_ == 0) {
-      if (dosr_) {
-        std::cout << "# Using the Stochastic reconfiguration method"
-                  << std::endl;
-        if (use_iterative_) {
-          std::cout << "# With iterative solver" << std::endl;
-        }
-      } else {
-        std::cout << "# Using a gradient-descent based method" << std::endl;
+    if (dosr_) {
+      InfoMessage() << "Using the Stochastic reconfiguration method"
+                    << std::endl;
+      if (use_iterative_) {
+        InfoMessage() << "With iterative solver" << std::endl;
       }
+    } else {
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
     Run(nsamples, niter_opt);
@@ -149,10 +150,9 @@ public:
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (mynode_ == 0) {
-      std::cout << "# Learning running on " << totalnodes_ << " processes"
-                << std::endl;
-    }
+    InfoMessage() << "Learning running on " << totalnodes_ << " processes"
+                  << std::endl;
+
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -384,6 +384,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

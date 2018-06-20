@@ -15,13 +15,13 @@
 #ifndef NETKET_MOMENTUM_HPP
 #define NETKET_MOMENTUM_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -35,7 +35,7 @@ class Momentum : public AbstractStepper {
 
   const std::complex<double> I_;
 
-public:
+ public:
   // Json constructor
   explicit Momentum(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -45,9 +45,10 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage("Momentum stepper initialized with these parameters :");
-    InfoMessage("Learning Rate = " + std::to_string(eta_));
-    InfoMessage("Beta = " + std::to_string(beta_));
+    InfoMessage() << "Momentum stepper initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "Beta = " << beta_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
@@ -91,6 +92,7 @@ public:
   void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
 
   void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
     std::string section = "Stepper";
     if (!FieldExists(pars, section)) {
       section = "Learning";
@@ -100,6 +102,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

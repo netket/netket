@@ -16,36 +16,88 @@
 #define NETKET_MESSAGES_HPP
 
 #include <mpi.h>
+#include <ostream>
+#include <streambuf>
 #include <string>
 
 namespace netket {
 
-void InfoMessage(const std::string & message) {
-  int mynode;
-  MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-  if (mynode == 0) {
-    std::cout << "# " << message << std::endl;
+class NullBuffer : public std::streambuf {
+ public:
+  int overflow(int c) { return c; }
+};
+
+class NullStream : public std::ostream {
+ public:
+  NullStream() : std::ostream(&m_sb) {}
+
+ private:
+  NullBuffer m_sb;
+};
+
+std::ostream& InfoMessage() {
+  // null stream
+  static NullStream nullstream;
+
+  // get MPI rank
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (rank == 0) {
+    return std::cout << "# ";
+  } else {
+    return nullstream;
   }
 }
 
-void WarningMessage(const std::string & message) {
-  int mynode;
-  MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-  if (mynode == 0) {
-    std::cerr << "# WARNING" << std::endl;
-    std::cerr << "# " << message << std::endl;
+std::ostream& WarningMessage() {
+  // null stream
+  static NullStream nullstream;
+
+  // get MPI rank
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (rank == 0) {
+    return std::cerr << "# WARNING: ";
+  } else {
+    return nullstream;
   }
 }
 
-void ErrorMessage(const std::string & message) {
-  int mynode;
-  MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-  if (mynode == 0) {
-    std::cerr << "# ERROR" << std::endl;
-    std::cerr << "# " << message << std::endl;
+std::ostream& ErrorMessage() {
+  // null stream
+  static NullStream nullstream;
+
+  // get MPI rank
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (rank == 0) {
+    return std::cerr << "# ERROR: ";
+  } else {
+    return nullstream;
   }
 }
 
-} // namespace netket
+std::ostream& DebugMessage() {
+  // null stream
+  static NullStream nullstream;
 
-#endif // NETKET_MESSAGES_HPP
+#ifdef NDEBUG
+  return nullstream;
+#else
+  // get MPI rank
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    return std::cout << "# DEBUG: ";
+  } else {
+    return nullstream;
+  }
+#endif
+}
+
+}  // namespace netket
+
+#endif  // NETKET_MESSAGES_HPP

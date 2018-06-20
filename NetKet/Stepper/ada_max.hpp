@@ -15,13 +15,13 @@
 #ifndef NETKET_ADAMAX_HPP
 #define NETKET_ADAMAX_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -42,7 +42,7 @@ class AdaMax : public AbstractStepper {
 
   const std::complex<double> I_;
 
-public:
+ public:
   // Json constructor
   explicit AdaMax(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -54,11 +54,12 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage("Adamax stepper initialized with these parameters :");
-    InfoMessage("Alpha = " + std::to_string(alpha_));
-    InfoMessage("Beta1 = " + std::to_string(beta1_));
-    InfoMessage("Beta2 = " + std::to_string(beta2_));
-    InfoMessage("Epscut = " + std::to_string(epscut_));
+    InfoMessage() << "Adamax stepper initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Alpha = " << alpha_ << std::endl;
+    InfoMessage() << "Beta1 = " << beta1_ << std::endl;
+    InfoMessage() << "Beta2 = " << beta2_ << std::endl;
+    InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
@@ -140,6 +141,7 @@ public:
   void SetResetEvery(double niter_reset) { niter_reset_ = niter_reset; }
 
   void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
     std::string section = "Stepper";
     if (!FieldExists(pars, section)) {
       section = "Learning";
@@ -152,6 +154,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -15,13 +15,13 @@
 #ifndef NETKET_ADAGRAD_HPP
 #define NETKET_ADAGRAD_HPP
 
-#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -36,7 +36,7 @@ class AdaGrad : public AbstractStepper {
 
   const std::complex<double> I_;
 
-public:
+ public:
   // Json constructor
   explicit AdaGrad(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -46,9 +46,10 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage("Adagrad stepper initialized with these parameters :");
-    InfoMessage("Learning Rate = " + std::to_string(eta_));
-    InfoMessage("Epscut = " + std::to_string(epscut_));
+    InfoMessage() << "Adagrad stepper initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
@@ -92,6 +93,7 @@ public:
   void Reset() override { Gt_ = Eigen::VectorXd::Zero(npar_); }
 
   void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
     std::string section = "Stepper";
     if (!FieldExists(pars, section)) {
       section = "Learning";
@@ -101,6 +103,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

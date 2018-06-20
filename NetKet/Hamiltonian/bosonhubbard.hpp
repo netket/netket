@@ -44,8 +44,6 @@ class BoseHubbard : public AbstractHamiltonian {
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  int mynode_;
-
   /**
     Hilbert space descriptor for this hamiltonian.
   */
@@ -54,8 +52,7 @@ class BoseHubbard : public AbstractHamiltonian {
  public:
   // Json constructor
   explicit BoseHubbard(const G &graph, const json &pars)
-      : nsites_(graph.Nsites()), graph_(graph)
-  {
+      : nsites_(graph.Nsites()), graph_(graph) {
     nmax_ = FieldVal(pars["Hamiltonian"], "Nmax", "Hamiltonian");
     U_ = FieldVal(pars["Hamiltonian"], "U", "Hamiltonian");
 
@@ -81,11 +78,7 @@ class BoseHubbard : public AbstractHamiltonian {
 
     hilbert_.Init(hil);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# Bose Hubbard model created " << std::endl;
-    }
+    InfoMessage() << "Bose Hubbard model created " << std::endl;
   }
 
   void SetNbosons(int nbosons) {

@@ -57,8 +57,6 @@ class RbmSpin : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  int mynode_;
-
   const Hilbert &hilbert_;
 
  public:
@@ -95,14 +93,10 @@ class RbmSpin : public AbstractMachine<T> {
       b_.setZero();
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# RBM Initizialized with nvisible = " << nv_
-                << " and nhidden = " << nh_ << std::endl;
-      std::cout << "# Using visible bias = " << usea_ << std::endl;
-      std::cout << "# Using hidden bias  = " << useb_ << std::endl;
-    }
+    InfoMessage() << "RBM Initizialized with nvisible = " << nv_
+                  << " and nhidden = " << nh_ << std::endl;
+    InfoMessage() << "Using visible bias = " << usea_ << std::endl;
+    InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
   }
 
   int Nvisible() const override { return nv_; }
@@ -347,15 +341,17 @@ class RbmSpin : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     if (pars.at("Machine").at("Name") != "RbmSpin") {
-      throw InvalidInputError("Error while constructing RbmSpin from Json input");
+      throw InvalidInputError(
+          "Error while constructing RbmSpin from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {
       nv_ = pars["Machine"]["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
-      throw InvalidInputError("Number of visible units is incompatible with given "
-                              "Hilbert space");
+      throw InvalidInputError(
+          "Number of visible units is incompatible with given "
+          "Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "Nhidden")) {

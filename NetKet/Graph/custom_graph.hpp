@@ -22,7 +22,7 @@
 #include <map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
-#include "Utils/json_utils.hpp"
+#include "Utils/all_utils.hpp"
 #include "distance.hpp"
 
 namespace netket {
@@ -37,8 +37,6 @@ class CustomGraph : public AbstractGraph {
 
   int nsites_;
 
-  int mynode_;
-
   std::vector<std::vector<int>> automorphisms_;
 
   bool isbipartite_;
@@ -48,8 +46,6 @@ class CustomGraph : public AbstractGraph {
   explicit CustomGraph(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
     // Try to construct from explicit graph definition
     if (FieldExists(pars, "Graph")) {
       if (FieldExists(pars["Graph"], "AdjacencyList")) {
@@ -71,8 +67,9 @@ class CustomGraph : public AbstractGraph {
       assert(nsites_ > 0);
       adjlist_.resize(nsites_);
     } else {
-      throw InvalidInputError("Graph: one among Size, AdjacencyList, Edges, or Hilbert "
-                              "Space Size must be specified");
+      throw InvalidInputError(
+          "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
+          "Space Size must be specified");
     }
 
     nsites_ = adjlist_.size();
@@ -99,10 +96,8 @@ class CustomGraph : public AbstractGraph {
 
     CheckGraph();
 
-    if (mynode_ == 0) {
-      std::cout << "# Graph created " << std::endl;
-      std::cout << "# Number of nodes = " << nsites_ << std::endl;
-    }
+    InfoMessage() << "Graph created " << std::endl;
+    InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
   }
 
   void AdjacencyListFromEdges(const std::vector<std::vector<int>> &edges) {
@@ -110,8 +105,9 @@ class CustomGraph : public AbstractGraph {
 
     for (auto edge : edges) {
       if (edge.size() != 2) {
-        throw InvalidInputError("The edge list is invalid (edges need "
-                                "to connect exactly two sites)");
+        throw InvalidInputError(
+            "The edge list is invalid (edges need "
+            "to connect exactly two sites)");
       }
       if (edge[0] < 0 || edge[1] < 0) {
         throw InvalidInputError("The edge list is invalid");

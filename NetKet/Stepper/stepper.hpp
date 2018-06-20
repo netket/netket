@@ -32,18 +32,19 @@ class Stepper : public AbstractStepper {
 
   Ptype s_;
 
-public:
+ public:
   explicit Stepper(const json &pars) {
-
     std::string stepper_name = "none specified";
 
     if (FieldExists(pars, "Stepper")) {
       stepper_name = FieldVal(pars["Stepper"], "Name", "Stepper");
     } else if (FieldExists(pars, "Learning")) {
+      // DEPRECATED (to remove for v2.0.0)
       stepper_name =
           FieldVal(pars["Learning"], "StepperType", "Learning/Stepper");
-      WarningMessage("Declaring Steppers within the Learning section is "
-                     "deprecated.\n Please use the dedicated Stepper section.");
+      WarningMessage()
+          << "Declaring Steppers within the Learning section is "
+             "deprecated.\n Please use the dedicated Stepper section.\n";
     }
 
     if (stepper_name == "Sgd") {
@@ -85,5 +86,5 @@ public:
 
   void Reset() override { return s_->Reset(); }
 };
-} // namespace netket
+}  // namespace netket
 #endif
