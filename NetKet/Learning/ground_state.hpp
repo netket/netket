@@ -15,22 +15,22 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Stepper/stepper.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "matrix_replacement.hpp"
-#include "stepper.hpp"
 
 namespace netket {
 
@@ -89,21 +89,19 @@ class GroundState {
 
   bool dosr_;
 
- public:
+public:
   // JSON constructor
   GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
               const json &pars)
-      : ham_(ham),
-        sampler_(sampler),
-        psi_(sampler.Psi()),
-        opt_(opt),
+      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
         obs_(ham.GetHilbert(), pars) {
     Init();
 
     int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
     int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile", "Learning");
+    std::string file_base =
+        FieldVal(pars["Learning"], "OutputFile", "Learning");
     double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
     SetOutName(file_base, freqbackup);
 
@@ -386,6 +384,6 @@ class GroundState {
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

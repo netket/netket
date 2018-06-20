@@ -15,13 +15,13 @@
 #ifndef NETKET_ADAMAX_HPP
 #define NETKET_ADAMAX_HPP
 
+#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -40,35 +40,25 @@ class AdaMax : public AbstractStepper {
 
   double epscut_;
 
-  int mynode_;
-
   const std::complex<double> I_;
 
- public:
+public:
   // Json constructor
-  explicit AdaMax(const json &pars)
-      : alpha_(FieldOrDefaultVal(pars["Learning"], "Alpha", 0.001)),
-        beta1_(FieldOrDefaultVal(pars["Learning"], "Beta1", 0.9)),
-        beta2_(FieldOrDefaultVal(pars["Learning"], "Beta2", 0.999)),
-        epscut_(FieldOrDefaultVal(pars["Learning"], "Epscut", 1.0e-7)),
-        I_(0, 1) {
+  explicit AdaMax(const json &pars) : I_(0, 1) {
     npar_ = -1;
     niter_ = 0;
     niter_reset_ = -1;
 
+    from_json(pars);
     PrintParameters();
   }
 
   void PrintParameters() {
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-    if (mynode_ == 0) {
-      std::cout << "# Adamax stepper initialized with these parameters : "
-                << std::endl;
-      std::cout << "# Alpha = " << alpha_ << std::endl;
-      std::cout << "# Beta1 = " << beta1_ << std::endl;
-      std::cout << "# Beta2 = " << beta2_ << std::endl;
-      std::cout << "# Epscut = " << epscut_ << std::endl;
-    }
+    InfoMessage("Adamax stepper initialized with these parameters :");
+    InfoMessage("Alpha = " + std::to_string(alpha_));
+    InfoMessage("Beta1 = " + std::to_string(beta1_));
+    InfoMessage("Beta2 = " + std::to_string(beta2_));
+    InfoMessage("Epscut = " + std::to_string(epscut_));
   }
 
   void Init(const Eigen::VectorXd &pars) override {
@@ -148,8 +138,20 @@ class AdaMax : public AbstractStepper {
   }
 
   void SetResetEvery(double niter_reset) { niter_reset_ = niter_reset; }
+
+  void from_json(const json &pars) {
+    std::string section = "Stepper";
+    if (!FieldExists(pars, section)) {
+      section = "Learning";
+    }
+
+    alpha_ = FieldOrDefaultVal(pars[section], "Alpha", 0.001);
+    beta1_ = FieldOrDefaultVal(pars[section], "Beta1", 0.9);
+    beta2_ = FieldOrDefaultVal(pars[section], "Beta2", 0.999);
+    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
+  }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

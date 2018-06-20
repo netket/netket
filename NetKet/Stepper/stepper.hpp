@@ -15,14 +15,14 @@
 #ifndef NETKET_STEPPER_HPP
 #define NETKET_STEPPER_HPP
 
+#include "Utils/all_utils.hpp"
 #include "abstract_stepper.hpp"
 #include "ada_delta.hpp"
-#include "ada_max.hpp"
-#include "momentum.hpp"
-#include "ams_grad.hpp"
 #include "ada_grad.hpp"
+#include "ada_max.hpp"
+#include "ams_grad.hpp"
+#include "momentum.hpp"
 #include "rms_prop.hpp"
-#include "rprop.hpp"
 #include "sgd.hpp"
 
 namespace netket {
@@ -32,10 +32,19 @@ class Stepper : public AbstractStepper {
 
   Ptype s_;
 
- public:
+public:
   explicit Stepper(const json &pars) {
-    CheckFieldExists(pars, "Learning");
-    const std::string stepper_name = FieldVal(pars["Learning"], "StepperType", "Learning");
+
+    std::string stepper_name = "none specified";
+
+    if (FieldExists(pars, "Stepper")) {
+      stepper_name = FieldVal(pars["Stepper"], "Name", "Stepper");
+    } else if (FieldExists(pars, "Learning")) {
+      stepper_name =
+          FieldVal(pars["Learning"], "StepperType", "Learning/Stepper");
+      WarningMessage("Declaring Steppers within the Learning section is "
+                     "deprecated.\n Please use the dedicated Stepper section.");
+    }
 
     if (stepper_name == "Sgd") {
       s_ = Ptype(new Sgd(pars));
@@ -76,5 +85,5 @@ class Stepper : public AbstractStepper {
 
   void Reset() override { return s_->Reset(); }
 };
-}  // namespace netket
+} // namespace netket
 #endif

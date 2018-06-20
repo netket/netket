@@ -15,13 +15,13 @@
 #ifndef NETKET_MOMENTUM_HPP
 #define NETKET_MOMENTUM_HPP
 
+#include "abstract_stepper.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
@@ -33,50 +33,40 @@ class Momentum : public AbstractStepper {
 
   Eigen::VectorXd mt_;
 
-  int mynode_;
-
   const std::complex<double> I_;
 
- public:
+public:
   // Json constructor
-  explicit Momentum(const json &pars)
-      : eta_(FieldOrDefaultVal(pars["Learning"], "LearningRate", 0.001)),
-        beta_(FieldOrDefaultVal(pars["Learning"], "Beta", 0.9)),
-        I_(0, 1) {
+  explicit Momentum(const json &pars) : I_(0, 1) {
     npar_ = -1;
 
+    from_json(pars);
     PrintParameters();
   }
 
   void PrintParameters() {
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-    if (mynode_ == 0) {
-      std::cout << "# Momentum stepper initialized with these parameters : "
-                << std::endl;
-      std::cout << "# Learning rate = " << eta_ << std::endl;
-      std::cout << "# Beta = " << beta_ << std::endl;
-    }
+    InfoMessage("Momentum stepper initialized with these parameters :");
+    InfoMessage("Learning Rate = " + std::to_string(eta_));
+    InfoMessage("Beta = " + std::to_string(beta_));
   }
 
   void Init(const Eigen::VectorXd &pars) override {
     npar_ = pars.size();
     mt_.setZero(npar_);
-
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
     npar_ = 2 * pars.size();
     mt_.setZero(npar_);
-
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
-    mt_=beta_*mt_+(1.-beta_)*grad;
+    mt_ = beta_ * mt_ + (1. - beta_) * grad;
 
-    for(int i=0;i<npar_;i++){
-      pars(i)-=eta_*mt_(i);
+    for (int i = 0; i < npar_; i++) {
+      pars(i) -= eta_ * mt_(i);
     }
   }
 
@@ -87,23 +77,29 @@ class Momentum : public AbstractStepper {
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
     assert(npar_ == 2 * pars.size());
 
-    for(int i=0;i<pars.size();i++){
-      mt_(2*i)=beta_*mt_(2*i)+(1.-beta_)*grad(i).real();
-      mt_(2*i+1)=beta_*mt_(2*i+1)+(1.-beta_)*grad(i).imag();
+    for (int i = 0; i < pars.size(); i++) {
+      mt_(2 * i) = beta_ * mt_(2 * i) + (1. - beta_) * grad(i).real();
+      mt_(2 * i + 1) = beta_ * mt_(2 * i + 1) + (1. - beta_) * grad(i).imag();
     }
 
-    for(int i=0;i<pars.size();i++){
-      pars(i)-=eta_*mt_(2*i);
-      pars(i)-=eta_*I_*mt_(2*i+1);
+    for (int i = 0; i < pars.size(); i++) {
+      pars(i) -= eta_ * mt_(2 * i);
+      pars(i) -= eta_ * I_ * mt_(2 * i + 1);
     }
   }
 
-  void Reset() override {
-    mt_ = Eigen::VectorXd::Zero(npar_);
-  }
+  void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
 
+  void from_json(const json &pars) {
+    std::string section = "Stepper";
+    if (!FieldExists(pars, section)) {
+      section = "Learning";
+    }
+    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
+    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
+  }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif
