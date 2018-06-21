@@ -12,74 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_AMSGRAD_HPP
-#define NETKET_AMSGRAD_HPP
+#ifndef NETKET_MOMENTUM_HPP
+#define NETKET_MOMENTUM_HPP
 
+#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
-class AMSGrad : public AbstractStepper {
+class Momentum : public AbstractOptimizer {
   int npar_;
 
   double eta_;
-  double beta1_;
-  double beta2_;
+  double beta_;
 
   Eigen::VectorXd mt_;
-  Eigen::VectorXd vt_;
-
-  double epscut_;
 
   const std::complex<double> I_;
 
- public:
+public:
   // Json constructor
-  explicit AMSGrad(const json &pars) : I_(0, 1) {
+  explicit Momentum(const json &pars) : I_(0, 1) {
     npar_ = -1;
+
     from_json(pars);
     PrintParameters();
   }
 
   void PrintParameters() {
-    InfoMessage() << "AMSGrad stepper initialized with these parameters :"
+    InfoMessage() << "Momentum optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Learning Rate = " << eta_ << std::endl;
-    InfoMessage() << "Beta1 = " << beta1_ << std::endl;
-    InfoMessage() << "Beta2 = " << beta2_ << std::endl;
-    InfoMessage() << "Epscut = " << epscut_ << std::endl;
+    InfoMessage() << "Beta = " << beta_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
     npar_ = pars.size();
     mt_.setZero(npar_);
-    vt_.setZero(npar_);
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
     npar_ = 2 * pars.size();
     mt_.setZero(npar_);
-    vt_.setZero(npar_);
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
-    mt_ = beta1_ * mt_ + (1. - beta1_) * grad;
+    mt_ = beta_ * mt_ + (1. - beta_) * grad;
 
     for (int i = 0; i < npar_; i++) {
-      vt_(i) = std::max(vt_(i),
-                        beta2_ * vt_(i) + (1 - beta2_) * std::pow(grad(i), 2));
-    }
-
-    for (int i = 0; i < npar_; i++) {
-      pars(i) -= eta_ * mt_(i) / (std::sqrt(vt_(i)) + epscut_);
+      pars(i) -= eta_ * mt_(i);
     }
   }
 
@@ -91,44 +79,29 @@ class AMSGrad : public AbstractStepper {
     assert(npar_ == 2 * pars.size());
 
     for (int i = 0; i < pars.size(); i++) {
-      mt_(2 * i) = beta1_ * mt_(2 * i) + (1. - beta1_) * grad(i).real();
-      mt_(2 * i + 1) = beta1_ * mt_(2 * i + 1) + (1. - beta1_) * grad(i).imag();
+      mt_(2 * i) = beta_ * mt_(2 * i) + (1. - beta_) * grad(i).real();
+      mt_(2 * i + 1) = beta_ * mt_(2 * i + 1) + (1. - beta_) * grad(i).imag();
     }
 
     for (int i = 0; i < pars.size(); i++) {
-      vt_(2 * i) =
-          std::max(vt_(2 * i), beta2_ * vt_(2 * i) +
-                                   (1 - beta2_) * std::pow(grad(i).real(), 2));
-      vt_(2 * i + 1) = std::max(
-          vt_(2 * i + 1),
-          beta2_ * vt_(2 * i + 1) + (1 - beta2_) * std::pow(grad(i).imag(), 2));
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * mt_(2 * i) / (std::sqrt(vt_(2 * i)) + epscut_);
-      pars(i) -=
-          eta_ * I_ * mt_(2 * i + 1) / (std::sqrt(vt_(2 * i + 1)) + epscut_);
+      pars(i) -= eta_ * mt_(2 * i);
+      pars(i) -= eta_ * I_ * mt_(2 * i + 1);
     }
   }
 
-  void Reset() override {
-    mt_ = Eigen::VectorXd::Zero(npar_);
-    vt_ = Eigen::VectorXd::Zero(npar_);
-  }
+  void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
 
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Stepper";
+    std::string section = "Optimizer";
     if (!FieldExists(pars, section)) {
       section = "Learning";
     }
     eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    beta1_ = FieldOrDefaultVal(pars[section], "Beta1", 0.9);
-    beta2_ = FieldOrDefaultVal(pars[section], "Beta2", 0.999);
-    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
+    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

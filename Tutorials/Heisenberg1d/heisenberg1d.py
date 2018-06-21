@@ -45,9 +45,9 @@ pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
 
-# defining the stepper
+# defining the Optimizer
 # here we use AdaMax
-pars['Stepper'] = {
+pars['Optimizer'] = {
     'Name': 'AdaMax',
 }
 

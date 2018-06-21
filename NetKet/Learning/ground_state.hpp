@@ -15,6 +15,14 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
@@ -23,14 +31,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Stepper/stepper.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "matrix_replacement.hpp"
 
 namespace netket {
 
@@ -81,7 +81,7 @@ class GroundState {
   std::string filewfname_;
   double freqbackup_;
 
-  Stepper &opt_;
+  Optimizer &opt_;
 
   Observables obs_;
   ObsManager obsmanager_;
@@ -89,14 +89,11 @@ class GroundState {
 
   bool dosr_;
 
- public:
+public:
   // JSON constructor
-  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
-              const json &pars)
-      : ham_(ham),
-        sampler_(sampler),
-        psi_(sampler.Psi()),
-        opt_(opt),
+  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+              Optimizer &opt, const json &pars)
+      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
         obs_(ham.GetHilbert(), pars) {
     Init();
 
@@ -384,6 +381,6 @@ class GroundState {
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

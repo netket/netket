@@ -12,33 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ADAGRAD_HPP
-#define NETKET_ADAGRAD_HPP
+#ifndef NETKET_RMSPROP_HPP
+#define NETKET_RMSPROP_HPP
 
+#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
-class AdaGrad : public AbstractStepper {
+class RMSProp : public AbstractOptimizer {
   int npar_;
 
   double eta_;
+  double beta_;
 
-  Eigen::VectorXd Gt_;
+  Eigen::VectorXd st_;
 
   double epscut_;
 
   const std::complex<double> I_;
 
- public:
+public:
   // Json constructor
-  explicit AdaGrad(const json &pars) : I_(0, 1) {
+  explicit RMSProp(const json &pars) : I_(0, 1) {
     npar_ = -1;
 
     from_json(pars);
@@ -46,29 +47,30 @@ class AdaGrad : public AbstractStepper {
   }
 
   void PrintParameters() {
-    InfoMessage() << "Adagrad stepper initialized with these parameters :"
+    InfoMessage() << "RMSProp optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "Beta = " << beta_ << std::endl;
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override {
     npar_ = pars.size();
-    Gt_.setZero(npar_);
+    st_.setZero(npar_);
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
     npar_ = 2 * pars.size();
-    Gt_.setZero(npar_);
+    st_.setZero(npar_);
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
-    Gt_ += grad.cwiseAbs2();
+    st_ = beta_ * st_ + (1. - beta_) * grad.cwiseAbs2();
 
     for (int i = 0; i < npar_; i++) {
-      pars(i) -= eta_ * grad(i) / std::sqrt(Gt_(i) + epscut_);
+      pars(i) -= eta_ * grad(i) / (std::sqrt(st_(i)) + epscut_);
     }
   }
 
@@ -80,29 +82,30 @@ class AdaGrad : public AbstractStepper {
     assert(npar_ == 2 * pars.size());
 
     for (int i = 0; i < pars.size(); i++) {
-      Gt_(2 * i) += std::pow(grad(i).real(), 2);
-      Gt_(2 * i + 1) += std::pow(grad(i).imag(), 2);
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * grad(i) / std::sqrt(Gt_(2 * i) + epscut_);
-      pars(i) -= eta_ * I_ * grad(i) / std::sqrt(Gt_(2 * i + 1) + epscut_);
+      st_(2 * i) =
+          beta_ * st_(2 * i) + (1. - beta_) * std::pow(grad(i).real(), 2);
+      st_(2 * i + 1) =
+          beta_ * st_(2 * i + 1) + (1. - beta_) * std::pow(grad(i).imag(), 2);
+      pars(i) -= eta_ * grad(i).real() / (std::sqrt(st_(2 * i)) + epscut_);
+      pars(i) -=
+          eta_ * I_ * grad(i).imag() / (std::sqrt(st_(2 * i + 1)) + epscut_);
     }
   }
 
-  void Reset() override { Gt_ = Eigen::VectorXd::Zero(npar_); }
+  void Reset() override { st_ = Eigen::VectorXd::Zero(npar_); }
 
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Stepper";
+    std::string section = "Optimizer";
     if (!FieldExists(pars, section)) {
       section = "Learning";
     }
     eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
+    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
     epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

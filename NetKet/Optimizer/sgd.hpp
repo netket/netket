@@ -12,32 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MOMENTUM_HPP
-#define NETKET_MOMENTUM_HPP
+#ifndef NETKET_SGD_HPP
+#define NETKET_SGD_HPP
 
+#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
-#include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
-class Momentum : public AbstractStepper {
+class Sgd : public AbstractOptimizer {
+  // decay constant
+  double eta_;
+
   int npar_;
 
-  double eta_;
-  double beta_;
+  double l2reg_;
 
-  Eigen::VectorXd mt_;
+  double decay_factor_;
 
-  const std::complex<double> I_;
-
- public:
+public:
   // Json constructor
-  explicit Momentum(const json &pars) : I_(0, 1) {
+  explicit Sgd(const json &pars) {
     npar_ = -1;
 
     from_json(pars);
@@ -45,29 +44,24 @@ class Momentum : public AbstractStepper {
   }
 
   void PrintParameters() {
-    InfoMessage() << "Momentum stepper initialized with these parameters :"
+    InfoMessage() << "Sgd optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Learning Rate = " << eta_ << std::endl;
-    InfoMessage() << "Beta = " << beta_ << std::endl;
+    InfoMessage() << "L2 Regularization = " << l2reg_ << std::endl;
+    InfoMessage() << "Decay Factor = " << decay_factor_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
-    mt_.setZero(npar_);
-  }
+  void Init(const Eigen::VectorXd &pars) override { npar_ = pars.size(); }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    mt_.setZero(npar_);
-  }
+  void Init(const Eigen::VectorXcd &pars) override { npar_ = 2 * pars.size(); }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
     assert(npar_ > 0);
 
-    mt_ = beta_ * mt_ + (1. - beta_) * grad;
+    eta_ *= decay_factor_;
 
     for (int i = 0; i < npar_; i++) {
-      pars(i) -= eta_ * mt_(i);
+      pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
     }
   }
 
@@ -76,32 +70,33 @@ class Momentum : public AbstractStepper {
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
+    eta_ *= decay_factor_;
 
     for (int i = 0; i < pars.size(); i++) {
-      mt_(2 * i) = beta_ * mt_(2 * i) + (1. - beta_) * grad(i).real();
-      mt_(2 * i + 1) = beta_ * mt_(2 * i + 1) + (1. - beta_) * grad(i).imag();
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * mt_(2 * i);
-      pars(i) -= eta_ * I_ * mt_(2 * i + 1);
+      pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
     }
   }
 
-  void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
+  void SetDecayFactor(double decay_factor) {
+    assert(decay_factor <= 1.00001);
+    decay_factor_ = decay_factor;
+  }
+
+  void Reset() override {}
 
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Stepper";
+    std::string section = "Optimizer";
     if (!FieldExists(pars, section)) {
       section = "Learning";
     }
-    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
+
+    eta_ = FieldVal(pars[section], "LearningRate");
+    l2reg_ = FieldOrDefaultVal(pars[section], "L2Reg", 0.0);
+    SetDecayFactor(FieldOrDefaultVal(pars[section], "DecayFactor", 1.0));
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

@@ -71,9 +71,9 @@ pars['Sampler'] = {
     'Nreplicas': 16,
 }
 
-# defining the stepper
+# defining the Optimizer
 # here we use the Stochastic Gradient Descent
-pars['Stepper'] = {
+pars['Optimizer'] = {
     'Name': 'Sgd',
     'LearningRate': 0.01,
 }

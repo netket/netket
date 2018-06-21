@@ -12,51 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ADAMAX_HPP
-#define NETKET_ADAMAX_HPP
+#ifndef NETKET_AMSGRAD_HPP
+#define NETKET_AMSGRAD_HPP
 
+#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
-class AdaMax : public AbstractStepper {
+class AMSGrad : public AbstractOptimizer {
   int npar_;
 
-  double alpha_;
+  double eta_;
   double beta1_;
   double beta2_;
 
-  Eigen::VectorXd ut_;
   Eigen::VectorXd mt_;
-
-  double niter_;
-  double niter_reset_;
+  Eigen::VectorXd vt_;
 
   double epscut_;
 
   const std::complex<double> I_;
 
- public:
+public:
   // Json constructor
-  explicit AdaMax(const json &pars) : I_(0, 1) {
+  explicit AMSGrad(const json &pars) : I_(0, 1) {
     npar_ = -1;
-    niter_ = 0;
-    niter_reset_ = -1;
-
     from_json(pars);
     PrintParameters();
   }
 
   void PrintParameters() {
-    InfoMessage() << "Adamax stepper initialized with these parameters :"
+    InfoMessage() << "AMSGrad optimizer initialized with these parameters :"
                   << std::endl;
-    InfoMessage() << "Alpha = " << alpha_ << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
     InfoMessage() << "Beta1 = " << beta1_ << std::endl;
     InfoMessage() << "Beta2 = " << beta2_ << std::endl;
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
@@ -64,18 +58,14 @@ class AdaMax : public AbstractStepper {
 
   void Init(const Eigen::VectorXd &pars) override {
     npar_ = pars.size();
-    ut_.setZero(npar_);
     mt_.setZero(npar_);
-
-    niter_ = 0;
+    vt_.setZero(npar_);
   }
 
   void Init(const Eigen::VectorXcd &pars) override {
     npar_ = 2 * pars.size();
-    ut_.setZero(npar_);
     mt_.setZero(npar_);
-
-    niter_ = 0;
+    vt_.setZero(npar_);
   }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
@@ -84,18 +74,12 @@ class AdaMax : public AbstractStepper {
     mt_ = beta1_ * mt_ + (1. - beta1_) * grad;
 
     for (int i = 0; i < npar_; i++) {
-      ut_(i) = std::max(std::max(std::abs(grad(i)), beta2_ * ut_(i)), epscut_);
-    }
-    niter_ += 1.;
-    if (niter_reset_ > 0) {
-      if (niter_ > niter_reset_) {
-        niter_ = 1;
-      }
+      vt_(i) = std::max(vt_(i),
+                        beta2_ * vt_(i) + (1 - beta2_) * std::pow(grad(i), 2));
     }
 
-    double eta = alpha_ / (1. - std::pow(beta1_, niter_));
     for (int i = 0; i < npar_; i++) {
-      pars(i) -= eta * mt_(i) / ut_(i);
+      pars(i) -= eta_ * mt_(i) / (std::sqrt(vt_(i)) + epscut_);
     }
   }
 
@@ -112,48 +96,39 @@ class AdaMax : public AbstractStepper {
     }
 
     for (int i = 0; i < pars.size(); i++) {
-      ut_(2 * i) = std::max(
-          std::max(std::abs(grad(i).real()), beta2_ * ut_(2 * i)), epscut_);
-      ut_(2 * i + 1) = std::max(
-          std::max(std::abs(grad(i).imag()), beta2_ * ut_(2 * i + 1)), epscut_);
+      vt_(2 * i) =
+          std::max(vt_(2 * i), beta2_ * vt_(2 * i) +
+                                   (1 - beta2_) * std::pow(grad(i).real(), 2));
+      vt_(2 * i + 1) = std::max(vt_(2 * i + 1),
+                                beta2_ * vt_(2 * i + 1) +
+                                    (1 - beta2_) * std::pow(grad(i).imag(), 2));
     }
 
-    niter_ += 1.;
-    if (niter_reset_ > 0) {
-      if (niter_ > niter_reset_) {
-        niter_ = 1;
-      }
-    }
-
-    double eta = alpha_ / (1. - std::pow(beta1_, niter_));
     for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta * mt_(2 * i) / ut_(2 * i);
-      pars(i) -= eta * I_ * mt_(2 * i + 1) / ut_(2 * i + 1);
+      pars(i) -= eta_ * mt_(2 * i) / (std::sqrt(vt_(2 * i)) + epscut_);
+      pars(i) -=
+          eta_ * I_ * mt_(2 * i + 1) / (std::sqrt(vt_(2 * i + 1)) + epscut_);
     }
   }
 
   void Reset() override {
-    ut_ = Eigen::VectorXd::Zero(npar_);
     mt_ = Eigen::VectorXd::Zero(npar_);
-    niter_ = 0;
+    vt_ = Eigen::VectorXd::Zero(npar_);
   }
-
-  void SetResetEvery(double niter_reset) { niter_reset_ = niter_reset; }
 
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Stepper";
+    std::string section = "Optimizer";
     if (!FieldExists(pars, section)) {
       section = "Learning";
     }
-
-    alpha_ = FieldOrDefaultVal(pars[section], "Alpha", 0.001);
+    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
     beta1_ = FieldOrDefaultVal(pars[section], "Beta1", 0.9);
     beta2_ = FieldOrDefaultVal(pars[section], "Beta2", 0.999);
     epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif
