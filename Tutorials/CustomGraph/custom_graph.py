@@ -47,6 +47,13 @@ pars['Sampler'] = {
     'Name': 'MetropolisLocal',
 }
 
+# defining the Optimizer
+# here we use the Stochastic Gradient Descent
+pars['Optimizer'] = {
+    'Name': 'Sgd',
+    'LearningRate': 0.05,
+}
+
 # defining the learning method
 # here we use the Stochastic Reconfiguration Method
 pars['Learning'] = {
@@ -56,8 +63,6 @@ pars['Learning'] = {
     'Diagshift': 0.5,
     'UseIterative': False,
     'OutputFile': "test",
-    'StepperType': 'Sgd',
-    'LearningRate': 0.05,
 }
 
 json_file = "custom_graph.json"

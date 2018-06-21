@@ -15,22 +15,22 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "matrix_replacement.hpp"
-#include "stepper.hpp"
 
 namespace netket {
 
@@ -81,7 +81,7 @@ class GroundState {
   std::string filewfname_;
   double freqbackup_;
 
-  Stepper &opt_;
+  Optimizer &opt_;
 
   Observables obs_;
   ObsManager obsmanager_;
@@ -89,21 +89,19 @@ class GroundState {
 
   bool dosr_;
 
- public:
+public:
   // JSON constructor
-  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
-              const json &pars)
-      : ham_(ham),
-        sampler_(sampler),
-        psi_(sampler.Psi()),
-        opt_(opt),
+  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+              Optimizer &opt, const json &pars)
+      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
         obs_(ham.GetHilbert(), pars) {
     Init();
 
     int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
     int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile", "Learning");
+    std::string file_base =
+        FieldVal(pars["Learning"], "OutputFile", "Learning");
     double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
     SetOutName(file_base, freqbackup);
 
@@ -119,16 +117,14 @@ class GroundState {
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
 
-    if (mynode_ == 0) {
-      if (dosr_) {
-        std::cout << "# Using the Stochastic reconfiguration method"
-                  << std::endl;
-        if (use_iterative_) {
-          std::cout << "# With iterative solver" << std::endl;
-        }
-      } else {
-        std::cout << "# Using a gradient-descent based method" << std::endl;
+    if (dosr_) {
+      InfoMessage() << "Using the Stochastic reconfiguration method"
+                    << std::endl;
+      if (use_iterative_) {
+        InfoMessage() << "With iterative solver" << std::endl;
       }
+    } else {
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
     Run(nsamples, niter_opt);
@@ -151,10 +147,9 @@ class GroundState {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (mynode_ == 0) {
-      std::cout << "# Learning running on " << totalnodes_ << " processes"
-                << std::endl;
-    }
+    InfoMessage() << "Learning running on " << totalnodes_ << " processes"
+                  << std::endl;
+
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -386,6 +381,6 @@ class GroundState {
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

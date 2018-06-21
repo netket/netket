@@ -21,23 +21,23 @@
 namespace netket {
 
 void Welcome(int argc) {
-  int mynode;
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-  if (mynode == 0) {
-    std::cout << "############################################" << std::endl;
-    std::cout << "# NetKet version 1.0.3                     #" << std::endl;
-    std::cout << "# Website: https://www.netket.org          #" << std::endl;
-    std::cout << "# Licensed under Apache-2.0 - see LICENSE  #" << std::endl;
-    std::cout << "############################################" << std::endl;
-    std::cout << std::endl << std::endl;
-  }
+  InfoMessage() << "############################################ #"
+                << std::endl;
+  InfoMessage() << "# NetKet version 1.0.3                     # #"
+                << std::endl;
+  InfoMessage() << "# Website: https://www.netket.org          # #"
+                << std::endl;
+  InfoMessage() << "# Licensed under Apache-2.0 - see LICENSE  # #"
+                << std::endl;
+  InfoMessage() << "############################################ #" << std::endl
+                << std::endl
+                << std::endl;
 
   if (argc != 2) {
-    if (mynode == 0) {
-      std::cout << "# Usage: Insert name of input Json file" << std::endl;
-      std::cout << std::endl << std::endl;
-    }
+    InfoMessage() << "Usage: Insert name of input Json file" << std::endl
+                  << std::endl
+                  << std::endl;
+
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
     std::exit(0);
