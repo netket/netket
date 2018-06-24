@@ -18,19 +18,19 @@
 #include <memory>
 
 #include "Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp"
+#include "Optimizer/optimizer.hpp"
 #include "ground_state.hpp"
-#include "stepper.hpp"
 
 namespace netket {
 
 class Learning {
- public:
+public:
   explicit Learning(const json &pars) {
     CheckFieldExists(pars, "Learning");
-    const std::string method_name = FieldVal(pars["Learning"], "Method", "Learning");
+    const std::string method_name =
+        FieldVal(pars["Learning"], "Method", "Learning");
 
-    if (method_name == "Gd" ||
-        method_name == "Sr") {
+    if (method_name == "Gd" || method_name == "Sr") {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -40,9 +40,9 @@ class Learning {
 
       Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
 
-      Stepper stepper(pars);
+      Optimizer optimizer(pars);
 
-      GroundState le(hamiltonian, sampler, stepper, pars);
+      GroundState le(hamiltonian, sampler, optimizer, pars);
     } else if (method_name == "Ed") {
       Graph graph(pars);
 
@@ -59,8 +59,7 @@ class Learning {
   }
 
   void SaveEigenValues(const Hamiltonian &hamiltonian,
-                       const std::string &filename,
-                       int first_n = 1) {
+                       const std::string &filename, int first_n = 1) {
     std::ofstream file_ed(filename);
 
     auto matrix = DenseMatrixWrapper<Hamiltonian>(hamiltonian);
@@ -73,9 +72,9 @@ class Learning {
     file_ed << j << std::endl;
 
     file_ed.close();
-    }
+  }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

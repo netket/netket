@@ -1,16 +1,16 @@
-#Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
 
-#Licensed under the Apache License, Version 2.0 (the "License");
-#you may not use this file except in compliance with the License.
-#You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
 #    http://www.apache.org/licenses/LICENSE-2.0
 
-#Unless required by applicable law or agreed to in writing, software
-#distributed under the License is distributed on an "AS IS" BASIS,
-#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#See the License for the specific language governing permissions and
-#limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from __future__ import print_function
 import json
@@ -42,10 +42,8 @@ for i in range(L):
         sites.append([i, (i + d + 1) % L])
 
 pars = {}
-print(np.array(operators).shape)
-# exit(0)
 
-#We chose a spin 1/2 hilbert space with total Sigmaz=0
+# We chose a spin 1/2 hilbert space with total Sigmaz=0
 pars['Hilbert'] = {
     'Name': 'Spin',
     'S': 0.5,
@@ -53,27 +51,34 @@ pars['Hilbert'] = {
     'Nspins': L,
 }
 
-#defining our custom hamiltonian
+# defining our custom hamiltonian
 pars['Hamiltonian'] = {
     'Operators': operators,
     'ActingOn': sites,
 }
 
-#defining the wave function
+# defining the wave function
 pars['Machine'] = {
     'Name': 'RbmSpin',
     'Alpha': 1,
 }
 
-#defining the sampler
-#here we use Hamiltonian sampling to preserve simmetries
+# defining the sampler
+# here we use Hamiltonian sampling to preserve simmetries
 pars['Sampler'] = {
     'Name': 'MetropolisHamiltonianPt',
     'Nreplicas': 16,
 }
 
-#defining the learning method
-#here we use the Stochastic Reconfiguration Method
+# defining the Optimizer
+# here we use the Stochastic Gradient Descent
+pars['Optimizer'] = {
+    'Name': 'Sgd',
+    'LearningRate': 0.01,
+}
+
+# defining the learning method
+# here we use the Stochastic Reconfiguration Method
 pars['Learning'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
@@ -81,8 +86,6 @@ pars['Learning'] = {
     'Diagshift': 0.1,
     'UseIterative': True,
     'OutputFile': "test",
-    'StepperType': 'Sgd',
-    'LearningRate': 0.01,
 }
 
 json_file = "j1j2.json"

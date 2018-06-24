@@ -18,8 +18,8 @@
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {
@@ -81,11 +81,9 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
     Reset(true);
 
-    if (mynode_ == 0) {
-      std::cout << "# Metropolis Exchange sampler is ready " << std::endl;
-      std::cout << "# " << dmax << " is the maximum distance for exchanges"
-                << std::endl;
-    }
+    InfoMessage() << "Metropolis Exchange sampler is ready " << std::endl;
+    InfoMessage() << dmax << " is the maximum distance for exchanges"
+                  << std::endl;
   }
 
   template <class G>

@@ -20,18 +20,11 @@ int main(int argc, char *argv[]) {
 
   netket::Welcome(argc);
 
-  try
-  {
+  try {
     auto pars = netket::ReadJsonFromFile(argv[1]);
     netket::Learning learning(pars);
-  }
-  catch(const netket::InvalidInputError& e)
-  {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if(rank == 0) {
-      std::cerr << "Error: " << e.what() << "\nExiting." << std::endl;
-    }
+  } catch (const netket::InvalidInputError &e) {
+    netket::ErrorMessage() << e.what() << "\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

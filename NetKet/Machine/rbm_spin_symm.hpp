@@ -75,8 +75,6 @@ class RbmSpinSymm : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  int mynode_;
-
   const Hilbert &hilbert_;
 
   const Graph &graph_;
@@ -171,14 +169,10 @@ class RbmSpinSymm : public AbstractMachine<T> {
       }
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# RBM Initizialized with nvisible = " << nv_
-                << " and nhidden = " << nh_ << std::endl;
-      std::cout << "# Symmetries are being used : " << npar_
-                << " parameters left, instead of " << nbarepar_ << std::endl;
-    }
+    InfoMessage() << "RBM Initizialized with nvisible = " << nv_
+                  << " and nhidden = " << nh_ << std::endl;
+    InfoMessage() << "Symmetries are being used : " << npar_
+                  << " parameters left, instead of " << nbarepar_ << std::endl;
   }
 
   int Nvisible() const override { return nv_; }
@@ -413,15 +407,17 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     if (pars.at("Machine").at("Name") != "RbmSpinSymm") {
-      throw InvalidInputError("Error while constructing RbmSpinSymm from Json input");
+      throw InvalidInputError(
+          "Error while constructing RbmSpinSymm from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {
       nv_ = pars["Machine"]["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
-      throw InvalidInputError("Number of visible units is incompatible with given "
-                              "Hilbert space");
+      throw InvalidInputError(
+          "Number of visible units is incompatible with given "
+          "Hilbert space");
     }
 
     alpha_ = FieldVal(pars["Machine"], "Alpha", "Machine");
