@@ -23,7 +23,12 @@ int main(int argc, char *argv[]) {
   try
   {
     auto pars = netket::ReadJsonFromFile(argv[1]);
-    netket::Learning learning(pars);
+    if (netket::FieldExists(pars, "Learning")){
+        netket::Learning learning(pars);
+    }
+    else if (netket::FieldExists(pars, "Supervised")){
+        netket::Supervised supervised(pars);
+    }
   }
   catch(const netket::InvalidInputError& e)
   {

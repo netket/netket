@@ -48,7 +48,7 @@ pars['Supervised'] = {
     'Loss' : 'L2',
     'Nsamples': 1.0e3,
     'NiterOpt': 10000,
-    'InputFile': "psi",
+    'InputFilename': "psi.json",
     'OutputFile': "test",
     'StepperType': 'Sgd',
     'LearningRate': 0.01,
