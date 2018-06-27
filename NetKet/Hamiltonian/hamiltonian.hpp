@@ -18,9 +18,9 @@
 #include <memory>
 
 #include "abstract_hamiltonian.hpp"
-#include "bond_hamiltonian.hpp"
 #include "bosonhubbard.hpp"
 #include "custom_hamiltonian.hpp"
+#include "graph_hamiltonian.hpp"
 #include "heisenberg.hpp"
 #include "ising.hpp"
 
@@ -42,8 +42,8 @@ public:
         h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
       } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
         h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
-      } else if (pars["Hamiltonian"]["Name"] == "Bond") {
-        h_ = std::make_shared<BondHamiltonian<Graph>>(graph, pars);
+      } else if (pars["Hamiltonian"]["Name"] == "Graph") {
+        h_ = std::make_shared<GraphHamiltonian<Graph>>(graph, pars);
       } else {
         throw InvalidInputError("Hamiltonian name not found");
       }

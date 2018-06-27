@@ -25,7 +25,7 @@ namespace netket {
     These include lattices and non-regular graphs.
 */
 class AbstractGraph {
- public:
+public:
   /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
@@ -50,6 +50,12 @@ class AbstractGraph {
   virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
 
   /**
+  Member function returning edge colors of the graph.
+  @return ec[i][j] is the color of the edge between nodes i and j.
+  */
+  virtual std::map<std::vector<int>, int> EdgeColors() const = 0;
+
+  /**
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
@@ -58,5 +64,5 @@ class AbstractGraph {
   virtual ~AbstractGraph(){};
 };
 
-}  // namespace netket
+} // namespace netket
 #endif

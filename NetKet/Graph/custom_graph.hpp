@@ -15,15 +15,15 @@
 #ifndef NETKET_CUSTOM_GRAPH_HPP
 #define NETKET_CUSTOM_GRAPH_HPP
 
-#include <mpi.h>
+#include "Hilbert/hilbert.hpp"
+#include "Utils/all_utils.hpp"
+#include "distance.hpp"
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <mpi.h>
 #include <vector>
-#include "Hilbert/hilbert.hpp"
-#include "Utils/all_utils.hpp"
-#include "distance.hpp"
 
 namespace netket {
 
@@ -35,13 +35,15 @@ class CustomGraph : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
+  std::map<std::vector<int>, int> eclist_;
+
   int nsites_;
 
   std::vector<std::vector<int>> automorphisms_;
 
   bool isbipartite_;
 
- public:
+public:
   // Json constructor
   explicit CustomGraph(const json &pars) { Init(pars); }
 
@@ -56,6 +58,16 @@ class CustomGraph : public AbstractGraph {
         std::vector<std::vector<int>> edges =
             pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
         AdjacencyListFromEdges(edges);
+
+        std::cout << "####### Just read edges " << std::endl;
+        // TODO
+        if (FieldExists(pars["Graph"], "EdgeColors")) {
+          std::vector<int> colorlist =
+              pars["Graph"]["EdgeColors"].get<std::vector<int>>();
+          std::cout << "Size of input colorlist " << colorlist.size()
+                    << std::endl;
+          EdgeColorsFromList(edges, colorlist);
+        }
       }
       if (FieldExists(pars["Graph"], "Size")) {
         assert(pars["Graph"]["Size"] > 0);
@@ -105,9 +117,8 @@ class CustomGraph : public AbstractGraph {
 
     for (auto edge : edges) {
       if (edge.size() != 2) {
-        throw InvalidInputError(
-            "The edge list is invalid (edges need "
-            "to connect exactly two sites)");
+        throw InvalidInputError("The edge list is invalid (edges need "
+                                "to connect exactly two sites)");
       }
       if (edge[0] < 0 || edge[1] < 0) {
         throw InvalidInputError("The edge list is invalid");
@@ -123,6 +134,30 @@ class CustomGraph : public AbstractGraph {
       adjlist_[edge[0]].push_back(edge[1]);
       adjlist_[edge[1]].push_back(edge[0]);
     }
+  }
+
+  void EdgeColorsFromList(const std::vector<std::vector<int>> &edges,
+                          const std::vector<int> &colorlist) {
+    if (edges.size() != colorlist.size()) {
+      throw InvalidInputError("The color list must have the same size as the "
+                              "edge list.");
+    }
+
+    // eclist_.resize(colorlist.size());
+
+    std::cout << "EDGES SIZE " << edges.size() << std::endl;
+
+    for (std::size_t i = 0; i < edges.size(); i++) {
+      std::cout << "EDGE: " << edges[i][0] << " " << edges[i][1] << std::endl;
+      eclist_[edges[i]] = colorlist[i];
+    }
+
+    // for (int i = 0; i < adjlist_.size(); i++) {
+    //   for (int j = 0; j < adjlist_[i].size(); j++) {
+    //     std::vector<int> edge = {i, j};
+    //     eclist_.push_back(edge, s)
+    //   }
+    // }
   }
 
   void CheckGraph() {
@@ -147,6 +182,8 @@ class CustomGraph : public AbstractGraph {
     }
   }
 
+  std::map<std::vector<int>, int> EdgeColors() const { return eclist_; }
+
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
   std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
@@ -167,7 +204,7 @@ class CustomGraph : public AbstractGraph {
 
     return distances;
   }
-};
+}; // namespace netket
 
-}  // namespace netket
+} // namespace netket
 #endif

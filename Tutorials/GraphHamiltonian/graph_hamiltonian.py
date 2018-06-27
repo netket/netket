@@ -38,30 +38,32 @@ L = 20
 #     sites.append([i, (i + 1) % L])
 
 # print(sites)
-
-bond_operator = [sigmax, mszsz]
-bond_label = [0, 1]
+site_operator = [sigmax]
+bond_operator = [mszsz]
+bond_label = [0]
 bond_couple = [1.0, 1.0]
 
 # Defining a custom graph
 # G = nx.cycle_graph(L)
 G = nx.DiGraph()
 for i in range(L):
-    G.add_edge(i, (i + 1) % L)
+    G.add_edge(i, (i + 1) % L, color='b')
 print(G.edges)
 # print(nx.to_scipy_sparse_matrix(G))
 # print([x[1] for x in nx.to_dict_of_lists(G).items()])
 # exit(0)
-
-#import matplotlib.pyplot as plt
-#nx.draw(G)
-#plt.show()
+edge_colors = [int(G[u][v]['color'] != 'b') for u, v in G.edges]
+print(edge_colors)
+# import matplotlib.pyplot as plt
+# nx.draw(G, edges=G.edges, edge_colors=[G[u][v]['color'] for u, v in G.edges])
+# plt.show()
 # print(list(G.edges))
 
 pars = {}
 
 pars['Graph'] = {
     'Edges': list(G.edges),
+    'EdgeColors': edge_colors,
 }
 
 # first we choose a hilbert space for our custom hamiltonian
@@ -72,10 +74,10 @@ pars['Hilbert'] = {
 
 # defining a custom hamiltonian
 pars['Hamiltonian'] = {
-    'Name': 'Bond',
+    'Name': 'Graph',
+    'SiteOps': site_operator,
     'BondOps': bond_operator,
-    'BondLabels': bond_label,
-    'BondCoupling': bond_couple,
+    'BondColors': bond_label,
 }
 
 # defining the wave function
@@ -90,6 +92,12 @@ pars['Sampler'] = {
     'Name': 'MetropolisLocal',
 }
 
+# defining the Optimizer
+# here we use AdaMax
+pars['Optimizer'] = {
+    'Name': 'AdaMax',
+}
+
 # defining the learning method
 # here we use a Gradient Descent with AdaMax
 pars['Learning'] = {
@@ -97,10 +105,9 @@ pars['Learning'] = {
     'Nsamples': 1.0e3,
     'NiterOpt': 40000,
     'OutputFile': "test",
-    'StepperType': 'AdaMax',
 }
 
-json_file = "bond_hamiltonian.json"
+json_file = "graph_hamiltonian.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
