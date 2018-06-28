@@ -59,14 +59,11 @@ public:
             pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
         AdjacencyListFromEdges(edges);
 
-        std::cout << "####### Just read edges " << std::endl;
         // TODO
         if (FieldExists(pars["Graph"], "EdgeColors")) {
-          std::vector<int> colorlist =
+          std::vector<int> colors =
               pars["Graph"]["EdgeColors"].get<std::vector<int>>();
-          std::cout << "Size of input colorlist " << colorlist.size()
-                    << std::endl;
-          EdgeColorsFromList(edges, colorlist);
+          EdgeColorsFromList(edges, colors);
         }
       }
       if (FieldExists(pars["Graph"], "Size")) {
@@ -136,28 +133,17 @@ public:
     }
   }
 
+  // Read edges and colors together to creat mapping.
+  // The integer code used to label color is arbitrary and is up to the user.
   void EdgeColorsFromList(const std::vector<std::vector<int>> &edges,
-                          const std::vector<int> &colorlist) {
-    if (edges.size() != colorlist.size()) {
+                          const std::vector<int> &colors) {
+    if (edges.size() != colors.size()) {
       throw InvalidInputError("The color list must have the same size as the "
                               "edge list.");
     }
-
-    // eclist_.resize(colorlist.size());
-
-    std::cout << "EDGES SIZE " << edges.size() << std::endl;
-
     for (std::size_t i = 0; i < edges.size(); i++) {
-      std::cout << "EDGE: " << edges[i][0] << " " << edges[i][1] << std::endl;
-      eclist_[edges[i]] = colorlist[i];
+      eclist_[edges[i]] = colors[i];
     }
-
-    // for (int i = 0; i < adjlist_.size(); i++) {
-    //   for (int j = 0; j < adjlist_[i].size(); j++) {
-    //     std::vector<int> edge = {i, j};
-    //     eclist_.push_back(edge, s)
-    //   }
-    // }
   }
 
   void CheckGraph() {
@@ -182,6 +168,7 @@ public:
     }
   }
 
+  // Returns map of the edge and its respective color
   std::map<std::vector<int>, int> EdgeColors() const { return eclist_; }
 
   // Returns a list of permuted sites constituting an automorphism of the

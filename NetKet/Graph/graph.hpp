@@ -69,6 +69,7 @@ public:
   std::vector<std::vector<int>> Distances() const override {
     return g_->Distances();
   }
+
   virtual std::map<std::vector<int>, int> EdgeColors() const override {
     return g_->EdgeColors();
   }

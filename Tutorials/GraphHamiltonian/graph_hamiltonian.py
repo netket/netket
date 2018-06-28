@@ -40,7 +40,7 @@ L = 20
 # print(sites)
 site_operator = [sigmax]
 bond_operator = [mszsz]
-bond_label = [0]
+bond_color = [0]
 bond_couple = [1.0, 1.0]
 
 # Defining a custom graph
@@ -77,7 +77,7 @@ pars['Hamiltonian'] = {
     'Name': 'Graph',
     'SiteOps': site_operator,
     'BondOps': bond_operator,
-    'BondColors': bond_label,
+    'BondColors': bond_color,
 }
 
 # defining the wave function

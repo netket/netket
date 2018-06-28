@@ -44,7 +44,7 @@ class Hypercube : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
-  // Edge colors
+  // Edge colors // TODO
   std::map<std::vector<int>, int> eclist_;
 
   int nsites_;
@@ -158,7 +158,9 @@ public:
     return coord2sites_.at(coord);
   }
 
-  std::map<std::vector<int>, int> EdgeColors() const { return eclist_; }
+  std::map<std::vector<int>, int> EdgeColors() const override {
+    return eclist_;
+  }
 
   bool IsBipartite() const override { return true; }
 
