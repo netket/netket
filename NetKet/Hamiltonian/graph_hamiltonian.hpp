@@ -37,13 +37,6 @@ template <class G> class GraphHamiltonian : public AbstractHamiltonian {
   // Current node node for parallel jobs
   int mynode_;
 
-  /**
-  For now the two labels supported are 0 (interacting) and 1 (nearest
-  neighbors).
-
-  TODO In the immediate future I plan to add 2 (next-nearest neighbors).
-  */
-
 public:
   using MatType = LocalOperator::MatType;
 
@@ -52,7 +45,7 @@ public:
 
     auto pars_hamiltonian = pars["Hamiltonian"];
 
-    // Checking that json contains BondOps, BondColors, and SiteOps
+    // Checking that json contains BondOps, BondOpColors, and SiteOps
     CheckFieldExists(pars_hamiltonian, "SiteOps");
     if (!pars_hamiltonian["SiteOps"].is_array()) {
       throw InvalidInputError(
@@ -65,15 +58,15 @@ public:
           "Hamiltonian: Bond operators object is not an array!");
     }
 
-    CheckFieldExists(pars_hamiltonian, "BondColors");
-    if (!pars_hamiltonian["BondColors"].is_array()) {
-      throw InvalidInputError("Hamiltonian.BondColors is not an array");
+    CheckFieldExists(pars_hamiltonian, "BondOpColors");
+    if (!pars_hamiltonian["BondOpColors"].is_array()) {
+      throw InvalidInputError("Hamiltonian.BondOpColors is not an array");
     }
 
     // Save operators and bond colors
     auto sop = pars_hamiltonian["SiteOps"].get<std::vector<MatType>>();
     auto bop = pars_hamiltonian["BondOps"].get<std::vector<MatType>>();
-    auto op_color = pars_hamiltonian["BondColors"].get<std::vector<int>>();
+    auto op_color = pars_hamiltonian["BondOpColors"].get<std::vector<int>>();
 
     // Site operators
     if (sop.size() > 0) {
@@ -89,7 +82,7 @@ public:
     if (bop.size() != op_color.size()) {
       throw InvalidInputError(
           "The bond Hamiltonian definition is inconsistent."
-          "The sizes of BondOps and BondColors do not match.");
+          "The sizes of BondOps and BondOpColors do not match.");
     }
 
     if (bop.size() > 0) {

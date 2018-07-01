@@ -26,24 +26,8 @@ exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
 #Couplings J1 and J2
 J = [1, 0.4]
-
 L = 20
 
-operators = []
-sites = []
-for i in range(L):
-
-    for d in [0, 1]:
-        #\sum_i J*sigma^z(i)*sigma^z(i+d)
-        operators.append((J[d] * mszsz).tolist())
-        sites.append([i, (i + d + 1) % L])
-
-        #\sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        operators.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
-        sites.append([i, (i + d + 1) % L])
-
-print(sites)
-print(len(sites))
 pars = {}
 
 # Define bond operators, labels, and couplings
@@ -64,7 +48,7 @@ for i in range(L):
 
 edge_colors = [G[u][v]['color'] for u, v in G.edges]
 
-print(edge_colors)
+# print(edge_colors)
 
 # Specify custom graph
 pars['Graph'] = {
@@ -85,7 +69,7 @@ pars['Hamiltonian'] = {
     'Name': 'Graph',
     'SiteOps': [],
     'BondOps': bond_operator,
-    'BondColors': bond_color,
+    'BondOpColors': bond_color,
 }
 
 #defining the wave function

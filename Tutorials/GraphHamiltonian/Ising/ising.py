@@ -26,38 +26,17 @@ mszsz = (np.kron(sigmaz, sigmaz)).tolist()
 # Now we define the local operators of our hamiltonian
 # And the sites on which they act
 # Notice that the Transverse-Field Ising model as defined here has sign problem
-operators = []
-sites = []
 L = 20
-# for i in range(L):
-#     # \sum_i sigma^x(i)
-#     operators.append(sigmax)
-#     sites.append([i])
-#     # \sum_i sigma^z(i)*sigma^z(i+1)
-#     operators.append(mszsz)
-#     sites.append([i, (i + 1) % L])
-
-# print(sites)
 site_operator = [sigmax]
 bond_operator = [mszsz]
 bond_color = [0]
-bond_couple = [1.0, 1.0]
 
 # Defining a custom graph
-# G = nx.cycle_graph(L)
 G = nx.DiGraph()
 for i in range(L):
     G.add_edge(i, (i + 1) % L, color='b')
-print(G.edges)
-# print(nx.to_scipy_sparse_matrix(G))
-# print([x[1] for x in nx.to_dict_of_lists(G).items()])
-# exit(0)
+
 edge_colors = [int(G[u][v]['color'] != 'b') for u, v in G.edges]
-print(edge_colors)
-# import matplotlib.pyplot as plt
-# nx.draw(G, edges=G.edges, edge_colors=[G[u][v]['color'] for u, v in G.edges])
-# plt.show()
-# print(list(G.edges))
 
 pars = {}
 
@@ -77,7 +56,7 @@ pars['Hamiltonian'] = {
     'Name': 'Graph',
     'SiteOps': site_operator,
     'BondOps': bond_operator,
-    'BondColors': bond_color,
+    'BondOpColors': bond_color,
 }
 
 # defining the wave function
@@ -107,7 +86,7 @@ pars['Learning'] = {
     'OutputFile': "test",
 }
 
-json_file = "graph_hamiltonian.json"
+json_file = "ising.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
