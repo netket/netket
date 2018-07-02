@@ -90,29 +90,18 @@ public:
       // auto adj = graph_.AdjacencyList();
       auto ec = graph_.EdgeColors();
 
-      // std::cout << "######## Number of edge colors: " << ec.size() <<
-      // std::endl;
-
       // Use adj to populate operators
       for (std::map<std::vector<int>, int>::iterator it = ec.begin();
            it != ec.end(); ++it) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
-          // std::cout << c << " " << it->second << " " << (c == it->second)
-          // << std::endl;
           if (op_color[c] == it->second) {
             operators_.push_back(LocalOperator(hilbert_, bop[c], it->first));
-            // std::cout << it->first[0] << " " << it->first[1] << " " <<
-            // it->second
-            //           << std::endl;
           }
         }
       }
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-    if (mynode_ == 0) {
-      std::cout << "Size of operators_ " << operators_.size() << std::endl;
-    }
+    InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
   }
 
   void FindConn(const Eigen::VectorXd &v,

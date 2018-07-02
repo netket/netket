@@ -59,10 +59,13 @@ public:
             pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
         AdjacencyListFromEdges(edges);
 
-        // TODO
+        // Specify edge colors if there is more than one
         if (FieldExists(pars["Graph"], "EdgeColors")) {
           std::vector<int> colors =
               pars["Graph"]["EdgeColors"].get<std::vector<int>>();
+          EdgeColorsFromList(edges, colors);
+        } else {
+          std::vector<int> colors(edges.size(), 0);
           EdgeColorsFromList(edges, colors);
         }
       }

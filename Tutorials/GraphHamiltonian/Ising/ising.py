@@ -42,7 +42,7 @@ pars = {}
 
 pars['Graph'] = {
     'Edges': list(G.edges),
-    'EdgeColors': edge_colors,
+    # 'EdgeColors': edge_colors,
 }
 
 # first we choose a hilbert space for our custom hamiltonian
