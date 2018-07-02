@@ -94,7 +94,7 @@ public:
       for (std::map<std::vector<int>, int>::iterator it = ec.begin();
            it != ec.end(); ++it) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
-          if (op_color[c] == it->second) {
+          if (op_color[c] == it->second || it->first[0] < it->first[1]) {
             operators_.push_back(LocalOperator(hilbert_, bop[c], it->first));
           }
         }

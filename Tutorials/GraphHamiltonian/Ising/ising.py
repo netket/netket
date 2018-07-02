@@ -32,11 +32,12 @@ bond_operator = [mszsz]
 bond_color = [0]
 
 # Defining a custom graph
-G = nx.DiGraph()
+G = nx.Graph()
 for i in range(L):
-    G.add_edge(i, (i + 1) % L, color='b')
+    G.add_edge(i, (i + 1) % L, color=0)
+    G.add_edge((i + 1) % L, i, color=0)
 
-edge_colors = [int(G[u][v]['color'] != 'b') for u, v in G.edges]
+edge_colors = [G[u][v]['color'] for u, v in G.edges]
 
 pars = {}
 
