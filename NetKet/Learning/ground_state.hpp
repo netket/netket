@@ -21,14 +21,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
-#include "Utils/parallel_utils.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "matrix_replacement.hpp"
 #include "stepper.hpp"
 
@@ -103,7 +103,8 @@ class GroundState {
     int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
     int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile", "Learning");
+    std::string file_base =
+        FieldVal(pars["Learning"], "OutputFile", "Learning");
     double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
     SetOutName(file_base, freqbackup);
 
@@ -167,6 +168,7 @@ class GroundState {
 
     for (int i = 0; i < sweepnode; i++) {
       sampler_.Sweep();
+
       vsamp_.row(i) = sampler_.Visible();
     }
   }
@@ -267,7 +269,7 @@ class GroundState {
 
   void Run(double nsweeps, double niter) {
     opt_.Reset();
-
+    CheckDerLog();
     for (double i = 0; i < niter; i++) {
       Sample(nsweeps);
 
@@ -383,6 +385,41 @@ class GroundState {
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
+  }
+
+  void CheckDerLog(double eps = 1.0e-6) {
+    std::cout << "# Debugging Derivatives of Wave-Function Logarithm"
+              << std::endl;
+    std::flush(std::cout);
+
+    sampler_.Reset(true);
+
+    auto ders = psi_.DerLog(sampler_.Visible());
+    // std::cout << "Logval = " << ders(0) << std::endl;
+    psi_.LogVal(sampler_.Visible());
+    auto pars = psi_.GetParameters();
+
+    for (int i = 0; i < npar_; i++) {
+      pars(i) += eps;
+      psi_.SetParameters(pars);
+      std::complex<double> valp = psi_.LogVal(sampler_.Visible());
+
+      pars(i) -= 2 * eps;
+      psi_.SetParameters(pars);
+      std::complex<double> valm = psi_.LogVal(sampler_.Visible());
+
+      pars(i) += eps;
+
+      std::complex<double> numder = (-valm + valp) / (eps * 2);
+
+      if (std::abs(numder - ders(i)) > 100 * eps) {
+        std::cerr << " Possible error on parameter " << i
+                  << ". Expected: " << ders(i) << " Found: " << numder
+                  << std::endl;
+      }
+    }
+    std::cout << "# Test completed" << std::endl;
+    std::flush(std::cout);
   }
 };
 

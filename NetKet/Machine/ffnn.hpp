@@ -42,13 +42,15 @@ class FFNN : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
+  const Graph &graph_;
+
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit FFNN(const Hilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert) {
+  explicit FFNN(const Graph &graph, const Hilbert &hilbert, const json &pars)
+      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
     from_json(pars);
   }
 
@@ -71,7 +73,7 @@ class FFNN : public AbstractMachine<T> {
         std::cout << "# Layer " << i + 1 << " : ";
       }
 
-      layers_.push_back(Ptype(new Layer<T>(layers_par[i])));
+      layers_.push_back(Ptype(new Layer<T>(graph_, layers_par[i])));
 
       layersizes_.push_back(layers_.back()->Noutput());
 
@@ -155,7 +157,7 @@ class FFNN : public AbstractMachine<T> {
     // First layer
     layers_[0]->Forward(v);
     // The following layers
-    for (int i = 1; i < depth_ - 1; i++) {
+    for (int i = 1; i < nlayer_; i++) {
       layers_[i]->Forward(layers_[i - 1]->Output());
     }
     return (layers_.back()->Output())(0);
@@ -165,7 +167,7 @@ class FFNN : public AbstractMachine<T> {
     // First layer
     layers_[0]->Forward(v, lt);
     // The following layers
-    for (int i = 1; i < depth_ - 1; i++) {
+    for (int i = 1; i < nlayer_; i++) {
       layers_[i]->Forward(layers_[i - 1]->Output());
     }
     return (layers_.back()->Output())(0);
@@ -173,7 +175,8 @@ class FFNN : public AbstractMachine<T> {
 
   VectorType DerLog(const Eigen::VectorXd &v) override {
     VectorType der(npar_);
-    int start_idx = 0;
+
+    int start_idx = npar_;
 
     VectorType last_dLda(1);
     last_dLda(0) = 1.0;
@@ -182,23 +185,21 @@ class FFNN : public AbstractMachine<T> {
 
     // Backpropagation
     if (nlayer_ > 1) {
+      start_idx -= layers_[nlayer_ - 1]->Npar();
       // Last Layer
-      layers_[nlayer_ - 1]->Backprop(layers_[nlayer_ - 2]->Output(), last_dLda);
+      layers_[nlayer_ - 1]->Backprop(layers_[nlayer_ - 2]->Output(), last_dLda,
+                                     der, start_idx);
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
+        start_idx -= layers_[i]->Npar();
         layers_[i]->Backprop(layers_[i - 1]->Output(),
-                             layers_[i + 1]->BackpropData());
+                             layers_[i + 1]->BackpropData(), der, start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, layers_[1]->BackpropData());
+      layers_[0]->Backprop(v, layers_[1]->BackpropData(), der, 0);
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, last_dLda);
-    }
-    // Write Derivatives
-    for (int i = 0; i < nlayer_; ++i) {
-      layers_[i]->GetDerivative(der, start_idx);
-      start_idx += layers_[i]->Npar();
+      layers_[0]->Backprop(v, last_dLda, der, 0);
     }
     return der;
   }
