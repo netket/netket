@@ -47,7 +47,7 @@ std::vector<netket::json> GetHamiltonianInputs() {
   pars.clear();
 
   pars["Graph"]["Edges"] = edges;
-  pars["Graph"]["EdgeColors"] = edge_colors;
+  // pars["Graph"]["EdgeColors"] = edge_colors;
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = edges.size();
   pars["Hamiltonian"]["Name"] = "Graph";
