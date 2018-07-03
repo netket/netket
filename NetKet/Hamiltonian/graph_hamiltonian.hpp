@@ -34,9 +34,6 @@ template <class G> class GraphHamiltonian : public AbstractHamiltonian {
   // const std::size_t nvertices_;
   const int nvertices_;
 
-  // Current node node for parallel jobs
-  int mynode_;
-
 public:
   using MatType = LocalOperator::MatType;
 

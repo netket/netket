@@ -41,13 +41,9 @@ std::vector<netket::json> GetHamiltonianInputs() {
       {7, 8},   {8, 9},   {9, 10},  {10, 11}, {11, 12}, {12, 13}, {13, 14},
       {14, 15}, {15, 16}, {16, 17}, {17, 18}, {18, 19}, {19, 0}};
 
-  std::vector<int> edge_colors = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
   pars.clear();
 
   pars["Graph"]["Edges"] = edges;
-  // pars["Graph"]["EdgeColors"] = edge_colors;
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = edges.size();
   pars["Hamiltonian"]["Name"] = "Graph";

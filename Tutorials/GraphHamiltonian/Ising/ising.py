@@ -15,7 +15,6 @@
 from __future__ import print_function
 import json
 import numpy as np
-import scipy
 import networkx as nx
 
 sigmax = [[0, 1], [1, 0]]
