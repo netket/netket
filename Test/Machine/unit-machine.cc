@@ -76,7 +76,7 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
       int nv = hilbert.Size();
       Eigen::VectorXd v(nv);
 
-      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 1000;
+      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 100;
 
       for (int i = 0; i < 100; i++) {
         hilbert.RandomVals(v, rgen);
@@ -99,9 +99,9 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
           typename netket::Machine<MType>::StateType numder =
               (-valm + valp) / (eps * 2);
 
-          REQUIRE(Approx(std::real(numder)).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::real(numder)).epsilon(eps * 1000) ==
                   std::real(ders(p)));
-          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 1000) ==
                   std::exp(std::imag(ders(p))));
         }
       }

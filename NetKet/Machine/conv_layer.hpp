@@ -348,8 +348,8 @@ class Convolutional : public AbstractLayer<T> {
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
     if (usebias_) {
       int k = 0;
-      der(kd) = 0;
       for (int out = 0; out < out_channels_; ++out) {
+        der(kd) = 0;
         for (int i = 0; i < nv_; ++i) {
           der(kd) += dLz(k);
           ++k;
