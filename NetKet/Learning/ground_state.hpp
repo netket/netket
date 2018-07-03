@@ -269,7 +269,6 @@ class GroundState {
 
   void Run(double nsweeps, double niter) {
     opt_.Reset();
-    CheckDerLog();
     for (double i = 0; i < niter; i++) {
       Sample(nsweeps);
 
@@ -385,41 +384,6 @@ class GroundState {
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
-  }
-
-  void CheckDerLog(double eps = 1.0e-6) {
-    std::cout << "# Debugging Derivatives of Wave-Function Logarithm"
-              << std::endl;
-    std::flush(std::cout);
-
-    sampler_.Reset(true);
-
-    auto ders = psi_.DerLog(sampler_.Visible());
-    // std::cout << "Logval = " << ders(0) << std::endl;
-    psi_.LogVal(sampler_.Visible());
-    auto pars = psi_.GetParameters();
-
-    for (int i = 0; i < npar_; i++) {
-      pars(i) += eps;
-      psi_.SetParameters(pars);
-      std::complex<double> valp = psi_.LogVal(sampler_.Visible());
-
-      pars(i) -= 2 * eps;
-      psi_.SetParameters(pars);
-      std::complex<double> valm = psi_.LogVal(sampler_.Visible());
-
-      pars(i) += eps;
-
-      std::complex<double> numder = (-valm + valp) / (eps * 2);
-
-      if (std::abs(numder - ders(i)) > 100 * eps) {
-        std::cerr << " Possible error on parameter " << i
-                  << ". Expected: " << ders(i) << " Found: " << numder
-                  << std::endl;
-      }
-    }
-    std::cout << "# Test completed" << std::endl;
-    std::flush(std::cout);
   }
 };
 
