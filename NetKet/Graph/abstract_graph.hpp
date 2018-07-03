@@ -25,7 +25,7 @@ namespace netket {
     These include lattices and non-regular graphs.
 */
 class AbstractGraph {
-public:
+ public:
   /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
@@ -64,5 +64,5 @@ public:
   virtual ~AbstractGraph(){};
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

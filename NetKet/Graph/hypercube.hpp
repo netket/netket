@@ -15,13 +15,13 @@
 #ifndef NETKET_HYPERCUBE_HPP
 #define NETKET_HYPERCUBE_HPP
 
-#include "Utils/json_utils.hpp"
-#include "distance.hpp"
+#include <mpi.h>
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <mpi.h>
 #include <vector>
+#include "Utils/json_utils.hpp"
+#include "distance.hpp"
 
 namespace netket {
 
@@ -49,7 +49,7 @@ class Hypercube : public AbstractGraph {
 
   int nsites_;
 
-public:
+ public:
   // Json constructor
   explicit Hypercube(const json &pars)
       : L_(FieldVal(pars["Graph"], "L", "Graph")),
@@ -117,8 +117,9 @@ public:
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
     if (!pbc_) {
-      throw InvalidInputError("Cannot generate translation symmetries "
-                              "in the hypercube without PBC");
+      throw InvalidInputError(
+          "Cannot generate translation symmetries "
+          "in the hypercube without PBC");
     }
 
     std::vector<std::vector<int>> permtable;
@@ -176,5 +177,5 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 #endif

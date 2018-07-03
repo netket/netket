@@ -15,16 +15,17 @@
 #ifndef NETKET_BOND_HAMILTONIAN_CC
 #define NETKET_BOND_HAMILTONIAN_CC
 
+#include <Eigen/Dense>
+#include <iostream>  // TODO remove
+#include <vector>
 #include "Utils/json_helper.hpp"
 #include "local_operator.hpp"
-#include <Eigen/Dense>
-#include <iostream> // TODO remove
-#include <vector>
 
 namespace netket {
 
 // BondHamiltonian on an arbitrary graph
-template <class G> class GraphHamiltonian : public AbstractHamiltonian {
+template <class G>
+class GraphHamiltonian : public AbstractHamiltonian {
   std::vector<LocalOperator> operators_;
   Hilbert hilbert_;
 
@@ -34,12 +35,11 @@ template <class G> class GraphHamiltonian : public AbstractHamiltonian {
   // const std::size_t nvertices_;
   const int nvertices_;
 
-public:
+ public:
   using MatType = LocalOperator::MatType;
 
   explicit GraphHamiltonian(const G &graph, const json &pars)
       : hilbert_(pars), graph_(graph), nvertices_(graph.Nsites()) {
-
     auto pars_hamiltonian = pars["Hamiltonian"];
 
     // Checking that json contains BondOps, BondOpColors, and SiteOps
@@ -116,5 +116,5 @@ public:
 
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
-} // namespace netket
+}  // namespace netket
 #endif

@@ -30,7 +30,7 @@ class Graph : public AbstractGraph {
   using Ptype = std::unique_ptr<AbstractGraph>;
   Ptype g_;
 
-public:
+ public:
   explicit Graph(const json &pars) {
     // Check if a graph is explicitely defined in the input
     if (FieldExists(pars, "Graph")) {
@@ -76,6 +76,6 @@ public:
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };
-} // namespace netket
+}  // namespace netket
 
 #endif

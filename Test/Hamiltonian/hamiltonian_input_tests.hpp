@@ -1,8 +1,8 @@
 
-#include "Utils/json_utils.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
+#include "Utils/json_utils.hpp"
 
 std::vector<netket::json> GetHamiltonianInputs() {
   std::vector<netket::json> input_tests;

@@ -15,15 +15,15 @@
 #ifndef NETKET_CUSTOM_GRAPH_HPP
 #define NETKET_CUSTOM_GRAPH_HPP
 
-#include "Hilbert/hilbert.hpp"
-#include "Utils/all_utils.hpp"
-#include "distance.hpp"
+#include <mpi.h>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <mpi.h>
 #include <vector>
+#include "Hilbert/hilbert.hpp"
+#include "Utils/all_utils.hpp"
+#include "distance.hpp"
 
 namespace netket {
 
@@ -43,7 +43,7 @@ class CustomGraph : public AbstractGraph {
 
   bool isbipartite_;
 
-public:
+ public:
   // Json constructor
   explicit CustomGraph(const json &pars) { Init(pars); }
 
@@ -117,8 +117,9 @@ public:
 
     for (auto edge : edges) {
       if (edge.size() != 2) {
-        throw InvalidInputError("The edge list is invalid (edges need "
-                                "to connect exactly two sites)");
+        throw InvalidInputError(
+            "The edge list is invalid (edges need "
+            "to connect exactly two sites)");
       }
       if (edge[0] < 0 || edge[1] < 0) {
         throw InvalidInputError("The edge list is invalid");
@@ -141,8 +142,9 @@ public:
   void EdgeColorsFromList(const std::vector<std::vector<int>> &edges,
                           const std::vector<int> &colors) {
     if (edges.size() != colors.size()) {
-      throw InvalidInputError("The color list must have the same size as the "
-                              "edge list.");
+      throw InvalidInputError(
+          "The color list must have the same size as the "
+          "edge list.");
     }
     for (std::size_t i = 0; i < edges.size(); i++) {
       eclist_[edges[i]] = colors[i];
@@ -194,7 +196,7 @@ public:
 
     return distances;
   }
-}; // namespace netket
+};  // namespace netket
 
-} // namespace netket
+}  // namespace netket
 #endif
