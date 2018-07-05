@@ -116,9 +116,9 @@ public:
 
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
-    
-    double nskipsamples =
-          FieldOrDefaultVal(pars["Learning"], "SkipInitSamples", 0.);
+
+    double ndiscardedsamples =
+        FieldOrDefaultVal(pars["Learning"], "DiscardedSamples", 0.1 * nsamples);
 
     if (dosr_) {
       InfoMessage() << "Using the Stochastic reconfiguration method"
@@ -130,7 +130,7 @@ public:
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
-    Run(nskipsamples, nsamples, niter_opt);
+    Run(ndiscardedsamples, nsamples, niter_opt);
   }
 
   void Init() {
@@ -156,10 +156,10 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void SkipInitSamples(double nskip) {
+  void InitSweeps(double ndiscardedsamples) {
     sampler_.Reset();
 
-    for (int i = 0; i < nskip; i++)
+    for (int i = 0; i < ndiscardedsamples; i++)
       sampler_.Sweep();
   }
 
@@ -270,10 +270,10 @@ public:
 
   double Elocvar() { return elocvar_; }
 
-  void Run(double nskip, double nsweeps, double niter) {
+  void Run(double ndiscardedsamples, double nsweeps, double niter) {
     opt_.Reset();
 
-    SkipInitSamples(nskip);
+    InitSweeps(ndiscardedsamples);
 
     for (double i = 0; i < niter; i++) {
       Sample(nsweeps);
