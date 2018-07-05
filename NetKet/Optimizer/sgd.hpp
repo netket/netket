@@ -15,16 +15,16 @@
 #ifndef NETKET_SGD_HPP
 #define NETKET_SGD_HPP
 
+#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include "abstract_stepper.hpp"
 
 namespace netket {
 
-class Sgd : public AbstractStepper {
+class Sgd : public AbstractOptimizer {
   // decay constant
   double eta_;
 
@@ -34,14 +34,21 @@ class Sgd : public AbstractStepper {
 
   double decay_factor_;
 
- public:
+public:
   // Json constructor
-  explicit Sgd(const json &pars)
-      : eta_(FieldVal(pars["Learning"], "LearningRate")),
-        l2reg_(FieldOrDefaultVal(pars["Learning"], "L2Reg", 0.0)) {
+  explicit Sgd(const json &pars) {
     npar_ = -1;
 
-    SetDecayFactor(FieldOrDefaultVal(pars["Learning"], "DecayFactor", 1.0));
+    from_json(pars);
+    PrintParameters();
+  }
+
+  void PrintParameters() {
+    InfoMessage() << "Sgd optimizer initialized with these parameters :"
+                  << std::endl;
+    InfoMessage() << "Learning Rate = " << eta_ << std::endl;
+    InfoMessage() << "L2 Regularization = " << l2reg_ << std::endl;
+    InfoMessage() << "Decay Factor = " << decay_factor_ << std::endl;
   }
 
   void Init(const Eigen::VectorXd &pars) override { npar_ = pars.size(); }
@@ -76,8 +83,20 @@ class Sgd : public AbstractStepper {
   }
 
   void Reset() override {}
+
+  void from_json(const json &pars) {
+    // DEPRECATED (to remove for v2.0.0)
+    std::string section = "Optimizer";
+    if (!FieldExists(pars, section)) {
+      section = "Learning";
+    }
+
+    eta_ = FieldVal(pars[section], "LearningRate");
+    l2reg_ = FieldOrDefaultVal(pars[section], "L2Reg", 0.0);
+    SetDecayFactor(FieldOrDefaultVal(pars[section], "DecayFactor", 1.0));
+  }
 };
 
-}  // namespace netket
+} // namespace netket
 
 #endif

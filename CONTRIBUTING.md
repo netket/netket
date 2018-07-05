@@ -64,6 +64,13 @@ Main differences with respect to Google standards include:
 
 1. Header files should end in `.hpp` (not in `.h` as per [this](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers))
 2. Use of non-const reference arguments is allowed (exception to [this](https://google.github.io/styleguide/cppguide.html#Reference_Arguments))
+3. The use of exceptions is permitted but should be limited to invalid
+  user input, IO errors, and similar cases. The arguments against using
+  exceptions from the [Google guide](https://google.github.io/styleguide/cppguide.html#Exceptions)
+  are specific to Google's situation and do not apply to netket.
+  See also [NR.3](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#nr3-dont-dont-use-exceptions)
+  and [E.2 and following](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#e2-throw-an-exception-to-signal-that-a-function-cant-perform-its-assigned-task)
+  from the C++ Core Guidelines.
 
 The Google C++ Style Guide also includes useful guidelines to format the code.
 Those can be conveniently enforced by means of automatic reformatting tools.

@@ -33,8 +33,6 @@ class Machine : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
-  int mynode_;
-
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
@@ -87,15 +85,12 @@ class Machine : public AbstractMachine<T> {
   }
 
   void InitParameters(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
     if (FieldOrDefaultVal(pars["Machine"], "InitRandom", true)) {
       double sigma_rand = FieldOrDefaultVal(pars["Machine"], "SigmaRand", 0.1);
       m_->InitRandomPars(1232, sigma_rand);
-      if (mynode == 0)
-        std::cout << "# Machine initialized with random parameters"
-                  << std::endl;
+
+      InfoMessage() << "Machine initialized with random parameters"
+                    << std::endl;
     }
 
     if (FieldExists(pars["Machine"], "InitFile")) {
@@ -108,40 +103,26 @@ class Machine : public AbstractMachine<T> {
         ifs >> jmachine;
         m_->from_json(jmachine);
       } else {
-        if (mynode == 0)
-          std::cerr << "Error opening file : " << filename << std::endl;
-        std::abort();
+        std::stringstream s;
+        s << "Error opening file: " << filename;
+        throw InvalidInputError(s.str());
       }
 
-      if (mynode == 0)
-        std::cout << "# Machine initialized from file: " << filename
-                  << std::endl;
+      InfoMessage() << "Machine initialized from file: " << filename
+                    << std::endl;
     }
   }
 
   void CheckInput(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
-    if (!FieldExists(pars, "Machine")) {
-      if (mynode == 0)
-        std::cerr << "Machine is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (!FieldExists(pars["Machine"], "Name")) {
-      if (mynode == 0)
-        std::cerr << "Machine Name is not defined in the input" << std::endl;
-      std::abort();
-    }
+    CheckFieldExists(pars, "Machine");
+    const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
 
-    const auto name = pars["Machine"]["Name"];
-
     if (machines.count(name) == 0) {
-      std::cerr << "Machine " << name << " not found." << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown Machine: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 
@@ -175,7 +156,7 @@ class Machine : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     return m_->LogVal(v, lt);
   }
 

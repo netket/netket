@@ -68,7 +68,7 @@ class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
   void attachMatrix(const Eigen::MatrixXcd &mat) { mp_mat_ = mat; }
   void attachMatrix(const Eigen::MatrixXd &mat) { mp_mat_ = mat; }
   void setShift(double shift) { shift_ = shift; }
-  Eigen::MatrixXcd my_matrix() const { return mp_mat_; }
+  Eigen::MatrixXcd const& my_matrix() const { return mp_mat_; }
   double shift() const { return shift_; }
   void setScale(double scale) { scale_ = scale; }
   double getScale() const { return scale_; }

@@ -19,6 +19,10 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+
+#include "Utils/exceptions.hpp"
+#include "Utils/json_helper.hpp"
+
 #include "abstract_hamiltonian.hpp"
 
 namespace netket {
@@ -40,8 +44,6 @@ class BoseHubbard : public AbstractHamiltonian {
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  int mynode_;
-
   /**
     Hilbert space descriptor for this hamiltonian.
   */
@@ -51,31 +53,11 @@ class BoseHubbard : public AbstractHamiltonian {
   // Json constructor
   explicit BoseHubbard(const G &graph, const json &pars)
       : nsites_(graph.Nsites()), graph_(graph) {
-    if (FieldExists(pars["Hamiltonian"], "Nmax")) {
-      nmax_ = pars["Hamiltonian"]["Nmax"];
-    } else {
-      std::cerr << "Nmax is not specified for bosons" << std::endl;
-      std::abort();
-    }
+    nmax_ = FieldVal(pars["Hamiltonian"], "Nmax", "Hamiltonian");
+    U_ = FieldVal(pars["Hamiltonian"], "U", "Hamiltonian");
 
-    if (FieldExists(pars["Hamiltonian"], "U")) {
-      U_ = pars["Hamiltonian"]["U"];
-    } else {
-      std::cerr << "U interaction is not specified" << std::endl;
-      std::abort();
-    }
-
-    if (FieldExists(pars["Hamiltonian"], "V")) {
-      V_ = pars["Hamiltonian"]["V"];
-    } else {
-      V_ = 0;
-    }
-
-    if (FieldExists(pars["Hamiltonian"], "Mu")) {
-      mu_ = pars["Hamiltonian"]["Mu"];
-    } else {
-      mu_ = 0;
-    }
+    V_ = FieldOrDefaultVal(pars["Hamiltonian"], "V", .0);
+    mu_ = FieldOrDefaultVal(pars["Hamiltonian"], "Mu", .0);
 
     Init();
 
@@ -96,11 +78,7 @@ class BoseHubbard : public AbstractHamiltonian {
 
     hilbert_.Init(hil);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# Bose Hubbard model created " << std::endl;
-    }
+    InfoMessage() << "Bose Hubbard model created " << std::endl;
   }
 
   void SetNbosons(int nbosons) {
@@ -130,7 +108,7 @@ class BoseHubbard : public AbstractHamiltonian {
   void FindConn(const Eigen::VectorXd &v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs) override {
+                std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
     connectors.resize(1);
     newconfs.clear();

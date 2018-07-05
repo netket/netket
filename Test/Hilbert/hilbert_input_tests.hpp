@@ -81,7 +81,7 @@ std::vector<netket::json> GetHilbertInputs() {
 
   // Bose Hubbard
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 2}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 2}, {"Dimension", 1}, {"Pbc", false}}},
           {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
   input_tests.push_back(pars);
 

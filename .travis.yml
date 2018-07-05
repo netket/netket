@@ -33,12 +33,6 @@ matrix:
     osx_image: xcode8
 
   - os: osx
-    osx_image: xcode8.1
-
-  - os: osx
-    osx_image: xcode8.2
-
-  - os: osx
     osx_image: xcode8.3
 
   - os: osx
@@ -110,6 +104,6 @@ script:
 
   # compile and execute unit tests
   - mkdir -p build && cd build
-  - cmake .. ${CMAKE_OPTIONS} && cmake --build . --config Release
+  - cmake .. ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
   - ctest -C Release -V -j
   - cd ..
