@@ -117,6 +117,8 @@ public:
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
 
+    double ninitsamples =
+        FieldOrDefaultVal(pars["Learning"], "DiscardedSamplesOnInit", 0.);
     double ndiscardedsamples =
         FieldOrDefaultVal(pars["Learning"], "DiscardedSamples", 0.1 * nsamples);
 
@@ -130,7 +132,7 @@ public:
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
-    Run(ndiscardedsamples, nsamples, niter_opt);
+    Run(ninitsamples, ndiscardedsamples, nsamples, niter_opt);
   }
 
   void Init() {
@@ -156,15 +158,18 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void InitSweeps(double ndiscardedsamples) {
+  void InitSweeps(double ninitsamples) {
+    sampler_.Reset();
+
+    for (int i = 0; i < ninitsamples; i++)
+      sampler_.Sweep();
+  }
+
+  void Sample(double ndiscardedsamples, double nsweeps) {
     sampler_.Reset();
 
     for (int i = 0; i < ndiscardedsamples; i++)
       sampler_.Sweep();
-  }
-
-  void Sample(double nsweeps) {
-    sampler_.Reset();
 
     int sweepnode = int(std::ceil(double(nsweeps) / double(totalnodes_)));
 
@@ -270,13 +275,14 @@ public:
 
   double Elocvar() { return elocvar_; }
 
-  void Run(double ndiscardedsamples, double nsweeps, double niter) {
+  void Run(double ninitsamples, double ndiscardedsamples, double nsweeps,
+           double niter) {
     opt_.Reset();
 
-    InitSweeps(ndiscardedsamples);
+    InitSweeps(ninitsamples);
 
     for (double i = 0; i < niter; i++) {
-      Sample(nsweeps);
+      Sample(ndiscardedsamples, nsweeps);
 
       Gradient();
 
