@@ -15,8 +15,8 @@
 #include "abstract_layer.hpp"
 #include "activations.hpp"
 #include "conv_layer.hpp"
-// #include "conv_layer2.hpp"
 #include "fullconn_layer.hpp"
+#include "sum_output.hpp"
 #include "symm_layer.hpp"
 
 #ifndef NETKET_LAYER_HPP
@@ -57,6 +57,8 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
       }
+    } else if (pars["Name"] == "Sum") {
+      m_ = Ptype(new SumOutput<T>(pars));
     }
     // else if (pars["Name"] == "Convolutional2") {
     //   if (pars["Activation"] == "Lncosh") {
@@ -74,7 +76,7 @@ class Layer : public AbstractLayer<T> {
     const std::string name = FieldVal(pars, "Name");
 
     std::set<std::string> layers = {"FullyConnected", "Convolutional",
-                                    "Convolutional2", "Symmetric"};
+                                    "Symmetric", "Sum"};
 
     if (layers.count(name) == 0) {
       std::stringstream s;

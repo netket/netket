@@ -83,6 +83,26 @@ class Lncosh : public AbstractActivation {
   }
 };
 
+class Tanh : public AbstractActivation {
+ private:
+  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+
+ public:
+  // A = Tanh(Z)
+  inline void operator()(const VectorType &Z, VectorType &A) {
+    A.array() = Z.array().tanh();
+  }
+
+  // Apply the (derivative of activation function) matrix J to a vector F
+  // A = Tanh(Z)
+  // J = dA / dZ
+  // G = J * F
+  inline void ApplyJacobian(const VectorType &Z, const VectorType & /*A*/,
+                            const VectorType &F, VectorType &G) {
+    G.array() = F.array() * Z.array().tanh();
+  }
+};
+
 class Activation : public AbstractActivation {
   using Ptype = std::unique_ptr<AbstractActivation>;
 
