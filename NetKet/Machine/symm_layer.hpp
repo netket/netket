@@ -253,8 +253,6 @@ class Symmetric : public AbstractLayer<T> {
     z_.noalias() += weight_.transpose() * prev_layer_data;
 
     activation_(z_, a_);
-
-    std::cout << std::setprecision(5);
   }
 
   // Using lookup

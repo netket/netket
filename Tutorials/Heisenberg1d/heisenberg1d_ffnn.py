@@ -35,9 +35,10 @@ pars['Hamiltonian']={
 #defining the wave function
 pars['Machine']={
     'Name'           : 'FFNN',
-    # 'Layers'         : [{'Name':'Convolutional', 'InputChannels': 1, 'OutputChannels':3, "Distance":1, "UseBias":True, 'Activation':'Lncosh'}],
-    # {'Name':'Convolutional', 'InputChannels': 2, 'OutputChannels':2, "Distance":2, "UseBias":False, 'Activation':'Lncosh'}],
-    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
+    'Alpha'          : 1,
+    'Layers'         : [{'Name':'Symmetric', 'InputChannels': 1, 'OutputChannels':1, "Distance":5, "UseBias":True, 'Activation':'Lncosh'},
+    {'Name':'Sum', 'Inputs': 20}],
+    # 'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
     # 'SigmaRand'      : 0.01,
 
 }
