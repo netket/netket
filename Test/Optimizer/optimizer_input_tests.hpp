@@ -92,7 +92,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer",//22 to 25 to 22 to 23 to 24 Rosenbrock
+  pars = {{"Optimizer",
            {{"Name", "AdaGrad"}, {"LearningRate", 24}, {"Epscut",1.0e-8}}}}; //EDIT increased for Beale
 
   input_tests.push_back(pars);
@@ -102,7 +102,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer",//Increased Rosenbrock
+  pars = {{"Optimizer",
            {{"Name", "AMSGrad"}, {"LearningRate", 0.5}, {"Beta1", 0.9}, {"Beta2",0.999}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
