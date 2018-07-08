@@ -59,6 +59,7 @@ class SumOutput : public AbstractLayer<T> {
 
   void Init() {
     din_.resize(in_size_);
+    din_.setConstant(1);
     z_.resize(out_size_);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
@@ -103,12 +104,10 @@ class SumOutput : public AbstractLayer<T> {
 
   void Backprop(const VectorType & /*prev_layer_data*/,
                 const VectorType & /*next_layer_data*/, VectorType & /*der*/,
-                int /*start_idx*/) override {
-    din_.setConstant(1);
-  }
+                int /*start_idx*/) override {}
 
   const VectorType &BackpropData() const override { return din_; }
-};  // namespace netket
+};
 }  // namespace netket
 
 #endif
