@@ -46,7 +46,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
 
   // Minimize Beale function
-  pars = {{"Optimizer", //Edit increased for Beale
+  pars = {{"Optimizer",
           {{"Name", "Sgd"}, {"LearningRate", 1e-4}}}};
 
   input_tests.push_back(pars);
@@ -57,7 +57,7 @@ std::vector<netket::json> GetOptimizerInputs() {
   input_tests.push_back(pars);
 
   pars = {{"Optimizer",
-           {{"Name", "AdaGrad"}, {"LearningRate", 1.5}, {"Epscut",1.0e-8}}}}; //EDIT increased for Beale
+           {{"Name", "AdaGrad"}, {"LearningRate", 1.5}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
 
@@ -66,7 +66,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer",//Edit decreased for Beale
+  pars = {{"Optimizer",
            {{"Name", "AMSGrad"}, {"LearningRate", 0.025}, {"Beta1", 0.9}, {"Beta2",0.999}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
@@ -76,13 +76,13 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer", //Increased from 2 to 3 to 4 for Beale
+  pars = {{"Optimizer",
            {{"Name", "Momentum"}, {"LearningRate", 4e-5}, {"Beta", 0.9}}}};
 
   input_tests.push_back(pars);
 
   // Minimize Rosenbrock function
-  pars = {{"Optimizer",//3.5 to 4 to 5 to 4 Rosenbrock
+  pars = {{"Optimizer",
           {{"Name", "Sgd"}, {"LearningRate", 4e-5}}}};
 
   input_tests.push_back(pars);
@@ -112,7 +112,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer", // 5e-4 to 2.5e-4 Rosenbrock
+  pars = {{"Optimizer",
            {{"Name", "Momentum"}, {"LearningRate", 2.5e-4}, {"Beta", 0.9}}}};
 
   input_tests.push_back(pars);
@@ -123,22 +123,22 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-//  pars = {{"Optimizer", //0.9 to 0.8 to 0.5 to .25 Ackley
+//  pars = {{"Optimizer",
 //           {{"Name", "AdaDelta"}, {"Rho", 0.99}, {"Epscut", 1.0e-8}}}};
 
   input_tests.push_back(pars);
 
   pars = {{"Optimizer",
-           {{"Name", "AdaGrad"}, {"LearningRate", 2}, {"Epscut",1.0e-8}}}}; //EDIT increased for Beale
+           {{"Name", "AdaGrad"}, {"LearningRate", 2}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer", // 1 to 2 Ackley
+  pars = {{"Optimizer",
            {{"Name", "AdaMax"}, {"Alpha", 1}, {"Beta1", 0.9}, {"Beta2",0.999}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer",//.01 to .1 to 0.5 to .25 to 0.35 to .45 to .4 Ackley
+  pars = {{"Optimizer",
            {{"Name", "AMSGrad"}, {"LearningRate", 0.4}, {"Beta1", 0.9}, {"Beta2",0.999}, {"Epscut",1.0e-8}}}};
 
   input_tests.push_back(pars);
@@ -148,7 +148,7 @@ std::vector<netket::json> GetOptimizerInputs() {
 
   input_tests.push_back(pars);
 
-  pars = {{"Optimizer", //.1 to .5 to 1 to .75 Ackley
+  pars = {{"Optimizer",
            {{"Name", "Momentum"}, {"LearningRate", .75}, {"Beta", 0.9}}}};
 
   input_tests.push_back(pars);
