@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from __future__ import print_function
 import json
 import numpy as np
 
-#Sigma^z*Sigma^z interactions
+# Sigma^z*Sigma^z interactions
 sigmaz = [[1, 0], [0, -1]]
 mszsz = (np.kron(sigmaz, sigmaz))
 
-#Exchange interactions
+# Exchange interactions
 exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
-#Couplings J1 and J2
+# Couplings J1 and J2
 J = [1, 0.4]
 
 L = 20
@@ -33,11 +34,11 @@ sites = []
 for i in range(L):
 
     for d in [0, 1]:
-        #\sum_i J*sigma^z(i)*sigma^z(i+d)
+        # \sum_i J*sigma^z(i)*sigma^z(i+d)
         operators.append((J[d] * mszsz).tolist())
         sites.append([i, (i + d + 1) % L])
 
-        #\sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
+        # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
         operators.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
         sites.append([i, (i + d + 1) % L])
 
