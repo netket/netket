@@ -68,11 +68,15 @@ class AbstractGraph {
   virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
 
   /**
-  Member function returning edge colors of the graph.
-  @return ec[i][j] is the color of the edge between nodes i and j.
+  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
   */
   using ColorMap =
       std::unordered_map<std::array<int, 2>, int, std::ArrayHasher>;
+
+  /**
+  Member function returning edge colors of the graph.
+  @return ec[i][j] is the color of the edge between nodes i and j.
+  */
   virtual ColorMap EdgeColors() const = 0;
 
   /**

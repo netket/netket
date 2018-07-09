@@ -18,7 +18,6 @@
 #include <mpi.h>
 #include <array>
 #include <cassert>
-#include <iostream>
 #include <map>
 #include <unordered_map>
 #include <vector>

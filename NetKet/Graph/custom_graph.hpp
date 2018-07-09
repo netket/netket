@@ -19,7 +19,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <iostream>
 #include <unordered_map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
