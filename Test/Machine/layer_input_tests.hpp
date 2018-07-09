@@ -42,7 +42,12 @@ std::vector<netket::json> GetLayerInputs() {
             {"Layers",
              {{{"Name", "Convolutional"},
                {"InputChannels", 1},
-               {"OutputChannels", 3},
+               {"OutputChannels", 2},
+               {"Distance", 2},
+               {"Activation", "Lncosh"}},
+              {{"Name", "Convolutional"},
+               {"InputChannels", 2},
+               {"OutputChannels", 2},
                {"Distance", 2},
                {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};

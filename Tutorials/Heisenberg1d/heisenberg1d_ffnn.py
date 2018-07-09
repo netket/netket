@@ -21,8 +21,8 @@ pars={}
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',
-    'L'              : 20,
-    'Dimension'      : 1,
+    'L'              : 4,
+    'Dimension'      : 2,
     'Pbc'            : True,
 }
 
@@ -36,8 +36,8 @@ pars['Hamiltonian']={
 pars['Machine']={
     'Name'           : 'FFNN',
     'Alpha'          : 1,
-    'Layers'         : [{'Name':'Symmetric', 'InputChannels': 1, 'OutputChannels':1, "Distance":5, "UseBias":True, 'Activation':'Lncosh'},
-    {'Name':'Sum', 'Inputs': 20}],
+    'Layers'         : [{'Name':'Convolutional', 'InputChannels': 1, 'OutputChannels':2, "Distance":1, "UseBias":True, 'Activation':'Lncosh'},
+    {'Name':'Convolutional', 'InputChannels': 2, 'OutputChannels':2, "Distance":1, "UseBias":True, 'Activation':'Lncosh'}],
     # 'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
     # 'SigmaRand'      : 0.01,
 
@@ -57,7 +57,7 @@ pars['Learning']={
     'Nsamples'       : 1.0e3,
     'NiterOpt'       : 1000,
     'Diagshift'      : 0.01,
-    'UseIterative'   : False,
+    'UseIterative'   : True,
     'OutputFile'     : 'test',
     'StepperType'    : 'Sgd',
     'LearningRate'   : 0.01,

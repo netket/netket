@@ -70,7 +70,7 @@ class SumOutput : public AbstractLayer<T> {
     }
   }
 
-  void InitRandomPars(int seed, double sigma) override {}
+  void InitRandomPars(int /*seed*/, double /*sigma*/) override {}
 
   int Npar() const override { return 0; }
 
