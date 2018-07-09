@@ -50,6 +50,7 @@ class Convolutional : public AbstractLayer<T> {
 
   int dist_;         // Distance to include in one convolutional image
   int kernel_size_;  // Size of convolutional kernel (depends on dist_)
+
   std::vector<std::vector<int>>
       neighbours_;  // list of neighbours for each site
   std::vector<std::vector<int>>
@@ -68,12 +69,8 @@ class Convolutional : public AbstractLayer<T> {
 
   MatrixType lowered_image_;
   MatrixType lowered_image2_;
-  MatrixType output_image_;
   MatrixType lowered_der_;
-  MatrixType output_der_;
   MatrixType flipped_kernels_;
-
-  std::size_t scalar_bytesize_;
 
   int mynode_;
 
@@ -110,7 +107,6 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   void Init(const Graph &graph) {
-    scalar_bytesize_ = sizeof(std::complex<double>);
     // Construct neighbours_ kernel(k) will act on neighbours_[i][k]
     std::vector<std::vector<int>> adjlist;
     adjlist = graph.AdjacencyList();
@@ -118,7 +114,7 @@ class Convolutional : public AbstractLayer<T> {
       std::vector<int> neigh;
       neigh.push_back(i);
       for (int d = 0; d < dist_; ++d) {
-        size_t current = neigh.size();
+        int current = neigh.size();
         for (int n = 0; n < current; ++n) {
           for (auto m : adjlist[neigh[n]]) {
             bool isin = false;
@@ -139,7 +135,8 @@ class Convolutional : public AbstractLayer<T> {
     // Check that all sites have same number of neighbours
     kernel_size_ = neighbours_[0].size();
     for (int i = 1; i < nv_; i++) {
-      if (neighbours_[i].size() != kernel_size_) {
+      int numofneigh = flipped_neighbours_[i].size();
+      if (numofneigh != kernel_size_) {
         throw InvalidInputError(
             "number of neighbours of each site is not the same for chosen "
             "lattice");
@@ -165,7 +162,8 @@ class Convolutional : public AbstractLayer<T> {
     }
 
     for (int i = 1; i < nv_; i++) {
-      if (flipped_neighbours_[i].size() != kernel_size_) {
+      int numofneigh = flipped_neighbours_[i].size();
+      if (numofneigh != kernel_size_) {
         throw InvalidInputError(
             "number of neighbours of each site is not the same for chosen "
             "lattice");
@@ -182,9 +180,7 @@ class Convolutional : public AbstractLayer<T> {
 
     lowered_image_.resize(in_channels_ * kernel_size_, nv_);
     lowered_image2_.resize(nv_, in_channels_ * kernel_size_);
-    output_image_.resize(nv_, out_channels_);
     lowered_der_.resize(kernel_size_ * out_channels_, nv_);
-    output_der_.resize(nv_, in_channels_);
     flipped_kernels_.resize(kernel_size_ * out_channels_, in_channels_);
 
     npar_ = in_channels_ * kernel_size_ * out_channels_;
