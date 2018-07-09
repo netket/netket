@@ -29,12 +29,10 @@
 namespace netket {
 
 class Hilbert : public AbstractHilbert {
-  std::shared_ptr<AbstractHilbert> h_;
+  std::unique_ptr<AbstractHilbert> h_;
 
  public:
   explicit Hilbert() {}
-
-  explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
 
   explicit Hilbert(const json &pars) { Init(pars); }
 
@@ -43,14 +41,14 @@ class Hilbert : public AbstractHilbert {
 
     if (FieldExists(pars["Hilbert"], "Name")) {
       if (pars["Hilbert"]["Name"] == "Spin") {
-        h_ = std::make_shared<Spin>(pars);
+        h_.reset(new Spin(pars));
       } else if (pars["Hilbert"]["Name"] == "Boson") {
-        h_ = std::make_shared<Boson>(pars);
+        h_.reset(new Boson(pars));
       } else if (pars["Hilbert"]["Name"] == "Qubit") {
-        h_ = std::make_shared<Qubit>(pars);
+        h_.reset(new Qubit(pars));
       }
     } else {
-      h_ = std::make_shared<CustomHilbert>(pars);
+      h_.reset(new CustomHilbert(pars));
     }
   }
 

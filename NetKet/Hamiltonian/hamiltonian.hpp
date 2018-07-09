@@ -26,7 +26,7 @@
 namespace netket {
 
 class Hamiltonian : public AbstractHamiltonian {
-  std::shared_ptr<AbstractHamiltonian> h_;
+  std::unique_ptr<AbstractHamiltonian> h_;
 
  public:
   explicit Hamiltonian(const Graph &graph, const json &pars) {
@@ -36,16 +36,16 @@ class Hamiltonian : public AbstractHamiltonian {
 
     if (FieldExists(pars["Hamiltonian"], "Name")) {
       if (pars["Hamiltonian"]["Name"] == "Ising") {
-        h_ = std::make_shared<Ising<Graph>>(graph, pars);
+        h_.reset(new Ising<Graph>(graph, pars));
       } else if (pars["Hamiltonian"]["Name"] == "Heisenberg") {
-        h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
+        h_.reset(new Heisenberg<Graph>(graph, pars));
       } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
-        h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
+        h_.reset(new BoseHubbard<Graph>(graph, pars));
       } else {
         throw InvalidInputError("Hamiltonian name not found");
       }
     } else {
-      h_ = std::make_shared<CustomHamiltonian>(pars);
+      h_.reset(new CustomHamiltonian(pars));
     }
   }
 
