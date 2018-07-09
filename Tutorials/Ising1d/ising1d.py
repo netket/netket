@@ -55,8 +55,8 @@ pars['Optimizer'] = {
 # here we use the Stochastic Reconfiguration Method
 pars['Learning'] = {
     'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 500,
+    'Nsamples': 1000,
+    'NiterOpt': 300,
     'Diagshift': 0.1,
     'UseIterative': False,
     'OutputFile': "test",
