@@ -35,9 +35,6 @@ for i in range(L):
     operators.append(mszsz)
     sites.append([i, (i + 1) % L])
 
-print(len(sites))
-print(sites)
-
 pars = {}
 
 # first we choose a hilbert space for our custom hamiltonian

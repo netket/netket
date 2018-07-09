@@ -15,9 +15,27 @@
 #ifndef NETKET_ABSTRACTGRAPH_HPP
 #define NETKET_ABSTRACTGRAPH_HPP
 
+#include <array>
+#include <unordered_map>
 #include <vector>
 
+// Special hash functor for the EdgeColors unordered_map
+// Same as hash_combine from boost
+namespace std {
+struct ArrayHasher {
+  std::size_t operator()(const std::array<int, 2>& a) const {
+    std::size_t h = 0;
+
+    for (auto e : a) {
+      h ^= std::hash<int>{}(e) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    }
+    return h;
+  }
+};
+}  // namespace std
+
 namespace netket {
+
 /**
     Abstract class for Graphs.
     This class prototypes the methods needed
@@ -53,7 +71,9 @@ class AbstractGraph {
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  virtual std::map<std::vector<int>, int> EdgeColors() const = 0;
+  using ColorMap =
+      std::unordered_map<std::array<int, 2>, int, std::ArrayHasher>;
+  virtual ColorMap EdgeColors() const = 0;
 
   /**
   Member function returning true if the graph is bipartite.

@@ -33,22 +33,18 @@ bond_color = [0]
 # Defining a custom graph
 G = nx.Graph()
 for i in range(L):
-    G.add_edge(i, (i + 1) % L, color=0)
-    G.add_edge((i + 1) % L, i, color=0)
-
-edge_colors = [G[u][v]['color'] for u, v in G.edges]
+    G.add_edge(i, (i + 1) % L)
 
 pars = {}
 
 pars['Graph'] = {
     'Edges': list(G.edges),
-    # 'EdgeColors': edge_colors,
 }
 
 # first we choose a hilbert space for our custom hamiltonian
 pars['Hilbert'] = {
     'QuantumNumbers': [1, -1],
-    'Size': len(list(G.edges)),  # TODO Reduce redundant input
+    'Size': len(list(G.edges)),
 }
 
 # defining a custom hamiltonian

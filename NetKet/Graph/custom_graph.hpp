@@ -17,9 +17,10 @@
 
 #include <mpi.h>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
 #include "Utils/all_utils.hpp"
@@ -35,7 +36,7 @@ class CustomGraph : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
-  std::map<std::vector<int>, int> eclist_;
+  ColorMap eclist_;
 
   int nsites_;
 
@@ -58,16 +59,6 @@ class CustomGraph : public AbstractGraph {
         std::vector<std::vector<int>> edges =
             pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
         AdjacencyListFromEdges(edges);
-
-        // Specify edge colors if there is more than one
-        if (FieldExists(pars["Graph"], "EdgeColors")) {
-          std::vector<int> colors =
-              pars["Graph"]["EdgeColors"].get<std::vector<int>>();
-          EdgeColorsFromList(edges, colors);
-        } else {
-          std::vector<int> colors(edges.size(), 0);
-          EdgeColorsFromList(edges, colors);
-        }
       }
       if (FieldExists(pars["Graph"], "Size")) {
         assert(pars["Graph"]["Size"] > 0);
@@ -104,6 +95,18 @@ class CustomGraph : public AbstractGraph {
       if (FieldExists(pars["Graph"], "IsBipartite")) {
         isbipartite_ = pars["Graph"]["IsBipartite"];
       }
+
+      // If edge colors are specificied read them in, otherwise set them all to
+      // 0
+      if (FieldExists(pars["Graph"], "EdgeColors")) {
+        std::vector<std::vector<int>> colorlist =
+            pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+        EdgeColorsFromList(colorlist, eclist_);
+      } else {
+        InfoMessage() << "No colors specified, edge colors set to 0 "
+                      << std::endl;
+        EdgeColorsFromAdj(adjlist_, eclist_);
+      }
     }
 
     CheckGraph();
@@ -137,17 +140,21 @@ class CustomGraph : public AbstractGraph {
     }
   }
 
-  // Read edges and colors together to creat mapping.
-  // The integer code used to label color is arbitrary and is up to the user.
-  void EdgeColorsFromList(const std::vector<std::vector<int>> &edges,
-                          const std::vector<int> &colors) {
-    if (edges.size() != colors.size()) {
-      throw InvalidInputError(
-          "The color list must have the same size as the "
-          "edge list.");
+  // Edge Colors from users specified map
+  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
+                          ColorMap &eclist) {
+    for (auto edge : colorlist) {
+      eclist[{{edge[0], edge[1]}}] = edge[2];
     }
-    for (std::size_t i = 0; i < edges.size(); i++) {
-      eclist_[edges[i]] = colors[i];
+  }
+
+  // If no Edge Colors are specified, initialize eclist_ with same color (0).
+  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
+                         ColorMap &eclist) {
+    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
+      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
+        eclist[{{i, adjlist[i][j]}}] = 0;
+      }
     }
   }
 
@@ -174,7 +181,7 @@ class CustomGraph : public AbstractGraph {
   }
 
   // Returns map of the edge and its respective color
-  std::map<std::vector<int>, int> EdgeColors() const { return eclist_; }
+  ColorMap EdgeColors() const { return eclist_; }
 
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
@@ -196,7 +203,7 @@ class CustomGraph : public AbstractGraph {
 
     return distances;
   }
-};  // namespace netket
+};
 
 }  // namespace netket
 #endif

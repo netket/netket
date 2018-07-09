@@ -14,11 +14,9 @@
 
 #ifndef NETKET_GRAPH_HPP
 #define NETKET_GRAPH_HPP
-
-#include <iostream>
-#include <map>
+#include <array>
+#include <unordered_map>
 #include <vector>
-
 #include "Utils/json_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
@@ -70,9 +68,7 @@ class Graph : public AbstractGraph {
     return g_->Distances();
   }
 
-  virtual std::map<std::vector<int>, int> EdgeColors() const override {
-    return g_->EdgeColors();
-  }
+  virtual ColorMap EdgeColors() const override { return g_->EdgeColors(); }
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };

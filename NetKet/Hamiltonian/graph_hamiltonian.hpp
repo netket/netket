@@ -16,7 +16,8 @@
 #define NETKET_BOND_HAMILTONIAN_CC
 
 #include <Eigen/Dense>
-#include <iostream>  // TODO remove
+#include <array>
+#include <unordered_map>
 #include <vector>
 #include "Utils/json_helper.hpp"
 #include "local_operator.hpp"
@@ -83,16 +84,12 @@ class GraphHamiltonian : public AbstractHamiltonian {
     }
 
     if (bop.size() > 0) {
-      // Get adjacency list from graph
-      // auto adj = graph_.AdjacencyList();
-      auto ec = graph_.EdgeColors();
-
-      // Use adj to populate operators
-      for (std::map<std::vector<int>, int>::iterator it = ec.begin();
-           it != ec.end(); ++it) {
+      // Use EdgeColors to populate operators
+      for (auto const &kv : graph_.EdgeColors()) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
-          if (op_color[c] == it->second && it->first[0] < it->first[1]) {
-            operators_.push_back(LocalOperator(hilbert_, bop[c], it->first));
+          if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
+            std::vector<int> edge = {kv.first[0], kv.first[1]};
+            operators_.push_back(LocalOperator(hilbert_, bop[c], edge));
           }
         }
       }

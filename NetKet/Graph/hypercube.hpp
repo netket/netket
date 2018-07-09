@@ -16,9 +16,11 @@
 #define NETKET_HYPERCUBE_HPP
 
 #include <mpi.h>
+#include <array>
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
 #include "distance.hpp"
@@ -44,8 +46,8 @@ class Hypercube : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
-  // Edge colors // TODO
-  std::map<std::vector<int>, int> eclist_;
+  // Edge colors
+  ColorMap eclist_;
 
   int nsites_;
 
@@ -59,14 +61,26 @@ class Hypercube : public AbstractGraph {
       throw InvalidInputError(
           "L<=2 hypercubes cannot have periodic boundary conditions");
     }
-    Init();
+    Init(pars);
   }
 
-  void Init() {
+  void Init(const json &pars) {
     assert(L_ > 0);
     assert(ndim_ >= 1);
     GenerateLatticePoints();
     GenerateAdjacencyList();
+
+    // If edge colors are specificied read them in, otherwise set them all to
+    // 0
+    if (FieldExists(pars["Graph"], "EdgeColors")) {
+      std::vector<std::vector<int>> colorlist =
+          pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+      EdgeColorsFromList(colorlist, eclist_);
+    } else {
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+      EdgeColorsFromAdj(adjlist_, eclist_);
+    }
 
     InfoMessage() << "Hypercube created " << std::endl;
     InfoMessage() << "Dimension = " << ndim_ << std::endl;
@@ -109,6 +123,24 @@ class Hypercube : public AbstractGraph {
         }
 
         neigh[d] = sites_[i][d];
+      }
+    }
+  }
+
+  // Edge Colors from users specified map
+  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
+                          ColorMap &eclist) {
+    for (auto edge : colorlist) {
+      eclist[{{edge[0], edge[1]}}] = edge[2];
+    }
+  }
+
+  // If no Edge Colors are specified, initialize eclist_ with same color (0).
+  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
+                         ColorMap &eclist) {
+    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
+      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
+        eclist[{{i, adjlist[i][j]}}] = 0;
       }
     }
   }
@@ -159,9 +191,7 @@ class Hypercube : public AbstractGraph {
     return coord2sites_.at(coord);
   }
 
-  std::map<std::vector<int>, int> EdgeColors() const override {
-    return eclist_;
-  }
+  ColorMap EdgeColors() const override { return eclist_; }
 
   bool IsBipartite() const override { return true; }
 
@@ -175,7 +205,7 @@ class Hypercube : public AbstractGraph {
 
     return distances;
   }
-};
+};  // namespace netket
 
 }  // namespace netket
 #endif
