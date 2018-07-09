@@ -15,14 +15,6 @@
 #ifndef NETKET_GROUNDSTATE_HPP
 #define NETKET_GROUNDSTATE_HPP
 
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Optimizer/optimizer.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
@@ -31,6 +23,14 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "matrix_replacement.hpp"
 
 namespace netket {
 
@@ -68,8 +68,6 @@ class GroundState {
   double elocvar_;
   int npar_;
 
-  int Iter0_;
-
   double sr_diag_shift_;
   bool sr_rescale_shift_;
   bool use_iterative_;
@@ -79,7 +77,7 @@ class GroundState {
 
   std::ofstream filelog_;
   std::string filewfname_;
-  double freqbackup_;
+  int freqbackup_;
 
   Optimizer &opt_;
 
@@ -89,20 +87,39 @@ class GroundState {
 
   bool dosr_;
 
-public:
+  int nsamples_;
+  int nsamples_node_;
+  int ninitsamples_;
+  int ndiscardedsamples_;
+  int niter_opt_;
+
+ public:
   // JSON constructor
   GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
               Optimizer &opt, const json &pars)
-      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
+      : ham_(ham),
+        sampler_(sampler),
+        psi_(sampler.Psi()),
+        opt_(opt),
         obs_(ham.GetHilbert(), pars) {
     Init();
 
-    int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
-    int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
+    nsamples_ = FieldVal(pars["Learning"], "Nsamples", "Learning");
+
+    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
+
+    ninitsamples_ =
+        FieldOrDefaultVal(pars["Learning"], "DiscardedSamplesOnInit", 0.);
+
+    ndiscardedsamples_ = FieldOrDefaultVal(pars["Learning"], "DiscardedSamples",
+                                           0.1 * nsamples_node_);
+
+    niter_opt_ = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
     std::string file_base =
         FieldVal(pars["Learning"], "OutputFile", "Learning");
-    double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
+
+    int freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 50);
     SetOutName(file_base, freqbackup);
 
     if (pars["Learning"]["Method"] == "Gd") {
@@ -117,11 +134,6 @@ public:
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
 
-    double ninitsamples =
-        FieldOrDefaultVal(pars["Learning"], "DiscardedSamplesOnInit", 0.);
-    double ndiscardedsamples =
-        FieldOrDefaultVal(pars["Learning"], "DiscardedSamples", 0.1 * nsamples);
-
     if (dosr_) {
       InfoMessage() << "Using the Stochastic reconfiguration method"
                     << std::endl;
@@ -132,7 +144,7 @@ public:
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
-    Run(ninitsamples, ndiscardedsamples, nsamples, niter_opt);
+    Run();
   }
 
   void Init() {
@@ -142,8 +154,6 @@ public:
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
-
-    Iter0_ = 0;
 
     freqbackup_ = 0;
 
@@ -158,24 +168,24 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void InitSweeps(double ninitsamples) {
+  void InitSweeps() {
     sampler_.Reset();
 
-    for (int i = 0; i < ninitsamples; i++)
+    for (int i = 0; i < ninitsamples_; i++) {
       sampler_.Sweep();
+    }
   }
 
-  void Sample(double ndiscardedsamples, double nsweeps) {
+  void Sample() {
     sampler_.Reset();
 
-    for (int i = 0; i < ndiscardedsamples; i++)
+    for (int i = 0; i < ndiscardedsamples_; i++) {
       sampler_.Sweep();
+    }
 
-    int sweepnode = int(std::ceil(double(nsweeps) / double(totalnodes_)));
+    vsamp_.resize(nsamples_node_, psi_.Nvisible());
 
-    vsamp_.resize(sweepnode, psi_.Nvisible());
-
-    for (int i = 0; i < sweepnode; i++) {
+    for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
       vsamp_.row(i) = sampler_.Visible();
     }
@@ -275,14 +285,13 @@ public:
 
   double Elocvar() { return elocvar_; }
 
-  void Run(double ninitsamples, double ndiscardedsamples, double nsweeps,
-           double niter) {
+  void Run() {
     opt_.Reset();
 
-    InitSweeps(ninitsamples);
+    InitSweeps();
 
-    for (double i = 0; i < niter; i++) {
-      Sample(ndiscardedsamples, nsweeps);
+    for (int i = 0; i < niter_opt_; i++) {
+      Sample();
 
       Gradient();
 
@@ -290,7 +299,6 @@ public:
 
       PrintOutput(i);
     }
-    Iter0_ += niter;
   }
 
   void UpdateParameters() {
@@ -365,11 +373,11 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void PrintOutput(double i) {
+  void PrintOutput(int i) {
     auto Acceptance = sampler_.Acceptance();
 
     auto jiter = json(obsmanager_);
-    jiter["Iteration"] = i + Iter0_;
+    jiter["Iteration"] = i;
     outputjson_["Output"].push_back(jiter);
 
     if (mynode_ == 0) {
@@ -399,6 +407,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
