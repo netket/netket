@@ -19,6 +19,8 @@
 #include <set>
 #include "Utils/parallel_utils.hpp"
 #include "abstract_sampler.hpp"
+#include "custom_sampler.hpp"
+#include "custom_sampler_pt.hpp"
 #include "metropolis_exchange.hpp"
 #include "metropolis_exchange_pt.hpp"
 #include "metropolis_hamiltonian.hpp"
@@ -65,6 +67,12 @@ class Sampler : public AbstractSampler<WfType> {
       s_ = Ptype(new MetropolisLocal<WfType>(psi));
     } else if (pars["Sampler"]["Name"] == "MetropolisLocalPt") {
       s_ = Ptype(new MetropolisLocalPt<WfType>(psi, pars));
+    } else if (!FieldExists(pars["Sampler"], "Name")) {
+      if (FieldExists(pars["Sampler"], "Nreplicas")) {
+        s_ = Ptype(new CustomSamplerPt<WfType>(psi, pars));
+      } else {
+        s_ = Ptype(new CustomSampler<WfType>(psi, pars));
+      }
     }
   }
 
@@ -93,20 +101,27 @@ class Sampler : public AbstractSampler<WfType> {
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
 
     CheckFieldExists(pars, "Sampler");
-    CheckFieldExists(pars["Sampler"], "Name");
+    if (FieldExists(pars["Sampler"], "Name")) {
+      std::set<std::string> samplers = {
+          "MetropolisLocal",       "MetropolisLocalPt",
+          "MetropolisExchange",    "MetropolisExchangePt",
+          "MetropolisHamiltonian", "MetropolisHamiltonianPt",
+          "MetropolisHop"};
 
-    std::set<std::string> samplers = {
-        "MetropolisLocal",       "MetropolisLocalPt",
-        "MetropolisExchange",    "MetropolisExchangePt",
-        "MetropolisHamiltonian", "MetropolisHamiltonianPt",
-        "MetropolisHop"};
+      const auto name = pars["Sampler"]["Name"];
 
-    const auto name = pars["Sampler"]["Name"];
-
-    if (samplers.count(name) == 0) {
-      std::stringstream s;
-      s << "Unknown Sampler.Name: " << name;
-      throw InvalidInputError(s.str());
+      if (samplers.count(name) == 0) {
+        std::stringstream s;
+        s << "Unknown Sampler.Name: " << name;
+        throw InvalidInputError(s.str());
+      }
+    } else {
+      if (!FieldExists(pars["Sampler"], "ActingOn") and
+          !FieldExists(pars["Sampler"], "MoveOperators")) {
+        throw InvalidInputError(
+            "No SamplerName provided or Custom Sampler (MoveOperators and "
+            "ActingOn) defined");
+      }
     }
   }
 
