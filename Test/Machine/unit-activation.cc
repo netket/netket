@@ -27,7 +27,9 @@ netket::json GetActivationInputs() {
 
   // Activations
   pars = {{"Activations",
-           {{{"Activation", "Lncosh"}}, {{"Activation", "Identity"}}}}};
+           {{{"Activation", "Lncosh"}},
+            {{"Activation", "Identity"}},
+            {{"Activation", "Tanh"}}}}};
 
   return pars;
 }
