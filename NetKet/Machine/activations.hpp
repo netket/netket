@@ -97,9 +97,9 @@ class Tanh : public AbstractActivation {
   // A = Tanh(Z)
   // J = dA / dZ
   // G = J * F
-  inline void ApplyJacobian(const VectorType &Z, const VectorType & /*A*/,
+  inline void ApplyJacobian(const VectorType & /*Z*/, const VectorType &A,
                             const VectorType &F, VectorType &G) {
-    G.array() = F.array() * Z.array().tanh();
+    G.array() = F.array() * (1 - A.array() * A.array());
   }
 };
 
@@ -129,6 +129,12 @@ class Activation : public AbstractActivation {
         std::cout << "# # Activation: "
                   << "Identity" << std::endl;
       }
+    } else if (pars["Activation"] == "Tanh") {
+      m_ = Ptype(new Tanh());
+      if (mynode_ == 0) {
+        std::cout << "# # Activation: "
+                  << "Tanh" << std::endl;
+      }
     }
   }
 
@@ -138,7 +144,7 @@ class Activation : public AbstractActivation {
 
     const std::string name = FieldVal(pars, "Activation");
 
-    std::set<std::string> layers = {"Lncosh", "Identity"};
+    std::set<std::string> layers = {"Lncosh", "Identity", "Tanh"};
 
     if (layers.count(name) == 0) {
       std::stringstream s;

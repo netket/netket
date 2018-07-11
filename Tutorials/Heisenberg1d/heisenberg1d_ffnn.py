@@ -21,8 +21,8 @@ pars={}
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',
-    'L'              : 4,
-    'Dimension'      : 2,
+    'L'              : 20,
+    'Dimension'      : 1,
     'Pbc'            : True,
 }
 

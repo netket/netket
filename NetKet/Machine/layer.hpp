@@ -56,6 +56,8 @@ class Layer : public AbstractLayer<T> {
         m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
       }
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
