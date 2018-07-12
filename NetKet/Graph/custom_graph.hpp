@@ -139,24 +139,6 @@ class CustomGraph : public AbstractGraph {
     }
   }
 
-  // Edge Colors from users specified map
-  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
-                          ColorMap &eclist) {
-    for (auto edge : colorlist) {
-      eclist[{{edge[0], edge[1]}}] = edge[2];
-    }
-  }
-
-  // If no Edge Colors are specified, initialize eclist_ with same color (0).
-  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
-                         ColorMap &eclist) {
-    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
-      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
-        eclist[{{i, adjlist[i][j]}}] = 0;
-      }
-    }
-  }
-
   void CheckGraph() {
     for (int i = 0; i < nsites_; i++) {
       for (auto s : adjlist_[i]) {
@@ -179,21 +161,22 @@ class CustomGraph : public AbstractGraph {
     }
   }
 
-  // Returns map of the edge and its respective color
-  ColorMap EdgeColors() const { return eclist_; }
-
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
-  std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
+  std::vector<std::vector<int>> SymmetryTable() const override {
+    return automorphisms_;
+  }
 
-  int Nsites() const { return nsites_; }
+  int Nsites() const override { return nsites_; }
 
-  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return adjlist_;
+  }
 
-  bool IsBipartite() const { return isbipartite_; }
+  bool IsBipartite() const override { return isbipartite_; }
 
   // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const {
+  std::vector<std::vector<int>> Distances() const override {
     std::vector<std::vector<int>> distances;
 
     for (int i = 0; i < nsites_; i++) {
@@ -202,6 +185,9 @@ class CustomGraph : public AbstractGraph {
 
     return distances;
   }
+
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return eclist_; }
 };
 
 }  // namespace netket

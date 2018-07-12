@@ -68,7 +68,6 @@ pars['Hilbert'] = {
 #defining our custom hamiltonian
 pars['Hamiltonian'] = {
     'Name': 'Graph',
-    'SiteOps': [],
     'BondOps': bond_operator,
     'BondOpColors': bond_color,
 }

@@ -43,20 +43,39 @@ class GraphHamiltonian : public AbstractHamiltonian {
       : hilbert_(pars), graph_(graph), nvertices_(graph.Nsites()) {
     auto pars_hamiltonian = pars["Hamiltonian"];
 
-    // Checking that json contains BondOps, BondOpColors, and SiteOps
-    CheckFieldExists(pars_hamiltonian, "SiteOps");
-    if (!pars_hamiltonian["SiteOps"].is_array()) {
-      throw InvalidInputError(
-          "Hamiltonian: Site operators object is not an array!");
+    // Ensure that at least one of SiteOps and BondOps was initialized
+    if (!FieldExists(pars_hamiltonian, "SiteOps") and
+        FieldExists(pars_hamiltonian, "BondOps")) {
+      pars_hamiltonian["SiteOps"] = std::vector<MatType>();
+
+    } else if (!FieldExists(pars_hamiltonian, "BondOps") and
+               FieldExists(pars_hamiltonian, "SiteOps")) {
+      pars_hamiltonian["BondOps"] = std::vector<MatType>();
+    } else if (!FieldExists(pars_hamiltonian, "BondOps") and
+               !FieldExists(pars_hamiltonian, "SiteOps")) {
+      throw InvalidInputError("Must input at least SiteOps or BondOps");
     }
 
-    CheckFieldExists(pars_hamiltonian, "BondOps");
+    // Ensure that parameters are arrays
+    if (!pars_hamiltonian["SiteOps"].is_array()) {
+      throw InvalidInputError(
+          "Hamiltonian: Bond operators object is not an array!");
+    }
     if (!pars_hamiltonian["BondOps"].is_array()) {
       throw InvalidInputError(
           "Hamiltonian: Bond operators object is not an array!");
     }
 
-    CheckFieldExists(pars_hamiltonian, "BondOpColors");
+    // Check BondOpColors
+    if (!FieldExists(pars_hamiltonian, "BondOpColors")) {
+      if (pars_hamiltonian["BondOps"].size() == 0) {
+        pars_hamiltonian["BondOpColors"] = std::vector<int>();
+      } else {
+        pars_hamiltonian["BondOpColors"] =
+            std::vector<int>(pars_hamiltonian["BondOps"].size(), 0);
+      }
+    }
+
     if (!pars_hamiltonian["BondOpColors"].is_array()) {
       throw InvalidInputError("Hamiltonian.BondOpColors is not an array");
     }

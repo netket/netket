@@ -28,7 +28,6 @@ mszsz = (np.kron(sigmaz, sigmaz)).tolist()
 L = 20
 site_operator = [sigmax]
 bond_operator = [mszsz]
-bond_color = [0]
 
 # Defining a custom graph
 G = nx.Graph()
@@ -47,12 +46,11 @@ pars['Hilbert'] = {
     'Size': len(list(G.edges)),
 }
 
-# defining a custom hamiltonian
+# defining a graph hamiltonian
 pars['Hamiltonian'] = {
     'Name': 'Graph',
     'SiteOps': site_operator,
     'BondOps': bond_operator,
-    'BondOpColors': bond_color,
 }
 
 # defining the wave function

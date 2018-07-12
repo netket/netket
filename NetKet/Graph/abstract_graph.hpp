@@ -18,21 +18,7 @@
 #include <array>
 #include <unordered_map>
 #include <vector>
-
-// Special hash functor for the EdgeColors unordered_map
-// Same as hash_combine from boost
-namespace std {
-struct ArrayHasher {
-  std::size_t operator()(const std::array<int, 2>& a) const {
-    std::size_t h = 0;
-
-    for (auto e : a) {
-      h ^= std::hash<int>{}(e) + 0x9e3779b9 + (h << 6) + (h >> 2);
-    }
-    return h;
-  }
-};
-}  // namespace std
+#include "Utils/array_hasher.hpp"
 
 namespace netket {
 
@@ -70,14 +56,32 @@ class AbstractGraph {
   /**
   Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
   */
-  using ColorMap =
-      std::unordered_map<std::array<int, 2>, int, std::ArrayHasher>;
+  using Edge = std::array<int, 2>;
+  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
 
   /**
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  virtual ColorMap EdgeColors() const = 0;
+  virtual const ColorMap &EdgeColors() const = 0;
+
+  // Edge Colors from users specified map
+  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
+                          ColorMap &eclist) {
+    for (auto edge : colorlist) {
+      eclist[{{edge[0], edge[1]}}] = edge[2];
+    }
+  }
+
+  // If no Edge Colors are specified, initialize eclist_ with same color (0).
+  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
+                         ColorMap &eclist) {
+    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
+      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
+        eclist[{{i, adjlist[i][j]}}] = 0;
+      }
+    }
+  }
 
   /**
   Member function returning true if the graph is bipartite.

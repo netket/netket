@@ -126,24 +126,6 @@ class Hypercube : public AbstractGraph {
     }
   }
 
-  // Edge Colors from users specified map
-  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
-                          ColorMap &eclist) {
-    for (auto edge : colorlist) {
-      eclist[{{edge[0], edge[1]}}] = edge[2];
-    }
-  }
-
-  // If no Edge Colors are specified, initialize eclist_ with same color (0).
-  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
-                         ColorMap &eclist) {
-    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
-      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
-        eclist[{{i, adjlist[i][j]}}] = 0;
-      }
-    }
-  }
-
   // Returns a list of permuted sites equivalent with respect to
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
@@ -190,8 +172,6 @@ class Hypercube : public AbstractGraph {
     return coord2sites_.at(coord);
   }
 
-  ColorMap EdgeColors() const override { return eclist_; }
-
   bool IsBipartite() const override { return true; }
 
   // returns the distances of each point from the others
@@ -204,7 +184,10 @@ class Hypercube : public AbstractGraph {
 
     return distances;
   }
-};  // namespace netket
+
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return eclist_; }
+};
 
 }  // namespace netket
 #endif

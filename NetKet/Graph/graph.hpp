@@ -29,7 +29,7 @@ class Graph : public AbstractGraph {
   Ptype g_;
 
  public:
-  explicit Graph(const json &pars) {
+  explicit Graph(const json& pars) {
     // Check if a graph is explicitely defined in the input
     if (FieldExists(pars, "Graph")) {
       // Checking if we are using a graph in the hard-coded library
@@ -68,7 +68,7 @@ class Graph : public AbstractGraph {
     return g_->Distances();
   }
 
-  virtual ColorMap EdgeColors() const override { return g_->EdgeColors(); }
+  const ColorMap& EdgeColors() const override { return g_->EdgeColors(); }
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };
