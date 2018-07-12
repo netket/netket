@@ -18,6 +18,7 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -269,6 +270,7 @@ class GroundState {
 
   void Run(double nsweeps, double niter) {
     opt_.Reset();
+    TimeTrial();
     for (double i = 0; i < niter; i++) {
       Sample(nsweeps);
 
@@ -384,6 +386,21 @@ class GroundState {
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
+  }
+
+  void TimeTrial() {
+    std::clock_t start;
+    double duration;
+    sampler_.Reset(true);
+
+    start = std::clock();
+    for (int i = 0; i < 1000; ++i) {
+      psi_.LogVal(sampler_.Visible());
+    }
+
+    duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+
+    std::cout << "duration: " << duration << '\n';
   }
 };
 
