@@ -18,7 +18,6 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
-#include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <iostream>

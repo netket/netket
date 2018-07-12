@@ -54,7 +54,6 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
   netket::default_random_engine rgen;
 
   for (std::size_t it = 0; it < ntests; it++) {
-    std::cout << "========= Starting Test: " << it << std::endl;
     SECTION("Layer test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"].dump()) {
       auto pars = input_tests[it];
