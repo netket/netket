@@ -54,9 +54,9 @@ class Hypercube : public AbstractGraph {
       : L_(FieldVal(pars["Graph"], "L", "Graph")),
         ndim_(FieldVal(pars["Graph"], "Dimension", "Graph")),
         pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {
-    if(pbc_ && L_ <= 2)
-    {
-        throw InvalidInputError("L<=2 hypercubes cannot have periodic boundary conditions");
+    if (pbc_ && L_ <= 2) {
+      throw InvalidInputError(
+          "L<=2 hypercubes cannot have periodic boundary conditions");
     }
     Init();
   }
@@ -93,15 +93,18 @@ class Hypercube : public AbstractGraph {
 
     for (int i = 0; i < nsites_; i++) {
       std::vector<int> neigh(ndim_);
+      std::vector<int> neigh2(ndim_);
 
       neigh = sites_[i];
-
+      neigh2 = sites_[i];
       for (int d = 0; d < ndim_; d++) {
         if (pbc_) {
           neigh[d] = (sites_[i][d] + 1) % L_;
+          neigh2[d] = ((sites_[i][d] - 1) % L_ + L_) % L_;
           int neigh_site = coord2sites_.at(neigh);
+          int neigh_site2 = coord2sites_.at(neigh2);
           adjlist_[i].push_back(neigh_site);
-          adjlist_[neigh_site].push_back(i);
+          adjlist_[i].push_back(neigh_site2);
         } else {
           if ((sites_[i][d] + 1) < L_) {
             neigh[d] = (sites_[i][d] + 1);
@@ -112,6 +115,7 @@ class Hypercube : public AbstractGraph {
         }
 
         neigh[d] = sites_[i][d];
+        neigh2[d] = sites_[i][d];
       }
     }
   }
@@ -120,8 +124,9 @@ class Hypercube : public AbstractGraph {
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
     if (!pbc_) {
-      throw InvalidInputError("Cannot generate translation symmetries "
-                              "in the hypercube without PBC");
+      throw InvalidInputError(
+          "Cannot generate translation symmetries "
+          "in the hypercube without PBC");
     }
 
     std::vector<std::vector<int>> permtable;

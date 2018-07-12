@@ -27,11 +27,11 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
   for (std::size_t it = 0; it < ntests; it++) {
     SECTION("Layer test (" + std::to_string(it) + ") on " +
             input_tests[it]["Machine"]["Layers"].dump()) {
-      auto pars = input_tests[it]["Machine"]["Layers"];
+      auto pars = input_tests[it];
 
       using MType = std::complex<double>;
-
-      netket::Layer<MType> layer(pars[0]);
+      netket::Graph graph(pars);
+      netket::Layer<MType> layer(graph, pars["Machine"]["Layers"][0]);
 
       int seed = 12342;
       double sigma = 1;
@@ -74,8 +74,7 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
       int nv = hilbert.Size();
       Eigen::VectorXd v(nv);
 
-      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 1000;
-
+      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 100;
       for (int i = 0; i < 100; i++) {
         hilbert.RandomVals(v, rgen);
 
@@ -97,9 +96,9 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
           typename netket::Machine<MType>::StateType numder =
               (-valm + valp) / (eps * 2);
 
-          REQUIRE(Approx(std::real(numder)).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::real(numder)).epsilon(eps * 1000) ==
                   std::real(ders(p)));
-          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 1000) ==
                   std::exp(std::imag(ders(p))));
         }
       }

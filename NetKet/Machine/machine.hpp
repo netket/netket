@@ -75,8 +75,6 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "FFNN") {
-      m_ = Ptype(new FFNN<T>(hilbert, pars));
     }
   }
 
@@ -84,6 +82,8 @@ class Machine : public AbstractMachine<T> {
     CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN") {
+      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
     }
   }
 
@@ -128,7 +128,7 @@ class Machine : public AbstractMachine<T> {
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "FFNN"};
+                                      "FFNN", "URbm"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
