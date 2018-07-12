@@ -354,7 +354,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < acc.size(); i++) {
       acc(i) /= moves_(i);
     }
     return acc;
