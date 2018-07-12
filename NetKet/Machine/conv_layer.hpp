@@ -91,6 +91,9 @@ class Convolutional : public AbstractLayer<T> {
         in_channels_(input_channel),
         out_channels_(output_channel),
         dist_(dist) {
+    in_size_ = in_channels_ * nv_;
+    out_size_ = out_channels_ * nv_;
+
     Init(graph);
   }
 
