@@ -49,7 +49,7 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
   }
 }
 
-TEST_CASE("machines to/from json is correct", "[machine]") {
+TEST_CASE("machines write/read to/from json correctly", "[machine]") {
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
 

@@ -21,19 +21,6 @@ std::vector<netket::json> GetLayerInputs() {
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
-  // Symmetric layer
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine",
-           {{"Name", "FFNN"},
-            {"Layers",
-             {{{"Name", "Symmetric"},
-               {"InputChannels", 1},
-               {"OutputChannels", 3},
-               {"Activation", "Lncosh"}}}}}},
-          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
-  input_tests.push_back(pars);
-
   // Convolutional layer
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},

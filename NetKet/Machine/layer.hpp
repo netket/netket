@@ -43,6 +43,8 @@ class Layer : public AbstractLayer<T> {
         m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new FullyConnected<Identity, T>(pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new FullyConnected<Tanh, T>(pars));
       }
     } else if (pars["Name"] == "Convolutional") {
       if (pars["Activation"] == "Lncosh") {
@@ -123,6 +125,6 @@ class Layer : public AbstractLayer<T> {
   void to_json(json &j) const override { m_->to_json(j); }
 
   void from_json(const json &j) override { m_->from_json(j); }
-};  // namespace netket
+};
 }  // namespace netket
 #endif
