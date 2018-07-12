@@ -247,16 +247,6 @@ class CustomSampler : public AbstractSampler<WfType> {
       double ratio = std::norm(std::exp(psi_.LogValDiff(
           v_, tochange_[exit_state], newconfs_[exit_state], lt_)));
 
-#ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_);
-      if (std::abs(std::exp(psi_.LogVal(v_) - psi_.LogVal(v_, lt_)) - 1.) >
-          1.0e-8) {
-        std::cerr << psi_.LogVal(v_) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_, lt_) << std::endl;
-        std::abort();
-      }
-#endif
-
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;

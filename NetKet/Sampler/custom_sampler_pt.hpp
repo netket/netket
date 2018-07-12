@@ -269,17 +269,6 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
           beta_[rep] * psi_.LogValDiff(v_[rep], tochange_[exit_state],
                                        newconfs_[exit_state], lt_[rep])));
 
-#ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_[rep]);
-      if (std::abs(
-              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
-              1.) > 1.0e-8) {
-        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
-        std::abort();
-      }
-#endif
-
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_(rep) += 1;
@@ -287,17 +276,6 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
                           lt_[rep]);
         hilbert_.UpdateConf(v_[rep], tochange_[exit_state],
                             newconfs_[exit_state]);
-
-#ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_[rep]);
-        if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
-          std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
-                    << std::endl;
-          std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
-          std::abort();
-        }
-#endif
       }
       moves_(rep) += 1;
     }
