@@ -14,7 +14,9 @@
 
 #include "abstract_layer.hpp"
 #include "activations.hpp"
+#include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
+#include "sum_output.hpp"
 
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
@@ -32,15 +34,44 @@ class Layer : public AbstractLayer<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit Layer(const json &pars) { Init(pars); }
+  explicit Layer(const Graph &graph, const json &pars) { Init(graph, pars); }
 
-  void Init(const json &pars) {
+  void Init(const Graph &graph, const json &pars) {
+    CheckInput(pars);
     if (pars["Name"] == "FullyConnected") {
       if (pars["Activation"] == "Lncosh") {
         m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new FullyConnected<Identity, T>(pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new FullyConnected<Tanh, T>(pars));
       }
+    } else if (pars["Name"] == "Convolutional") {
+      if (pars["Activation"] == "Lncosh") {
+        m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
+      } else if (pars["Activation"] == "Identity") {
+        m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
+      }
+    } else if (pars["Name"] == "Sum") {
+      m_ = Ptype(new SumOutput<T>(pars));
+    }
+  }
+
+  void CheckInput(const json &pars) {
+    int mynode;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+
+    const std::string name = FieldVal(pars, "Name");
+
+    std::set<std::string> layers = {"FullyConnected", "Convolutional",
+                                    "Symmetric", "Sum"};
+
+    if (layers.count(name) == 0) {
+      std::stringstream s;
+      s << "Unknown Machine: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 
@@ -84,15 +115,16 @@ class Layer : public AbstractLayer<T> {
   VectorType Output() const override { return m_->Output(); }
 
   void Backprop(const VectorType &prev_layer_data,
-                const VectorType &next_layer_data) override {
-    return m_->Backprop(prev_layer_data, next_layer_data);
+                const VectorType &next_layer_data, VectorType &der,
+                int start_idx) override {
+    return m_->Backprop(prev_layer_data, next_layer_data, der, start_idx);
   }
 
   const VectorType &BackpropData() const override { return m_->BackpropData(); }
 
-  void GetDerivative(VectorType &der, int start_idx) override {
-    return m_->GetDerivative(der, start_idx);
-  }
+  void to_json(json &j) const override { m_->to_json(j); }
+
+  void from_json(const json &j) override { m_->from_json(j); }
 };
 }  // namespace netket
 #endif

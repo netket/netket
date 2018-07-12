@@ -21,14 +21,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
-#include "Utils/parallel_utils.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "matrix_replacement.hpp"
 #include "stepper.hpp"
 
@@ -103,7 +103,8 @@ class GroundState {
     int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
     int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
 
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile", "Learning");
+    std::string file_base =
+        FieldVal(pars["Learning"], "OutputFile", "Learning");
     double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
     SetOutName(file_base, freqbackup);
 
@@ -167,6 +168,7 @@ class GroundState {
 
     for (int i = 0; i < sweepnode; i++) {
       sampler_.Sweep();
+
       vsamp_.row(i) = sampler_.Visible();
     }
   }
@@ -267,7 +269,6 @@ class GroundState {
 
   void Run(double nsweeps, double niter) {
     opt_.Reset();
-
     for (double i = 0; i < niter; i++) {
       Sample(nsweeps);
 

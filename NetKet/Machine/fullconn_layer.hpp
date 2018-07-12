@@ -40,8 +40,6 @@ class FullyConnected : public AbstractLayer<T> {
   int npar_;           // number of parameters in layer
   MatrixType weight_;  // Weight parameters, W(in_size x out_size)
   VectorType bias_;    // Bias parameters, b(out_size x 1)
-  MatrixType dw_;      // Derivative of weights
-  VectorType db_;      // Derivative of bias
   VectorType z_;       // Linear term, z = W' * in + b
   VectorType a_;       // Output of this layer, a = act(z)
   VectorType din_;     // Derivative of the input of this layer.
@@ -49,6 +47,8 @@ class FullyConnected : public AbstractLayer<T> {
                        // previous layer
 
   int mynode_;
+
+  std::size_t scalar_bytesize_;
 
  public:
   using StateType = typename AbstractLayer<T>::StateType;
@@ -64,22 +64,24 @@ class FullyConnected : public AbstractLayer<T> {
     Init();
   }
 
-  explicit FullyConnected(const json &pars) : activation_() {
+  explicit FullyConnected(const json &pars) : activation_() { Init(pars); }
+
+  void Init(const json &pars) {
     in_size_ = FieldVal(pars, "Inputs");
     out_size_ = FieldVal(pars, "Outputs");
 
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
-    Init();
-  }
+    scalar_bytesize_ = sizeof(std::complex<double>);
 
-  void Init() {
     weight_.resize(in_size_, out_size_);
     bias_.resize(out_size_);
-    dw_.resize(in_size_, out_size_);
-    db_.resize(out_size_);
+    din_.resize(in_size_);
 
     npar_ = in_size_ * out_size_;
+
+    z_.resize(out_size_);
+    a_.resize(out_size_);
 
     if (usebias_) {
       npar_ += out_size_;
@@ -93,6 +95,58 @@ class FullyConnected : public AbstractLayer<T> {
       std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
                 << std::endl;
       std::cout << "# # UseBias = " << usebias_ << std::endl;
+    }
+  }
+
+  void Init() {
+    scalar_bytesize_ = sizeof(std::complex<double>);
+
+    weight_.resize(in_size_, out_size_);
+    bias_.resize(out_size_);
+    din_.resize(in_size_);
+
+    npar_ = in_size_ * out_size_;
+
+    z_.resize(out_size_);
+    a_.resize(out_size_);
+
+    if (usebias_) {
+      npar_ += out_size_;
+    } else {
+      bias_.setZero();
+    }
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    if (mynode_ == 0) {
+      std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
+                << std::endl;
+      std::cout << "# # UseBias = " << usebias_ << std::endl;
+    }
+  }
+
+  void to_json(json &pars) const override {
+    json layerpar;
+    layerpar["Name"] = "FullyConnected";
+    layerpar["UseBias"] = usebias_;
+    layerpar["Inputs"] = in_size_;
+    layerpar["Outputs"] = out_size_;
+    layerpar["Bias"] = bias_;
+    layerpar["Weight"] = weight_;
+
+    pars["Machine"]["Layers"].push_back(layerpar);
+  }
+
+  void from_json(const json &pars) override {
+    if (FieldExists(pars, "Weight")) {
+      weight_ = pars["Weight"];
+    } else {
+      weight_.setZero();
+    }
+    if (FieldExists(pars, "Bias")) {
+      bias_ = pars["Bias"];
+    } else {
+      bias_.setZero();
     }
   }
 
@@ -114,36 +168,25 @@ class FullyConnected : public AbstractLayer<T> {
     int k = start_idx;
 
     if (usebias_) {
-      for (int i = 0; i < out_size_; ++i) {
-        pars(k) = bias_(i);
-        ++k;
-      }
+      std::memcpy(pars.data() + k, bias_.data(), out_size_ * scalar_bytesize_);
+      k += out_size_;
     }
 
-    for (int i = 0; i < in_size_; ++i) {
-      for (int j = 0; j < out_size_; ++j) {
-        pars(k) = weight_(i, j);
-        ++k;
-      }
-    }
+    std::memcpy(pars.data() + k, weight_.data(),
+                in_size_ * out_size_ * scalar_bytesize_);
   }
 
   void SetParameters(const VectorType &pars, int start_idx) override {
     int k = start_idx;
 
     if (usebias_) {
-      for (int i = 0; i < out_size_; ++i) {
-        bias_(i) = pars(k);
-        ++k;
-      }
+      std::memcpy(bias_.data(), pars.data() + k, out_size_ * scalar_bytesize_);
+
+      k += out_size_;
     }
 
-    for (int i = 0; i < in_size_; ++i) {
-      for (int j = 0; j < out_size_; ++j) {
-        weight_(i, j) = pars(k);
-        ++k;
-      }
-    }
+    std::memcpy(weight_.data(), pars.data() + k,
+                in_size_ * out_size_ * scalar_bytesize_);
   }
 
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
@@ -166,29 +209,26 @@ class FullyConnected : public AbstractLayer<T> {
 
   void Forward(const VectorType &prev_layer_data) override {
     // Linear term z = W' * in + b
-    z_.resize(out_size_);
-    z_.noalias() = weight_.transpose() * prev_layer_data;
-    z_.colwise() += bias_;
+    z_ = bias_;
+    z_.noalias() += weight_.transpose() * prev_layer_data;
 
     // Apply activation function
-    a_.resize(out_size_);
     activation_(z_, a_);
   }
 
   // Using lookup
   void Forward(const VectorType & /*prev_layer_data*/,
                const LookupType &lt) override {
-    z_.resize(out_size_);
     z_ = lt.V(0);
     // Apply activation function
-    a_.resize(out_size_);
     activation_(z_, a_);
   }
 
   VectorType Output() const override { return a_; }
 
   void Backprop(const VectorType &prev_layer_data,
-                const VectorType &next_layer_data) override {
+                const VectorType &next_layer_data, VectorType &der,
+                int start_idx) override {
     // After forward stage, m_z contains z = W' * in + b
     // Now we need to calculate d(L) / d(z) = [d(a) / d(z)] * [d(L) / d(a)]
     // d(L) / d(a) is computed in the next layer, contained in next_layer_data
@@ -198,38 +238,26 @@ class FullyConnected : public AbstractLayer<T> {
     activation_.ApplyJacobian(z_, a_, next_layer_data, dLz);
 
     // Now dLz contains d(L) / d(z)
-    // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
-    dw_.noalias() = prev_layer_data * dLz.transpose();
-
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
+    int k = start_idx;
+
     if (usebias_) {
-      db_.noalias() = dLz;
+      Eigen::Map<VectorType> der_b{der.data() + k, out_size_};
+
+      der_b.noalias() = dLz;
+      k += out_size_;
     }
 
+    // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
+    Eigen::Map<MatrixType> der_w{der.data() + k, in_size_, out_size_};
+
+    der_w.noalias() = prev_layer_data * dLz.transpose();
+
     // Compute d(L) / d_in = W * [d(L) / d(z)]
-    din_.resize(in_size_);
     din_.noalias() = weight_ * dLz;
   }
 
   const VectorType &BackpropData() const override { return din_; }
-
-  void GetDerivative(VectorType &der, int start_idx) override {
-    int k = start_idx;
-
-    if (usebias_) {
-      for (int i = 0; i < out_size_; ++i) {
-        der(k) = db_(i);
-        ++k;
-      }
-    }
-
-    for (int i = 0; i < in_size_; ++i) {
-      for (int j = 0; j < out_size_; ++j) {
-        der(k) = dw_(i, j);
-        ++k;
-      }
-    }
-  }
 };
 }  // namespace netket
 

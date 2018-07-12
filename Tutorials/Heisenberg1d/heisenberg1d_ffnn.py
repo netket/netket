@@ -22,7 +22,7 @@ pars={}
 pars['Graph']={
     'Name'           : 'Hypercube',
     'L'              : 20,
-    'Dimension'      : 1 ,
+    'Dimension'      : 1,
     'Pbc'            : True,
 }
 
@@ -35,7 +35,8 @@ pars['Hamiltonian']={
 #defining the wave function
 pars['Machine']={
     'Name'           : 'FFNN',
-    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20, 'Activation':'Lncosh'}],
+    'Alpha'          : 1,
+    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
 }
 
 #defining the sampler

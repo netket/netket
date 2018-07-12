@@ -75,19 +75,17 @@ class AbstractLayer {
   Machine: L = log(psi(v))
   */
   virtual void Backprop(const VectorType &prev_layer_data,
-                        const VectorType &next_layer_data) = 0;
+                        const VectorType &next_layer_data, VectorType &der,
+                        int start_idx) = 0;
   /**
   Member function to return dL/d(in), where (in) is the input to the current
   layer, and L = log(psi(v))
   */
   virtual const VectorType &BackpropData() const = 0;
 
-  /**
-  Member function to write derivatives into der.
-  @der reference to the vector containing derivatives of the whole machine.
-  @start_idx index to indicate where to start writing derivatives in der.
-  */
-  virtual void GetDerivative(VectorType &der, int start_idx) = 0;
+  virtual void to_json(json &j) const = 0;
+
+  virtual void from_json(const json &j) = 0;
 
   /**
   destructor
