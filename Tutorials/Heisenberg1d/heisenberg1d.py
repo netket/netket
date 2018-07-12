@@ -34,11 +34,8 @@ pars['Hamiltonian']={
 
 #defining the wave function
 pars['Machine']={
-    'Name'           : 'RbmSpin',
-    'Nhidden'        : 20,
-    'SigmaRand'      : 0.01,
-    'InitFile'       : 'test.wf',
-    # 'Alpha'          : 1,
+    'Name'           : 'RbmSpinSymm',
+    'Alpha'          : 1,
 }
 
 #defining the sampler
@@ -53,8 +50,8 @@ pars['Sampler']={
 pars['Learning']={
     'Method'         : 'Sr',
     'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 100,
-    'Diagshift'      : 0.1,
+    'NiterOpt'       : 1000,
+    'Diagshift'      : 0.01,
     'UseIterative'   : False,
     'OutputFile'     : 'test',
     'StepperType'    : 'Sgd',

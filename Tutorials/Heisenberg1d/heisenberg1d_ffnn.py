@@ -36,12 +36,7 @@ pars['Hamiltonian']={
 pars['Machine']={
     'Name'           : 'FFNN',
     'Alpha'          : 1,
-    # 'Layers'         : [{'Name':'Convolutional', 'InputChannels': 1, 'OutputChannels':8, "Distance":2, "UseBias":True, 'Activation':'Lncosh'}],
-    # {'Name':'Convolutional', 'InputChannels': 2, 'OutputChannels':2, "Distance":1, "UseBias":True, 'Activation':'Lncosh'}],
     'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
-    'InitFile'       : 'test.wf',
-    # 'SigmaRand'      : 0.01,
-
 }
 
 #defining the sampler
@@ -56,9 +51,9 @@ pars['Sampler']={
 pars['Learning']={
     'Method'         : 'Sr',
     'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 100,
+    'NiterOpt'       : 1000,
     'Diagshift'      : 0.01,
-    'UseIterative'   : True,
+    'UseIterative'   : False,
     'OutputFile'     : 'test',
     'StepperType'    : 'Sgd',
     'LearningRate'   : 0.01,
