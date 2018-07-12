@@ -51,17 +51,16 @@ class FFNN : public AbstractMachine<T> {
   // constructor
   explicit FFNN(const Graph &graph, const Hilbert &hilbert, const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
-    from_json(pars);
+    Init(pars);
   }
 
-  void from_json(const json &pars) override {
+  void Init(const json &pars) {
     json layers_par;
     if (FieldExists(pars["Machine"], "Layers")) {
       layers_par = pars["Machine"]["Layers"];
       nlayer_ = layers_par.size();
     } else {
-      throw InvalidInputError(
-          "Error: Field (Layers) not defined for Machine (FFNN)");
+      throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
     }
 
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
@@ -78,7 +77,7 @@ class FFNN : public AbstractMachine<T> {
       layersizes_.push_back(layers_.back()->Noutput());
 
       if (layersizes_[i] != layers_.back()->Ninput()) {
-        throw InvalidInputError("Error: input/output layer sizes do not match");
+        throw InvalidInputError("input/output layer sizes do not match");
       }
     }
 
@@ -95,10 +94,6 @@ class FFNN : public AbstractMachine<T> {
     }
     depth_ = layersizes_.size();
 
-    Init();
-  }
-
-  void Init() {
     npar_ = 0;
     for (int i = 0; i < nlayer_; ++i) {
       npar_ += layers_[i]->Npar();
@@ -112,6 +107,21 @@ class FFNN : public AbstractMachine<T> {
       std::cout << layersizes_[depth_ - 1];
       std::cout << std::endl;
       std::cout << "# Total Number of Parameters = " << npar_ << std::endl;
+    }
+  }
+
+  void from_json(const json &pars) override {
+    json layers_par;
+    if (FieldExists(pars["Machine"], "Layers")) {
+      layers_par = pars["Machine"]["Layers"];
+      nlayer_ = layers_par.size();
+    } else {
+      throw InvalidInputError(
+          "Field (Layers) not defined for Machine (FFNN) in initfile");
+    }
+
+    for (int i = 0; i < nlayer_; ++i) {
+      layers_[i]->from_json(layers_par[i]);
     }
   }
 
@@ -246,7 +256,14 @@ class FFNN : public AbstractMachine<T> {
       return 0.0;
     }
   }
-  void to_json(json &j) const override { (void)j; }
+
+  void to_json(json &j) const override {
+    j["Machine"]["Name"] = "FFNN";
+    j["Machine"]["Layers"] = {};
+    for (int i = 0; i < nlayer_; ++i) {
+      layers_[i]->to_json(j);
+    }
+  }
 };
 
 }  // namespace netket

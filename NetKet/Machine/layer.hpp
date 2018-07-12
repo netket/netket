@@ -17,7 +17,6 @@
 #include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
 #include "sum_output.hpp"
-#include "symm_layer.hpp"
 
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
@@ -45,12 +44,6 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Identity") {
         m_ = Ptype(new FullyConnected<Identity, T>(pars));
       }
-    } else if (pars["Name"] == "Symmetric") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new Symmetric<Lncosh, T>(graph, pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new Symmetric<Identity, T>(graph, pars));
-      }
     } else if (pars["Name"] == "Convolutional") {
       if (pars["Activation"] == "Lncosh") {
         m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
@@ -62,13 +55,6 @@ class Layer : public AbstractLayer<T> {
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }
-    // else if (pars["Name"] == "Convolutional2") {
-    //   if (pars["Activation"] == "Lncosh") {
-    //     m_ = Ptype(new Convolutional2<Lncosh, T>(graph, pars));
-    //   } else if (pars["Activation"] == "Identity") {
-    //     m_ = Ptype(new Convolutional2<Identity, T>(graph, pars));
-    //   }
-    // }
   }
 
   void CheckInput(const json &pars) {
@@ -133,6 +119,10 @@ class Layer : public AbstractLayer<T> {
   }
 
   const VectorType &BackpropData() const override { return m_->BackpropData(); }
+
+  void to_json(json &j) const override { m_->to_json(j); }
+
+  void from_json(const json &j) override { m_->from_json(j); }
 };  // namespace netket
 }  // namespace netket
 #endif
