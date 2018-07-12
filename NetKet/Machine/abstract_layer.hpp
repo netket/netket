@@ -83,6 +83,10 @@ class AbstractLayer {
   */
   virtual const VectorType &BackpropData() const = 0;
 
+  virtual void to_json(json &j) const = 0;
+
+  virtual void from_json(const json &j) = 0;
+
   /**
   destructor
   */

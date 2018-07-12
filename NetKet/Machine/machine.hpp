@@ -75,8 +75,6 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "URbm") {
-      m_ = Ptype(new URbm<T>(hilbert, pars));
     }
   }
 

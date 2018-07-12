@@ -402,6 +402,33 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   const VectorType &BackpropData() const override { return din_; }
+
+  void to_json(json &pars) const override {
+    json layerpar;
+    layerpar["Name"] = "Convolutional";
+    layerpar["UseBias"] = usebias_;
+    layerpar["Inputs"] = in_size_;
+    layerpar["Outputs"] = out_size_;
+    layerpar["InputChannels"] = in_channels_;
+    layerpar["OutputChannels"] = out_channels_;
+    layerpar["Bias"] = bias_;
+    layerpar["Kernels"] = kernels_;
+
+    pars["Machine"]["Layers"].push_back(layerpar);
+  }
+
+  void from_json(const json &pars) override {
+    if (FieldExists(pars, "Kernels")) {
+      kernels_ = pars["Kernels"];
+    } else {
+      kernels_.setZero();
+    }
+    if (FieldExists(pars, "Bias")) {
+      bias_ = pars["Bias"];
+    } else {
+      bias_.setZero();
+    }
+  }
 };
 }  // namespace netket
 

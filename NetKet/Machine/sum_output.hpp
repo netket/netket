@@ -107,6 +107,17 @@ class SumOutput : public AbstractLayer<T> {
                 int /*start_idx*/) override {}
 
   const VectorType &BackpropData() const override { return din_; }
+
+  void to_json(json &pars) const override {
+    json layerpar;
+    layerpar["Name"] = "Sum";
+    layerpar["Inputs"] = in_size_;
+    layerpar["Outputs"] = out_size_;
+
+    pars["Machine"]["Layers"].push_back(layerpar);
+  }
+
+  void from_json(const json & /*j*/) override {}
 };
 }  // namespace netket
 

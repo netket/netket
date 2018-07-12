@@ -64,13 +64,38 @@ class FullyConnected : public AbstractLayer<T> {
     Init();
   }
 
-  explicit FullyConnected(const json &pars) : activation_() {
+  explicit FullyConnected(const json &pars) : activation_() { Init(pars); }
+
+  void Init(const json &pars) {
     in_size_ = FieldVal(pars, "Inputs");
     out_size_ = FieldVal(pars, "Outputs");
 
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
-    Init();
+    scalar_bytesize_ = sizeof(std::complex<double>);
+
+    weight_.resize(in_size_, out_size_);
+    bias_.resize(out_size_);
+    din_.resize(in_size_);
+
+    npar_ = in_size_ * out_size_;
+
+    z_.resize(out_size_);
+    a_.resize(out_size_);
+
+    if (usebias_) {
+      npar_ += out_size_;
+    } else {
+      bias_.setZero();
+    }
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    if (mynode_ == 0) {
+      std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
+                << std::endl;
+      std::cout << "# # UseBias = " << usebias_ << std::endl;
+    }
   }
 
   void Init() {
@@ -97,6 +122,31 @@ class FullyConnected : public AbstractLayer<T> {
       std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
                 << std::endl;
       std::cout << "# # UseBias = " << usebias_ << std::endl;
+    }
+  }
+
+  void to_json(json &pars) const override {
+    json layerpar;
+    layerpar["Name"] = "FullyConnected";
+    layerpar["UseBias"] = usebias_;
+    layerpar["Inputs"] = in_size_;
+    layerpar["Outputs"] = out_size_;
+    layerpar["Bias"] = bias_;
+    layerpar["Weight"] = weight_;
+
+    pars["Machine"]["Layers"].push_back(layerpar);
+  }
+
+  void from_json(const json &pars) override {
+    if (FieldExists(pars, "Weight")) {
+      weight_ = pars["Weight"];
+    } else {
+      weight_.setZero();
+    }
+    if (FieldExists(pars, "Bias")) {
+      bias_ = pars["Bias"];
+    } else {
+      bias_.setZero();
     }
   }
 
