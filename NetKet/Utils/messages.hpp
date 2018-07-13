@@ -50,6 +50,7 @@ std::ostream& InfoMessage(const std::string& comment = "# ") {
   }
 }
 
+
 std::ostream& WarningMessage(const std::string& comment = "# WARNING: ") {
   // null stream
   static NullStream nullstream;

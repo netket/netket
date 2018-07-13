@@ -12,48 +12,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_STEPPER_HPP
-#define NETKET_STEPPER_HPP
+#ifndef NETKET_OPTIMIZER_HPP
+#define NETKET_OPTIMIZER_HPP
 
-#include "abstract_stepper.hpp"
+#include "Utils/all_utils.hpp"
+#include "abstract_optimizer.hpp"
 #include "ada_delta.hpp"
-#include "ada_max.hpp"
-#include "momentum.hpp"
-#include "ams_grad.hpp"
 #include "ada_grad.hpp"
+#include "ada_max.hpp"
+#include "ams_grad.hpp"
+#include "momentum.hpp"
 #include "rms_prop.hpp"
-#include "rprop.hpp"
 #include "sgd.hpp"
 
 namespace netket {
 
-class Stepper : public AbstractStepper {
-  using Ptype = std::unique_ptr<AbstractStepper>;
+class Optimizer : public AbstractOptimizer {
+  using Ptype = std::unique_ptr<AbstractOptimizer>;
 
   Ptype s_;
 
- public:
-  explicit Stepper(const json &pars) {
-    CheckFieldExists(pars, "Learning");
-    const std::string stepper_name = FieldVal(pars["Learning"], "StepperType", "Learning");
+public:
+  explicit Optimizer(const json &pars) {
+    std::string optimizer_name = "none specified";
 
-    if (stepper_name == "Sgd") {
+    if (FieldExists(pars, "Optimizer")) {
+      optimizer_name = FieldVal(pars["Optimizer"], "Name", "Optimizer");
+    } else if (FieldExists(pars, "Learning")) {
+      // DEPRECATED (to remove for v2.0.0)
+      optimizer_name =
+          FieldVal(pars["Learning"], "StepperType", "Learning/Optimizer");
+      WarningMessage()
+          << "Declaring Optimizers within the Learning section is "
+             "deprecated.\n Please use the dedicated Optimizer section.\n";
+    }
+
+    if (optimizer_name == "Sgd") {
       s_ = Ptype(new Sgd(pars));
-    } else if (stepper_name == "AdaMax") {
+    } else if (optimizer_name == "AdaMax") {
       s_ = Ptype(new AdaMax(pars));
-    } else if (stepper_name == "AdaDelta") {
+    } else if (optimizer_name == "AdaDelta") {
       s_ = Ptype(new AdaDelta(pars));
-    } else if (stepper_name == "Momentum") {
+    } else if (optimizer_name == "Momentum") {
       s_ = Ptype(new Momentum(pars));
-    } else if (stepper_name == "AMSGrad") {
+    } else if (optimizer_name == "AMSGrad") {
       s_ = Ptype(new AMSGrad(pars));
-    } else if (stepper_name == "AdaGrad") {
+    } else if (optimizer_name == "AdaGrad") {
       s_ = Ptype(new AdaGrad(pars));
-    } else if (stepper_name == "RMSProp") {
+    } else if (optimizer_name == "RMSProp") {
       s_ = Ptype(new RMSProp(pars));
     } else {
       std::stringstream s;
-      s << "Unknown StepperType: " << stepper_name;
+      s << "Unknown Optimizer Name: " << optimizer_name;
       throw InvalidInputError(s.str());
     }
   }
@@ -76,5 +86,5 @@ class Stepper : public AbstractStepper {
 
   void Reset() override { return s_->Reset(); }
 };
-}  // namespace netket
+} // namespace netket
 #endif

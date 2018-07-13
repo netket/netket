@@ -17,7 +17,13 @@ from __future__ import print_function
 import json
 
 pars = {}
-L = 20
+
+# Tutorial for defining a custom sampler
+# taking L=20 Heisenberg spin chain as example
+# (adapted from Heisenberg1d tutorial)
+# (you can use plot_heis.py from Heisenberg1d folder identically here to plot results)
+
+L=20
 
 # defining the lattice
 pars['Graph'] = {
@@ -29,40 +35,50 @@ pars['Graph'] = {
 
 # defining the hamiltonian
 pars['Hamiltonian'] = {
-    'Name': 'Ising',
-    'h': 1.0,
+    'Name': 'Heisenberg',
+    'TotalSz': 0,
 }
 
 # defining the wave function
 pars['Machine'] = {
-    'Name': 'RbmSpin',
+    'Name': 'RbmSpinSymm',
     'Alpha': 1.0,
 }
 
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
-}
+# defining the custom sampler
+# here we use two types of moves : local spin flip, and exchange flip between two sites
+# note that each line and column have to add up to 1.0 (stochastic matrices)
+# we also choose a relative frequency of 2 for local-spin flips with respect to exchange flips
+spin_flip = [[0, 1], [1, 0]]
+exchange_flip = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
+weight_spin_flip = 2.0
+weight_exchange_flip = 1.0
 
-sigmaxop = []
+# adding both types of flip for all sites in the chain
+operators = []
 sites = []
+weights = []
 for i in range(L):
-    # \sum_i sigma^x(i)
-    sigmaxop.append([[0, 1], [1, 0]])
-    sites.append([i])
+     operators.append(exchange_flip)
+     sites.append([i, (i + 1) % L])
+     weights.append(weight_exchange_flip)
+     operators.append(spin_flip)
+     sites.append([i])
+     weights.append(weight_spin_flip)
 
-pars['Observables'] = {
-    'Operators': sigmaxop,
-    'ActingOn': sites,
-    'Name': 'SigmaX',
+# now we define the custom sampler accordingly
+pars['Sampler'] = {
+    'MoveOperators' : operators,
+    'ActingOn' : sites,
+    'MoveWeights' : weights,
+    # parallel tempering is also possible with custom sampler (uncomment the following line)
+    #'Nreplicas' : 12,
 }
 
 # defining the Optimizer
-# here we use the Stochastic Gradient Descent
+# here we use AdaMax
 pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.1,
+    'Name': 'AdaMax',
 }
 
 # defining the learning method
@@ -70,13 +86,13 @@ pars['Optimizer'] = {
 pars['Learning'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
-    'NiterOpt': 500,
+    'NiterOpt': 4000,
     'Diagshift': 0.1,
     'UseIterative': False,
-    'OutputFile': "test",
+    'OutputFile': 'test',
 }
 
-json_file = "sigmax.json"
+json_file = "customsampler_heisenberg1d.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 

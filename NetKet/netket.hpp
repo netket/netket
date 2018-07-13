@@ -23,6 +23,7 @@
 #include "Lookup/lookup.hpp"
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/all_utils.hpp"

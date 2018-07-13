@@ -62,6 +62,12 @@ pars['Sampler'] = {
     'Name': 'MetropolisLocal',
 }
 
+# defining the Optimizer
+# here we use AdaMax
+pars['Optimizer'] = {
+    'Name': 'AdaMax',
+}
+
 # defining the learning method
 # here we use a Gradient Descent with AdaMax
 pars['Learning'] = {
@@ -69,7 +75,6 @@ pars['Learning'] = {
     'Nsamples': 1.0e3,
     'NiterOpt': 40000,
     'OutputFile': "test",
-    'StepperType': 'AdaMax',
 }
 
 json_file = "custom_hamiltonian.json"

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ABSTRACTSTEPPER_HPP
-#define NETKET_ABSTRACTSTEPPER_HPP
+#ifndef NETKET_ABSTRACT_OPTIMIZER_HPP
+#define NETKET_ABSTRACT_OPTIMIZER_HPP
 
 #include <Eigen/Dense>
 #include <complex>
@@ -21,16 +21,16 @@
 
 namespace netket {
 
-class AbstractStepper {
- public:
+class AbstractOptimizer {
+public:
   virtual void Init(const Eigen::VectorXd &pars) = 0;
   virtual void Init(const Eigen::VectorXcd &pars) = 0;
   virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
   virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
   virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
   virtual void Reset() = 0;
-  virtual ~AbstractStepper() {}
+  virtual ~AbstractOptimizer() {}
 };
-}  // namespace netket
+} // namespace netket
 
 #endif
