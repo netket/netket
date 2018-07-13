@@ -35,7 +35,7 @@ class NullStream : public std::ostream {
   NullBuffer m_sb;
 };
 
-std::ostream& InfoMessage() {
+std::ostream& InfoMessage(std::string comment = "# ") {
   // null stream
   static NullStream nullstream;
 
@@ -44,13 +44,13 @@ std::ostream& InfoMessage() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (rank == 0) {
-    return std::cout << "# ";
+    return std::cout << comment;
   } else {
     return nullstream;
   }
 }
 
-std::ostream& WarningMessage() {
+std::ostream& WarningMessage(std::string comment = "# WARNING: ") {
   // null stream
   static NullStream nullstream;
 
@@ -59,13 +59,13 @@ std::ostream& WarningMessage() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (rank == 0) {
-    return std::cerr << "# WARNING: ";
+    return std::cerr << comment;
   } else {
     return nullstream;
   }
 }
 
-std::ostream& ErrorMessage() {
+std::ostream& ErrorMessage(std::string comment = "# ERROR: ") {
   // null stream
   static NullStream nullstream;
 
@@ -74,24 +74,25 @@ std::ostream& ErrorMessage() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (rank == 0) {
-    return std::cerr << "# ERROR: ";
+    return std::cerr << comment;
   } else {
     return nullstream;
   }
 }
 
-std::ostream& DebugMessage() {
+std::ostream& DebugMessage(std::string comment = "# DEBUG: ") {
   // null stream
   static NullStream nullstream;
 
 #ifdef NDEBUG
+  (void)comment;
   return nullstream;
 #else
   // get MPI rank
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
-    return std::cout << "# DEBUG: ";
+    return std::cout << comment;
   } else {
     return nullstream;
   }

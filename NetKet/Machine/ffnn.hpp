@@ -14,6 +14,7 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
@@ -38,8 +39,6 @@ class FFNN : public AbstractMachine<T> {
   int npar_;
   int nv_;
 
-  int mynode_;
-
   const Hilbert &hilbert_;
 
   const Graph &graph_;
@@ -63,14 +62,10 @@ class FFNN : public AbstractMachine<T> {
       throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
     // Initialise Layers
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-      if (mynode_ == 0) {
-        std::cout << "# Layer " << i + 1 << " : ";
-      }
+      InfoMessage("") << "# Layer " << i + 1 << " : ";
 
       layers_.push_back(Ptype(new Layer<T>(graph_, layers_par[i])));
 
@@ -84,9 +79,9 @@ class FFNN : public AbstractMachine<T> {
     // Check that final layer has only 1 unit otherwise add unit identity layer
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
-      if (mynode_ == 0) {
-        std::cout << "# Layer " << nlayer_ << " : ";
-      }
+
+      InfoMessage("") << "# Layer " << nlayer_ << " : ";
+
       layers_.push_back(
           Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
 
@@ -99,15 +94,13 @@ class FFNN : public AbstractMachine<T> {
       npar_ += layers_[i]->Npar();
     }
 
-    if (mynode_ == 0) {
-      std::cout << "# FFNN Initizialized with " << nlayer_ << " Layers: ";
-      for (int i = 0; i < depth_ - 1; ++i) {
-        std::cout << layersizes_[i] << " -> ";
-      }
-      std::cout << layersizes_[depth_ - 1];
-      std::cout << std::endl;
-      std::cout << "# Total Number of Parameters = " << npar_ << std::endl;
+    InfoMessage("") << "# FFNN Initizialized with " << nlayer_ << " Layers: ";
+    for (int i = 0; i < depth_ - 1; ++i) {
+      InfoMessage("") << layersizes_[i] << " -> ";
     }
+    InfoMessage("") << layersizes_[depth_ - 1];
+    InfoMessage("") << std::endl;
+    InfoMessage("") << "# Total Number of Parameters = " << npar_ << std::endl;
   }
 
   void from_json(const json &pars) override {

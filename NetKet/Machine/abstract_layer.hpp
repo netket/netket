@@ -19,7 +19,6 @@
 #include <Lookup/lookup.hpp>
 #include <complex>
 #include <fstream>
-#include <netket.hpp>
 #include <random>
 #include <vector>
 

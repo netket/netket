@@ -75,8 +75,6 @@ class Convolutional : public AbstractLayer<T> {
 
   std::size_t scalar_bytesize_;
 
-  int mynode_;
-
  public:
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
@@ -202,17 +200,13 @@ class Convolutional : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "Convolutional Layer: " << in_size_ << " --> " << out_size_
-                << std::endl;
-      std::cout << "# # InputChannels = " << in_channels_ << std::endl;
-      std::cout << "# # OutputChannels = " << out_channels_ << std::endl;
-      std::cout << "# # Filter Distance = " << dist_ << std::endl;
-      std::cout << "# # Filter Size = " << kernel_size_ << std::endl;
-      std::cout << "# # UseBias = " << usebias_ << std::endl;
-    }
+    InfoMessage("") << "Convolutional Layer: " << in_size_ << " --> "
+                    << out_size_ << std::endl;
+    InfoMessage("") << "# # InputChannels = " << in_channels_ << std::endl;
+    InfoMessage("") << "# # OutputChannels = " << out_channels_ << std::endl;
+    InfoMessage("") << "# # Filter Distance = " << dist_ << std::endl;
+    InfoMessage("") << "# # Filter Size = " << kernel_size_ << std::endl;
+    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void InitRandomPars(int seed, double sigma) override {
