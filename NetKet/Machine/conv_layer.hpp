@@ -200,13 +200,16 @@ class Convolutional : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    InfoMessage("") << "Convolutional Layer: " << in_size_ << " --> "
-                    << out_size_ << std::endl;
-    InfoMessage("") << "# # InputChannels = " << in_channels_ << std::endl;
-    InfoMessage("") << "# # OutputChannels = " << out_channels_ << std::endl;
-    InfoMessage("") << "# # Filter Distance = " << dist_ << std::endl;
-    InfoMessage("") << "# # Filter Size = " << kernel_size_ << std::endl;
-    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
+    std::string buffer = "";
+
+    InfoMessage(buffer) << "Convolutional Layer: " << in_size_ << " --> "
+                        << out_size_ << std::endl;
+    InfoMessage(buffer) << "# # InputChannels = " << in_channels_ << std::endl;
+    InfoMessage(buffer) << "# # OutputChannels = " << out_channels_
+                        << std::endl;
+    InfoMessage(buffer) << "# # Filter Distance = " << dist_ << std::endl;
+    InfoMessage(buffer) << "# # Filter Size = " << kernel_size_ << std::endl;
+    InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void InitRandomPars(int seed, double sigma) override {

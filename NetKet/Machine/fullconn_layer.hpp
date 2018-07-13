@@ -86,10 +86,11 @@ class FullyConnected : public AbstractLayer<T> {
     } else {
       bias_.setZero();
     }
+    std::string buffer = "";
 
-    InfoMessage("") << "Fully Connected Layer " << in_size_ << " --> "
-                    << out_size_ << std::endl;
-    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
+    InfoMessage(buffer) << "Fully Connected Layer " << in_size_ << " --> "
+                        << out_size_ << std::endl;
+    InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void Init() {
@@ -110,9 +111,11 @@ class FullyConnected : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    InfoMessage("") << "Fully Connected Layer " << in_size_ << " --> "
-                    << out_size_ << std::endl;
-    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
+    std::string buffer = "";
+
+    InfoMessage(buffer) << "Fully Connected Layer " << in_size_ << " --> "
+                        << out_size_ << std::endl;
+    InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void to_json(json &pars) const override {

@@ -60,8 +60,9 @@ class SumOutput : public AbstractLayer<T> {
     din_.setConstant(1);
     z_.resize(out_size_);
 
-    InfoMessage("") << "Sum Output Layer: " << in_size_ << " --> " << out_size_
-                    << std::endl;
+    std::string buffer = "";
+    InfoMessage(buffer) << "Sum Output Layer: " << in_size_ << " --> "
+                        << out_size_ << std::endl;
   }
 
   void InitRandomPars(int /*seed*/, double /*sigma*/) override {}
