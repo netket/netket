@@ -41,6 +41,30 @@ class AbstractActivation {
   virtual ~AbstractActivation() {}
 };
 
+inline double lncosh(double x) {
+  const double xp = std::abs(x);
+  if (xp <= 12.) {
+    return std::log(std::cosh(xp));
+  } else {
+    const static double log2v = std::log(2.);
+    return xp - log2v;
+  }
+}
+
+// ln(cos(x)) for std::complex argument
+// the modulus is computed by means of the previously defined function
+// for real argument
+inline std::complex<double> lncosh(std::complex<double> x) {
+  const double xr = x.real();
+  const double xi = x.imag();
+
+  std::complex<double> res = lncosh(xr);
+  res += std::log(
+      std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
+
+  return res;
+}
+
 class Identity : public AbstractActivation {
  private:
   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
@@ -69,7 +93,7 @@ class Lncosh : public AbstractActivation {
   // A = Lncosh(Z)
   inline void operator()(const VectorType &Z, VectorType &A) {
     for (int i = 0; i < A.size(); ++i) {
-      A(i) = std::log(std::cosh(Z(i)));
+      A(i) = lncosh(Z(i));
     }
   }
 
