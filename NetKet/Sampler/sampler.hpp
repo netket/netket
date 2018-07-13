@@ -63,11 +63,13 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   void Init(WfType &psi, const json &pars) {
-    if (pars["Sampler"]["Name"] == "MetropolisLocal") {
-      s_ = Ptype(new MetropolisLocal<WfType>(psi));
-    } else if (pars["Sampler"]["Name"] == "MetropolisLocalPt") {
-      s_ = Ptype(new MetropolisLocalPt<WfType>(psi, pars));
-    } else if (!FieldExists(pars["Sampler"], "Name")) {
+    if (FieldExists(pars["Sampler"], "Name")) {
+      if (pars["Sampler"]["Name"] == "MetropolisLocal") {
+        s_ = Ptype(new MetropolisLocal<WfType>(psi));
+      } else if (pars["Sampler"]["Name"] == "MetropolisLocalPt") {
+        s_ = Ptype(new MetropolisLocalPt<WfType>(psi, pars));
+      }
+    } else {
       if (FieldExists(pars["Sampler"], "Nreplicas")) {
         s_ = Ptype(new CustomSamplerPt<WfType>(psi, pars));
       } else {
@@ -77,22 +79,26 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   void Init(Graph &graph, WfType &psi, const json &pars) {
-    if (pars["Sampler"]["Name"] == "MetropolisExchange") {
-      s_ = Ptype(new MetropolisExchange<WfType>(graph, psi, pars));
-    } else if (pars["Sampler"]["Name"] == "MetropolisExchangePt") {
-      s_ = Ptype(new MetropolisExchangePt<WfType>(graph, psi, pars));
-    } else if (pars["Sampler"]["Name"] == "MetropolisHop") {
-      s_ = Ptype(new MetropolisHop<WfType>(graph, psi, pars));
+    if (FieldExists(pars["Sampler"], "Name")) {
+      if (pars["Sampler"]["Name"] == "MetropolisExchange") {
+        s_ = Ptype(new MetropolisExchange<WfType>(graph, psi, pars));
+      } else if (pars["Sampler"]["Name"] == "MetropolisExchangePt") {
+        s_ = Ptype(new MetropolisExchangePt<WfType>(graph, psi, pars));
+      } else if (pars["Sampler"]["Name"] == "MetropolisHop") {
+        s_ = Ptype(new MetropolisHop<WfType>(graph, psi, pars));
+      }
     }
   }
 
   void Init(Hamiltonian &hamiltonian, WfType &psi, const json &pars) {
-    if (pars["Sampler"]["Name"] == "MetropolisHamiltonian") {
-      s_ = Ptype(
-          new MetropolisHamiltonian<WfType, Hamiltonian>(psi, hamiltonian));
-    } else if (pars["Sampler"]["Name"] == "MetropolisHamiltonianPt") {
-      s_ = Ptype(new MetropolisHamiltonianPt<WfType, Hamiltonian>(
-          psi, hamiltonian, pars));
+    if (FieldExists(pars["Sampler"], "Name")) {
+      if (pars["Sampler"]["Name"] == "MetropolisHamiltonian") {
+        s_ = Ptype(
+            new MetropolisHamiltonian<WfType, Hamiltonian>(psi, hamiltonian));
+      } else if (pars["Sampler"]["Name"] == "MetropolisHamiltonianPt") {
+        s_ = Ptype(new MetropolisHamiltonianPt<WfType, Hamiltonian>(
+            psi, hamiltonian, pars));
+      }
     }
   }
 
