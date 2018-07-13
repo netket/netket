@@ -59,20 +59,20 @@ operators = []
 sites = []
 weights = []
 for i in range(L):
-        operators.append(exchange_flip)
-        sites.append([i, (i + 1) % L])
-        weights.append(weight_exchange_flip)
-        operators.append(spin_flip)
-        sites.append([i])
-        weights.append(weight_spin_flip)
+     operators.append(exchange_flip)
+     sites.append([i, (i + 1) % L])
+     weights.append(weight_exchange_flip)
+     operators.append(spin_flip)
+     sites.append([i])
+     weights.append(weight_spin_flip)
 
 # now we define the custom sampler accordingly
 pars['Sampler'] = {
-'MoveOperators' : operators,
-'ActingOn' : sites,
-'MoveWeights' : weights,
-# parallel tempering is also possible with custom sampler (uncomment the following line)
-#'Nreplicas' : 12,
+    'MoveOperators' : operators,
+    'ActingOn' : sites,
+    'MoveWeights' : weights,
+    # parallel tempering is also possible with custom sampler (uncomment the following line)
+    #'Nreplicas' : 12,
 }
 
 # defining the Optimizer
