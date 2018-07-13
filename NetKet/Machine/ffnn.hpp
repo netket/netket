@@ -62,10 +62,11 @@ class FFNN : public AbstractMachine<T> {
       throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
     }
 
+    std::string buffer = "";
     // Initialise Layers
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-      InfoMessage("") << "# Layer " << i + 1 << " : ";
+      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
 
       layers_.push_back(Ptype(new Layer<T>(graph_, layers_par[i])));
 
@@ -80,7 +81,7 @@ class FFNN : public AbstractMachine<T> {
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
-      InfoMessage("") << "# Layer " << nlayer_ << " : ";
+      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
 
       layers_.push_back(
           Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
@@ -94,13 +95,15 @@ class FFNN : public AbstractMachine<T> {
       npar_ += layers_[i]->Npar();
     }
 
-    InfoMessage("") << "# FFNN Initizialized with " << nlayer_ << " Layers: ";
+    InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
+                        << " Layers: ";
     for (int i = 0; i < depth_ - 1; ++i) {
-      InfoMessage("") << layersizes_[i] << " -> ";
+      InfoMessage(buffer) << layersizes_[i] << " -> ";
     }
-    InfoMessage("") << layersizes_[depth_ - 1];
-    InfoMessage("") << std::endl;
-    InfoMessage("") << "# Total Number of Parameters = " << npar_ << std::endl;
+    InfoMessage(buffer) << layersizes_[depth_ - 1];
+    InfoMessage(buffer) << std::endl;
+    InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
+                        << std::endl;
   }
 
   void from_json(const json &pars) override {
