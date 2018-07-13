@@ -46,8 +46,6 @@ class FullyConnected : public AbstractLayer<T> {
                        // Note that input of this layer is also the output of
                        // previous layer
 
-  int mynode_;
-
   std::size_t scalar_bytesize_;
 
  public:
@@ -89,13 +87,9 @@ class FullyConnected : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
-                << std::endl;
-      std::cout << "# # UseBias = " << usebias_ << std::endl;
-    }
+    InfoMessage("") << "Fully Connected Layer " << in_size_ << " --> "
+                    << out_size_ << std::endl;
+    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void Init() {
@@ -116,13 +110,9 @@ class FullyConnected : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "Fully Connected Layer " << in_size_ << " --> " << out_size_
-                << std::endl;
-      std::cout << "# # UseBias = " << usebias_ << std::endl;
-    }
+    InfoMessage("") << "Fully Connected Layer " << in_size_ << " --> "
+                    << out_size_ << std::endl;
+    InfoMessage("") << "# # UseBias = " << usebias_ << std::endl;
   }
 
   void to_json(json &pars) const override {

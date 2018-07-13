@@ -39,10 +39,8 @@ class SumOutput : public AbstractLayer<T> {
   VectorType z_;  // Linear term, z = W' * in + b
 
   VectorType din_;  // Derivative of the input of this layer.
-  // Note that input of this layer is also the output of
-  // previous layer
-
-  int mynode_;
+                    // Note that input of this layer is also the output of
+                    // previous layer
 
  public:
   using StateType = typename AbstractLayer<T>::StateType;
@@ -62,12 +60,8 @@ class SumOutput : public AbstractLayer<T> {
     din_.setConstant(1);
     z_.resize(out_size_);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "Sum Output Layer: " << in_size_ << " --> " << out_size_
-                << std::endl;
-    }
+    InfoMessage("") << "Sum Output Layer: " << in_size_ << " --> " << out_size_
+                    << std::endl;
   }
 
   void InitRandomPars(int /*seed*/, double /*sigma*/) override {}
