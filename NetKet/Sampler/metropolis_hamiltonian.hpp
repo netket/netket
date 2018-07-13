@@ -76,8 +76,9 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (!hilbert_.IsDiscrete()) {
-        throw InvalidInputError("Hamiltonian Metropolis sampler works only for discrete "
-                                "Hilbert spaces");
+      throw InvalidInputError(
+          "Hamiltonian Metropolis sampler works only for discrete "
+          "Hilbert spaces");
     }
 
     accept_.resize(1);
@@ -87,9 +88,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
     Reset(true);
 
-    if (mynode_ == 0) {
-      std::cout << "# Hamiltonian Metropolis sampler is ready " << std::endl;
-    }
+    InfoMessage() << "Hamiltonian Metropolis sampler is ready " << std::endl;
   }
 
   void Seed(int baseseed = 0) {

@@ -41,8 +41,6 @@ class Ising : public AbstractHamiltonian {
   */
   std::vector<std::vector<int>> bonds_;
 
-  int mynode_;
-
   /**
     Hilbert space descriptor for this hamiltonian.
   */
@@ -66,8 +64,6 @@ class Ising : public AbstractHamiltonian {
   void Init() {
     GenerateBonds();
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
     // Specifying the hilbert space
     json hil;
     hil["Hilbert"]["Name"] = "Spin";
@@ -76,11 +72,9 @@ class Ising : public AbstractHamiltonian {
 
     hilbert_.Init(hil);
 
-    if (mynode_ == 0) {
-      std::cout << "# Transverse-Field Ising model created " << std::endl;
-      std::cout << "# h = " << h_ << std::endl;
-      std::cout << "# J = " << J_ << std::endl;
-    }
+    InfoMessage() << "Transverse-Field Ising model created " << std::endl;
+    InfoMessage() << "h = " << h_ << std::endl;
+    InfoMessage() << "J = " << J_ << std::endl;
   }
 
   /**

@@ -46,8 +46,6 @@ class Hypercube : public AbstractGraph {
 
   int nsites_;
 
-  int mynode_;
-
  public:
   // Json constructor
   explicit Hypercube(const json &pars)
@@ -67,14 +65,10 @@ class Hypercube : public AbstractGraph {
     GenerateLatticePoints();
     GenerateAdjacencyList();
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# Hypercube created " << std::endl;
-      std::cout << "# Dimension = " << ndim_ << std::endl;
-      std::cout << "# L = " << L_ << std::endl;
-      std::cout << "# Pbc = " << pbc_ << std::endl;
-    }
+    InfoMessage() << "Hypercube created " << std::endl;
+    InfoMessage() << "Dimension = " << ndim_ << std::endl;
+    InfoMessage() << "L = " << L_ << std::endl;
+    InfoMessage() << "Pbc = " << pbc_ << std::endl;
   }
 
   void GenerateLatticePoints() {

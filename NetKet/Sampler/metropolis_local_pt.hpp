@@ -18,8 +18,8 @@
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {
@@ -85,11 +85,9 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
     SetNreplicas(nrep_);
 
-    if (mynode_ == 0) {
-      std::cout << "# Metropolis sampler with parallel tempering is ready "
-                << std::endl;
-      std::cout << "# Nreplicas is equal to " << nrep_ << std::endl;
-    }
+    InfoMessage() << "Metropolis sampler with parallel tempering is ready "
+                  << std::endl;
+    InfoMessage() << "Nreplicas is equal to " << nrep_ << std::endl;
   }
 
   void SetNreplicas(int nrep) {
