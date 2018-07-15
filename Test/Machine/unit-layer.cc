@@ -47,6 +47,44 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
   }
 }
 
+TEST_CASE("machines write/read to/from json correctly", "[layers]") {
+  auto input_tests = GetMachineInputs();
+  std::size_t ntests = input_tests.size();
+
+  for (std::size_t it = 0; it < ntests; it++) {
+    SECTION("Layer test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
+      auto pars = input_tests[it];
+
+      netket::Graph graph(pars);
+
+      netket::Hamiltonian hamiltonian(graph, pars);
+
+      using MType = std::complex<double>;
+
+      netket::Machine<MType> machine(graph, hamiltonian, pars);
+
+      int seed = 12342;
+      double sigma = 1;
+      netket::Machine<MType>::VectorType params(machine.Npar());
+      netket::RandomGaussian(params, seed, sigma);
+
+      machine.SetParameters(params);
+
+      netket::json pars_out;
+      machine.to_json(pars_out);
+
+      machine.from_json(pars_out);
+
+      netket::Machine<MType>::VectorType params_out(machine.Npar());
+
+      params_out = machine.GetParameters();
+
+      REQUIRE(Approx((params_out - params).norm()) == 0);
+    }
+  }
+}
+
 TEST_CASE("layers compute log derivatives correctly", "[layer]") {
   auto input_tests = GetLayerInputs();
   std::size_t ntests = input_tests.size();
