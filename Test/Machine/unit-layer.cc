@@ -48,7 +48,7 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
 }
 
 TEST_CASE("machines write/read to/from json correctly", "[layers]") {
-  auto input_tests = GetMachineInputs();
+  auto input_tests = GetLayerInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
