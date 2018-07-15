@@ -46,6 +46,12 @@ pars['Sampler']={
     'Name'           : 'MetropolisHamiltonian',
 }
 
+# defining the Optimizer
+pars['Optimizer'] = {
+    'Name': 'Sgd',
+    'LearningRate'   : 0.01,
+}
+
 #defining the learning method
 #here we use the Stochastic Reconfiguration Method
 pars['Learning']={
@@ -55,8 +61,6 @@ pars['Learning']={
     'Diagshift'      : 0.01,
     'UseIterative'   : False,
     'OutputFile'     : 'test',
-    'StepperType'    : 'Sgd',
-    'LearningRate'   : 0.01,
 }
 
 json_file="heisenberg1d.json"
