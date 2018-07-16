@@ -98,8 +98,10 @@ class SumOutput : public AbstractLayer<T> {
   VectorType Output() const override { return z_; }
 
   void Backprop(const VectorType & /*prev_layer_data*/,
-                const VectorType & /*next_layer_data*/, VectorType & /*der*/,
-                int /*start_idx*/) override {}
+                const VectorType &next_layer_data, VectorType & /*der*/,
+                int /*start_idx*/) override {
+    din_.setConstant(next_layer_data(0));
+  }
 
   const VectorType &BackpropData() const override { return din_; }
 
