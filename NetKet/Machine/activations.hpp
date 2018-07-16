@@ -71,7 +71,7 @@ class Identity : public AbstractActivation {
 
  public:
   // A = Z
-  inline void operator()(const VectorType &Z, VectorType &A) {
+  inline void operator()(const VectorType &Z, VectorType &A) override {
     A.noalias() = Z;
   }
 
@@ -80,7 +80,7 @@ class Identity : public AbstractActivation {
   // J = dA / dZ = I
   // G = J * F = F
   inline void ApplyJacobian(const VectorType & /*Z*/, const VectorType & /*A*/,
-                            const VectorType &F, VectorType &G) {
+                            const VectorType &F, VectorType &G) override {
     G.noalias() = F;
   }
 };
@@ -91,7 +91,7 @@ class Lncosh : public AbstractActivation {
 
  public:
   // A = Lncosh(Z)
-  inline void operator()(const VectorType &Z, VectorType &A) {
+  inline void operator()(const VectorType &Z, VectorType &A) override {
     for (int i = 0; i < A.size(); ++i) {
       A(i) = lncosh(Z(i));
     }
@@ -102,7 +102,7 @@ class Lncosh : public AbstractActivation {
   // J = dA / dZ
   // G = J * F
   inline void ApplyJacobian(const VectorType &Z, const VectorType & /*A*/,
-                            const VectorType &F, VectorType &G) {
+                            const VectorType &F, VectorType &G) override {
     G.array() = F.array() * Z.array().tanh();
   }
 };
@@ -113,7 +113,7 @@ class Tanh : public AbstractActivation {
 
  public:
   // A = Tanh(Z)
-  inline void operator()(const VectorType &Z, VectorType &A) {
+  inline void operator()(const VectorType &Z, VectorType &A) override {
     A.array() = Z.array().tanh();
   }
 
@@ -122,7 +122,7 @@ class Tanh : public AbstractActivation {
   // J = dA / dZ
   // G = J * F
   inline void ApplyJacobian(const VectorType & /*Z*/, const VectorType &A,
-                            const VectorType &F, VectorType &G) {
+                            const VectorType &F, VectorType &G) override {
     G.array() = F.array() * (1 - A.array() * A.array());
   }
 };
