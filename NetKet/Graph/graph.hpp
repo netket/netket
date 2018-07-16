@@ -14,11 +14,9 @@
 
 #ifndef NETKET_GRAPH_HPP
 #define NETKET_GRAPH_HPP
-
-#include <iostream>
-#include <map>
+#include <array>
+#include <unordered_map>
 #include <vector>
-
 #include "Utils/json_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
@@ -31,7 +29,7 @@ class Graph : public AbstractGraph {
   Ptype g_;
 
  public:
-  explicit Graph(const json &pars) {
+  explicit Graph(const json& pars) {
     // Check if a graph is explicitely defined in the input
     if (FieldExists(pars, "Graph")) {
       // Checking if we are using a graph in the hard-coded library
@@ -69,6 +67,8 @@ class Graph : public AbstractGraph {
   std::vector<std::vector<int>> Distances() const override {
     return g_->Distances();
   }
+
+  const ColorMap& EdgeColors() const override { return g_->EdgeColors(); }
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };

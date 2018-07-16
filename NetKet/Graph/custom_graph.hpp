@@ -17,9 +17,9 @@
 
 #include <mpi.h>
 #include <algorithm>
+#include <array>
 #include <cassert>
-#include <iostream>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
 #include "Utils/all_utils.hpp"
@@ -34,6 +34,8 @@ namespace netket {
 class CustomGraph : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
+
+  ColorMap eclist_;
 
   int nsites_;
 
@@ -92,6 +94,18 @@ class CustomGraph : public AbstractGraph {
       if (FieldExists(pars["Graph"], "IsBipartite")) {
         isbipartite_ = pars["Graph"]["IsBipartite"];
       }
+
+      // If edge colors are specificied read them in, otherwise set them all to
+      // 0
+      if (FieldExists(pars["Graph"], "EdgeColors")) {
+        std::vector<std::vector<int>> colorlist =
+            pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+        EdgeColorsFromList(colorlist, eclist_);
+      } else {
+        InfoMessage() << "No colors specified, edge colors set to 0 "
+                      << std::endl;
+        EdgeColorsFromAdj(adjlist_, eclist_);
+      }
     }
 
     CheckGraph();
@@ -149,16 +163,20 @@ class CustomGraph : public AbstractGraph {
 
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
-  std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
+  std::vector<std::vector<int>> SymmetryTable() const override {
+    return automorphisms_;
+  }
 
-  int Nsites() const { return nsites_; }
+  int Nsites() const override { return nsites_; }
 
-  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return adjlist_;
+  }
 
-  bool IsBipartite() const { return isbipartite_; }
+  bool IsBipartite() const override { return isbipartite_; }
 
   // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const {
+  std::vector<std::vector<int>> Distances() const override {
     std::vector<std::vector<int>> distances;
 
     for (int i = 0; i < nsites_; i++) {
@@ -167,6 +185,9 @@ class CustomGraph : public AbstractGraph {
 
     return distances;
   }
+
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return eclist_; }
 };
 
 }  // namespace netket

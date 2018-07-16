@@ -15,9 +15,13 @@
 #ifndef NETKET_ABSTRACTGRAPH_HPP
 #define NETKET_ABSTRACTGRAPH_HPP
 
+#include <array>
+#include <unordered_map>
 #include <vector>
+#include "Utils/array_hasher.hpp"
 
 namespace netket {
+
 /**
     Abstract class for Graphs.
     This class prototypes the methods needed
@@ -48,6 +52,36 @@ class AbstractGraph {
   @return st[i][k] contains the i-th equivalent permutation of the sites.
   */
   virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
+
+  /**
+  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
+  */
+  using Edge = std::array<int, 2>;
+  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
+
+  /**
+  Member function returning edge colors of the graph.
+  @return ec[i][j] is the color of the edge between nodes i and j.
+  */
+  virtual const ColorMap &EdgeColors() const = 0;
+
+  // Edge Colors from users specified map
+  void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
+                          ColorMap &eclist) {
+    for (auto edge : colorlist) {
+      eclist[{{edge[0], edge[1]}}] = edge[2];
+    }
+  }
+
+  // If no Edge Colors are specified, initialize eclist_ with same color (0).
+  void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
+                         ColorMap &eclist) {
+    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
+      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
+        eclist[{{i, adjlist[i][j]}}] = 0;
+      }
+    }
+  }
 
   /**
   Member function returning true if the graph is bipartite.
