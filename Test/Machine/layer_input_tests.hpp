@@ -40,5 +40,24 @@ std::vector<netket::json> GetLayerInputs() {
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
+  // Sum out layer
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine",
+           {{"Name", "FFNN"},
+            {"Layers",
+             {{{"Name", "Convolutional"},
+               {"InputChannels", 1},
+               {"OutputChannels", 2},
+               {"Distance", 2},
+               {"Activation", "Lncosh"}},
+              {{"Name", "Sum"}, {"Inputs", 40}},
+              {{"Name", "FullyConnected"},
+               {"Inputs", 1},
+               {"Outputs", 2},
+               {"Activation", "Lncosh"}}}}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
   return input_tests;
 }
