@@ -15,7 +15,7 @@ sigma = []
 evar = []
 evarsig = []
 
-data = json.load(open('test2.log'))
+data = json.load(open('test.log'))
 for iteration in data["Output"]:
     iters.append(iteration["Iteration"])
     energy.append(iteration["Energy"]["Mean"])
