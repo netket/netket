@@ -120,7 +120,6 @@ class GroundState {
         FieldVal(pars["Learning"], "OutputFile", "Learning");
 
     int freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 50);
-
     SetOutName(file_base, freqbackup);
 
     if (pars["Learning"]["Method"] == "Gd") {
