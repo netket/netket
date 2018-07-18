@@ -67,7 +67,7 @@ inline std::complex<double> lncosh(std::complex<double> x) {
 
 class Identity : public AbstractActivation {
  private:
-  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using VectorType = typename AbstractActivation::VectorType;
 
  public:
   // A = Z
@@ -87,7 +87,7 @@ class Identity : public AbstractActivation {
 
 class Lncosh : public AbstractActivation {
  private:
-  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using VectorType = typename AbstractActivation::VectorType;
 
  public:
   // A = Lncosh(Z)
@@ -109,7 +109,7 @@ class Lncosh : public AbstractActivation {
 
 class Tanh : public AbstractActivation {
  private:
-  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using VectorType = typename AbstractActivation::VectorType;
 
  public:
   // A = Tanh(Z)
