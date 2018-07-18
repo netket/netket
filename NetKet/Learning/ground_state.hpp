@@ -187,7 +187,6 @@ class GroundState {
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
-
       vsamp_.row(i) = sampler_.Visible();
     }
   }
@@ -288,7 +287,6 @@ class GroundState {
 
   void Run() {
     opt_.Reset();
-    
     InitSweeps();
 
     for (int i = 0; i < niter_opt_; i++) {
