@@ -73,8 +73,6 @@ class Convolutional : public AbstractLayer<T> {
   MatrixType output_der_;
   MatrixType flipped_kernels_;
 
-  std::size_t scalar_bytesize_;
-
  public:
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
@@ -111,7 +109,14 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   void Init(const Graph &graph) {
-    scalar_bytesize_ = sizeof(std::complex<double>);
+    // check that Matrixtype is column major.
+    MatrixType m_check(4, 4);
+    if (m_check.IsRowMajor) {
+      throw InvalidInputError(
+          "MatrixType is not column major. Conv net only works with column "
+          "major");
+    }
+
     // Construct neighbours_ kernel(k) will act on neighbours_[i][k]
     std::vector<std::vector<int>> adjlist;
     adjlist = graph.AdjacencyList();
