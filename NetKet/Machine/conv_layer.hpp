@@ -22,6 +22,8 @@
 #include <fstream>
 #include <random>
 #include <vector>
+
+#include "Graph/graph.hpp"
 #include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
 #include "abstract_layer.hpp"
@@ -110,28 +112,13 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   void Init(const Graph &graph) {
-    // Construct neighbours_ kernel(k) will act on neighbours_[i][k]
-    std::vector<std::vector<int>> adjlist;
-    adjlist = graph.AdjacencyList();
-    for (int i = 0; i < nv_; ++i) {
+    // Construct neighbourhood of all nodes with distance of at most dist_ from each node i
+    // kernel(k) will act on neighbours_[i][k]
+    for(int i = 0; i < nv_; ++i) {
       std::vector<int> neigh;
-      neigh.push_back(i);
-      for (int d = 0; d < dist_; ++d) {
-        std::size_t current = neigh.size();
-        for (std::size_t n = 0; n < current; ++n) {
-          for (auto m : adjlist[neigh[n]]) {
-            bool isin = false;
-            for (std::size_t k = 0; k < neigh.size(); ++k) {
-              if (neigh[k] == m) {
-                isin = true;
-              }
-            }
-            if (!isin) {
-              neigh.push_back(m);
-            }
-          }
-        }
-      }
+      graph.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
+        neigh.push_back(node);
+      });
       neighbours_.push_back(neigh);
     }
 

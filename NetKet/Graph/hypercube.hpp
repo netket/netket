@@ -162,6 +162,8 @@ class Hypercube : public AbstractGraph {
 
   bool IsBipartite() const override { return true; }
 
+  bool IsConnected() const override { return true; }
+
   // returns the distances of each point from the others
   std::vector<std::vector<int>> Distances() const override {
     std::vector<std::vector<int>> distances;
