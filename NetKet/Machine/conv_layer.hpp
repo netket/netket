@@ -46,7 +46,6 @@ class Convolutional : public AbstractLayer<T> {
   int out_channels_;  // number of output channels
   int out_size_;      // output size: should be multiple of no. of sites
   int npar_;          // number of parameters in layer
-  int kernelpar_;     // number of parameters in layer
 
   int dist_;         // Distance to include in one convolutional image
   int kernel_size_;  // Size of convolutional kernel (depends on dist_)
