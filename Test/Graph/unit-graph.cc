@@ -16,6 +16,7 @@
 #include "netket.hpp"
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 #include <vector>
 
 #include "graph_input_tests.hpp"
@@ -33,6 +34,45 @@ TEST_CASE("graphs have consistent number of sites", "[graph]") {
       netket::Graph graph(input_tests[i]);
 
       REQUIRE(graph.Nsites() > 0);
+    }
+  }
+}
+
+TEST_CASE("Breadth-first search", "[graph]") {
+  const auto input_tests = GetGraphInputs();
+
+  for(const auto input : input_tests) {
+    const auto data = input.dump();
+    SECTION("each node is visited at most once on " + data) {
+      netket::Graph graph(input);
+      for(int start = 0; start < graph.Nsites(); ++start) {
+        std::unordered_set<int> visited;
+        int ncall = 0;
+        graph.BreadthFirstSearch(start, [&](int v, int depth) {
+          INFO("ncall: " << ncall << ", start: " << start << ", v: " << v << ", depth: " << depth);
+          REQUIRE(visited.count(v) == 0);
+          visited.insert(v);
+          ncall++;
+        });
+      }
+    }
+  }
+
+  SECTION("each node is visited at least once on connected graph") {
+    netket::json pars;
+    pars = {
+        {"Graph",
+         {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}}}};
+    netket::Graph graph(pars);
+    for(int i = 0; i < graph.Nsites(); ++i) {
+      std::unordered_set<int> visited;
+      graph.BreadthFirstSearch(i, [&visited](int v, int /*depth*/) {
+        visited.insert(v);
+      });
+      for(int v = 0; v < graph.Nsites(); ++v) {
+        INFO("v: " << v);
+        REQUIRE(visited.count(v) == 1);
+      }
     }
   }
 }

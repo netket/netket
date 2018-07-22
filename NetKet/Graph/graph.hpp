@@ -70,6 +70,33 @@ class Graph : public AbstractGraph {
     return g_->Distances();
   }
 
+  /**
+   * Perform a breadth-first search (BFS) through the graph, calling
+   * visitor_func exactly once for each visited node. The search will visit
+   * all nodes reachable from start.
+   * @param start The starting node for the BFS.
+   * @param visitor_func Function void visitor_func(int node, int depth) which is
+   *    called once for each visited node and where depth is the distance of node from start.
+   */
+  template<typename Func>
+  void BreadthFirstSearch(int start, Func visitor_func) const {
+    g_->BreadthFirstSearch(start, visitor_func);
+  }
+
+  /**
+   * Perform a breadth-first search (BFS) through the graph, calling
+   * visitor_func exactly once for each visited node. The search will visit
+   * all nodes reachable from start in at most max_depth steps.
+   * @param start The starting node for the BFS.
+   * @param max_depth The maximum distance from start for nodes to be visited.
+   * @param visitor_func Function void visitor_func(int node, int depth) which is
+   *    called once for each visited node and where depth is the distance of node from start.
+   */
+  template<typename Func>
+  void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
+    g_->BreadthFirstSearch(start, max_depth, visitor_func);
+  }
+
   bool IsBipartite() const override { return g_->IsBipartite(); }
 };
 }  // namespace netket
