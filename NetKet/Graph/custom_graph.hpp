@@ -200,8 +200,6 @@ class CustomGraph : public AbstractGraph {
     BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
     return nvisited == Nsites();
   }
-  // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const override { return eclist_; }
 };
 
 }  // namespace netket
