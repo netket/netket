@@ -190,7 +190,6 @@ class Convolutional : public AbstractLayer<T> {
     flipped_kernels_.resize(kernel_size_ * out_channels_, in_channels_);
 
     npar_ = in_channels_ * kernel_size_ * out_channels_;
-    kernelpar_ = in_channels_ * kernel_size_ * out_channels_;
 
     if (usebias_) {
       npar_ += out_channels_;
