@@ -16,6 +16,7 @@
 #include "netket.hpp"
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 #include <vector>
 
 #include "graph_input_tests.hpp"
@@ -33,6 +34,45 @@ TEST_CASE("graphs have consistent number of sites", "[graph]") {
       netket::Graph graph(input_tests[i]);
 
       REQUIRE(graph.Nsites() > 0);
+    }
+  }
+}
+
+TEST_CASE("Breadth-first search", "[graph]") {
+  const auto input_tests = GetGraphInputs();
+
+  for(const auto input : input_tests) {
+    const auto data = input.dump();
+    SECTION("each node is visited at most once (and exactly once if the graph is connected) on " + data) {
+      netket::Graph graph(input);
+      for(int start = 0; start < graph.Nsites(); ++start) {
+        std::unordered_set<int> visited;
+        int ncall = 0;
+        graph.BreadthFirstSearch(start, [&](int v, int depth) {
+          INFO("ncall: " << ncall << ", start: " << start << ", v: " << v << ", depth: " << depth);
+          REQUIRE(visited.count(v) == 0);
+          visited.insert(v);
+          ncall++;
+        });
+
+        if(graph.IsConnected()) {
+          for(int v = 0; v < graph.Nsites(); ++v) {
+            INFO("v: " << v);
+            REQUIRE(visited.count(v) == 1);
+          }
+        }
+      }
+    }
+  }
+}
+
+TEST_CASE("Graph::IsConnected is correct", "[graph]") {
+  const auto input_tests = GetGraphInputs();
+  for(const auto input : input_tests) {
+    const auto data = input.dump();
+    SECTION("on " + data) {
+      netket::Graph graph(input);
+      CHECK(graph.IsConnected() == input["Test:IsConnected"]);
     }
   }
 }
