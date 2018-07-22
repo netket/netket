@@ -20,6 +20,7 @@
 #include "abstract_hamiltonian.hpp"
 #include "bosonhubbard.hpp"
 #include "custom_hamiltonian.hpp"
+#include "graph_hamiltonian.hpp"
 #include "heisenberg.hpp"
 #include "ising.hpp"
 
@@ -41,6 +42,8 @@ class Hamiltonian : public AbstractHamiltonian {
         h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
       } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
         h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
+      } else if (pars["Hamiltonian"]["Name"] == "Graph") {
+        h_ = std::make_shared<GraphHamiltonian<Graph>>(graph, pars);
       } else {
         throw InvalidInputError("Hamiltonian name not found");
       }
