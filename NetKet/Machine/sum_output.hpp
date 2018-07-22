@@ -38,9 +38,8 @@ class SumOutput : public AbstractLayer<T> {
 
   VectorType z_;  // Linear term, z = W' * in + b
 
-  VectorType din_;  // Derivative of the input of this layer.
-                    // Note that input of this layer is also the output of
-                    // previous layer
+  // Note that input of this layer is also the output of
+  // previous layer
 
  public:
   using StateType = typename AbstractLayer<T>::StateType;
@@ -56,8 +55,6 @@ class SumOutput : public AbstractLayer<T> {
   }
 
   void Init() {
-    din_.resize(in_size_);
-    din_.setConstant(1);
     z_.resize(out_size_);
 
     std::string buffer = "";
@@ -100,12 +97,11 @@ class SumOutput : public AbstractLayer<T> {
 
   void Backprop(const VectorType & /*prev_layer_output*/,
                 const VectorType & /*this_layer_output*/,
-                const VectorType &next_layer_data, VectorType & /*der*/,
-                int /*start_idx*/) override {
-    din_.setConstant(next_layer_data(0));
+                const VectorType &next_layer_data, VectorType &din,
+                VectorType & /*der*/, int /*start_idx*/) override {
+    din.resize(in_size_);
+    din.setConstant(next_layer_data(0));
   }
-
-  const VectorType &BackpropData() const override { return din_; }
 
   void to_json(json &pars) const override {
     json layerpar;

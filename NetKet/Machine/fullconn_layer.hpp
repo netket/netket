@@ -41,7 +41,6 @@ class FullyConnected : public AbstractLayer<T> {
   MatrixType weight_;  // Weight parameters, W(in_size x out_size)
   VectorType bias_;    // Bias parameters, b(out_size x 1)
   VectorType z_;       // Linear term, z = W' * in + b
-  VectorType din_;     // Derivative of the input of this layer.
                        // Note that input of this layer is also the output of
                        // previous layer
 
@@ -73,7 +72,6 @@ class FullyConnected : public AbstractLayer<T> {
 
     weight_.resize(in_size_, out_size_);
     bias_.resize(out_size_);
-    din_.resize(in_size_);
 
     npar_ = in_size_ * out_size_;
 
@@ -96,7 +94,6 @@ class FullyConnected : public AbstractLayer<T> {
 
     weight_.resize(in_size_, out_size_);
     bias_.resize(out_size_);
-    din_.resize(in_size_);
 
     npar_ = in_size_ * out_size_;
 
@@ -219,8 +216,8 @@ class FullyConnected : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const VectorType &next_layer_data, VectorType &der,
-                int start_idx) override {
+                const VectorType &next_layer_data, VectorType &din,
+                VectorType &der, int start_idx) override {
     // After forward stage, m_z contains z = W' * in + b
     // Now we need to calculate d(L) / d(z) = [d(a) / d(z)] * [d(L) / d(a)]
     // d(L) / d(a) is computed in the next layer, contained in next_layer_data
@@ -246,10 +243,8 @@ class FullyConnected : public AbstractLayer<T> {
     der_w.noalias() = prev_layer_output * dLz.transpose();
 
     // Compute d(L) / d_in = W * [d(L) / d(z)]
-    din_.noalias() = weight_ * dLz;
+    din.noalias() = weight_ * dLz;
   }
-
-  const VectorType &BackpropData() const override { return din_; }
 };
 }  // namespace netket
 

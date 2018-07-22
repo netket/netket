@@ -63,8 +63,8 @@ class Convolutional : public AbstractLayer<T> {
   MatrixType dw_;  // Derivative of weights
   VectorType db_;  // Derivative of bias
 
-  VectorType z_;    // Linear term, z = W' * in + b
-  VectorType din_;  // Derivative of the input of this layer.
+  VectorType z_;  // Linear term, z = W' * in + b
+
   // Note that input of this layer is also the output of
   // previous layer
 
@@ -165,7 +165,6 @@ class Convolutional : public AbstractLayer<T> {
     bias_.resize(out_channels_);
     dw_.resize(in_channels_ * kernel_size_, out_channels_);
     db_.resize(out_channels_);
-    din_.resize(in_size_);
 
     lowered_image_.resize(in_channels_ * kernel_size_, nv_);
     lowered_image2_.resize(nv_, in_channels_ * kernel_size_);
@@ -321,8 +320,8 @@ class Convolutional : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const VectorType &next_layer_data, VectorType &der,
-                int start_idx) override {
+                const VectorType &next_layer_data, VectorType &din,
+                VectorType &der, int start_idx) override {
     // Compute dL/dz
     VectorType &dLz = z_;
     activation_.ApplyJacobian(z_, this_layer_output, next_layer_data, dLz);
@@ -380,11 +379,10 @@ class Convolutional : public AbstractLayer<T> {
       }
     }
 
-    Eigen::Map<MatrixType> der_in(din_.data(), nv_, in_channels_);
+    din.resize(in_size_);
+    Eigen::Map<MatrixType> der_in(din.data(), nv_, in_channels_);
     der_in.noalias() = lowered_der_.transpose() * flipped_kernels_;
   }
-
-  const VectorType &BackpropData() const override { return din_; }
 
   void to_json(json &pars) const override {
     json layerpar;

@@ -39,6 +39,7 @@ class FFNN : public AbstractMachine<T> {
   int npar_;
   int nv_;
   std::vector<VectorType> output_;
+  std::vector<VectorType> din_;
 
   const Hilbert &hilbert_;
 
@@ -92,6 +93,9 @@ class FFNN : public AbstractMachine<T> {
     depth_ = layersizes_.size();
 
     output_.resize(nlayer_);
+    din_.resize(depth_);
+    din_.back().resize(1);
+    din_.back()(0) = 1.0;
 
     npar_ = 0;
     for (int i = 0; i < nlayer_; ++i) {
@@ -187,8 +191,6 @@ class FFNN : public AbstractMachine<T> {
 
     int start_idx = npar_;
 
-    VectorType last_dLda(1);
-    last_dLda(0) = 1.0;
     // Forward pass
     LogVal(v);
 
@@ -197,18 +199,19 @@ class FFNN : public AbstractMachine<T> {
       start_idx -= layers_[nlayer_ - 1]->Npar();
       // Last Layer
       layers_[nlayer_ - 1]->Backprop(output_[nlayer_ - 2], output_[nlayer_ - 1],
-                                     last_dLda, der, start_idx);
+                                     din_.back(), din_[nlayer_ - 1], der,
+                                     start_idx);
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         start_idx -= layers_[i]->Npar();
-        layers_[i]->Backprop(output_[i - 1], output_[i],
-                             layers_[i + 1]->BackpropData(), der, start_idx);
+        layers_[i]->Backprop(output_[i - 1], output_[i], din_[i + 1], din_[i],
+                             der, start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, output_[0], layers_[1]->BackpropData(), der, 0);
+      layers_[0]->Backprop(v, output_[0], din_[1], din_[0], der, 0);
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, output_[0], last_dLda, der, 0);
+      layers_[0]->Backprop(v, output_[0], din_.back(), din_[0], der, 0);
     }
     return der;
   }
