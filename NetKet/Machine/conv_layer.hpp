@@ -34,7 +34,9 @@ namespace netket {
 template <typename Activation, typename T>
 class Convolutional : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
+
   using MatrixType = typename AbstractLayer<T>::MatrixType;
+  static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
   Activation activation_;  // activation function class
 
@@ -109,14 +111,6 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   void Init(const Graph &graph) {
-    // check that Matrixtype is column major.
-    MatrixType m_check(4, 4);
-    if (m_check.IsRowMajor) {
-      throw InvalidInputError(
-          "MatrixType is not column major. Conv net only works with column "
-          "major");
-    }
-
     // Construct neighbours_ kernel(k) will act on neighbours_[i][k]
     std::vector<std::vector<int>> adjlist;
     adjlist = graph.AdjacencyList();
