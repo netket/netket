@@ -278,8 +278,9 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void Forward(const VectorType &prev_layer_data, VectorType &output) override {
-    Convolve(prev_layer_data, z_);
+  void Forward(const VectorType &prev_layer_output,
+               VectorType &output) override {
+    Convolve(prev_layer_output, z_);
 
     if (usebias_) {
       int k = 0;
@@ -295,7 +296,7 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   // Using lookup
-  void Forward(const VectorType & /*prev_layer_data*/, const LookupType &lt,
+  void Forward(const VectorType & /*prev_layer_output*/, const LookupType &lt,
                VectorType &output) override {
     z_ = lt.V(0);
     // Apply activation function
@@ -318,7 +319,7 @@ class Convolutional : public AbstractLayer<T> {
     output_image.noalias() = lowered_image_.transpose() * kernels_;
   }
 
-  void Backprop(const VectorType &prev_layer_data,
+  void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
                 const VectorType &next_layer_data, VectorType &der,
                 int start_idx) override {
@@ -350,7 +351,7 @@ class Convolutional : public AbstractLayer<T> {
       for (int k = 0; k < kernel_size_; ++k) {
         for (int i = 0; i < nv_; ++i) {
           lowered_image2_(i, k + in * kernel_size_) =
-              prev_layer_data(in * nv_ + neighbours_[i][k]);
+              prev_layer_output(in * nv_ + neighbours_[i][k]);
         }
       }
     }

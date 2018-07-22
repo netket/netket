@@ -55,22 +55,23 @@ class AbstractLayer {
 
   /**
   Member function to feedforward through the layer.
-  @param prev_layer_data a constant reference to the output from previous layer.
+  @param prev_layer_output a constant reference to the output from previous
+  layer.
   */
-  virtual void Forward(const VectorType &prev_layer_data,
+  virtual void Forward(const VectorType &prev_layer_output,
                        VectorType &output) = 0;
 
-  virtual void Forward(const VectorType &prev_layer_data, const LookupType &lt,
+  virtual void Forward(const VectorType &prev_layer_output, const LookupType &lt,
                        VectorType &output) = 0;
 
   /**
   Member function to perform backpropagation to compute derivates.
-  @param prev_layer_data a constant reference to the output from previous layer.
+  @param prev_layer_output a constant reference to the output from previous layer.
   @param next_layer_data a constant reference to the derivative dL/dA where A is
   the activations of the current layer and L is the the final output of the
   Machine: L = log(psi(v))
   */
-  virtual void Backprop(const VectorType &prev_layer_data,
+  virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
                         const VectorType &next_layer_data, VectorType &der,
                         int start_idx) = 0;
