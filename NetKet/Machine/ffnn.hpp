@@ -38,6 +38,7 @@ class FFNN : public AbstractMachine<T> {
   int nlayer_;
   int npar_;
   int nv_;
+  std::vector<VectorType> output_;
 
   const Hilbert &hilbert_;
 
@@ -89,6 +90,8 @@ class FFNN : public AbstractMachine<T> {
       layersizes_.push_back(1);
     }
     depth_ = layersizes_.size();
+
+    output_.resize(nlayer_);
 
     npar_ = 0;
     for (int i = 0; i < nlayer_; ++i) {
@@ -161,22 +164,22 @@ class FFNN : public AbstractMachine<T> {
 
   T LogVal(const Eigen::VectorXd &v) override {
     // First layer
-    layers_[0]->Forward(v);
+    layers_[0]->Forward(v, output_[0]);
     // The following layers
     for (int i = 1; i < nlayer_; i++) {
-      layers_[i]->Forward(layers_[i - 1]->Output());
+      layers_[i]->Forward(output_[i - 1], output_[i]);
     }
-    return (layers_.back()->Output())(0);
+    return (output_.back())(0);
   }
 
   T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     // First layer
-    layers_[0]->Forward(v, lt);
+    layers_[0]->Forward(v, lt, output_[0]);
     // The following layers
     for (int i = 1; i < nlayer_; i++) {
-      layers_[i]->Forward(layers_[i - 1]->Output());
+      layers_[i]->Forward(output_[i - 1], output_[i]);
     }
-    return (layers_.back()->Output())(0);
+    return (output_.back())(0);
   }
 
   VectorType DerLog(const Eigen::VectorXd &v) override {
@@ -193,19 +196,19 @@ class FFNN : public AbstractMachine<T> {
     if (nlayer_ > 1) {
       start_idx -= layers_[nlayer_ - 1]->Npar();
       // Last Layer
-      layers_[nlayer_ - 1]->Backprop(layers_[nlayer_ - 2]->Output(), last_dLda,
-                                     der, start_idx);
+      layers_[nlayer_ - 1]->Backprop(output_[nlayer_ - 2], output_[nlayer_ - 1],
+                                     last_dLda, der, start_idx);
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         start_idx -= layers_[i]->Npar();
-        layers_[i]->Backprop(layers_[i - 1]->Output(),
+        layers_[i]->Backprop(output_[i - 1], output_[i],
                              layers_[i + 1]->BackpropData(), der, start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, layers_[1]->BackpropData(), der, 0);
+      layers_[0]->Backprop(v, output_[0], layers_[1]->BackpropData(), der, 0);
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, last_dLda, der, 0);
+      layers_[0]->Backprop(v, output_[0], last_dLda, der, 0);
     }
     return der;
   }

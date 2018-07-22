@@ -41,7 +41,6 @@ class FullyConnected : public AbstractLayer<T> {
   MatrixType weight_;  // Weight parameters, W(in_size x out_size)
   VectorType bias_;    // Bias parameters, b(out_size x 1)
   VectorType z_;       // Linear term, z = W' * in + b
-  VectorType a_;       // Output of this layer, a = act(z)
   VectorType din_;     // Derivative of the input of this layer.
                        // Note that input of this layer is also the output of
                        // previous layer
@@ -79,7 +78,6 @@ class FullyConnected : public AbstractLayer<T> {
     npar_ = in_size_ * out_size_;
 
     z_.resize(out_size_);
-    a_.resize(out_size_);
 
     if (usebias_) {
       npar_ += out_size_;
@@ -103,7 +101,6 @@ class FullyConnected : public AbstractLayer<T> {
     npar_ = in_size_ * out_size_;
 
     z_.resize(out_size_);
-    a_.resize(out_size_);
 
     if (usebias_) {
       npar_ += out_size_;
@@ -200,26 +197,28 @@ class FullyConnected : public AbstractLayer<T> {
     }
   }
 
-  void Forward(const VectorType &prev_layer_data) override {
+  void Forward(const VectorType &prev_layer_output,
+               VectorType &output) override {
     // Linear term z = W' * in + b
     z_ = bias_;
-    z_.noalias() += weight_.transpose() * prev_layer_data;
+    z_.noalias() += weight_.transpose() * prev_layer_output;
 
     // Apply activation function
-    activation_(z_, a_);
+    output.resize(out_size_);
+    activation_(z_, output);
   }
 
   // Using lookup
-  void Forward(const VectorType & /*prev_layer_data*/,
-               const LookupType &lt) override {
+  void Forward(const VectorType & /*prev_layer_output*/, const LookupType &lt,
+               VectorType &output) override {
     z_ = lt.V(0);
     // Apply activation function
-    activation_(z_, a_);
+    output.resize(out_size_);
+    activation_(z_, output);
   }
 
-  VectorType Output() const override { return a_; }
-
-  void Backprop(const VectorType &prev_layer_data,
+  void Backprop(const VectorType &prev_layer_output,
+                const VectorType &this_layer_output,
                 const VectorType &next_layer_data, VectorType &der,
                 int start_idx) override {
     // After forward stage, m_z contains z = W' * in + b
@@ -228,7 +227,7 @@ class FullyConnected : public AbstractLayer<T> {
     // The Jacobian matrix J = d(a) / d(z) is determined by the activation
     // function
     VectorType &dLz = z_;
-    activation_.ApplyJacobian(z_, a_, next_layer_data, dLz);
+    activation_.ApplyJacobian(z_, this_layer_output, next_layer_data, dLz);
 
     // Now dLz contains d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
@@ -244,7 +243,7 @@ class FullyConnected : public AbstractLayer<T> {
     // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
     Eigen::Map<MatrixType> der_w{der.data() + k, in_size_, out_size_};
 
-    der_w.noalias() = prev_layer_data * dLz.transpose();
+    der_w.noalias() = prev_layer_output * dLz.transpose();
 
     // Compute d(L) / d_in = W * [d(L) / d(z)]
     din_.noalias() = weight_ * dLz;

@@ -103,21 +103,22 @@ class Layer : public AbstractLayer<T> {
     return m_->UpdateLookup(v, tochange, newconf, lt);
   }
 
-  void Forward(const VectorType &prev_layer_data) override {
-    return m_->Forward(prev_layer_data);
+  void Forward(const VectorType &prev_layer_output,
+               VectorType &output) override {
+    return m_->Forward(prev_layer_output, output);
   }
 
-  void Forward(const VectorType &prev_layer_data,
-               const LookupType &lt) override {
-    return m_->Forward(prev_layer_data, lt);
+  void Forward(const VectorType &prev_layer_output, const LookupType &lt,
+               VectorType &output) override {
+    return m_->Forward(prev_layer_output, lt, output);
   }
 
-  VectorType Output() const override { return m_->Output(); }
-
-  void Backprop(const VectorType &prev_layer_data,
+  void Backprop(const VectorType &prev_layer_output,
+                const VectorType &this_layer_output,
                 const VectorType &next_layer_data, VectorType &der,
                 int start_idx) override {
-    return m_->Backprop(prev_layer_data, next_layer_data, der, start_idx);
+    return m_->Backprop(prev_layer_output, this_layer_output, next_layer_data,
+                        der, start_idx);
   }
 
   const VectorType &BackpropData() const override { return m_->BackpropData(); }
