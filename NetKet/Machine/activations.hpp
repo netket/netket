@@ -138,22 +138,22 @@ class Activation : public AbstractActivation {
   explicit Activation(const json &pars) { Init(pars); }
   void Init(const json &pars) {
     CheckInput(pars);
-   
+
     if (pars["Activation"] == "Lncosh") {
       m_ = Ptype(new Lncosh());
-      
+
       InfoMessage() << "Activation: "
                     << "Lncosh" << std::endl;
     } else if (pars["Activation"] == "Identity") {
       m_ = Ptype(new Identity());
-     
+
       InfoMessage() << "Activation: "
                     << "Identity" << std::endl;
     } else if (pars["Activation"] == "Tanh") {
       m_ = Ptype(new Tanh());
-      
+
       InfoMessage() << "Activation: "
-                    << "Tanh" << std::endl; 
+                    << "Tanh" << std::endl;
     }
   }
 
