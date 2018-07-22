@@ -151,18 +151,22 @@ class CustomGraph : public AbstractGraph {
 
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
-  std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
+  std::vector<std::vector<int>> SymmetryTable() const override {
+    return automorphisms_;
+  }
 
-  int Nsites() const { return nsites_; }
+  int Nsites() const override { return nsites_; }
 
-  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return adjlist_;
+  }
 
-  bool IsBipartite() const { return isbipartite_; }
+  bool IsBipartite() const override { return isbipartite_; }
 
   bool IsConnected() const override { return is_connected_; }
 
   // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const {
+  std::vector<std::vector<int>> Distances() const override {
     std::vector<std::vector<int>> distances;
 
     for (int i = 0; i < nsites_; i++) {
@@ -174,11 +178,9 @@ class CustomGraph : public AbstractGraph {
 
  private:
   bool ComputeConnected() const {
-    const int start = 0; // arbitrary node
+    const int start = 0;  // arbitrary node
     int nvisited = 0;
-    BreadthFirstSearch(start, [&nvisited](int, int) {
-      ++nvisited;
-    });
+    BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
     return nvisited == Nsites();
   }
 };
