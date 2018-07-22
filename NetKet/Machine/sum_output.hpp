@@ -85,19 +85,20 @@ class SumOutput : public AbstractLayer<T> {
                     const std::vector<double> & /*newconf*/,
                     LookupType & /*lt*/) override {}
 
-  void Forward(const VectorType &prev_layer_data) override {
-    z_(0) = prev_layer_data.sum();
+  void Forward(const VectorType &prev_layer_data, VectorType &output) override {
+    output.resize(1);
+    output(0) = prev_layer_data.sum();
   }
 
   // Using lookup
-  void Forward(const VectorType &prev_layer_data,
-               const LookupType & /*lt*/) override {
-    z_(0) = prev_layer_data.sum();
+  void Forward(const VectorType &prev_layer_data, const LookupType & /*lt*/,
+               VectorType &output) override {
+    output.resize(1);
+    output(0) = prev_layer_data.sum();
   }
 
-  VectorType Output() const override { return z_; }
-
   void Backprop(const VectorType & /*prev_layer_data*/,
+                const VectorType & /*this_layer_output*/,
                 const VectorType &next_layer_data, VectorType & /*der*/,
                 int /*start_idx*/) override {
     din_.setConstant(next_layer_data(0));

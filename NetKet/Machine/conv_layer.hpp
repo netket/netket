@@ -64,7 +64,6 @@ class Convolutional : public AbstractLayer<T> {
   VectorType db_;  // Derivative of bias
 
   VectorType z_;    // Linear term, z = W' * in + b
-  VectorType a_;    // Output of this layer, a = act(z)
   VectorType din_;  // Derivative of the input of this layer.
   // Note that input of this layer is also the output of
   // previous layer
@@ -112,9 +111,9 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   void Init(const Graph &graph) {
-    // Construct neighbourhood of all nodes with distance of at most dist_ from each node i
-    // kernel(k) will act on neighbours_[i][k]
-    for(int i = 0; i < nv_; ++i) {
+    // Construct neighbourhood of all nodes with distance of at most dist_ from
+    // each node i kernel(k) will act on neighbours_[i][k]
+    for (int i = 0; i < nv_; ++i) {
       std::vector<int> neigh;
       graph.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
         neigh.push_back(node);
@@ -162,7 +161,6 @@ class Convolutional : public AbstractLayer<T> {
     }
 
     z_.resize(out_channels_ * nv_);
-    a_.resize(out_channels_ * nv_);
     kernels_.resize(in_channels_ * kernel_size_, out_channels_);
     bias_.resize(out_channels_);
     dw_.resize(in_channels_ * kernel_size_, out_channels_);
@@ -280,7 +278,7 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void Forward(const VectorType &prev_layer_data) override {
+  void Forward(const VectorType &prev_layer_data, VectorType &output) override {
     Convolve(prev_layer_data, z_);
 
     if (usebias_) {
@@ -292,16 +290,17 @@ class Convolutional : public AbstractLayer<T> {
         }
       }
     }
-
-    activation_(z_, a_);
+    output.resize(out_size_);
+    activation_(z_, output);
   }
 
   // Using lookup
-  void Forward(const VectorType & /*prev_layer_data*/,
-               const LookupType &lt) override {
+  void Forward(const VectorType & /*prev_layer_data*/, const LookupType &lt,
+               VectorType &output) override {
     z_ = lt.V(0);
     // Apply activation function
-    activation_(z_, a_);
+    output.resize(out_size_);
+    activation_(z_, output);
   }
 
   inline void Convolve(const VectorType &image, VectorType &z) {
@@ -319,14 +318,13 @@ class Convolutional : public AbstractLayer<T> {
     output_image.noalias() = lowered_image_.transpose() * kernels_;
   }
 
-  VectorType Output() const override { return a_; }
-
   void Backprop(const VectorType &prev_layer_data,
+                const VectorType &this_layer_output,
                 const VectorType &next_layer_data, VectorType &der,
                 int start_idx) override {
     // Compute dL/dz
     VectorType &dLz = z_;
-    activation_.ApplyJacobian(z_, a_, next_layer_data, dLz);
+    activation_.ApplyJacobian(z_, this_layer_output, next_layer_data, dLz);
 
     int kd = start_idx;
 
