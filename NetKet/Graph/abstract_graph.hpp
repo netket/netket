@@ -22,7 +22,7 @@
 
 namespace netket {
 /**
-    Abstract class for Graphs.
+    Abstract class for undirected Graphs.
     This class prototypes the methods needed
     by a class satisfying the Graph concept.
     These include lattices and non-regular graphs.
@@ -57,6 +57,13 @@ class AbstractGraph {
   @return true if lattice is bipartite.
   */
   virtual bool IsBipartite() const = 0;
+
+  /**
+   * Checks whether the graph is connected, i.e., there exists a path between
+   * every pair of nodes.
+   * @return true, if the graph is connected
+   */
+  virtual bool IsConnected() const = 0;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
