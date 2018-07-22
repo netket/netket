@@ -15,6 +15,7 @@
 from __future__ import print_function
 import json
 import numpy as np
+import networkx as nx
 
 sigmax = [[0, 1], [1, 0]]
 sigmaz = [[1, 0], [0, -1]]
@@ -24,29 +25,32 @@ mszsz = (np.kron(sigmaz, sigmaz)).tolist()
 # Now we define the local operators of our hamiltonian
 # And the sites on which they act
 # Notice that the Transverse-Field Ising model as defined here has sign problem
-operators = []
-sites = []
 L = 20
+site_operator = [sigmax]
+bond_operator = [mszsz]
+
+# Defining a custom graph
+G = nx.Graph()
 for i in range(L):
-    # \sum_i sigma^x(i)
-    operators.append(sigmax)
-    sites.append([i])
-    # \sum_i sigma^z(i)*sigma^z(i+1)
-    operators.append(mszsz)
-    sites.append([i, (i + 1) % L])
+    G.add_edge(i, (i + 1) % L)
 
 pars = {}
+
+pars['Graph'] = {
+    'Edges': list(G.edges),
+}
 
 # first we choose a hilbert space for our custom hamiltonian
 pars['Hilbert'] = {
     'QuantumNumbers': [1, -1],
-    'Size': L,
+    'Size': len(list(G.edges)),
 }
 
-# defining a custom hamiltonian
+# defining a graph hamiltonian
 pars['Hamiltonian'] = {
-    'Operators': operators,
-    'ActingOn': sites,
+    'Name': 'Graph',
+    'SiteOps': site_operator,
+    'BondOps': bond_operator,
 }
 
 # defining the wave function
@@ -76,7 +80,7 @@ pars['Learning'] = {
     'OutputFile': "test",
 }
 
-json_file = "custom_hamiltonian.json"
+json_file = "ising.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
