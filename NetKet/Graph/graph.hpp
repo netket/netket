@@ -98,6 +98,9 @@ class Graph : public AbstractGraph {
   }
 
   bool IsBipartite() const override { return g_->IsBipartite(); }
+
+  bool IsConnected() const override { return g_->IsConnected(); }
+
 };
 }  // namespace netket
 

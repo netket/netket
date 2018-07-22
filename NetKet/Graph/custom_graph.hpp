@@ -40,6 +40,7 @@ class CustomGraph : public AbstractGraph {
   std::vector<std::vector<int>> automorphisms_;
 
   bool isbipartite_;
+  bool is_connected_;
 
  public:
   // Json constructor
@@ -81,6 +82,7 @@ class CustomGraph : public AbstractGraph {
     }
 
     isbipartite_ = false;
+    is_connected_ = ComputeConnected();
 
     // Other graph properties
     if (FieldExists(pars, "Graph")) {
@@ -157,6 +159,8 @@ class CustomGraph : public AbstractGraph {
 
   bool IsBipartite() const { return isbipartite_; }
 
+  bool IsConnected() const override { return is_connected_; }
+
   // returns the distances of each point from the others
   std::vector<std::vector<int>> Distances() const {
     std::vector<std::vector<int>> distances;
@@ -166,6 +170,16 @@ class CustomGraph : public AbstractGraph {
     }
 
     return distances;
+  }
+
+ private:
+  bool ComputeConnected() const {
+    const int start = 0; // arbitrary node
+    int nvisited = 0;
+    BreadthFirstSearch(start, [&nvisited](int, int) {
+      ++nvisited;
+    });
+    return nvisited == Nsites();
   }
 };
 

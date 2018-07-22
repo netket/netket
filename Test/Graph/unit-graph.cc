@@ -43,7 +43,7 @@ TEST_CASE("Breadth-first search", "[graph]") {
 
   for(const auto input : input_tests) {
     const auto data = input.dump();
-    SECTION("each node is visited at most once on " + data) {
+    SECTION("each node is visited at most once (and exactly once if the graph is connected) on " + data) {
       netket::Graph graph(input);
       for(int start = 0; start < graph.Nsites(); ++start) {
         std::unordered_set<int> visited;
@@ -54,25 +54,25 @@ TEST_CASE("Breadth-first search", "[graph]") {
           visited.insert(v);
           ncall++;
         });
+
+        if(graph.IsConnected()) {
+          for(int v = 0; v < graph.Nsites(); ++v) {
+            INFO("v: " << v);
+            REQUIRE(visited.count(v) == 1);
+          }
+        }
       }
     }
   }
+}
 
-  SECTION("each node is visited at least once on connected graph") {
-    netket::json pars;
-    pars = {
-        {"Graph",
-         {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}}}};
-    netket::Graph graph(pars);
-    for(int i = 0; i < graph.Nsites(); ++i) {
-      std::unordered_set<int> visited;
-      graph.BreadthFirstSearch(i, [&visited](int v, int /*depth*/) {
-        visited.insert(v);
-      });
-      for(int v = 0; v < graph.Nsites(); ++v) {
-        INFO("v: " << v);
-        REQUIRE(visited.count(v) == 1);
-      }
+TEST_CASE("Graph::IsConnected is correct", "[graph]") {
+  const auto input_tests = GetGraphInputs();
+  for(const auto input : input_tests) {
+    const auto data = input.dump();
+    SECTION("on " + data) {
+      netket::Graph graph(input);
+      CHECK(graph.IsConnected() == input["Test:IsConnected"]);
     }
   }
 }
