@@ -42,9 +42,10 @@ TEST_CASE("Breadth-first search", "[graph]") {
   const auto input_tests = GetGraphInputs();
 
   for(const auto input : input_tests) {
+    netket::Graph graph(input);
     const auto data = input.dump();
+
     SECTION("each node is visited at most once (and exactly once if the graph is connected) on " + data) {
-      netket::Graph graph(input);
       for(int start = 0; start < graph.Nsites(); ++start) {
         std::unordered_set<int> visited;
         int ncall = 0;
@@ -62,6 +63,23 @@ TEST_CASE("Breadth-first search", "[graph]") {
           }
         }
       }
+    }
+
+    SECTION("full BFS for " + data) {
+      std::unordered_set<int> visited;
+      std::unordered_set<int> components;
+      graph.FullBreadthFirstSearch([&] (int v, int depth, int component) {
+        INFO("v: " << v << ", depth: " << depth << ", component: " << component);
+        REQUIRE(visited.count(v) == 0);
+        visited.insert(v);
+        components.insert(component);
+      });
+
+      for(int v = 0; v < graph.Nsites(); ++v) {
+        INFO("v: " << v);
+        REQUIRE(visited.count(v) == 1);
+      }
+      REQUIRE(components.size() == input["Test:NumComponents"]);
     }
   }
 }

@@ -12,28 +12,28 @@ std::vector<netket::json> GetGraphInputs() {
   pars = {
       {"Graph",
        {{"Name", "Hypercube"}, {"L", 3}, {"Dimension", 1}, {"Pbc", true}}},
-      {"Test:IsConnected", true}};
+      {"Test:IsConnected", true}, {"Test:NumComponents", 1}};
   input_tests.push_back(pars);
 
   // Hypercube 1d
   pars = {
       {"Graph",
        {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-      {"Test:IsConnected", true}};
+      {"Test:IsConnected", true}, {"Test:NumComponents", 1}};
   input_tests.push_back(pars);
 
   // Hypercube 2d
   pars = {
       {"Graph",
        {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 2}, {"Pbc", true}}},
-      {"Test:IsConnected", true}};
+      {"Test:IsConnected", true}, {"Test:NumComponents", 1}};
   input_tests.push_back(pars);
 
   // Hypercube 3d
   pars = {
       {"Graph",
        {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 3}, {"Pbc", true}}},
-      {"Test:IsConnected", true}};
+      {"Test:IsConnected", true}, {"Test:NumComponents", 1}};
   input_tests.push_back(pars);
 
   // Graph from hilbert space
@@ -41,6 +41,7 @@ std::vector<netket::json> GetGraphInputs() {
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 10;
   pars["Test:IsConnected"] = false;
+  pars["Test:NumComponents"] = 10;
 
   input_tests.push_back(pars);
 

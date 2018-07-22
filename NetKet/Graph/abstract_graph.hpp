@@ -101,15 +101,13 @@ class AbstractGraph {
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
-   * visitor_func exactly once for each visited node. The search will visit
-   * all nodes reachable from start.
+   * visitor_func exactly once for each node within the component reachable from start.
    * @param start The starting node for the BFS.
    * @param visitor_func Function void visitor_func(int node, int depth) which is
    *    called once for each visited node and where depth is the distance of node from start.
    */
   template<typename Func>
   void BreadthFirstSearch(int start, Func visitor_func) const {
-    assert(start >= 0 && start < Nsites());
     BreadthFirstSearch(start, Nsites(), visitor_func);
   }
 
@@ -124,23 +122,69 @@ class AbstractGraph {
    */
   template<typename Func>
   void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
-    // Pair of node and depth
-    using QueueEntry = std::pair<int, int>;
-
-    assert(start >= 0 && start < Nsites());
-    assert(max_depth > 0);
-
-    const auto adjacency_list = AdjacencyList();
-
-    // Store the already seen sites
     std::vector<bool> seen(Nsites());
     std::fill(seen.begin(), seen.end(), false);
-    seen[start] = true;
+    BreadthFirstSearch_Impl(start, max_depth, visitor_func, seen);
+  }
+
+  /**
+   * Perform a breadth-first search (BFS) through the whole graph, calling
+   * visitor_func exactly once for each node.
+   *
+   * If the graph is not connected, the BFS will first explore starting from
+   * the node with index 0 and explore the corresponding component.
+   * Then, it will iterate over all remaining unexplored nodes, exploring their
+   * components in turn until all nodes have been visited.
+   *
+   * @param visitor_func Function with signature
+   *        void visitor_func(int node, int depth, int comp)
+   *    which is called once for each visited node. The parameter comp
+   *    is the index of the first node within the connected component currently
+   *    explored, which allows to distinguish the components. The depth is the
+   *    distance from comp to the current node.
+   */
+  template<typename Func>
+  void FullBreadthFirstSearch(Func visitor_func) const {
+    std::vector<bool> seen(Nsites());
+    std::fill(seen.begin(), seen.end(), false);
+    for(int v = 0; v < Nsites(); ++v) {
+      if(seen[v]) {
+        continue;
+      }
+      auto modified_visitor = [&](int node, int depth) {
+        visitor_func(node, depth, v);
+      };
+      BreadthFirstSearch_Impl(v, Nsites(), modified_visitor, seen);
+    }
+  }
+
+  virtual ~AbstractGraph(){};
+
+ protected:
+  /**
+   * Implementation function for breath-first search.
+   * This takes @param seen as a reference, so that the list of already visited
+   * vertices can be reused if needed.
+   * @param seen needs to satisfy seen.size() == Nsites(). Nodes v where
+   * seen[v] == true will be ignored even when they are first discovered
+   * by the search. seen[start] is required to be false.
+   */
+  template<typename Func>
+  void BreadthFirstSearch_Impl(int start, int max_depth, Func visitor_func,
+                               std::vector<bool>& seen) const {
+    assert(start >= 0 && start < Nsites());
+    assert(max_depth > 0);
+    assert(std::ptrdiff_t(seen.size()) == Nsites());
+    assert(!seen[start]);
 
     // Queue to store states to visit
+    using QueueEntry = std::pair<int, int>;
     std::queue<QueueEntry> queue;
     queue.push({start, 0});
 
+    seen[start] = true;
+
+    const auto adjacency_list = AdjacencyList();
     while (!queue.empty()) {
       const auto elem = queue.front();
       queue.pop();
@@ -161,8 +205,6 @@ class AbstractGraph {
       }
     }
   }
-
-  virtual ~AbstractGraph(){};
 };
 
 }  // namespace netket
