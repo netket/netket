@@ -15,6 +15,9 @@
 #ifndef NETKET_ABSTRACTGRAPH_HPP
 #define NETKET_ABSTRACTGRAPH_HPP
 
+#include <cassert>
+#include <queue>
+#include <utility>
 #include <vector>
 
 namespace netket {
@@ -54,6 +57,69 @@ class AbstractGraph {
   @return true if lattice is bipartite.
   */
   virtual bool IsBipartite() const = 0;
+
+  /**
+   * Perform a breadth-first search (BFS) through the graph, calling
+   * visitor_func exactly once for each visited node. The search will visit
+   * all nodes reachable from start.
+   * @param start The starting node for the BFS.
+   * @param visitor_func Function void visitor_func(int node, int depth) which is
+   *    called once for each visited node and where depth is the distance of node from start.
+   */
+  template<typename Func>
+  void BreadthFirstSearch(int start, Func visitor_func) const {
+    assert(start >= 0 && start < Nsites());
+    BreadthFirstSearch(start, Nsites(), visitor_func);
+  }
+
+  /**
+   * Perform a breadth-first search (BFS) through the graph, calling
+   * visitor_func exactly once for each visited node. The search will visit
+   * all nodes reachable from start in at most max_depth steps.
+   * @param start The starting node for the BFS.
+   * @param max_depth The maximum distance from start for nodes to be visited.
+   * @param visitor_func Function void visitor_func(int node, int depth) which is
+   *    called once for each visited node and where depth is the distance of node from start.
+   */
+  template<typename Func>
+  void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
+    // Pair of node and depth
+    using QueueEntry = std::pair<int, int>;
+
+    assert(start >= 0 && start < Nsites());
+    assert(max_depth > 0);
+
+    const auto adjacency_list = AdjacencyList();
+
+    // Store the already seen sites
+    std::vector<bool> seen(Nsites());
+    std::fill(seen.begin(), seen.end(), false);
+    seen[start] = true;
+
+    // Queue to store states to visit
+    std::queue<QueueEntry> queue;
+    queue.push({start, 0});
+
+    while (!queue.empty()) {
+      const auto elem = queue.front();
+      queue.pop();
+      const int node = elem.first;
+      const int depth = elem.second;
+
+      if (depth > max_depth) {
+        continue;
+      }
+
+      visitor_func(node, depth);
+
+      for (const int adj : adjacency_list[node]) {
+        if (!seen[adj]) {
+          seen[adj] = true;
+          queue.push({adj, depth + 1});
+        }
+      }
+    }
+  }
 
   virtual ~AbstractGraph(){};
 };

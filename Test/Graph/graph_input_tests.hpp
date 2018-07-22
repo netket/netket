@@ -8,6 +8,12 @@ std::vector<netket::json> GetGraphInputs() {
   std::vector<netket::json> input_tests;
   netket::json pars;
 
+  // Small 1d graph
+  pars = {
+      {"Graph",
+       {{"Name", "Hypercube"}, {"L", 3}, {"Dimension", 1}, {"Pbc", true}}}};
+  input_tests.push_back(pars);
+
   // Hypercube 1d
   pars = {
       {"Graph",
@@ -23,7 +29,7 @@ std::vector<netket::json> GetGraphInputs() {
   // Hypercube 3d
   pars = {
       {"Graph",
-       {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 3}, {"Pbc", true}}}};
+       {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 3}, {"Pbc", true}}}};
   input_tests.push_back(pars);
 
   // Graph from hilbert space
