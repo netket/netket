@@ -115,13 +115,11 @@ class Layer : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const VectorType &next_layer_data, VectorType &der,
-                int start_idx) override {
+                const VectorType &next_layer_data, VectorType &din,
+                VectorType &der, int start_idx) override {
     return m_->Backprop(prev_layer_output, this_layer_output, next_layer_data,
-                        der, start_idx);
+                        din, der, start_idx);
   }
-
-  const VectorType &BackpropData() const override { return m_->BackpropData(); }
 
   void to_json(json &j) const override { m_->to_json(j); }
 

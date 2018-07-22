@@ -61,25 +61,21 @@ class AbstractLayer {
   virtual void Forward(const VectorType &prev_layer_output,
                        VectorType &output) = 0;
 
-  virtual void Forward(const VectorType &prev_layer_output, const LookupType &lt,
-                       VectorType &output) = 0;
+  virtual void Forward(const VectorType &prev_layer_output,
+                       const LookupType &lt, VectorType &output) = 0;
 
   /**
   Member function to perform backpropagation to compute derivates.
-  @param prev_layer_output a constant reference to the output from previous layer.
+  @param prev_layer_output a constant reference to the output from previous
+  layer.
   @param next_layer_data a constant reference to the derivative dL/dA where A is
   the activations of the current layer and L is the the final output of the
   Machine: L = log(psi(v))
   */
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
-                        const VectorType &next_layer_data, VectorType &der,
-                        int start_idx) = 0;
-  /**
-  Member function to return dL/d(in), where (in) is the input to the current
-  layer, and L = log(psi(v))
-  */
-  virtual const VectorType &BackpropData() const = 0;
+                        const VectorType &next_layer_data, VectorType &din,
+                        VectorType &der, int start_idx) = 0;
 
   virtual void to_json(json &j) const = 0;
 
