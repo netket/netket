@@ -23,7 +23,6 @@
 #include <vector>
 #include "Hilbert/hilbert.hpp"
 #include "Utils/all_utils.hpp"
-#include "distance.hpp"
 
 namespace netket {
 
@@ -178,17 +177,6 @@ class CustomGraph : public AbstractGraph {
   bool IsBipartite() const override { return isbipartite_; }
 
   bool IsConnected() const override { return is_connected_; }
-
-  // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const override {
-    std::vector<std::vector<int>> distances;
-
-    for (int i = 0; i < nsites_; i++) {
-      distances.push_back(FindDist(adjlist_, i));
-    }
-
-    return distances;
-  }
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const override { return eclist_; }

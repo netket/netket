@@ -38,11 +38,6 @@ class AbstractGraph {
   @return Number of sites (nodes) in the graph.
   */
   virtual int Nsites() const = 0;
-  /**
-  Member function returning the integer distances between pair of nodes.
-  @return dist[i][j] is the integer distance between site i and j.
-  */
-  virtual std::vector<std::vector<int>> Distances() const = 0;
 
   /**
   Member function returning the adjacency list of the graph.
@@ -121,11 +116,7 @@ class AbstractGraph {
    *    called once for each visited node and where depth is the distance of node from start.
    */
   template<typename Func>
-  void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
-    std::vector<bool> seen(Nsites());
-    std::fill(seen.begin(), seen.end(), false);
-    BreadthFirstSearch_Impl(start, max_depth, visitor_func, seen);
-  }
+  void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const;
 
   /**
    * Perform a breadth-first search (BFS) through the whole graph, calling
@@ -144,19 +135,23 @@ class AbstractGraph {
    *    distance from comp to the current node.
    */
   template<typename Func>
-  void FullBreadthFirstSearch(Func visitor_func) const {
-    std::vector<bool> seen(Nsites());
-    std::fill(seen.begin(), seen.end(), false);
-    for(int v = 0; v < Nsites(); ++v) {
-      if(seen[v]) {
-        continue;
-      }
-      auto modified_visitor = [&](int node, int depth) {
-        visitor_func(node, depth, v);
-      };
-      BreadthFirstSearch_Impl(v, Nsites(), modified_visitor, seen);
-    }
-  }
+  void BreadthFirstSearch(Func visitor_func) const;
+
+  /**
+   * Computes the distances of all nodes from a root node (single-source shortest
+   * path problem). The distance of nodes not reachable from root are set to -1.
+   * @param root The root node from which the distances are calculated.
+   * @return A vector `dist` of distances where dist[v] is the distance of v to root.
+   */
+  virtual std::vector<int> Distances(int root) const;
+
+  /**
+   * Computes the distances between each pair of nodes on the graph (the
+   * all-pairs shortest path problem).
+   * @return A vector of vectors dist where dist[v][w] is the distance between
+   *    nodes v and w.
+   */
+  virtual std::vector<std::vector<int>> AllDistances() const;
 
   virtual ~AbstractGraph(){};
 
@@ -171,41 +166,11 @@ class AbstractGraph {
    */
   template<typename Func>
   void BreadthFirstSearch_Impl(int start, int max_depth, Func visitor_func,
-                               std::vector<bool>& seen) const {
-    assert(start >= 0 && start < Nsites());
-    assert(max_depth > 0);
-    assert(std::ptrdiff_t(seen.size()) == Nsites());
-    assert(!seen[start]);
-
-    // Queue to store states to visit
-    using QueueEntry = std::pair<int, int>;
-    std::queue<QueueEntry> queue;
-    queue.push({start, 0});
-
-    seen[start] = true;
-
-    const auto adjacency_list = AdjacencyList();
-    while (!queue.empty()) {
-      const auto elem = queue.front();
-      queue.pop();
-      const int node = elem.first;
-      const int depth = elem.second;
-
-      if (depth > max_depth) {
-        continue;
-      }
-
-      visitor_func(node, depth);
-
-      for (const int adj : adjacency_list[node]) {
-        if (!seen[adj]) {
-          seen[adj] = true;
-          queue.push({adj, depth + 1});
-        }
-      }
-    }
-  }
+                               std::vector<bool>& seen) const;
 };
 
 }  // namespace netket
+
+#include "graph_functions_impl.hpp"
+
 #endif
