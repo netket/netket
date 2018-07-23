@@ -22,7 +22,6 @@
 #include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
-#include "distance.hpp"
 
 namespace netket {
 
@@ -179,17 +178,6 @@ class Hypercube : public AbstractGraph {
   bool IsBipartite() const override { return true; }
 
   bool IsConnected() const override { return true; }
-
-  // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const override {
-    std::vector<std::vector<int>> distances;
-
-    for (int i = 0; i < nsites_; i++) {
-      distances.push_back(FindDist(adjlist_, i));
-    }
-
-    return distances;
-  }
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const override { return eclist_; }
