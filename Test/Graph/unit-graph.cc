@@ -68,7 +68,7 @@ TEST_CASE("Breadth-first search", "[graph]") {
     SECTION("full BFS for " + data) {
       std::unordered_set<int> visited;
       std::unordered_set<int> components;
-      graph.FullBreadthFirstSearch([&] (int v, int depth, int component) {
+      graph.BreadthFirstSearch([&](int v, int depth, int component) {
         INFO("v: " << v << ", depth: " << depth << ", component: " << component);
         REQUIRE(visited.count(v) == 0);
         visited.insert(v);
@@ -80,6 +80,63 @@ TEST_CASE("Breadth-first search", "[graph]") {
         REQUIRE(visited.count(v) == 1);
       }
       REQUIRE(components.size() == input["Test:NumComponents"]);
+    }
+  }
+}
+
+TEST_CASE("Distances are computed correctly") {
+  netket::json pars;
+  pars["Graph"] = {
+      {"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}
+  };
+  netket::Graph graph(pars);
+
+  SECTION("Distances for 1d chain") {
+    for (int i = 0; i < graph.Nsites(); ++i) {
+      const auto dists = graph.Distances(i);
+      for (int j = 0; j < graph.Nsites(); ++j) {
+        int dist = dists[j];
+        INFO("dist(" << i << ", " << j << "): " << dist);
+        REQUIRE(dist == std::abs(i - j));
+      }
+    }
+  }
+
+  SECTION("AllDistances for 1d chain") {
+    const auto dists = graph.AllDistances();
+    for (int i = 0; i < graph.Nsites(); ++i) {
+      for (int j = 0; j < graph.Nsites(); ++j) {
+        int dist = dists[i][j];
+        INFO("dist(" << i << ", " << j << "): " << dist);
+        REQUIRE(dist == std::abs(i - j));
+      }
+    }
+  }
+
+  pars.clear();
+  pars["Hilbert"]["QuantumNumbers"] = {1, -1};
+  pars["Hilbert"]["Size"] = 10;
+  netket::Graph graph2(pars);
+
+  SECTION("Distances for disconnected graph") {
+    for (int i = 0; i < graph2.Nsites(); ++i) {
+      const auto dists = graph2.Distances(i);
+      for (int j = 0; j < graph2.Nsites(); ++j) {
+        int dist = dists[j];
+        INFO("dist(" << i << ", " << j << "): " << dist);
+        REQUIRE(dist == (i == j ? 0 : -1));
+      }
+    }
+  }
+
+  SECTION("AllDistances for disconnected graph") {
+    const auto dists = graph2.AllDistances();
+    for (int i = 0; i < graph2.Nsites(); ++i) {
+      for (int j = 0; j < graph2.Nsites(); ++j) {
+        int dist = dists[i][j];
+        INFO("dist(" << i << ", " << j << "): " << dist);
+        REQUIRE(dist == (i == j ? 0 : -1));
+      }
     }
   }
 }
