@@ -16,7 +16,7 @@
 #include "activations.hpp"
 // #include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
-// #include "sum_output.hpp"
+#include "sum_output.hpp"
 
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
@@ -46,6 +46,8 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Tanh") {
         m_ = Ptype(new FullyConnected<Tanh, T>(pars));
       }
+    } else if (pars["Name"] == "Sum") {
+      m_ = Ptype(new SumOutput<T>(pars));
     }
     // else if (pars["Name"] == "Convolutional") {
     //   if (pars["Activation"] == "Lncosh") {
