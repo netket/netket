@@ -51,7 +51,7 @@ class AbstractLayer {
                             const std::vector<std::complex<double>> &newconf,
                             VectorType &theta) = 0;
 
-  virtual void UpdateLookup(const VectorType &v,
+  virtual void UpdateLookup(const Eigen::VectorXd &v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
                             VectorType &theta) = 0;

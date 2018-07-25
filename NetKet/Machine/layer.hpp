@@ -100,7 +100,7 @@ class Layer : public AbstractLayer<T> {
     return m_->UpdateLookup(v, tochange, newconf, theta);
   }
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     VectorType &theta) override {
     return m_->UpdateLookup(v, tochange, newconf, theta);
