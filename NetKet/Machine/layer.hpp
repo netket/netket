@@ -14,9 +14,9 @@
 
 #include "abstract_layer.hpp"
 #include "activations.hpp"
-#include "conv_layer.hpp"
+// #include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
-#include "sum_output.hpp"
+// #include "sum_output.hpp"
 
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
@@ -46,17 +46,18 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Tanh") {
         m_ = Ptype(new FullyConnected<Tanh, T>(pars));
       }
-    } else if (pars["Name"] == "Convolutional") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
-      }
-    } else if (pars["Name"] == "Sum") {
-      m_ = Ptype(new SumOutput<T>(pars));
     }
+    // else if (pars["Name"] == "Convolutional") {
+    //   if (pars["Activation"] == "Lncosh") {
+    //     m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
+    //   } else if (pars["Activation"] == "Identity") {
+    //     m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
+    //   } else if (pars["Activation"] == "Tanh") {
+    //     m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
+    //   }
+    // } else if (pars["Name"] == "Sum") {
+    //   m_ = Ptype(new SumOutput<T>(pars));
+    // }
   }
 
   void CheckInput(const json &pars) {
@@ -93,32 +94,46 @@ class Layer : public AbstractLayer<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    return m_->InitLookup(v, lt);
+  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+                    const std::vector<std::complex<double>> &newconf,
+                    VectorType &theta) override {
+    return m_->UpdateLookup(v, tochange, newconf, theta);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
-                    LookupType &lt) override {
-    return m_->UpdateLookup(v, tochange, newconf, lt);
+                    VectorType &theta) override {
+    return m_->UpdateLookup(v, tochange, newconf, theta);
   }
 
-  void Forward(const VectorType &prev_layer_output,
-               VectorType &output) override {
-    return m_->Forward(prev_layer_output, output);
+  void NextConf(const VectorType &theta, const std::vector<int> &tochange,
+                std::vector<int> &tochange1,
+                std::vector<std::complex<double>> &newconf1) override {
+    return m_->NextConf(theta, tochange, tochange1, newconf1);
   }
 
-  void Forward(const VectorType &prev_layer_output, const LookupType &lt,
+  void UpdateConf(const std::vector<int> &tochange,
+                  const std::vector<std::complex<double>> &newconf,
+                  VectorType &v) override {
+    return m_->UpdateConf(tochange, newconf, v);
+  }
+
+  void Forward(const VectorType &prev_layer_output, VectorType &theta,
                VectorType &output) override {
-    return m_->Forward(prev_layer_output, lt, output);
+    return m_->Forward(prev_layer_output, theta, output);
+  }
+
+  void Forward(const VectorType &theta, VectorType &output) override {
+    return m_->Forward(theta, output);
   }
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
+                const VectorType &this_layer_theta,
                 const VectorType &next_layer_data, VectorType &din,
                 VectorType &der, int start_idx) override {
-    return m_->Backprop(prev_layer_output, this_layer_output, next_layer_data,
-                        din, der, start_idx);
+    return m_->Backprop(prev_layer_output, this_layer_output, this_layer_theta,
+                        next_layer_data, din, der, start_idx);
   }
 
   void to_json(json &j) const override { m_->to_json(j); }

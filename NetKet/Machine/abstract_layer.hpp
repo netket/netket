@@ -46,23 +46,34 @@ class AbstractLayer {
 
   virtual void InitRandomPars(int seed, double sigma) = 0;
 
-  virtual void InitLookup(const Eigen::VectorXd &v, LookupType &lt) = 0;
+  virtual void UpdateLookup(const VectorType &v,
+                            const std::vector<int> &tochange,
+                            const std::vector<std::complex<double>> &newconf,
+                            VectorType &theta) = 0;
 
-  virtual void UpdateLookup(const Eigen::VectorXd &v,
+  virtual void UpdateLookup(const VectorType &v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
-                            LookupType &lt) = 0;
+                            VectorType &theta) = 0;
+
+  virtual void NextConf(const VectorType &theta,
+                        const std::vector<int> &tochange,
+                        std::vector<int> &tochange1,
+                        std::vector<std::complex<double>> &newconf1) = 0;
+
+  virtual void UpdateConf(const std::vector<int> &tochange,
+                          const std::vector<std::complex<double>> &newconf,
+                          VectorType &v) = 0;
 
   /**
   Member function to feedforward through the layer.
   @param prev_layer_output a constant reference to the output from previous
   layer.
   */
-  virtual void Forward(const VectorType &prev_layer_output,
+  virtual void Forward(const VectorType &prev_layer_output, VectorType &theta,
                        VectorType &output) = 0;
 
-  virtual void Forward(const VectorType &prev_layer_output,
-                       const LookupType &lt, VectorType &output) = 0;
+  virtual void Forward(const VectorType &theta, VectorType &output) = 0;
 
   /**
   Member function to perform backpropagation to compute derivates.
@@ -74,6 +85,7 @@ class AbstractLayer {
   */
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
+                        const VectorType &this_layer_theta,
                         const VectorType &next_layer_data, VectorType &din,
                         VectorType &der, int start_idx) = 0;
 
