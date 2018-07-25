@@ -188,7 +188,7 @@ class FullyConnected : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     VectorType &theta) override {
     if (tochange.size() != 0) {
