@@ -60,17 +60,12 @@ class Convolutional : public AbstractLayer<T> {
   MatrixType kernels_;      // Weight parameters, W(in_size x out_size)
   VectorType bias_;         // Bias parameters, b(out_size x 1)
 
-  MatrixType dw_;  // Derivative of weights
-  VectorType db_;  // Derivative of bias
-
   // Note that input of this layer is also the output of
   // previous layer
 
   MatrixType lowered_image_;
   MatrixType lowered_image2_;
-  MatrixType output_image_;
   MatrixType lowered_der_;
-  MatrixType output_der_;
   MatrixType flipped_kernels_;
 
  public:
@@ -160,14 +155,10 @@ class Convolutional : public AbstractLayer<T> {
 
     kernels_.resize(in_channels_ * kernel_size_, out_channels_);
     bias_.resize(out_channels_);
-    dw_.resize(in_channels_ * kernel_size_, out_channels_);
-    db_.resize(out_channels_);
 
     lowered_image_.resize(in_channels_ * kernel_size_, nv_);
     lowered_image2_.resize(nv_, in_channels_ * kernel_size_);
-    output_image_.resize(nv_, out_channels_);
     lowered_der_.resize(kernel_size_ * out_channels_, nv_);
-    output_der_.resize(nv_, in_channels_);
     flipped_kernels_.resize(kernel_size_ * out_channels_, in_channels_);
 
     npar_ = in_channels_ * kernel_size_ * out_channels_;
