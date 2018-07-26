@@ -172,18 +172,16 @@ class FullyConnected : public AbstractLayer<T> {
   }
 
   void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
-                    const std::vector<std::complex<double>> &newconf,
-                    VectorType &theta) override {
+                    const VectorType &newconf, VectorType &theta) override {
     const int num_of_changes = tochange.size();
 
     if (num_of_changes == in_size_) {
-      Eigen::Map<const VectorType> v_new{newconf.data(), in_size_};
       theta = bias_;
-      theta.noalias() += weight_.transpose() * v_new;
+      theta.noalias() += weight_.transpose() * newconf;
     } else {
       for (int s = 0; s < num_of_changes; s++) {
         const int sf = tochange[s];
-        theta += weight_.row(sf) * (newconf[s] - v(sf));
+        theta += weight_.row(sf) * (newconf(s) - v(sf));
       }
     }
   }
@@ -201,21 +199,13 @@ class FullyConnected : public AbstractLayer<T> {
 
   void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
                 std::vector<int> & /*tochange1*/,
-                std::vector<std::complex<double>> &newconf1) override {
-    VectorType a_new(out_size_);
-    activation_(theta, a_new);
-    for (int i = 0; i < out_size_; ++i) {
-      newconf1[i] = a_new(i);
-    }
-    // new (&a_new) Eigen::Map<VectorType>(newconf1.data(), out_size_);
-    // activation_(theta, a_new);
+                VectorType &newconf1) override {
+    activation_(theta, newconf1);
   }
 
   void UpdateConf(const std::vector<int> & /*tochange*/,
-                  const std::vector<std::complex<double>> &newconf,
-                  VectorType &v) override {
-    Eigen::Map<const VectorType> v_new(newconf.data(), in_size_);
-    v.noalias() = v_new;
+                  const VectorType &newconf, VectorType &v) override {
+    v.noalias() = newconf;
   }
 
   void Forward(const VectorType &prev_layer_output, VectorType &theta,

@@ -94,8 +94,7 @@ class Layer : public AbstractLayer<T> {
   }
 
   void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
-                    const std::vector<std::complex<double>> &newconf,
-                    VectorType &theta) override {
+                    const VectorType &newconf, VectorType &theta) override {
     return m_->UpdateLookup(v, tochange, newconf, theta);
   }
 
@@ -106,13 +105,11 @@ class Layer : public AbstractLayer<T> {
   }
 
   void NextConf(const VectorType &theta, const std::vector<int> &tochange,
-                std::vector<int> &tochange1,
-                std::vector<std::complex<double>> &newconf1) override {
+                std::vector<int> &tochange1, VectorType &newconf1) override {
     return m_->NextConf(theta, tochange, tochange1, newconf1);
   }
 
-  void UpdateConf(const std::vector<int> &tochange,
-                  const std::vector<std::complex<double>> &newconf,
+  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
                   VectorType &v) override {
     return m_->UpdateConf(tochange, newconf, v);
   }

@@ -75,17 +75,15 @@ class SumOutput : public AbstractLayer<T> {
   void SetParameters(const VectorType & /*pars*/, int /*start_idx*/) override {}
 
   void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
-                    const std::vector<std::complex<double>> &newconf,
-                    VectorType &theta) override {
+                    const VectorType &newconf, VectorType &theta) override {
     const int num_of_changes = tochange.size();
 
     if (num_of_changes == in_size_) {
-      Eigen::Map<const VectorType> v_new{newconf.data(), in_size_};
-      theta(0) = v_new.sum();
+      theta(0) = newconf.sum();
     } else {
       for (int s = 0; s < num_of_changes; s++) {
         const int sf = tochange[s];
-        theta(0) += (newconf[s] - v(sf));
+        theta(0) += (newconf(s) - v(sf));
       }
     }
   }
@@ -103,19 +101,13 @@ class SumOutput : public AbstractLayer<T> {
 
   void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
                 std::vector<int> & /*tochange1*/,
-                std::vector<std::complex<double>> &newconf1) override {
-    for (int i = 0; i < out_size_; ++i) {
-      newconf1[i] = theta(i);
-    }
-    // new (&a_new) Eigen::Map<VectorType>(newconf1.data(), out_size_);
-    // activation_(theta, a_new);
+                VectorType &newconf1) override {
+    newconf1.noalias() = theta;
   }
 
   void UpdateConf(const std::vector<int> & /*tochange*/,
-                  const std::vector<std::complex<double>> &newconf,
-                  VectorType &v) override {
-    Eigen::Map<const VectorType> v_new(newconf.data(), in_size_);
-    v.noalias() = v_new;
+                  const VectorType &newconf, VectorType &v) override {
+    v.noalias() = newconf;
   }
 
   // use prev_layer_output to compute theta and output

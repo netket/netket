@@ -48,8 +48,7 @@ class AbstractLayer {
 
   virtual void UpdateLookup(const VectorType &v,
                             const std::vector<int> &tochange,
-                            const std::vector<std::complex<double>> &newconf,
-                            VectorType &theta) = 0;
+                            const VectorType &newconf, VectorType &theta) = 0;
 
   virtual void UpdateLookup(const Eigen::VectorXd &v,
                             const std::vector<int> &tochange,
@@ -58,12 +57,10 @@ class AbstractLayer {
 
   virtual void NextConf(const VectorType &theta,
                         const std::vector<int> &tochange,
-                        std::vector<int> &tochange1,
-                        std::vector<std::complex<double>> &newconf1) = 0;
+                        std::vector<int> &tochange1, VectorType &newconf1) = 0;
 
   virtual void UpdateConf(const std::vector<int> &tochange,
-                          const std::vector<std::complex<double>> &newconf,
-                          VectorType &v) = 0;
+                          const VectorType &newconf, VectorType &v) = 0;
 
   /**
   Member function to feedforward through the layer.
