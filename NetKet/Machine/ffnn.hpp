@@ -42,7 +42,7 @@ class FFNN : public AbstractMachine<T> {
 
   typename AbstractMachine<T>::LookupType ltnew_;
   std::vector<std::vector<int>> tochange_layer_;
-  std::vector<std::vector<std::complex<double>>> newconf_layer_;
+  std::vector<VectorType> newconf_layer_;
 
   const Hilbert &hilbert_;
 
