@@ -81,7 +81,7 @@ class Layer : public AbstractLayer<T> {
 
   int Noutput() const override { return m_->Noutput(); }
 
-  void GetParameters(VectorType &pars, int start_idx) override {
+  void GetParameters(VectorType &pars, int start_idx) const override {
     return m_->GetParameters(pars, start_idx);
   }
 
