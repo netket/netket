@@ -63,8 +63,6 @@ class Convolutional : public AbstractLayer<T> {
   MatrixType dw_;  // Derivative of weights
   VectorType db_;  // Derivative of bias
 
-  VectorType z_;  // Linear term, z = W' * in + b
-
   // Note that input of this layer is also the output of
   // previous layer
 
@@ -160,7 +158,6 @@ class Convolutional : public AbstractLayer<T> {
       }
     }
 
-    z_.resize(out_channels_ * nv_);
     kernels_.resize(in_channels_ * kernel_size_, out_channels_);
     bias_.resize(out_channels_);
     dw_.resize(in_channels_ * kernel_size_, out_channels_);
@@ -243,32 +240,30 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    if (lt.VectorSize() == 0) {
-      lt.AddVector(out_size_);
-    }
-    Convolve(v, lt.V(0));
-    if (usebias_) {
-      int k = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int i = 0; i < nv_; ++i) {
-          lt.V(0)(k) += bias_(out);
-          ++k;
+  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+                    const std::vector<std::complex<double>> &newconf,
+                    VectorType &theta) override {
+    const int num_of_changes = tochange.size();
+
+    if (num_of_changes == in_size_) {
+      Eigen::Map<const VectorType> v_new{newconf.data(), in_size_};
+      Convolve(v_new, theta);
+      if (usebias_) {
+        int k = 0;
+        for (int out = 0; out < out_channels_; ++out) {
+          for (int i = 0; i < nv_; ++i) {
+            theta(k) += bias_(out);
+            ++k;
+          }
         }
       }
-    }
-  }
-
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
-    if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); ++s) {
+    } else {
+      for (int s = 0; s < num_of_changes; ++s) {
         const int sf = tochange[s];
         int kout = 0;
         for (int out = 0; out < out_channels_; ++out) {
           for (int k = 0; k < kernel_size_; ++k) {
-            lt.V(0)(flipped_neighbours_[sf][k] + kout) +=
+            theta(flipped_neighbours_[sf][k] + kout) +=
                 kernels_(k, out) * (newconf[s] - v(sf));
           }
           kout += nv_;
@@ -277,30 +272,61 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void Forward(const VectorType &prev_layer_output,
+  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    VectorType &theta) override {
+    for (std::size_t s = 0; s < tochange.size(); ++s) {
+      const int sf = tochange[s];
+      int kout = 0;
+      for (int out = 0; out < out_channels_; ++out) {
+        for (int k = 0; k < kernel_size_; ++k) {
+          theta(flipped_neighbours_[sf][k] + kout) +=
+              kernels_(k, out) * (newconf[s] - v(sf));
+        }
+        kout += nv_;
+      }
+    }
+  }
+
+  void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
+                std::vector<int> & /*tochange1*/,
+                std::vector<std::complex<double>> &newconf1) override {
+    VectorType a_new(out_size_);
+    activation_(theta, a_new);
+    for (int i = 0; i < out_size_; ++i) {
+      newconf1[i] = a_new(i);
+    }
+    // new (&a_new) Eigen::Map<VectorType>(newconf1.data(), out_size_);
+    // activation_(theta, a_new);
+  }
+
+  void UpdateConf(const std::vector<int> & /*tochange*/,
+                  const std::vector<std::complex<double>> &newconf,
+                  VectorType &v) override {
+    Eigen::Map<const VectorType> v_new(newconf.data(), in_size_);
+    v.noalias() = v_new;
+  }
+
+  void Forward(const VectorType &prev_layer_output, VectorType &theta,
                VectorType &output) override {
-    Convolve(prev_layer_output, z_);
+    Convolve(prev_layer_output, theta);
 
     if (usebias_) {
       int k = 0;
       for (int out = 0; out < out_channels_; ++out) {
         for (int i = 0; i < nv_; ++i) {
-          z_(k) += bias_(out);
+          theta(k) += bias_(out);
           ++k;
         }
       }
     }
-    output.resize(out_size_);
-    activation_(z_, output);
+    activation_(theta, output);
   }
 
   // Using lookup
-  void Forward(const VectorType & /*prev_layer_output*/, const LookupType &lt,
-               VectorType &output) override {
-    z_ = lt.V(0);
+  void Forward(const VectorType &theta, VectorType &output) override {
     // Apply activation function
-    output.resize(out_size_);
-    activation_(z_, output);
+    activation_(theta, output);
   }
 
   inline void Convolve(const VectorType &image, VectorType &z) {
@@ -320,11 +346,13 @@ class Convolutional : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
+                const VectorType &this_layer_theta,
                 const VectorType &next_layer_data, VectorType &din,
                 VectorType &der, int start_idx) override {
     // Compute dL/dz
-    VectorType &dLz = z_;
-    activation_.ApplyJacobian(z_, this_layer_output, next_layer_data, dLz);
+    VectorType dLz(out_size_);
+    activation_.ApplyJacobian(this_layer_theta, this_layer_output,
+                              next_layer_data, dLz);
 
     int kd = start_idx;
 

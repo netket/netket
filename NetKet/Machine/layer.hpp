@@ -14,7 +14,7 @@
 
 #include "abstract_layer.hpp"
 #include "activations.hpp"
-// #include "conv_layer.hpp"
+#include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
 #include "sum_output.hpp"
 
@@ -46,20 +46,17 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Tanh") {
         m_ = Ptype(new FullyConnected<Tanh, T>(pars));
       }
+    } else if (pars["Name"] == "Convolutional") {
+      if (pars["Activation"] == "Lncosh") {
+        m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
+      } else if (pars["Activation"] == "Identity") {
+        m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
+      }
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }
-    // else if (pars["Name"] == "Convolutional") {
-    //   if (pars["Activation"] == "Lncosh") {
-    //     m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
-    //   } else if (pars["Activation"] == "Identity") {
-    //     m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
-    //   } else if (pars["Activation"] == "Tanh") {
-    //     m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
-    //   }
-    // } else if (pars["Name"] == "Sum") {
-    //   m_ = Ptype(new SumOutput<T>(pars));
-    // }
   }
 
   void CheckInput(const json &pars) {
