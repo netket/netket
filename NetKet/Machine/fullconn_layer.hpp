@@ -146,7 +146,7 @@ class FullyConnected : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorType &pars, int start_idx) override {
+  void GetParameters(VectorType &pars, int start_idx) const override {
     int k = start_idx;
 
     if (usebias_) {

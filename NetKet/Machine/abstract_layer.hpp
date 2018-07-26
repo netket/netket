@@ -40,7 +40,7 @@ class AbstractLayer {
 
   virtual int Npar() const = 0;
 
-  virtual void GetParameters(VectorType &pars, int start_idx) = 0;
+  virtual void GetParameters(VectorType &pars, int start_idx) const = 0;
 
   virtual void SetParameters(const VectorType &pars, int start_idx) = 0;
 
