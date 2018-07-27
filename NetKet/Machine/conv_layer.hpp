@@ -231,85 +231,56 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(VectorType &oldconf, const std::vector<int> &tochange,
                     const VectorType &newconf, VectorType &theta) override {
-    const int num_of_changes = tochange.size();
-
-    if (num_of_changes == in_size_) {
-      Convolve(newconf, theta);
-      if (usebias_) {
-        int k = 0;
-        for (int out = 0; out < out_channels_; ++out) {
-          for (int i = 0; i < nv_; ++i) {
-            theta(k) += bias_(out);
-            ++k;
-          }
-        }
-      }
+    if (int(tochange.size()) == in_size_) {
+      LinearTransformation(newconf, theta);
     } else {
-      for (int s = 0; s < num_of_changes; ++s) {
-        const int sf = tochange[s];
-        int kout = 0;
-        for (int out = 0; out < out_channels_; ++out) {
-          for (int k = 0; k < kernel_size_; ++k) {
-            theta(flipped_neighbours_[sf][k] + kout) +=
-                kernels_(k, out) * (newconf(s) - v(sf));
-          }
-          kout += nv_;
-        }
-      }
+      UpdateTheta(oldconf, tochange, newconf, theta);
     }
+    UpdateConf(tochange, newconf, oldconf);
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     VectorType &theta) override {
-    for (std::size_t s = 0; s < tochange.size(); ++s) {
-      const int sf = tochange[s];
-      int kout = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int k = 0; k < kernel_size_; ++k) {
-          theta(flipped_neighbours_[sf][k] + kout) +=
-              kernels_(k, out) * (newconf[s] - v(sf));
-        }
-        kout += nv_;
-      }
-    }
+    UpdateTheta(v, tochange, newconf, theta);
   }
 
   void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
                 std::vector<int> & /*tochange1*/,
                 VectorType &newconf1) override {
-    activation_(theta, newconf1);
+    NonLinearTransformation(theta, newconf1);
   }
 
-  void UpdateConf(const std::vector<int> & /*tochange*/,
-                  const VectorType &newconf, VectorType &v) override {
-    v.noalias() = newconf;
-  }
+  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
+                  VectorType &v) override {
+    const int num_of_changes = tochange.size();
 
-  void Forward(const VectorType &prev_layer_output, VectorType &theta,
-               VectorType &output) override {
-    Convolve(prev_layer_output, theta);
-
-    if (usebias_) {
-      int k = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int i = 0; i < nv_; ++i) {
-          theta(k) += bias_(out);
-          ++k;
-        }
+    if (num_of_changes == in_size_) {
+      v.noalias() = newconf;
+    } else {
+      for (int s = 0; s < num_of_changes; s++) {
+        const int sf = tochange[s];
+        v(sf) = newconf(s);
       }
     }
-    activation_(theta, output);
   }
 
-  // Using lookup
+  // Feedforward
+  void Forward(const VectorType &prev_layer_output, VectorType &theta,
+               VectorType &output) override {
+    LinearTransformation(prev_layer_output, theta);
+    NonLinearTransformation(theta, output);
+  }
+
+  // Feedforward Using lookup
   void Forward(const VectorType &theta, VectorType &output) override {
     // Apply activation function
-    activation_(theta, output);
+    NonLinearTransformation(theta, output);
   }
 
+  // performs the convolution of the kernel onto the image and writes into z
   inline void Convolve(const VectorType &image, VectorType &z) {
     // im2col method
     for (int i = 0; i < nv_; ++i) {
@@ -323,6 +294,61 @@ class Convolutional : public AbstractLayer<T> {
     }
     Eigen::Map<MatrixType> output_image(z.data(), nv_, out_channels_);
     output_image.noalias() = lowered_image_.transpose() * kernels_;
+  }
+
+  // Performs the linear transformation for the layer.
+  inline void LinearTransformation(const VectorType &input, VectorType &theta) {
+    Convolve(input, theta);
+
+    if (usebias_) {
+      int k = 0;
+      for (int out = 0; out < out_channels_; ++out) {
+        for (int i = 0; i < nv_; ++i) {
+          theta(k) += bias_(out);
+          ++k;
+        }
+      }
+    }
+  }
+
+  // Performs the nonlinear transformation for the layer.
+  inline void NonLinearTransformation(const VectorType &theta,
+                                      VectorType &output) {
+    activation_(theta, output);
+  }
+
+  inline void UpdateTheta(VectorType &oldconf, const std::vector<int> &tochange,
+                          const VectorType &newconf, VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; ++s) {
+      const int sf = tochange[s];
+      int kout = 0;
+      for (int out = 0; out < out_channels_; ++out) {
+        for (int k = 0; k < kernel_size_; ++k) {
+          theta(flipped_neighbours_[sf][k] + kout) +=
+              kernels_(k, out) * (newconf(s) - oldconf(sf));
+        }
+        kout += nv_;
+      }
+    }
+  }
+
+  inline void UpdateTheta(const VectorType &oldconf,
+                          const std::vector<int> &tochange,
+                          const std::vector<double> &newconf,
+                          VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; ++s) {
+      const int sf = tochange[s];
+      int kout = 0;
+      for (int out = 0; out < out_channels_; ++out) {
+        for (int k = 0; k < kernel_size_; ++k) {
+          theta(flipped_neighbours_[sf][k] + kout) +=
+              kernels_(k, out) * (newconf[s] - oldconf(sf));
+        }
+        kout += nv_;
+      }
+    }
   }
 
   void Backprop(const VectorType &prev_layer_output,

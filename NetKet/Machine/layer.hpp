@@ -93,7 +93,7 @@ class Layer : public AbstractLayer<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(VectorType &v, const std::vector<int> &tochange,
                     const VectorType &newconf, VectorType &theta) override {
     return m_->UpdateLookup(v, tochange, newconf, theta);
   }

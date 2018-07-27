@@ -74,29 +74,20 @@ class SumOutput : public AbstractLayer<T> {
 
   void SetParameters(const VectorType & /*pars*/, int /*start_idx*/) override {}
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(VectorType &oldconf, const std::vector<int> &tochange,
                     const VectorType &newconf, VectorType &theta) override {
-    const int num_of_changes = tochange.size();
-
-    if (num_of_changes == in_size_) {
-      theta(0) = newconf.sum();
+    if (int(tochange.size()) == in_size_) {
+      LinearTransformation(newconf, theta);
     } else {
-      for (int s = 0; s < num_of_changes; s++) {
-        const int sf = tochange[s];
-        theta(0) += (newconf(s) - v(sf));
-      }
+      UpdateTheta(oldconf, tochange, newconf, theta);
     }
+    UpdateConf(tochange, newconf, oldconf);
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     VectorType &theta) override {
-    if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-        theta(0) += (newconf[s] - v(sf));
-      }
-    }
+    UpdateTheta(v, tochange, newconf, theta);
   }
 
   void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
@@ -105,21 +96,59 @@ class SumOutput : public AbstractLayer<T> {
     newconf1.noalias() = theta;
   }
 
-  void UpdateConf(const std::vector<int> & /*tochange*/,
-                  const VectorType &newconf, VectorType &v) override {
-    v.noalias() = newconf;
+  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
+                  VectorType &v) override {
+    const int num_of_changes = tochange.size();
+
+    if (num_of_changes == in_size_) {
+      v.noalias() = newconf;
+    } else {
+      for (int s = 0; s < num_of_changes; s++) {
+        const int sf = tochange[s];
+        v(sf) = newconf(s);
+      }
+    }
   }
 
-  // use prev_layer_output to compute theta and output
   void Forward(const VectorType &prev_layer_output, VectorType &theta,
                VectorType &output) override {
-    theta(0) = prev_layer_output.sum();
+    LinearTransformation(prev_layer_output, theta);
+    NonLinearTransformation(theta, output);
+  }
+
+  // Using lookup
+  void Forward(const VectorType &theta, VectorType &output) override {
+    // Apply activation function
+    NonLinearTransformation(theta, output);
+  }
+
+  inline void LinearTransformation(const VectorType &input, VectorType &theta) {
+    theta(0) = input.sum();
+  }
+
+  inline void NonLinearTransformation(const VectorType &theta,
+                                      VectorType &output) {
     output(0) = theta(0);
   }
 
-  // use theta to compute output
-  void Forward(const VectorType &theta, VectorType &output) override {
-    output(0) = theta(0);
+  inline void UpdateTheta(VectorType &oldconf, const std::vector<int> &tochange,
+                          const VectorType &newconf, VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; s++) {
+      const int sf = tochange[s];
+      theta(0) += (newconf(s) - oldconf(sf));
+    }
+  }
+
+  inline void UpdateTheta(const VectorType &oldconf,
+                          const std::vector<int> &tochange,
+                          const std::vector<double> &newconf,
+                          VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; s++) {
+      const int sf = tochange[s];
+      theta(0) += (newconf[s] - oldconf(sf));
+    }
   }
 
   void Backprop(const VectorType & /*prev_layer_output*/,
