@@ -171,57 +171,85 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void UpdateLookup(const VectorType &v, const std::vector<int> &tochange,
+  void UpdateLookup(VectorType &oldconf, const std::vector<int> &tochange,
                     const VectorType &newconf, VectorType &theta) override {
-    const int num_of_changes = tochange.size();
-
-    if (num_of_changes == in_size_) {
-      theta = bias_;
-      theta.noalias() += weight_.transpose() * newconf;
+    if (int(tochange.size()) == in_size_) {
+      LinearTransformation(newconf, theta);
     } else {
-      for (int s = 0; s < num_of_changes; s++) {
-        const int sf = tochange[s];
-        theta += weight_.row(sf) * (newconf(s) - v(sf));
-      }
+      UpdateTheta(oldconf, tochange, newconf, theta);
     }
+    UpdateConf(tochange, newconf, oldconf);
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     VectorType &theta) override {
-    if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-        theta += weight_.row(sf) * (newconf[s] - v(sf));
-      }
-    }
+    UpdateTheta(v, tochange, newconf, theta);
   }
 
   void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
                 std::vector<int> & /*tochange1*/,
                 VectorType &newconf1) override {
-    activation_(theta, newconf1);
+    NonLinearTransformation(theta, newconf1);
   }
 
-  void UpdateConf(const std::vector<int> & /*tochange*/,
-                  const VectorType &newconf, VectorType &v) override {
-    v.noalias() = newconf;
+  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
+                  VectorType &v) override {
+    const int num_of_changes = tochange.size();
+
+    if (num_of_changes == in_size_) {
+      v.noalias() = newconf;
+    } else {
+      for (int s = 0; s < num_of_changes; s++) {
+        const int sf = tochange[s];
+        v(sf) = newconf(s);
+      }
+    }
   }
 
+  // Feedforward
   void Forward(const VectorType &prev_layer_output, VectorType &theta,
                VectorType &output) override {
-    // Linear term z = W' * in + b
-    theta = bias_;
-    theta.noalias() += weight_.transpose() * prev_layer_output;
+    LinearTransformation(prev_layer_output, theta);
+    NonLinearTransformation(theta, output);
+  }
 
+  // Feedforward Using lookup
+  void Forward(const VectorType &theta, VectorType &output) override {
     // Apply activation function
+    NonLinearTransformation(theta, output);
+  }
+
+  // Applies the linear transformation
+  inline void LinearTransformation(const VectorType &input, VectorType &theta) {
+    theta = bias_;
+    theta.noalias() += weight_.transpose() * input;
+  }
+
+  // Applies the nonlinear transformation
+  inline void NonLinearTransformation(const VectorType &theta,
+                                      VectorType &output) {
     activation_(theta, output);
   }
 
-  // Using lookup
-  void Forward(const VectorType &theta, VectorType &output) override {
-    // Apply activation function
-    activation_(theta, output);
+  inline void UpdateTheta(VectorType &oldconf, const std::vector<int> &tochange,
+                          const VectorType &newconf, VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; s++) {
+      const int sf = tochange[s];
+      theta += weight_.row(sf) * (newconf(s) - oldconf(sf));
+    }
+  }
+
+  inline void UpdateTheta(const VectorType &oldconf,
+                          const std::vector<int> &tochange,
+                          const std::vector<double> &newconf,
+                          VectorType &theta) {
+    const int num_of_changes = tochange.size();
+    for (int s = 0; s < num_of_changes; s++) {
+      const int sf = tochange[s];
+      theta += weight_.row(sf) * (newconf[s] - oldconf(sf));
+    }
   }
 
   void Backprop(const VectorType &prev_layer_output,

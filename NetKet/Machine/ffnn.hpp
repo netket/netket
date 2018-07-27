@@ -192,8 +192,6 @@ class FFNN : public AbstractMachine<T> {
     for (int i = 1; i < nlayer_; ++i) {
       layers_[i]->UpdateLookup(lt.V(2 * i - 1), tochange_layer_[i - 1],
                                newconf_layer_[i - 1], lt.V(2 * i));
-      layers_[i]->UpdateConf(tochange_layer_[i - 1], newconf_layer_[i - 1],
-                             lt.V(2 * i - 1));
       layers_[i]->NextConf(lt.V(2 * i), tochange_layer_[i - 1],
                            tochange_layer_[i], newconf_layer_[i]);
     }
