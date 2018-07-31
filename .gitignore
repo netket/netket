@@ -38,3 +38,7 @@
 ehthumbs.db
 Thumbs.db
 
+# Python Generated Files #
+##########################
+*__pycache__
+*.pyc
