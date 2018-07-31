@@ -74,40 +74,26 @@ class SumOutput : public AbstractLayer<T> {
 
   void SetParameters(const VectorType & /*pars*/, int /*start_idx*/) override {}
 
-  void UpdateLookup(VectorType &oldconf, const std::vector<int> &tochange,
-                    const VectorType &newconf, VectorType &theta) override {
-    if (int(tochange.size()) == in_size_) {
-      LinearTransformation(newconf, theta);
+  void ForwardUpdate(const VectorType &input,
+                     const std::vector<int> &input_changes,
+                     const VectorType &prev_input, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    if (int(input_changes.size()) == in_size_) {
+      LinearTransformation(input, theta);
     } else {
-      UpdateTheta(oldconf, tochange, newconf, theta);
+      UpdateTheta(input, input_changes, prev_input, theta);
     }
-    UpdateConf(tochange, newconf, oldconf);
+    UpdateOutput(theta, input_changes, output, output_changes, prev_output);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    VectorType &theta) override {
-    UpdateTheta(v, tochange, newconf, theta);
-  }
-
-  void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
-                std::vector<int> & /*tochange1*/,
-                VectorType &newconf1) override {
-    newconf1.noalias() = theta;
-  }
-
-  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
-                  VectorType &v) override {
-    const int num_of_changes = tochange.size();
-
-    if (num_of_changes == in_size_) {
-      v.noalias() = newconf;
-    } else {
-      for (int s = 0; s < num_of_changes; s++) {
-        const int sf = tochange[s];
-        v(sf) = newconf(s);
-      }
-    }
+  void ForwardUpdate(const Eigen::VectorXd &prev_input,
+                     const std::vector<int> &tochange,
+                     const std::vector<double> &newconf, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    UpdateTheta(prev_input, tochange, newconf, theta);
+    UpdateOutput(theta, tochange, output, output_changes, prev_output);
   }
 
   void Forward(const VectorType &prev_layer_output, VectorType &theta,
@@ -131,23 +117,32 @@ class SumOutput : public AbstractLayer<T> {
     output(0) = theta(0);
   }
 
-  inline void UpdateTheta(VectorType &oldconf, const std::vector<int> &tochange,
-                          const VectorType &newconf, VectorType &theta) {
-    const int num_of_changes = tochange.size();
+  inline void UpdateOutput(const VectorType &theta,
+                           const std::vector<int> & /*input_changes*/,
+                           VectorType &output,
+                           std::vector<int> & /*output_changes*/,
+                           VectorType & /*prev_output*/) {
+    NonLinearTransformation(theta, output);
+  }
+
+  inline void UpdateTheta(const VectorType &v,
+                          const std::vector<int> &input_changes,
+                          const VectorType &prev_input, VectorType &theta) {
+    const int num_of_changes = input_changes.size();
     for (int s = 0; s < num_of_changes; s++) {
-      const int sf = tochange[s];
-      theta(0) += (newconf(s) - oldconf(sf));
+      const int sf = input_changes[s];
+      theta(0) += (v(sf) - prev_input(s));
     }
   }
 
-  inline void UpdateTheta(const VectorType &oldconf,
+  inline void UpdateTheta(const VectorType &prev_input,
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf,
                           VectorType &theta) {
     const int num_of_changes = tochange.size();
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = tochange[s];
-      theta(0) += (newconf[s] - oldconf(sf));
+      theta(0) += (newconf[s] - prev_input(sf));
     }
   }
 

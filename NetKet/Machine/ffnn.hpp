@@ -42,7 +42,7 @@ class FFNN : public AbstractMachine<T> {
 
   typename AbstractMachine<T>::LookupType ltnew_;
   std::vector<std::vector<int>> tochange_layer_;
-  std::vector<VectorType> newconf_layer_;
+  std::vector<VectorType> prev_outputs_;
 
   const Hilbert &hilbert_;
 
@@ -110,10 +110,10 @@ class FFNN : public AbstractMachine<T> {
     }
 
     tochange_layer_.resize(nlayer_);
-    newconf_layer_.resize(nlayer_);
+    prev_outputs_.resize(nlayer_);
     for (int i = 0; i < nlayer_; ++i) {
       tochange_layer_[i].resize(layersizes_[i + 1]);
-      newconf_layer_[i].resize(layersizes_[i + 1]);
+      prev_outputs_[i].resize(layersizes_[i + 1]);
     }
 
     InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
@@ -186,16 +186,13 @@ class FFNN : public AbstractMachine<T> {
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-    layers_[0]->UpdateLookup(v, tochange, newconf, lt.V(0));
-    layers_[0]->NextConf(lt.V(0), tochange, tochange_layer_[0],
-                         newconf_layer_[0]);
+    layers_[0]->ForwardUpdate(v, tochange, newconf, lt.V(0), lt.V(1),
+                              tochange_layer_[0], prev_outputs_[0]);
     for (int i = 1; i < nlayer_; ++i) {
-      layers_[i]->UpdateLookup(lt.V(2 * i - 1), tochange_layer_[i - 1],
-                               newconf_layer_[i - 1], lt.V(2 * i));
-      layers_[i]->NextConf(lt.V(2 * i), tochange_layer_[i - 1],
-                           tochange_layer_[i], newconf_layer_[i]);
+      layers_[i]->ForwardUpdate(
+          lt.V(2 * i - 1), tochange_layer_[i - 1], prev_outputs_[i - 1],
+          lt.V(2 * i), lt.V(2 * i + 1), tochange_layer_[i], prev_outputs_[i]);
     }
-    layers_[nlayer_ - 1]->Forward(lt.V(2 * nlayer_ - 2), lt.V(2 * nlayer_ - 1));
   }
 
   T LogVal(const Eigen::VectorXd &v) override {

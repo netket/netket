@@ -93,25 +93,22 @@ class Layer : public AbstractLayer<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  void UpdateLookup(VectorType &v, const std::vector<int> &tochange,
-                    const VectorType &newconf, VectorType &theta) override {
-    return m_->UpdateLookup(v, tochange, newconf, theta);
+  void ForwardUpdate(const VectorType &input,
+                     const std::vector<int> &input_changes,
+                     const VectorType &prev_input, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    return m_->ForwardUpdate(input, input_changes, prev_input, theta, output,
+                             output_changes, prev_output);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    VectorType &theta) override {
-    return m_->UpdateLookup(v, tochange, newconf, theta);
-  }
-
-  void NextConf(const VectorType &theta, const std::vector<int> &tochange,
-                std::vector<int> &tochange1, VectorType &newconf1) override {
-    return m_->NextConf(theta, tochange, tochange1, newconf1);
-  }
-
-  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
-                  VectorType &v) override {
-    return m_->UpdateConf(tochange, newconf, v);
+  void ForwardUpdate(const Eigen::VectorXd &prev_input,
+                     const std::vector<int> &tochange,
+                     const std::vector<double> &newconf, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    return m_->ForwardUpdate(prev_input, tochange, newconf, theta, output,
+                             output_changes, prev_output);
   }
 
   void Forward(const VectorType &prev_layer_output, VectorType &theta,
