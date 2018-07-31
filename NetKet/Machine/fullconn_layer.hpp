@@ -171,40 +171,26 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void UpdateLookup(VectorType &oldconf, const std::vector<int> &tochange,
-                    const VectorType &newconf, VectorType &theta) override {
-    if (int(tochange.size()) == in_size_) {
-      LinearTransformation(newconf, theta);
+  void ForwardUpdate(const VectorType &input,
+                     const std::vector<int> &input_changes,
+                     const VectorType &prev_input, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    if (int(input_changes.size()) == in_size_) {
+      LinearTransformation(input, theta);
     } else {
-      UpdateTheta(oldconf, tochange, newconf, theta);
+      UpdateTheta(input, input_changes, prev_input, theta);
     }
-    UpdateConf(tochange, newconf, oldconf);
+    UpdateOutput(theta, input_changes, output, output_changes, prev_output);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    VectorType &theta) override {
-    UpdateTheta(v, tochange, newconf, theta);
-  }
-
-  void NextConf(const VectorType &theta, const std::vector<int> & /*tochange*/,
-                std::vector<int> & /*tochange1*/,
-                VectorType &newconf1) override {
-    NonLinearTransformation(theta, newconf1);
-  }
-
-  void UpdateConf(const std::vector<int> &tochange, const VectorType &newconf,
-                  VectorType &v) override {
-    const int num_of_changes = tochange.size();
-
-    if (num_of_changes == in_size_) {
-      v.noalias() = newconf;
-    } else {
-      for (int s = 0; s < num_of_changes; s++) {
-        const int sf = tochange[s];
-        v(sf) = newconf(s);
-      }
-    }
+  void ForwardUpdate(const Eigen::VectorXd &prev_input,
+                     const std::vector<int> &tochange,
+                     const std::vector<double> &newconf, VectorType &theta,
+                     VectorType &output, std::vector<int> &output_changes,
+                     VectorType &prev_output) override {
+    UpdateTheta(prev_input, tochange, newconf, theta);
+    UpdateOutput(theta, tochange, output, output_changes, prev_output);
   }
 
   // Feedforward
@@ -232,26 +218,42 @@ class FullyConnected : public AbstractLayer<T> {
     activation_(theta, output);
   }
 
-  inline void UpdateTheta(VectorType &oldconf, const std::vector<int> &tochange,
-                          const VectorType &newconf, VectorType &theta) {
-    const int num_of_changes = tochange.size();
+  // Updates the output given theta and also records the changes to the output
+  // in output_changes and prev_output
+  inline void UpdateOutput(const VectorType &theta,
+                           const std::vector<int> & /*input_changes*/,
+                           VectorType &output,
+                           std::vector<int> & /*output_changes*/,
+                           VectorType & /*prev_output*/) {
+    NonLinearTransformation(theta, output);
+  }
+
+  // Updates theta given the input v, the change in the input (input_changes and
+  // prev_input)
+  inline void UpdateTheta(const VectorType &v,
+                          const std::vector<int> &input_changes,
+                          const VectorType &prev_input, VectorType &theta) {
+    const int num_of_changes = input_changes.size();
     for (int s = 0; s < num_of_changes; s++) {
-      const int sf = tochange[s];
-      theta += weight_.row(sf) * (newconf(s) - oldconf(sf));
+      const int sf = input_changes[s];
+      theta += weight_.row(sf) * (v(sf) - prev_input(s));
     }
   }
 
-  inline void UpdateTheta(const VectorType &oldconf,
+  // Updates theta given the previous input prev_input and the change in the
+  // input (tochange and  newconf)
+  inline void UpdateTheta(const VectorType &prev_input,
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf,
                           VectorType &theta) {
     const int num_of_changes = tochange.size();
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = tochange[s];
-      theta += weight_.row(sf) * (newconf[s] - oldconf(sf));
+      theta += weight_.row(sf) * (newconf[s] - prev_input(sf));
     }
   }
 
+  // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
                 const VectorType &this_layer_theta,

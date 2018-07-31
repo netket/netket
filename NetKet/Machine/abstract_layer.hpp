@@ -74,67 +74,58 @@ class AbstractLayer {
   virtual void InitRandomPars(int seed, double sigma) = 0;
 
   /**
-  Member function to update the lookuptable which stores the output of each
-  layer.
-  @param v is a vector in the lookuptable storing the previous(old) input into
-  the layer. This vector also corresponds to the output of the previous layer
-  after the nonlinear transformation is applied. This vector is updated to the
-  newconf at the end of the function.
-  @param tochange is a vector containing the nodes of the input which has
-  changed.
-  @param newconf is a vector containing the new values at the changed nodes.
+  Member function to feedforward through the layer while at the same time
+  updating the lookuptable which stores the theta and output of each layer.
+  "Summary: This function uses input, input_changes and prev_input to generate
+  theta which in turn gives output on application of the nonlinear
+  transformation. output_changes and prev_output keeps track of how the output
+  of the layer has changed due to changes in the input."
+  @param input is a vector in the lookuptable storing the output from the
+  previous layer. This would be the input to the current layer.
+  @param input_changes is a std::vector containing the nodes of the input which
+  has changed.
+  @param prev_input is a vector containing the old values at the changed input
+  nodes.
   @param theta is a vector in the lookuptable storing the output of the layer
   before the nonlinear function is applied.
+  @param output is a vector in the lookuptable storing the output of the layer
+  after the nonlinear function is applied.
+  @param output_changes is a vector in the lookuptable storing the output of the
+  layer before the nonlinear function is applied.
+  @param prev_output is a vector storing the previous output of the layer.
   */
-  virtual void UpdateLookup(VectorType &v, const std::vector<int> &tochange,
-                            const VectorType &newconf, VectorType &theta) = 0;
+  virtual void ForwardUpdate(const VectorType &input,
+                             const std::vector<int> &input_changes,
+                             const VectorType &prev_input, VectorType &theta,
+                             VectorType &output,
+                             std::vector<int> &output_changes,
+                             VectorType &prev_output) = 0;
   /**
-  Member function to update the lookuptable which stores the output of each
-  layer.
-  @param v is a vector storing the previous(old) input into
-  the layer. This vector does not belong in the lookuptable. It is the input
-  configuration into the machine class.
-  @param tochange is a vector containing the nodes of the input which has
-  changed.
-  @param newconf is a vector containing the new values at the changed nodes.
+  Member function to feedforward through the layer while at the same time
+  updating the lookuptable which stores the theta and output of each layer.
+  "Summary: This function uses prev_input, tochange and newconf to generate
+  theta which in turn gives output on application of the nonlinear
+  transformation. output_changes and prev_output keeps track of how the output
+  of the layer has changed due to changes in the input."
+  @param prev_input is a vector giving the previous input into the layer.
+  param tochange is a std::vector containing the nodes of the
+  input which has changed.
+  @param newconf is a std::vector storing the new values at the changed input
+  nodes.
   @param theta is a vector in the lookuptable storing the output of the layer
   before the nonlinear function is applied.
+  @param output is a vector in the lookuptable storing the output of the layer
+  after the nonlinear function is applied.
+  @param output_changes is a vector in the lookuptable storing the output of the
+  layer before the nonlinear function is applied.
+  @param prev_output is a vector storing the previous output of the layer.
   */
-  virtual void UpdateLookup(const Eigen::VectorXd &v,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            VectorType &theta) = 0;
-  /**
-  Member function to generate the nodes in the output of the current layer which
-  have changed due to a change in the input. If the entire input is changed
-  obviously all nodes in the output would also change, however if only a subset
-  of input nodes are altered, depending on the type of layer, possibly only a
-  subset of output nodes would change. Based on tochange and theta, the function
-  would write the vector tochange1 and newconf1.
-  @param theta is a vector in the lookuptable storing the output of the layer
-  before the nonlinear function is applied.
-  @param tochange is a vector containing the nodes of the input which has
-  changed.
-  @param newconf is a vector containing the new values at the changed nodes.
-  @param tochange1 is a vector containing the nodes of the output which has
-  changed.
-  @param newconf1 is a vector containing the new values at the changed nodes.
-  */
-  virtual void NextConf(const VectorType &theta,
-                        const std::vector<int> &tochange,
-                        std::vector<int> &tochange1, VectorType &newconf1) = 0;
-
-  /**
-  Member function to update the vector in the lookuptable storing the output of
-  the layer after the nonlinear function is applied.
-  @param tochange1 is a vector containing the nodes of the output which has
-  changed.
-  @param newconf1 is a vector containing the new values at the changed nodes.
-  @param v is a vector in the lookuptable storing the output of
-  the layer after the nonlinear function is applied.
-  */
-  virtual void UpdateConf(const std::vector<int> &tochange1,
-                          const VectorType &newconf1, VectorType &v) = 0;
+  virtual void ForwardUpdate(const Eigen::VectorXd &prev_input,
+                             const std::vector<int> &tochange,
+                             const std::vector<double> &newconf,
+                             VectorType &theta, VectorType &output,
+                             std::vector<int> &output_changes,
+                             VectorType &prev_output) = 0;
 
   /**
   Member function to feedforward through the layer. Writes the output in to
@@ -162,9 +153,17 @@ class AbstractLayer {
   Member function to perform backpropagation to compute derivates.
   @param prev_layer_output a constant reference to the output from previous
   layer.
+  @param this_layer_output a constant reference to the output from the current
+  layer.
+  @param this_layer_theta a constant reference to the theta from the current
+  layer.
   @param next_layer_data a constant reference to the derivative dL/dA where A is
   the activations of the current layer and L is the the final output of the
   Machine: L = log(psi(v))
+  @param din a constant reference to the derivative of the input from the
+  current layer.
+  @param der a constant reference to the derivatives wrt to the parameters in
+  the machine.
   */
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
