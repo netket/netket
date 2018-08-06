@@ -214,7 +214,7 @@ TEST_CASE("Layers update look-up tables correctly", "[layer]") {
         machine.InitLookup(v, ltnew);
 
         for (int vlt = 0; vlt < lt.VectorSize(); vlt++) {
-          for (std::size_t k = 0; k < lt.V(vlt).size(); k++) {
+          for (int k = 0; k < lt.V(vlt).size(); k++) {
             REQUIRE(Approx(std::real(lt.V(vlt)(k))).margin(1.0e-6) ==
                     std::real(ltnew.V(vlt)(k)));
             REQUIRE(Approx(std::imag(lt.V(vlt)(k))).margin(1.0e-6) ==
@@ -223,8 +223,8 @@ TEST_CASE("Layers update look-up tables correctly", "[layer]") {
         }
 
         for (int mlt = 0; mlt < lt.VVSize(); mlt++) {
-          for (std::size_t k = 0; k < lt.VV(mlt).size(); k++) {
-            for (std::size_t kp = 0; kp < lt.VV(mlt)[k].size(); kp++) {
+          for (int k = 0; k < int(lt.VV(mlt).size()); k++) {
+            for (int kp = 0; kp < int(lt.VV(mlt)[k].size()); kp++) {
               REQUIRE(Approx(std::real(lt.VV(mlt)[k](kp))).margin(1.0e-6) ==
                       std::real(ltnew.VV(mlt)[k](kp)));
               REQUIRE(Approx(std::imag(lt.VV(mlt)[k](kp))).margin(1.0e-6) ==
