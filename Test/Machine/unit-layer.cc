@@ -143,3 +143,96 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
     }
   }
 }
+
+TEST_CASE("Layers update look-up tables correctly", "[layer]") {
+  auto input_tests = GetLayerInputs();
+  std::size_t ntests = input_tests.size();
+
+  netket::default_random_engine rgen;
+
+  for (std::size_t it = 0; it < ntests; it++) {
+    SECTION("Layer test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
+      auto pars = input_tests[it];
+
+      netket::Graph graph(pars);
+
+      netket::Hamiltonian hamiltonian(graph, pars);
+
+      using MType = std::complex<double>;
+      using WfType = netket::Machine<MType>;
+
+      WfType machine(graph, hamiltonian, pars);
+
+      double sigma = 1;
+      machine.InitRandomPars(1234, sigma);
+
+      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
+
+      typename WfType::LookupType lt;
+      typename WfType::LookupType ltnew;
+
+      int nv = hilbert.Size();
+      Eigen::VectorXd v(nv);
+
+      int nstates = hilbert.LocalSize();
+      const auto localstates = hilbert.LocalStates();
+
+      std::uniform_int_distribution<int> diststate(0, nstates - 1);
+      std::uniform_int_distribution<int> distnchange(0, nv - 1);
+
+      std::vector<int> randperm(nv);
+      for (int i = 0; i < nv; i++) {
+        randperm[i] = i;
+      }
+
+      hilbert.RandomVals(v, rgen);
+      machine.InitLookup(v, lt);
+
+      for (int i = 0; i < 100; i++) {
+        // we test on a random number of sites to be changed
+        int nchange = distnchange(rgen);
+        std::vector<int> tochange(nchange);
+        std::vector<double> newconf(nchange);
+
+        // picking k unique random site to be changed
+        std::random_shuffle(randperm.begin(), randperm.end());
+
+        for (int k = 0; k < nchange; k++) {
+          int si = randperm[k];
+
+          tochange[k] = si;
+
+          // picking a random state
+          int newstate = diststate(rgen);
+          newconf[k] = localstates[newstate];
+        }
+
+        machine.UpdateLookup(v, tochange, newconf, lt);
+        hilbert.UpdateConf(v, tochange, newconf);
+
+        machine.InitLookup(v, ltnew);
+
+        for (int vlt = 0; vlt < lt.VectorSize(); vlt++) {
+          for (std::size_t k = 0; k < lt.V(vlt).size(); k++) {
+            REQUIRE(Approx(std::real(lt.V(vlt)(k))).margin(1.0e-6) ==
+                    std::real(ltnew.V(vlt)(k)));
+            REQUIRE(Approx(std::imag(lt.V(vlt)(k))).margin(1.0e-6) ==
+                    std::imag(ltnew.V(vlt)(k)));
+          }
+        }
+
+        for (int mlt = 0; mlt < lt.VVSize(); mlt++) {
+          for (std::size_t k = 0; k < lt.VV(mlt).size(); k++) {
+            for (std::size_t kp = 0; kp < lt.VV(mlt)[k].size(); kp++) {
+              REQUIRE(Approx(std::real(lt.VV(mlt)[k](kp))).margin(1.0e-6) ==
+                      std::real(ltnew.VV(mlt)[k](kp)));
+              REQUIRE(Approx(std::imag(lt.VV(mlt)[k](kp))).margin(1.0e-6) ==
+                      std::imag(ltnew.VV(mlt)[k](kp)));
+            }
+          }
+        }
+      }
+    }
+  }
+}
