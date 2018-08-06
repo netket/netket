@@ -231,37 +231,66 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void ForwardUpdate(const VectorType &input,
-                     const std::vector<int> &input_changes,
-                     const VectorType &prev_input, VectorType &theta,
-                     VectorType &output, std::vector<int> &output_changes,
-                     VectorType &prev_output) override {
-    if (int(input_changes.size()) == in_size_) {
-      LinearTransformation(input, theta);
-    } else {
-      UpdateTheta(input, input_changes, prev_input, theta);
-    }
-    UpdateOutput(theta, input_changes, output, output_changes, prev_output);
+  void InitLookup(const VectorType &v, LookupType &lt,
+                  VectorType &output) override {
+    lt.resize(1);
+    lt[0].resize(out_size_);
+
+    Forward(v, lt, output);
   }
 
-  void ForwardUpdate(const Eigen::VectorXd &prev_input,
-                     const std::vector<int> &tochange,
-                     const std::vector<double> &newconf, VectorType &theta,
-                     VectorType &output, std::vector<int> &output_changes,
-                     VectorType &prev_output) override {
-    UpdateTheta(prev_input, tochange, newconf, theta);
-    UpdateOutput(theta, tochange, output, output_changes, prev_output);
+  void UpdateLookup(const VectorType &input,
+                    const std::vector<int> &input_changes,
+                    const VectorType &new_input, LookupType &theta,
+                    const VectorType & /*output*/,
+                    std::vector<int> &output_changes,
+                    VectorType &new_output) override {
+    // At the moment the light cone structure of the convolution is not
+    // exploited. To do so we would to change the part
+    // else if (num_of_changes >0) {...}
+    const int num_of_changes = input_changes.size();
+    if (num_of_changes == in_size_) {
+      output_changes.resize(out_size_);
+      new_output.resize(out_size_);
+      Forward(new_input, theta, new_output);
+    } else if (num_of_changes > 0) {
+      UpdateTheta(input, input_changes, new_input, theta);
+      output_changes.resize(out_size_);
+      new_output.resize(out_size_);
+      Forward(theta, new_output);
+    } else {
+      output_changes.resize(0);
+      new_output.resize(0);
+    }
+  }
+
+  void UpdateLookup(const Eigen::VectorXd &input,
+                    const std::vector<int> &tochange,
+                    const std::vector<double> &newconf, LookupType &theta,
+                    const VectorType & /*output*/,
+                    std::vector<int> &output_changes,
+                    VectorType &new_output) override {
+    const int num_of_changes = tochange.size();
+    if (num_of_changes > 0) {
+      UpdateTheta(input, tochange, newconf, theta);
+      output_changes.resize(out_size_);
+      new_output.resize(out_size_);
+      Forward(theta, new_output);
+    } else {
+      output_changes.resize(0);
+      new_output.resize(0);
+    }
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, VectorType &theta,
+  void Forward(const VectorType &prev_layer_output, LookupType &theta,
                VectorType &output) override {
     LinearTransformation(prev_layer_output, theta);
     NonLinearTransformation(theta, output);
   }
 
   // Feedforward Using lookup
-  void Forward(const VectorType &theta, VectorType &output) override {
+  void Forward(const LookupType &theta, VectorType &output) override {
     // Apply activation function
     NonLinearTransformation(theta, output);
   }
@@ -283,14 +312,14 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   // Performs the linear transformation for the layer.
-  inline void LinearTransformation(const VectorType &input, VectorType &theta) {
-    Convolve(input, theta);
+  inline void LinearTransformation(const VectorType &input, LookupType &theta) {
+    Convolve(input, theta[0]);
 
     if (usebias_) {
       int k = 0;
       for (int out = 0; out < out_channels_; ++out) {
         for (int i = 0; i < nv_; ++i) {
-          theta(k) += bias_(out);
+          theta[0](k) += bias_(out);
           ++k;
         }
       }
@@ -298,30 +327,22 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   // Performs the nonlinear transformation for the layer.
-  inline void NonLinearTransformation(const VectorType &theta,
+  inline void NonLinearTransformation(const LookupType &theta,
                                       VectorType &output) {
-    activation_(theta, output);
-  }
-
-  inline void UpdateOutput(const VectorType &theta,
-                           const std::vector<int> & /*input_changes*/,
-                           VectorType &output,
-                           std::vector<int> & /*output_changes*/,
-                           VectorType & /*prev_output*/) {
-    NonLinearTransformation(theta, output);
+    activation_(theta[0], output);
   }
 
   inline void UpdateTheta(const VectorType &v,
                           const std::vector<int> &input_changes,
-                          const VectorType &prev_input, VectorType &theta) {
+                          const VectorType &new_input, LookupType &theta) {
     const int num_of_changes = input_changes.size();
     for (int s = 0; s < num_of_changes; ++s) {
       const int sf = input_changes[s];
       int kout = 0;
       for (int out = 0; out < out_channels_; ++out) {
         for (int k = 0; k < kernel_size_; ++k) {
-          theta(flipped_neighbours_[sf][k] + kout) +=
-              kernels_(k, out) * (v(sf) - prev_input(s));
+          theta[0](flipped_neighbours_[sf][k] + kout) +=
+              kernels_(k, out) * (new_input(s) - v(sf));
         }
         kout += nv_;
       }
@@ -331,14 +352,14 @@ class Convolutional : public AbstractLayer<T> {
   inline void UpdateTheta(const VectorType &prev_input,
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf,
-                          VectorType &theta) {
+                          LookupType &theta) {
     const int num_of_changes = tochange.size();
     for (int s = 0; s < num_of_changes; ++s) {
       const int sf = tochange[s];
       int kout = 0;
       for (int out = 0; out < out_channels_; ++out) {
         for (int k = 0; k < kernel_size_; ++k) {
-          theta(flipped_neighbours_[sf][k] + kout) +=
+          theta[0](flipped_neighbours_[sf][k] + kout) +=
               kernels_(k, out) * (newconf[s] - prev_input(sf));
         }
         kout += nv_;
@@ -348,13 +369,12 @@ class Convolutional : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const VectorType &this_layer_theta,
-                const VectorType &next_layer_data, VectorType &din,
-                VectorType &der, int start_idx) override {
+                const LookupType &this_layer_theta, const VectorType &dout,
+                VectorType &din, VectorType &der, int start_idx) override {
     // Compute dL/dz
     VectorType dLz(out_size_);
-    activation_.ApplyJacobian(this_layer_theta, this_layer_output,
-                              next_layer_data, dLz);
+    activation_.ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
+                              dLz);
 
     int kd = start_idx;
 

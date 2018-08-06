@@ -32,7 +32,7 @@ class Layer : public AbstractLayer<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
+  using LookupType = std::vector<VectorType>;
 
   explicit Layer(const Graph &graph, const json &pars) { Init(graph, pars); }
 
@@ -93,40 +93,44 @@ class Layer : public AbstractLayer<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  void ForwardUpdate(const VectorType &input,
-                     const std::vector<int> &input_changes,
-                     const VectorType &prev_input, VectorType &theta,
-                     VectorType &output, std::vector<int> &output_changes,
-                     VectorType &prev_output) override {
-    return m_->ForwardUpdate(input, input_changes, prev_input, theta, output,
-                             output_changes, prev_output);
+  void InitLookup(const VectorType &v, LookupType &lt,
+                  VectorType &output) override {
+    return m_->InitLookup(v, lt, output);
   }
 
-  void ForwardUpdate(const Eigen::VectorXd &prev_input,
-                     const std::vector<int> &tochange,
-                     const std::vector<double> &newconf, VectorType &theta,
-                     VectorType &output, std::vector<int> &output_changes,
-                     VectorType &prev_output) override {
-    return m_->ForwardUpdate(prev_input, tochange, newconf, theta, output,
-                             output_changes, prev_output);
+  void UpdateLookup(const VectorType &input,
+                    const std::vector<int> &input_changes,
+                    const VectorType &new_input, LookupType &theta,
+                    const VectorType &output, std::vector<int> &output_changes,
+                    VectorType &new_output) override {
+    return m_->UpdateLookup(input, input_changes, new_input, theta, output,
+                            output_changes, new_output);
   }
 
-  void Forward(const VectorType &prev_layer_output, VectorType &theta,
+  void UpdateLookup(const Eigen::VectorXd &input,
+                    const std::vector<int> &tochange,
+                    const std::vector<double> &newconf, LookupType &theta,
+                    const VectorType &output, std::vector<int> &output_changes,
+                    VectorType &new_output) override {
+    return m_->UpdateLookup(input, tochange, newconf, theta, output,
+                            output_changes, new_output);
+  }
+
+  void Forward(const VectorType &prev_layer_output, LookupType &theta,
                VectorType &output) override {
     return m_->Forward(prev_layer_output, theta, output);
   }
 
-  void Forward(const VectorType &theta, VectorType &output) override {
+  void Forward(const LookupType &theta, VectorType &output) override {
     return m_->Forward(theta, output);
   }
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const VectorType &this_layer_theta,
-                const VectorType &next_layer_data, VectorType &din,
-                VectorType &der, int start_idx) override {
+                const LookupType &this_layer_theta, const VectorType &dout,
+                VectorType &din, VectorType &der, int start_idx) override {
     return m_->Backprop(prev_layer_output, this_layer_output, this_layer_theta,
-                        next_layer_data, din, der, start_idx);
+                        dout, din, der, start_idx);
   }
 
   void to_json(json &j) const override { m_->to_json(j); }
