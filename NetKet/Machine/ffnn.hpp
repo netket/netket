@@ -40,9 +40,9 @@ class FFNN : public AbstractMachine<T> {
   int nv_;
   std::vector<VectorType> din_;
 
+  std::vector<std::vector<int>> changed_nodes_;
+  std::vector<VectorType> new_output_;
   typename AbstractMachine<T>::LookupType ltnew_;
-  std::vector<std::vector<int>> tochange_layer_;
-  std::vector<VectorType> prev_outputs_;
 
   const Hilbert &hilbert_;
 
@@ -106,15 +106,11 @@ class FFNN : public AbstractMachine<T> {
 
     for (int i = 0; i < nlayer_; ++i) {
       ltnew_.AddVector(layersizes_[i + 1]);
-      ltnew_.AddVector(layersizes_[i + 1]);
+      ltnew_.AddVV(1);
     }
 
-    tochange_layer_.resize(nlayer_);
-    prev_outputs_.resize(nlayer_);
-    for (int i = 0; i < nlayer_; ++i) {
-      tochange_layer_[i].resize(layersizes_[i + 1]);
-      prev_outputs_[i].resize(layersizes_[i + 1]);
-    }
+    changed_nodes_.resize(nlayer_);
+    new_output_.resize(nlayer_);
 
     InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
                         << " Layers: ";
@@ -171,69 +167,94 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    if (lt.VectorSize() == 0) {
-      for (int i = 0; i < nlayer_; ++i) {
-        lt.AddVector(layersizes_[i + 1]);
-        lt.AddVector(layersizes_[i + 1]);
+    if (lt.VVSize() == 0) {
+      lt.AddVV(1);                   // contains the output of layer 0
+      lt.AddVector(layersizes_[1]);  // contains the lookup of layer 0
+      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      for (int i = 1; i < nlayer_; ++i) {
+        lt.AddVV(1);                       // contains the output of layer i
+        lt.AddVector(layersizes_[i + 1]);  // contains the lookup of layer i
+        layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
       }
-    }
-    layers_[0]->Forward(v, lt.V(0), lt.V(1));
-    for (int i = 1; i < nlayer_; ++i) {
-      layers_[i]->Forward(lt.V(2 * i - 1), lt.V(2 * i), lt.V(2 * i + 1));
+    } else {
+      assert((int(lt.VectorSize()) == nlayer_) &&
+             (int(lt.VVSize()) == nlayer_));
+      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      for (int i = 1; i < nlayer_; ++i) {
+        layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
+      }
     }
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-    layers_[0]->ForwardUpdate(v, tochange, newconf, lt.V(0), lt.V(1),
-                              tochange_layer_[0], prev_outputs_[0]);
+    layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
+                             changed_nodes_[0], new_output_[0]);
     for (int i = 1; i < nlayer_; ++i) {
-      layers_[i]->ForwardUpdate(
-          lt.V(2 * i - 1), tochange_layer_[i - 1], prev_outputs_[i - 1],
-          lt.V(2 * i), lt.V(2 * i + 1), tochange_layer_[i], prev_outputs_[i]);
+      layers_[i]->UpdateLookup(lt.V(i - 1), changed_nodes_[i - 1],
+                               new_output_[i - 1], lt.VV(i), lt.V(i),
+                               changed_nodes_[i], new_output_[i]);
+      UpdateOutput(lt.V(i - 1), changed_nodes_[i - 1], new_output_[i - 1]);
+    }
+    UpdateOutput(lt.V(nlayer_ - 1), changed_nodes_[nlayer_ - 1],
+                 new_output_[nlayer_ - 1]);
+  }
+
+  void UpdateOutput(VectorType &v, const std::vector<int> &tochange,
+                    VectorType &newconf) {
+    int num_of_changes = tochange.size();
+    if (num_of_changes == v.size()) {
+      assert(int(newconf.size()) == num_of_changes);
+      v.swap(newconf);  // this is done for efficiency
+    } else {
+      for (int s = 0; s < num_of_changes; s++) {
+        const int sf = tochange[s];
+        v(sf) = newconf(s);
+      }
     }
   }
 
   T LogVal(const Eigen::VectorXd &v) override {
     LookupType lt;
     InitLookup(v, lt);
-    return (lt.V(2 * nlayer_ - 1))(0);
+    assert(nlayer_ > 0);
+    return (lt.V(nlayer_ - 1))(0);
   }
 
   T LogVal(const Eigen::VectorXd & /*v*/, const LookupType &lt) override {
-    return (lt.V(2 * nlayer_ - 1))(0);
+    assert(nlayer_ > 0);
+    return (lt.V(nlayer_ - 1))(0);
   }
 
   VectorType DerLog(const Eigen::VectorXd &v) override {
     VectorType der(npar_);
-
-    InitLookup(v, ltnew_);
-    DerLog(v, ltnew_, der);
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    DerLog(v, der, ltnew);
     return der;
   }
 
-  void DerLog(const Eigen::VectorXd &v, const LookupType &lt, VectorType &der) {
+  void DerLog(const Eigen::VectorXd &v, VectorType &der, const LookupType &lt) {
     int start_idx = npar_;
     // Backpropagation
     if (nlayer_ > 1) {
       start_idx -= layers_[nlayer_ - 1]->Npar();
       // Last Layer
-      layers_[nlayer_ - 1]->Backprop(lt.V(2 * (nlayer_ - 2) + 1),
-                                     lt.V(2 * (nlayer_ - 1) + 1),
-                                     lt.V(2 * (nlayer_ - 1)), din_.back(),
+      layers_[nlayer_ - 1]->Backprop(lt.V(nlayer_ - 2), lt.V(nlayer_ - 1),
+                                     lt.VV(nlayer_ - 1), din_.back(),
                                      din_[nlayer_ - 1], der, start_idx);
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         start_idx -= layers_[i]->Npar();
-        layers_[i]->Backprop(lt.V(2 * (i - 1) + 1), lt.V(2 * i + 1),
-                             lt.V(2 * i), din_[i + 1], din_[i], der, start_idx);
+        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), lt.VV(i), din_[i + 1],
+                             din_[i], der, start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, lt.V(1), lt.V(0), din_[1], din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_[1], din_[0], der, 0);
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, lt.V(1), lt.V(0), din_.back(), din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_.back(), din_[0], der, 0);
     }
   }
 
@@ -249,10 +270,10 @@ class FFNN : public AbstractMachine<T> {
     for (int k = 0; k < nconn; ++k) {
       logvaldiffs(k) = 0;
       if (tochange[k].size() != 0) {
-        ltnew_.V(0) = lt.V(0);
-        UpdateLookup(v, tochange[k], newconf[k], ltnew_);
+        LookupType ltnew = lt;
+        UpdateLookup(v, tochange[k], newconf[k], ltnew);
 
-        logvaldiffs(k) += LogVal(v, ltnew_) - current_val;
+        logvaldiffs(k) += LogVal(v, ltnew) - current_val;
       }
     }
     return logvaldiffs;
@@ -262,10 +283,10 @@ class FFNN : public AbstractMachine<T> {
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     if (tochange.size() != 0) {
-      ltnew_.V(0) = lt.V(0);
-      UpdateLookup(v, tochange, newconf, ltnew_);
+      LookupType ltnew = lt;
+      UpdateLookup(v, tochange, newconf, ltnew);
 
-      return LogVal(v, ltnew_) - LogVal(v, lt);
+      return LogVal(v, ltnew) - LogVal(v, lt);
     } else {
       return 0.0;
     }
@@ -278,7 +299,7 @@ class FFNN : public AbstractMachine<T> {
       layers_[i]->to_json(j);
     }
   }
-};
+};  // namespace netket
 
 }  // namespace netket
 

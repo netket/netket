@@ -32,7 +32,7 @@ class AbstractLayer {
   using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
   using StateType = T;
-  using LookupType = Lookup<T>;
+  using LookupType = std::vector<VectorType>;
 
   /**
   Member function returning the number of inputs a layer takes.
@@ -72,60 +72,71 @@ class AbstractLayer {
   @param sigma is the variance of the gaussian.
   */
   virtual void InitRandomPars(int seed, double sigma) = 0;
+  /**
+  Member function to initialise the lookup for the later. "Summary: This
+  function uses the input vector v to compute the lookup lt and the output. This
+  function also resizes the lookup elements to the correct size."
+  @param v is the input vector.
+  @param theta is a vector in the lookuptable storing the output of the
+  layer before the nonlinear function is applied.
+  @param output is a vector in the lookuptable storing the previous output of
+  the current layer.
+  */
+  virtual void InitLookup(const VectorType &v, LookupType &lt,
+                          VectorType &output) = 0;
 
   /**
-  Member function to feedforward through the layer while at the same time
-  updating the lookuptable which stores the theta and output of each layer.
-  "Summary: This function uses input, input_changes and prev_input to generate
-  theta which in turn gives output on application of the nonlinear
-  transformation. output_changes and prev_output keeps track of how the output
-  of the layer has changed due to changes in the input."
+  Member function to update the lookuptable which stores the theta of
+  each layer. "Summary: This function uses input, input_changes and new_input
+  to generate theta which in turn gives output on application of the nonlinear
+  transformation. output_changes and new_output keeps track of how the
+  output of the layer has changed due to changes in the input."
   @param input is a vector in the lookuptable storing the output from the
-  previous layer. This would be the input to the current layer.
-  @param input_changes is a std::vector containing the nodes of the input which
-  has changed.
-  @param prev_input is a vector containing the old values at the changed input
-  nodes.
-  @param theta is a vector in the lookuptable storing the output of the layer
-  before the nonlinear function is applied.
-  @param output is a vector in the lookuptable storing the output of the layer
-  after the nonlinear function is applied.
-  @param output_changes is a vector in the lookuptable storing the output of the
+  previous layer. This would be the old input to the current layer.
+  @param input_changes is a std::vector containing the nodes of the input
+  which has changed.
+  @param new_input is a vector containing the new values at the changed
+  input nodes.
+  @param theta is a vector in the lookuptable storing the output of the
   layer before the nonlinear function is applied.
-  @param prev_output is a vector storing the previous output of the layer.
+  @param output is a vector in the lookuptable storing the previous output of
+  the current layer.
+  @param output_changes is a vector containing the nodes of the output which has
+  changed.
+  @param new_output is a vector storing the new output of the layer.
   */
-  virtual void ForwardUpdate(const VectorType &input,
-                             const std::vector<int> &input_changes,
-                             const VectorType &prev_input, VectorType &theta,
-                             VectorType &output,
-                             std::vector<int> &output_changes,
-                             VectorType &prev_output) = 0;
+  virtual void UpdateLookup(const VectorType &input,
+                            const std::vector<int> &input_changes,
+                            const VectorType &new_input, LookupType &theta,
+                            const VectorType &output,
+                            std::vector<int> &output_changes,
+                            VectorType &new_output) = 0;
   /**
-  Member function to feedforward through the layer while at the same time
-  updating the lookuptable which stores the theta and output of each layer.
-  "Summary: This function uses prev_input, tochange and newconf to generate
-  theta which in turn gives output on application of the nonlinear
-  transformation. output_changes and prev_output keeps track of how the output
-  of the layer has changed due to changes in the input."
-  @param prev_input is a vector giving the previous input into the layer.
-  param tochange is a std::vector containing the nodes of the
-  input which has changed.
-  @param newconf is a std::vector storing the new values at the changed input
-  nodes.
-  @param theta is a vector in the lookuptable storing the output of the layer
-  before the nonlinear function is applied.
-  @param output is a vector in the lookuptable storing the output of the layer
-  after the nonlinear function is applied.
-  @param output_changes is a vector in the lookuptable storing the output of the
+  Member function to update the lookuptable which stores the theta of
+  each layer. "Summary: This function uses input, tochange and newconf
+  to generate theta which in turn gives output on application of the nonlinear
+  transformation. output_changes and new_output keeps track of how the
+  output of the layer has changed due to changes in the input."
+  @param input is a vector in the lookuptable storing the output from the
+  previous layer. This would be the old input to the current layer.
+  @param tochange is a std::vector containing the nodes of the input
+  which has changed.
+  @param newconf is a vector containing the new values at the changed
+  input nodes.
+  @param theta is a vector in the lookuptable storing the output of the
   layer before the nonlinear function is applied.
-  @param prev_output is a vector storing the previous output of the layer.
+  @param output is a vector in the lookuptable storing the previous output of
+  the current layer.
+  @param output_changes is a vector containing the nodes of the output which has
+  changed.
+  @param new_output is a vector storing the new output of the layer.
   */
-  virtual void ForwardUpdate(const Eigen::VectorXd &prev_input,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             VectorType &theta, VectorType &output,
-                             std::vector<int> &output_changes,
-                             VectorType &prev_output) = 0;
+  virtual void UpdateLookup(const Eigen::VectorXd &input,
+                            const std::vector<int> &tochange,
+                            const std::vector<double> &newconf,
+                            LookupType &theta, const VectorType &output,
+                            std::vector<int> &output_changes,
+                            VectorType &new_output) = 0;
 
   /**
   Member function to feedforward through the layer. Writes the output in to
@@ -137,7 +148,7 @@ class AbstractLayer {
   is applied.
   @param output reference to the output vector.
   */
-  virtual void Forward(const VectorType &prev_layer_output, VectorType &theta,
+  virtual void Forward(const VectorType &prev_layer_output, LookupType &theta,
                        VectorType &output) = 0;
 
   /**
@@ -147,7 +158,7 @@ class AbstractLayer {
   is applied.
   @param output reference to the output vector.
   */
-  virtual void Forward(const VectorType &theta, VectorType &output) = 0;
+  virtual void Forward(const LookupType &theta, VectorType &output) = 0;
 
   /**
   Member function to perform backpropagation to compute derivates.
@@ -167,8 +178,8 @@ class AbstractLayer {
   */
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
-                        const VectorType &this_layer_theta,
-                        const VectorType &next_layer_data, VectorType &din,
+                        const LookupType &this_layer_theta,
+                        const VectorType &dout, VectorType &din,
                         VectorType &der, int start_idx) = 0;
 
   virtual void to_json(json &j) const = 0;
