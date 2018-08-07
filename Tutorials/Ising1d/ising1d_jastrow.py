@@ -34,8 +34,7 @@ pars['Hamiltonian'] = {
 
 # defining the wave function
 pars['Machine'] = {
-    'Name': 'RbmSpin',
-    'Alpha': 1.0,
+    'Name': 'JastrowSpin',
 }
 
 # defining the sampler
@@ -62,7 +61,7 @@ pars['Learning'] = {
     'OutputFile': "test",
 }
 
-json_file = "ising1d.json"
+json_file = "ising1d_jastrow.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
