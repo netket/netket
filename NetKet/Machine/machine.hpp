@@ -22,6 +22,8 @@
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
+#include "jastrow_spin.hpp"
+#include "jastrow_spin_symm.hpp"
 
 namespace netket {
 
@@ -71,16 +73,21 @@ class Machine : public AbstractMachine<T> {
   }
 
   void Init(const Hilbert &hilbert, const json &pars) {
+
     if (pars["Machine"]["Name"] == "RbmSpin") {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "JastrowSpin") {
+      m_ = Ptype(new JastrowSpin<T>(hilbert, pars));
     }
   }
 
   void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "JastrowSpinSymm") {
+        m_ = Ptype(new JastrowSpinSymm<T>(graph,hilbert, pars));
     }
   }
 
@@ -117,7 +124,7 @@ class Machine : public AbstractMachine<T> {
     CheckFieldExists(pars, "Machine");
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
+    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival", "JastrowSpin", "JastrowSpinSymm"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
