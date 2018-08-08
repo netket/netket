@@ -67,7 +67,7 @@ class JastrowSymm : public AbstractMachine<T> {
   Eigen::MatrixXi Wtemp_;
 
 
-  int mynode_;
+
 
   const Hilbert &hilbert_;
 
