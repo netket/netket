@@ -170,8 +170,7 @@ T LogVal(const Eigen::VectorXd & v) override {
   T logpsi=0;
 
     for(int i=0;i<nv_;i++){
-      //for(int j=i+1;j<nv_;j++){
-        for(int j=i;j<nv_;j++){
+        for(int j=i+1;j<nv_;j++){
         logpsi+=W_(i,j)*v(i)*v(j);
       }
     }
@@ -251,6 +250,7 @@ T LogValDiff(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
 
     return logvaldiff;
   }
+
 
 
 
