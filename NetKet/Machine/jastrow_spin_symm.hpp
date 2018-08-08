@@ -27,7 +27,7 @@ namespace netket {
 
 // Jastrow with permutation symmetries
 template <typename T>
-class JastrowSpinSymm : public AbstractMachine<T> {
+class JastrowSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
@@ -78,7 +78,7 @@ class JastrowSpinSymm : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // Json constructor
-  explicit JastrowSpinSymm(const Graph &graph, const Hilbert &hilbert,
+  explicit JastrowSymm(const Graph &graph, const Hilbert &hilbert,
                        const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
     from_json(pars);
@@ -370,7 +370,7 @@ class JastrowSpinSymm : public AbstractMachine<T> {
   void to_json(json &j) const override {
 
     //std::cout << "to json"<< std::endl;
-    j["Machine"]["Name"] = "JastrowSpinSymm";
+    j["Machine"]["Name"] = "JastrowSymm";
     j["Machine"]["Nvisible"] = nv_;
     j["Machine"]["Wsymm"] = Wsymm_;
   }
@@ -378,9 +378,9 @@ class JastrowSpinSymm : public AbstractMachine<T> {
   void from_json(const json &pars) override {
 
 
-    if (pars.at("Machine").at("Name") != "JastrowSpinSymm") {
+    if (pars.at("Machine").at("Name") != "JastrowSymm") {
       throw InvalidInputError(
-          "Error while constructing JastrowSpinSymm from Json input");
+          "Error while constructing JastrowSymm from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {

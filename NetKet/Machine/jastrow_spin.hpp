@@ -32,11 +32,11 @@
 
 namespace netket {
 
-/** Jastrow machine class with spin 1/2 visible units.
+/** Jastrow machine class.
 *
 */
 template <typename T>
-class JastrowSpin : public AbstractMachine<T> {
+class Jastrow : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
@@ -64,7 +64,7 @@ public:
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit JastrowSpin(const Hilbert &hilbert, const json &pars)
+  explicit Jastrow(const Hilbert &hilbert, const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert) {
     from_json(pars);
   }
@@ -272,7 +272,7 @@ VectorType DerLog(const Eigen::VectorXd & v) override {
 
 
 void to_json(json &j)const override {
-  j["Machine"]["Name"]="JastrowSpin";
+  j["Machine"]["Name"]="Jastrow";
   j["Machine"]["Nvisible"]=nv_;
   j["Machine"]["W"]=W_;
 
@@ -281,9 +281,9 @@ void to_json(json &j)const override {
 
 void from_json(const json & pars) override {
 
-  if(pars.at("Machine").at("Name")!="JastrowSpin"){
+  if(pars.at("Machine").at("Name")!="Jastrow"){
     throw InvalidInputError(
-          "Error while constructing JastrowSpin from Json input");
+          "Error while constructing Jastrow from Json input");
   }
 
   if (FieldExists(pars["Machine"], "Nvisible")) {
