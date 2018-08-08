@@ -9,6 +9,7 @@ std::vector<netket::json> GetMachineInputs() {
   netket::json pars;
 
   // Ising 1d
+
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
@@ -41,6 +42,13 @@ std::vector<netket::json> GetMachineInputs() {
            {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmMultival"}, {"Alpha", 2.0}}},
           {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 3}}}};
+  input_tests.push_back(pars);
+
+  // Ising 1d with jastrow
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "JastrowSpin"}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
   input_tests.push_back(pars);
 
   return input_tests;
