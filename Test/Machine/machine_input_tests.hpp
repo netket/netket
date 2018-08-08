@@ -62,19 +62,21 @@ std::vector<netket::json> GetMachineInputs() {
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
-  // Bose-Hubbard 1d with non-symmetric Jastrow machine
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine", {{"Name", "Jastrow"}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 2.0}, {"Nmax", 4}}}};
-  input_tests.push_back(pars);
-
   // Bose-Hubbard 1d with symmetric Jastrow machine
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 2}, {"Pbc", true}}},
           {"Machine", {{"Name", "JastrowSymm"}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 2.0}, {"Nmax", 4}}}};
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
   input_tests.push_back(pars);
+
+  // Bose-Hubbard 1d with non-symmetric Jastrow machine
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 2}, {"Pbc", true}}},
+          {"Machine", {{"Name", "Jastrow"}}},
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
+  input_tests.push_back(pars);
+
+
 
   return input_tests;
 }
