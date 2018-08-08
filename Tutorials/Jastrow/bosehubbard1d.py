@@ -21,47 +21,49 @@ pars = {}
 # defining the lattice
 pars['Graph'] = {
     'Name': 'Hypercube',
-    'L': 20,
+    'L': 12,
     'Dimension': 1,
     'Pbc': True,
 }
 
 # defining the hamiltonian
 pars['Hamiltonian'] = {
-    'Name': 'Ising',
-    'h': 1.0,
+    'Name': 'BoseHubbard',
+    'U': 4.0,
+    'Nmax': 3,
+    'Nbosons': 12,
 }
 
 # defining the wave function
 pars['Machine'] = {
-    'Name': 'JastrowSpin',
+    'Name': 'JastrowSymm',
 }
 
 # defining the sampler
-# here we use Metropolis sampling with single spin flips
+# here we use Metropolis sampling
 pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
+    'Name': 'MetropolisHamiltonian',
 }
 
 # defining the Optimizer
-# here we use the Stochastic Gradient Descent
+# here we use AdaMax
 pars['Optimizer'] = {
     'Name': 'Sgd',
-    'LearningRate': 0.1,
+    'LearningRate': 0.01,
 }
 
 # defining the learning method
 # here we use the Stochastic Reconfiguration Method
 pars['Learning'] = {
     'Method': 'Sr',
-    'Nsamples': 1000,
-    'NiterOpt': 300,
-    'Diagshift': 0.1,
+    'Nsamples': 1.0e4,
+    'NiterOpt': 4000,
+    'Diagshift': 5.0e-3,
     'UseIterative': False,
-    'OutputFile': "test",
+    'OutputFile': 'test',
 }
 
-json_file = "ising1d_jastrow.json"
+json_file = "bosehubbard1d.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 

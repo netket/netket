@@ -90,22 +90,22 @@ class JastrowSymm : public AbstractMachine<T> {
 
     Wtemp_ = Eigen::MatrixXi::Zero(nv_, nv_);
 
-    int k = 0;
-    int nk_unique = 0;
-    int kbare = 0;
     std::map<int, int> params;
+    int k = 0;
 
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         for (int l = 0; l < permsize_; l++) {
-          int isymm = permtable_.at(l % permsize_).at(i);
-          int jsymm = permtable_.at(l % permsize_).at(j);
+          int isymm = permtable_[l % permsize_][i];
+          int jsymm = permtable_[l % permsize_][j];
           Wtemp_(isymm, jsymm) = k;
           Wtemp_(jsymm, isymm) = k;
         }  // l
         k++;
       }  // j
     }    // i
+
+    int nk_unique = 0;
 
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
@@ -129,7 +129,7 @@ class JastrowSymm : public AbstractMachine<T> {
     DerMatSymm_ = Eigen::MatrixXd::Zero(npar_, nbarepar_);
     Wsymm_.resize(npar_, 1);  // used to stay close to RbmSpinSymm class
 
-    kbare = 0;
+    int kbare = 0;
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         int ksymm = Wtemp_(i, j);
@@ -233,20 +233,12 @@ class JastrowSymm : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override {
-    T logpsi = 0;
-
-    logpsi = v.dot(W_ * v);  // to avoid overflow when BoseHubbard
-
-    return 0.5 * logpsi;
-  }
+  T LogVal(const Eigen::VectorXd &v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
   T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
-    return 0.5 *
-           v.dot(lt.V(
-               0));  // if i use the matrix vector with W i have double counting
+    return 0.5 * v.dot(lt.V(0));
   }
 
   // Difference between logarithms of values, when one or more visible variables

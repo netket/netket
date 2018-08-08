@@ -133,20 +133,12 @@ class Jastrow : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override {
-    T logpsi = 0;
-
-    logpsi = v.dot(W_ * v);  // to avoid overflow when BoseHubbard
-
-    return 0.5 * logpsi;
-  }
+  T LogVal(const Eigen::VectorXd &v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
   T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
-    return 0.5 *
-           v.dot(lt.V(
-               0));  // if i use the matrix vector with W i have double counting
+    return 0.5 * v.dot(lt.V(0));
   }
 
   // Difference between logarithms of values, when one or more visible variables
