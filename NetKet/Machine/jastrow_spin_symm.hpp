@@ -40,7 +40,7 @@ class JastrowSymm : public AbstractMachine<T> {
   int nv_;
 
   // ratio of hidden/visible
-  int alpha_;
+  //int alpha_;
 
   // number of hidden units
   //int nh_;
