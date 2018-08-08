@@ -170,7 +170,8 @@ T LogVal(const Eigen::VectorXd & v) override {
   T logpsi=0;
 
     for(int i=0;i<nv_;i++){
-      for(int j=i+1;j<nv_;j++){
+      //for(int j=i+1;j<nv_;j++){
+        for(int j=i;j<nv_;j++){
         logpsi+=W_(i,j)*v(i)*v(j);
       }
     }
@@ -182,7 +183,7 @@ T LogVal(const Eigen::VectorXd & v) override {
 //Value of the logarithm of the wave-function
 //using pre-computed look-up tables for efficiency
 T LogVal(const Eigen::VectorXd & v, const LookupType & lt) override {
-        
+
   return 0.5*v.dot(lt.V(0));  //if i use the matrix vector with W i have double counting
 }
 
@@ -228,7 +229,6 @@ T LogValDiff(const Eigen::VectorXd & v,const std::vector<int>  & tochange,
                  const std::vector<double> & newconf,const LookupType & lt) override {
 
   T logvaldiff=0.;
-
 
   if(tochange.size()!=0){
 
