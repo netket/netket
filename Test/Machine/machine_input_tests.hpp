@@ -51,5 +51,12 @@ std::vector<netket::json> GetMachineInputs() {
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
   input_tests.push_back(pars);
 
+  // Heisemberg 1d with symmetric jastrow
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "JastrowSpinSymm"}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
   return input_tests;
 }

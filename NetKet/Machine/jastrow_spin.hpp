@@ -182,7 +182,7 @@ T LogVal(const Eigen::VectorXd & v) override {
 //Value of the logarithm of the wave-function
 //using pre-computed look-up tables for efficiency
 T LogVal(const Eigen::VectorXd & v, const LookupType & lt) override {
-        //std::cout << "logval lt" << std::endl;
+        
   return 0.5*v.dot(lt.V(0));  //if i use the matrix vector with W i have double counting
 }
 

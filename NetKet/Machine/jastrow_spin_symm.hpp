@@ -25,7 +25,7 @@
 
 namespace netket {
 
-// Rbm with permutation symmetries
+// Jastrow with permutation symmetries
 template <typename T>
 class JastrowSpinSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
@@ -115,40 +115,40 @@ class JastrowSpinSymm : public AbstractMachine<T> {
     std::map<int,int> params;
 
     for (int i = 0; i < nv_; i++) {
-        for (int j = i+1; j < nv_; j++) {
-            for (int l=0;l<permsize_;l++){
-                int isymm = permtable_.at(l % permsize_).at(i);
-                int jsymm = permtable_.at(l % permsize_).at(j);
-                Wtemp_(isymm,jsymm)=k;
-                Wtemp_(jsymm,isymm)=k;
-             }//l
-             k++;
-        }//j
+      for (int j = i+1; j < nv_; j++) {
+        for (int l=0;l<permsize_;l++){
+          int isymm = permtable_.at(l % permsize_).at(i);
+          int jsymm = permtable_.at(l % permsize_).at(j);
+          Wtemp_(isymm,jsymm)=k;
+          Wtemp_(jsymm,isymm)=k;
+        }//l
+        k++;
+      }//j
     }//i
 
 
     for (int i = 0; i < nv_; i++) {
-        for (int j = i+1; j < nv_; j++) {
-          k = Wtemp_(i,j);
-          if (params.count(k) == 0) {
-              nk_unique++;
-              params.insert(std::pair<int, int>(k, nk_unique) );
+      for (int j = i+1; j < nv_; j++) {
+        k = Wtemp_(i,j);
+        if (params.count(k) == 0) {
+          nk_unique++;
+          params.insert(std::pair<int, int>(k, nk_unique) );
 
-          }
         }
       }
+    }
 
 
     npar_ = params.size();
 
 
     for (int i = 0; i < nv_; i++) {
-        for (int j = i+1; j < nv_; j++) {
+      for (int j = i+1; j < nv_; j++) {
 
-          Wtemp_(i,j)= params.find(Wtemp_(i,j))->second;
-          Wtemp_(j,i)=Wtemp_(i,j);
-        }
+        Wtemp_(i,j)= params.find(Wtemp_(i,j))->second;
+        Wtemp_(j,i)=Wtemp_(i,j);
       }
+    }
 
 
 
@@ -324,7 +324,7 @@ class JastrowSpinSymm : public AbstractMachine<T> {
           const int sf=tochange[k][s];
 
           thetasnew_+=W_.row(sf)*(newconf[k][s]-v(sf));
-          vnew[sf]=-v[sf];
+          vnew[sf]=newconf[k][s];
         }
 
 
@@ -352,7 +352,7 @@ class JastrowSpinSymm : public AbstractMachine<T> {
         const int sf=tochange[s];
 
         thetasnew_+=W_.row(sf)*(newconf[s]-v(sf));
-        vnew[sf]=-v[sf];
+        vnew[sf]=newconf[s];
 
       }
 
