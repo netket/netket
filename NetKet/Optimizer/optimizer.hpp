@@ -32,7 +32,13 @@ class Optimizer : public AbstractOptimizer {
 
   Ptype s_;
 
-public:
+  bool usenormclipping_;
+  bool usevalclipping_;
+
+  double clipnorm_;
+  double clipval_;
+
+ public:
   explicit Optimizer(const json &pars) {
     std::string optimizer_name = "none specified";
 
@@ -66,6 +72,24 @@ public:
       s << "Unknown Optimizer Name: " << optimizer_name;
       throw InvalidInputError(s.str());
     }
+
+    if (FieldExists(pars["Optimizer"], "ClipNorm")) {
+      usenormclipping_ = true;
+      clipnorm_ = FieldVal(pars["Optimizer"], "ClipNorm");
+      InfoMessage() << "Clipping by Norm to " << clipnorm_ << std::endl;
+    } else {
+      usenormclipping_ = false;
+      clipnorm_ = 0.0;
+    }
+
+    if (FieldExists(pars["Optimizer"], "ClipVal")) {
+      usenormclipping_ = true;
+      clipval_ = FieldVal(pars["Optimizer"], "ClipVal");
+      InfoMessage() << "Clipping by Value to " << clipval_ << std::endl;
+    } else {
+      usevalclipping_ = false;
+      clipval_ = 0.0;
+    }
   }
 
   void Init(const Eigen::VectorXd &pars) override { return s_->Init(pars); }
@@ -73,18 +97,71 @@ public:
   void Init(const Eigen::VectorXcd &pars) override { return s_->Init(pars); }
 
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
-    return s_->Update(grad, pars);
+    if (usenormclipping_ || usevalclipping_) {
+      Eigen::VectorXd clippedgrad = grad;
+      if (usenormclipping_) {
+        ClipNorm<Eigen::VectorXd>(clippedgrad);
+      }
+      if (usevalclipping_) {
+        ClipVal<Eigen::VectorXd>(clippedgrad);
+      }
+      return s_->Update(clippedgrad, pars);
+    } else {
+      return s_->Update(grad, pars);
+    }
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    return s_->Update(grad, pars);
+    if (usenormclipping_ || usevalclipping_) {
+      Eigen::VectorXcd clippedgrad = grad;
+      if (usenormclipping_) {
+        ClipNorm<Eigen::VectorXcd>(clippedgrad);
+      }
+      if (usevalclipping_) {
+        ClipVal<Eigen::VectorXcd>(clippedgrad);
+      }
+      return s_->Update(clippedgrad, pars);
+    } else {
+      return s_->Update(grad, pars);
+    }
   }
 
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    return s_->Update(grad, pars);
+    if (usenormclipping_ || usevalclipping_) {
+      Eigen::VectorXcd clippedgrad = grad;
+      if (usenormclipping_) {
+        ClipNorm<Eigen::VectorXcd>(clippedgrad);
+      }
+      if (usevalclipping_) {
+        ClipVal<Eigen::VectorXcd>(clippedgrad);
+      }
+      return s_->Update(clippedgrad, pars);
+    } else {
+      return s_->Update(grad, pars);
+    }
+  }
+
+  template <typename T>
+  inline void ClipNorm(T &grad) {
+    double norm = grad.norm();
+    if (norm > clipnorm_) {
+      grad *= clipnorm_ / norm;
+    }
+  }
+
+  template <typename T>
+  inline void ClipVal(T &grad) {
+    int length = grad.size();
+    int val;
+    for (int i = 0; i < length; ++i) {
+      val = std::abs(grad(i));
+      if (val > clipval_) {
+        grad(i) *= clipval_ / val;
+      }
+    }
   }
 
   void Reset() override { return s_->Reset(); }
 };
-} // namespace netket
+}  // namespace netket
 #endif
