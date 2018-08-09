@@ -152,9 +152,8 @@ class Optimizer : public AbstractOptimizer {
   template <typename T>
   inline void ClipVal(T &grad) {
     int length = grad.size();
-    int val;
     for (int i = 0; i < length; ++i) {
-      val = std::abs(grad(i));
+      int val = std::abs(grad(i));
       if (val > clipval_) {
         grad(i) *= clipval_ / val;
       }
