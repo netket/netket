@@ -45,6 +45,9 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Standard
     * For Custom Local Hilbert Spaces
     * With Permutation Symmetry Using Graph Isomorphisms
+  * Jastrow wavefunction
+    * Standard
+    * With Permutation Symmetry Using Graph Isomorphisms
   * Custom Machines
     * Any Machine Satisfying Prototype of Abstract Machine [extending C++ code]
 
