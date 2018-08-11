@@ -23,6 +23,19 @@ std::vector<netket::json> GetMachineInputs() {
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
+  // Heisenberg 1d with fully connected FFNN
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine",
+           {{"Name", "FFNN"},
+            {"Layers",
+             {{{"Name", "FullyConnected"},
+               {"Inputs", 20},
+               {"Outputs", 40},
+               {"Activation", "Lncosh"}}}}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
   // Bose-Hubbard 1d with symmetric machine
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},

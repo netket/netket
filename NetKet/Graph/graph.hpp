@@ -64,13 +64,35 @@ class Graph : public AbstractGraph {
     return g_->SymmetryTable();
   }
 
-  std::vector<std::vector<int>> Distances() const override {
-    return g_->Distances();
-  }
-
   const ColorMap& EdgeColors() const override { return g_->EdgeColors(); }
 
+  template<typename Func>
+  void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
+    g_->BreadthFirstSearch(start, max_depth, visitor_func);
+  }
+
+  template<typename Func>
+  void BreadthFirstSearch(int start, Func visitor_func) const {
+    BreadthFirstSearch(start, Nsites(), visitor_func);
+  }
+
+  template<typename Func>
+  void BreadthFirstSearch(Func visitor_func) const {
+    g_->BreadthFirstSearch(visitor_func);
+  }
+
   bool IsBipartite() const override { return g_->IsBipartite(); }
+
+  bool IsConnected() const override { return g_->IsConnected(); }
+
+  std::vector<int> Distances(int root) const override {
+    return g_->Distances(root);
+  }
+
+  std::vector<std::vector<int>> AllDistances() const override {
+    return g_->AllDistances();
+  }
+
 };
 }  // namespace netket
 

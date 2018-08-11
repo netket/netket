@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "abstract_machine.hpp"
+#include "ffnn.hpp"
 #include "jastrow.hpp"
 #include "jastrow_symm.hpp"
 #include "rbm_multival.hpp"
@@ -43,21 +44,18 @@ class Machine : public AbstractMachine<T> {
 
   explicit Machine(const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert, pars);
     InitParameters(pars);
@@ -66,13 +64,13 @@ class Machine : public AbstractMachine<T> {
   explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
                    const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert_, pars);
     InitParameters(pars);
   }
 
   void Init(const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpin") {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
@@ -83,8 +81,11 @@ class Machine : public AbstractMachine<T> {
   }
 
   void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN") {
+      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
     } else if (pars["Machine"]["Name"] == "JastrowSymm") {
       m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
     }
@@ -124,7 +125,8 @@ class Machine : public AbstractMachine<T> {
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "Jastrow", "JastrowSymm"};
+                                      "FFNN", "Jastrow", "JastrowSymm"};
+
 
     if (machines.count(name) == 0) {
       std::stringstream s;
