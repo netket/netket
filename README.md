@@ -21,6 +21,8 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Custom Graphs
     * Any Graph With Given Adjacency Matrix [from input file]
     * Any Graph With Given Edges [from input file]
+  * Symmetries
+    * Automorphisms: pre-computed in built-in graphs, available through iGraph for custom graphs
 
 * Hamiltonians
   * Built-in Hamiltonians
@@ -28,12 +30,16 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Heisenberg
     * Bose-Hubbard
   * Custom Hamiltonians
+    * General k-local Hamiltonians defined on Graphs 
     * Any k-local Hamiltonian [from input file]
 
 * Learning
-  * Steppers
+  * Optimizers
     * Stochastic Gradient Descent
-    * AdaMax
+    * AdaMax, AdaDelta, AdaGrad, AMSGrad
+    * RMSProp
+    * Momentum
+    * Gradient Clipping 
   * Ground-state Learning
     * Gradient Descent
     * Stochastic Reconfiguration Method
@@ -45,11 +51,16 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Standard
     * For Custom Local Hilbert Spaces
     * With Permutation Symmetry Using Graph Isomorphisms
+  * Feed-Forward Networks 
+    * For Custom Local Hilbert Spaces
+    * Fully connected layer 
+    * Convnet layer for arbitrary underlying graph
+    * Any Layer Satisfying Prototypes in `AbstractLayer` [extending C++ code]
   * Jastrow wavefunction
     * Standard
     * With Permutation Symmetry Using Graph Isomorphisms
   * Custom Machines
-    * Any Machine Satisfying Prototype of Abstract Machine [extending C++ code]
+    * Any Machine Satisfying Prototypes in `AbstractMachine` [extending C++ code]
 
 * Observables
   * Custom Observables
@@ -62,6 +73,8 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Hamiltonian Moves
     * Automatic Moves with Hamiltonian Symmetry
     * Parallel Tempering Versions
+  * Custom Sampling
+    * Any k-local Stochastic Operator can be used to do Metropolis Sampling 
 
 * Statistics
   * Automatic Estimate of Correlation Times
