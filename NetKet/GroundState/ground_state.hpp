@@ -12,23 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_LEARNING_CC
-#define NETKET_LEARNING_CC
+#ifndef NETKET_GROUND_STATE_CC
+#define NETKET_GROUND_STATE_CC
 
 #include <memory>
 
 #include "Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp"
 #include "Optimizer/optimizer.hpp"
-#include "ground_state.hpp"
+#include "variational_montecarlo.hpp"
 
 namespace netket {
 
-class Learning {
-public:
-  explicit Learning(const json &pars) {
-    CheckFieldExists(pars, "Learning");
-    const std::string method_name =
-        FieldVal(pars["Learning"], "Method", "Learning");
+class GroundState {
+ public:
+  explicit GroundState(const json &pars) {
+    std::string method_name;
+
+    if (FieldExists(pars, "GroundState")) {
+      method_name = FieldVal(pars["GroundState"], "Method", "GroundState");
+    } else if (FieldExists(pars, "Learning")) {
+      method_name = FieldVal(pars["Learning"], "Method", "Learning");
+      // DEPRECATED (to remove for v2.0.0)
+      WarningMessage()
+          << "Use of the Learning section is "
+             "deprecated.\n Please use the dedicated GroundState section.\n";
+    } else {
+      std::stringstream s;
+      s << "The GroundState section has not been specified.\n";
+      throw InvalidInputError(s.str());
+    }
 
     if (method_name == "Gd" || method_name == "Sr") {
       Graph graph(pars);
@@ -42,7 +54,8 @@ public:
 
       Optimizer optimizer(pars);
 
-      GroundState le(hamiltonian, sampler, optimizer, pars);
+      VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
+      vmc.Run();
     } else if (method_name == "Ed") {
       Graph graph(pars);
 
@@ -53,7 +66,7 @@ public:
 
     } else {
       std::stringstream s;
-      s << "Unknown Learning method: " << method_name;
+      s << "Unknown GroundState method: " << method_name;
       throw InvalidInputError(s.str());
     }
   }
@@ -75,6 +88,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

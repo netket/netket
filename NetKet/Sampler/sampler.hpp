@@ -17,6 +17,8 @@
 
 #include <memory>
 #include <set>
+#include "Graph/graph.hpp"
+#include "Hamiltonian/hamiltonian.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "abstract_sampler.hpp"
 #include "custom_sampler.hpp"

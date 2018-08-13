@@ -89,9 +89,9 @@ pars['Optimizer'] = {
     'LearningRate': 0.01,
 }
 
-# defining the learning method
+# defining the GroundState method
 # here we use the Stochastic Reconfiguration Method
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
     'NiterOpt': 10000,
