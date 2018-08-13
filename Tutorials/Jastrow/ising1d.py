@@ -28,42 +28,40 @@ pars['Graph'] = {
 
 # defining the hamiltonian
 pars['Hamiltonian'] = {
-    'Name': 'Heisenberg',
-    'TotalSz': 0,
+    'Name': 'Ising',
+    'h': 1.0,
 }
 
-#defining the wave function
-pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
-    'Alpha'          : 1,
+# defining the wave function
+pars['Machine'] = {
+    'Name': 'Jastrow',
 }
 
 # defining the sampler
-# here we use Metropolis sampling
-# using moves from the matrix elements of the hamiltonian
+# here we use Metropolis sampling with single spin flips
 pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
+    'Name': 'MetropolisLocal',
 }
 
-
 # defining the Optimizer
-# here we use AdaMax
+# here we use the Stochastic Gradient Descent
 pars['Optimizer'] = {
-    'Name': 'AdaMax',
+    'Name': 'Sgd',
+    'LearningRate': 0.1,
 }
 
 # defining the learning method
 # here we use the Stochastic Reconfiguration Method
 pars['Learning'] = {
     'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
+    'Nsamples': 4000,
+    'NiterOpt': 300,
     'Diagshift': 0.1,
     'UseIterative': False,
-    'OutputFile': 'test',
+    'OutputFile': "test",
 }
 
-json_file = "heisenberg1d.json"
+json_file = "ising1d.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 

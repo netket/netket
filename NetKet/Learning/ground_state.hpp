@@ -287,7 +287,7 @@ class GroundState {
 
   void Run() {
     opt_.Reset();
-
+    
     InitSweeps();
 
     for (int i = 0; i < niter_opt_; i++) {

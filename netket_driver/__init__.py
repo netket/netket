@@ -19,5 +19,5 @@ netket module make sure you add the path to this directory to your PYTHONPATH
 environment variable.
 '''
 
-from netket import input_driver
-from netket import python_utils
+from netket_driver import input_driver
+from netket_driver import python_utils

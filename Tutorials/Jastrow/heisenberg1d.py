@@ -32,10 +32,10 @@ pars['Hamiltonian'] = {
     'TotalSz': 0,
 }
 
-#defining the wave function
-pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
-    'Alpha'          : 1,
+# defining the wave function
+# here we use a two-body Jastrow factor with translation symmetry
+pars['Machine'] = {
+    'Name': 'JastrowSymm',
 }
 
 # defining the sampler
@@ -44,7 +44,6 @@ pars['Machine']={
 pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
-
 
 # defining the Optimizer
 # here we use AdaMax

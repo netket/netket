@@ -38,6 +38,32 @@ def Message(type, message):
         raise ValueError("%s Message not supported" % type)
 
 
+def set_mand_pars(params, key, kwargs, def_value):
+    try:
+        params[key] = kwargs[key]
+    except KeyError:
+        # Message("Info", "Couldn't find kwargs with name %s." % key)
+        # Message("Info",
+        #         "Setting %s to default value of %s" % (key, str(def_value)))
+        params[key] = def_value
+
+
+def set_opt_pars(params, key, kwargs):
+    try:
+        params[key] = kwargs[key]
+    except KeyError:
+        pass
+
+
+def encode_complex(z):
+    if isinstance(z, complex):
+        return (z.real, z.imag)
+    else:
+        type_name = z.__class__.__name__
+        raise TypeError(
+            f"Object of type '{type_name}' is not JSON serializable")
+
+
 def plot_output(exact, outputfile):
     plt.ion()
     plt.pause(10)
