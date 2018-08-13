@@ -67,9 +67,9 @@ pars['Optimizer'] = {
     'Name': 'AdaMax',
 }
 
-# defining the learning method
+# defining the GroundState method
 # here we use a Gradient Descent with AdaMax
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Gd',
     'Nsamples': 1.0e3,
     'NiterOpt': 40000,

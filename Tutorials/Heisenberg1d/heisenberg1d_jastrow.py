@@ -21,26 +21,27 @@ pars = {}
 # defining the lattice
 pars['Graph'] = {
     'Name': 'Hypercube',
-    'L': 12,
+    'L': 20,
     'Dimension': 1,
     'Pbc': True,
 }
 
 # defining the hamiltonian
 pars['Hamiltonian'] = {
-    'Name': 'BoseHubbard',
-    'U': 4.0,
-    'Nmax': 3,
-    'Nbosons': 12,
+    'Name': 'Heisenberg',
+    'TotalSz': 0,
 }
 
 # defining the wave function
+# here we use a two-body Jastrow factor with translation symmetry
 pars['Machine'] = {
     'Name': 'JastrowSymm',
+    'SigmaRand': 0.01,
 }
 
 # defining the sampler
 # here we use Metropolis sampling
+# using moves from the matrix elements of the hamiltonian
 pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
@@ -52,18 +53,18 @@ pars['Optimizer'] = {
     'LearningRate': 0.01,
 }
 
-# defining the learning method
+# defining the GroundState method
 # here we use the Stochastic Reconfiguration Method
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Sr',
-    'Nsamples': 1.0e4,
-    'NiterOpt': 4000,
-    'Diagshift': 5.0e-3,
+    'Nsamples': 4.0e3,
+    'NiterOpt': 200,
+    'Diagshift': 0.01,
     'UseIterative': False,
     'OutputFile': 'test',
 }
 
-json_file = "bosehubbard1d.json"
+json_file = "heisenberg1d.json"
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 

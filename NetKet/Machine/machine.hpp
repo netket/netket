@@ -18,6 +18,8 @@
 #include <fstream>
 #include <memory>
 
+#include "Graph/graph.hpp"
+#include "Hamiltonian/hamiltonian.hpp"
 #include "abstract_machine.hpp"
 #include "ffnn.hpp"
 #include "jastrow.hpp"
@@ -125,8 +127,7 @@ class Machine : public AbstractMachine<T> {
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "FFNN", "Jastrow", "JastrowSymm"};
-
+                                      "FFNN",    "Jastrow",     "JastrowSymm"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
