@@ -64,10 +64,6 @@ class VariationalMonteCarlo {
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd gradprev_;
 
-  std::complex<double> elocmean_;
-  double elocvar_;
-  int npar_;
-
   double sr_diag_shift_;
   bool sr_rescale_shift_;
   bool use_iterative_;
@@ -93,6 +89,10 @@ class VariationalMonteCarlo {
   int ndiscardedsamples_;
   int niter_opt_;
 
+  std::complex<double> elocmean_;
+  double elocvar_;
+  int npar_;
+
  public:
   // JSON constructor
   VariationalMonteCarlo(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
@@ -101,7 +101,8 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.Psi()),
         opt_(opt),
-        obs_(ham.GetHilbert(), pars) {
+        obs_(ham.GetHilbert(), pars),
+        elocvar_(0.) {
     // DEPRECATED (to remove for v2.0.0)
     if (FieldExists(pars, "Learning")) {
       auto pars1 = pars;
