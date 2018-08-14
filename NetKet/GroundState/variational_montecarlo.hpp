@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GROUNDSTATE_HPP
-#define NETKET_GROUNDSTATE_HPP
+#ifndef NETKET_VARIATIONALMONTECARLO_HPP
+#define NETKET_VARIATIONALMONTECARLO_HPP
 
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
@@ -21,25 +21,25 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
-#include "Utils/parallel_utils.hpp"
+#include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "matrix_replacement.hpp"
-#include "stepper.hpp"
 
 namespace netket {
 
-// Learning schemes for the ground state
+// Variational Monte Carlo schemes to learn the ground state
 // Available methods:
 // 1) Stochastic reconfiguration optimizer
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
-class GroundState {
+class VariationalMonteCarlo {
   using GsType = std::complex<double>;
 
   using VectorT =
@@ -64,12 +64,6 @@ class GroundState {
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd gradprev_;
 
-  std::complex<double> elocmean_;
-  double elocvar_;
-  int npar_;
-
-  int Iter0_;
-
   double sr_diag_shift_;
   bool sr_rescale_shift_;
   bool use_iterative_;
@@ -79,9 +73,9 @@ class GroundState {
 
   std::ofstream filelog_;
   std::string filewfname_;
-  double freqbackup_;
+  int freqbackup_;
 
-  Stepper &opt_;
+  Optimizer &opt_;
 
   Observables obs_;
   ObsManager obsmanager_;
@@ -89,60 +83,43 @@ class GroundState {
 
   bool dosr_;
 
+  int nsamples_;
+  int nsamples_node_;
+  int ninitsamples_;
+  int ndiscardedsamples_;
+  int niter_opt_;
+
+  std::complex<double> elocmean_;
+  double elocvar_;
+  int npar_;
+
  public:
   // JSON constructor
-  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler, Stepper &opt,
-              const json &pars)
+  VariationalMonteCarlo(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+                        Optimizer &opt, const json &pars)
       : ham_(ham),
         sampler_(sampler),
         psi_(sampler.Psi()),
         opt_(opt),
-        obs_(ham.GetHilbert(), pars) {
-    Init();
-
-    int nsamples = FieldVal(pars["Learning"], "Nsamples");
-    int niter_opt = FieldVal(pars["Learning"], "NiterOpt");
-
-    std::string file_base = FieldVal(pars["Learning"], "OutputFile");
-    double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
-    SetOutName(file_base, freqbackup);
-
-    if (pars["Learning"]["Method"] == "Gd") {
-      dosr_ = false;
+        obs_(ham.GetHilbert(), pars),
+        elocvar_(0.) {
+    // DEPRECATED (to remove for v2.0.0)
+    if (FieldExists(pars, "Learning")) {
+      auto pars1 = pars;
+      pars1["GroundState"] = pars["Learning"];
+      Init(pars1);
     } else {
-      double diagshift = FieldOrDefaultVal(pars["Learning"], "DiagShift", 0.01);
-      bool rescale_shift =
-          FieldOrDefaultVal(pars["Learning"], "RescaleShift", false);
-      bool use_iterative =
-          FieldOrDefaultVal(pars["Learning"], "UseIterative", false);
-
-      setSrParameters(diagshift, rescale_shift, use_iterative);
+      Init(pars);
     }
-
-    if (mynode_ == 0) {
-      if (dosr_) {
-        std::cout << "# Using the Stochastic reconfiguration method"
-                  << std::endl;
-        if (use_iterative_) {
-          std::cout << "# With iterative solver" << std::endl;
-        }
-      } else {
-        std::cout << "# Using a gradient-descent based method" << std::endl;
-      }
-    }
-
-    Run(nsamples, niter_opt);
   }
 
-  void Init() {
+  void Init(const json &pars) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
-
-    Iter0_ = 0;
 
     freqbackup_ = 0;
 
@@ -151,21 +128,71 @@ class GroundState {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (mynode_ == 0) {
-      std::cout << "# Learning running on " << totalnodes_ << " processes"
-                << std::endl;
+    nsamples_ = FieldVal(pars["GroundState"], "Nsamples", "GroundState");
+
+    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
+
+    ninitsamples_ =
+        FieldOrDefaultVal(pars["GroundState"], "DiscardedSamplesOnInit", 0.);
+
+    ndiscardedsamples_ = FieldOrDefaultVal(
+        pars["GroundState"], "DiscardedSamples", 0.1 * nsamples_node_);
+
+    niter_opt_ = FieldVal(pars["GroundState"], "NiterOpt", "GroundState");
+
+    std::string file_base =
+        FieldVal(pars["GroundState"], "OutputFile", "GroundState");
+
+    int freqbackup = FieldOrDefaultVal(pars["GroundState"], "SaveEvery", 50);
+    SetOutName(file_base, freqbackup);
+
+    if (pars["GroundState"]["Method"] == "Gd") {
+      dosr_ = false;
+    } else {
+      double diagshift =
+          FieldOrDefaultVal(pars["GroundState"], "DiagShift", 0.01);
+      bool rescale_shift =
+          FieldOrDefaultVal(pars["GroundState"], "RescaleShift", false);
+      bool use_iterative =
+          FieldOrDefaultVal(pars["GroundState"], "UseIterative", false);
+
+      setSrParameters(diagshift, rescale_shift, use_iterative);
     }
+
+    if (dosr_) {
+      InfoMessage() << "Using the Stochastic reconfiguration method"
+                    << std::endl;
+      if (use_iterative_) {
+        InfoMessage() << "With iterative solver" << std::endl;
+      }
+    } else {
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
+    }
+
+    InfoMessage() << "Variational Monte Carlo running on " << totalnodes_
+                  << " processes" << std::endl;
+
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void Sample(double nsweeps) {
+  void InitSweeps() {
     sampler_.Reset();
 
-    int sweepnode = int(std::ceil(double(nsweeps) / double(totalnodes_)));
+    for (int i = 0; i < ninitsamples_; i++) {
+      sampler_.Sweep();
+    }
+  }
 
-    vsamp_.resize(sweepnode, psi_.Nvisible());
+  void Sample() {
+    sampler_.Reset();
 
-    for (int i = 0; i < sweepnode; i++) {
+    for (int i = 0; i < ndiscardedsamples_; i++) {
+      sampler_.Sweep();
+    }
+
+    vsamp_.resize(nsamples_node_, psi_.Nvisible());
+
+    for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
       vsamp_.row(i) = sampler_.Visible();
     }
@@ -265,11 +292,13 @@ class GroundState {
 
   double Elocvar() { return elocvar_; }
 
-  void Run(double nsweeps, double niter) {
+  void Run() {
     opt_.Reset();
 
-    for (double i = 0; i < niter; i++) {
-      Sample(nsweeps);
+    InitSweeps();
+
+    for (int i = 0; i < niter_opt_; i++) {
+      Sample();
 
       Gradient();
 
@@ -277,7 +306,6 @@ class GroundState {
 
       PrintOutput(i);
     }
-    Iter0_ += niter;
   }
 
   void UpdateParameters() {
@@ -352,11 +380,11 @@ class GroundState {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void PrintOutput(double i) {
+  void PrintOutput(int i) {
     auto Acceptance = sampler_.Acceptance();
 
     auto jiter = json(obsmanager_);
-    jiter["Iteration"] = i + Iter0_;
+    jiter["Iteration"] = i;
     outputjson_["Output"].push_back(jiter);
 
     if (mynode_ == 0) {

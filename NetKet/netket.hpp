@@ -16,13 +16,14 @@
 #define NETKET_HEADER_HPP
 
 #include "Graph/graph.hpp"
+#include "GroundState/ground_state.hpp"
 #include "Hamiltonian/hamiltonian.hpp"
 #include "Headers/welcome.hpp"
 #include "Hilbert/hilbert.hpp"
-#include "Learning/learning.hpp"
 #include "Lookup/lookup.hpp"
 #include "Machine/machine.hpp"
 #include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "UnitaryTimeEvolution/time_evolution.hpp"

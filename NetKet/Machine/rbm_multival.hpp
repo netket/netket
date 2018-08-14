@@ -59,8 +59,6 @@ class RbmMultival : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  int mynode_;
-
   const Hilbert &hilbert_;
 
   Eigen::VectorXd localconfs_;
@@ -129,15 +127,11 @@ class RbmMultival : public AbstractMachine<T> {
 
     vtilde_.resize(nv_ * ls_);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# RBM Multival Initizialized with nvisible = " << nv_
-                << " and nhidden = " << nh_ << std::endl;
-      std::cout << "# Using visible bias = " << usea_ << std::endl;
-      std::cout << "# Using hidden bias  = " << useb_ << std::endl;
-      std::cout << "# Local size is      = " << ls_ << std::endl;
-    }
+    InfoMessage() << "RBM Multival Initizialized with nvisible = " << nv_
+                  << " and nhidden = " << nh_ << std::endl;
+    InfoMessage() << "Using visible bias = " << usea_ << std::endl;
+    InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
+    InfoMessage() << "Local size is      = " << ls_ << std::endl;
   }
 
   int Nvisible() const override { return nv_; }
@@ -273,7 +267,7 @@ class RbmMultival : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
 
     ComputeVtilde(v, vtilde_);
@@ -374,33 +368,25 @@ class RbmMultival : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     if (pars.at("Machine").at("Name") != "RbmMultival") {
-      if (mynode_ == 0) {
-        std::cerr << "# Error while constructing RbmMultival from Json input"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError(
+          "Error while constructing RbmMultival from Json input");
     }
 
     if (FieldExists(pars["Machine"], "Nvisible")) {
       nv_ = pars["Machine"]["Nvisible"];
     }
+
     if (nv_ != hilbert_.Size()) {
-      if (mynode_ == 0) {
-        std::cerr << "# Loaded wave-function has incompatible Hilbert space"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError(
+          "Loaded wave-function has incompatible Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "LocalSize")) {
       ls_ = pars["Machine"]["LocalSize"];
     }
     if (ls_ != hilbert_.LocalSize()) {
-      if (mynode_ == 0) {
-        std::cerr << "# Loaded wave-function has incompatible Hilbert space"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError(
+          "Loaded wave-function has incompatible Hilbert space");
     }
 
     if (FieldExists(pars["Machine"], "Nhidden")) {

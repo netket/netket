@@ -46,20 +46,8 @@ class Spin : public AbstractHilbert {
 
  public:
   explicit Spin(const json &pars) {
-    int nspins;
-    double S;
-
-    if (!FieldExists(pars["Hilbert"], "Nspins")) {
-      std::cerr << "Nspins is not defined" << std::endl;
-    }
-
-    nspins = pars["Hilbert"]["Nspins"];
-
-    if (!FieldExists(pars["Hilbert"], "S")) {
-      std::cerr << "S is not defined" << std::endl;
-    }
-
-    S = pars["Hilbert"]["S"];
+    const int nspins = FieldVal(pars["Hilbert"], "Nspins", "Hilbert");
+    const double S = FieldVal(pars["Hilbert"], "S", "Hilbert");
 
     Init(nspins, S);
 
@@ -75,13 +63,11 @@ class Spin : public AbstractHilbert {
     nspins_ = nspins;
 
     if (S <= 0) {
-      std::cerr << "Invalid spin value" << std::endl;
-      std::abort();
+      throw InvalidInputError("Invalid spin value");
     }
 
     if (std::floor(2. * S) != 2. * S) {
-      std::cerr << "Spin value is hot integer or half integer" << std::endl;
-      std::abort();
+      throw InvalidInputError("Spin value is hot integer or half integer");
     }
 
     nstates_ = std::floor(2. * S) + 1;
@@ -125,8 +111,7 @@ class Spin : public AbstractHilbert {
         int ndown = nspins_ - nup;
 
         if ((nup - ndown) != int(2 * totalS_)) {
-          std::cerr << "#Cannot fix the total magnetization " << std::endl;
-          std::abort();
+          throw InvalidInputError("Cannot fix the total magnetization");
         }
 
         std::vector<double> vect(nspins_);

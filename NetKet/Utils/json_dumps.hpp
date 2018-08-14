@@ -21,6 +21,8 @@
 #include <json.hpp>
 #include <vector>
 
+#include "exceptions.hpp"
+
 namespace Eigen {
 
 template <class T>
@@ -60,16 +62,14 @@ void from_json(const nlohmann::json &js,
   std::vector<std::vector<T>> temp = js.get<std::vector<std::vector<T>>>();
 
   if (temp[0].size() == 0) {
-    std::cerr << "Error while loading Eigen Matrix from Json" << std::endl;
-    std::abort();
+    throw netket::InvalidInputError("Error while loading Eigen Matrix from Json");
   }
 
   v.resize(temp.size(), temp[0].size());
   for (std::size_t i = 0; i < temp.size(); i++) {
     for (std::size_t j = 0; j < temp[i].size(); j++) {
       if (temp[i].size() != temp[0].size()) {
-        std::cerr << "Error while loading Eigen Matrix from Json" << std::endl;
-        std::abort();
+        throw netket::InvalidInputError("Error while loading Eigen Matrix from Json");
       }
       v(i, j) = temp[i][j];
     }

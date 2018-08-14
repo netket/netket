@@ -27,10 +27,18 @@ class Lookup {
   using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
+  std::vector<std::vector<VectorType>> vv_;
   std::vector<VectorType> v_;
   std::vector<MatrixType> m_;
 
  public:
+  // Lookup<T> &operator=(const Lookup<T> lt) {}
+
+  int AddVV(int a) {
+    vv_.push_back(std::vector<VectorType>(a));
+    return vv_.size() - 1;
+  }
+
   int AddVector(int a) {
     v_.push_back(VectorType(a));
     return v_.size() - 1;
@@ -41,9 +49,21 @@ class Lookup {
     return m_.size() - 1;
   }
 
+  int VVSize() { return vv_.size(); }
+
   int VectorSize() { return v_.size(); }
 
   int MatrixSize() { return m_.size(); }
+
+  std::vector<VectorType> &VV(std::size_t i) {
+    assert(i < vv_.size() && i >= 0);
+    return vv_[i];
+  }
+
+  const std::vector<VectorType> &VV(std::size_t i) const {
+    assert(i < vv_.size() && i >= 0);
+    return vv_[i];
+  }
 
   VectorType &V(std::size_t i) {
     assert(i < v_.size() && i >= 0);

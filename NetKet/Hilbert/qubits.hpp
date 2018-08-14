@@ -37,14 +37,7 @@ class Qubit : public AbstractHilbert {
 
  public:
   explicit Qubit(const json &pars) {
-    int nqubits;
-
-    if (!FieldExists(pars["Hilbert"], "Nqubits")) {
-      std::cerr << "Nqubits is not defined" << std::endl;
-    }
-
-    nqubits = pars["Hilbert"]["Nqubits"];
-
+    const int nqubits = FieldVal(pars["Hilbert"], "Nqubits", "Hilbert");
     Init(nqubits);
   }
 
