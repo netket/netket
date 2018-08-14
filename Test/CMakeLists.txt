@@ -68,7 +68,7 @@ file(GLOB TEST_SOURCES
     Observable/*.cc
     Sampler/*.cc
     Stats/*.cc
-    UnitaryTimeEvolution/*.cpp
+    UnitaryDynamics/*.cpp
     Utils/*.cc)
 
 foreach(file ${TEST_SOURCES})

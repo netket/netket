@@ -8,9 +8,9 @@
 #include <Eigen/Eigen>
 
 #include "netket.hpp"
-#include "UnitaryTimeEvolution/time_evolution.hpp"
-#include "UnitaryTimeEvolution/TimeStepper/explicit_time_steppers.hpp"
-#include "UnitaryTimeEvolution/TimeStepper/controlled_time_steppers.hpp"
+#include "UnitaryDynamics/time_evolution.hpp"
+#include "UnitaryDynamics/TimeStepper/explicit_time_steppers.hpp"
+#include "UnitaryDynamics/TimeStepper/controlled_time_steppers.hpp"
 
 using namespace netket;
 

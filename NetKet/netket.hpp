@@ -26,7 +26,7 @@
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
-#include "UnitaryTimeEvolution/time_evolution.hpp"
+#include "UnitaryDynamics/time_evolution.hpp"
 #include "Utils/all_utils.hpp"
 
 #endif
