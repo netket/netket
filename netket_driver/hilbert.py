@@ -27,9 +27,9 @@ class Hilbert(object):
 
     Simple Usage::
 
-    >>> hil = Hilbert("Spin", TotalSz=0)
-    >>> print(hil._pars)
-    {'Name': 'Spin', 'Nspins': 10, 'S': 0.0, 'TotalSz': 0}
+        >>> hil = Hilbert("Spin", TotalSz=0)
+        >>> print(hil._pars)
+        {'Name': 'Spin', 'Nspins': 10, 'S': 0.0, 'TotalSz': 0}
     '''
 
     _name = "Hilbert"

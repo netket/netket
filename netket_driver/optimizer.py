@@ -27,9 +27,9 @@ class Optimizer(object):
 
     Simple Usage::
 
-    >>> opt = Optimizer("Sgd")
-    >>> print(opt._pars)
-    {'Name': 'Sgd', 'LearningRate': 0.1}
+        >>> opt = Optimizer("Sgd")
+        >>> print(opt._pars)
+        {'Name': 'Sgd', 'LearningRate': 0.1}
     '''
 
     _name = "Optimizer"
@@ -62,7 +62,7 @@ class Optimizer(object):
         Beta1 :
 
         Beta2 :
-        
+
 
 
         '''

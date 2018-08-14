@@ -27,9 +27,9 @@ class Sampler(object):
 
     Simple Usage::
 
-    >>> samp = Sampler("MetropolisLocal")
-    >>> print(samp._pars)
-    {'Name': 'MetropolisLocal'}
+        >>> samp = Sampler("MetropolisLocal")
+        >>> print(samp._pars)
+        {'Name': 'MetropolisLocal'}
     '''
 
     _name = "Sampler"

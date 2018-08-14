@@ -27,9 +27,9 @@ class Learning(object):
 
     Simple Usage::
 
-    >>> learn = Learning("Gd")
-    >>> print(learn._pars)
-    {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
+        >>> learn = Learning("Gd")
+        >>> print(learn._pars)
+        {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
     '''
 
     _name = "Learning"

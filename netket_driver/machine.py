@@ -27,9 +27,9 @@ class Machine(object):
 
     Simple Usage::
 
-    >>> mach = Machine("RbmSpin")
-    >>> print(mach._pars)
-    {'Name': 'RbmSpin', 'Alpha': 1.0}
+        >>> mach = Machine("RbmSpin")
+        >>> print(mach._pars)
+        {'Name': 'RbmSpin', 'Alpha': 1.0}
     '''
 
     _name = "Machine"
@@ -45,8 +45,8 @@ class Machine(object):
             RBM or RBMSpinSymm.
 
 
-        kwargs
-        ------
+        Universal kwargs
+        ----------------
 
         Alpha : float
             Used with all machines. Alternative to Nhidden, here it is the M/N
@@ -61,18 +61,32 @@ class Machine(object):
             Used with all machines. Whether to initialize the parameters with
             random gaussian-distributed values.
 
-        Nhidden : int
-            Used with all machines. The number of hidden units M.
-
         SigmaRand : float
             Used with all machines. If InitRandom is chosen, this is the
             standard deviation of the gaussian.
 
+
+        RBM kwargs
+        ----------
+
+        Nhidden : int
+            Used with RBM machines. The number of hidden units M.
+
         UseHiddenBias : bool
-            Used with all machines. Whether to use the hidden bias bj.
+            Used with RBM machines. Whether to use the hidden bias bj.
 
         UseVisibleBias : bool
-            Used with all machines. Whether to use the visible bias ai.
+            Used with RBM machines. Whether to use the visible bias ai.
+
+
+        Feed-Forward Neural Network kwargs
+        ----------------------------------
+
+        layers : list of dict
+            List of dictionaries containing information about the each layer.
+            Currently, three types of layers are supporjted: FullyConnected,
+            Convolutional, and Sum.
+
 
         '''
 
@@ -89,10 +103,95 @@ class Machine(object):
             set_opt_pars(self._pars, "UseHiddenBias", kwargs)
             set_opt_pars(self._pars, "UseVisibleBias", kwargs)
 
+        elif name == "FFNN":
+            self._pars["Name"] = name
+            self._pars["Layers"] = []
+
+            # If there are layers passed by kwargs, add them via add_layer
+            try:
+                for layer in kwargs["Layers"]:
+                    self.add_layer(layer)
+            except:
+                pass
+
+        elif name == "Jastrow":
+            self._pars["Name"] = name
+            set_opt_pars(self._pars, "Nvisible", kwargs)
+            set_opt_pars(self._pars, "W", kwargs)
+
+        elif name == "JastrowSymm":
+            self._pars["Name"] = name
+            set_opt_pars(self._pars, "Nvisible", kwargs)
+            set_opt_pars(self._pars, "Wsymm", kwargs)
+
         else:
             raise ValueError("%s Machine not supported" % name)
+
+    def add_layer(self, raw_layer):
+        '''
+        Adds layer (in the form of a dictionary) to the list of layers stored
+        in _pars.
+        '''
+        layer = {}
+        layer_types = ["FullyConnected", "Convolutional", "Sum"]
+
+        # Test and make sure the layer has a name
+        try:
+            if raw_layer["Name"] in layer_types:
+                layer["Name"] = raw_layer["Name"]
+        except KeyError:
+            raise KeyError("Name of layer not found.")
+
+        # Add relevant feature based on the type of layer
+        if layer["Name"] == "FullyConnected":
+            set_mand_pars(layer, "Inputs", raw_layer, 20)  # TODO
+            set_mand_pars(layer, "Outputs", raw_layer, 20)  # TODO
+            set_mand_pars(layer, "Activation", raw_layer, "Lncosh")
+            set_mand_pars(layer, "Bias", raw_layer, True)
+
+        elif layer["Name"] == "Convolutional":
+            set_mand_pars(layer, "InputChannels", raw_layer, 4)  # TODO
+            set_mand_pars(layer, "OutputChannels", raw_layer, 4)  # TODO
+            set_mand_pars(layer, "Distance", raw_layer, 2)  # TODO
+            set_mand_pars(layer, "Activation", raw_layer, "Lncosh")
+            set_mand_pars(layer, "Bias", raw_layer, True)
+
+        elif layer["Name"] == "Sum":
+            set_mand_pars(layer, "Inputs", raw_layer, 20)  # TODO
+
+        else:
+            raise ValueError("%s Layer type not supported" % name)
+
+        self._pars["Layers"].append(layer)
 
 
 if __name__ == '__main__':
     mach = Machine("RbmSpin")
     print(mach._pars)
+
+    layers = [{
+        'Name': 'FullyConnected',
+        'Inputs': 20,
+        'Outputs': 20,
+        'Activation': 'Lncosh'
+    }, {
+        'Name': 'FullyConnected',
+        'Inputs': 20,
+        'Outputs': 10,
+        'Activation': 'Lncosh'
+    }]
+
+    mach = Machine("FFNN", Layers=layers)
+    print(mach._pars)
+
+    mach2 = Machine("FFNN")
+    mach2.add_layer(layers[0])
+    mach2.add_layer(layers[1])
+    print(mach2._pars)
+    print(mach2._pars == mach._pars)
+
+    m = Machine("FFNN")
+    for i in range(4):
+        m.add_layer({"Name": "FullyConnected"})
+
+    print(m._pars)

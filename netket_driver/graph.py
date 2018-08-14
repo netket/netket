@@ -25,8 +25,14 @@ try:
     import networkx as nx
     import_nx = True
 except ImportError:
-    # Message("Warning", "No networkx found.")
     import_nx = False
+
+# Test to see if igraph is installed
+try:
+    import igraph as ig
+    import_ig = True
+except ImportError:
+    import_ig = False
 
 
 class Graph(object):
@@ -35,9 +41,9 @@ class Graph(object):
 
     Simple Usage::
 
-    >>> graph = Graph("Hypercube", L=20, Dimension=1, Pbc=True)
-    >>> print(graph._pars)
-    {'Name': 'Hypercube', 'L': 20, 'Dimension': 1, 'Pbc': True}
+        >>> graph = Graph("Hypercube", L=20, Dimension=1, Pbc=True)
+        >>> print(graph._pars)
+        {'Name': 'Hypercube', 'L': 20, 'Dimension': 1, 'Pbc': True}
     '''
 
     _name = "Graph"

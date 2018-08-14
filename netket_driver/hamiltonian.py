@@ -27,9 +27,9 @@ class Hamiltonian(object):
 
     Simple Usage::
 
-    >>> ham = Hamiltonian("BoseHubbard", Nmax=3, U=4.0, Nbosons=12)
-    >>> print(ham._pars)
-    {'Name': 'BoseHubbard', 'Nmax': 3, 'U': 4.0, 'Nbosons': 12}
+        >>> ham = Hamiltonian("BoseHubbard", Nmax=3, U=4.0, Nbosons=12)
+        >>> print(ham._pars)
+        {'Name': 'BoseHubbard', 'Nmax': 3, 'U': 4.0, 'Nbosons': 12}
     '''
 
     _name = "Hamiltonian"

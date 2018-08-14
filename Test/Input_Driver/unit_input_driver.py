@@ -16,8 +16,11 @@
 '''
 
 import unittest
+import os
+import json
 import numpy as np
-import netket.input_driver as nk
+import netket_driver.input_driver as nk
+from netket_driver.python_utils import encode_complex
 
 try:
     import networkx as nx
@@ -69,6 +72,14 @@ class KnownOutput(unittest.TestCase):
 
         ham = nk.Hamiltonian("BoseHubbard", Nmax=3, U=4.0, Nbosons=12)
         assert (pars['Hamiltonian'] == ham._pars)
+
+        # Test writing custom Hamiltonians with complex numbers
+        sigmay = np.array([[0, -1j], [1j, 0]]).tolist()
+        ham = nk.Hamiltonian("Custom", Operators=[sigmay], ActingOn=[])
+        with open("test.json", 'w') as outfile:
+            json.dump(ham._pars, outfile, default=encode_complex)
+
+        os.remove("test.json")
 
     def test9_NetKetInput(self):
         pars = {}
@@ -134,6 +145,7 @@ class KnownOutput(unittest.TestCase):
         input.write_json_input()
 
         assert (input._pars == pars)
+        os.remove("input.json")
 
     def test10_NetKetInput2(self):
         sigmax = [[0, 1], [1, 0]]
@@ -185,6 +197,7 @@ class KnownOutput(unittest.TestCase):
         input.write_json_input()
 
         assert (input._pars == pars)
+        os.remove("input.json")
 
 
 if __name__ == "__main__":
