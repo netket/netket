@@ -12,41 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_FINDDIST_HPP
-#define NETKET_FINDDIST_HPP
+#ifndef NETKET_ABSTRACT_OPTIMIZER_HPP
+#define NETKET_ABSTRACT_OPTIMIZER_HPP
 
-#include <queue>
-#include <set>
+#include <Eigen/Dense>
+#include <complex>
 #include <vector>
 
 namespace netket {
 
-std::vector<int> FindDist(const std::vector<std::vector<int>> &g, int root) {
-  int n = g.size();
-  std::vector<int> dists(n, -1);
+class AbstractOptimizer {
+public:
+  virtual void Init(const Eigen::VectorXd &pars) = 0;
+  virtual void Init(const Eigen::VectorXcd &pars) = 0;
+  virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
+  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
+  virtual void Reset() = 0;
+  virtual ~AbstractOptimizer() {}
+};
+} // namespace netket
 
-  dists[root] = 0;
-
-  std::queue<int> tovisit;
-
-  tovisit.push(root);
-
-  while (tovisit.size() > 0) {
-    int node = tovisit.front();
-    tovisit.pop();
-
-    for (std::size_t j = 0; j < g[node].size(); j++) {
-      int nj = g[node][j];
-
-      if (dists[nj] == -1) {
-        tovisit.push(nj);
-        dists[nj] = dists[node] + 1;
-      }
-    }
-  }
-
-  return dists;
-}
-
-}  // namespace netket
 #endif

@@ -34,8 +34,6 @@ class Heisenberg : public AbstractHamiltonian {
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  int mynode_;
-
   /**
     Hilbert space descriptor for this hamiltonian.
   */
@@ -74,11 +72,7 @@ class Heisenberg : public AbstractHamiltonian {
 
     hilbert_.Init(hil);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# Heisenberg model created " << std::endl;
-    }
+    InfoMessage() << "Heisenberg model created " << std::endl;
   }
 
   void SetTotalSz(double totalSz) {
