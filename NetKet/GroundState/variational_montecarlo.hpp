@@ -77,7 +77,7 @@ class VariationalMonteCarlo {
 
   Optimizer &opt_;
 
-  Observables obs_;
+  std::vector<Observable> obs_;
   ObsManager obsmanager_;
   json outputjson_;
 
@@ -101,7 +101,7 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.Psi()),
         opt_(opt),
-        obs_(ham.GetHilbert(), pars),
+        obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
     // DEPRECATED (to remove for v2.0.0)
     if (FieldExists(pars, "Learning")) {
@@ -211,8 +211,8 @@ class VariationalMonteCarlo {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (std::size_t i = 0; i < obs_.Size(); i++) {
-      obsmanager_.Reset(obs_(i).Name());
+    for (const auto& ob : obs_) {
+      obsmanager_.Reset(ob.Name());
     }
 
     const int nsamp = vsamp_.rows();
@@ -224,8 +224,8 @@ class VariationalMonteCarlo {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (std::size_t k = 0; k < obs_.Size(); k++) {
-        obsmanager_.Push(obs_(k).Name(), ObSamp(obs_(k), vsamp_.row(i)));
+      for (const auto& ob : obs_) {
+        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
       }
     }
 
@@ -270,7 +270,7 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(Observable &ob, const Eigen::VectorXd &v) {
+  double ObSamp(const Observable &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
