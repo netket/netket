@@ -117,9 +117,9 @@ class KnownOutput(unittest.TestCase):
             'LearningRate': 0.1,
         }
 
-        # defining the learning method
+        # defining the GroundState method
         # here we use the Stochastic Reconfiguration Method
-        pars['Learning'] = {
+        pars['GroundState'] = {
             'Method': 'Sr',
             'Nsamples': 1000,
             'NiterOpt': 300,
@@ -133,7 +133,7 @@ class KnownOutput(unittest.TestCase):
         m = nk.Machine("RbmSpin", Alpha=1.0)
         s = nk.Sampler("MetropolisLocal")
         o = nk.Optimizer("Sgd", LearningRate=0.1)
-        l = nk.Learning(
+        gs = nk.GroundState(
             "Sr",
             Nsamples=1000,
             NiterOpt=300,
@@ -141,7 +141,7 @@ class KnownOutput(unittest.TestCase):
             UseIterative=False,
             OutputFile="test")
 
-        input = nk.NetKetInput(g, h, m, s, o, l)
+        input = nk.NetKetInput(g, h, m, s, o, gs)
         input.write_json_input()
 
         assert (input._pars == pars)
@@ -160,40 +160,55 @@ class KnownOutput(unittest.TestCase):
             operators.append(mszsz)
             sites.append([i, (i + 1) % L])
 
-        pars = {}
-        pars['Hilbert'] = {
-            'QuantumNumbers': [1, -1],
-            'Size': L,
-        }
-        pars['Hamiltonian'] = {
-            'Operators': operators,
-            'ActingOn': sites,
-        }
-        pars['Machine'] = {
-            'Name': 'RbmSpin',
-            'Alpha': 1,
-        }
-        pars['Sampler'] = {
-            'Name': 'MetropolisLocal',
-        }
-        pars['Optimizer'] = {
-            'Name': 'AdaMax',
-        }
-        pars['Learning'] = {
-            'Method': 'Gd',
-            'Nsamples': 1.0e3,
-            'NiterOpt': 40000,
-            'OutputFile': "test",
-        }
+            pars = {}
+
+            # first we choose a hilbert space for our custom hamiltonian
+            pars['Hilbert'] = {
+                'QuantumNumbers': [1, -1],
+                'Size': L,
+            }
+
+            # defining a custom hamiltonian
+            pars['Hamiltonian'] = {
+                'Operators': operators,
+                'ActingOn': sites,
+            }
+
+            # defining the wave function
+            pars['Machine'] = {
+                'Name': 'RbmSpin',
+                'Alpha': 1,
+            }
+
+            # defining the sampler
+            # here we use Metropolis sampling with single spin flips
+            pars['Sampler'] = {
+                'Name': 'MetropolisLocal',
+            }
+
+            # defining the Optimizer
+            # here we use AdaMax
+            pars['Optimizer'] = {
+                'Name': 'AdaMax',
+            }
+
+            # defining the GroundState method
+            # here we use a Gradient Descent with AdaMax
+            pars['GroundState'] = {
+                'Method': 'Gd',
+                'Nsamples': 1.0e3,
+                'NiterOpt': 40000,
+                'OutputFile': "test",
+            }
 
         hil = nk.Hilbert("Custom", QuantumNumbers=[1, -1], Size=L)
         h = nk.Hamiltonian("Custom", Operators=operators, ActingOn=sites)
         m = nk.Machine("RbmSpin", Alpha=1)
         s = nk.Sampler("MetropolisLocal")
         o = nk.Optimizer("AdaMax")
-        l = nk.Learning(
-            "Gd", Nsamples=1000.0, NiterOpt=40000, OutputFile="test")
-        input = nk.NetKetInput(hil, h, m, s, o, l)
+        gs = nk.GroundState(
+            "Gd", Nsamples=1e3, NiterOpt=40000, OutputFile="test")
+        input = nk.NetKetInput(hil, h, m, s, o, gs)
         input.write_json_input()
 
         assert (input._pars == pars)

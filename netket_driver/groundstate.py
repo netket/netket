@@ -21,9 +21,9 @@ from netket_driver.python_utils import set_mand_pars
 from netket_driver.python_utils import set_opt_pars
 
 
-class Learning(object):
+class GroundState(object):
     '''
-    Driver for input Learning parameters.
+    Driver for input Ground State parameters.
 
     Simple Usage::
 
@@ -32,7 +32,7 @@ class Learning(object):
         {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
     '''
 
-    _name = "Learning"
+    _name = "GroundState"
 
     def __init__(self, method, **kwargs):
         '''
