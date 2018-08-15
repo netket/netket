@@ -33,8 +33,6 @@ class Machine : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
-  int mynode_;
-
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
@@ -87,15 +85,12 @@ class Machine : public AbstractMachine<T> {
   }
 
   void InitParameters(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
     if (FieldOrDefaultVal(pars["Machine"], "InitRandom", true)) {
       double sigma_rand = FieldOrDefaultVal(pars["Machine"], "SigmaRand", 0.1);
       m_->InitRandomPars(1232, sigma_rand);
-      if (mynode == 0)
-        std::cout << "# Machine initialized with random parameters"
-                  << std::endl;
+
+      InfoMessage() << "Machine initialized with random parameters"
+                    << std::endl;
     }
 
     if (FieldExists(pars["Machine"], "InitFile")) {
@@ -113,16 +108,12 @@ class Machine : public AbstractMachine<T> {
         throw InvalidInputError(s.str());
       }
 
-      if (mynode == 0)
-        std::cout << "# Machine initialized from file: " << filename
-                  << std::endl;
+      InfoMessage() << "Machine initialized from file: " << filename
+                    << std::endl;
     }
   }
 
   void CheckInput(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
     CheckFieldExists(pars, "Machine");
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 

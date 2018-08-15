@@ -20,8 +20,7 @@ int main(int argc, char *argv[]) {
 
   netket::Welcome(argc);
 
-  try
-  {
+  try {
     auto pars = netket::ReadJsonFromFile(argv[1]);
     if (netket::FieldExists(pars, "Learning")){
         netket::Learning learning(pars);

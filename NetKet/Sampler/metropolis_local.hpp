@@ -19,8 +19,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include "Utils/random_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {
@@ -65,8 +65,9 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     if (!hilbert_.IsDiscrete()) {
-        throw InvalidInputError("Hamiltonian Metropolis sampler works only for discrete "
-                                "Hilbert spaces");
+      throw InvalidInputError(
+          "Hamiltonian Metropolis sampler works only for discrete "
+          "Hilbert spaces");
     }
 
     accept_.resize(1);
@@ -79,9 +80,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
     Reset(true);
 
-    if (mynode_ == 0) {
-      std::cout << "# Local Metropolis sampler is ready " << std::endl;
-    }
+    InfoMessage() << "Local Metropolis sampler is ready " << std::endl;
   }
 
   void Seed(int baseseed = 0) {

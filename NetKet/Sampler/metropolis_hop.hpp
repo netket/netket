@@ -86,12 +86,10 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
     Reset(true);
 
-    if (mynode_ == 0) {
-      std::cout << "# Metropolis sampler is ready " << std::endl;
-      std::cout << "# " << dmax
-                << " is the maximum distance for two-site clusters"
-                << std::endl;
-    }
+    InfoMessage() << "Metropolis sampler is ready " << std::endl;
+    InfoMessage() << "" << dmax
+                  << " is the maximum distance for two-site clusters"
+                  << std::endl;
   }
 
   template <class G>

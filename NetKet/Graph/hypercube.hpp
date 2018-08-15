@@ -46,17 +46,15 @@ class Hypercube : public AbstractGraph {
 
   int nsites_;
 
-  int mynode_;
-
  public:
   // Json constructor
   explicit Hypercube(const json &pars)
       : L_(FieldVal(pars["Graph"], "L", "Graph")),
         ndim_(FieldVal(pars["Graph"], "Dimension", "Graph")),
         pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {
-    if(pbc_ && L_ <= 2)
-    {
-        throw InvalidInputError("L<=2 hypercubes cannot have periodic boundary conditions");
+    if (pbc_ && L_ <= 2) {
+      throw InvalidInputError(
+          "L<=2 hypercubes cannot have periodic boundary conditions");
     }
     Init();
   }
@@ -67,14 +65,10 @@ class Hypercube : public AbstractGraph {
     GenerateLatticePoints();
     GenerateAdjacencyList();
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (mynode_ == 0) {
-      std::cout << "# Hypercube created " << std::endl;
-      std::cout << "# Dimension = " << ndim_ << std::endl;
-      std::cout << "# L = " << L_ << std::endl;
-      std::cout << "# Pbc = " << pbc_ << std::endl;
-    }
+    InfoMessage() << "Hypercube created " << std::endl;
+    InfoMessage() << "Dimension = " << ndim_ << std::endl;
+    InfoMessage() << "L = " << L_ << std::endl;
+    InfoMessage() << "Pbc = " << pbc_ << std::endl;
   }
 
   void GenerateLatticePoints() {
@@ -120,8 +114,9 @@ class Hypercube : public AbstractGraph {
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
     if (!pbc_) {
-      throw InvalidInputError("Cannot generate translation symmetries "
-                              "in the hypercube without PBC");
+      throw InvalidInputError(
+          "Cannot generate translation symmetries "
+          "in the hypercube without PBC");
     }
 
     std::vector<std::vector<int>> permtable;
