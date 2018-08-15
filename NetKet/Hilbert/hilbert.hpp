@@ -54,22 +54,14 @@ class Hilbert : public AbstractHilbert {
     }
   }
 
-  void CheckInput(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
+  void CheckInput(const json &pars)
+  {
     if (!FieldExists(pars, "Hilbert")) {
       if (!FieldExists(pars, "Hamiltonian")) {
-        if (mynode == 0)
-          std::cerr << "Not enough information to construct Hilbert space"
-                    << std::endl;
-        std::abort();
+        throw InvalidInputError("Not enough information to construct Hilbert space");
       } else {
         if (!FieldExists(pars["Hamiltonian"], "Name")) {
-          if (mynode == 0)
-            std::cerr << "Not enough information to construct Hilbert space"
-                      << std::endl;
-          std::abort();
+          throw InvalidInputError("Not enough information to construct Hilbert space");
         }
       }
     }
@@ -80,8 +72,9 @@ class Hilbert : public AbstractHilbert {
       const auto name = pars["Hilbert"]["Name"];
 
       if (hilberts.count(name) == 0) {
-        std::cerr << "Hilbert " << name << " not found." << std::endl;
-        std::abort();
+        std::stringstream s;
+        s << "Hilbert space type " << name << " not found.";
+        throw InvalidInputError(s.str());
       }
     }
   }

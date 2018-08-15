@@ -12,32 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_LEARNING_CC
-#define NETKET_LEARNING_CC
+#ifndef NETKET_GROUND_STATE_CC
+#define NETKET_GROUND_STATE_CC
 
 #include <memory>
 
 #include "Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp"
-#include "ground_state.hpp"
-#include "stepper.hpp"
+#include "Optimizer/optimizer.hpp"
+#include "variational_montecarlo.hpp"
 
 namespace netket {
 
-class Learning {
+class GroundState {
  public:
-  explicit Learning(const json &pars) {
-    if (!FieldExists(pars, "Learning")) {
-      std::cerr << "Learning field is not defined in the input" << std::endl;
-      std::abort();
+  explicit GroundState(const json &pars) {
+    std::string method_name;
+
+    if (FieldExists(pars, "GroundState")) {
+      method_name = FieldVal(pars["GroundState"], "Method", "GroundState");
+    } else if (FieldExists(pars, "Learning")) {
+      method_name = FieldVal(pars["Learning"], "Method", "Learning");
+      // DEPRECATED (to remove for v2.0.0)
+      WarningMessage()
+          << "Use of the Learning section is "
+             "deprecated.\n Please use the dedicated GroundState section.\n";
+    } else {
+      std::stringstream s;
+      s << "The GroundState section has not been specified.\n";
+      throw InvalidInputError(s.str());
     }
 
-    if (!FieldExists(pars["Learning"], "Method")) {
-      std::cerr << "Learning Method is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (pars["Learning"]["Method"] == "Gd" ||
-        pars["Learning"]["Method"] == "Sr") {
+    if (method_name == "Gd" || method_name == "Sr") {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -47,10 +52,11 @@ class Learning {
 
       Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
 
-      Stepper stepper(pars);
+      Optimizer optimizer(pars);
 
-      GroundState le(hamiltonian, sampler, stepper, pars);
-    } else if (pars["Learning"]["Method"] == "Ed") {
+      VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
+      vmc.Run();
+    } else if (method_name == "Ed") {
       Graph graph(pars);
 
       Hamiltonian hamiltonian(graph, pars);
@@ -59,15 +65,14 @@ class Learning {
       SaveEigenValues(hamiltonian, file_base + std::string(".log"));
 
     } else {
-      std::cout << "Learning method not found" << std::endl;
-      std::cout << pars["Learning"]["Method"] << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown GroundState method: " << method_name;
+      throw InvalidInputError(s.str());
     }
   }
 
   void SaveEigenValues(const Hamiltonian &hamiltonian,
-                       const std::string &filename,
-                       int first_n = 1) {
+                       const std::string &filename, int first_n = 1) {
     std::ofstream file_ed(filename);
 
     auto matrix = DenseMatrixWrapper<Hamiltonian>(hamiltonian);
@@ -80,7 +85,7 @@ class Learning {
     file_ed << j << std::endl;
 
     file_ed.close();
-    }
+  }
 };
 
 }  // namespace netket

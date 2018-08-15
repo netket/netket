@@ -17,13 +17,12 @@
 
 #include <mpi.h>
 #include <algorithm>
+#include <array>
 #include <cassert>
-#include <iostream>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
-#include "Utils/json_utils.hpp"
-#include "distance.hpp"
+#include "Utils/all_utils.hpp"
 
 namespace netket {
 
@@ -35,21 +34,20 @@ class CustomGraph : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
-  int nsites_;
+  ColorMap eclist_;
 
-  int mynode_;
+  int nsites_;
 
   std::vector<std::vector<int>> automorphisms_;
 
   bool isbipartite_;
+  bool is_connected_;
 
  public:
   // Json constructor
   explicit CustomGraph(const json &pars) { Init(pars); }
 
   void Init(const json &pars) {
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
     // Try to construct from explicit graph definition
     if (FieldExists(pars, "Graph")) {
       if (FieldExists(pars["Graph"], "AdjacencyList")) {
@@ -71,12 +69,9 @@ class CustomGraph : public AbstractGraph {
       assert(nsites_ > 0);
       adjlist_.resize(nsites_);
     } else {
-      if (mynode_ == 0) {
-        std::cerr << "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
-                     "Space Size must be specified"
-                  << std::endl;
-      }
-      std::abort();
+      throw InvalidInputError(
+          "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
+          "Space Size must be specified");
     }
 
     nsites_ = adjlist_.size();
@@ -88,6 +83,7 @@ class CustomGraph : public AbstractGraph {
     }
 
     isbipartite_ = false;
+    is_connected_ = ComputeConnected();
 
     // Other graph properties
     if (FieldExists(pars, "Graph")) {
@@ -99,14 +95,24 @@ class CustomGraph : public AbstractGraph {
       if (FieldExists(pars["Graph"], "IsBipartite")) {
         isbipartite_ = pars["Graph"]["IsBipartite"];
       }
+
+      // If edge colors are specificied read them in, otherwise set them all to
+      // 0
+      if (FieldExists(pars["Graph"], "EdgeColors")) {
+        std::vector<std::vector<int>> colorlist =
+            pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+        EdgeColorsFromList(colorlist, eclist_);
+      } else {
+        InfoMessage() << "No colors specified, edge colors set to 0 "
+                      << std::endl;
+        EdgeColorsFromAdj(adjlist_, eclist_);
+      }
     }
 
     CheckGraph();
 
-    if (mynode_ == 0) {
-      std::cout << "# Graph created " << std::endl;
-      std::cout << "# Number of nodes = " << nsites_ << std::endl;
-    }
+    InfoMessage() << "Graph created " << std::endl;
+    InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
   }
 
   void AdjacencyListFromEdges(const std::vector<std::vector<int>> &edges) {
@@ -114,12 +120,12 @@ class CustomGraph : public AbstractGraph {
 
     for (auto edge : edges) {
       if (edge.size() != 2) {
-        std::cerr << "# The edge list is invalid" << std::endl;
-        std::abort();
+        throw InvalidInputError(
+            "The edge list is invalid (edges need "
+            "to connect exactly two sites)");
       }
       if (edge[0] < 0 || edge[1] < 0) {
-        std::cerr << "# The edge list is invalid" << std::endl;
-        std::abort();
+        throw InvalidInputError("The edge list is invalid");
       }
 
       nsites_ = std::max(std::max(edge[0], edge[1]), nsites_);
@@ -139,52 +145,48 @@ class CustomGraph : public AbstractGraph {
       for (auto s : adjlist_[i]) {
         // Checking if the referenced nodes are within the expected range
         if (s >= nsites_ || s < 0) {
-          if (mynode_ == 0) {
-            std::cerr << "# The graph is invalid" << std::endl;
-          }
-          std::abort();
+          throw InvalidInputError("The graph is invalid");
         }
         // Checking if the adjacency list is symmetric
         // i.e. if site s is declared neihgbor of site i
         // when site i is declared neighbor of site s
         if (std::count(adjlist_[s].begin(), adjlist_[s].end(), i) != 1) {
-          if (mynode_ == 0) {
-            std::cerr << "# The graph adjacencylist is not symmetric"
-                      << std::endl;
-          }
-          std::abort();
+          throw InvalidInputError("The graph adjacencylist is not symmetric");
         }
       }
     }
     for (std::size_t i = 0; i < automorphisms_.size(); i++) {
       if (int(automorphisms_[i].size()) != nsites_) {
-        if (mynode_ == 0) {
-          std::cerr << "# The automorphism list is invalid" << std::endl;
-        }
-        std::abort();
+        throw InvalidInputError("The automorphism list is invalid");
       }
     }
   }
 
   // Returns a list of permuted sites constituting an automorphism of the
   // graph
-  std::vector<std::vector<int>> SymmetryTable() const { return automorphisms_; }
+  std::vector<std::vector<int>> SymmetryTable() const override {
+    return automorphisms_;
+  }
 
-  int Nsites() const { return nsites_; }
+  int Nsites() const override { return nsites_; }
 
-  std::vector<std::vector<int>> AdjacencyList() const { return adjlist_; }
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return adjlist_;
+  }
 
-  bool IsBipartite() const { return isbipartite_; }
+  bool IsBipartite() const override { return isbipartite_; }
 
-  // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const {
-    std::vector<std::vector<int>> distances;
+  bool IsConnected() const override { return is_connected_; }
 
-    for (int i = 0; i < nsites_; i++) {
-      distances.push_back(FindDist(adjlist_, i));
-    }
-
-    return distances;
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return eclist_; }
+  
+ private:
+  bool ComputeConnected() const {
+    const int start = 0;  // arbitrary node
+    int nvisited = 0;
+    BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
+    return nvisited == Nsites();
   }
 };
 

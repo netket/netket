@@ -30,19 +30,11 @@ class Observable : public AbstractObservable {
  public:
   using MatType = LocalOperator::MatType;
 
-  Observable(const Hilbert &hilbert, const json &obspars) {
-    if (!FieldExists(obspars, "Operators")) {
-      std::cerr << "Observable's Operators not defined" << std::endl;
-      std::abort();
-    }
-    if (!FieldExists(obspars, "ActingOn")) {
-      std::cerr << "Observable's ActingOn not defined" << std::endl;
-      std::abort();
-    }
-    if (!FieldExists(obspars, "Name")) {
-      std::cerr << "Observable's Name not defined" << std::endl;
-      std::abort();
-    }
+  Observable(const Hilbert &hilbert, const json &obspars)
+  {
+    CheckFieldExists(obspars, "Operators", "Observables");
+    CheckFieldExists(obspars, "ActingOn", "Observables");
+    CheckFieldExists(obspars, "Name", "Observables");
 
     auto jop = obspars.at("Operators").get<std::vector<MatType>>();
     auto sites = obspars.at("ActingOn").get<std::vector<std::vector<int>>>();

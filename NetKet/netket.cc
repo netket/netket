@@ -20,21 +20,35 @@ int main(int argc, char *argv[]) {
 
   netket::Welcome(argc);
 
-  auto pars = netket::ReadJsonFromFile(argv[1]);
+  try {
+    auto pars = netket::ReadJsonFromFile(argv[1]);
 
-  if(netket::FieldExists(pars, "Learning"))
-  {
-      netket::Learning learning(pars);
-  }
-  else if(netket::FieldExists(pars, "TimeEvolution"))
-  {
+    // DEPRECATED (to remove for v2.0.0)
+    if (netket::FieldExists(pars, "GroundState") ||
+        netket::FieldExists(pars, "Learning")) {
+      netket::GroundState gs(pars);
+
+    } else if (netket::FieldExists(pars, "TimeEvolution")) {
       netket::RunTimeEvolution(pars);
-  }
-  else
-  {
-      std::cout << "The configuration file does not contain a operation. "
-                   "Please include either a 'Learning' or 'TimeEvolution' "
-                   "section." << std::endl;
+
+    } else if (netket::FieldExists(pars, "Supervised")) {
+      netket::ErrorMessage()
+          << "Supervised Learning still under development, try later."
+          << "\n";
+
+    } else if (netket::FieldExists(pars, "Unsupervised")) {
+      netket::ErrorMessage()
+          << "Unsupervised Learning still under development, try later."
+          << "\n";
+
+    } else {
+      netket::ErrorMessage()
+          << "No task specified. Please include one of the sections"
+             "'GroundState' or 'TimeEvolution' in the input file.\n";
+    }
+
+  } catch (const netket::InvalidInputError &e) {
+    netket::ErrorMessage() << e.what() << "\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
