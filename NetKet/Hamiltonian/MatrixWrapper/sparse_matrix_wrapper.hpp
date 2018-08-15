@@ -63,14 +63,13 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     dim_ = hilbert_index.NStates();
 
     using Triplet = Eigen::Triplet<std::complex<double>>;
-    Triplet triplet;
+    
     std::vector<Triplet> tripletList;
     tripletList.reserve(dim_);
 
     matrix_.resize(dim_, dim_);
     matrix_.setZero();
 
-    std::vector<std::vector<int>> ind(dim_);
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index.NumberToState(i);
@@ -84,7 +83,6 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
         auto vk = v;
         hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
         auto j = hilbert_index.StateToNumber(vk);
-        ind[i].push_back(j);
         tripletList.push_back(Triplet(i, j, matrix_elements[k]));
       }
     }
