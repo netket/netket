@@ -18,7 +18,12 @@
 #include <fstream>
 #include <memory>
 
+#include "Graph/graph.hpp"
+#include "Hamiltonian/hamiltonian.hpp"
 #include "abstract_machine.hpp"
+#include "ffnn.hpp"
+#include "jastrow.hpp"
+#include "jastrow_symm.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
@@ -41,21 +46,18 @@ class Machine : public AbstractMachine<T> {
 
   explicit Machine(const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert, pars);
     InitParameters(pars);
@@ -64,23 +66,30 @@ class Machine : public AbstractMachine<T> {
   explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
                    const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert_, pars);
     InitParameters(pars);
   }
 
   void Init(const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpin") {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "Jastrow") {
+      m_ = Ptype(new Jastrow<T>(hilbert, pars));
     }
   }
 
   void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN") {
+      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "JastrowSymm") {
+      m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
     }
   }
 
@@ -117,7 +126,8 @@ class Machine : public AbstractMachine<T> {
     CheckFieldExists(pars, "Machine");
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
+    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
+                                      "FFNN",    "Jastrow",     "JastrowSymm"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;

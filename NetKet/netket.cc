@@ -22,20 +22,23 @@ int main(int argc, char *argv[]) {
 
   try {
     auto pars = netket::ReadJsonFromFile(argv[1]);
-    if (netket::FieldExists(pars, "Learning")){
-        netket::Learning learning(pars);
+
+    // DEPRECATED (to remove for v2.0.0)
+    if (netket::FieldExists(pars, "GroundState") ||
+        netket::FieldExists(pars, "Learning")) {
+      netket::GroundState gs(pars);
     }
-    else if (netket::FieldExists(pars, "Supervised")){
+    if (netket::FieldExists(pars, "Supervised")) {
         netket::Supervised supervised(pars);
     }
-  }
-  catch(const netket::InvalidInputError& e)
-  {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if(rank == 0) {
-      std::cerr << "Error: " << e.what() << "\nExiting." << std::endl;
+    if (netket::FieldExists(pars, "Unsupervised")) {
+      netket::ErrorMessage()
+          << "Unsupervised Learning still under development, try later."
+          << "\n";
     }
+
+  } catch (const netket::InvalidInputError &e) {
+    netket::ErrorMessage() << e.what() << "\n";
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

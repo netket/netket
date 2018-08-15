@@ -100,6 +100,8 @@ Those are typically very handy, since they allow to format the code in real time
 at any point you save your code, and without recurring to the command line.
 Our editor of choice, `atom`, has a nice plugin [see here](https://atom.io/packages/clang-format)
 which can be configured with Google style.
+To do so, after having installed the plugin, go to
+`Atom -> Preferences... -> Packages -> clang-format -> Settings` and type `google` in the `Style` field.
 
 
 #### Running sanity check

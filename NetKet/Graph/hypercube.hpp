@@ -16,12 +16,12 @@
 #define NETKET_HYPERCUBE_HPP
 
 #include <mpi.h>
+#include <array>
 #include <cassert>
-#include <iostream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
-#include "distance.hpp"
 
 namespace netket {
 
@@ -44,6 +44,9 @@ class Hypercube : public AbstractGraph {
   // adjacency list
   std::vector<std::vector<int>> adjlist_;
 
+  // Edge colors
+  ColorMap eclist_;
+
   int nsites_;
 
  public:
@@ -56,14 +59,26 @@ class Hypercube : public AbstractGraph {
       throw InvalidInputError(
           "L<=2 hypercubes cannot have periodic boundary conditions");
     }
-    Init();
+    Init(pars);
   }
 
-  void Init() {
+  void Init(const json &pars) {
     assert(L_ > 0);
     assert(ndim_ >= 1);
     GenerateLatticePoints();
     GenerateAdjacencyList();
+
+    // If edge colors are specificied read them in, otherwise set them all to
+    // 0
+    if (FieldExists(pars["Graph"], "EdgeColors")) {
+      std::vector<std::vector<int>> colorlist =
+          pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+      EdgeColorsFromList(colorlist, eclist_);
+    } else {
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+      EdgeColorsFromAdj(adjlist_, eclist_);
+    }
 
     InfoMessage() << "Hypercube created " << std::endl;
     InfoMessage() << "Dimension = " << ndim_ << std::endl;
@@ -87,15 +102,18 @@ class Hypercube : public AbstractGraph {
 
     for (int i = 0; i < nsites_; i++) {
       std::vector<int> neigh(ndim_);
+      std::vector<int> neigh2(ndim_);
 
       neigh = sites_[i];
-
+      neigh2 = sites_[i];
       for (int d = 0; d < ndim_; d++) {
         if (pbc_) {
           neigh[d] = (sites_[i][d] + 1) % L_;
+          neigh2[d] = ((sites_[i][d] - 1) % L_ + L_) % L_;
           int neigh_site = coord2sites_.at(neigh);
+          int neigh_site2 = coord2sites_.at(neigh2);
           adjlist_[i].push_back(neigh_site);
-          adjlist_[neigh_site].push_back(i);
+          adjlist_[i].push_back(neigh_site2);
         } else {
           if ((sites_[i][d] + 1) < L_) {
             neigh[d] = (sites_[i][d] + 1);
@@ -106,6 +124,7 @@ class Hypercube : public AbstractGraph {
         }
 
         neigh[d] = sites_[i][d];
+        neigh2[d] = sites_[i][d];
       }
     }
   }
@@ -158,16 +177,10 @@ class Hypercube : public AbstractGraph {
 
   bool IsBipartite() const override { return true; }
 
-  // returns the distances of each point from the others
-  std::vector<std::vector<int>> Distances() const override {
-    std::vector<std::vector<int>> distances;
+  bool IsConnected() const override { return true; }
 
-    for (int i = 0; i < nsites_; i++) {
-      distances.push_back(FindDist(adjlist_, i));
-    }
-
-    return distances;
-  }
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return eclist_; }
 };
 
 }  // namespace netket
