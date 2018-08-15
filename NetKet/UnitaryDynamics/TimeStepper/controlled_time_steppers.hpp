@@ -65,6 +65,8 @@ public:
             dt_factor = bound(dt_factor, 0.01, 10.);
             current_dt_ *= dt_factor;
         };
+
+        Reset();
     }
 
 protected:
@@ -72,6 +74,8 @@ protected:
             : atol_(atol), rtol_(rtol), current_dt_(0.), last_norm_(0.)
     {
     }
+
+    virtual void Reset() = 0;
 
     /**
      * Perform a single step from t to t + dt.
@@ -85,12 +89,6 @@ protected:
     virtual double PerformSingleStep(OdeSystemFunction<State> ode_system,
                                      State &x,
                                      double t, double dt) = 0;
-
-    /**
-     * Reset the internal state of the stepper, in case the next time step
-     * does not start at the end of the previous time step.
-     */
-    virtual void Reset() = 0;
 
     /**
      * Compute the relative local error from the error estimate delta, taking into account

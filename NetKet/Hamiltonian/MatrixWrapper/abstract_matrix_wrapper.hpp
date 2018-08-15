@@ -38,6 +38,21 @@ public:
      */
     virtual WfType Apply(const WfType& state) const = 0;
 
+    virtual std::complex<double> Mean(const WfType& state) const {
+        return state.adjoint() * Apply(state);
+    }
+
+    virtual std::array<std::complex<double>, 2> MeanVariance(const WfType& state) const {
+        auto state1 = Apply(state);
+        auto state2 = Apply(state1);
+
+        const std::complex<double> mean = state.adjoint() * state1;
+        const std::complex<double> var = state.adjoint() * state2 ;
+
+        return {mean, var - std::pow(mean, 2)};
+    }
+
+
     /**
      * Returns the Hilbert space dimension corresponding to the Hamiltonian.
      */
