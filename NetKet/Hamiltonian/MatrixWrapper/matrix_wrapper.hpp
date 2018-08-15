@@ -13,28 +13,23 @@
 
 namespace netket {
 
-template<class Wrapped>
-std::unique_ptr<AbstractMatrixWrapper<Wrapped>>
-ConstructMatrixWrapper(const json &pars, const Wrapped& wrapped)
-{
-    using WrapperPtr = std::unique_ptr<AbstractMatrixWrapper<Wrapped>>;
+template <class Wrapped>
+std::unique_ptr<AbstractMatrixWrapper<Wrapped>> ConstructMatrixWrapper(
+    const json& pars, const Wrapped& wrapped) {
+  using WrapperPtr = std::unique_ptr<AbstractMatrixWrapper<Wrapped>>;
 
-    std::string wrapper_name = FieldOrDefaultVal<json, std::string>(pars, "MatrixWrapper", "Sparse");
-    if(wrapper_name == "Sparse")
-    {
-        return WrapperPtr(new SparseMatrixWrapper<Wrapped>(wrapped));
-    }
-    else if(wrapper_name == "Dense")
-    {
-        return WrapperPtr(new DenseMatrixWrapper<Wrapped>(wrapped));
-    }
-    else
-    {
-        std::cout << "Unknown MatrixWrapper: " << wrapper_name << std::endl;
-        std::abort();
-    }
+  std::string wrapper_name =
+      FieldOrDefaultVal<json, std::string>(pars, "MatrixWrapper", "Sparse");
+  if (wrapper_name == "Sparse") {
+    return WrapperPtr(new SparseMatrixWrapper<Wrapped>(wrapped));
+  } else if (wrapper_name == "Dense") {
+    return WrapperPtr(new DenseMatrixWrapper<Wrapped>(wrapped));
+  } else {
+    std::cout << "Unknown MatrixWrapper: " << wrapper_name << std::endl;
+    std::abort();
+  }
 }
 
-}
+}  // namespace netket
 
-#endif // MATRIX_WRAPPER_HPP
+#endif  // MATRIX_WRAPPER_HPP
