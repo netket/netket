@@ -31,11 +31,29 @@ template<class State>
 class AbstractTimeStepper
 {
 public:
+    /**
+     * Propagate the state x from t to t + dt.
+     * @param ode_system A callable representing the right-hand side F of the ODE.
+     *      The function is called with the current state as const reference, a
+     *      reference to the derivative dxdt which ode_system should write to and
+     *      the current time t.
+     * @param x The value of x at t.
+     * @param t The current time.
+     * @param dt The time step. Time steppers may use a smaller time step internally
+     *      (e.g., as part of an adaptive algorithm).
+     */
     virtual void Propagate(OdeSystemFunction<State> ode_system,
                            State &x,
                            double t, double dt) = 0;
 
     virtual ~AbstractTimeStepper() = default;
+
+protected:
+    /**
+     * Reset the internal state of the stepper, in case the next time step
+     * does not start at the end of the previous time step.
+     */
+    virtual void Reset() = 0;
 };
 
 /**

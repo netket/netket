@@ -80,6 +80,8 @@ public:
     }
 
 protected:
+    void Reset() override {}
+
     void PerformSingleStep(OdeSystemFunction<State> ode_system,
                             State &x,
                             double t, double dt) override
@@ -114,6 +116,8 @@ public:
     }
 
 protected:
+    void Reset() override {}
+
     void PerformSingleStep(OdeSystemFunction <State> ode_system,
                            State &x,
                            double t, double dt) override
