@@ -49,6 +49,44 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
   }
 }
 
+TEST_CASE("machines write/read to/from json correctly", "[machine]") {
+  auto input_tests = GetMachineInputs();
+  std::size_t ntests = input_tests.size();
+
+  for (std::size_t it = 0; it < ntests; it++) {
+    SECTION("Machine test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Machine"].dump()) {
+      auto pars = input_tests[it];
+
+      netket::Graph graph(pars);
+
+      netket::Hamiltonian hamiltonian(graph, pars);
+
+      using MType = std::complex<double>;
+
+      netket::Machine<MType> machine(graph, hamiltonian, pars);
+
+      int seed = 12342;
+      double sigma = 1;
+      netket::Machine<MType>::VectorType params(machine.Npar());
+      netket::RandomGaussian(params, seed, sigma);
+
+      machine.SetParameters(params);
+
+      netket::json pars_out;
+      machine.to_json(pars_out);
+
+      machine.from_json(pars_out);
+
+      netket::Machine<MType>::VectorType params_out(machine.Npar());
+
+      params_out = machine.GetParameters();
+
+      REQUIRE(Approx((params_out - params).norm()) == 0);
+    }
+  }
+}
+
 TEST_CASE("machines compute log derivatives correctly", "[machine]") {
   auto input_tests = GetMachineInputs();
   std::size_t ntests = input_tests.size();
@@ -76,7 +114,7 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
       int nv = hilbert.Size();
       Eigen::VectorXd v(nv);
 
-      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 1000;
+      double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 100;
 
       for (int i = 0; i < 100; i++) {
         hilbert.RandomVals(v, rgen);
@@ -99,9 +137,9 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
           typename netket::Machine<MType>::StateType numder =
               (-valm + valp) / (eps * 2);
 
-          REQUIRE(Approx(std::real(numder)).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::real(numder)).epsilon(eps * 1000) ==
                   std::real(ders(p)));
-          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 100) ==
+          REQUIRE(Approx(std::exp(std::imag(numder))).epsilon(eps * 1000) ==
                   std::exp(std::imag(ders(p))));
         }
       }
@@ -149,7 +187,6 @@ TEST_CASE("machines compute logval differences correctly", "[machine]") {
       for (int i = 0; i < nv; i++) {
         randperm[i] = i;
       }
-
       for (int i = 0; i < 100; i++) {
         hilbert.RandomVals(v, rgen);
         machine.InitLookup(v, lt);

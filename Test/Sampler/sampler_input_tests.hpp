@@ -64,5 +64,37 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Sampler", {{"Name", "MetropolisLocalPt"}, {"Nreplicas", 4}}}};
   input_tests.push_back(pars);
 
+  // Ising 1d with Custom Sampler
+  std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx, sx, sx};
+  pars["Sampler"]["ActingOn"] = {{0}, {1}, {2}, {3}, {4}, {5}};
+  input_tests.push_back(pars);
+
+  // Ising 1D with CustomSampler two types of updates
+  std::vector<std::vector<double>> spsm = {
+      {1, 0, 0, 0}, {0, 0, 1, 0}, {0, 1, 0, 0}, {0, 0, 0, 1}};
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx, spsm, spsm, spsm, spsm};
+  pars["Sampler"]["ActingOn"] = {{0},    {1},    {2},    {3},
+                                 {0, 1}, {1, 2}, {2, 3}, {3, 0}};
+  input_tests.push_back(pars);
+
+  // Ising 1d with Custom Sampler and replicas
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx};
+  pars["Sampler"]["ActingOn"] = {{0}, {1}, {2}, {3}};
+  pars["Sampler"]["Nreplicas"] = 4;
+  input_tests.push_back(pars);
+
   return input_tests;
 }

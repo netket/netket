@@ -12,25 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ABSTRACTSTEPPER_HPP
-#define NETKET_ABSTRACTSTEPPER_HPP
+#ifndef NETKET_EXCEPTIONS_HPP
+#define NETKET_EXCEPTIONS_HPP
 
-#include <Eigen/Dense>
-#include <complex>
-#include <vector>
+#include <exception>
+#include <string>
 
 namespace netket {
 
-class AbstractStepper {
- public:
-  virtual void Init(const Eigen::VectorXd &pars) = 0;
-  virtual void Init(const Eigen::VectorXcd &pars) = 0;
-  virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
-  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
-  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
-  virtual void Reset() = 0;
-  virtual ~AbstractStepper() {}
-};
-}  // namespace netket
+class NetketBaseException : public std::exception
+{
+    std::string message_;
 
-#endif
+public:
+    explicit NetketBaseException(const std::string& message)
+        : message_(message)
+    {
+    }
+
+    const char* what() const noexcept override
+    {
+        return message_.c_str();
+    }
+};
+
+class InvalidInputError : public NetketBaseException
+{
+public:
+    explicit InvalidInputError(const std::string& message)
+        : NetketBaseException(message)
+    {
+    }
+};
+
+}
+
+#endif // NETKET_EXCEPTIONS_HPP

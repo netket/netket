@@ -18,7 +18,12 @@
 #include <fstream>
 #include <memory>
 
+#include "Graph/graph.hpp"
+#include "Hamiltonian/hamiltonian.hpp"
 #include "abstract_machine.hpp"
+#include "ffnn.hpp"
+#include "jastrow.hpp"
+#include "jastrow_symm.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
@@ -33,8 +38,6 @@ class Machine : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
-  int mynode_;
-
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
@@ -43,21 +46,18 @@ class Machine : public AbstractMachine<T> {
 
   explicit Machine(const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     InitParameters(pars);
   }
 
   explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
       : hilbert_(hilbert) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert, pars);
     InitParameters(pars);
@@ -66,36 +66,40 @@ class Machine : public AbstractMachine<T> {
   explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
                    const json &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    CheckInput(pars);
     Init(hilbert_, pars);
     Init(graph, hilbert_, pars);
     InitParameters(pars);
   }
 
   void Init(const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpin") {
       m_ = Ptype(new RbmSpin<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "RbmMultival") {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "Jastrow") {
+      m_ = Ptype(new Jastrow<T>(hilbert, pars));
     }
   }
 
   void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
+    CheckInput(pars);
     if (pars["Machine"]["Name"] == "RbmSpinSymm") {
       m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "FFNN") {
+      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "JastrowSymm") {
+      m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
     }
   }
 
   void InitParameters(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
-
     if (FieldOrDefaultVal(pars["Machine"], "InitRandom", true)) {
       double sigma_rand = FieldOrDefaultVal(pars["Machine"], "SigmaRand", 0.1);
       m_->InitRandomPars(1232, sigma_rand);
-      if (mynode == 0)
-        std::cout << "# Machine initialized with random parameters"
-                  << std::endl;
+
+      InfoMessage() << "Machine initialized with random parameters"
+                    << std::endl;
     }
 
     if (FieldExists(pars["Machine"], "InitFile")) {
@@ -108,40 +112,27 @@ class Machine : public AbstractMachine<T> {
         ifs >> jmachine;
         m_->from_json(jmachine);
       } else {
-        if (mynode == 0)
-          std::cerr << "Error opening file : " << filename << std::endl;
-        std::abort();
+        std::stringstream s;
+        s << "Error opening file: " << filename;
+        throw InvalidInputError(s.str());
       }
 
-      if (mynode == 0)
-        std::cout << "# Machine initialized from file: " << filename
-                  << std::endl;
+      InfoMessage() << "Machine initialized from file: " << filename
+                    << std::endl;
     }
   }
 
   void CheckInput(const json &pars) {
-    int mynode;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
+    CheckFieldExists(pars, "Machine");
+    const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
-    if (!FieldExists(pars, "Machine")) {
-      if (mynode == 0)
-        std::cerr << "Machine is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    if (!FieldExists(pars["Machine"], "Name")) {
-      if (mynode == 0)
-        std::cerr << "Machine Name is not defined in the input" << std::endl;
-      std::abort();
-    }
-
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival"};
-
-    const auto name = pars["Machine"]["Name"];
+    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
+                                      "FFNN",    "Jastrow",     "JastrowSymm"};
 
     if (machines.count(name) == 0) {
-      std::cerr << "Machine " << name << " not found." << std::endl;
-      std::abort();
+      std::stringstream s;
+      s << "Unknown Machine: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 
@@ -175,7 +166,7 @@ class Machine : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
     return m_->LogVal(v, lt);
   }
 

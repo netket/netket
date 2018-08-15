@@ -33,9 +33,9 @@ pars['Hamiltonian']={
 }
 
 
-#defining the learning method
+#defining the GroundState method
 #here we use the Stochastic Reconfiguration Method
-pars['Learning']={
+pars['GroundState']={
     'Method'         : 'Ed',
     'OutputFile'     : "test",
 }

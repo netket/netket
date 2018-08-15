@@ -93,10 +93,10 @@ class Binning {
 
   void Print() {
     for (std::size_t i = 0; i < last1_; i++) {
-      std::cout << bins1_[i].Mean() << "  " << bins1_[i].N() << std::endl;
+      InfoMessage() << bins1_[i].Mean() << "  " << bins1_[i].N() << std::endl;
     }
     for (std::size_t i = 0; i < last2_; i++) {
-      std::cout << bins2_[i].Mean() << "  " << bins2_[i].N() << std::endl;
+      InfoMessage() << bins2_[i].Mean() << "  " << bins2_[i].N() << std::endl;
     }
   }
 

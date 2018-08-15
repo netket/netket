@@ -46,16 +46,21 @@ pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
 
-# defining the learning method
+# defining the Optimizer
+# here we use AdaMax
+pars['Optimizer'] = {
+    'Name': 'AdaMax',
+}
+
+# defining the GroundState method
 # here we use the Stochastic Reconfiguration Method
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
     'NiterOpt': 4000,
     'Diagshift': 5.0e-3,
     'UseIterative': False,
     'OutputFile': 'test',
-    'StepperType': 'AdaMax',
 }
 
 json_file = "bosehubbard1d.json"
