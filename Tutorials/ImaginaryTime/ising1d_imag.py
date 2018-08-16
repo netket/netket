@@ -16,7 +16,7 @@
 from __future__ import print_function
 import json
 
-L = 12
+L = 20
 pars = {}
 
 # defining the lattice
@@ -54,7 +54,7 @@ pars['GroundState'] = {
     'StartTime': 0,
     'EndTime': 20,
     'TimeStep': 0.1,
-    'OutputFile': "test-itp",
+    'OutputFile': "test",
 }
 
 json_file = "ising1d_imag.json"
