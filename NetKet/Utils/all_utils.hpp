@@ -15,11 +15,11 @@
 #ifndef NETKET_ALLUTILS_HPP
 #define NETKET_ALLUTILS_HPP
 
+#include "data_utils.hpp"
 #include "exceptions.hpp"
 #include "json_utils.hpp"
 #include "messages.hpp"
 #include "parallel_utils.hpp"
 #include "random_utils.hpp"
-#include "data_utils.hpp"
 
 #endif
