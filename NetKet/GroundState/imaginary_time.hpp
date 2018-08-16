@@ -8,6 +8,8 @@
 #include "Stats/stats.hpp"
 #include "UnitaryDynamics/time_evolution.hpp"
 
+#include "json_output_writer.hpp"
+
 namespace netket {
 
 // TODO: Move to UnitaryDynamics
@@ -34,9 +36,9 @@ class ImaginaryTimePropagation {
   using ObsEntry = std::pair<std::string, std::unique_ptr<MatrixObs>>;
   using ObservableVector = std::vector<ObsEntry>;
 
-  static ImaginaryTimePropagation FromJson(const Hamiltonian& hamiltonian,
-                                           const std::vector<Observable>& observables,
-                                           const json& pars) {
+  static ImaginaryTimePropagation FromJson(
+      const Hamiltonian& hamiltonian,
+      const std::vector<Observable>& observables, const json& pars) {
     auto matrix = ConstructMatrixWrapper(pars, hamiltonian);
     auto stepper =
         ode::ConstructTimeStepper<State>(pars, matrix->GetDimension());
@@ -48,24 +50,22 @@ class ImaginaryTimePropagation {
                                        ConstructMatrixWrapper(pars, obs));
     }
 
-    const std::string filebase = FieldVal(pars, "OutputFile");
-    std::ofstream outstream{filebase + ".log"};
+    auto output = JsonOutputWriter::FromJson(pars);
 
     return ImaginaryTimePropagation(std::move(matrix), std::move(stepper),
                                     std::move(wrapped_observables),
-                                    std::move(outstream), range);
+                                    std::move(output), range);
   }
 
   ImaginaryTimePropagation(std::unique_ptr<Matrix> matrix,
                            std::unique_ptr<Stepper> stepper,
-                           ObservableVector observables, std::ofstream filelog,
-                           TimeRange time_range)
+                           ObservableVector observables,
+                           JsonOutputWriter output, TimeRange time_range)
       : matrix_(std::move(matrix)),
         stepper_(std::move(stepper)),
         observables_(std::move(observables)),
-        filelog_(std::move(filelog)),
+        output_(std::move(output)),
         range_(time_range) {
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank_);
     ode_system_ = [this](const State& x, State& dxdt, double /*t*/) {
       dxdt.noalias() = -matrix_->Apply(x);
     };
@@ -86,7 +86,8 @@ class ImaginaryTimePropagation {
       state.normalize();
 
       ComputeObservables(state);
-      PrintOutput(step, t);
+      output_.WriteLog(step, obsmanager_, t);
+      output_.WriteState(step, state);
 
       step++;
       t = range_.tmin + step * range_.dt;
@@ -110,26 +111,6 @@ class ImaginaryTimePropagation {
     }
   }
 
-  void PrintOutput(int i, double time) {
-    auto jiter = json(obsmanager_);
-    jiter["Iteration"] = i;
-    jiter["Time"] = time;
-    outputjson_["Output"].push_back(jiter);
-
-    if (mpi_rank_ == 0) {
-      if (jiter["Iteration"] != 0) {
-        long pos = filelog_.tellp();
-        filelog_.seekp(pos - 3);
-        filelog_.write(",  ", 3);
-        filelog_ << jiter << "]}" << std::endl;
-      } else {
-        filelog_ << outputjson_ << std::endl;
-      }
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
   int GetDimension() const { return matrix_->GetDimension(); }
 
  private:
@@ -139,10 +120,8 @@ class ImaginaryTimePropagation {
 
   ObservableVector observables_;
   ObsManager obsmanager_;
-  json outputjson_;
-  std::ofstream filelog_;
 
-  int mpi_rank_;
+  JsonOutputWriter output_;
 
   TimeRange range_;
 };
