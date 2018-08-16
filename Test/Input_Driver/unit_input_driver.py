@@ -19,8 +19,8 @@ import unittest
 import os
 import json
 import numpy as np
-import netket_driver.input_driver as nk
-from netket_driver.python_utils import encode_complex
+import pynetket as nk
+from pynetket.python_utils import encode_complex
 
 try:
     import networkx as nx

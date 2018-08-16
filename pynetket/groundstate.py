@@ -17,8 +17,8 @@ Base class for NetKet input driver Learning objects.
 
 '''
 
-from netket_driver.python_utils import set_mand_pars
-from netket_driver.python_utils import set_opt_pars
+from pynetket.python_utils import set_mand_pars
+from pynetket.python_utils import set_opt_pars
 
 
 class GroundState(object):
@@ -27,8 +27,8 @@ class GroundState(object):
 
     Simple Usage::
 
-        >>> learn = Learning("Gd")
-        >>> print(learn._pars)
+        >>> gs = GroundState("Gd")
+        >>> print(gs._pars)
         {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
     '''
 

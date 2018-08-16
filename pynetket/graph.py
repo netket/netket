@@ -17,8 +17,8 @@ Base class for NetKet input driver Graph objects.
 
 '''
 
-from netket_driver.python_utils import set_mand_pars
-from netket_driver.python_utils import set_opt_pars
+from pynetket.python_utils import set_mand_pars
+from pynetket.python_utils import set_opt_pars
 
 # Test to see if networkx is installed
 try:

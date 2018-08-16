@@ -17,8 +17,8 @@ Base class for NetKet input driver Sampler objects.
 
 '''
 
-from netket_driver.python_utils import set_mand_pars
-from netket_driver.python_utils import set_opt_pars
+from pynetket.python_utils import set_mand_pars
+from pynetket.python_utils import set_opt_pars
 
 
 class Sampler(object):

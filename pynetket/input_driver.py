@@ -20,16 +20,11 @@ Netket input driver to create json input files.
 import os
 import json
 import subprocess
-from netket_driver.python_utils import Message
-from netket_driver.python_utils import plot_output
-from netket_driver.python_utils import encode_complex
-from netket_driver.graph import Graph
-from netket_driver.hamiltonian import Hamiltonian
-from netket_driver.hilbert import Hilbert
-from netket_driver.machine import Machine
-from netket_driver.sampler import Sampler
-from netket_driver.optimizer import Optimizer
-from netket_driver.groundstate import GroundState
+from tkinter import TclError
+import pynetket as nk
+from pynetket.python_utils import Message
+from pynetket.python_utils import plot_observable
+from pynetket.python_utils import encode_complex
 
 
 class NetKetInput(object):
@@ -57,6 +52,7 @@ class NetKetInput(object):
         '''
 
         self._pars = {}
+        self._complete = False
 
         for arg in args:
             self._pars[arg._name] = arg._pars
@@ -95,24 +91,42 @@ class NetKetInput(object):
 
         self.write_json_input(json_file=json_file)
 
-        sts = subprocess.Popen(
+        self._sts = subprocess.Popen(
             "mpirun -n %d netket %s" % (n, json_file), shell=True)
 
-        if plot:
-            try:
-                plot_output(exact, self._pars["Learning"]["OutputFile"])
-            except:
-                Message("Warning", "Plot closed.")
-                Message("Warning", "NetKet will coninue to run.")
+    def plot(self, observable, exact=0):
+        '''
+
+        Arguments
+        ---------
+
+            observable : string
+                The name of an observable written to the json output file.
+
+            exact : float
+                The exact answer to compare to. This is used to calculated error
+                bars in plot_observable. Default is 0.
+        '''
+
+        # Enclosing the plot_observable function in a try statement so it
+        # doesn't throw and error when the user closes the plot.
+        try:
+            plot_observable(
+                self._pars["GroundState"]["OutputFile"],
+                observable,
+                exact=exact)
+        except TclError:
+            Message("Warning", "Plot closed.")
+            Message("Warning", "NetKet will coninue to run.")
 
 
 if __name__ == "__main__":
-    g = Graph("Hypercube", L=20, Dimension=1, Pbc=True)
-    h = Hamiltonian("Ising", h=1.0)
-    m = Machine("RbmSpin", Alpha=1.0)
-    s = Sampler("MetropolisLocal")
-    o = Optimizer("Sgd", LearningRate=0.1)
-    gs = GroundState("Sr", Niteropt=300, Diagshift=0.1, UseIterative=False)
-    input = NetKetInput(g)
+    g = nk.Graph("Hypercube", L=20, Dimension=1, Pbc=True)
+    h = nk.Hamiltonian("Ising", h=1.0)
+    m = nk.Machine("RbmSpin", Alpha=1.0)
+    s = nk.Sampler("MetropolisLocal")
+    o = nk.Optimizer("Sgd", LearningRate=0.1)
+    gs = nk.GroundState("Sr", Niteropt=300, Diagshift=0.1, UseIterative=False)
+    input = nk.NetKetInput(g)
     # input.write_json_input()
     # input.run()

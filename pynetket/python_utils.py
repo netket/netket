@@ -64,39 +64,83 @@ def encode_complex(z):
             f"Object of type '{type_name}' is not JSON serializable")
 
 
-def plot_output(exact, outputfile):
+def get_obsv_from_json(outputfile):
+    '''
+    Reads observables from the NetKet's json output file.
+
+    Arguments
+    ---------
+
+        outputfile : string
+            File name (not including json file extension).
+
+    Returns
+    -------
+
+        data : dict
+            Contains the data from the json output file stored as np.ndarrays.
+    '''
+
+    # Read in data
+    raw_data = json.load(open(outputfile + ".log"))
+
+    # Set up dictionary to return
+    data = {}
+    for k, v in raw_data["Output"][0].items():
+        # For everything other than iteration, initialize as a dict
+        if isinstance(v, dict):
+            data[k] = {}
+            for ki, vi in v.items():
+                data[k][ki] = []
+        else:
+            data[k] = []
+
+    # Read in all the data
+    for iteration in raw_data["Output"]:
+        for k, v in iteration.items():
+            # For everything other than iteration, initialize as a dict
+            if isinstance(v, dict):
+                for ki, vi in v.items():
+                    data[k][ki].append(iteration[k][ki])
+            else:
+                data[k].append(iteration[k])
+
+    # Convert all arrays to ndarrays
+    for k, v in data.items():
+        # For everything other than iteration, initialize as a dict
+        if isinstance(v, dict):
+            for ki, vi in v.items():
+                data[k][ki] = np.array(data[k][ki])
+        else:
+            data[k] = np.array(data[k])
+
+    return data
+
+
+def plot_observable(outputfile, observable, exact):
     plt.ion()
-    plt.pause(10)
+    plt.pause(2)  # Necessary to give NetKet time to write to outputfile
     while (True):
         plt.clf()
-        plt.ylabel('Energy')
+        plt.ylabel(observable)
         plt.xlabel('Iteration #')
 
-        iters = []
-        energy = []
-        sigma = []
-        evar = []
-        evarsig = []
-
-        data = json.load(open(outputfile + ".log"))
-        for iteration in data["Output"]:
-            iters.append(iteration["Iteration"])
-            energy.append(iteration["Energy"]["Mean"])
-            sigma.append(iteration["Energy"]["Sigma"])
-            evar.append(iteration["EnergyVariance"]["Mean"])
-            evarsig.append(iteration["EnergyVariance"]["Sigma"])
+        data = get_obsv_from_json(outputfile)
+        iters = data["Iteration"]
+        obsv = data[observable]["Mean"]
+        sigma = data[observable]["Sigma"]
 
         nres = len(iters)
         cut = 60
         if (nres > cut):
 
             fitx = iters[-cut:-1]
-            fity = energy[-cut:-1]
+            fity = obsv[-cut:-1]
             z = np.polyfit(fitx, fity, deg=0)
             p = np.poly1d(z)
 
             plt.xlim([nres - cut, nres])
-            maxval = np.max(energy[-cut:-1])
+            maxval = np.max(obsv[-cut:-1])
             plt.ylim([
                 exact - (np.abs(exact) * 0.01), maxval + np.abs(maxval) * 0.01
             ])
@@ -113,7 +157,7 @@ def plot_output(exact, outputfile):
 
             plt.plot(fitx, p(fitx))
 
-        plt.errorbar(iters, energy, yerr=sigma, color='red')
+        plt.errorbar(iters, obsv, yerr=sigma, color='red')
         plt.axhline(
             y=exact,
             xmin=0,
