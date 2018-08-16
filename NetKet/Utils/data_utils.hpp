@@ -90,8 +90,14 @@ namespace netket {
                 << "read in basis as array \n" << basis << "\n";
         }
 
+        void GenerateBatch( unsigned int batchsize, MatrixType &out ) {
+            // Clip batchsize to number of samples
+            if(batchsize >= ndata_)
+                batchsize = ndata_;
 
-
+            /// \todo Implement shuffling
+            /// \todo Randomly pick 'batchsize' samples and store in out
+        }
   };
 
 }  // namespace netket
