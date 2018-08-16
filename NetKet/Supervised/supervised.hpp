@@ -15,8 +15,6 @@
 #ifndef NETKET_SUPERVISED_CC
 #define NETKET_SUPERVISED_CC
 
-#include "../Learning/stepper.hpp"
-
 namespace netket {
 
     class Supervised {
@@ -43,7 +41,7 @@ namespace netket {
                         // Stepper stepper(pars);
 
                         // GroundState le(hamiltonian, sampler, stepper, pars);
-                } 
+                }
                 else {
                     std::stringstream s;
                     s << "Unknown Supervised loss: " << loss_name;

@@ -20,5 +20,6 @@
 #include "messages.hpp"
 #include "parallel_utils.hpp"
 #include "random_utils.hpp"
+#include "data_utils.hpp"
 
 #endif
