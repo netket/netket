@@ -118,15 +118,13 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]")
     pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
     pars["Hilbert"]["Size"] = 1;
 
-    netket::json observable_json;
-    observable_json["ActingOn"] = {{0}};
-    observable_json["Operators"] = {{{-1, 2}, {2, 1}}};
-    observable_json["Name"] = "O1";
-
-    pars["Observables"].push_back(observable_json);
+    netket::json observable_pars;
+    observable_pars["ActingOn"] = {{0}};
+    observable_pars["Operators"] = {{{-1, 2}, {2, 1}}};
+    observable_pars["Name"] = "O1";
 
     netket::Hilbert hilbert(pars);
-    netket::Observable obs(hilbert, pars);
+    netket::Observable obs(hilbert, observable_pars);
 
     // check whether the correct eigenvalues are computed
     {
