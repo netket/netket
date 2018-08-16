@@ -5,7 +5,7 @@ import json
 plt.ion()
 
 #N=20
-#exact=-1.274549484318e+00*20
+exact=-1.274549484318e+00*20
 
 #N=80
 # exact=-1.273321360724e+00*80
@@ -16,21 +16,18 @@ while(True):
     plt.xlabel('Time $i\\tau$')
 
     iters=[]
-    ts=[]
     energy=[]
     sigma=[]
     evar=[]
     evarsig=[]
 
-    data=json.load(open('test-itp.log'))
+    data=json.load(open('test.log'))
     for iteration in data["Output"]:
         iters.append(iteration["Iteration"])
-        ts.append(iteration["Time"])
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
-        if "EnergyVariance" in iteration:
-            evar.append(iteration["EnergyVariance"]["Mean"])
-            evarsig.append(iteration["EnergyVariance"]["Sigma"])
+        evar.append(iteration["EnergyVariance"]["Mean"])
+        evarsig.append(iteration["EnergyVariance"]["Sigma"])
 
     nres=len(iters)
     cut=nres
@@ -51,10 +48,13 @@ while(True):
 
         plt.plot(fitx,p(fitx))
 
-    plt.plot(ts,energy,color='red')
+    plt.plot(iters,energy,color='red')
+    plt.axhline(y=exact, xmin=0, xmax=iters[-1], linewidth=2, color = 'k',label='Exact')
 
 
+    plt.legend(frameon=False)
     plt.pause(1)
+    # plt.draw()
 
 plt.ioff()
 plt.show()
