@@ -1,6 +1,7 @@
 #ifndef NETKET_JSON_OUTPUT_WRITER_HPP
 #define NETKET_JSON_OUTPUT_WRITER_HPP
 
+#include <cassert>
 #include <mpi.h>
 #include <fstream>
 
@@ -8,6 +9,7 @@
 
 #include "Machine/abstract_machine.hpp"
 #include "Stats/obs_manager.hpp"
+#include "Utils/json_dumps.hpp"
 #include "Utils/json_helper.hpp"
 
 namespace netket {
@@ -34,12 +36,13 @@ class JsonOutputWriter {
    * values)
    * @param wf The file for the wavefunction data, which is written every \p
    * freqbackup time steps.
-   * @param Frequency for saving the wavefunction.
+   * @param Frequency for saving the wavefunction. Must be positive or zero (in which case no states are save).
    */
   JsonOutputWriter(std::ofstream log, std::ofstream wf, int freqbackup)
       : log_stream_(std::move(log)),
         wf_stream_(std::move(wf)),
         freqbackup_(freqbackup) {
+    assert(freqbackup >= 0);
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank_);
     log_stream_ << _s_start;
     log_stream_.flush();
@@ -87,10 +90,10 @@ class JsonOutputWriter {
    */
   template <class State>
   void WriteState(int iteration, const State& state) {
-    if (mpi_rank_ != 0) {
+    if (mpi_rank_ != 0 || freqbackup_ == 0) {
       return;
     }
-    if (freqbackup_ > 0 && iteration % freqbackup_ == 0) {
+    if (iteration % freqbackup_ == 0) {
       SaveState_Impl(state);
     }
   }
@@ -104,9 +107,11 @@ class JsonOutputWriter {
     state.Save(wf_stream_);
   }
 
-  template <typename T>
-  void SaveState_Impl(const Eigen::MatrixBase<T>& state) {
-    wf_stream_ << state << std::endl;
+  template <typename T, int S1, int S2>
+  void SaveState_Impl(const Eigen::Matrix<T, S1, S2>& state) {
+    json j;
+    j["StateVector"] = state;
+    wf_stream_ << j << std::endl;
   }
 
   static std::string _s_start;
