@@ -49,7 +49,7 @@ class AbstractMatrixWrapper {
     const std::complex<double> mean = state.adjoint() * state1;
     const std::complex<double> var = state.adjoint() * state2;
 
-    return {mean, var - std::pow(mean, 2)};
+    return {{mean, var - std::pow(mean, 2)}};
   }
 
   /**
