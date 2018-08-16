@@ -80,8 +80,6 @@ class ImaginaryTimePropagation {
       double next_dt =
           (t + range_.dt <= range_.tmax) ? range_.dt : range_.tmax - t;
 
-      InfoMessage() << "Performing time step: " << t << " -> " << t + next_dt
-                    << std::endl;
       stepper_->Propagate(ode_system_, state, t, next_dt);
 
       // renormalize the state to prevent unbounded growth of the norm
