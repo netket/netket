@@ -60,7 +60,8 @@ class ImaginaryTimePropagation {
   ImaginaryTimePropagation(std::unique_ptr<Matrix> matrix,
                            std::unique_ptr<Stepper> stepper,
                            ObservableVector observables,
-                           JsonOutputWriter output, TimeRange time_range)
+                           JsonOutputWriter output,
+                           const TimeRange& time_range)
       : matrix_(std::move(matrix)),
         stepper_(std::move(stepper)),
         observables_(std::move(observables)),
