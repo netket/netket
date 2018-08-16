@@ -28,10 +28,8 @@ namespace netket {
  */
 template <class Operator, class WfType = Eigen::VectorXcd>
 class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
- public:
   using Matrix = Eigen::SparseMatrix<std::complex<double>>;
 
- private:
   Matrix matrix_;
   int dim_;
 
@@ -79,6 +77,11 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     const HilbertIndex hilbert_index(hilbert);
     dim_ = hilbert_index.NStates();
 
+    using Triplet = Eigen::Triplet<std::complex<double>>;
+    
+    std::vector<Triplet> tripletList;
+    tripletList.reserve(dim_);
+
     matrix_.resize(dim_, dim_);
     matrix_.setZero();
 
@@ -94,9 +97,10 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
         auto vk = v;
         hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
         auto j = hilbert_index.StateToNumber(vk);
-        matrix_.coeffRef(i, j) += matrix_elements[k];
+        tripletList.push_back(Triplet(i, j, matrix_elements[k]));
       }
     }
+    matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
     matrix_.makeCompressed();
   }
 };

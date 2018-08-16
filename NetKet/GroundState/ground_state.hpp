@@ -87,7 +87,8 @@ class GroundState {
                        const std::string &filename, int first_n = 1) {
     std::ofstream file_ed(filename);
 
-    auto matrix = DenseMatrixWrapper<Hamiltonian>(hamiltonian);
+    auto matrix = SparseMatrixWrapper<Hamiltonian>(hamiltonian);
+
     auto ed = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
 
     auto eigs = ed.eigenvalues();
