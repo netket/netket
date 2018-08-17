@@ -3,16 +3,16 @@
 
 #include <Eigen/Dense>
 
+#include "Dynamics/time_evolution.hpp"
 #include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
 #include "Observable/observable.hpp"
 #include "Stats/stats.hpp"
-#include "UnitaryDynamics/time_evolution.hpp"
 
 #include "json_output_writer.hpp"
 
 namespace netket {
 
-// TODO: Move to UnitaryDynamics
+// TODO: Move to Dynamics
 struct TimeRange {
   double tmin;
   double tmax;

@@ -15,6 +15,7 @@
 #ifndef NETKET_HEADER_HPP
 #define NETKET_HEADER_HPP
 
+#include "Dynamics/time_evolution.hpp"
 #include "Graph/graph.hpp"
 #include "GroundState/ground_state.hpp"
 #include "Hamiltonian/hamiltonian.hpp"
@@ -26,7 +27,6 @@
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
-#include "UnitaryDynamics/time_evolution.hpp"
 #include "Utils/all_utils.hpp"
 
 #endif
