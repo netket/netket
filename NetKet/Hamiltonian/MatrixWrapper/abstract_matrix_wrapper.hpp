@@ -17,35 +17,49 @@
 
 #include "Hamiltonian/abstract_hamiltonian.hpp"
 
-namespace netket
-{
+namespace netket {
 
 /**
  * This class wraps an AbstractHamiltonian or AbstractObservable
  * and provides a method to apply it to a pure state.
- * @tparam WfType The type of a vector of (complex) coefficients representing the wavefunction.
- * Should be Eigen::VectorXcd or a compatible type.
+ * @tparam WfType The type of a vector of (complex) coefficients representing
+ * the wavefunction. Should be Eigen::VectorXcd or a compatible type.
  */
-template<class Operator, class WfType = Eigen::VectorXcd>
-class AbstractMatrixWrapper
-{
-public:
-    /**
-     * Applies the wrapped hamiltonian to a quantum state.
-     * @param state The entry state(i) corresponds to the coefficient of the basis vector with quantum
-     * numbers given by StateFromNumber(i) of a HilbertIndex for the original Hamiltonian.
-     * The state should satisfy state.size() == GetDimension().
-     */
-    virtual WfType Apply(const WfType& state) const = 0;
+template <class Operator, class WfType = Eigen::VectorXcd>
+class AbstractMatrixWrapper {
+ public:
+  /**
+   * Applies the wrapped hamiltonian to a quantum state.
+   * @param state The entry state(i) corresponds to the coefficient of the basis
+   * vector with quantum numbers given by StateFromNumber(i) of a HilbertIndex
+   * for the original Hamiltonian. The state should satisfy state.size() ==
+   * GetDimension().
+   */
+  virtual WfType Apply(const WfType& state) const = 0;
 
-    /**
-     * Returns the Hilbert space dimension corresponding to the Hamiltonian.
-     */
-    virtual int GetDimension() const = 0;
+  virtual std::complex<double> Mean(const WfType& state) const {
+    return state.adjoint() * Apply(state);
+  }
 
-    virtual ~AbstractMatrixWrapper() = default;
+  virtual std::array<std::complex<double>, 2> MeanVariance(
+      const WfType& state) const {
+    auto state1 = Apply(state);
+    auto state2 = Apply(state1);
+
+    const std::complex<double> mean = state.adjoint() * state1;
+    const std::complex<double> var = state.adjoint() * state2;
+
+    return {{mean, var - std::pow(mean, 2)}};
+  }
+
+  /**
+   * Returns the Hilbert space dimension corresponding to the Hamiltonian.
+   */
+  virtual int GetDimension() const = 0;
+
+  virtual ~AbstractMatrixWrapper() = default;
 };
 
-}
+}  // namespace netket
 
-#endif //NETKET_ABSTRACT_HAMILTONIAN_OPERATOR_HPP
+#endif  // NETKET_ABSTRACT_HAMILTONIAN_OPERATOR_HPP
