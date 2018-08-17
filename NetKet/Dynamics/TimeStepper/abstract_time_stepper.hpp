@@ -1,10 +1,26 @@
 #ifndef NETKET_ABSTRACT_TIME_STEPPER_HPP
 #define NETKET_ABSTRACT_TIME_STEPPER_HPP
 
+#include <cassert>
 #include <functional>
+
+#include "Utils/json_helper.hpp"
 
 namespace netket {
 namespace ode {
+
+struct TimeRange {
+  double tmin;
+  double tmax;
+  double dt;
+
+  static TimeRange FromJson(const json& pars) {
+    double tmin = FieldVal(pars, "StartTime");
+    double tmax = FieldVal(pars, "EndTime");
+    double dt = FieldVal(pars, "TimeStep");
+    return {tmin, tmax, dt};
+  }
+};
 
 /**
  * A function compatible with AbstractTimeStepper::ObserverFunction that does
@@ -72,8 +88,11 @@ class AbstractTimeStepper {
  */
 template <class Stepper, class State>
 void Integrate(Stepper& stepper, OdeSystemFunction<State> ode_system,
-               State& state, double t0, double tmax, double dt,
+               State& state, TimeRange range,
                ObserverFunction<State> observer = NullObserver<State>) {
+  const double t0 = range.tmin;
+  const double tmax = range.tmax;
+  const double dt = range.dt;
   assert(t0 < tmax);
   assert(dt > .0);
 
