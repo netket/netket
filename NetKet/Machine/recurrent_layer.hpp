@@ -228,7 +228,7 @@ class Recurrent : public AbstractLayer<T> {
       auto Z = W_ * prev_h + U_ * prev_layer_output(t) + bias_;
       VectorType dtanh(nh_);
       activation_.ApplyJacobian(Z, h_t, dh_accum + dout.segment(t*nh_, nh_), dtanh);
-      din(t) = dtanh.transpose() * U_;
+      din(t) = dtanh.dot(U_);
       dh_accum = dtanh.transpose() * W_;
       dW += dtanh * prev_h.transpose();
       dU += dtanh * prev_layer_output(t);
@@ -249,7 +249,8 @@ class Recurrent : public AbstractLayer<T> {
 
     Eigen::Map<VectorType> der_b{der.data() + k, nh_};
     der_b.noalias() = db;
-    k += nh_;
+    // avoid Codacy code review issue
+    //k += nh_;
   }
 
   void to_json(json &pars) const override {
