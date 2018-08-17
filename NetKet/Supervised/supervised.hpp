@@ -19,15 +19,18 @@ namespace netket {
 
 class Supervised {
  public:
-  explicit Supervised(const json &pars) {
-    CheckFieldExists(pars, "Supervised");
+  explicit Supervised(const json &supervisedPars) {
+    // Relevant parameters for supervised learning
+    // is stored in supervisedPars.
+    CheckFieldExists(supervisedPars, "Supervised");
     const std::string loss_name =
-        FieldVal(pars["Supervised"], "Loss", "Supervised");
+        FieldVal(supervisedPars["Supervised"], "Loss", "Supervised");
 
     if (loss_name == "Overlap") {
-      // Extract Json relevant to Supervised
-      auto supervisedPars = ReadJsonFromFile(pars["Supervised"]);
-      Data data(supervisedPars);
+      // Input data is encoded in Json file with name "InputFilename".
+      auto data_json = ReadJsonFromFile(supervisedPars["Supervised"]["InputFilename"]);
+      using DataType = Data<double>;
+      DataType data(data_json, supervisedPars);
 
       // Make a machine using the Hilbert space extracted from
       // the data.

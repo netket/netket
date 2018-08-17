@@ -37,8 +37,8 @@ class Data {
   // since amp is in general complex
   MatrixType amplitudes;
 
-  // basis with dimension (ndata_, nv_)
-  MatrixType basis;
+  // configs with dimension (ndata_, nv_)
+  MatrixType configs;
 
   /**
     Hilbert space for describing the space of the input data
@@ -47,31 +47,33 @@ class Data {
 
   /// Number of data points
   unsigned int ndata_;
+  /// Number of system size, i.e. visible units
+  unsigned int nv_;
 
  public:
   /// Constructor
-  explicit Data(const json &pars) { ReadFromJson(pars); }
+  explicit Data(const json &pars, const json &supervisedPars) { ReadFromJson(pars, supervisedPars); }
 
   /// Accessor function
   unsigned int GetNdata() const { return ndata_; }
   /// Accessor function
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const Hilbert& GetHilbert() { return hilbert_; }
 
   /**
     Reads data from a Json object
   */
-  void ReadFromJson(const json &pars) {
+  void ReadFromJson(const json &pars, const json &supervisedPars) {
     // Extract and initialize the Hilbert space
-    hilbert_.Init(pars);
+    hilbert_.Init(supervisedPars);
 
-    // Given the info Nsites from the Hilbert space, we can
+    // Given the info Size from the Hilbert space, we can
     // allocate memory for the configurations and the amplitudes
-    nv_ = pars["Hilbert"]["Nsites"];
+    nv_ = hilbert_.Size();
 
     // Extract labels
     amplitudes = pars["samples"]["amp"];
     // Extract inputs
-    configs = pars["samples"]["basis"];
+    configs = pars["samples"]["configs"];
 
     // Extract input and label properties
     ndata_ = amplitudes.rows();
@@ -82,8 +84,8 @@ class Data {
     // Debug info
     std::cout << " read in amplitudes as array \n"
               << amplitudes << "\n"
-              << "read in basis as array \n"
-              << basis << "\n";
+              << "read in configs as array \n"
+              << configs << "\n";
   }
 
   void GenerateBatch(unsigned int batchsize, MatrixType &out) {

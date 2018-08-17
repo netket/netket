@@ -20,7 +20,7 @@ import numpy as np
 # Couplings J1 and J2
 # J = [1, 0.4]
 
-L = 6
+L = 4
 
 pars = {}
 
@@ -45,7 +45,7 @@ pars['Machine'] = {
 
 #defining the Supervised learning method
 pars['Supervised'] = {
-    'Loss' : 'L2',
+    'Loss' : 'Overlap',
     'Nsamples': 1.0e3,
     'NiterOpt': 10000,
     'InputFilename': "psi.json",

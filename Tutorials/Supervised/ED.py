@@ -201,11 +201,11 @@ def to_1d_json(x, L, formating=False):
     output={"samples": {}}
 
     # for i in range(2**4):
-    #     output["Sample"].append({'basis': np.binary_repr(i, width=4), 'real': x_real[i], 'imag': x_imag[i] })
-    output["samples"]["basis"] = []
+    #     output["Sample"].append({'configs': np.binary_repr(i, width=4), 'real': x_real[i], 'imag': x_imag[i] })
+    output["samples"]["configs"] = []
     output["samples"]["amp"] = []
-    for i in range(2**4):
-        output["samples"]["basis"].append([2*int(num) - 1 for num in np.binary_repr(i, width=L)])
+    for i in range(2**L):
+        output["samples"]["configs"].append([2*int(num) - 1 for num in np.binary_repr(i, width=L)])
         output["samples"]["amp"].append((x_real[i], x_imag[i]))
 
     if formating:
