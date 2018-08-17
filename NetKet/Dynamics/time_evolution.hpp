@@ -12,6 +12,9 @@
 
 namespace netket {
 
+// The real-time evolution code is work-in-progress and likely to change in the
+// future.
+
 class TimeEvolutionDriver {
  public:
   using VectorType = Eigen::VectorXcd;
@@ -27,22 +30,15 @@ class TimeEvolutionDriver {
     auto stepper =
         ode::ConstructTimeStepper<VectorType>(pars_te, matrix->GetDimension());
 
-    double t0 = pars_te["StartTime"].get<double>();
-    double tmax = pars_te["EndTime"].get<double>();
-    double dt = pars_te["TimeStep"].get<double>();
+    auto range = ode::TimeRange::FromJson(pars_te);
 
-    return TimeEvolutionDriver(std::move(matrix), std::move(stepper), t0, tmax,
-                               dt);
+    return TimeEvolutionDriver(std::move(matrix), std::move(stepper), range);
   }
 
-  TimeEvolutionDriver(std::unique_ptr<MatrixType> matrix,
-                      std::unique_ptr<StepperType> stepper, double t0,
-                      double tmax, double dt)
-      : hmat_(std::move(matrix)),
-        stepper_(std::move(stepper)),
-        t0_(t0),
-        tmax_(tmax),
-        dt_(dt) {
+  TimeEvolutionDriver(
+      std::unique_ptr<MatrixType> matrix, std::unique_ptr<StepperType> stepper,
+      const ode::TimeRange& range)  // const reference to make Codacy happy
+      : hmat_(std::move(matrix)), stepper_(std::move(stepper)), range_(range) {
     ode_system_ = [this](const VectorType& x, VectorType& dxdt, double /*t*/) {
       static const std::complex<double> im{0., 1.};
       dxdt.noalias() = -im * hmat_->Apply(x);
@@ -52,8 +48,7 @@ class TimeEvolutionDriver {
   void Run(VectorType& state, ode::ObserverFunction<VectorType> observer_func) {
     assert(state.size() == GetDimension());
 
-    ode::Integrate(*stepper_, ode_system_, state, t0_, tmax_, dt_,
-                   observer_func);
+    ode::Integrate(*stepper_, ode_system_, state, range_, observer_func);
   }
 
   int GetDimension() const { return hmat_->GetDimension(); }
@@ -63,9 +58,7 @@ class TimeEvolutionDriver {
   std::unique_ptr<StepperType> stepper_;
   ode::OdeSystemFunction<VectorType> ode_system_;
 
-  double t0_;
-  double tmax_;
-  double dt_;
+  ode::TimeRange range_;
 };
 
 void RunTimeEvolution(const json& pars) {

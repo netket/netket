@@ -3,7 +3,7 @@
 
 #include <Eigen/Dense>
 
-#include "Dynamics/time_evolution.hpp"
+#include "Dynamics/TimeStepper/time_stepper.hpp"
 #include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
 #include "Observable/observable.hpp"
 #include "Stats/stats.hpp"
@@ -11,20 +11,6 @@
 #include "json_output_writer.hpp"
 
 namespace netket {
-
-// TODO: Move to Dynamics
-struct TimeRange {
-  double tmin;
-  double tmax;
-  double dt;
-
-  static TimeRange FromJson(const json& pars) {
-    double tmin = FieldVal(pars, "StartTime");
-    double tmax = FieldVal(pars, "EndTime");
-    double dt = FieldVal(pars, "TimeStep");
-    return {tmin, tmax, dt};
-  }
-};
 
 class ImaginaryTimePropagation {
  public:
@@ -42,7 +28,7 @@ class ImaginaryTimePropagation {
     auto matrix = ConstructMatrixWrapper(pars, hamiltonian);
     auto stepper =
         ode::ConstructTimeStepper<State>(pars, matrix->GetDimension());
-    auto range = TimeRange::FromJson(pars);
+    auto range = ode::TimeRange::FromJson(pars);
 
     ObservableVector wrapped_observables;
     for (const auto& obs : observables) {
@@ -61,7 +47,7 @@ class ImaginaryTimePropagation {
                            std::unique_ptr<Stepper> stepper,
                            ObservableVector observables,
                            JsonOutputWriter output,
-                           const TimeRange& time_range)
+                           const ode::TimeRange& time_range)
       : matrix_(std::move(matrix)),
         stepper_(std::move(stepper)),
         observables_(std::move(observables)),
@@ -124,7 +110,7 @@ class ImaginaryTimePropagation {
 
   JsonOutputWriter output_;
 
-  TimeRange range_;
+  ode::TimeRange range_;
 };
 
 }  // namespace netket
