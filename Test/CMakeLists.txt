@@ -61,6 +61,7 @@ add_library(catch_main OBJECT
 
 
 file(GLOB TEST_SOURCES
+    Dynamics/*.cpp
     Graph/*.cc
     Hamiltonian/*.cc
     Hilbert/*.cc
@@ -68,7 +69,6 @@ file(GLOB TEST_SOURCES
     Observable/*.cc
     Sampler/*.cc
     Stats/*.cc
-    UnitaryDynamics/*.cpp
     Utils/*.cc)
 
 foreach(file ${TEST_SOURCES})
