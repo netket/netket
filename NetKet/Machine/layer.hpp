@@ -15,6 +15,7 @@
 #include "abstract_layer.hpp"
 #include "activations.hpp"
 #include "conv_layer.hpp"
+#include "recurrent_layer.hpp"
 #include "fullconn_layer.hpp"
 #include "sum_output.hpp"
 
@@ -54,6 +55,14 @@ class Layer : public AbstractLayer<T> {
       } else if (pars["Activation"] == "Tanh") {
         m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
       }
+    } else if (pars["Name"] == "Recurrent") {
+      if (pars["Activation"] == "Lncosh") {
+        m_ = Ptype(new Recurrent<Lncosh, T>(graph, pars));
+      } else if (pars["Activation"] == "Identity") {
+        m_ = Ptype(new Recurrent<Identity, T>(graph, pars));
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new Recurrent<Tanh, T>(graph, pars));
+      }
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }
@@ -66,7 +75,7 @@ class Layer : public AbstractLayer<T> {
     const std::string name = FieldVal(pars, "Name");
 
     std::set<std::string> layers = {"FullyConnected", "Convolutional",
-                                    "Symmetric", "Sum"};
+                                    "Recurrent", "Symmetric", "Sum"};
 
     if (layers.count(name) == 0) {
       std::stringstream s;

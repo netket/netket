@@ -40,6 +40,18 @@ std::vector<netket::json> GetLayerInputs() {
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
+  // Recurrent layer
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}}},
+          {"Machine",
+           {{"Name", "FFNN"},
+            {"Layers",
+             {{{"Name", "Recurrent"},
+               {"HiddenUnits", 6},
+               {"Activation", "Tanh"}}}}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
   // Sum out layer
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
