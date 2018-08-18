@@ -16,44 +16,39 @@ from __future__ import print_function
 import json
 import numpy as np
 
-sigmax = [[0, 1, 0], [1, 0, 1], [0, 1, 0]]
-sigmay = [[0, -1j, 0], [1j, 0, -1j], [0, 1j, 0]]
 sigmaz = [[1, 0, 0], [0,0,0], [0, 0, -1]]
+sigmaplus = [[0,0,0],[np.sqrt(2.),0,0],[0,np.sqrt(2),0]]
+sigmaminus = [[0,np.sqrt(2),0],[0,0,np.sqrt(2.)],[0,0,0]]
 
-print(np.kron(sigmay,sigmay))
+heisenberg=np.kron(sigmaz,sigmaz)+ \
+           0.5*np.kron(sigmaplus,sigmaminus)+\
+           0.5*np.kron(sigmaminus,sigmaplus)
 
-heisenberg = (np.real(np.kron(sigmax, sigmax) + \
-              np.kron(sigmay, sigmay) + \
-              np.kron(sigmaz, sigmaz))).tolist()
-heisenberg_squared = (np.real(1./3.*(np.kron(sigmax, sigmax) + \
-              np.kron(sigmay, sigmay) + \
-              np.kron(sigmaz, sigmaz))**2)).tolist()
+heisenberg_squared = (np.linalg.matrix_power(heisenberg,2))
 
-# Now we define the local operators of our hamiltonian
-# And the sites on which they act
-operators = []
-sites = []
+# System size
 L = 20
-for i in range(L - 1):
-    # \sum_i \sigma_i \cdot \sigma_{i+1}
-    operators.append(heisenberg)
-    sites.append([i, i+1])
-    # 1/3 * \sum_i (\sigma_i \cdot \sigma_{i+1})**2
-    operators.append(heisenberg_squared)
-    sites.append([i, i+1])
 
 pars = {}
-
-# first we choose a hilbert space for our custom hamiltonian
-pars['Hilbert'] = {
-    'QuantumNumbers': [1, 0, -1],
-    'Size': L,
+pars['Graph'] = {
+    'Name': 'Hypercube',
+    'L': L,
+    'Dimension': 1,
+    'Pbc': True,
 }
 
-# defining a custom hamiltonian
+# Setting up the Hilbert space
+pars['Hilbert'] = {
+    'S': 1,
+    'Nspins': L,
+    'TotalSz':0,
+    'Name': "Spin",
+}
+
+# defining a custom bond hamiltonian
 pars['Hamiltonian'] = {
-    'Operators': operators,
-    'ActingOn': sites,
+    'Name': 'Graph',
+    'BondOps': [(heisenberg).tolist(),(heisenberg_squared/3.).tolist()],
 }
 
 # defining the wave function
