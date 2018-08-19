@@ -30,6 +30,7 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
+#include "json_output_writer.hpp"
 #include "matrix_replacement.hpp"
 
 namespace netket {
@@ -71,15 +72,12 @@ class VariationalMonteCarlo {
   int totalnodes_;
   int mynode_;
 
-  std::ofstream filelog_;
-  std::string filewfname_;
-  int freqbackup_;
+  JsonOutputWriter output_;
 
   Optimizer &opt_;
 
-  Observables obs_;
+  std::vector<Observable> obs_;
   ObsManager obsmanager_;
-  json outputjson_;
 
   bool dosr_;
 
@@ -100,8 +98,9 @@ class VariationalMonteCarlo {
       : ham_(ham),
         sampler_(sampler),
         psi_(sampler.Psi()),
+        output_(InitOutput(pars)),
         opt_(opt),
-        obs_(ham.GetHilbert(), pars),
+        obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
     // DEPRECATED (to remove for v2.0.0)
     if (FieldExists(pars, "Learning")) {
@@ -113,6 +112,13 @@ class VariationalMonteCarlo {
     }
   }
 
+  static JsonOutputWriter InitOutput(const json& pars) {
+    // DEPRECATED (to remove for v2.0.0)
+    auto pars_gs = FieldExists(pars, "GroundState") ? pars["GroundState"]
+                                                    : pars["Learning"];
+    return JsonOutputWriter::FromJson(pars_gs);
+  }
+
   void Init(const json &pars) {
     npar_ = psi_.Npar();
 
@@ -120,8 +126,6 @@ class VariationalMonteCarlo {
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
-
-    freqbackup_ = 0;
 
     setSrParameters();
 
@@ -139,12 +143,6 @@ class VariationalMonteCarlo {
         pars["GroundState"], "DiscardedSamples", 0.1 * nsamples_node_);
 
     niter_opt_ = FieldVal(pars["GroundState"], "NiterOpt", "GroundState");
-
-    std::string file_base =
-        FieldVal(pars["GroundState"], "OutputFile", "GroundState");
-
-    int freqbackup = FieldOrDefaultVal(pars["GroundState"], "SaveEvery", 50);
-    SetOutName(file_base, freqbackup);
 
     if (pars["GroundState"]["Method"] == "Gd") {
       dosr_ = false;
@@ -198,21 +196,12 @@ class VariationalMonteCarlo {
     }
   }
 
-  // Sets the name of the files on which the logs and the wave-function
-  // parameters are saved the wave-function is saved every freq steps
-  void SetOutName(const std::string &filebase, double freq = 50) {
-    filelog_.open(filebase + std::string(".log"));
-    freqbackup_ = freq;
-
-    filewfname_ = filebase + std::string(".wf");
-  }
-
   void Gradient() {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (std::size_t i = 0; i < obs_.Size(); i++) {
-      obsmanager_.Reset(obs_(i).Name());
+    for (const auto& ob : obs_) {
+      obsmanager_.Reset(ob.Name());
     }
 
     const int nsamp = vsamp_.rows();
@@ -224,8 +213,8 @@ class VariationalMonteCarlo {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (std::size_t k = 0; k < obs_.Size(); k++) {
-        obsmanager_.Push(obs_(k).Name(), ObSamp(obs_(k), vsamp_.row(i)));
+      for (const auto& ob : obs_) {
+        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
       }
     }
 
@@ -270,7 +259,7 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(Observable &ob, const Eigen::VectorXd &v) {
+  double ObSamp(const Observable &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -381,27 +370,8 @@ class VariationalMonteCarlo {
   }
 
   void PrintOutput(int i) {
-    auto Acceptance = sampler_.Acceptance();
-
-    auto jiter = json(obsmanager_);
-    jiter["Iteration"] = i;
-    outputjson_["Output"].push_back(jiter);
-
-    if (mynode_ == 0) {
-      if (jiter["Iteration"] != 0) {
-        long pos = filelog_.tellp();
-        filelog_.seekp(pos - 3);
-        filelog_.write(",  ", 3);
-        filelog_ << jiter << "]}" << std::endl;
-      } else {
-        filelog_ << outputjson_ << std::endl;
-      }
-    }
-
-    if (mynode_ == 0 && freqbackup_ > 0 && std::fmod(i, freqbackup_) < 0.5) {
-      psi_.Save(filewfname_);
-    }
-
+    output_.WriteLog(i, obsmanager_);
+    output_.WriteState(i, psi_);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 

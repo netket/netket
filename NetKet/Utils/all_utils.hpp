@@ -17,8 +17,10 @@
 
 #include "exceptions.hpp"
 #include "json_utils.hpp"
+#include "math_helpers.hpp"
 #include "messages.hpp"
 #include "parallel_utils.hpp"
 #include "random_utils.hpp"
+#include "stopwatch.hpp"
 
 #endif
