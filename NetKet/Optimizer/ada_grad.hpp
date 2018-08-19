@@ -85,8 +85,8 @@ public:
     }
 
     for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * grad(i) / std::sqrt(Gt_(2 * i) + epscut_);
-      pars(i) -= eta_ * I_ * grad(i) / std::sqrt(Gt_(2 * i + 1) + epscut_);
+      pars(i) -= eta_ * grad(i).real() / std::sqrt(Gt_(2 * i) + epscut_);
+      pars(i) -= eta_ * I_ * grad(i).imag() / std::sqrt(Gt_(2 * i + 1) + epscut_);
     }
   }
 
