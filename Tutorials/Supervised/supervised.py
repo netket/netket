@@ -49,10 +49,24 @@ pars['Supervised'] = {
     'Nsamples': 1.0e3,
     'NiterOpt': 10000,
     'InputFilename': "psi.json",
-    'OutputFile': "test",
-    'StepperType': 'Sgd',
+    'OutputFile': "supervised_output",
+    'Method': 'Sr',
     'LearningRate': 0.01,
 }
+
+# defining the sampler
+# here we use Metropolis sampling with single spin flips
+pars['Sampler'] = {
+    'Name': 'MetropolisLocal',
+}
+
+# defining the Optimizer
+# here we use the Stochastic Gradient Descent
+pars['Optimizer'] = {
+    'Name': 'Sgd',
+    'LearningRate': 0.1,
+}
+
 
 json_file = "supervised.json"
 with open(json_file, 'w') as outfile:
