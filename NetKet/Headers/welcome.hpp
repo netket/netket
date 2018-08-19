@@ -23,7 +23,7 @@ namespace netket {
 void Welcome(int argc) {
   InfoMessage() << "############################################ #"
                 << std::endl;
-  InfoMessage() << "# NetKet version 1.0.3                     # #"
+  InfoMessage() << "# NetKet version 1.0.4                     # #"
                 << std::endl;
   InfoMessage() << "# Website: https://www.netket.org          # #"
                 << std::endl;

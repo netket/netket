@@ -18,6 +18,10 @@
 #include <string>
 #include <vector>
 
+#include "Hamiltonian/local_operator.hpp"
+#include "Hilbert/hilbert.hpp"
+#include "Utils/json_helper.hpp"
+
 #include "abstract_observable.hpp"
 #include "custom_observable.hpp"
 
@@ -30,8 +34,7 @@ class Observable : public AbstractObservable {
  public:
   using MatType = LocalOperator::MatType;
 
-  Observable(const Hilbert &hilbert, const json &obspars)
-  {
+  Observable(const Hilbert &hilbert, const json &obspars) {
     CheckFieldExists(obspars, "Operators", "Observables");
     CheckFieldExists(obspars, "ActingOn", "Observables");
     CheckFieldExists(obspars, "Name", "Observables");
@@ -41,6 +44,26 @@ class Observable : public AbstractObservable {
     std::string name = obspars.at("Name");
 
     o_ = Ptype(new CustomObservable(hilbert, jop, sites, name));
+  }
+
+  static std::vector<Observable> FromJson(const Hilbert &hilbert,
+                                          const json &pars) {
+    std::vector<Observable> observables;
+
+    if (FieldExists(pars, "Observables")) {
+      auto obspar = pars["Observables"];
+
+      if (obspar.is_array()) {
+        // multiple observables case
+        for (std::size_t i = 0; i < obspar.size(); i++) {
+          observables.emplace_back(hilbert, obspar[i]);
+        }
+      } else {
+        // single observable case
+        observables.emplace_back(hilbert, obspar);
+      }
+    }
+    return observables;
   }
 
   void FindConn(const Eigen::VectorXd &v,
@@ -54,8 +77,7 @@ class Observable : public AbstractObservable {
 
   const std::string Name() const override { return o_->Name(); }
 };
-}  // namespace netket
 
-#include "observables.hpp"
+}  // namespace netket
 
 #endif

@@ -12,41 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_FINDDIST_HPP
-#define NETKET_FINDDIST_HPP
-
-#include <queue>
-#include <set>
-#include <vector>
+#ifndef NETKET_ARRAYHASHER_HPP
+#define NETKET_ARRAYHASHER_HPP
 
 namespace netket {
-
-std::vector<int> FindDist(const std::vector<std::vector<int>> &g, int root) {
-  int n = g.size();
-  std::vector<int> dists(n, -1);
-
-  dists[root] = 0;
-
-  std::queue<int> tovisit;
-
-  tovisit.push(root);
-
-  while (tovisit.size() > 0) {
-    int node = tovisit.front();
-    tovisit.pop();
-
-    for (std::size_t j = 0; j < g[node].size(); j++) {
-      int nj = g[node][j];
-
-      if (dists[nj] == -1) {
-        tovisit.push(nj);
-        dists[nj] = dists[node] + 1;
-      }
-    }
+// Special hash functor for the EdgeColors unordered_map
+// Same as hash_combine from boost
+struct ArrayHasher {
+  std::size_t operator()(const std::array<int, 2>& a) const {
+    return *reinterpret_cast<std::size_t const*>(a.data());
   }
-
-  return dists;
-}
-
+};
 }  // namespace netket
+
 #endif

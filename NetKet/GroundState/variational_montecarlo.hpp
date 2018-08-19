@@ -12,17 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GROUNDSTATE_HPP
-#define NETKET_GROUNDSTATE_HPP
+#ifndef NETKET_VARIATIONALMONTECARLO_HPP
+#define NETKET_VARIATIONALMONTECARLO_HPP
 
-#include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
-#include "Optimizer/optimizer.hpp"
-#include "Sampler/sampler.hpp"
-#include "Stats/stats.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "matrix_replacement.hpp"
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <complex>
@@ -31,15 +23,24 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Machine/machine.hpp"
+#include "Observable/observable.hpp"
+#include "Optimizer/optimizer.hpp"
+#include "Sampler/sampler.hpp"
+#include "Stats/stats.hpp"
+#include "Utils/parallel_utils.hpp"
+#include "Utils/random_utils.hpp"
+#include "json_output_writer.hpp"
+#include "matrix_replacement.hpp"
 
 namespace netket {
 
-// Learning schemes for the ground state
+// Variational Monte Carlo schemes to learn the ground state
 // Available methods:
 // 1) Stochastic reconfiguration optimizer
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
-class GroundState {
+class VariationalMonteCarlo {
   using GsType = std::complex<double>;
 
   using VectorT =
@@ -64,12 +65,6 @@ class GroundState {
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd gradprev_;
 
-  std::complex<double> elocmean_;
-  double elocvar_;
-  int npar_;
-
-  int Iter0_;
-
   double sr_diag_shift_;
   bool sr_rescale_shift_;
   bool use_iterative_;
@@ -77,42 +72,87 @@ class GroundState {
   int totalnodes_;
   int mynode_;
 
-  std::ofstream filelog_;
-  std::string filewfname_;
-  double freqbackup_;
+  JsonOutputWriter output_;
 
   Optimizer &opt_;
 
-  Observables obs_;
+  std::vector<Observable> obs_;
   ObsManager obsmanager_;
-  json outputjson_;
 
   bool dosr_;
 
-public:
+  int nsamples_;
+  int nsamples_node_;
+  int ninitsamples_;
+  int ndiscardedsamples_;
+  int niter_opt_;
+
+  std::complex<double> elocmean_;
+  double elocvar_;
+  int npar_;
+
+ public:
   // JSON constructor
-  GroundState(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
-              Optimizer &opt, const json &pars)
-      : ham_(ham), sampler_(sampler), psi_(sampler.Psi()), opt_(opt),
-        obs_(ham.GetHilbert(), pars) {
-    Init();
+  VariationalMonteCarlo(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+                        Optimizer &opt, const json &pars)
+      : ham_(ham),
+        sampler_(sampler),
+        psi_(sampler.Psi()),
+        output_(InitOutput(pars)),
+        opt_(opt),
+        obs_(Observable::FromJson(ham.GetHilbert(), pars)),
+        elocvar_(0.) {
+    // DEPRECATED (to remove for v2.0.0)
+    if (FieldExists(pars, "Learning")) {
+      auto pars1 = pars;
+      pars1["GroundState"] = pars["Learning"];
+      Init(pars1);
+    } else {
+      Init(pars);
+    }
+  }
 
-    int nsamples = FieldVal(pars["Learning"], "Nsamples", "Learning");
-    int niter_opt = FieldVal(pars["Learning"], "NiterOpt", "Learning");
+  static JsonOutputWriter InitOutput(const json& pars) {
+    // DEPRECATED (to remove for v2.0.0)
+    auto pars_gs = FieldExists(pars, "GroundState") ? pars["GroundState"]
+                                                    : pars["Learning"];
+    return JsonOutputWriter::FromJson(pars_gs);
+  }
 
-    std::string file_base =
-        FieldVal(pars["Learning"], "OutputFile", "Learning");
-    double freqbackup = FieldOrDefaultVal(pars["Learning"], "SaveEvery", 100.);
-    SetOutName(file_base, freqbackup);
+  void Init(const json &pars) {
+    npar_ = psi_.Npar();
 
-    if (pars["Learning"]["Method"] == "Gd") {
+    opt_.Init(psi_.GetParameters());
+
+    grad_.resize(npar_);
+    Okmean_.resize(npar_);
+
+    setSrParameters();
+
+    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    nsamples_ = FieldVal(pars["GroundState"], "Nsamples", "GroundState");
+
+    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
+
+    ninitsamples_ =
+        FieldOrDefaultVal(pars["GroundState"], "DiscardedSamplesOnInit", 0.);
+
+    ndiscardedsamples_ = FieldOrDefaultVal(
+        pars["GroundState"], "DiscardedSamples", 0.1 * nsamples_node_);
+
+    niter_opt_ = FieldVal(pars["GroundState"], "NiterOpt", "GroundState");
+
+    if (pars["GroundState"]["Method"] == "Gd") {
       dosr_ = false;
     } else {
-      double diagshift = FieldOrDefaultVal(pars["Learning"], "DiagShift", 0.01);
+      double diagshift =
+          FieldOrDefaultVal(pars["GroundState"], "DiagShift", 0.01);
       bool rescale_shift =
-          FieldOrDefaultVal(pars["Learning"], "RescaleShift", false);
+          FieldOrDefaultVal(pars["GroundState"], "RescaleShift", false);
       bool use_iterative =
-          FieldOrDefaultVal(pars["Learning"], "UseIterative", false);
+          FieldOrDefaultVal(pars["GroundState"], "UseIterative", false);
 
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
@@ -127,60 +167,41 @@ public:
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
 
-    Run(nsamples, niter_opt);
-  }
-
-  void Init() {
-    npar_ = psi_.Npar();
-
-    opt_.Init(psi_.GetParameters());
-
-    grad_.resize(npar_);
-    Okmean_.resize(npar_);
-
-    Iter0_ = 0;
-
-    freqbackup_ = 0;
-
-    setSrParameters();
-
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    InfoMessage() << "Learning running on " << totalnodes_ << " processes"
-                  << std::endl;
+    InfoMessage() << "Variational Monte Carlo running on " << totalnodes_
+                  << " processes" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void Sample(double nsweeps) {
+  void InitSweeps() {
     sampler_.Reset();
 
-    int sweepnode = int(std::ceil(double(nsweeps) / double(totalnodes_)));
-
-    vsamp_.resize(sweepnode, psi_.Nvisible());
-
-    for (int i = 0; i < sweepnode; i++) {
+    for (int i = 0; i < ninitsamples_; i++) {
       sampler_.Sweep();
-      vsamp_.row(i) = sampler_.Visible();
     }
   }
 
-  // Sets the name of the files on which the logs and the wave-function
-  // parameters are saved the wave-function is saved every freq steps
-  void SetOutName(const std::string &filebase, double freq = 50) {
-    filelog_.open(filebase + std::string(".log"));
-    freqbackup_ = freq;
+  void Sample() {
+    sampler_.Reset();
 
-    filewfname_ = filebase + std::string(".wf");
+    for (int i = 0; i < ndiscardedsamples_; i++) {
+      sampler_.Sweep();
+    }
+
+    vsamp_.resize(nsamples_node_, psi_.Nvisible());
+
+    for (int i = 0; i < nsamples_node_; i++) {
+      sampler_.Sweep();
+      vsamp_.row(i) = sampler_.Visible();
+    }
   }
 
   void Gradient() {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (std::size_t i = 0; i < obs_.Size(); i++) {
-      obsmanager_.Reset(obs_(i).Name());
+    for (const auto& ob : obs_) {
+      obsmanager_.Reset(ob.Name());
     }
 
     const int nsamp = vsamp_.rows();
@@ -192,8 +213,8 @@ public:
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (std::size_t k = 0; k < obs_.Size(); k++) {
-        obsmanager_.Push(obs_(k).Name(), ObSamp(obs_(k), vsamp_.row(i)));
+      for (const auto& ob : obs_) {
+        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
       }
     }
 
@@ -238,7 +259,7 @@ public:
     return eloc;
   }
 
-  double ObSamp(Observable &ob, const Eigen::VectorXd &v) {
+  double ObSamp(const Observable &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -260,11 +281,13 @@ public:
 
   double Elocvar() { return elocvar_; }
 
-  void Run(double nsweeps, double niter) {
+  void Run() {
     opt_.Reset();
 
-    for (double i = 0; i < niter; i++) {
-      Sample(nsweeps);
+    InitSweeps();
+
+    for (int i = 0; i < niter_opt_; i++) {
+      Sample();
 
       Gradient();
 
@@ -272,7 +295,6 @@ public:
 
       PrintOutput(i);
     }
-    Iter0_ += niter;
   }
 
   void UpdateParameters() {
@@ -347,28 +369,9 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void PrintOutput(double i) {
-    auto Acceptance = sampler_.Acceptance();
-
-    auto jiter = json(obsmanager_);
-    jiter["Iteration"] = i + Iter0_;
-    outputjson_["Output"].push_back(jiter);
-
-    if (mynode_ == 0) {
-      if (jiter["Iteration"] != 0) {
-        long pos = filelog_.tellp();
-        filelog_.seekp(pos - 3);
-        filelog_.write(",  ", 3);
-        filelog_ << jiter << "]}" << std::endl;
-      } else {
-        filelog_ << outputjson_ << std::endl;
-      }
-    }
-
-    if (mynode_ == 0 && freqbackup_ > 0 && std::fmod(i, freqbackup_) < 0.5) {
-      psi_.Save(filewfname_);
-    }
-
+  void PrintOutput(int i) {
+    output_.WriteLog(i, obsmanager_);
+    output_.WriteState(i, psi_);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -381,6 +384,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
