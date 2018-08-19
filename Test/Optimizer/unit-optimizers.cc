@@ -29,9 +29,9 @@
 const std::complex<double> I(0.0, 1.0);
 const double pi = 3.14159265358979323846;
 
-TEST_CASE("optimizers produce correct output for two steps", "[optimizer]") {
-  // Check that optimizer steps correctly. This means parameters initialized
-  // correctly, real and imag parts not getting mixed, etc.
+// Check that optimizer steps correctly. This means parameters initialized
+// correctly, real and imag parts not getting mixed, etc.
+TEST_CASE("optimizers step twice correctly", "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
   std::size_t ntests = input_tests.size();
   std::cout << "# Correct output tests size = " << 7 << std::endl;
@@ -333,7 +333,7 @@ TEST_CASE("optimizers produce correct output for two steps", "[optimizer]") {
   }
 }
 
-TEST_CASE("steppers correctly minimize Matyas function", "[stepper]") {
+TEST_CASE("optimizers correctly minimize Matyas function", "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
   std::cout << "# Matyas input tests size = " << 7 << std::endl;
 
@@ -471,9 +471,9 @@ TEST_CASE("optimizers correctly minimize Rosenbrock function", "[optimizer]") {
 TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
   std::size_t ntests = input_tests.size();
-  std::cout << "# Ackley input tests size = " << ntests - 21 << std::endl;
+  std::cout << "# Ackley input tests size = " << 7 << std::endl;
 
-  for (std::size_t it = 21; it < ntests; it++) {
+  for (std::size_t it = 21; it < 28; it++) {
     std::string name = input_tests[it].dump();
     std::string optName = input_tests[it]["Optimizer"]["Name"];
     SECTION("Optimizer test (" + std::to_string(it) + ") on " + name) {
@@ -484,7 +484,7 @@ TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
 
       const double mean = 0.0;
       if ((optName == "RMSProp") || (optName == "AdaDelta")) {
-        stddev = 150;
+        stddev = 90;
       } else if ((optName == "Sgd") || (optName == "AMSGrad") ||
                  (optName == "Momentum")) {
         stddev = 10;
@@ -503,7 +503,7 @@ TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
       netket::Optimizer optimizer(input_tests[it]);
       optimizer.Init(params);
 
-      while (err > tol and iter < 5e4) {
+      while (err > tol and iter < 1e5) {
         grad(0) =
             2. * std::sqrt(2) * params(0) *
                 std::exp(-0.2 * std::sqrt(0.5 * (std::pow(params(0), 2) +
@@ -522,6 +522,79 @@ TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
                 std::exp(0.5 * (std::cos(2 * pi * params(0)) +
                                 std::cos(2 * pi * params(1)))) +
             dist(generator);
+
+        optimizer.Update(grad, params);
+        err = (params - sol).norm();
+        iter += 1;
+      }
+      REQUIRE(err <= tol);
+    }
+  }
+}
+
+TEST_CASE("optimizers correctly minimize complex Ackley function",
+          "[optimizer]") {
+  auto input_tests = GetOptimizerInputs();
+  std::size_t ntests = input_tests.size();
+  std::cout << "# complex Ackley input tests size = " << 7 << std::endl;
+
+  for (std::size_t it = 28; it < 35; it++) {
+    std::string name = input_tests[it].dump();
+    std::string optName = input_tests[it]["Optimizer"]["Name"];
+    SECTION("Optimizer test (" + std::to_string(it) + ") on " + name) {
+      float err = 1.0e8;
+      float tol = 0.1;
+      int iter = 0;
+      double stddev;
+
+      const double mean = 0.0;
+      if ((optName == "RMSProp") || (optName == "AdaDelta")) {
+        stddev = 90;
+      } else if ((optName == "Sgd") || (optName == "AMSGrad") ||
+                 (optName == "Momentum")) {
+        stddev = 10;
+      } else {
+        stddev = 1;
+      }
+      std::default_random_engine generator;
+      std::normal_distribution<double> dist(mean, stddev);
+
+      Eigen::VectorXcd sol(2);
+      sol << 0.0 + 0.0 * I, 0.0 + 0.0 * I;
+      Eigen::VectorXcd grad(2);
+      Eigen::VectorXcd params(2);
+      params << 0.0 + 2.5 * I, 0.0 + 2.5 * I;
+
+      netket::Optimizer optimizer(input_tests[it]);
+      optimizer.Init(params);
+
+      while (err > tol and iter < 1e5) {
+        grad(0) =
+            0.0 +
+            I * (2. * std::sqrt(2) * params(0).imag() *
+                     std::exp(
+                         -0.2 *
+                         std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
+                                          std::pow(params(1).imag(), 2)))) /
+                     std::sqrt((std::pow(params(0).imag(), 2) +
+                                std::pow(params(1).imag(), 2))) +
+                 pi * std::sin(2 * pi * params(0).imag()) *
+                     std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
+                                     std::cos(2 * pi * params(1).imag()))) +
+                 dist(generator));
+        grad(1) =
+            0.0 +
+            I * (2. * std::sqrt(2) * params(1).imag() *
+                     std::exp(
+                         -0.2 *
+                         std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
+                                          std::pow(params(1).imag(), 2)))) /
+                     std::sqrt((std::pow(params(0).imag(), 2) +
+                                std::pow(params(1).imag(), 2))) +
+                 pi * std::sin(2 * pi * params(1).imag()) *
+                     std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
+                                     std::cos(2 * pi * params(1).imag()))) +
+                 dist(generator));
 
         optimizer.Update(grad, params);
         err = (params - sol).norm();

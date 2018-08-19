@@ -191,5 +191,52 @@ std::vector<netket::json> GetOptimizerInputs() {
            {{"Name", "Momentum"}, {"LearningRate", .005}, {"Beta", 0.9}}}};
 
   input_tests.push_back(pars);
+
+  // Minimize complex function
+  pars = {{"Optimizer", {{"Name", "Sgd"}, {"LearningRate", .005}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {
+      {"Optimizer", {{"Name", "AdaDelta"}, {"Rho", 0.9}, {"Epscut", 1.0e-5}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {{"Optimizer",
+           {{"Name", "AdaGrad"}, {"LearningRate", 2}, {"Epscut", 1.0e-8}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {{"Optimizer",
+           {{"Name", "AdaMax"},
+            {"Alpha", 1},
+            {"Beta1", 0.9},
+            {"Beta2", 0.999},
+            {"Epscut", 1.0e-8}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {{"Optimizer",
+           {{"Name", "AMSGrad"},
+            {"LearningRate", 0.1},
+            {"Beta1", 0.9},
+            {"Beta2", 0.999},
+            {"Epscut", 1.0e-8}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {{"Optimizer",
+           {{"Name", "RMSProp"},
+            {"LearningRate", .01},
+            {"Beta", 0.9},
+            {"Epscut", 1.0e-8}}}};
+
+  input_tests.push_back(pars);
+
+  pars = {{"Optimizer",
+           {{"Name", "Momentum"}, {"LearningRate", .005}, {"Beta", 0.9}}}};
+
+  input_tests.push_back(pars);
+
   return input_tests;
 }
