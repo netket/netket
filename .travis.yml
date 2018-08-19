@@ -59,6 +59,8 @@ matrix:
 
 cache:
   apt: true
+  directories:
+    - $HOME/Library/Caches/Homebrew
 
 
 ################
