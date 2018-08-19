@@ -32,10 +32,10 @@ pars['Hamiltonian'] = {
     'TotalSz': 0,
 }
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpinSymm',
-    'Alpha': 1.0,
+#defining the wave function
+pars['Machine']={
+    'Name'           : 'RbmSpinSymm',
+    'Alpha'          : 1,
 }
 
 # defining the sampler
@@ -45,15 +45,16 @@ pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
 
+
 # defining the Optimizer
 # here we use AdaMax
 pars['Optimizer'] = {
     'Name': 'AdaMax',
 }
 
-# defining the learning method
+# defining the GroundState method
 # here we use the Stochastic Reconfiguration Method
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
     'NiterOpt': 4000,

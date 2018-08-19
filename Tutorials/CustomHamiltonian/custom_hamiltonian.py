@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import print_function
 import json
 import numpy as np
@@ -68,9 +67,9 @@ pars['Optimizer'] = {
     'Name': 'AdaMax',
 }
 
-# defining the learning method
+# defining the GroundState method
 # here we use a Gradient Descent with AdaMax
-pars['Learning'] = {
+pars['GroundState'] = {
     'Method': 'Gd',
     'Nsamples': 1.0e3,
     'NiterOpt': 40000,
