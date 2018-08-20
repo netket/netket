@@ -47,7 +47,12 @@ std::vector<netket::json> GetLayerInputs() {
            {{"Name", "FFNN"},
             {"Layers",
              {{{"Name", "Recurrent"},
-               {"HiddenUnits", 6},
+               {"LocalSize", 1},
+               {"HiddenUnits", 3},
+               {"Activation", "Lncosh"}},
+              {{"Name", "Recurrent"},
+               {"LocalSize", 3},
+               {"HiddenUnits", 5},
                {"Activation", "Tanh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);

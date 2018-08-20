@@ -35,7 +35,11 @@ pars['Hamiltonian'] = {
 # defining the wave function
 pars['Machine'] = {
     'Name': 'FFNN',
-    'Layers': [{'Name':'Recurrent', 'HiddenUnits':4, 'Inputs': 20, 'Outputs':20, "UseBias":True, 'Activation':'Lncosh' }],
+    'Layers': [{
+        'Name': 'Recurrent',
+        'LocalSize': 1,
+        'HiddenUnits': 4,
+        'Activation': 'Tanh' }],
 }
 
 # defining the sampler

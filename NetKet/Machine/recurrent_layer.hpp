@@ -21,7 +21,8 @@
 
 namespace netket {
 /** Vanilla recurrent neural network layer.
-    Assumes sequential ordering of input units.
+    Assumes sequential ordering of input units;
+    output consists of hidden states at all time points.
  */
 template <typename Activation, typename T>
 class Recurrent : public AbstractLayer<T> {
@@ -31,14 +32,14 @@ class Recurrent : public AbstractLayer<T> {
 
   Activation activation_;  // activation function class
 
-  int nv_;        // number of sites (visible input units)
-  int nh_;        // number of hidden units at each step
-  int out_size_;  // output size: nv_ * nh_ (hidden states at all time points)
-  int npar_;      // number of parameters in layer
+  int nv_;      // number of sites (visible input units)
+  int ls_;      // local size of Hilbert space
+  int nh_;      // number of hidden units at each step
+  int npar_;    // number of parameters in layer
 
   // weight parameters
   MatrixType W_;      // W(nh_ x nh_)
-  VectorType U_;      // U(nh_ x 1)
+  MatrixType U_;      // U(nh_ x ls_)
   VectorType bias_;   // b(nh_ x 1)
 
  public:
@@ -46,30 +47,31 @@ class Recurrent : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Recurrent(const int nv, const int nh)
-      : activation_(), nv_(nv), nh_(nh), out_size_(nv * nh) {
+  Recurrent(const int nv, const int ls, const int nh)
+      : activation_(), nv_(nv), ls_(ls), nh_(nh) {
     Init();
   }
 
   explicit Recurrent(const Graph &graph, const json &pars)
       : activation_(), nv_(graph.Nsites()) {
+    ls_ = FieldVal(pars, "LocalSize");
     nh_ = FieldVal(pars, "HiddenUnits");
-    out_size_ = nv_ * nh_;
 
     Init();
   }
 
   void Init() {
     W_.resize(nh_, nh_);
-    U_.resize(nh_);
+    U_.resize(nh_, ls_);
     bias_.resize(nh_);
 
-    npar_ = nh_ * nh_ + nh_ + nh_;
+    npar_ = nh_ * nh_ + nh_ * ls_ + nh_;
 
     std::string buffer = "";
 
-    InfoMessage(buffer) << "Recurrent Layer: " << nv_ << " --> " << out_size_ << std::endl;
-    InfoMessage(buffer) << "# # HiddenUnits = " << nh_ << std::endl;
+    InfoMessage(buffer) << "Recurrent Layer: " << Ninput() << " --> " << Noutput() << std::endl;
+    InfoMessage(buffer) << "# # Local size   = " << ls_ << std::endl;
+    InfoMessage(buffer) << "# # Hidden units = " << nh_ << std::endl;
   }
 
   void InitRandomPars(int seed, double sigma) override {
@@ -83,9 +85,9 @@ class Recurrent : public AbstractLayer<T> {
 
   int Npar() const override { return npar_; }
 
-  int Ninput() const override { return nv_; }
+  int Ninput() const override { return ls_ * nv_; }
 
-  int Noutput() const override { return out_size_; }
+  int Noutput() const override { return nv_ * nh_; }
 
   void GetParameters(VectorType &pars, int start_idx) const override {
     int k = start_idx;
@@ -97,9 +99,11 @@ class Recurrent : public AbstractLayer<T> {
       }
     }
 
-    for (int i = 0; i < nh_; ++i) {
-      pars(k) = U_(i);
-      ++k;
+    for (int j = 0; j < ls_; ++j) {
+      for (int i = 0; i < nh_; ++i) {
+        pars(k) = U_(i, j);
+        ++k;
+      }
     }
 
     for (int i = 0; i < nh_; ++i) {
@@ -118,9 +122,11 @@ class Recurrent : public AbstractLayer<T> {
       }
     }
 
-    for (int i = 0; i < nh_; ++i) {
-      U_(i) = pars(k);
-      ++k;
+    for (int j = 0; j < ls_; ++j) {
+      for (int i = 0; i < nh_; ++i) {
+        U_(i, j) = pars(k);
+        ++k;
+      }
     }
 
     for (int i = 0; i < nh_; ++i) {
@@ -132,7 +138,7 @@ class Recurrent : public AbstractLayer<T> {
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {
     lt.resize(1);
-    lt[0].resize(nv_);
+    lt[0].resize(nv_ * ls_);
     Forward(v, lt, output);
   }
 
@@ -144,8 +150,8 @@ class Recurrent : public AbstractLayer<T> {
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
+      output_changes.resize(Noutput());
+      new_output.resize(Noutput());
       Forward(new_input, theta, new_output);
     } else {
       output_changes.resize(0);
@@ -167,8 +173,8 @@ class Recurrent : public AbstractLayer<T> {
       new_input(sf) = newconf[s];
     }
     if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
+      output_changes.resize(Noutput());
+      new_output.resize(Noutput());
       Forward(new_input, theta, new_output);
     } else {
       output_changes.resize(0);
@@ -191,7 +197,7 @@ class Recurrent : public AbstractLayer<T> {
 
     for (int t = 0; t < nv_; ++t) {
       // h_t = activation(W h_{t-1} + U x_t + b)
-      activation_(W_ * h + U_ * theta[0](t) + bias_, h);
+      activation_(W_ * h + U_ * theta[0].segment(t*ls_, ls_) + bias_, h);
 
       // store current hidden state in output
       for (int k = 0; k < nh_; ++k) {
@@ -200,17 +206,17 @@ class Recurrent : public AbstractLayer<T> {
     }
   }
 
-  void Backprop(const VectorType &prev_layer_output,
+  void Backprop(const VectorType &/*prev_layer_output*/,
                 const VectorType &this_layer_output,
-                const LookupType &/*this_layer_theta*/, const VectorType &dout,
+                const LookupType &this_layer_theta, const VectorType &dout,
                 VectorType &din, VectorType &der, int start_idx) override {
 
     MatrixType dW = MatrixType::Zero(nh_, nh_);
-    VectorType dU = VectorType::Zero(nh_);
+    MatrixType dU = MatrixType::Zero(nh_, ls_);
     VectorType db = VectorType::Zero(nh_);
     VectorType dh_accum = VectorType::Zero(nh_);
 
-    din.resize(nv_);
+    din.resize(nv_ * ls_);
 
     for (int t = nv_ - 1; t >= 0; --t) {
 
@@ -224,14 +230,14 @@ class Recurrent : public AbstractLayer<T> {
 
       const VectorType h_t = this_layer_output.segment(t*nh_, nh_);
 
-      // reconstruct previous input
-      auto Z = W_ * prev_h + U_ * prev_layer_output(t) + bias_;
+      // reconstruct argument of (nonlinear) activation function
+      auto Z = W_ * prev_h + U_ * this_layer_theta[0].segment(t*ls_, ls_) + bias_;
       VectorType dtanh(nh_);
       activation_.ApplyJacobian(Z, h_t, dh_accum + dout.segment(t*nh_, nh_), dtanh);
-      din(t) = dtanh.dot(U_);
+      din.segment(t*ls_, ls_) = dtanh.transpose() * U_;
       dh_accum = dtanh.transpose() * W_;
       dW += dtanh * prev_h.transpose();
-      dU += dtanh * prev_layer_output(t);
+      dU += dtanh * this_layer_theta[0].segment(t*ls_, ls_).transpose();  // outer product of two vectors
       db += dtanh;
     }
 
@@ -243,9 +249,9 @@ class Recurrent : public AbstractLayer<T> {
     der_W.noalias() = dW;
     k += nh_*nh_;
 
-    Eigen::Map<VectorType> der_U{der.data() + k, nh_};
+    Eigen::Map<MatrixType> der_U{der.data() + k, nh_, ls_};
     der_U.noalias() = dU;
-    k += nh_;
+    k += nh_*ls_;
 
     Eigen::Map<VectorType> der_b{der.data() + k, nh_};
     der_b.noalias() = db;
@@ -256,6 +262,7 @@ class Recurrent : public AbstractLayer<T> {
   void to_json(json &pars) const override {
     json layerpar;
     layerpar["Name"] = "Recurrent";
+    layerpar["LocalSize"] = ls_;
     layerpar["HiddenUnits"] = nh_;
     layerpar["W"] = W_;
     layerpar["U"] = U_;

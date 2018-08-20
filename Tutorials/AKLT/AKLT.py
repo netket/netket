@@ -16,15 +16,15 @@ from __future__ import print_function
 import json
 import numpy as np
 
-sigmaz = [[1, 0, 0], [0,0,0], [0, 0, -1]]
-sigmaplus = [[0,0,0],[np.sqrt(2.),0,0],[0,np.sqrt(2),0]]
-sigmaminus = [[0,np.sqrt(2),0],[0,0,np.sqrt(2.)],[0,0,0]]
+sigmaz     = [[1, 0, 0], [0, 0, 0], [0, 0, -1]]
+sigmaplus  = [[0, 0, 0], [np.sqrt(2), 0, 0], [0, np.sqrt(2), 0]]
+sigmaminus = [[0, np.sqrt(2), 0], [0, 0, np.sqrt(2)], [0, 0, 0]]
 
-heisenberg=np.kron(sigmaz,sigmaz)+ \
-           0.5*np.kron(sigmaplus,sigmaminus)+\
-           0.5*np.kron(sigmaminus,sigmaplus)
+heisenberg = np.kron(sigmaz, sigmaz) + \
+             0.5*np.kron(sigmaplus, sigmaminus) + \
+             0.5*np.kron(sigmaminus, sigmaplus)
 
-heisenberg_squared = (np.linalg.matrix_power(heisenberg,2))
+heisenberg_squared = np.dot(heisenberg, heisenberg)
 
 # System size
 L = 20
@@ -48,13 +48,17 @@ pars['Hilbert'] = {
 # defining a custom bond hamiltonian
 pars['Hamiltonian'] = {
     'Name': 'Graph',
-    'BondOps': [(heisenberg).tolist(),(heisenberg_squared/3.).tolist()],
+    'BondOps': [heisenberg.tolist(), (heisenberg_squared / 3.).tolist()],
 }
 
 # defining the wave function
 pars['Machine'] = {
     'Name': 'FFNN',
-    'Layers': [{'Name':'Recurrent', 'HiddenUnits':4, 'Inputs': 20, 'Outputs':20, "UseBias":True, 'Activation':'Tanh' }],
+    'Layers': [{
+        'Name': 'Recurrent',
+        'LocalSize': 1,
+        'HiddenUnits': 4,
+        'Activation': 'Tanh' }],
 }
 
 # defining the sampler
