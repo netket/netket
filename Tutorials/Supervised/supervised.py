@@ -49,7 +49,7 @@ pars['Supervised'] = {
     'Nsamples': 1.0e3,
     'NiterOpt': 10000,
     'InputFilename': "psi.json",
-    'OutputFile': "supervised_output",
+    'OutputFile': "test",
     'Method': 'Sr',
     'LearningRate': 0.01,
 }

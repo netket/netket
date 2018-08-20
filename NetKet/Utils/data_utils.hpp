@@ -13,14 +13,36 @@
 // limitations under the License.
 
 #include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
 #include <iostream>
 #include <vector>
 #include "Utils/all_utils.hpp"
+#include <complex>
+
 
 #ifndef NETKET_UNIFORM_DATA
 #define NETKET_UNIFORM_DATA
 
 namespace netket {
+
+// Hash function for Eigen matrix and vector.
+// The code is from `hash_combine` function of the Boost library. See
+// http://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine .
+template<typename T>
+struct matrix_hash : std::unary_function<T, size_t> {
+  std::size_t operator()(T const& matrix) const {
+	  // Note that it is oblivious to the storage order of Eigen matrix (column- or
+	  // row-major). It will give you the same hash value for two different matrices if they
+	  // are the transpose of each other in different storage order.
+  size_t seed = 0;
+  for (size_t i = 0; i < matrix.size(); ++i) {
+	  auto elem = *(matrix.data() + i);
+	  seed ^= std::hash<typename T::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+  return seed;
+  }
+};
+
 
 /**
   Represents data (x, phi(x))
@@ -49,6 +71,9 @@ class Data {
   unsigned int ndata_;
   /// Number of system size, i.e. visible units
   unsigned int nv_;
+
+  /// map from config vector to amp
+  std::unordered_map<VectorType, std::complex<double>, matrix_hash<VectorType>> config_2_amp;
 
  public:
   /// Constructor
@@ -86,6 +111,14 @@ class Data {
               << amplitudes << "\n"
               << "read in configs as array \n"
               << configs << "\n";
+
+    std::cout << " construct mapping between configs and amplitudes \n";
+    for(int i=0; i<configs.rows(); i++){
+        std::complex<double> amp_complex(amplitudes(i,0),amplitudes(i,1));
+        std::cout << "mapping : " << configs.row(i)
+                  << " to " << amp_complex <<"\n";
+        config_2_amp[configs.row(i)] = amp_complex;
+    }
   }
 
   void GenerateBatch(unsigned int batchsize, MatrixType &out) {
@@ -95,6 +128,16 @@ class Data {
     /// \todo Implement shuffling
     /// \todo Randomly pick 'batchsize' samples and store in out
   }
+
+  std::complex<double> logVal(VectorType v){
+    return std::log(config_2_amp[v]);
+  }
+
+  std::complex<double> Val(VectorType v){
+    return config_2_amp[v];
+  }
+
+
 };
 
 }  // namespace netket
