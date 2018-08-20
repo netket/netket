@@ -60,7 +60,7 @@ class Supervised {
       // So we do not need to copy all the function VMC class again.
       std::cout<<" sampler created, optimizer created \n";
       SupervisedVariationalMonteCarlo vmc(data, sampler, optimizer, supervised_pars);
-      // vmc.Run_Supervised();
+      vmc.Run_Supervised();
 
     } else {
       std::stringstream s;

@@ -57,7 +57,7 @@ class SupervisedVariationalMonteCarlo {
   std::vector<std::vector<double>> newconfs_;
   std::vector<std::complex<double>> mel_;
 
-  Eigen::VectorXcd elocs_;
+  Eigen::VectorXcd ratios_;
   MatrixT Ok_;
   VectorT Okmean_;
 
@@ -91,7 +91,7 @@ class SupervisedVariationalMonteCarlo {
   int ndiscardedsamples_;
   int niter_opt_;
 
-  std::complex<double> elocmean_;
+  std::complex<double> ratio_mean_;
   double elocvar_;
   int npar_;
 
@@ -207,30 +207,32 @@ class SupervisedVariationalMonteCarlo {
   }
 
   void Gradient() {
-    obsmanager_.Reset("Energy");
-    obsmanager_.Reset("EnergyVariance");
+    // Gradient is consisted of three parts:
+    // <Ok>, <ratio * Ok>, <ratio>
+    obsmanager_.Reset("Ratio");
+    obsmanager_.Reset("RatioVariance");
 
     for (std::size_t i = 0; i < obs_.Size(); i++) {
       obsmanager_.Reset(obs_(i).Name());
     }
 
     const int nsamp = vsamp_.rows();
-    elocs_.resize(nsamp);
+    ratios_.resize(nsamp);
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      elocs_(i) = Eloc(vsamp_.row(i));
+      ratios_(i) = Ratio(vsamp_.row(i));
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
-      obsmanager_.Push("Energy", elocs_(i).real());
+      obsmanager_.Push("Ratio", ratios_(i).real());
 
       for (std::size_t k = 0; k < obs_.Size(); k++) {
         obsmanager_.Push(obs_(k).Name(), ObSamp(obs_(k), vsamp_.row(i)));
       }
     }
 
-    elocmean_ = elocs_.mean();
-    SumOnNodes(elocmean_);
-    elocmean_ /= double(totalnodes_);
+    ratio_mean_ = ratios_.mean();
+    SumOnNodes(ratio_mean_);
+    ratio_mean_ /= double(totalnodes_);
 
     Okmean_ = Ok_.colwise().mean();
     SumOnNodes(Okmean_);
@@ -238,35 +240,25 @@ class SupervisedVariationalMonteCarlo {
 
     Ok_ = Ok_.rowwise() - Okmean_.transpose();
 
-    elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
+    ratios_ -= ratio_mean_ * Eigen::VectorXd::Ones(nsamp);
 
     for (int i = 0; i < nsamp; i++) {
-      obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
+      obsmanager_.Push("RatioVariance", std::norm(ratios_(i)));
     }
 
-    grad_ = 2. * (Ok_.adjoint() * elocs_);
+    // grad_ = 2. * (Ok_.adjoint() * ratios_);
+    grad_ = - (Ok_.adjoint() * ratios_) / ratio_mean_;
 
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_ * nsamp);
   }
 
-  std::complex<double> Eloc(const Eigen::VectorXd &v) {
-    // ham_.FindConn(v, mel_, connectors_, newconfs_);
-
-    assert(connectors_.size() == mel_.size());
-
-    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
-
-    assert(mel_.size() == std::size_t(logvaldiffs.size()));
-
-    std::complex<double> eloc = 0;
-
-    for (int i = 0; i < logvaldiffs.size(); i++) {
-      eloc += mel_[i] * std::exp(logvaldiffs(i));
-    }
-
-    return eloc;
+  std::complex<double> Ratio(const Eigen::VectorXd &v) {
+      auto log_amp_psi = psi_.LogVal(v);
+      auto log_amp_phi = data_.logVal(v);
+      std::complex<double> log_amp_diff = log_amp_phi - log_amp_psi;
+      return std::exp(log_amp_diff);
   }
 
   double ObSamp(Observable &ob, const Eigen::VectorXd &v) {
@@ -287,11 +279,11 @@ class SupervisedVariationalMonteCarlo {
     return obval.real();
   }
 
-  double ElocMean() { return elocmean_.real(); }
+  std::complex<double> RatioMean() { return ratio_mean_; }
 
   double Elocvar() { return elocvar_; }
 
-  void Run() {
+  void Run_Supervised() {
     opt_.Reset();
 
     InitSweeps();
@@ -313,7 +305,7 @@ class SupervisedVariationalMonteCarlo {
     if (dosr_) {
       const int nsamp = vsamp_.rows();
 
-      Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
+      Eigen::VectorXcd b = Ok_.adjoint() * ratios_;
       SumOnNodes(b);
       b /= double(nsamp * totalnodes_);
 
