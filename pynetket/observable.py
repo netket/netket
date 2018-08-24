@@ -17,7 +17,6 @@ Base class for NetKet input driver Observable objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -54,8 +53,8 @@ class Observable(object):
 
         self._pars = {}
         self._pars['Name'] = name
-        set_mand_pars(self._pars, "Operators", kwargs, [])
-        set_mand_pars(self._pars, "ActingOn", kwargs, [])
+        set_opt_pars(self._pars, "Operators", kwargs)
+        set_opt_pars(self._pars, "ActingOn", kwargs)
 
 
 if __name__ == '__main__':

@@ -17,7 +17,6 @@ Base class for NetKet input driver Hilbert objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -27,7 +26,7 @@ class Hilbert(object):
 
     Simple Usage::
 
-        >>> hil = Hilbert("Spin", TotalSz=0)
+        >>> hil = Hilbert("Spin", NSpins=10, TotalSz=0, S=0)
         >>> print(hil._pars)
         {'Name': 'Spin', 'Nspins': 10, 'S': 0.0, 'TotalSz': 0}
     '''
@@ -86,29 +85,28 @@ class Hilbert(object):
 
         if name == "Boson":
             self._pars['Name'] = name
-            set_mand_pars(self._pars, "Nsites", kwargs, 10)  # TODO
-            set_mand_pars(self._pars, "Nmax", kwargs, 3)  # TODO
+            set_opt_pars(self._pars, "Nsites", kwargs)
+            set_opt_pars(self._pars, "Nmax", kwargs)
             set_opt_pars(self._pars, "Nbosons", kwargs)
 
         elif name == "Spin":
             self._pars['Name'] = name
-            set_mand_pars(self._pars, "Nspins", kwargs, 10)  # TODO
-            set_mand_pars(self._pars, "S", kwargs, 0.0)  # TODO
+            set_opt_pars(self._pars, "Nspins", kwargs)
+            set_opt_pars(self._pars, "S", kwargs)
             set_opt_pars(self._pars, "TotalSz", kwargs)
 
         elif name == "Qubit":
             self._pars['Name'] = name
-            set_mand_pars(self._pars, "Nqubits", kwargs, 10)  # TODO
+            set_opt_pars(self._pars, "Nqubits", kwargs)
 
         elif name == "Custom":
-            set_mand_pars(self._pars, "QuantumNumbers", kwargs,
-                          [-1, 1])  # TODO
-            set_mand_pars(self._pars, "Size", kwargs, 10)  # TODO
+            set_opt_pars(self._pars, "QuantumNumbers", kwargs)
+            set_opt_pars(self._pars, "Size", kwargs)
 
         else:
             raise ValueError("%s Hilbert space not supported" % name)
 
 
 if __name__ == '__main__':
-    hil = Hilbert("Spin", TotalSz=0)
+    hil = Hilbert("Spin", NSpins=10, TotalSz=0, S=0)
     print(hil._pars)

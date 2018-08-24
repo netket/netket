@@ -17,7 +17,6 @@ Base class for NetKet input driver Graph objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 # Test to see if networkx is installed
@@ -87,9 +86,9 @@ class Graph(object):
 
             self._pars['Name'] = name
 
-            set_mand_pars(self._pars, "L", kwargs, 10)
-            set_mand_pars(self._pars, "Dimension", kwargs, 1)
-            set_mand_pars(self._pars, "Pbc", kwargs, True)
+            set_opt_pars(self._pars, "L", kwargs)
+            set_opt_pars(self._pars, "Dimension", kwargs)
+            set_opt_pars(self._pars, "Pbc", kwargs)
 
         elif name == "Custom":
             if "graph" in kwargs:

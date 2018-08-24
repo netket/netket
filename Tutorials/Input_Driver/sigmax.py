@@ -29,7 +29,12 @@ s = nk.Sampler("MetropolisLocal")
 obs = nk.Observable("SigmaX", ActingOn=sites, Operators=sigmaxop)
 o = nk.Optimizer("Sgd", LearningRate=0.1)
 gs = nk.GroundState(
-    "Sr", Nsamples=1e3, Niteropt=500, Diagshift=0.1, UseIterative=False)
+    "Sr",
+    Nsamples=1e3,
+    NiterOpt=500,
+    Diagshift=0.1,
+    UseIterative=False,
+    OutputFile="test")
 input = nk.NetKetInput(g, h, m, s, o, obs, gs)
 
 input.run()

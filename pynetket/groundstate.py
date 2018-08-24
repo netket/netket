@@ -17,7 +17,6 @@ Base class for NetKet input driver Learning objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -27,7 +26,7 @@ class GroundState(object):
 
     Simple Usage::
 
-        >>> gs = GroundState("Gd")
+        >>> gs = GroundState("Gd", Nsamples=1000, NiterOpt=1000)
         >>> print(gs._pars)
         {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
     '''
@@ -76,11 +75,11 @@ class GroundState(object):
 
         if method in ["Gd", "Sr"]:
             self._pars["Method"] = method
-            set_mand_pars(self._pars, "Nsamples", kwargs, 1000)  # TODO
-            set_mand_pars(self._pars, "NiterOpt", kwargs, 1000)  # TODO
+            set_opt_pars(self._pars, "Nsamples", kwargs)
+            set_opt_pars(self._pars, "NiterOpt", kwargs)
             set_opt_pars(self._pars, "DiscardedSamplesOnInit", kwargs)
             set_opt_pars(self._pars, "DiscardedSamples", kwargs)
-            set_mand_pars(self._pars, "OutputFile", kwargs, "test")
+            set_opt_pars(self._pars, "OutputFile", kwargs)
             set_opt_pars(self._pars, "SaveEvery", kwargs)
 
             set_opt_pars(self._pars, "Diagshift", kwargs)
@@ -90,12 +89,12 @@ class GroundState(object):
         elif method == "Ed":
             self._pars["Method"] = method
 
-            set_mand_pars(self._pars, "OutputFile", kwargs, "test")
+            set_mand_pars(self._pars, "OutputFile", kwargs)
 
         else:
             raise ValueError("%s Learning not supported" % name)
 
 
 if __name__ == '__main__':
-    learn = Learning("Gd")
+    gs = GroundState("Gd", Nsamples=1000, NiterOpt=1000)
     print(learn._pars)

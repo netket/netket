@@ -17,7 +17,6 @@ Base class for NetKet input driver machine objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -95,7 +94,7 @@ class Machine(object):
         if name == "RbmSpin" or name == "RbmSpinSymm" or name == "RbmMultival":
             self._pars["Name"] = name
 
-            set_mand_pars(self._pars, "Alpha", kwargs, 1.0)  # TODO
+            set_opt_pars(self._pars, "Alpha", kwargs)
             set_opt_pars(self._pars, "InitFile", kwargs)
             set_opt_pars(self._pars, "InitRandom", kwargs)
             set_opt_pars(self._pars, "Nhidden", kwargs)
@@ -144,20 +143,20 @@ class Machine(object):
 
         # Add relevant feature based on the type of layer
         if layer["Name"] == "FullyConnected":
-            set_mand_pars(layer, "Inputs", raw_layer, 20)  # TODO
-            set_mand_pars(layer, "Outputs", raw_layer, 20)  # TODO
-            set_mand_pars(layer, "Activation", raw_layer, "Lncosh")
-            set_mand_pars(layer, "Bias", raw_layer, True)
+            set_opt_pars(layer, "Inputs", raw_layer)
+            set_opt_pars(layer, "Outputs", raw_layer)
+            set_opt_pars(layer, "Activation", raw_layer)
+            set_opt_pars(layer, "Bias", raw_layer)
 
         elif layer["Name"] == "Convolutional":
-            set_mand_pars(layer, "InputChannels", raw_layer, 4)  # TODO
-            set_mand_pars(layer, "OutputChannels", raw_layer, 4)  # TODO
-            set_mand_pars(layer, "Distance", raw_layer, 2)  # TODO
-            set_mand_pars(layer, "Activation", raw_layer, "Lncosh")
-            set_mand_pars(layer, "Bias", raw_layer, True)
+            set_opt_pars(layer, "InputChannels", raw_layer)
+            set_opt_pars(layer, "OutputChannels", raw_layer)
+            set_opt_pars(layer, "Distance", raw_layer)
+            set_opt_pars(layer, "Activation", raw_layer)
+            set_opt_pars(layer, "Bias", raw_layer)
 
         elif layer["Name"] == "Sum":
-            set_mand_pars(layer, "Inputs", raw_layer, 20)  # TODO
+            set_mand_pars(layer, "Inputs", raw_layer)
 
         else:
             raise ValueError("%s Layer type not supported" % name)

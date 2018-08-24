@@ -17,7 +17,6 @@ Base class for NetKet input driver Optimizer objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -27,7 +26,7 @@ class Optimizer(object):
 
     Simple Usage::
 
-        >>> opt = Optimizer("Sgd")
+        >>> opt = Optimizer("Sgd", LearningRate=0.1)
         >>> print(opt._pars)
         {'Name': 'Sgd', 'LearningRate': 0.1}
     '''
@@ -71,7 +70,7 @@ class Optimizer(object):
 
         if name == "Sgd":
             self._pars["Name"] = name
-            set_mand_pars(self._pars, "LearningRate", kwargs, 0.1)  # TODO
+            set_opt_pars(self._pars, "LearningRate", kwargs)  # TODO
             set_opt_pars(self._pars, "L2Reg", kwargs)
             set_opt_pars(self._pars, "DecayFactor", kwargs)
 
@@ -110,5 +109,5 @@ class Optimizer(object):
 
 
 if __name__ == '__main__':
-    opt = Optimizer("Sgd")
+    opt = Optimizer("Sgd", LearningRate=0.1)
     print(opt._pars)

@@ -17,7 +17,6 @@ Base class for NetKet input driver Hamiltonian objects.
 
 '''
 
-from pynetket.python_utils import set_mand_pars
 from pynetket.python_utils import set_opt_pars
 
 
@@ -97,34 +96,34 @@ class Hamiltonian(object):
         if name == "BoseHubbard":
             self._pars['Name'] = name
 
-            set_mand_pars(self._pars, "Nmax", kwargs, 3)  # TODO choose def
-            set_mand_pars(self._pars, "U", kwargs, 4.0)
-            set_opt_pars(self._pars, "Nbosons", kwargs)  # TODO
+            set_opt_pars(self._pars, "Nmax", kwargs)
+            set_opt_pars(self._pars, "U", kwargs)
+            set_opt_pars(self._pars, "Nbosons", kwargs)
             set_opt_pars(self._pars, "V", kwargs)
             set_opt_pars(self._pars, "Mu", kwargs)
 
         elif name == "Graph":
             self._pars['Name'] = name
 
-            set_mand_pars(self._pars, "SiteOps", kwargs, [])
-            set_mand_pars(self._pars, "BondOps", kwargs, [])
-            set_mand_pars(self._pars, "BondOp", kwargs, [])
+            set_opt_pars(self._pars, "SiteOps", kwargs)
+            set_opt_pars(self._pars, "BondOps", kwargs)
+            set_opt_pars(self._pars, "BondOp", kwargs)
 
         elif name == "Heisenberg":
             self._pars['Name'] = name
 
-            set_opt_pars(self._pars, "TotalSz", kwargs)  # TODO choose def
+            set_opt_pars(self._pars, "TotalSz", kwargs)
 
         elif name == "Ising":
             self._pars['Name'] = name
 
-            set_mand_pars(self._pars, "h", kwargs, 1.0)  # TODO choose def
-            set_opt_pars(self._pars, "J", kwargs)  # TODO choose def
+            set_opt_pars(self._pars, "h", kwargs)
+            set_opt_pars(self._pars, "J", kwargs)
 
         elif name == "Custom":
 
-            set_mand_pars(self._pars, "Operators", kwargs, [])
-            set_mand_pars(self._pars, "ActingOn", kwargs, [])
+            set_opt_pars(self._pars, "Operators", kwargs)
+            set_opt_pars(self._pars, "ActingOn", kwargs)
 
         else:
             raise ValueError("%s Hamiltonian not supported" % name)

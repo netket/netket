@@ -25,7 +25,12 @@ m = nk.Machine("JastrowSymm")
 s = nk.Sampler("MetropolisHamiltonian")
 o = nk.Optimizer("Sgd", LearningRate=0.01)
 gs = nk.GroundState(
-    "Sr", Nsamples=1e4, Niteropt=4000, Diagshift=5e-3, UseIterative=False)
+    "Sr",
+    Nsamples=1e4,
+    NiterOpt=4000,
+    Diagshift=5e-3,
+    UseIterative=False,
+    OutputFile="test")
 input = nk.NetKetInput(g, h, m, s, o, gs)
 
 input.run()

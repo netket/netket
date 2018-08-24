@@ -44,10 +44,6 @@ class KnownOutput(unittest.TestCase):
         graph = nk.Graph("Hypercube", L=20, Dimension=1, Pbc=True)
         assert (pars['Graph'] == graph._pars)
 
-        # Test improperly created hypercube
-        graph = nk.Graph("Hypercube", L=20, Dimenssion=1, Pbc=True)
-        assert (pars['Graph'] == graph._pars)
-
         # Test networkx custom graph
         if import_nx:
             pars = {}
