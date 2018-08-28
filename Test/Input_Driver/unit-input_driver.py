@@ -42,7 +42,7 @@ class KnownOutput(unittest.TestCase):
 
         # Test properly created hypercube
         graph = nk.Graph("Hypercube", L=20, Dimension=1, Pbc=True)
-        self.assertEqual(pars['Graph'] == graph._pars)
+        self.assertEqual(pars['Graph'], graph._pars)
 
         # Test networkx custom graph
         if import_nx:
@@ -54,7 +54,7 @@ class KnownOutput(unittest.TestCase):
             }
 
             graph = nk.Graph("Custom", graph=G)
-            self.assertEqual(pars['Graph'] == graph._pars)
+            self.assertEqual(pars['Graph'], graph._pars)
 
     def test2_Hamiltonian(self):
         # BoseHubbard
@@ -67,7 +67,7 @@ class KnownOutput(unittest.TestCase):
         }
 
         ham = nk.Hamiltonian("BoseHubbard", Nmax=3, U=4.0, Nbosons=12)
-        self.assertEqual(pars['Hamiltonian'] == ham._pars)
+        self.assertEqual(pars['Hamiltonian'], ham._pars)
 
         # Test writing custom Hamiltonians with complex numbers
         sigmay = np.array([[0, -1j], [1j, 0]]).tolist()
@@ -140,7 +140,7 @@ class KnownOutput(unittest.TestCase):
         input = nk.NetKetInput(g, h, m, s, o, gs)
         input.write_json_input()
 
-        self.assertEqual(input._pars == pars)
+        self.assertEqual(input._pars, pars)
         os.remove("input.json")
 
     def test10_NetKetInput2(self):
@@ -207,7 +207,7 @@ class KnownOutput(unittest.TestCase):
         input = nk.NetKetInput(hil, h, m, s, o, gs)
         input.write_json_input()
 
-        self.assertEqual(input._pars == pars)
+        self.assertEqual(input._pars, pars)
         os.remove("input.json")
 
 
