@@ -17,12 +17,11 @@ Netket input driver to create json input files.
 
 '''
 
-import os
 import json
 import subprocess
 from tkinter import TclError
 import pynetket as nk
-from pynetket.python_utils import Message
+from pynetket.python_utils import message
 from pynetket.python_utils import plot_observable
 from pynetket.python_utils import encode_complex
 
@@ -116,8 +115,8 @@ class NetKetInput(object):
                 observable,
                 exact=exact)
         except TclError:
-            Message("Warning", "Plot closed.")
-            Message("Warning", "NetKet will coninue to run.")
+            message("Warning", "Plot closed.")
+            message("Warning", "NetKet will coninue to run.")
 
 
 if __name__ == "__main__":
@@ -127,6 +126,6 @@ if __name__ == "__main__":
     s = nk.Sampler("MetropolisLocal")
     o = nk.Optimizer("Sgd", LearningRate=0.1)
     gs = nk.GroundState("Sr", Niteropt=300, Diagshift=0.1, UseIterative=False)
-    input = nk.NetKetInput(g)
+    nk_input = nk.NetKetInput(g)
     # input.write_json_input()
     # input.run()

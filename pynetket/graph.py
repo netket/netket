@@ -96,7 +96,9 @@ class Graph(object):
                     if type(kwargs["graph"]) == type(nx.Graph()):
                         # Grab edges
                         print("Found a networkx graph")
-                        assert (len(kwargs["graph"].edges) > 0)
+                        if len(kwargs["graph"].edges) <= 0:
+                            raise AssertionError(
+                                "Graph doesn't have more than 0 edges.")
                         self._pars['Edges'] = list(kwargs["graph"].edges)
 
                         # Grab edge colors

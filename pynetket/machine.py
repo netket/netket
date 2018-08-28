@@ -107,11 +107,9 @@ class Machine(object):
             self._pars["Layers"] = []
 
             # If there are layers passed by kwargs, add them via add_layer
-            try:
+            if "Layers" in kwargs:
                 for layer in kwargs["Layers"]:
                     self.add_layer(layer)
-            except:
-                pass
 
         elif name == "Jastrow":
             self._pars["Name"] = name

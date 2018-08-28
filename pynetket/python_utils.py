@@ -21,7 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def Message(type, message):
+def message(type, message):
     if type == "Info":
         print("# " + message)
 
@@ -42,9 +42,6 @@ def set_mand_pars(params, key, kwargs, def_value):
     try:
         params[key] = kwargs[key]
     except KeyError:
-        # Message("Info", "Couldn't find kwargs with name %s." % key)
-        # Message("Info",
-        #         "Setting %s to default value of %s" % (key, str(def_value)))
         params[key] = def_value
 
 
@@ -90,7 +87,7 @@ def get_obsv_from_json(outputfile):
         # For everything other than iteration, initialize as a dict
         if isinstance(v, dict):
             data[k] = {}
-            for ki, vi in v.items():
+            for ki, _ in v.items():
                 data[k][ki] = []
         else:
             data[k] = []
