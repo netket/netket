@@ -92,13 +92,15 @@ class Graph(object):
 
         elif name == "Custom":
             if "graph" in kwargs:
+
+                # Check for networkx graph
                 if import_nx:
                     if type(kwargs["graph"]) == type(nx.Graph()):
                         # Grab edges
                         print("Found a networkx graph")
                         if len(kwargs["graph"].edges) <= 0:
                             raise AssertionError(
-                                "Graph doesn't have more than 0 edges.")
+                                "Graph has fewer than one edge.")
                         self._pars['Edges'] = list(kwargs["graph"].edges)
 
                         # Grab edge colors
@@ -110,7 +112,25 @@ class Graph(object):
                         except KeyError:
                             print("No edge colors found.")
 
-                # TODO add import igraph
+                # Check for igraph
+                if import_ig:
+                    if type(kwargs["graph"]) == type(ig.Graph()):
+                        # Grab edges
+                        print("Found a igraph graph")
+                        if len(kwargs["graph"].get_edgelist()) <= 0:
+                            raise AssertionError(
+                                "Graph has fewer than one edge.")
+                        self._pars['Edges'] = list(
+                            kwargs["graph"].get_edgelist())
+
+                        # Grab edge colors
+                        try:
+                            self._pars['EdgeColors'] = [[
+                                u, v, kwargs["graph"].es['color']
+                            ] for u, v in kwargs["graph"].get_edgelist()]
+
+                        except KeyError:
+                            print("No edge colors found.")
 
         else:
             raise ValueError("%s graph not supported" % name)

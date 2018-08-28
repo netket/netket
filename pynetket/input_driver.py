@@ -93,7 +93,7 @@ class NetKetInput(object):
         self._sts = subprocess.Popen(
             "mpirun -n %d netket %s" % (n, json_file), shell=True)
 
-    def plot(self, observable, exact=0):
+    def plot(self, observable, exact=None):
         '''
 
         Arguments
@@ -104,7 +104,7 @@ class NetKetInput(object):
 
             exact : float
                 The exact answer to compare to. This is used to calculated error
-                bars in plot_observable. Default is 0.
+                bars in plot_observable. Default is None.
         '''
 
         # Enclosing the plot_observable function in a try statement so it

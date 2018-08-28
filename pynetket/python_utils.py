@@ -114,7 +114,24 @@ def get_obsv_from_json(outputfile):
     return data
 
 
-def plot_observable(outputfile, observable, exact):
+def plot_observable(outputfile, observable, exact=None):
+    '''
+    Arguments
+    ---------
+
+        outputfile : string
+            Path to NetKet output.
+
+        observable : string
+            Name of observable as it's given in output. The standard observables
+            dumped to the output are Energy and EnergyVariance. Other custom
+            observables can also be used. See the tutorial
+            Input_Driver/sigmax.py.
+
+        exact : None (or float)
+            Exact answer for observable. If given, used to calculate the error.
+    '''
+
     plt.ion()
     plt.pause(2)  # Necessary to give NetKet time to write to outputfile
     while (True):
@@ -138,32 +155,43 @@ def plot_observable(outputfile, observable, exact):
 
             plt.xlim([nres - cut, nres])
             maxval = np.max(obsv[-cut:-1])
-            plt.ylim([
-                exact - (np.abs(exact) * 0.01), maxval + np.abs(maxval) * 0.01
-            ])
-            error = (z[0] - exact) / -exact
-            plt.gca().text(
-                0.95,
-                0.8,
-                'Relative Error : ' + "{:.2e}".format(error),
-                verticalalignment='bottom',
-                horizontalalignment='right',
-                color='green',
-                fontsize=15,
-                transform=plt.gca().transAxes)
+            minval = np.min(obsv[-cut:-1])
 
-            plt.plot(fitx, p(fitx))
+            if not exact == None:
+                error = (z[0] - exact) / -exact
 
+                plt.gca().text(
+                    0.95,
+                    0.8,
+                    'Relative Error : ' + "{:.2e}".format(error),
+                    verticalalignment='bottom',
+                    horizontalalignment='right',
+                    color='green',
+                    fontsize=15,
+                    transform=plt.gca().transAxes)
+
+                plt.axhline(
+                    y=exact,
+                    xmin=0,
+                    xmax=iters[-1],
+                    linewidth=2,
+                    color='k',
+                    label='Exact')
+
+                plt.legend(frameon=False)
+
+                plt.ylim([
+                    exact - (np.abs(exact) * 0.01),
+                    maxval + np.abs(maxval) * 0.01
+                ])
+            else:
+                plt.ylim([
+                    minval - np.abs(minval) * 0.01,
+                    maxval + np.abs(maxval) * 0.01
+                ])
+
+        plt.plot(fitx, p(fitx))
         plt.errorbar(iters, obsv, yerr=sigma, color='red')
-        plt.axhline(
-            y=exact,
-            xmin=0,
-            xmax=iters[-1],
-            linewidth=2,
-            color='k',
-            label='Exact')
-
-        plt.legend(frameon=False)
         plt.pause(1)
         # plt.draw()
 
