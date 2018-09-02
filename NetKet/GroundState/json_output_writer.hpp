@@ -4,7 +4,6 @@
 #include <mpi.h>
 #include <cassert>
 #include <fstream>
-#include <iostream>
 
 #include <nonstd/optional.hpp>
 
