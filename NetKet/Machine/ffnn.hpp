@@ -46,6 +46,13 @@ class FFNN : public AbstractMachine<T> {
 
   const Hilbert &hilbert_;
 
+  // whether to encode the input states as vectors
+  bool vectorize_input_;
+  // only accessed if vectorize_input_ is true
+  Eigen::VectorXd localconfs_;
+  Eigen::MatrixXd mask_;
+  std::map<double, int> confindex_;
+
   const Graph &graph_;
 
  public:
@@ -67,9 +74,38 @@ class FFNN : public AbstractMachine<T> {
       throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
     }
 
+    vectorize_input_ = FieldOrDefaultVal(pars["Machine"], "VectorizeInput", false);
+
+    if (vectorize_input_) {
+      const int ls = hilbert_.LocalSize();
+      auto localstates = hilbert_.LocalStates();
+
+      localconfs_.resize(nv_ * ls);
+      for (int i = 0; i < nv_ * ls; i += ls) {
+        for (int j = 0; j < ls; j++) {
+          localconfs_(i + j) = localstates[j];
+        }
+      }
+      mask_.resize(nv_ * ls, nv_);
+      mask_.setZero();
+
+      for (int i = 0; i < nv_ * ls; i++) {
+        mask_(i, i / ls) = 1;
+      }
+
+      for (int i = 0; i < ls; i++) {
+        confindex_[localstates[i]] = i;
+      }
+    }
+
     std::string buffer = "";
     // Initialise Layers
-    layersizes_.push_back(nv_);
+    if (!vectorize_input_) {
+      layersizes_.push_back(nv_);
+    }
+    else {
+      layersizes_.push_back(hilbert_.LocalSize() * nv_);
+    }
     for (int i = 0; i < nlayer_; ++i) {
       InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
 
@@ -121,6 +157,12 @@ class FFNN : public AbstractMachine<T> {
     InfoMessage(buffer) << std::endl;
     InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
                         << std::endl;
+    InfoMessage(buffer) << "# Number of visible units = " << nv_
+                        << std::endl;
+    if (vectorize_input_) {
+      InfoMessage(buffer) << "# Local states encoded as unit vectors of length "
+                          << hilbert_.LocalSize() << std::endl;
+    }
   }
 
   void from_json(const json &pars) override {
@@ -138,7 +180,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  int Nvisible() const override { return layersizes_[0]; }
+  int Nvisible() const override { return nv_; }
 
   int Npar() const override { return npar_; }
 
@@ -166,11 +208,23 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
+  inline void ComputeVtilde(const Eigen::VectorXd &v, Eigen::VectorXd &vtilde) {
+    auto t = (localconfs_.array() == (mask_ * v).array());
+    vtilde = t.template cast<double>();
+  }
+
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
     if (lt.VVSize() == 0) {
       lt.AddVV(1);                   // contains the output of layer 0
       lt.AddVector(layersizes_[1]);  // contains the lookup of layer 0
-      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      if (!vectorize_input_) {
+        layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      }
+      else {
+        Eigen::VectorXd vtilde;
+        ComputeVtilde(v, vtilde);
+        layers_[0]->InitLookup(vtilde, lt.VV(0), lt.V(0));
+      }
       for (int i = 1; i < nlayer_; ++i) {
         lt.AddVV(1);                       // contains the output of layer i
         lt.AddVector(layersizes_[i + 1]);  // contains the lookup of layer i
@@ -179,7 +233,14 @@ class FFNN : public AbstractMachine<T> {
     } else {
       assert((int(lt.VectorSize()) == nlayer_) &&
              (int(lt.VVSize()) == nlayer_));
-      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      if (!vectorize_input_) {
+        layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      }
+      else {
+        Eigen::VectorXd vtilde;
+        ComputeVtilde(v, vtilde);
+        layers_[0]->InitLookup(vtilde, lt.VV(0), lt.V(0));
+      }
       for (int i = 1; i < nlayer_; ++i) {
         layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
       }
@@ -189,8 +250,36 @@ class FFNN : public AbstractMachine<T> {
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-    layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
-                             changed_nodes_[0], new_output_[0]);
+    if (!vectorize_input_) {
+      layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
+        changed_nodes_[0], new_output_[0]);
+    }
+    else {
+      Eigen::VectorXd vtilde;
+      ComputeVtilde(v, vtilde);
+
+      std::vector<int> tochangetilde;
+      std::vector<double> newconftilde;
+
+      const int ls = hilbert_.LocalSize();
+
+      for (std::size_t s = 0; s < tochange.size(); s++) {
+        const int sf = tochange[s];
+        const int oldtilde = confindex_[v[sf]];
+        const int newtilde = confindex_[newconf[s]];
+
+        if (oldtilde != newtilde) {
+          // vector entry corresponding to v[sf] becomes zero
+          tochangetilde.push_back(ls * sf + oldtilde);
+          newconftilde.push_back(0.0);
+          // vector entry corresponding to newconf[s] becomes one
+          tochangetilde.push_back(ls * sf + newtilde);
+          newconftilde.push_back(1.0);
+        }
+      }
+      layers_[0]->UpdateLookup(vtilde, tochangetilde, newconftilde, lt.VV(0), lt.V(0),
+        changed_nodes_[0], new_output_[0]);
+    }
     for (int i = 1; i < nlayer_; ++i) {
       layers_[i]->UpdateLookup(lt.V(i - 1), changed_nodes_[i - 1],
                                new_output_[i - 1], lt.VV(i), lt.V(i),
@@ -251,10 +340,24 @@ class FFNN : public AbstractMachine<T> {
                              din_[i], der, start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_[1], din_[0], der, 0);
+      if (!vectorize_input_) {
+        layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_[1], din_[0], der, 0);
+      }
+      else {
+        Eigen::VectorXd vtilde;
+        ComputeVtilde(v, vtilde);
+        layers_[0]->Backprop(vtilde, lt.V(0), lt.VV(0), din_[1], din_[0], der, 0);
+      }
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_.back(), din_[0], der, 0);
+      if (!vectorize_input_) {
+        layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_.back(), din_[0], der, 0);
+      }
+      else {
+        Eigen::VectorXd vtilde;
+        ComputeVtilde(v, vtilde);
+        layers_[0]->Backprop(vtilde, lt.V(0), lt.VV(0), din_.back(), din_[0], der, 0);
+      }
     }
   }
 
@@ -294,6 +397,7 @@ class FFNN : public AbstractMachine<T> {
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "FFNN";
+    j["Machine"]["VectorizeInput"] = vectorize_input_;
     j["Machine"]["Layers"] = {};
     for (int i = 0; i < nlayer_; ++i) {
       layers_[i]->to_json(j);
