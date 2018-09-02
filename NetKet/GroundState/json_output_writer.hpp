@@ -3,7 +3,6 @@
 
 #include <mpi.h>
 #include <cassert>
-
 #include <fstream>
 
 #include <nonstd/optional.hpp>
