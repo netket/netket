@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Sampler objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Sampler(object):
-    '''
+    """
     Driver for input sampler parameters.
 
     Simple Usage::
@@ -29,7 +29,7 @@ class Sampler(object):
         >>> samp = Sampler("MetropolisLocal")
         >>> print(samp._pars)
         {'Name': 'MetropolisLocal'}
-    '''
+    """
 
     _name = "Sampler"
 
@@ -40,7 +40,7 @@ class Sampler(object):
     ]
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Args.
@@ -54,7 +54,7 @@ class Sampler(object):
 
 
 
-        '''
+        """
 
         self._pars = {}
 

@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 NetKet
 
 This modules contains the python scripts used to run NetKet. To import the
 netket module make sure you add the path to this directory to your PYTHONPATH
 environment variable.
-'''
+"""
 
 from pynetket import python_utils
 from pynetket.input_driver import NetKetInput

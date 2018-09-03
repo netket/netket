@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Optimizer objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Optimizer(object):
-    '''
+    """
     Driver for input optimizer parameters.
 
     Simple Usage::
@@ -29,14 +29,14 @@ class Optimizer(object):
         >>> opt = Optimizer("Sgd", LearningRate=0.1)
         >>> print(opt._pars)
         {'Name': 'Sgd', 'LearningRate': 0.1}
-    '''
+    """
 
     _name = "Optimizer"
 
     # optmizers = ["Sgd", "AdaMax", "AdaDelta", "Momentum", "AMSGrad", "RMSProp"]
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -64,7 +64,7 @@ class Optimizer(object):
 
 
 
-        '''
+        """
 
         self._pars = {}
 

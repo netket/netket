@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Hamiltonian objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Hamiltonian(object):
-    '''
+    """
     Driver for input hamiltonian parameters.
 
     Simple Usage::
@@ -29,12 +29,12 @@ class Hamiltonian(object):
         >>> ham = Hamiltonian("BoseHubbard", Nmax=3, U=4.0, Nbosons=12)
         >>> print(ham._pars)
         {'Name': 'BoseHubbard', 'Nmax': 3, 'U': 4.0, 'Nbosons': 12}
-    '''
+    """
 
     _name = "Hamiltonian"
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -89,7 +89,7 @@ class Hamiltonian(object):
             Used in Custom Hamiltonians. List of edges that Operators act on.
 
 
-        '''
+        """
 
         self._pars = {}
 

@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver machine objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Machine(object):
-    '''
+    """
     Driver for input machine parameters.
 
     Simple Usage::
@@ -29,12 +29,12 @@ class Machine(object):
         >>> mach = Machine("RbmSpin")
         >>> print(mach._pars)
         {'Name': 'RbmSpin', 'Alpha': 1.0}
-    '''
+    """
 
     _name = "Machine"
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -87,7 +87,7 @@ class Machine(object):
             Convolutional, and Sum.
 
 
-        '''
+        """
 
         self._pars = {}
 
@@ -125,10 +125,10 @@ class Machine(object):
             raise ValueError("%s Machine not supported" % name)
 
     def add_layer(self, raw_layer):
-        '''
+        """
         Adds layer (in the form of a dictionary) to the list of layers stored
         in _pars.
-        '''
+        """
         layer = {}
         layer_types = ["FullyConnected", "Convolutional", "Sum"]
 

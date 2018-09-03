@@ -12,27 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Observable objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Observable(object):
-    '''
+    """
     Driver for input observable parameters.
 
     Simple Usage::
 
 
-    '''
+    """
 
     _name = "Observables"
 
     def __init__(self, name, **kwargs):
-        '''
+        """
 
         Arguments
         ---------
@@ -49,7 +49,7 @@ class Observable(object):
         ActingOn : 2D list of ints
             Used in Custom Hamiltonians. List of edges that Operators act on.
 
-        '''
+        """
 
         self._pars = {}
         self._pars['Name'] = name

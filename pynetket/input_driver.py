@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Netket input driver to create json input files.
 
-'''
+"""
 
 import json
 import subprocess
@@ -27,7 +27,7 @@ from pynetket.python_utils import encode_complex
 
 
 class NetKetInput(object):
-    '''
+    """
     Main input driver for NetKet.
 
     NetKetInput objects take the other objects in netket_driver as inputs and
@@ -42,13 +42,13 @@ class NetKetInput(object):
         >>> o = Optimizer("Sgd", LearningRate=0.1)
         >>> gs = GroundState("Sr", Niteropt=300, Diagshift=0.1, UseIterative=False)
         >>> input = NetKetInput(g, h, m, s, o, gs)
-    '''
+    """
 
     def __init__(self, *args):
-        '''
+        """
         This object takes all of the parameters from the args and adds them to
         the _pars attribute of this object.
-        '''
+        """
 
         self._pars = {}
         self._complete = False
@@ -61,7 +61,7 @@ class NetKetInput(object):
             json.dump(self._pars, outfile, default=encode_complex)
 
     def run(self, n=4, json_file='input.json', plot=False, exact=0):
-        '''
+        """
         Writes json input file and calls the netket executable.
 
         Arguments
@@ -86,7 +86,7 @@ class NetKetInput(object):
 
             >>> input = NetKetInput(g, h, m, s, o, gs)
             >>> input.run( n=8, json_file="my_input.json" )
-        '''
+        """
 
         self.write_json_input(json_file=json_file)
 
@@ -94,7 +94,7 @@ class NetKetInput(object):
             "mpirun -n %d netket %s" % (n, json_file), shell=True)
 
     def plot(self, observable, exact=None):
-        '''
+        """
 
         Arguments
         ---------
@@ -105,7 +105,7 @@ class NetKetInput(object):
             exact : float
                 The exact answer to compare to. This is used to calculated error
                 bars in plot_observable. Default is None.
-        '''
+        """
 
         # Enclosing the plot_observable function in a try statement so it
         # doesn't throw and error when the user closes the plot.

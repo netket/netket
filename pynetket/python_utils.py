@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Netket python utilities.
 
-'''
+"""
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,7 +62,7 @@ def encode_complex(z):
 
 
 def get_obsv_from_json(outputfile):
-    '''
+    """
     Reads observables from the NetKet's json output file.
 
     Arguments
@@ -76,7 +76,7 @@ def get_obsv_from_json(outputfile):
 
         data : dict
             Contains the data from the json output file stored as np.ndarrays.
-    '''
+    """
 
     # Read in data
     raw_data = json.load(open(outputfile + ".log"))
@@ -115,7 +115,7 @@ def get_obsv_from_json(outputfile):
 
 
 def plot_observable(outputfile, observable, exact=None):
-    '''
+    """
     Arguments
     ---------
 
@@ -130,7 +130,7 @@ def plot_observable(outputfile, observable, exact=None):
 
         exact : None (or float)
             Exact answer for observable. If given, used to calculate the error.
-    '''
+    """
 
     plt.ion()
     plt.pause(2)  # Necessary to give NetKet time to write to outputfile

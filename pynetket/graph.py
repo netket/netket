@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Graph objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
@@ -35,7 +35,7 @@ except ImportError:
 
 
 class Graph(object):
-    '''
+    """
     Driver for input graph parameters.
 
     Simple Usage::
@@ -43,12 +43,12 @@ class Graph(object):
         >>> graph = Graph("Hypercube", L=20, Dimension=1, Pbc=True)
         >>> print(graph._pars)
         {'Name': 'Hypercube', 'L': 20, 'Dimension': 1, 'Pbc': True}
-    '''
+    """
 
     _name = "Graph"
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -77,7 +77,7 @@ class Graph(object):
             Used with Custom graphs. Graph object that is used to populate the
             edges and edge colors (if applicable) values in our input
             parameters. The graph must have edges.
-        '''
+        """
 
         self._pars = {}
 

@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Learning objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class GroundState(object):
-    '''
+    """
     Driver for input Ground State parameters.
 
     Simple Usage::
@@ -29,12 +29,12 @@ class GroundState(object):
         >>> gs = GroundState("Gd", Nsamples=1000, NiterOpt=1000)
         >>> print(gs._pars)
         {'Method': 'Gd', 'Nsamples': 1000, 'NiterOpt': 1000, 'OutputFile': 'test'}
-    '''
+    """
 
     _name = "GroundState"
 
     def __init__(self, method, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -69,7 +69,7 @@ class GroundState(object):
         UseIterative : bool
 
 
-        '''
+        """
 
         self._pars = {}
 

@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
+"""
 Base class for NetKet input driver Hilbert objects.
 
-'''
+"""
 
 from pynetket.python_utils import set_opt_pars
 
 
 class Hilbert(object):
-    '''
+    """
     Driver for input hilbert space parameters.
 
     Simple Usage::
@@ -29,12 +29,12 @@ class Hilbert(object):
         >>> hil = Hilbert("Spin", NSpins=10, TotalSz=0, S=0)
         >>> print(hil._pars)
         {'Name': 'Spin', 'Nspins': 10, 'S': 0.0, 'TotalSz': 0}
-    '''
+    """
 
     _name = "Hilbert"
 
     def __init__(self, name, **kwargs):
-        '''
+        """
         Store the appropriate parameters to write to json input.
 
         Arguments
@@ -79,7 +79,7 @@ class Hilbert(object):
         Size : int
             Used with the Custom Hilbert space. The size of the Hilbert space.
             The default is 10
-        '''
+        """
 
         self._pars = {}
 
