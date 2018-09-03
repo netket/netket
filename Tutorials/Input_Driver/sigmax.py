@@ -35,7 +35,7 @@ gs = nk.GroundState(
     Diagshift=0.1,
     UseIterative=False,
     OutputFile="test")
-input = nk.NetKetInput(g, h, m, s, o, obs, gs)
+calc = nk.NetKetInput(g, h, m, s, o, obs, gs)
 
-input.run()
-input.plot("SigmaX", exact=0.637275 * 20)
+calc.run()
+calc.plot("SigmaX", exact=0.637275 * 20)

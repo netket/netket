@@ -95,7 +95,7 @@ class Graph(object):
 
                 # Check for networkx graph
                 if import_nx:
-                    if type(kwargs["graph"]) == type(nx.Graph()):
+                    if isinstance(kwargs["graph"], type(nx.Graph())):
                         # Grab edges
                         print("Found a networkx graph")
                         if len(kwargs["graph"].edges) <= 0:
@@ -114,7 +114,7 @@ class Graph(object):
 
                 # Check for igraph
                 if import_ig:
-                    if type(kwargs["graph"]) == type(ig.Graph()):
+                    if isinstance(kwargs["graph"], type(ig.Graph())):
                         # Grab edges
                         print("Found a igraph graph")
                         if len(kwargs["graph"].get_edgelist()) <= 0:

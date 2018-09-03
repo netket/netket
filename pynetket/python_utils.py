@@ -21,18 +21,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def message(type, message):
+def message(type, msg):
     if type == "Info":
-        print("# " + message)
+        print("# " + msg)
 
     elif type == "Warning":
-        print("# WARNING: " + message)
+        print("# WARNING: " + msg)
 
     elif type == "Error":
-        print("# ERROR: " + message)
+        print("# ERROR: " + msg)
 
     elif type == "Debug":
-        print("# DEBUG: " + message)
+        print("# DEBUG: " + msg)
 
     else:
         raise ValueError("%s Message not supported" % type)

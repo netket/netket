@@ -33,7 +33,7 @@ gs = nk.GroundState(
     Diagshift=0.5,
     UseIterative=False,
     OutputFile="test")
-input = nk.NetKetInput(g, h, m, s, o, gs)
+calc = nk.NetKetInput(g, h, m, s, o, gs)
 
-input.run()
-input.plot("EnergyVariance", exact=None)
+calc.run()
+calc.plot("EnergyVariance", exact=None)

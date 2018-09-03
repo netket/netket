@@ -137,10 +137,10 @@ class KnownOutput(unittest.TestCase):
             UseIterative=False,
             OutputFile="test")
 
-        input = nk.NetKetInput(g, h, m, s, o, gs)
-        input.write_json_input()
+        calc = nk.NetKetInput(g, h, m, s, o, gs)
+        calc.write_json_input()
 
-        self.assertEqual(input._pars, pars)
+        self.assertEqual(calc._pars, pars)
         os.remove("input.json")
 
     def test10_NetKetInput2(self):
@@ -204,10 +204,10 @@ class KnownOutput(unittest.TestCase):
         o = nk.Optimizer("AdaMax")
         gs = nk.GroundState(
             "Gd", Nsamples=1e3, NiterOpt=40000, OutputFile="test")
-        input = nk.NetKetInput(hil, h, m, s, o, gs)
-        input.write_json_input()
+        calc = nk.NetKetInput(hil, h, m, s, o, gs)
+        calc.write_json_input()
 
-        self.assertEqual(input._pars, pars)
+        self.assertEqual(calc._pars, pars)
         os.remove("input.json")
 
 

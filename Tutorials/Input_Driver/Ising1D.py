@@ -31,7 +31,7 @@ gs = nk.GroundState(
     Diagshift=0.1,
     UseIterative=False,
     OutputFile="test")
-input = nk.NetKetInput(g, h, m, s, o, gs)
+calc = nk.NetKetInput(g, h, m, s, o, gs)
 
-input.run()
-input.plot("Energy", exact=-1.274549484318e+00 * 20)
+calc.run()
+calc.plot("Energy", exact=-1.274549484318e+00 * 20)
