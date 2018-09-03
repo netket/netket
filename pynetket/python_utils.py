@@ -157,7 +157,7 @@ def plot_observable(outputfile, observable, exact=None):
             maxval = np.max(obsv[-cut:-1])
             minval = np.min(obsv[-cut:-1])
 
-            if not exact == None:
+            if exact != None:
                 error = (z[0] - exact) / -exact
 
                 plt.gca().text(
@@ -190,8 +190,8 @@ def plot_observable(outputfile, observable, exact=None):
                     maxval + np.abs(maxval) * 0.01
                 ])
 
-        plt.plot(fitx, p(fitx))
-        plt.errorbar(iters, obsv, yerr=sigma, color='red')
+            plt.plot(fitx, p(fitx))
+            plt.errorbar(iters, obsv, yerr=sigma, color='red')
         plt.pause(1)
         # plt.draw()
 
