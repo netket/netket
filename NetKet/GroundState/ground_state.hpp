@@ -59,6 +59,14 @@ class GroundState {
       vmc.Run();
 
     } else if (method_name == "ImaginaryTimePropagation") {
+      int size;
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+      if (size > 1) {
+        throw InvalidInputError(
+            "Imaginary time propagation method currently only supports a "
+            "single MPI process.");
+      }
+
       auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
 
       const auto pars_gs = FieldVal(pars, "GroundState");
