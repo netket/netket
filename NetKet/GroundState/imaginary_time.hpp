@@ -73,7 +73,8 @@ class ImaginaryTimePropagation {
       state.normalize();
 
       ComputeObservables(state);
-      output_.WriteLog(step, obsmanager_, t);
+      auto obs_data = json(obsmanager_);
+      output_.WriteLog(step, obs_data, t);
       output_.WriteState(step, state);
 
       step++;

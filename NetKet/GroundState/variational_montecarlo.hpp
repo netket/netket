@@ -72,7 +72,8 @@ class VariationalMonteCarlo {
   int totalnodes_;
   int mynode_;
 
-  JsonOutputWriter output_;
+  // This optional will contain a value iff the MPI rank is 0.
+  nonstd::optional<JsonOutputWriter> output_;
 
   Optimizer &opt_;
 
@@ -98,7 +99,6 @@ class VariationalMonteCarlo {
       : ham_(ham),
         sampler_(sampler),
         psi_(sampler.Psi()),
-        output_(InitOutput(pars)),
         opt_(opt),
         obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
@@ -110,13 +110,16 @@ class VariationalMonteCarlo {
     } else {
       Init(pars);
     }
+    InitOutput(pars);
   }
 
-  static JsonOutputWriter InitOutput(const json& pars) {
+  void InitOutput(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
     auto pars_gs = FieldExists(pars, "GroundState") ? pars["GroundState"]
                                                     : pars["Learning"];
-    return JsonOutputWriter::FromJson(pars_gs);
+    if (mynode_ == 0) {
+      output_ = JsonOutputWriter::FromJson(pars_gs);
+    }
   }
 
   void Init(const json &pars) {
@@ -200,7 +203,7 @@ class VariationalMonteCarlo {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (const auto& ob : obs_) {
+    for (const auto &ob : obs_) {
       obsmanager_.Reset(ob.Name());
     }
 
@@ -213,7 +216,7 @@ class VariationalMonteCarlo {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (const auto& ob : obs_) {
+      for (const auto &ob : obs_) {
         obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
       }
     }
@@ -370,8 +373,14 @@ class VariationalMonteCarlo {
   }
 
   void PrintOutput(int i) {
-    output_.WriteLog(i, obsmanager_);
-    output_.WriteState(i, psi_);
+    // Note: This has to be called in all MPI processes, because converting the
+    // ObsManager to JSON performs a MPI reduction.
+    auto obs_data = json(obsmanager_);
+    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
+                                // the output is only written once
+      output_->WriteLog(i, obs_data);
+      output_->WriteState(i, psi_);
+    }
     MPI_Barrier(MPI_COMM_WORLD);
   }
 

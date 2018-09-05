@@ -1,7 +1,6 @@
 #ifndef NETKET_JSON_OUTPUT_WRITER_HPP
 #define NETKET_JSON_OUTPUT_WRITER_HPP
 
-#include <mpi.h>
 #include <cassert>
 #include <fstream>
 
@@ -11,6 +10,10 @@
 #include "Stats/obs_manager.hpp"
 #include "Utils/json_dumps.hpp"
 #include "Utils/json_helper.hpp"
+
+#ifndef NDEBUG
+#include <mpi.h>
+#endif
 
 namespace netket {
 
@@ -43,25 +46,32 @@ class JsonOutputWriter {
       : log_stream_(std::move(log)),
         wf_stream_(std::move(wf)),
         freqbackup_(freqbackup) {
+#ifndef NDEBUG
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    DebugMessage() << "JsonOutputWriter constructed at MPI rank " << rank
+                   << std::endl;
+#endif
     assert(freqbackup >= 0);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank_);
     log_stream_ << _s_start;
     log_stream_.flush();
   }
 
   /**
    * Write data about the current iteration to the log file.
+   * @param iteration The index of the current iteration.
+   * @param observable_data JSON represention of the observable data.
+   * @param time Optionally, the current simulation time which will be included
+   * in the log.
    */
-  void WriteLog(int iteration, const ObsManager& obsmanager,
+  void WriteLog(int iteration, const json& observable_data,
                 nonstd::optional<double> time = nonstd::nullopt) {
-    auto data = json(obsmanager);
+    json data = observable_data;
     data["Iteration"] = iteration;
     if (time.has_value()) {
       data["Time"] = time.value();
     }
-    if (mpi_rank_ != 0) {
-      return;
-    }
+
     // Go back to replace the last characters by a comma and a new line.
     // This turns this:
     //     { <previous data...> }
@@ -90,7 +100,7 @@ class JsonOutputWriter {
    */
   template <class State>
   void WriteState(int iteration, const State& state) {
-    if (mpi_rank_ != 0 || freqbackup_ == 0) {
+    if (freqbackup_ == 0) {
       return;
     }
     if (iteration % freqbackup_ == 0) {
@@ -120,7 +130,6 @@ class JsonOutputWriter {
   std::ofstream wf_stream_;
 
   int freqbackup_;
-  int mpi_rank_;
 };
 
 std::string JsonOutputWriter::_s_start = "{\"Output\": [  ]}";
