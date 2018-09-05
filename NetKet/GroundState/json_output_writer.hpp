@@ -25,27 +25,23 @@ class JsonOutputWriter {
  public:
   static JsonOutputWriter FromJson(const json& pars) {
     const std::string filebase = FieldVal(pars, "OutputFile");
-    std::ofstream log{filebase + ".log"};
-    std::ofstream wf{filebase + ".wf"};
-
     const int freqbackup = FieldOrDefaultVal(pars, "SaveEvery", 50);
 
-    return JsonOutputWriter(std::move(log), std::move(wf), freqbackup);
+    return JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
   }
 
   /**
    * Construct an output writer writing JSON data to two files.
-   * @param log The file for the log data (time, energy, and other expectation
-   * values)
-   * @param wf The file for the wavefunction data, which is written every \p
+   * @param log The filename for the log data (time, energy, and other
+   * expectation values)
+   * @param wf The filename for the wavefunction data, which is written every \p
    * freqbackup time steps.
    * @param Frequency for saving the wavefunction. Must be positive or zero (in
    * which case no states are save).
    */
-  JsonOutputWriter(std::ofstream log, std::ofstream wf, int freqbackup)
-      : log_stream_(std::move(log)),
-        wf_stream_(std::move(wf)),
-        freqbackup_(freqbackup) {
+  JsonOutputWriter(const std::string& log, const std::string& wf,
+                   int freqbackup)
+      : log_stream_(log), wf_stream_name_(wf), freqbackup_(freqbackup) {
 #ifndef NDEBUG
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -104,7 +100,8 @@ class JsonOutputWriter {
       return;
     }
     if (iteration % freqbackup_ == 0) {
-      SaveState_Impl(state);
+      std::ofstream wf_stream{wf_stream_name_};
+      SaveState_Impl(wf_stream, state);
     }
   }
 
@@ -113,21 +110,22 @@ class JsonOutputWriter {
   // The first overload works for classes inheriting from AbstractMachine, the
   // second one for Eigen matrices.
   template <typename T>
-  void SaveState_Impl(const AbstractMachine<T>& state) {
-    state.Save(wf_stream_);
+  void SaveState_Impl(std::ofstream& stream, const AbstractMachine<T>& state) {
+    state.Save(stream);
   }
 
   template <typename T, int S1, int S2>
-  void SaveState_Impl(const Eigen::Matrix<T, S1, S2>& state) {
+  void SaveState_Impl(std::ofstream& stream,
+                      const Eigen::Matrix<T, S1, S2>& state) {
     json j;
     j["StateVector"] = state;
-    wf_stream_ << j << std::endl;
+    stream << j << std::endl;
   }
 
   static std::string _s_start;
 
   std::ofstream log_stream_;
-  std::ofstream wf_stream_;
+  std::string wf_stream_name_;
 
   int freqbackup_;
 };
