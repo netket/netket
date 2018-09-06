@@ -63,6 +63,7 @@ add_library(catch_main OBJECT
 file(GLOB TEST_SOURCES
     Dynamics/*.cpp
     Graph/*.cc
+    GroundState/*.cc
     Hamiltonian/*.cc
     Hilbert/*.cc
     Machine/*.cc
