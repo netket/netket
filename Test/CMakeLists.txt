@@ -57,7 +57,12 @@ target_link_libraries(netket_test INTERFACE netket_lib Catch2)
 #
 
 add_library(catch_main OBJECT "unit-tests.cc")
-target_link_libraries(catch_main PUBLIC netket_test)
+# This is _very_ ugly, but in CMake 3.1 object libraries can't link to anything
+# so we can't make it use netket_test
+get_property(_catch2_include_dir
+    TARGET Catch2
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(catch_main PRIVATE ${_catch2_include_dir} ${MPI_C_INCLUDE_PATH})
 
 file(GLOB TEST_SOURCES
     Dynamics/*.cpp
@@ -74,10 +79,10 @@ foreach(_file ${TEST_SOURCES})
    get_filename_component(_file_basename ${_file} NAME_WE)
    string(REGEX REPLACE "unit-(.+)" "test-\\1" testcase ${_file_basename})
 
-   add_executable(${testcase} ${_file})
-   target_link_libraries(${testcase} PUBLIC netket_test catch_main)
+   add_executable(${testcase} $<TARGET_OBJECTS:catch_main> ${_file})
+   target_link_libraries(${testcase} PUBLIC netket_test)
    if(Boost_FOUND)
-       target_link_libraries(${testcase} PUBLIC Boost::boost)
+       target_include_directories(${testcase} PUBLIC ${Boost_INCLUDE_DIRS})
        target_compile_definitions(${testcase} PUBLIC WITH_BOOST_ODEINT)
    endif()
 

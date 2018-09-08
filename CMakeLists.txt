@@ -1,13 +1,12 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.1)
 
 project(NetKet)
 
 include(CTest) # adds option BUILD_TESTING (default ON)
-include(FetchContent)
+include(ExternalProject)
 
-# set (CMAKE_CXX_STANDARD 11)
-# set (NETKET_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/NetKet/)
-# set (EXTERNAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 #
 # Dependencies
@@ -37,18 +36,18 @@ target_include_directories(optional_lite
 
 # Eigen3
 ################################################################################
-FetchContent_Declare(
+ExternalProject_Add(
     eigen_project
-    SOURCE_DIR "External/Eigen3"
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/Eigen3"
     URL "https://github.com/eigenteam/eigen-git-mirror/archive/3.3.5.tar.gz"
-    LOG_DOWNLOAD ON
+    URL_HASH MD5=305eed19157335016bde9b4d57ee3d35
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
 )
-FetchContent_GetProperties(eigen_project)
-if(NOT eigen_project_POPULATED)
-    FetchContent_Populate(eigen_project)
-endif()
+ExternalProject_Get_Property(eigen_project SOURCE_DIR)
 add_library(Eigen3 INTERFACE)
-target_include_directories(Eigen3 SYSTEM INTERFACE ${eigen_project_SOURCE_DIR})
+target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
 # MPI
 ################################################################################
@@ -107,11 +106,10 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
-target_compile_features(netket_lib INTERFACE cxx_std_11)
-target_include_directories(netket_lib INTERFACE NetKet)
+target_include_directories(netket_lib INTERFACE NetKet ${MPI_C_INCLUDE_PATH})
 target_link_libraries(netket_lib
     INTERFACE
-        MPI::MPI_C
+        ${MPI_C_LIBRARIES}
         Eigen3
         nlohmann_json
         optional_lite
@@ -119,6 +117,9 @@ target_link_libraries(netket_lib
 
 add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
+# Yes, this is ugly, but until CMake 3.5, we can't add an external project
+# dependency to an interface library
+add_dependencies(netket eigen_project)
 
 #
 # Testing
