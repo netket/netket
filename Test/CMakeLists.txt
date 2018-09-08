@@ -7,7 +7,10 @@ if(NETKET_Sanitizer)
     message(STATUS "Building test suite with Clang sanitizer")
     if(NOT MSVC)
         target_compile_options(netket_test
-            INTERFACE "-g -O2 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
+            INTERFACE
+                -O2 -g -fno-omit-frame-pointer
+                -fsanitize=address -fsanitize=undefined
+        )
     endif()
 endif()
 
