@@ -3,6 +3,7 @@ option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
 option(NETKET_Valgrind "Execute test suite with Valgrind" OFF)
 
 
+
 if(NETKET_Coverage)
     message(STATUS "Building test suite with coverage information")
     if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -47,18 +48,16 @@ endif()
 
 ### Find boost odeint
 find_package(Boost)
-if(Boost_FOUND)
-    include_directories(Boost_INCLUDE_DIRS)
-    add_definitions(-DWITH_BOOST_ODEINT)
-endif()
 
-### Catch unit tests
-include_directories(${EXTERNAL_INCLUDE_DIR}/Catch)
+add_library(netket_test INTERFACE)
+target_link_libraries(netket_test INTERFACE netket_lib Catch2)
 
-add_library(catch_main OBJECT
-    "unit-tests.cc"
-)
+#
+# Catch2 unit tests
+#
 
+add_library(catch_main OBJECT "unit-tests.cc")
+target_link_libraries(catch_main PUBLIC netket_test)
 
 file(GLOB TEST_SOURCES
     Dynamics/*.cpp
@@ -71,24 +70,26 @@ file(GLOB TEST_SOURCES
     Stats/*.cc
     Utils/*.cc)
 
-foreach(file ${TEST_SOURCES})
-   get_filename_component(file_basename ${file} NAME_WE)
+foreach(_file ${TEST_SOURCES})
+   get_filename_component(_file_basename ${_file} NAME_WE)
+   string(REGEX REPLACE "unit-(.+)" "test-\\1" testcase ${_file_basename})
 
-   string(REGEX REPLACE "unit-([^$]+)" "test-\\1" testcase ${file_basename})
-
-   add_executable(${testcase} $<TARGET_OBJECTS:catch_main> ${file})
-   target_link_libraries(${testcase}  ${MPI_LIBRARIES})
+   add_executable(${testcase} ${_file})
+   target_link_libraries(${testcase} PUBLIC netket_test catch_main)
+   if(Boost_FOUND)
+       target_link_libraries(${testcase} PUBLIC Boost::boost)
+       target_compile_definitions(${testcase} PUBLIC WITH_BOOST_ODEINT)
+   endif()
 
    add_test(NAME "${testcase}_default"
-      COMMAND ${testcase} ${CATCH_TEST_FILTER}
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
-    set_tests_properties("${testcase}_default" PROPERTIES LABELS "default")
+     COMMAND ${testcase} ${CATCH_TEST_FILTER}
+     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   )
+   set_tests_properties("${testcase}_default" PROPERTIES LABELS "default")
 
-    add_test(NAME "${testcase}_all"
-      COMMAND ${testcase} ${CATCH_TEST_FILTER} "*"
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
-    set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
-
+   # add_test(NAME "${testcase}_all"
+   #   COMMAND ${testcase} ${CATCH_TEST_FILTER} "*"
+   #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   # )
+   # set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
 endforeach()
