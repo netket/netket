@@ -107,6 +107,7 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
+target_compile_features(netket_lib INTERFACE cxx_std_11)
 target_include_directories(netket_lib INTERFACE NetKet)
 target_link_libraries(netket_lib
     INTERFACE
