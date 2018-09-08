@@ -106,10 +106,10 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
-target_include_directories(netket_lib INTERFACE NetKet ${MPI_C_INCLUDE_PATH})
+target_include_directories(netket_lib INTERFACE NetKet ${MPI_CXX_INCLUDE_PATH})
 target_link_libraries(netket_lib
     INTERFACE
-        ${MPI_C_LIBRARIES}
+        ${MPI_CXX_LIBRARIES}
         Eigen3
         nlohmann_json
         optional_lite

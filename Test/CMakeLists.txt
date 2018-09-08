@@ -82,7 +82,7 @@ foreach(_file ${TEST_SOURCES})
    add_executable(${testcase} $<TARGET_OBJECTS:catch_main> ${_file})
    target_link_libraries(${testcase} PUBLIC netket_test)
    if(Boost_FOUND)
-       target_include_directories(${testcase} PUBLIC ${Boost_INCLUDE_DIRS})
+       target_include_directories(${testcase} SYSTEM PUBLIC ${Boost_INCLUDE_DIRS})
        target_compile_definitions(${testcase} PUBLIC WITH_BOOST_ODEINT)
    endif()
 
