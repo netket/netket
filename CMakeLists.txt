@@ -109,7 +109,8 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
-target_include_directories(netket_lib INTERFACE NetKet ${MPI_CXX_INCLUDE_PATH})
+target_include_directories(netket_lib INTERFACE NetKet)
+target_include_directories(netket_lib SYSTEM INTERFACE ${MPI_CXX_INCLUDE_PATH})
 target_link_libraries(netket_lib
     INTERFACE
         ${MPI_CXX_LIBRARIES}
