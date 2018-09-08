@@ -21,7 +21,7 @@ pars={}
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',
-    'L'              : 10,
+    'L'              : 20,
     'Dimension'      : 1 ,
     'Pbc'            : True,
 }
@@ -34,7 +34,8 @@ pars['Hamiltonian']={
 
 
 #defining the GroundState method
-#here we use the Stochastic Reconfiguration Method
+#here we use Exact Diagonalization
+#suitable for this small system
 pars['GroundState']={
     'Method'         : 'Ed',
     'OutputFile'     : "test",
