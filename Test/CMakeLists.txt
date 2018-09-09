@@ -11,6 +11,10 @@ if(NETKET_Sanitizer)
                 -O2 -g -fno-omit-frame-pointer
                 -fsanitize=address -fsanitize=undefined
         )
+        target_link_libraries(netket_test
+            INTERFACE
+                -fsanitize=address -fsanitize=undefined
+        )
     endif()
 endif()
 
