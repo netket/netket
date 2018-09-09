@@ -4,7 +4,7 @@
 #include <boost/numeric/odeint.hpp>
 #endif // WITH_BOOST_ODEINT
 
-#include <Catch/catch.hpp>
+#include "catch.hpp"
 #include <Eigen/Eigen>
 
 #include "netket.hpp"
