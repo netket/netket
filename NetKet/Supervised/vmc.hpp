@@ -60,6 +60,8 @@ class SupervisedVariationalMonteCarlo {
   Eigen::VectorXcd ratios_;
   MatrixT Ok_;
   VectorT Okmean_;
+  Eigen::VectorXcd psi_log_amps_;
+  Eigen::VectorXcd phi_log_amps_;
 
   Eigen::MatrixXd vsamp_;
 
@@ -218,12 +220,22 @@ class SupervisedVariationalMonteCarlo {
 
     const int nsamp = vsamp_.rows();
     ratios_.resize(nsamp);
+    psi_log_amps_.resize(nsamp);
+    phi_log_amps_.resize(nsamp);
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      ratios_(i) = Ratio(vsamp_.row(i));
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
+        psi_log_amps_(i) = psi_.LogVal(vsamp_.row(i));
+        phi_log_amps_(i) = data_.logVal(vsamp_.row(i));
+    }
+    auto psi_log_amps_max_ = psi_log_amps_.real().maxCoeff();
+    psi_log_amps_ -= psi_log_amps_max_ * Eigen::VectorXd::Ones(nsamp);
+
+    for (int i = 0; i < nsamp; i++) {
+      ratios_(i) = std::exp(phi_log_amps_(i) - psi_log_amps_(i));
+      // ratios_(i) = Ratio(vsamp_.row(i));
       obsmanager_.Push("Ratio", ratios_(i).real());
+      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
 
       for (std::size_t k = 0; k < obs_.Size(); k++) {
         obsmanager_.Push(obs_(k).Name(), ObSamp(obs_(k), vsamp_.row(i)));
