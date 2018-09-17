@@ -33,22 +33,23 @@ namespace netket {
 template <class Operator, class WfType = Eigen::VectorXcd>
 class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
   const Operator& operator_;
+  HilbertIndex hilbert_index_;
   size_t dim_;
 
  public:
   explicit DirectMatrixWrapper(const Operator& the_operator)
       : operator_(the_operator),
-        dim_(HilbertIndex(the_operator.GetHilbert()).NStates()) {}
+        hilbert_index_(the_operator.GetHilbert()),
+        dim_(hilbert_index_.NStates()) {}
 
   WfType Apply(const WfType& state) const override {
     const auto& hilbert = operator_.GetHilbert();
-    const HilbertIndex hilbert_index(hilbert);
 
     WfType result(dim_);
     result.setZero();
 
     for (size_t i = 0; i < dim_; ++i) {
-      auto v = hilbert_index.NumberToState(i);
+      auto v = hilbert_index_.NumberToState(i);
 
       std::vector<std::complex<double>> matrix_elements;
       std::vector<std::vector<int>> connectors;
@@ -58,7 +59,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
       for (size_t k = 0; k < connectors.size(); ++k) {
         auto vk = v;
         hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
-        auto j = hilbert_index.StateToNumber(vk);
+        auto j = hilbert_index_.StateToNumber(vk);
 
         result(j) += matrix_elements[k] * state(i);
       }
