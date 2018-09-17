@@ -16,9 +16,6 @@
 '''
 
 import unittest
-import os
-import json
-import numpy as np
 import netket_tools as nkt
 
 # Test to see if networkx is installed
@@ -29,10 +26,12 @@ except ImportError:
     import_nx = False
 
 # Test to see if igraph is installed
+
 try:
     import igraph as ig
     import_ig = True
 except ImportError:
+    print("FALSE")
     import_ig = False
 
 
@@ -59,21 +58,21 @@ class KnownOutput(unittest.TestCase):
     def test2_ig_graph(self):
         if import_ig:
             L = 20
-            G = nx.Graph()
-            for i in range(L):
-                G.add_edge(i, (i + 1) % L, color=1)
-                G.add_edge(i, (i + 2) % L, color=2)
+            G = ig.Graph([(x, (x + 1) % L) for x in range(L)])
+            G.add_edges([(x, (x + 2) % L) for x in range(L)])
 
-            edge_colors = [[u, v, G[u][v]['color']] for u, v in G.edges]
+            G.es['color'] = [1, 2] * L
+
+            edge_colors = [[u, v, G.es['color']] for u, v in G.get_edgelist()]
 
             # Specify custom graph
             pars = {}
             pars['Graph'] = {
-                'Edges': list(G.edges),
+                'Edges': list(G.get_edgelist()),
                 'EdgeColors': edge_colors,
             }
 
-            self.assertEqual(pars["Graph"], nkt.graph.from_networkx(G))
+            self.assertEqual(pars["Graph"], nkt.graph.from_igraph(G))
 
 
 if __name__ == "__main__":

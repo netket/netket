@@ -104,7 +104,7 @@ def from_igraph(graph):
     else:
         raise ValueError("iGraph Python module not found.")
 
-    if isinstance(kwargs["graph"], type(ig.Graph())):
+    if isinstance(graph, type(ig.Graph())):
         pass
     else:
         raise ValueError("Your graph is not an iGraph graph.")
