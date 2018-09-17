@@ -15,6 +15,11 @@
 #ifndef NETKET_DIRECT_HAMILTONIAN_OPERATOR_HPP
 #define NETKET_DIRECT_HAMILTONIAN_OPERATOR_HPP
 
+#include <complex>
+#include <vector>
+
+#include <Eigen/Dense>
+
 #include "Hilbert/hilbert_index.hpp"
 #include "abstract_matrix_wrapper.hpp"
 
@@ -26,7 +31,7 @@ namespace netket {
  * computed from Operator::FindConn every time Apply is called.
  */
 template <class Operator, class WfType = Eigen::VectorXcd>
-class DirectMatrixWrapper : public AbstractMatrixWrapper<WfType> {
+class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
   const Operator& operator_;
   size_t dim_;
 
