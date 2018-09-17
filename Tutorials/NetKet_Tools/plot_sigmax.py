@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,26 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''
-Demonstrates the use of the pynetket to calculate ground state of simple
-Ising1D model.
-'''
+"""
+Demonstrating the plotting helper functions in NetKet Tools.
+"""
 
-import pynetket as nk
-
-g = nk.Graph("Hypercube", L=20, Dimension=1, Pbc=True)
-h = nk.Hamiltonian("Ising", h=1.0)
-m = nk.Machine("RbmSpin", Alpha=1.0)
-s = nk.Sampler("MetropolisLocal")
-o = nk.Optimizer("Sgd", LearningRate=0.1)
-gs = nk.GroundState(
-    "Sr",
-    Nsamples=1000,
-    NiterOpt=300,
-    Diagshift=0.1,
-    UseIterative=False,
-    OutputFile="test")
-calc = nk.NetKetInput(g, h, m, s, o, gs)
-
-calc.run()
-calc.plot("Energy", exact=-1.274549484318e+00 * 20)
+import netket_tools as nkt
+nkt.python_utils.plot_observable("test", "SigmaX", exact=0.637275 * 20)

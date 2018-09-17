@@ -14,42 +14,10 @@
 # limitations under the License.
 """
 Netket python utilities.
-
 """
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-def message(type, msg):
-    if type == "Info":
-        print("# " + msg)
-
-    elif type == "Warning":
-        print("# WARNING: " + msg)
-
-    elif type == "Error":
-        print("# ERROR: " + msg)
-
-    elif type == "Debug":
-        print("# DEBUG: " + msg)
-
-    else:
-        raise ValueError("%s Message not supported" % type)
-
-
-def set_mand_pars(params, key, kwargs, def_value):
-    try:
-        params[key] = kwargs[key]
-    except KeyError:
-        params[key] = def_value
-
-
-def set_opt_pars(params, key, kwargs):
-    try:
-        params[key] = kwargs[key]
-    except KeyError:
-        pass
 
 
 def encode_complex(z):
@@ -97,7 +65,7 @@ def get_obsv_from_json(outputfile):
         for k, v in iteration.items():
             # For everything other than iteration, initialize as a dict
             if isinstance(v, dict):
-                for ki, vi in v.items():
+                for ki, _ in v.items():
                     data[k][ki].append(iteration[k][ki])
             else:
                 data[k].append(iteration[k])
@@ -106,7 +74,7 @@ def get_obsv_from_json(outputfile):
     for k, v in data.items():
         # For everything other than iteration, initialize as a dict
         if isinstance(v, dict):
-            for ki, vi in v.items():
+            for ki, _ in v.items():
                 data[k][ki] = np.array(data[k][ki])
         else:
             data[k] = np.array(data[k])
@@ -182,12 +150,12 @@ def plot_observable(outputfile, observable, exact=None):
 
                 plt.ylim([
                     exact - (np.abs(exact) * 0.01),
-                    maxval + np.abs(maxval) * 0.01
+                    maxval + (np.abs(maxval) * 0.01)
                 ])
             else:
                 plt.ylim([
-                    minval - np.abs(minval) * 0.01,
-                    maxval + np.abs(maxval) * 0.01
+                    minval - (np.abs(minval) * 0.01),
+                    maxval + (np.abs(maxval) * 0.01)
                 ])
 
             plt.plot(fitx, p(fitx))
