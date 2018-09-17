@@ -94,18 +94,18 @@ class GroundState {
       int n_eigenvalues, max_iter, random_seed;
       get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
       std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, false,
-						     n_eigenvalues,
-						     max_iter, random_seed,
-						     precision);
+                                                     n_eigenvalues,
+                                                     max_iter, random_seed,
+                                                     precision);
       write_ed_eigenvalues(pars, eigs);
     } else if (method_name == "EdFly") {
       double precision;
       int n_eigenvalues, max_iter, random_seed;
       get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
       std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, true,
-						     n_eigenvalues,
-						     max_iter, random_seed,
-						     precision);
+                                                     n_eigenvalues,
+                                                     max_iter, random_seed,
+                                                     precision);
       write_ed_eigenvalues(pars, eigs);
     } else {
       std::stringstream s;
@@ -113,8 +113,6 @@ class GroundState {
       throw InvalidInputError(s.str());
     }
   }
-
-  
 };
 
 }  // namespace netket

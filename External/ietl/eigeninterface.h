@@ -40,14 +40,14 @@ namespace ietl {
             const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
             Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
   { y = a*x; }
-  
+
   template <class matrix_t, class TCoeffs>
   void mult(const matrix_t& a,
             const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
             Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
   { y = a.Apply(x); }
-  
-  
+
+
   template <class TCoeffs>
   TCoeffs dot(const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
               const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
