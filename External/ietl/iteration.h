@@ -88,9 +88,9 @@ namespace ietl {
 
     template <class Tmatrix>
       bool finished(const Tmatrix& tmatrix) {
-      if (static_cast<const Derived&>(*this).converged(tmatrix))
+      if (static_cast<const Derived&>(*this).converged(tmatrix)) {
         return true;
-      else if (i < max_iter_) {
+      } else if (i < max_iter_) {
         return false;
       } else {
         fail(1, "maximum number of iterations exceeded");

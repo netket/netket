@@ -83,22 +83,38 @@ class GroundState {
 
       driver.Run(initial);
 
-    } else if (method_name == "Ed") {
-      std::vector<double> eigs = eigenvalues_lanczos(hamiltonian);
-
-      std::string file_base = FieldVal(pars["GroundState"], "OutputFile");
-      std::string file_name = file_base + std::string(".log");
-      std::ofstream file_ed(file_name);
-      json j(eigs);
-      file_ed << j << std::endl;
-      file_ed.close();
-
+    } else if (method_name == "EdFull") {
+      double precision;
+      int n_eigenvalues, max_iter, random_seed;
+      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
+      std::vector<double> eigs = eigenvalues_full(hamiltonian, n_eigenvalues);
+      write_ed_eigenvalues(pars, eigs);
+    } else if (method_name == "EdSparse") {
+      double precision;
+      int n_eigenvalues, max_iter, random_seed;
+      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
+      std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, false,
+						     n_eigenvalues,
+						     max_iter, random_seed,
+						     precision);
+      write_ed_eigenvalues(pars, eigs);
+    } else if (method_name == "EdFly") {
+      double precision;
+      int n_eigenvalues, max_iter, random_seed;
+      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
+      std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, true,
+						     n_eigenvalues,
+						     max_iter, random_seed,
+						     precision);
+      write_ed_eigenvalues(pars, eigs);
     } else {
       std::stringstream s;
       s << "Unknown GroundState method: " << method_name;
       throw InvalidInputError(s.str());
     }
   }
+
+  
 };
 
 }  // namespace netket
