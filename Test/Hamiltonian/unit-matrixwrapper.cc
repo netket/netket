@@ -17,6 +17,7 @@
 #include <Graph/graph.hpp>
 #include <Hamiltonian/hamiltonian.hpp>
 #include <Observable/observable.hpp>
+#include <Hamiltonian/MatrixWrapper/direct_matrix_wrapper.hpp>
 #include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
 #include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
 
@@ -107,6 +108,39 @@ TEST_CASE("DenseMatrixWrapper for Hamiltonian is Hermitian", "[matrix-wrapper]")
 
             const auto& matrix = hmat.GetMatrix();
             REQUIRE(matrix.isApprox(matrix.adjoint()));
+        }
+    }
+}
+
+TEST_CASE("DirectMatrixWrapper gives same results as SparseMatrixWrapper", "[matrix-wrapper]")
+{
+    auto input_tests = GetHamiltonianInputs();
+    std::size_t ntests = input_tests.size();
+
+    for (std::size_t it = 0; it < ntests; it++)
+    {
+        SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
+                input_tests[it]["Hamiltonian"].dump())
+        {
+            auto pars = input_tests[it];
+            netket::Graph graph(pars);
+            netket::Hamiltonian hamiltonian(graph, pars);
+
+            netket::DirectMatrixWrapper<netket::AbstractHamiltonian> direct(hamiltonian);
+            netket::SparseMatrixWrapper<netket::AbstractHamiltonian> sparse(hamiltonian);
+
+            Eigen::VectorXcd basis(direct.GetDimension());
+            Eigen::VectorXcd direct_result(direct.GetDimension());
+            Eigen::VectorXcd sparse_result(direct.GetDimension());
+            for (int i = 0; i < direct.GetDimension(); i++) {
+                basis.setZero();
+                basis(i) = 1.0;
+                direct_result = direct.Apply(basis);
+                sparse_result = sparse.Apply(basis);
+
+                INFO("i=" << i);
+                REQUIRE(direct_result.isApprox(sparse_result));
+            }
         }
     }
 }

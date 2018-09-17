@@ -61,7 +61,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
         hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
         auto j = hilbert_index_.StateToNumber(vk);
 
-        result(j) += matrix_elements[k] * state(i);
+        result(i) += matrix_elements[k] * state(j);
       }
     }
     return result;
