@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "hilbert.hpp"
 
@@ -32,7 +32,7 @@ class HilbertIndex {
 
   const int size_;
 
-  std::map<double, int> statenumber_;
+  std::unordered_map<double, int> statenumber_;
 
   std::vector<std::size_t> basis_;
 
