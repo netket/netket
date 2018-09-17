@@ -37,8 +37,12 @@ pars['Hamiltonian']={
 #here we use Exact Diagonalization
 #suitable for this small system
 pars['GroundState']={
-    'Method'         : 'Ed',
+    'Method'         : 'EdFly',
     'OutputFile'     : "test",
+    'NumEigenvalues' : 1,
+    'Precision'      : 1e-14,
+    'RandomSeed'     : 42,
+    'MaxIterations'  : 1000,
 }
 
 json_file="ising1d.json"
