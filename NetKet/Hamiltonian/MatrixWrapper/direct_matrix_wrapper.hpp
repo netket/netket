@@ -43,8 +43,6 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
         dim_(hilbert_index_.NStates()) {}
 
   WfType Apply(const WfType& state) const override {
-    const auto& hilbert = operator_.GetHilbert();
-
     WfType result(dim_);
     result.setZero();
 
@@ -56,10 +54,11 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
       std::vector<std::vector<double>> newconfs;
       operator_.FindConn(v, matrix_elements, connectors, newconfs);
 
+      const auto numberv = hilbert_index_.StateToNumber(v);
+
       for (size_t k = 0; k < connectors.size(); ++k) {
-        auto vk = v;
-        hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
-        auto j = hilbert_index_.StateToNumber(vk);
+        const auto j = numberv + hilbert_index_.DeltaStateToNumber(
+                                     v, connectors[k], newconfs[k]);
 
         result(i) += matrix_elements[k] * state(j);
       }
