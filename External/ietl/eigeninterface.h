@@ -20,44 +20,42 @@
 
 namespace ietl {
 
-  template <class Gen>
-  void generate(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>& c,
-                Gen& gen) {
-    for (size_t i = 0; i < c.rows(); ++i)
-      c(i, 0) = std::complex<double>(gen(), gen());
-  }
-
-
-  template <class Gen>
-  void generate(Eigen::Matrix<double, Eigen::Dynamic, 1>& c, Gen& gen) {
-    for (size_t i = 0; i < c.rows(); ++i)
-      c(i, 0) = static_cast<double>(gen());
-  }
-
-
-  template <class TCoeffs>
-  void mult(const Eigen::SparseMatrix<TCoeffs>& a,
-            const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
-            Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
-  { y = a*x; }
-
-  template <class matrix_t, class TCoeffs>
-  void mult(const matrix_t& a,
-            const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
-            Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
-  { y = a.Apply(x); }
-
-
-  template <class TCoeffs>
-  TCoeffs dot(const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
-              const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y)
-  { return y.dot(x); }
-
-
-  template <class TCoeffs>
-  typename real_type<TCoeffs>::type two_norm
-  (const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& c)
-  { return std::sqrt(ietl::real<typename real_type<TCoeffs>::type>(c.dot(c))); }
+template <class Gen>
+void generate(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>& c,
+              Gen& gen) {
+  for (size_t i = 0; i < c.rows(); ++i)
+    c(i, 0) = std::complex<double>(gen(), gen());
 }
+
+template <class Gen>
+void generate(Eigen::Matrix<double, Eigen::Dynamic, 1>& c, Gen& gen) {
+  for (size_t i = 0; i < c.rows(); ++i) c(i, 0) = static_cast<double>(gen());
+}
+
+template <class TCoeffs>
+void mult(const Eigen::SparseMatrix<TCoeffs>& a,
+          const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
+          Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y) {
+  y = a * x;
+}
+
+template <class matrix_t, class TCoeffs>
+void mult(const matrix_t& a, const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
+          Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y) {
+  y = a.Apply(x);
+}
+
+template <class TCoeffs>
+TCoeffs dot(const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
+            const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y) {
+  return y.dot(x);
+}
+
+template <class TCoeffs>
+typename real_type<TCoeffs>::type two_norm(
+    const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& c) {
+  return std::sqrt(ietl::real<typename real_type<TCoeffs>::type>(c.dot(c)));
+}
+}  // namespace ietl
 
 #endif  // EXTERNAL_IETL_EIGENINTERFACE_H_
