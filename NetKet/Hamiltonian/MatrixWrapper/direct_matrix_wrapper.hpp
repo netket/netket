@@ -46,12 +46,13 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     WfType result(dim_);
     result.setZero();
 
-    for (size_t i = 0; i < dim_; ++i) {
-      auto v = hilbert_index_.NumberToState(i);
+    std::vector<std::complex<double>> matrix_elements;
+    std::vector<std::vector<int>> connectors;
+    std::vector<std::vector<double>> newconfs;
 
-      std::vector<std::complex<double>> matrix_elements;
-      std::vector<std::vector<int>> connectors;
-      std::vector<std::vector<double>> newconfs;
+    for (size_t i = 0; i < dim_; ++i) {
+      const auto v = hilbert_index_.NumberToState(i);
+
       operator_.FindConn(v, matrix_elements, connectors, newconfs);
 
       const auto numberv = hilbert_index_.StateToNumber(v);

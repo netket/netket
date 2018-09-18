@@ -37,7 +37,7 @@ pars['Hamiltonian']={
 #here we use Exact Diagonalization
 #suitable for this small system
 pars['GroundState']={
-    'Method'         : 'EdFly',
+    'Method'         : 'EdSparse',
     'OutputFile'     : "test",
     'NumEigenvalues' : 1,
     'Precision'      : 1e-14,
