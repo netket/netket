@@ -19,7 +19,18 @@
 #include <complex>
 #include <vector>
 
+#include "Hilbert/hilbert.hpp"
+
 namespace netket {
+
+/**
+ * This struct represents a non-zero matrix-element H(v,v') of an operator for a
+ * given visible state v.
+ */
+struct MatrixElement {
+  std::complex<double> weight;    /// The matrix element H(v,v')
+  ConfigurationUpdateRef update;  /// The update neccessary to obtain v' from v
+};
 
 /**
       Abstract class for Hamiltonians.
@@ -50,6 +61,20 @@ class AbstractHamiltonian {
                         std::vector<std::vector<int>> &connectors,
                         std::vector<std::vector<double>> &newconfs) const = 0;
 
+  using ConnCallback = std::function<void(MatrixElement)>;
+  /**
+   * Iterates over all states reachable from a given visible configuration v,
+   * i.e., all states v' such that H(v,v') is non-zero.
+   * @param v The visible configuration.
+   * @param callback Function void callback(MatrixElement mel) which will be
+   * called once for each reachable configuration v'. The parameter mel contains
+   * the value H(v,v') and the information to obtain v' from v. Note that the
+   * member mel.update has reference character and can only be savely used
+   * inside the callback. It will become invalid once callback returns.
+   */
+  virtual void ForEachConn(const Eigen::VectorXd &v,
+                           ConnCallback callback) const;
+
   /**
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
@@ -58,6 +83,22 @@ class AbstractHamiltonian {
 
   virtual ~AbstractHamiltonian() {}
 };
+
+void AbstractHamiltonian::ForEachConn(const Eigen::VectorXd &v,
+                                      ConnCallback callback) const {
+  std::vector<std::complex<double>> weights;
+  std::vector<std::vector<int>> connectors;
+  std::vector<std::vector<double>> newconfs;
+
+  FindConn(v, weights, connectors, newconfs);
+
+  for (size_t k = 0; k < connectors.size(); k++) {
+    const ConfigurationUpdateRef update{connectors[k], newconfs[k]};
+    const MatrixElement mel{weights[k], update};
+    callback(mel);
+  }
+}
+
 }  // namespace netket
 
 #endif
