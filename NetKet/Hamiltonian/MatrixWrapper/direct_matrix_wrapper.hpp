@@ -55,11 +55,9 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
       operator_.FindConn(v, matrix_elements, connectors, newconfs);
 
-      const auto numberv = hilbert_index_.StateToNumber(v);
-
       for (size_t k = 0; k < connectors.size(); ++k) {
-        const auto j = numberv + hilbert_index_.DeltaStateToNumber(
-                                     v, connectors[k], newconfs[k]);
+        const auto j = i + hilbert_index_.DeltaStateToNumber(v, connectors[k],
+                                                             newconfs[k]);
 
         result(i) += matrix_elements[k] * state(j);
       }
