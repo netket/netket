@@ -137,6 +137,33 @@ class Ising : public AbstractHamiltonian {
     }
   }
 
+  void ForEachConn(const Eigen::VectorXd &v,
+                   ConnCallback callback) const override {
+    assert(v.size() > 0);
+
+    // local matrix element
+    std::complex<double> mel_loc = 0;
+
+    // position and value for conf updates
+    std::array<int, 1> position;
+    std::array<double, 1> value;
+    ConfigurationUpdateRef update{position, value};
+
+    for (int i = 0; i < nspins_; i++) {
+      // interaction part
+      for (auto bond : bonds_[i]) {
+        mel_loc -= J_ * v(i) * v(bond);
+      }
+
+      // spin-flip
+      position[0] = i;
+      value[0] = -v(i);
+      callback(MatrixElement{-h_, update});
+    }
+
+    callback(MatrixElement{-mel_loc, ConfigurationUpdateRef::Identity()});
+  }
+
   const Hilbert &GetHilbert() const override { return hilbert_; }
 };
 

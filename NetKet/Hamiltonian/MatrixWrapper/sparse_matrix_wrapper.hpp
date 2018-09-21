@@ -78,7 +78,7 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     dim_ = hilbert_index.NStates();
 
     using Triplet = Eigen::Triplet<std::complex<double>>;
-    
+
     std::vector<Triplet> tripletList;
     tripletList.reserve(dim_);
 
@@ -86,19 +86,11 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     matrix_.setZero();
 
     for (int i = 0; i < dim_; ++i) {
-      auto v = hilbert_index.NumberToState(i);
-
-      std::vector<std::complex<double>> matrix_elements;
-      std::vector<std::vector<int>> connectors;
-      std::vector<std::vector<double>> newconfs;
-      the_operator.FindConn(v, matrix_elements, connectors, newconfs);
-
-      for (size_t k = 0; k < connectors.size(); ++k) {
-        auto vk = v;
-        hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
-        auto j = hilbert_index.StateToNumber(vk);
-        tripletList.push_back(Triplet(i, j, matrix_elements[k]));
-      }
+      const auto v = hilbert_index.NumberToState(i);
+      the_operator.ForEachConn(v, [&](MatrixElement mel) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, mel.update);
+        tripletList.push_back(Triplet(i, j, mel.weight));
+      });
     }
     matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
     matrix_.makeCompressed();

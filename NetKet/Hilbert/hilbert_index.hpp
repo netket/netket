@@ -21,6 +21,8 @@
 #include <limits>
 #include <map>
 #include <vector>
+
+#include "Hamiltonian/ising.hpp"
 #include "hilbert.hpp"
 
 namespace netket {
@@ -87,6 +89,25 @@ class HilbertIndex {
       const int ich = connector[k];
       number -= statenumber_.at(v(ich)) * basis_[size_ - ich - 1];
       number += statenumber_.at(newconf[k]) * basis_[size_ - ich - 1];
+    }
+
+    return number;
+  }
+
+  // converts a vector of quantum numbers into the unique integer identifier
+  // this version assumes that a number representaiton is already known for the
+  // given vector v, and this function is used to update it
+  std::size_t DeltaStateToNumber(const Eigen::VectorXd &v,
+                                 const ConfigurationUpdateRef update) const {
+    std::size_t number = 0;
+
+    for (int k = 0; k < update.PositionsChanged(); k++) {
+      int pos;
+      double val;
+      std::tie(pos, val) = update.ChangeAt(k);
+
+      number -= statenumber_.at(v(pos)) * basis_[size_ - pos - 1];
+      number += statenumber_.at(val) * basis_[size_ - pos - 1];
     }
 
     return number;
