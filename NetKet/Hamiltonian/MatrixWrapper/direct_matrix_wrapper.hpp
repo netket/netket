@@ -48,9 +48,9 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
     for (size_t i = 0; i < dim_; ++i) {
       const auto v = hilbert_index_.NumberToState(i);
-      operator_.ForEachConn(v, [&](MatrixElement mel) {
-        const auto j = i + hilbert_index_.DeltaStateToNumber(v, mel.update);
-        result(i) += mel.weight * state(j);
+      operator_.ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.positions, conn.values);
+        result(i) += conn.weight * state(j);
       });
     }
     return result;

@@ -53,8 +53,9 @@ class AbstractObservable {
                         std::vector<std::vector<int>> &connectors,
                         std::vector<std::vector<double>> &newconfs) const = 0;
 
-  using ConnCallback = std::function<void(MatrixElement)>;
-  virtual void ForEachConn(const Eigen::VectorXd &v, ConnCallback callback) const;
+  using ConnCallback = std::function<void(ConnectorRef)>;
+  virtual void ForEachConn(const Eigen::VectorXd &v,
+                           ConnCallback callback) const;
 
   /**
   Member function returning the hilbert space associated with this Observable.
@@ -76,9 +77,8 @@ void AbstractObservable::ForEachConn(const Eigen::VectorXd &v,
   FindConn(v, weights, connectors, newconfs);
 
   for (size_t k = 0; k < connectors.size(); k++) {
-      const ConfigurationUpdateRef update{connectors[k], newconfs[k]};
-      const MatrixElement mel{weights[k], update};
-      callback(mel);
+    const ConnectorRef mel{weights[k], connectors[k], newconfs[k]};
+    callback(mel);
   }
 }
 

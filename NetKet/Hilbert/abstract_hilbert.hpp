@@ -24,51 +24,6 @@
 namespace netket {
 
 /**
- * This class contains the neccessary information to change a configuration v
- * into another v'.
- */
-class ConfigurationUpdateRef {
-  nonstd::span<int> positions_;
-  nonstd::span<double> values_;
-
- public:
-  using index_t = decltype(positions_.size());
-
-  /**
-   * Returns an identity update, i.e., satisfying Apply(v) == v.
-   */
-  static ConfigurationUpdateRef Identity() {
-    // Return this class with two empty spans
-    return {{}, {}};
-  }
-
-  /**
-   * Creates a ConfigurationUpdate that when applied will modifiy v such that
-   *  v(positions[k]) = values[k].
-   */
-  ConfigurationUpdateRef(nonstd::span<int> positions,
-                         nonstd::span<double> values)
-      : positions_(positions), values_(values) {
-    assert(positions.size() == values.size());
-  }
-
-  /**
-   * Update the configuration v to v' in place.
-   */
-  void Apply(Eigen::VectorXd &v) const {
-    for (int k = 0; k < positions_.size(); k++) {
-      v(positions_[k]) = values_[k];
-    }
-  }
-
-  index_t PositionsChanged() const { return positions_.size(); }
-
-  std::pair<int, double> ChangeAt(index_t k) const {
-    return {positions_[k], values_[k]};
-  }
-};
-
-/**
   Abstract class for Hilbert spaces.
   This class prototypes the methods needed
   by a class satisfying the Hilbert concept.

@@ -87,9 +87,9 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
     for (int i = 0; i < dim_; ++i) {
       const auto v = hilbert_index.NumberToState(i);
-      the_operator.ForEachConn(v, [&](MatrixElement mel) {
-        const auto j = i + hilbert_index.DeltaStateToNumber(v, mel.update);
-        tripletList.push_back(Triplet(i, j, mel.weight));
+      the_operator.ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions, conn.values);
+        tripletList.push_back(Triplet(i, j, conn.weight));
       });
     }
     matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
