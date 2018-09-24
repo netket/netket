@@ -21,6 +21,8 @@
 #include <limits>
 #include <map>
 #include <vector>
+
+#include "Hamiltonian/ising.hpp"
 #include "hilbert.hpp"
 
 namespace netket {
@@ -79,11 +81,11 @@ class HilbertIndex {
   // this version assumes that a number representaiton is already known for the
   // given vector v, and this function is used to update it
   std::size_t DeltaStateToNumber(const Eigen::VectorXd &v,
-                                 const std::vector<int> &connector,
-                                 const std::vector<double> &newconf) const {
+                                 nonstd::span<const int> connector,
+                                 nonstd::span<const double> newconf) const {
     std::size_t number = 0;
 
-    for (std::size_t k = 0; k < connector.size(); k++) {
+    for (int k = 0; k < connector.size(); k++) {
       const int ich = connector[k];
       number -= statenumber_.at(v(ich)) * basis_[size_ - ich - 1];
       number += statenumber_.at(newconf[k]) * basis_[size_ - ich - 1];
