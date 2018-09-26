@@ -54,14 +54,19 @@ pars['Hamiltonian'] = {
 
 # defining the wave function
 pars['Machine'] = {
-    'Name': 'RbmMultival',
-    'Alpha': 2,
+    'Name': 'FFNN',
+    'VectorizeInput': True,
+    'Layers': [{
+        'Name': 'MpsLayer',
+        'LocalSize': 3,
+        'HiddenUnits': 2,
+        'Activation': 'Tanh' }],
 }
 
 # defining the sampler
 # here we use Metropolis sampling with single spin flips
 pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
+    'Name': 'MetropolisLocal',
 }
 
 # defining the Optimizer

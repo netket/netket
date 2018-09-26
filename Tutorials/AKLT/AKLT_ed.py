@@ -27,7 +27,7 @@ heisenberg = np.kron(sigmaz, sigmaz) + \
              0.5*np.kron(sigmaminus, sigmaplus)
 
 # System size
-L = 10
+L = 7
 
 pars = {}
 pars['Graph'] = {
@@ -52,33 +52,11 @@ pars['Hamiltonian'] = {
                  np.identity(9)/3.).tolist()]
 }
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmMultival',
-    'Alpha': 2,
-}
-
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
-}
-
-# defining the Optimizer
-# here we use AdaMax
-pars['Optimizer'] = {
-    'Name': 'AdaMax',
-}
-
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
-    'Diagshift': 5.0e-3,
-    'UseIterative': False,
-    'OutputFile': 'test',
+#defining the GroundState method
+#here we use Exact Diagonalization
+pars['GroundState']={
+    'Method'         : 'Ed',
+    'OutputFile'     : 'test',
 }
 
 json_file = "AKLT.json"
