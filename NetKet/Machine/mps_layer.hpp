@@ -85,7 +85,7 @@ class MpsLayer : public AbstractLayer<T> {
 
   int Ninput() const override { return ls_ * nv_; }
 
-  int Noutput() const override { return nh_ * nv_; }
+  int Noutput() const override { return nh_ * nh_; }
 
   void GetParameters(VectorType &pars, int start_idx) const override {
     int n = start_idx;
@@ -181,18 +181,20 @@ class MpsLayer : public AbstractLayer<T> {
 
   // Feedforward using lookup
   void Forward(const LookupType &theta, VectorType &output) override {
-    VectorType h = VectorType::Zero(nh_);
+    for (int i = 0; i < nh_; ++i) {
+      // i-th unit vector
+      VectorType h = VectorType::Zero(nh_);
+      h(i) = 1;
 
-    for (int t = 0; t < nv_; ++t) {
-      // h_t = activation(kron(x_t, h_{t-1}) W + b)
-      // form temporary Kronecker product of x_t and h_{t-1}
-      const MatrixType xh = theta[0].segment(t*ls_, ls_) * h.transpose();
-      activation_(W_.transpose() * Eigen::Map<const VectorType>(xh.data(), xh.size()) + bias_, h);
-
-      // store current hidden state in output
-      for (int k = 0; k < nh_; ++k) {
-        output(nh_ * t + k) = h(k);
+      for (int t = 0; t < nv_; ++t) {
+        // h_t = activation(kron(x_t, h_{t-1}) W + b)
+        // form temporary Kronecker product of x_t and h_{t-1}
+        const MatrixType xh = theta[0].segment(t*ls_, ls_) * h.transpose();
+        activation_(W_.transpose() * Eigen::Map<const VectorType>(xh.data(), xh.size()) + bias_, h);
       }
+
+      // store last hidden state in output
+      output.segment(i*nh_, nh_) = h;
     }
   }
 
@@ -201,63 +203,85 @@ class MpsLayer : public AbstractLayer<T> {
                 const LookupType &this_layer_theta, const VectorType &dout,
                 VectorType &din, VectorType &der, int start_idx) override {
 
-    MatrixType dW = MatrixType::Zero(ls_ * nh_, nh_);
-    VectorType db = VectorType::Zero(nh_);
-    VectorType dh_accum = VectorType::Zero(nh_);
-
     din.resize(nv_ * ls_);
+    din.setZero();
 
-    for (int t = nv_ - 1; t >= 0; --t) {
+    der.segment(start_idx, npar_).setZero();
 
-      VectorType prev_h;
-      if (t > 0) {
-        prev_h = this_layer_output.segment((t - 1)*nh_, nh_);
+    for (int i = 0; i < nh_; ++i) {
+
+      MatrixType dW = MatrixType::Zero(ls_ * nh_, nh_);
+      VectorType db = VectorType::Zero(nh_);
+
+      // i-th unit vector
+      VectorType h = VectorType::Zero(nh_);
+      h(i) = 1;
+
+      // argument of (nonlinear) activation function
+      MatrixType z_list(nh_, nv_);
+      // store hidden state for all time steps
+      MatrixType h_list(nh_, nv_);
+
+      // forward pass to reconstruct intermediate hidden states
+      for (int t = 0; t < nv_; ++t) {
+        // h_t = activation(kron(x_t, h_{t-1}) W + b)
+        // form temporary Kronecker product of x_t and h_{t-1}
+        const MatrixType xh = this_layer_theta[0].segment(t*ls_, ls_) * h.transpose();
+        const VectorType z = W_.transpose() * Eigen::Map<const VectorType>(xh.data(), xh.size()) + bias_;
+        activation_(z, h);
+        z_list.col(t) = z;
+        h_list.col(t) = h;
       }
-      else {
-        prev_h = VectorType::Zero(nh_);
+
+      VectorType dh = dout.segment(i*nh_, nh_);
+
+      for (int t = nv_ - 1; t >= 0; --t) {
+
+        VectorType prev_h;
+        if (t > 0) {
+          prev_h = h_list.col(t - 1);
+        }
+        else {
+          prev_h = VectorType::Zero(nh_);
+          prev_h(i) = 1;
+        }
+
+        const VectorType x = this_layer_theta[0].segment(t*ls_, ls_);
+
+        VectorType dtanh(nh_);
+        activation_.ApplyJacobian(z_list.col(t), h_list.col(t), dh, dtanh);
+
+        // gradient with respect to input
+        const MatrixType h_dtanh = prev_h * dtanh.transpose();  // outer product of two vectors
+        // reshape W into a ls_ x (nh_ * nh_) matrix
+        const auto W_reshape = Eigen::Map<const MatrixType>(W_.data(), ls_, nh_*nh_);
+        din.segment(t*ls_, ls_) += W_reshape * Eigen::Map<const VectorType>(h_dtanh.data(), h_dtanh.size());
+
+        // accumulated gradient of hidden state
+        // reorder entries of W into a nh_ x (nh_ * ls_) matrix (cyclic permutation of dimensions)
+        MatrixType W_reshape_T = W_reshape;
+        W_reshape_T.transposeInPlace();
+        const auto W_reorder = Eigen::Map<const MatrixType>(W_reshape_T.data(), nh_, nh_*ls_);
+        const MatrixType dtanh_x = dtanh * x.transpose();  // outer product of two vectors
+        dh = W_reorder * Eigen::Map<const VectorType>(dtanh_x.data(), dtanh_x.size());
+
+        // accumulate gradients of weight and bias parameters for each time step
+        const MatrixType xh = x * prev_h.transpose();
+        dW += Eigen::Map<const VectorType>(xh.data(), xh.size()) * dtanh.transpose();
+        db += dtanh;
       }
 
-      const VectorType h = this_layer_output.segment(t*nh_, nh_);
+      // accumulate gradients of weight and bias parameters for each unit vector as initial hidden state
 
-      const VectorType x = this_layer_theta[0].segment(t*ls_, ls_);
+      int n = start_idx;
 
-      const MatrixType xh = x * prev_h.transpose();
+      Eigen::Map<MatrixType> der_W{der.data() + n, ls_*nh_, nh_};
+      der_W.noalias() += dW;
+      n += ls_*nh_*nh_;
 
-      // reconstruct argument of (nonlinear) activation function
-      VectorType Z = W_.transpose() * Eigen::Map<const VectorType>(xh.data(), xh.size()) + bias_;
-      VectorType dtanh(nh_);
-      activation_.ApplyJacobian(Z, h, dh_accum + dout.segment(t*nh_, nh_), dtanh);
-
-      // gradient with respect to input
-      const MatrixType h_dtanh = prev_h * dtanh.transpose();  // outer product of two vectors
-      // reshape W into a ls_ x (nh_ * nh_) matrix
-      const auto W_reshape = Eigen::Map<const MatrixType>(W_.data(), ls_, nh_*nh_);
-      din.segment(t*ls_, ls_) = W_reshape * Eigen::Map<const VectorType>(h_dtanh.data(), h_dtanh.size());
-
-      // accumulated gradient of hidden state
-      // reorder entries of W into a nh_ x (nh_ * ls_) matrix (cyclic permutation of dimensions)
-      MatrixType W_reshape_T = W_reshape;
-      W_reshape_T.transposeInPlace();
-      const auto W_reorder = Eigen::Map<const MatrixType>(W_reshape_T.data(), nh_, nh_*ls_);
-      const MatrixType dtanh_x = dtanh * x.transpose();  // outer product of two vectors
-      dh_accum = W_reorder * Eigen::Map<const VectorType>(dtanh_x.data(), dtanh_x.size());
-
-      dW += Eigen::Map<const VectorType>(xh.data(), xh.size()) * dtanh.transpose();
-      db += dtanh;
+      Eigen::Map<VectorType> der_b{der.data() + n, nh_};
+      der_b.noalias() += db;
     }
-
-    // assign gradients of weight and bias parameters
-
-    int n = start_idx;
-
-    Eigen::Map<MatrixType> der_W{der.data() + n, ls_*nh_, nh_};
-    der_W.noalias() = dW;
-    n += ls_*nh_*nh_;
-
-    Eigen::Map<VectorType> der_b{der.data() + n, nh_};
-    der_b.noalias() = db;
-    // avoid Codacy code review issue
-    //n += nh_;
   }
 
   void to_json(json &pars) const override {

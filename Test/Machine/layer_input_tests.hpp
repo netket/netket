@@ -59,7 +59,7 @@ std::vector<netket::json> GetLayerInputs() {
 
   // MPS layer
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}}},
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine",
            {{"Name", "FFNN"},
             {"VectorizeInput", true},
@@ -67,11 +67,7 @@ std::vector<netket::json> GetLayerInputs() {
              {{{"Name", "MpsLayer"},
                {"LocalSize", 2},
                {"HiddenUnits", 3},
-               {"Activation", "Lncosh"}},
-              {{"Name", "MpsLayer"},
-               {"LocalSize", 3},
-               {"HiddenUnits", 5},
-               {"Activation", "Tanh"}}}}}},
+               {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   input_tests.push_back(pars);
 
