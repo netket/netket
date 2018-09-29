@@ -16,8 +16,7 @@
 
 #include <Graph/graph.hpp>
 #include <Hamiltonian/hamiltonian.hpp>
-#include <Observable/observables.hpp>
-#include <Observable/abstract_observable.hpp>
+#include <Observable/observable.hpp>
 #include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
 #include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
 
@@ -119,19 +118,17 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]")
     pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
     pars["Hilbert"]["Size"] = 1;
 
-    netket::json observable_json;
-    observable_json["ActingOn"] = {{0}};
-    observable_json["Operators"] = {{{-1, 2}, {2, 1}}};
-    observable_json["Name"] = "O1";
-
-    pars["Observables"].push_back(observable_json);
+    netket::json observable_pars;
+    observable_pars["ActingOn"] = {{0}};
+    observable_pars["Operators"] = {{{-1, 2}, {2, 1}}};
+    observable_pars["Name"] = "O1";
 
     netket::Hilbert hilbert(pars);
-    netket::Observables obs(hilbert, pars);
+    netket::Observable obs(hilbert, observable_pars);
 
     // check whether the correct eigenvalues are computed
     {
-        netket::DenseMatrixWrapper<netket::AbstractObservable> dense(obs(0));
+        netket::DenseMatrixWrapper<netket::AbstractObservable> dense(obs);
 
         auto ed = dense.ComputeEigendecomposition();
         auto eigs = ed.eigenvalues();
@@ -142,7 +139,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]")
         CHECK(eigs(1) == Approx(sqrt5));
     }
     {
-        netket::SparseMatrixWrapper<netket::AbstractObservable> sparse(obs(0));
+        netket::SparseMatrixWrapper<netket::AbstractObservable> sparse(obs);
 
         auto ed = sparse.ComputeEigendecomposition();
         auto eigs = ed.eigenvalues();
