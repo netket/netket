@@ -17,8 +17,11 @@
 
 #include <memory>
 
-#include "Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp"
+#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
+#include "Observable/observable.hpp"
 #include "Optimizer/optimizer.hpp"
+
+#include "imaginary_time.hpp"
 #include "variational_montecarlo.hpp"
 
 namespace netket {
@@ -42,26 +45,43 @@ class GroundState {
       throw InvalidInputError(s.str());
     }
 
+    Graph graph(pars);
+    Hamiltonian hamiltonian(graph, pars);
+
     if (method_name == "Gd" || method_name == "Sr") {
-      Graph graph(pars);
-
-      Hamiltonian hamiltonian(graph, pars);
-
       using MachineType = Machine<std::complex<double>>;
       MachineType machine(graph, hamiltonian, pars);
 
       Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
-
       Optimizer optimizer(pars);
 
       VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
       vmc.Run();
+
+    } else if (method_name == "ImaginaryTimePropagation") {
+      int size;
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+      if (size > 1) {
+        throw InvalidInputError(
+            "Imaginary time propagation method currently only supports a "
+            "single MPI process.");
+      }
+
+      auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
+
+      const auto pars_gs = FieldVal(pars, "GroundState");
+      auto driver = ImaginaryTimePropagation::FromJson(hamiltonian, observables,
+                                                       pars_gs);
+
+      // Start with random initial vector
+      Eigen::VectorXcd initial =
+          Eigen::VectorXcd::Random(driver.GetDimension());
+      initial.normalize();
+
+      driver.Run(initial);
+
     } else if (method_name == "Ed") {
-      Graph graph(pars);
-
-      Hamiltonian hamiltonian(graph, pars);
-      std::string file_base = FieldVal(pars["GroundState"], "OutputFile");
-
+      std::string file_base = FieldVal(pars["Learning"], "OutputFile");
       SaveEigenValues(hamiltonian, file_base + std::string(".log"));
 
     } else {

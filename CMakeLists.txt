@@ -1,32 +1,82 @@
 cmake_minimum_required(VERSION 3.1)
 
-
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 project(NetKet)
 
-set (CMAKE_CXX_STANDARD 11)
-set (NETKET_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/NetKet/)
-set (EXTERNAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/)
+include(CTest) # adds option BUILD_TESTING (default ON)
+include(ExternalProject)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set (EIGEN3_INCLUDE_DIR "${EXTERNAL_INCLUDE_DIR}" CACHE STRING "Eigen3 Include Directory" )
-set (JSON_INCLUDE_DIR "${EXTERNAL_INCLUDE_DIR}/Json/" CACHE STRING "JSON for Modern C++ Include Directory" )
+#
+# Dependencies
+#
 
-#Find MPI
+# json
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/json/json.hpp")
+    file(DOWNLOAD
+        "https://github.com/nlohmann/json/releases/download/v3.2.0/json.hpp"
+        "External/json/json.hpp")
+endif()
+add_library(nlohmann_json INTERFACE)
+target_include_directories(nlohmann_json
+    INTERFACE "${CMAKE_BINARY_DIR}/External/json")
+
+# optional-lite
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
+    file(DOWNLOAD
+        "https://github.com/martinmoene/optional-lite/releases/download/v3.0.0/optional.hpp"
+        "External/optional-lite/nonstd/optional.hpp")
+endif()
+add_library(optional_lite INTERFACE)
+target_include_directories(optional_lite
+    INTERFACE "${CMAKE_BINARY_DIR}/External/optional-lite")
+
+# Eigen3
+################################################################################
+ExternalProject_Add(
+    eigen_project
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/Eigen3"
+    URL "https://github.com/eigenteam/eigen-git-mirror/archive/3.3.5.tar.gz"
+    URL_HASH MD5=305eed19157335016bde9b4d57ee3d35
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+ExternalProject_Get_Property(eigen_project SOURCE_DIR)
+add_library(Eigen3 INTERFACE)
+target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
+
+# MPI
+################################################################################
 find_package(MPI REQUIRED)
-if (MPI_FOUND)
-    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-else (MPI_FOUND)
-    message(SEND_ERROR "This application cannot compile without MPI")
-endif (MPI_FOUND)
 
-include_directories(${MPI_INCLUDE_PATH})
-include_directories(${NETKET_SOURCE_DIR})
+# Catch2
+################################################################################
+if (BUILD_TESTING)
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/Catch2/catch2/catch.hpp")
+        file(DOWNLOAD
+            "https://github.com/catchorg/Catch2/releases/download/v2.4.0/catch.hpp"
+            "External/Catch2/catch2/catch.hpp")
+    endif()
+    add_library(Catch2 INTERFACE)
+    target_include_directories(Catch2
+        INTERFACE "${CMAKE_BINARY_DIR}/External/Catch2/catch2")
+endif()
 
-include_directories (SYSTEM ${EIGEN3_INCLUDE_DIR})
-include_directories (${JSON_INCLUDE_DIR})
+#
+################################################################################
+
+# option(NETKET_ENABLE_BENCHMARKS "Enable building benchmarks." ON)
+# option(BENCHMARK_ENABLE_TESTING "" OFF)
+# option(BENCHMARK_ENABLE_INSTALL "" OFF)
+# option(BENCHMARK_DOWNLOAD_DEPENDENCIES "" ON)
+# add_subdirectory(External/benchmark)
 
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -54,37 +104,39 @@ if("Ninja" STREQUAL ${CMAKE_GENERATOR})
     endif ()
 endif()
 
+#
+# NetKet
+#
 
-set (NETKET_SOURCES ${NETKET_SOURCE_DIR}/netket.cc)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Graph)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Hamiltonian)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Hamiltonian/MatrixWrapper)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Headers)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Hilbert)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/GroundState)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Lookup)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Machine)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Observable)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Sampler)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Optimizer)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Stats)
-set (NETKET_SOURCES ${NETKET_SOURCES} ${NETKET_SOURCE_DIR}/Utils)
+add_library(netket_lib INTERFACE)
+target_include_directories(netket_lib INTERFACE NetKet)
+target_include_directories(netket_lib SYSTEM INTERFACE ${MPI_CXX_INCLUDE_PATH})
+target_link_libraries(netket_lib
+    INTERFACE
+        ${MPI_CXX_LIBRARIES}
+        Eigen3
+        nlohmann_json
+        optional_lite
+)
 
-add_executable(netket ${NETKET_SOURCES})
+add_executable(netket NetKet/netket.cc)
+target_link_libraries(netket PUBLIC netket_lib)
+# Yes, this is ugly, but until CMake 3.5, we can't add an external project
+# dependency to an interface library
+add_dependencies(netket eigen_project)
 
-target_link_libraries(netket  ${MPI_LIBRARIES})
-
-
-##testing
-
-include(CTest) #adds option BUILD_TESTING (default ON)
+#
+# Testing
+#
 
 if(BUILD_TESTING)
    enable_testing()
    add_subdirectory(Test)
 endif()
 
-##installing
+#
+# Installing
+#
+
 install (TARGETS netket DESTINATION bin)
 
-#set( CMAKE_VERBOSE_MAKEFILE on )

@@ -40,6 +40,21 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
   WfType Apply(const WfType& state) const override { return matrix_ * state; }
 
+  std::complex<double> Mean(const WfType& state) const override {
+    return state.adjoint() * matrix_ * state;
+  }
+
+  std::array<std::complex<double>, 2> MeanVariance(
+      const WfType& state) const override {
+    auto state1 = matrix_ * state;
+    auto state2 = matrix_ * state1;
+
+    const std::complex<double> mean = state.adjoint() * state1;
+    const std::complex<double> var = state.adjoint() * state2;
+
+    return {{mean, var - std::pow(mean, 2)}};
+  }
+
   int GetDimension() const override { return dim_; }
 
   const Matrix& GetMatrix() const { return matrix_; }
@@ -69,7 +84,6 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
     matrix_.resize(dim_, dim_);
     matrix_.setZero();
-
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index.NumberToState(i);
