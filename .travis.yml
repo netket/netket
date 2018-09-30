@@ -35,7 +35,7 @@ matrix:
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev']
+        packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev', 'libblas-dev', 'liblapack-dev']
 
   - os: linux
     compiler: gcc
@@ -74,6 +74,7 @@ script:
        brew install cmake
        brew install openmpi
        brew install --without-python boost
+       brew install lapack
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
