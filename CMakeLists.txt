@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
-option(NETKET_ENABLE_TESTS "Enable unit tests." OFF)
+option(ENABLE_TESTS "Enable unit tests." OFF)
 
 project(NetKet)
 
-if(NETKET_ENABLE_TESTS)
+if(ENABLE_TESTS)
    include(CTest) # adds option BUILD_TESTING (default ON)
 endif()
 
@@ -123,12 +123,14 @@ target_link_libraries(netket_lib
         optional_lite
 )
 
-# Check if we can use native Lapack with Eigen
-find_package(Lapack)
-if(LAPACK_FOUND)
+# Check if we should use native Lapack with Eigen
+option(USE_LAPACK "Enable Lapack Support." OFF)
+if(USE_LAPACK)
+    find_package(Lapack REQUIRED)
     target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
     target_compile_options(netket_lib INTERFACE -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE)
 endif()
+
 
 add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
