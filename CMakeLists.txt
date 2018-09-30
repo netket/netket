@@ -2,10 +2,14 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+set(NETKET_ENABLE_TESTS OFF)
 
 project(NetKet)
 
-include(CTest) # adds option BUILD_TESTING (default ON)
+if(NETKET_ENABLE_TESTS)
+   include(CTest) # adds option BUILD_TESTING (default ON)
+endif()
+
 include(ExternalProject)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -119,6 +123,13 @@ target_link_libraries(netket_lib
         optional_lite
 )
 
+# Check if we can use native Lapack with Eigen
+find_package(Lapack)
+if(LAPACK_FOUND)
+    target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
+    target_compile_options(netket_lib INTERFACE -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE)
+endif()
+
 add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
@@ -139,4 +150,3 @@ endif()
 #
 
 install (TARGETS netket DESTINATION bin)
-
