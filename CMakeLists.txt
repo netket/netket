@@ -126,7 +126,7 @@ target_link_libraries(netket_lib
 # Check if we should use native Lapack with Eigen
 option(USE_LAPACK "Enable Lapack Support." OFF)
 if(USE_LAPACK)
-    find_package(Lapack REQUIRED)
+    find_package(LAPACK REQUIRED)
     target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
     target_compile_options(netket_lib INTERFACE -DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE)
 endif()
