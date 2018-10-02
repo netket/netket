@@ -93,5 +93,4 @@ def graph(graph):
             return pars
 
     else:
-        print("Neither igraph nor networkx could be imported")
-        raise
+        raise TypeError("Neither igraph nor networkx could be imported")

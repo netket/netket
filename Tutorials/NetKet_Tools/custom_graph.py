@@ -17,7 +17,6 @@ of the Ising model on a star graph.
 """
 
 from __future__ import print_function
-import json
 import networkx as nx
 import netket_tools as nkt
 
