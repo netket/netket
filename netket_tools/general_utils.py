@@ -20,13 +20,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def encode_complex(z):
-    if isinstance(z, complex):
-        return (z.real, z.imag)
-    else:
-        type_name = z.__class__.__name__
-        raise TypeError(
-            f"Object of type '{type_name}' is not JSON serializable")
+#
+def encode_complex(obj):
+    if isinstance(obj, complex):
+        return [obj.real, obj.imag]
+    # Let the default method raise the TypeError
+    return json.JSONEncoder.default(self, obj)
+
+
+def write_input(pars, json_file="test.json"):
+    """
+    Writes the parameters to input json file and prints instructions to run
+    NetKet executable.
+    """
+
+    with open(json_file, 'w') as outfile:
+        json.dump(pars, outfile, default=encode_complex)
+
+    print("\nGenerated Json input file: ", json_file)
+    print("\nNow you have two options to run NetKet: ")
+    print("\n1) Serial mode: netket " + json_file)
+    print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
 
 
 def get_obsv_from_json(outputfile):

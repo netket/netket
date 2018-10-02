@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Demonstrating the plotting helper functions in NetKet Tools.
+Demonstrating the plotting helper functions in NetKet_Tools.
 """
 
 import netket_tools as nkt
-nkt.python_utils.plot_observable("test", "SigmaX", exact=0.637275 * 20)
+nkt.general_utils.plot_observable("test", "SigmaX", exact=0.637275 * 20)

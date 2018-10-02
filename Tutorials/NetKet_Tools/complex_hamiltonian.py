@@ -11,22 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Demonstrates the use of the NetKet_Tools python module to calculate ground state
-of the Ising model on a star graph.
-"""
-
 from __future__ import print_function
 import json
-import networkx as nx
+import numpy as np
 import netket_tools as nkt
 
 pars = {}
+L = 20
 
-# defining a custom graph
-# here we use networkx to generate a star graph
-# and pass its edges list to NetKet
-pars['Graph'] = nkt.graph(nx.star_graph(10))
+# defining the lattice
+pars['Graph'] = {
+    'Name': 'Hypercube',
+    'L': L,
+    'Dimension': 1,
+    'Pbc': True,
+}
 
 # defining the hamiltonian
 pars['Hamiltonian'] = {
@@ -46,11 +45,25 @@ pars['Sampler'] = {
     'Name': 'MetropolisLocal',
 }
 
+sigmayop = []
+sites = []
+sigmay = np.array([[0, -1j], [1j, 0]]).tolist()
+for i in range(L):
+    # \sum_i sigma^y(i)
+    sigmayop.append(sigmay)
+    sites.append([i])
+
+pars['Observables'] = {
+    'Operators': sigmayop,
+    'ActingOn': sites,
+    'Name': 'SigmaY',
+}
+
 # defining the Optimizer
 # here we use the Stochastic Gradient Descent
 pars['Optimizer'] = {
     'Name': 'Sgd',
-    'LearningRate': 0.05,
+    'LearningRate': 0.1,
 }
 
 # defining the GroundState method
@@ -58,10 +71,10 @@ pars['Optimizer'] = {
 pars['GroundState'] = {
     'Method': 'Sr',
     'Nsamples': 1.0e3,
-    'NiterOpt': 1000,
-    'Diagshift': 0.5,
+    'NiterOpt': 500,
+    'Diagshift': 0.1,
     'UseIterative': False,
     'OutputFile': "test",
 }
 
-nkt.write_input(pars, json_file="custom_graph.json")
+nkt.write_input(pars, json_file="sigmay.json")

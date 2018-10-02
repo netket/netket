@@ -19,5 +19,7 @@ netket module make sure you add the path to this directory to your PYTHONPATH
 environment variable.
 """
 
-from netket_tools import python_utils
-from netket_tools import graph
+from netket_tools.general_utils import write_input
+from netket_tools.general_utils import get_obsv_from_json
+from netket_tools.general_utils import plot_observable
+from netket_tools.graph_utils import graph

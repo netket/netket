@@ -16,4 +16,4 @@ Demonstrating the plotting helper functions in NetKet Tools.
 """
 
 import netket_tools as nkt
-nkt.python_utils.plot_observable("test", "Energy", exact=-14.26)
+nkt.general_utils.plot_observable("test", "Energy", exact=-14.26)

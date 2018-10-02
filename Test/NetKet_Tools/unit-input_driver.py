@@ -31,11 +31,11 @@ try:
     import igraph as ig
     import_ig = True
 except ImportError:
-    print("FALSE")
     import_ig = False
 
 
 class KnownOutput(unittest.TestCase):
+    @unittest.skipIf((not import_nx), "No NetworkX module found.")
     def test1_nx_graph(self):
         if import_nx:
             L = 20
@@ -53,9 +53,13 @@ class KnownOutput(unittest.TestCase):
                 'EdgeColors': edge_colors,
             }
 
-            self.assertEqual(pars["Graph"], nkt.graph.from_networkx(G))
+            self.assertEqual(pars["Graph"], nkt.graph(G))
 
+    @unittest.skipIf((not import_ig), "No iGraph module found.")
     def test2_ig_graph(self):
+        print(import_ig)
+        print(not import_ig)
+
         if import_ig:
             L = 20
             G = ig.Graph([(x, (x + 1) % L) for x in range(L)])
@@ -72,7 +76,7 @@ class KnownOutput(unittest.TestCase):
                 'EdgeColors': edge_colors,
             }
 
-            self.assertEqual(pars["Graph"], nkt.graph.from_igraph(G))
+            self.assertEqual(pars["Graph"], nkt.graph(G))
 
 
 if __name__ == "__main__":
