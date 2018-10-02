@@ -15,6 +15,7 @@ include(ExternalProject)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
 
 #
 # Dependencies
@@ -128,8 +129,14 @@ target_link_libraries(netket_lib
 option(USE_LAPACK "Enable Lapack Support." OFF)
 if(USE_LAPACK)
     find_package(LAPACK REQUIRED)
+    add_definitions(-DEIGEN_USE_BLAS)
     target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
-    add_definitions(-DEIGEN_USE_BLAS -DEIGEN_USE_LAPACKE)
+    find_package(LAPACKE)
+    if(LAPACKE_FOUND)
+    add_definitions(-DEIGEN_USE_LAPACKE)
+    target_link_libraries(netket_lib INTERFACE ${LAPACKE_LIBRARIES})
+    endif()
+
 endif()
 
 
