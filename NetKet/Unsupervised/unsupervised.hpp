@@ -30,20 +30,20 @@ class Unsupervised {
   explicit Unsupervised(const json &pars) {
     std::string method_name;
 
-//    if (FieldExists(pars, "GroundState")) {
-//      method_name = FieldVal(pars["GroundState"], "Method", "GroundState");
-//    } else if (FieldExists(pars, "Learning")) {
-//      method_name = FieldVal(pars["Learning"], "Method", "Learning");
-//      // DEPRECATED (to remove for v2.0.0)
-//      WarningMessage()
-//          << "Use of the Learning section is "
-//             "deprecated.\n Please use the dedicated GroundState section.\n";
-//    } else {
-//      std::stringstream s;
-//      s << "The GroundState section has not been specified.\n";
-//      throw InvalidInputError(s.str());
-//    }
-//
+    if (FieldExists(pars, "Unsupervised")) {
+      method_name = FieldVal(pars["Unsupervised"], "Method", "Unsupervised");
+    } else if (FieldExists(pars, "Learning")) {
+      method_name = FieldVal(pars["Learning"], "Method", "Learning");
+      // DEPRECATED (to remove for v2.0.0)
+      WarningMessage()
+          << "Use of the Learning section is "
+             "deprecated.\n Please use the dedicated GroundState section.\n";
+    } else {
+      std::stringstream s;
+      s << "The GroundState section has not been specified.\n";
+      throw InvalidInputError(s.str());
+    }
+
     Graph graph(pars);
     Hamiltonian hamiltonian(graph, pars);
 
