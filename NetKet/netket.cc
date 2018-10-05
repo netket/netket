@@ -37,10 +37,7 @@ int main(int argc, char *argv[]) {
           << "\n";
 
     } else if (netket::FieldExists(pars, "Unsupervised")) {
-      netket::ErrorMessage()
-          << "Unsupervised Learning still under development, try later."
-          << "\n";
-
+      netket::Unsupervised unsup(pars);
     } else {
       netket::ErrorMessage()
           << "No task specified. Please include one of the sections"
