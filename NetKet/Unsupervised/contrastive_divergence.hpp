@@ -89,7 +89,7 @@ class ContrastiveDivergence {
   Eigen::MatrixXd trainSamples_;
   Eigen::VectorXd wf_;
 
-  int batchsize_;
+  int batchsize_=1000;
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
@@ -132,6 +132,9 @@ class ContrastiveDivergence {
 
   void Init(const json &pars) {
     
+    //TODO Remove dummy loading functions
+    LoadTrainingData();
+    LoadWavefunction();
     
     npar_ = psi_.Npar();
 
@@ -433,6 +436,7 @@ class ContrastiveDivergence {
       for (int j=0; j<10; j++) {
         fin_samples>> trainSamples_(n,j);
       }
+      //std::cout<<trainSamples_.row(n)<<std::endl;
     }
   }
 
@@ -442,6 +446,7 @@ class ContrastiveDivergence {
     wf_.resize(1<<10);
     for(int i=0;i<1<<10;i++){
       fin >> wf_(i);
+      //std::cout<<wf_(i)<<"   ";
     }
   }
 
