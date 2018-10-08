@@ -263,13 +263,12 @@ class SBS : public AbstractMachine<T> {
       return T(0, 0);
     }
 
-    int i;
     T result = T(0, 0);
     std::vector<std::map<int, std::vector<int>>> string_lists =
         tochange4string(toflip, newconf);
 
     for (auto const &ent : string_lists[0]) {
-      i = ent.first;
+      int i = ent.first;
       if (string_lists[0][i].size() > 1) {
         result +=
             strings_[i]->LogValDiff(extract(v, i), string_lists[0][i],
@@ -337,6 +336,8 @@ class SBS : public AbstractMachine<T> {
   };
 
   void from_json(const json &pars) override {
+    std::vector<int> empty_vector;
+
     if (pars.at("Machine").at("Name") != "SBS") {
       throw InvalidInputError("Error while constructing SBS from Json input");
     }
@@ -360,8 +361,6 @@ class SBS : public AbstractMachine<T> {
     // Assign sites to each string (string2site)
     Lstr_cumsum_.push_back(0);
     if (FieldExists(pars["Machine"], "StringSites")) {
-      std::vector<int> empty_vector;
-
       M_ = 0;
       // InfoMessage() << "Check 1" << std::endl;
       for (auto const &i : pars["Machine"]["StringSites"]) {

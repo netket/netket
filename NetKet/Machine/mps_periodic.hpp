@@ -421,7 +421,7 @@ class MPSPeriodic : public AbstractMPS<T> {
     to_jsonWeights(j);
   };
 
-  void to_jsonWeights(json &j) const {
+  void to_jsonWeights(json &jj) const {
     VectorType params(npar_);
     int n = 0;
     for (int i = 0; i < symperiod_; i++) {
@@ -434,7 +434,7 @@ class MPSPeriodic : public AbstractMPS<T> {
         }
       }
     }
-    j["Machine"]["W"] = params;
+    jj["Machine"]["W"] = params;
   }
 
   void from_json(const json &pars) override {
