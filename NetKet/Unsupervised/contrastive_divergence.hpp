@@ -89,7 +89,9 @@ class ContrastiveDivergence {
   Eigen::MatrixXd trainSamples_;
   Eigen::VectorXd wf_;
 
-  int batchsize_=1000;
+  int batchsize_=1000; //TODO
+  int batchsize_node_;
+  int cd_;
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
@@ -99,7 +101,8 @@ class ContrastiveDivergence {
   std::complex<double> elocmean_;
   double elocvar_;
   int npar_;
- 
+  
+  netket::default_random_engine rgen_;
   public:
 
   ContrastiveDivergence(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
@@ -147,6 +150,9 @@ class ContrastiveDivergence {
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    //batch_size_ = ...
+    batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
 
     nsamples_ = FieldVal(pars["Unsupervised"], "Nsamples", "GroundState");
 
@@ -199,15 +205,19 @@ class ContrastiveDivergence {
 
   void Sample() {
     sampler_.Reset();
-
-    for (int i = 0; i < ndiscardedsamples_; i++) {
-      sampler_.Sweep();
-    }
-
     vsamp_.resize(nsamples_node_, psi_.Nvisible());
-
+    int index;
+    
+    //TODO Check the initialization of the distribution
+    std::uniform_int_distribution<int> distribution(0,trainSamples_.rows()-1);
+    index = distribution(rgen_);
+    sampler_.SetVisible(trainSamples_.row(index));
+    
     for (int i = 0; i < nsamples_node_; i++) {
-      sampler_.Sweep();
+      //TODO Check this loop
+      for (int j=0; j<cd_*psi_.Nvisible(); j++){
+        sampler_.Sweep();
+      }
       vsamp_.row(i) = sampler_.Visible();
     }
   }
@@ -224,7 +234,7 @@ class ContrastiveDivergence {
     const int ndata = batchSamples.rows();
     Ok_.resize(ndata, psi_.Npar());
     for (int i = 0; i < ndata; i++) {
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
+      Ok_.row(i) = psi_.DerLog(batchSamples.row(i));
     }
     Okmean_ = Ok_.colwise().mean();
     SumOnNodes(Okmean_);
@@ -234,42 +244,42 @@ class ContrastiveDivergence {
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_ * ndata);
 
-    // Negative phase driven by the machine
-    const int nsamp = vsamp_.rows();
-    elocs_.resize(nsamp);
-    Ok_.resize(nsamp, psi_.Npar());
+    //// Negative phase driven by the machine
+    //const int nsamp = vsamp_.rows();
+    //elocs_.resize(nsamp);
+    //Ok_.resize(nsamp, psi_.Npar());
 
-    for (int i = 0; i < nsamp; i++) {
-      elocs_(i) = Eloc(vsamp_.row(i));
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
-      obsmanager_.Push("Energy", elocs_(i).real());
+    //for (int i = 0; i < nsamp; i++) {
+    //  elocs_(i) = Eloc(vsamp_.row(i));
+    //  Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
+    //  obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (const auto &ob : obs_) {
-        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
-      }
-    }
+    //  for (const auto &ob : obs_) {
+    //    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+    //  }
+    //}
 
-    elocmean_ = elocs_.mean();
-    SumOnNodes(elocmean_);
-    elocmean_ /= double(totalnodes_);
+    //elocmean_ = elocs_.mean();
+    //SumOnNodes(elocmean_);
+    //elocmean_ /= double(totalnodes_);
 
-    Okmean_ = Ok_.colwise().mean();
-    SumOnNodes(Okmean_);
-    Okmean_ /= double(totalnodes_);
+    //Okmean_ = Ok_.colwise().mean();
+    //SumOnNodes(Okmean_);
+    //Okmean_ /= double(totalnodes_);
 
-    //Ok_ = Ok_.rowwise() - Okmean_.transpose();
-    elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
+    ////Ok_ = Ok_.rowwise() - Okmean_.transpose();
+    //elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
 
-    for (int i = 0; i < nsamp; i++) {
-      obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
-    }
+    //for (int i = 0; i < nsamp; i++) {
+    //  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
+    //}
 
-    grad_ -= Ok_;
-    //grad_ = 2. * (Ok_.adjoint() * elocs_);
+    //grad_ -= Ok_;
+    ////grad_ = 2. * (Ok_.adjoint() * elocs_);
 
-    // Summing the gradient over the nodes
-    SumOnNodes(grad_);
-    grad_ /= double(totalnodes_ * nsamp);
+    //// Summing the gradient over the nodes
+    //SumOnNodes(grad_);
+    //grad_ /= double(totalnodes_ * nsamp);
   }
 
   std::complex<double> Eloc(const Eigen::VectorXd &v) {
@@ -422,18 +432,12 @@ class ContrastiveDivergence {
  
 
   void LoadTrainingData(){
-  
-    // Setup
     int trainSize = 10000;
-    trainSamples_.resize(trainSize,10);
-
-    // Open the training samples file
+    trainSamples_.resize(trainSize,psi_.Nvisible());
     std::string fileName = "data_tfim10.txt";
     std::ifstream fin_samples(fileName);
-   
-    // Load the training samples in the reference basis
     for (int n=0; n<trainSize; n++) {
-      for (int j=0; j<10; j++) {
+      for (int j=0; j<psi_.Nvisible(); j++) {
         fin_samples>> trainSamples_(n,j);
       }
       //std::cout<<trainSamples_.row(n)<<std::endl;
@@ -448,6 +452,25 @@ class ContrastiveDivergence {
       fin >> wf_(i);
       //std::cout<<wf_(i)<<"   ";
     }
+  }
+  // Setup the training batch and visible layer initial configuration
+  void SetUpTrainingStep(Eigen::MatrixXd &batch_samples,
+                         std::uniform_int_distribution<int> & distribution){
+    int index;
+    // Initialize the visible layer to random data samples
+    batch_samples.resize(batchsize_node_,psi_.Nvisible());
+    for(int k=0;k<batchsize_node_;k++){
+      index = distribution(rgen_);
+      batch_samples.row(k) = trainSamples_.row(index);
+    }
+    //NNstate_.SetVisibleLayer(batch_samples);
+    //sampler_.SetVisible( 
+    //// Build the batch of data
+    //batch_samples.resize(batchsize__,psi_.Nvisible()); 
+    //for(int k=0;k<batchsize_;k++){
+    //  index = distribution(rgen_);
+    //  batch_samples.row(k) = trainData.row(index);
+    //}
   }
 
  
