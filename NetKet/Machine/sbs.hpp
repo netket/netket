@@ -320,7 +320,6 @@ class SBS : public AbstractMachine<T> {
   const Hilbert &GetHilbert() const { return hilbert_; };
 
   void to_json(json &j) const override {
-    int seg_init = 0;
     VectorType params(npar_);
 
     j["Machine"]["Name"] = "SBS";
@@ -328,11 +327,12 @@ class SBS : public AbstractMachine<T> {
     j["Machine"]["Strings"] = M_;
     j["Machine"]["BondDim"] = Dstr_;
     j["Machine"]["PhysDim"] = d_;
+    j["Machine"]["StringW"] = {};
     for (int i = 0; i < M_; i++) {
-      params.segment(seg_init, strings_[i]->Npar()) =
-          strings_[i]->GetParameters();
+      json stringpar;
+      strings_[i]->to_jsonWeights(stringpar);
+      j["Machine"]["StringW"].push_back(stringpar);
     }
-    j["Machine"]["W"] = params;
   };
 
   void from_json(const json &pars) override {
@@ -480,14 +480,14 @@ class SBS : public AbstractMachine<T> {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars["Machine"], "W")) {
-      int seg_init = 0;
-      for (int i = 0; i < M_; i++) {
-        strings_[i]->from_jsonWeights(pars, seg_init);
-        seg_init += strings_[i]->Npar();
+      int ii = 0;
+      for (auto const &params : pars["Machine"]["StringW"]) {
+        strings_[ii]->from_jsonWeights(params);
+        ii++;
       }
     }
   };
-};
+};  // namespace netket
 
 }  // namespace netket
 

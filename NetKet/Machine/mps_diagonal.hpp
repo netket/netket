@@ -421,17 +421,17 @@ class MPSDiagonal : public AbstractMPS<T> {
     j["Machine"]["BondDim"] = D_;
     j["Machine"]["PhysDim"] = d_;
     j["Machine"]["SymmetryPeriod"] = symperiod_;
-    to_jsonWeights(j);
+    to_jsonWeights(j["Machine"]["W"]);
   };
 
-  inline void to_jsonWeights(json &j) const {
+  inline void to_jsonWeights(json &j) const override {
     VectorType params(npar_);
     for (int i = 0; i < symperiod_; i++) {
       for (int k = 0; k < d_; k++) {
         params.segment((d_ * i + k) * D_, D_) = W_[i][k];
       }
     }
-    j["Machine"]["W"] = params;
+    j = params;
   };
 
   void from_json(const json &pars) override {
@@ -471,14 +471,14 @@ class MPSDiagonal : public AbstractMPS<T> {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars["Machine"], "W")) {
-      from_jsonWeights(pars, 0);
+      from_jsonWeights(pars["Machine"]["W"]);
     }
   };
 
   // Used in SBS too
-  inline void from_jsonWeights(const json &pars, const int &seg_init) override {
+  inline void from_jsonWeights(const json &pars) override {
     int i = 0, j = 0;
-    for (auto const &params : pars["Machine"]["W"]) {
+    for (auto const &params : pars) {
       W_[i][j] = params;
       j++;
       if (j >= d_) {
