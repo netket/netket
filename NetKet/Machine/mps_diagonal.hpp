@@ -497,8 +497,6 @@ class MPSDiagonal : public AbstractMPS<T> {
 
   void InitLookup(const std::vector<int> &v, LookupType &lt,
                   const int &start_ind) override {
-    int site;
-
     // First (left) site
     _InitLookup_check(lt, start_ind);
     lt.V(start_ind) = W_[0][v[0]];
@@ -510,7 +508,7 @@ class MPSDiagonal : public AbstractMPS<T> {
     // Rest sites
     for (int i = 2; i < 2 * N_; i += 2) {
       _InitLookup_check(lt, start_ind + i);
-      site = i / 2;
+      int site = i / 2;
       lt.V(start_ind + i) = lt.V(start_ind + i - 2)
                                 .cwiseProduct(W_[(site % symperiod_)][v[site]]);
 

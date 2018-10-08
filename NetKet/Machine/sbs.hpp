@@ -192,12 +192,11 @@ class SBS : public AbstractMachine<T> {
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() > 0) {
-      int i;
       std::vector<std::map<int, std::vector<int>>> string_lists =
           tochange4string(tochange, newconf);
 
       for (auto const &ent : string_lists[0]) {
-        i = ent.first;
+        int i = ent.first;
         strings_[i]->UpdateLookup(extract(v, i), string_lists[0][i],
                                   string_lists[1][i], lt, Lstr_cumsum_[i]);
       }
@@ -237,18 +236,15 @@ class SBS : public AbstractMachine<T> {
     if (nconn <= 0) {
       return VectorType::Zero(nconn);
     }
-
-    int i;
-    std::size_t nchange;
     VectorType logvaldiffs = VectorType::Zero(nconn);
     std::vector<std::map<int, std::vector<int>>> string_lists;
 
     for (std::size_t k = 0; k < nconn; k++) {
-      nchange = tochange[k].size();
+      std::size_t nchange = tochange[k].size();
       if (nchange > 0) {
         string_lists = tochange4string(tochange[k], newconf[k]);
         for (auto const &ent : string_lists[0]) {
-          i = ent.first;
+          int i = ent.first;
           logvaldiffs(k) += strings_[i]->LogValDiff(
               extract(v, i), string_lists[0][i], string_lists[1][i]);
         }
@@ -289,16 +285,15 @@ class SBS : public AbstractMachine<T> {
   // Auxiliary function that gives the tochange and newconf maps for each string
   inline std::vector<std::map<int, std::vector<int>>> tochange4string(
       const std::vector<int> &tochange, const std::vector<double> &newconf) {
-    int site, string_nr;
     std::vector<std::map<int, std::vector<int>>> results;
     std::map<int, std::vector<int>> string_tochange, string_newconf;
 
     for (std::size_t j = 0; j < tochange.size(); j++) {
-      site = tochange[j];
+      int site = tochange[j];
       // For each site in toflip find the strings it belongs. Save the
       // corresponding positions:
       for (int i = 0; i < site2string_[site].size(); i++) {
-        string_nr = site2string_[site][i][0];
+        int string_nr = site2string_[site][i][0];
         string_tochange[string_nr].push_back(site2string_[site][i][1]);
         string_newconf[string_nr].push_back(confindex_[newconf[j]]);
       }
@@ -342,9 +337,6 @@ class SBS : public AbstractMachine<T> {
   };
 
   void from_json(const json &pars) override {
-    std::vector<int> empty_vector;
-    int temp_string_length = 0, temp_ind = 0;
-
     if (pars.at("Machine").at("Name") != "SBS") {
       throw InvalidInputError("Error while constructing SBS from Json input");
     }
@@ -368,11 +360,13 @@ class SBS : public AbstractMachine<T> {
     // Assign sites to each string (string2site)
     Lstr_cumsum_.push_back(0);
     if (FieldExists(pars["Machine"], "StringSites")) {
+      std::vector<int> empty_vector;
+
       M_ = 0;
       // InfoMessage() << "Check 1" << std::endl;
       for (auto const &i : pars["Machine"]["StringSites"]) {
         string2site_.push_back(empty_vector);
-        temp_string_length = 0;
+        int temp_string_length = 0;
         for (auto const &j : i) {
           string2site_.back().push_back(j);
           temp_string_length++;
@@ -430,7 +424,7 @@ class SBS : public AbstractMachine<T> {
     // Assign symmetry period to each string
     if (FieldExists(pars["Machine"], "SymmPeriod")) {
       try {
-        temp_ind = 0;
+        int temp_ind = 0;
         for (auto const &i : pars["Machine"]["SymmPeriod"]) {
           symperiod_.push_back(i);
           if (symperiod_.back() > Lstr_[temp_ind]) {
