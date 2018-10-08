@@ -59,7 +59,7 @@ class AbstractMPS : public AbstractMachine<T> {
                        const std::vector<int> &toflip,
                        const std::vector<int> &newconf) = 0;
 
-  // For the case of one spin flip (it doesn't required to know v)
+  // For the case of one spin flip (not required to know v)
   virtual T FastLogValDiff(const std::vector<int> &toflip,
                            const std::vector<int> &newconf,
                            const LookupType &lt, const int &start_ind) = 0;
