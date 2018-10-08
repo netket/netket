@@ -24,9 +24,12 @@
 #include "ffnn.hpp"
 #include "jastrow.hpp"
 #include "jastrow_symm.hpp"
+#include "mps_diagonal.hpp"
+#include "mps_periodic.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
+#include "sbs.hpp"
 
 namespace netket {
 
@@ -90,7 +93,13 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
     } else if (pars["Machine"]["Name"] == "JastrowSymm") {
       m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
-    }
+    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
+	  m_ = Ptype(new MPSPeriodic<T>(hilbert, pars));
+	} else if (pars["Machine"]["Name"] == "MPSdiagonal") {
+	  m_ = Ptype(new MPSDiagonal<T>(hilbert, pars));
+	} else if (pars["Machine"]["Name"] == "SBS") {
+	  m_ = Ptype(new SBS<T>(hilbert, pars));
+	}
   }
 
   void InitParameters(const json &pars) {
@@ -127,7 +136,8 @@ class Machine : public AbstractMachine<T> {
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "FFNN",    "Jastrow",     "JastrowSymm"};
+                                      "FFNN",    "Jastrow",     "JastrowSymm",
+									  "MPSperiodic", "MPSdiagonal", "SBS"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
