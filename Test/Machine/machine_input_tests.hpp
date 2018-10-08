@@ -85,5 +85,35 @@ std::vector<netket::json> GetMachineInputs() {
           {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
   input_tests.push_back(pars);
 
+  // Ising 1d with MPS diagonal
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine",
+           {{"Name", "MPSdiagonal"}, {"BondDim", 8}, {"SymmetryPeriod", 5}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  input_tests.push_back(pars);
+
+  // Heisemberg 1d with MPS periodic (no translational symmetry)
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "MPSperiodic"}, {"BondDim", 5}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
+  // Bose-Hubbard 1d with MPS periodic
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 40}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine",
+           {{"Name", "MPSperiodic"}, {"BondDim", 5}, {"SymmetryPeriod", 5}}},
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
+  input_tests.push_back(pars);
+
+  // Heisemberg 1d with SBS
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "SBS"}, {"Strings", 4}, {"BondDim", 4}}},
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  input_tests.push_back(pars);
+
   return input_tests;
 }
