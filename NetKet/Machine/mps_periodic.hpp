@@ -172,8 +172,6 @@ class MPSPeriodic : public AbstractMPS<T> {
   int Nvisible() const override { return N_; };
 
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    int site;
-
     // We need 2 * L matrix lookups for each string, where L is the MPS length
 
     // First (left) site
@@ -187,7 +185,7 @@ class MPSPeriodic : public AbstractMPS<T> {
     // Rest sites
     for (int i = 2; i < 2 * N_; i += 2) {
       _InitLookup_check(lt, i);
-      site = i / 2;
+      int site = i / 2;
       lt.M(i) = lt.M(i - 2) * W_[(site % symperiod_)][confindex_[v(site)]];
 
       _InitLookup_check(lt, i + 1);
@@ -305,19 +303,17 @@ class MPSPeriodic : public AbstractMPS<T> {
       const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
-    int site = 0;
 
-    std::size_t nchange;
     std::vector<std::size_t> sorted_ind;
     VectorType logvaldiffs = VectorType::Zero(nconn);
     StateType current_psi = mps_contraction(v, 0, N_).trace();
     MatrixType new_prods(D_, D_);
 
     for (std::size_t k = 0; k < nconn; k++) {
-      nchange = tochange[k].size();
+      std::size_t nchange = tochange[k].size();
       if (nchange > 0) {
         sorted_ind = sort_indeces(tochange[k]);
-        site = tochange[k][sorted_ind[0]];
+        int site = tochange[k][sorted_ind[0]];
 
         if (site == 0) {
           new_prods = W_[0][confindex_[newconf[k][sorted_ind[0]]]];
@@ -508,8 +504,6 @@ class MPSPeriodic : public AbstractMPS<T> {
 
   void InitLookup(const std::vector<int> &v, LookupType &lt,
                   const int &start_ind) override {
-    int site;
-
     // First (left) site
     _InitLookup_check(lt, start_ind);
     lt.M(start_ind) = W_[0][v[0]];
@@ -521,7 +515,7 @@ class MPSPeriodic : public AbstractMPS<T> {
     // Rest sites
     for (int i = 2; i < 2 * N_; i += 2) {
       _InitLookup_check(lt, start_ind + i);
-      site = i / 2;
+      int site = i / 2;
       lt.M(start_ind + i) =
           lt.M(start_ind + i - 2) * W_[(site % symperiod_)][v[site]];
 
