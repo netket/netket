@@ -164,8 +164,6 @@ class MPSDiagonal : public AbstractMPS<T> {
   int Nvisible() const override { return N_; };
 
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    int site;
-
     // First (left) site
     _InitLookup_check(lt, 0);
     lt.V(0) = W_[0][confindex_[v(0)]];
@@ -176,13 +174,13 @@ class MPSDiagonal : public AbstractMPS<T> {
 
     // Rest sites
     for (int i = 2; i < 2 * N_; i += 2) {
+      int site = i / 2;
       _InitLookup_check(lt, i);
-      site = i / 2;
-      lt.V(i) = lt.V(i - 2).cwiseProduct(
-          W_[(site % symperiod_)][confindex_[v(site)]]);
+      lt.V(i) =
+          lt.V(i - 2).cwiseProduct(W_[site % symperiod_][confindex_[v(site)]]);
 
-      _InitLookup_check(lt, i + 1);
       site = N_ - 1 - site;
+      _InitLookup_check(lt, i + 1);
       lt.V(i + 1) =
           W_[site % symperiod_][confindex_[v(site)]].cwiseProduct(lt.V(i - 1));
     }
@@ -304,14 +302,13 @@ class MPSDiagonal : public AbstractMPS<T> {
     const std::size_t nconn = tochange.size();
     int site = 0;
 
-    std::size_t nchange;
     std::vector<std::size_t> sorted_ind;
     VectorType logvaldiffs = VectorType::Zero(nconn), new_prods(D_);
     StateType current_psi = mps_contraction(v, 0, N_).sum();
 
     // current_prod calculation only needs to be done once. Fix that
     for (std::size_t k = 0; k < nconn; k++) {
-      nchange = tochange[k].size();
+      std::size_t nchange = tochange[k].size();
 
       if (nchange > 0) {
         sorted_ind = sort_indeces(tochange[k]);
