@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// by S. Efthymiou, October 2018
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -65,11 +67,6 @@ class SBS : public AbstractMachine<T> {
   // Vector that stores the MPS object for each string
   std::vector<Ptype> strings_;
 
-  // Local lookup matrices
-  // std::vector<MatrixType> loc_lt;
-  // Local vectors to transform {-1, 1} to {0, 1}
-  // Eigen::VectorXd vtilde_;
-
   const Hilbert &hilbert_;
 
  public:
@@ -112,8 +109,7 @@ class SBS : public AbstractMachine<T> {
       npar_ += strings_.back()->Npar();
     }
 
-    // Find site2string vector by reversing string2site (which was defined in
-    // from_json)
+    // Find site2string vector by reversing string2site (defined in json)
     for (int site = 0; site < N_; site++) {
       site2string_.push_back(pushback_vec2);
       for (int i = 0; i < M_; i++) {
@@ -209,7 +205,7 @@ class SBS : public AbstractMachine<T> {
   };
 
   // Auxiliary function that takes v and returns the visible vector for the
-  // string
+  // corresponding string
   inline std::vector<int> extract(const Eigen::VectorXd &v, const int string) {
     std::vector<int> x;
     for (int i = 0; i < Lstr_[string]; i++) {
@@ -237,8 +233,6 @@ class SBS : public AbstractMachine<T> {
   VectorType LogValDiff(
       const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
-    // InfoMessage() << "LogValDiff full called" << std::endl;
-
     const std::size_t nconn = tochange.size();
     if (nconn <= 0) {
       return VectorType::Zero(nconn);
@@ -260,9 +254,6 @@ class SBS : public AbstractMachine<T> {
         }
       }
     }
-
-    // InfoMessage() << "LogValDiff full ended" << std::endl;
-
     return logvaldiffs;
   };
 
@@ -291,13 +282,7 @@ class SBS : public AbstractMachine<T> {
         result += strings_[i]->FastLogValDiff(
             string_lists[0][i], string_lists[1][i], lt, Lstr_cumsum_[i]);
       }
-
-      // result += strings_[i]->LogValDiff(extract(v, i), string_lists[0][i],
-      // string_lists[1][i], lt, Lstr_cumsum_[i]);
     }
-
-    // InfoMessage() << "LogValDiff looukup ended" << std::endl;
-
     return result;
   };
 

@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// by S. Efthymiou, October 2018
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -106,16 +108,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     }
   };
 
-  // Auxiliary function that computes local vector vtilde_
-  // inline void ComputeVtilde(const Eigen::VectorXd &v, Eigen::VectorXd
-  // &vtilde) { 	vtilde = (v + Eigen::VectorXd::Ones(N_)) / 2;
-  //}
-
-  // Auxiliary function that transforms newconf to {0,1}
-  // inline int ComputeNewConftilde(const double x) {
-  //	return (int)((x + 1) / 2);
-  //}
-
   int Npar() const override { return npar_; };
 
   VectorType GetParameters() override {
@@ -182,8 +174,7 @@ class MPSPeriodic : public AbstractMPS<T> {
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
     int site;
 
-    // We need 2 * L matrix lookups for each string, where L is the string's
-    // length other than that lookups work exactly as in the MPS case
+    // We need 2 * L matrix lookups for each string, where L is the MPS length
 
     // First (left) site
     _InitLookup_check(lt, 0);
@@ -237,12 +228,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     std::vector<std::size_t> sorted_ind = sort_indeces(tochange);
     int site = tochange[sorted_ind[0]];
 
-    // InfoMessage() << "Lookup update called" << std::endl;
-    // for (std::size_t k = 0; k < nchange; k++) {
-    //	InfoMessage() << tochange[sorted_ind[k]] << " , " <<
-    // newconf[sorted_ind[k]] << std::endl;
-    //}
-
     // Update left (site++)
     if (site == 0) {
       lt.M(0) = W_[0][confindex_[newconf[sorted_ind[0]]]];
@@ -251,8 +236,6 @@ class MPSPeriodic : public AbstractMPS<T> {
           lt.M(2 * (site - 1)) *
           W_[site % symperiod_][confindex_[newconf[sorted_ind[0]]]];
     }
-
-    // InfoMessage() << "Lookup check1" << std::endl;
 
     for (std::size_t k = 1; k < nchange; k++) {
       for (site = tochange[sorted_ind[k - 1]] + 1;
@@ -266,14 +249,10 @@ class MPSPeriodic : public AbstractMPS<T> {
           W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]];
     }
 
-    // InfoMessage() << "Lookup check2" << std::endl;
-
     for (site = tochange[sorted_ind[nchange - 1]] + 1; site < N_; site++) {
       lt.M(2 * site) =
           lt.M(2 * (site - 1)) * W_[site % symperiod_][confindex_[v(site)]];
     }
-
-    // InfoMessage() << "Lookup update left completed" << std::endl;
 
     // Update right (site--)
     site = tochange[sorted_ind[nchange - 1]];
@@ -285,8 +264,6 @@ class MPSPeriodic : public AbstractMPS<T> {
           W_[site % symperiod_][confindex_[newconf[sorted_ind[nchange - 1]]]] *
           lt.M(2 * (N_ - site) - 3);
     }
-
-    // InfoMessage() << "First right assigned" << std::endl;
 
     for (int k = nchange - 2; k >= 0; k--) {
       for (site = tochange[sorted_ind[k + 1]] - 1;
@@ -300,14 +277,10 @@ class MPSPeriodic : public AbstractMPS<T> {
           lt.M(2 * (N_ - site) - 3);
     }
 
-    // InfoMessage() << "Middle loops done" << std::endl;
-
     for (site = tochange[sorted_ind[0]] - 1; site >= 0; site--) {
       lt.M(2 * (N_ - site) - 1) = W_[site % symperiod_][confindex_[v(site)]] *
                                   lt.M(2 * (N_ - site) - 3);
     }
-
-    // InfoMessage() << "Lookup update ended" << std::endl;
   };
 
   // Auxiliary function that calculates contractions from site1 to site2
@@ -321,7 +294,6 @@ class MPSPeriodic : public AbstractMPS<T> {
   };
 
   T LogVal(const Eigen::VectorXd &v) override {
-    // InfoMessage() << "LogVal called" << std::endl;
     return std::log(mps_contraction(v, 0, N_).trace());
   };
 
@@ -335,20 +307,14 @@ class MPSPeriodic : public AbstractMPS<T> {
     const std::size_t nconn = tochange.size();
     int site = 0;
 
-    // InfoMessage() << "LogValDiff full called" << std::endl;
-
     std::size_t nchange;
     std::vector<std::size_t> sorted_ind;
     VectorType logvaldiffs = VectorType::Zero(nconn);
     StateType current_psi = mps_contraction(v, 0, N_).trace();
     MatrixType new_prods(D_, D_);
 
-    // current_prod calculation only needs to be done once. Fix that
     for (std::size_t k = 0; k < nconn; k++) {
       nchange = tochange[k].size();
-
-      // InfoMessage() << "k = " << k << " nchange = " << nchange << std::endl;
-
       if (nchange > 0) {
         sorted_ind = sort_indeces(tochange[k]);
         site = tochange[k][sorted_ind[0]];
@@ -376,8 +342,6 @@ class MPSPeriodic : public AbstractMPS<T> {
       }
     }
 
-    // InfoMessage() << "LogValDiff full ended" << std::endl;
-
     return logvaldiffs;
   };
 
@@ -392,11 +356,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     std::vector<std::size_t> sorted_ind = sort_indeces(toflip);
     int site = toflip[sorted_ind[0]];
 
-    // InfoMessage() << "LogValDiff lookup called" << std::endl;
-    // for (std::size_t k = 0; k < nflip; k++) {
-    //	InfoMessage() << toflip[k] << std::endl;
-    //}
-
     if (site == 0) {
       new_prod = W_[0][confindex_[newconf[sorted_ind[0]]]];
     } else {
@@ -409,8 +368,6 @@ class MPSPeriodic : public AbstractMPS<T> {
       new_prod *= mps_contraction(v, toflip[sorted_ind[k - 1]] + 1, site) *
                   W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]];
     }
-
-    // InfoMessage() << "LogValDiff lookup ended" << std::endl;
 
     site = toflip[sorted_ind[nflip - 1]];
     if (site < N_ - 1) {
@@ -426,8 +383,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     MatrixType temp_product(D_, D_);
     std::vector<MatrixType> left_prods, right_prods;
     VectorType der = VectorType::Zero(npar_);
-
-    // InfoMessage() << "Derivative called" << std::endl;
 
     // Calculate products
     left_prods.push_back(W_[0][confindex_[v(0)]]);
@@ -454,8 +409,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     der.segment((d_ * ((N_ - 1) % symperiod_) + confindex_[v(N_ - 1)]) * Dsq,
                 Dsq) +=
         Eigen::Map<VectorType>((left_prods[N_ - 2]).transpose().data(), Dsq);
-
-    // InfoMessage() << "Derivative ended" << std::endl;
 
     return der / left_prods[N_ - 1].trace();
   };
@@ -518,9 +471,7 @@ class MPSPeriodic : public AbstractMPS<T> {
     if (FieldExists(pars["Machine"], "SymmetryPeriod")) {
       symperiod_ = pars["Machine"]["SymmetryPeriod"];
     } else {
-      // throw InvalidInputError("Unspecified period of symmetry");
-      // Default is symperiod = N, resp. no translational symmetry - normal
-      // periodic MPS
+      // Default is symperiod = N, resp. no translational symmetry
       symperiod_ = N_;
     }
 
@@ -551,16 +502,13 @@ class MPSPeriodic : public AbstractMPS<T> {
   // ###################################### //
   // ##### Functions for SBS use only ##### //
   // ###################################### //
-  // We treat SBS differently for efficiency:
+  // We treat SBS differently for efficiency(?):
   // Otherwise we would have to define a different confindex_
   // for each MPS string in the SBS
 
   void InitLookup(const std::vector<int> &v, LookupType &lt,
                   const int &start_ind) override {
     int site;
-
-    // We need 2 * L matrix lookups for each string, where L is the string's
-    // length other than that lookups work exactly as in the MPS case
 
     // First (left) site
     _InitLookup_check(lt, start_ind);
@@ -594,12 +542,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     std::vector<std::size_t> sorted_ind = sort_indeces(tochange);
     int site = tochange[sorted_ind[0]];
 
-    // InfoMessage() << "Lookup update called" << std::endl;
-    // for (std::size_t k = 0; k < nchange; k++) {
-    //	InfoMessage() << tochange[sorted_ind[k]] << " , " <<
-    // newconf[sorted_ind[k]] << std::endl;
-    //}
-
     // Update left (site++)
     if (site == 0) {
       lt.M(start_ind) = W_[0][newconf[sorted_ind[0]]];
@@ -608,8 +550,6 @@ class MPSPeriodic : public AbstractMPS<T> {
           lt.M(start_ind + 2 * (site - 1)) *
           W_[site % symperiod_][newconf[sorted_ind[0]]];
     }
-
-    // InfoMessage() << "Lookup check1" << std::endl;
 
     for (std::size_t k = 1; k < nchange; k++) {
       for (site = tochange[sorted_ind[k - 1]] + 1;
@@ -623,14 +563,10 @@ class MPSPeriodic : public AbstractMPS<T> {
           W_[site % symperiod_][newconf[sorted_ind[k]]];
     }
 
-    // InfoMessage() << "Lookup check2" << std::endl;
-
     for (site = tochange[sorted_ind[nchange - 1]] + 1; site < N_; site++) {
       lt.M(start_ind + 2 * site) =
           lt.M(start_ind + 2 * (site - 1)) * W_[site % symperiod_][v[site]];
     }
-
-    // InfoMessage() << "Lookup update left completed" << std::endl;
 
     // Update right (site--)
     site = tochange[sorted_ind[nchange - 1]];
@@ -642,8 +578,6 @@ class MPSPeriodic : public AbstractMPS<T> {
           W_[site % symperiod_][newconf[sorted_ind[nchange - 1]]] *
           lt.M(start_ind + 2 * (N_ - site) - 3);
     }
-
-    // InfoMessage() << "First right assigned" << std::endl;
 
     for (int k = nchange - 2; k >= 0; k--) {
       for (site = tochange[sorted_ind[k + 1]] - 1;
@@ -658,15 +592,11 @@ class MPSPeriodic : public AbstractMPS<T> {
           lt.M(start_ind + 2 * (N_ - site) - 3);
     }
 
-    // InfoMessage() << "Middle loops done" << std::endl;
-
     for (site = tochange[sorted_ind[0]] - 1; site >= 0; site--) {
       lt.M(start_ind + 2 * (N_ - site) - 1) =
           W_[site % symperiod_][v[site]] *
           lt.M(start_ind + 2 * (N_ - site) - 3);
     }
-
-    // InfoMessage() << "Lookup update ended" << std::endl;
   };
 
   // Auxiliary function that calculates contractions from site1 to site2
@@ -680,7 +610,6 @@ class MPSPeriodic : public AbstractMPS<T> {
   };
 
   T LogVal(const std::vector<int> &v) override {
-    // InfoMessage() << "LogVal called" << std::endl;
     return std::log(mps_contraction(v, 0, N_).trace());
   };
 
@@ -707,7 +636,6 @@ class MPSPeriodic : public AbstractMPS<T> {
           W_[toflip[sorted_ind[0]] % symperiod_][newconf[sorted_ind[0]]];
     }
     for (std::size_t i = 1; i < nflip; i++) {
-      // InfoMessage() << "toflip = " << toflip[i] << std::endl;
       new_prods *=
           mps_contraction(v, toflip[sorted_ind[i - 1]] + 1,
                           toflip[sorted_ind[i]]) *
@@ -716,9 +644,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     if (toflip[sorted_ind[nflip - 1]] < N_ - 1) {
       new_prods *= mps_contraction(v, toflip[sorted_ind[nflip - 1]] + 1, N_);
     }
-
-    // InfoMessage() << "LogValDiff lookup ended " << std::log(new_prods.trace()
-    // / current_psi) << std::endl;
 
     return std::log(new_prods.trace() / current_psi);
   };
@@ -754,9 +679,6 @@ class MPSPeriodic : public AbstractMPS<T> {
       new_prods *= lt.M(start_ind + 2 * (N_ - site) - 3);
     }
 
-    // InfoMessage() << "LogValDiff lookup ended " << std::log(new_prods.trace()
-    // / current_psi) << std::endl;
-
     return std::log(new_prods.trace() / lt.M(start_ind + 2 * N_ - 2).trace());
   };
 
@@ -782,9 +704,6 @@ class MPSPeriodic : public AbstractMPS<T> {
                   lt.M(start_ind + 2 * (N_ - site) - 3);
     }
 
-    // InfoMessage() << "FastLogValDiff lookup ended " <<
-    // std::log(new_prods.trace() / current_psi) << std::endl;
-
     return std::log(new_prods.trace() / lt.M(start_ind + 2 * N_ - 2).trace());
   };
 
@@ -795,7 +714,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     std::vector<MatrixType> left_prods, right_prods;
     VectorType der = VectorType::Zero(npar_);
 
-    // InfoMessage() << "Derivative called" << std::endl;
     // Calculate products
     left_prods.push_back(W_[0][v[0]]);
     right_prods.push_back(W_[(N_ - 1) % symperiod_][v[N_ - 1]]);
@@ -817,8 +735,6 @@ class MPSPeriodic : public AbstractMPS<T> {
     }
     der.segment((d_ * ((N_ - 1) % symperiod_) + v[N_ - 1]) * Dsq, Dsq) +=
         Eigen::Map<VectorType>((left_prods[N_ - 2]).transpose().data(), Dsq);
-
-    // InfoMessage() << "Derivative ended" << std::endl;
 
     return der / left_prods[N_ - 1].trace();
   };

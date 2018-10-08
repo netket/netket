@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// by S. Efthymiou, October 2018
 
 #ifndef NETKET_ABSTRACT_MPS_HPP
 #define NETKET_ABSTRACT_MPS_HPP
@@ -35,17 +37,14 @@ class AbstractMPS : public AbstractMachine<T> {
   // identities in every matrix
   virtual inline void SetParametersIdentity(const VectorType &pars) = 0;
 
-  // For SBS use
   virtual void InitLookup(const std::vector<int> &v, LookupType &lt,
                           const int &start_ind) = 0;
 
-  // For SBS use
   virtual void UpdateLookup(const std::vector<int> &v,
                             const std::vector<int> &tochange,
                             const std::vector<int> &newconf, LookupType &lt,
                             const int &start_ind) = 0;
 
-  // For SBS use
   virtual T LogVal(const std::vector<int> &v) = 0;
 
   virtual inline T LogVal(const LookupType &lt, const int &start_ind) = 0;
@@ -60,12 +59,11 @@ class AbstractMPS : public AbstractMachine<T> {
                        const std::vector<int> &toflip,
                        const std::vector<int> &newconf) = 0;
 
-  // For SBS use in the case of one spin flip (it doesn't required to know v)
+  // For the case of one spin flip (it doesn't required to know v)
   virtual T FastLogValDiff(const std::vector<int> &toflip,
                            const std::vector<int> &newconf,
                            const LookupType &lt, const int &start_ind) = 0;
 
-  // For SBS use
   virtual VectorType DerLog(const std::vector<int> &v) = 0;
 
   virtual inline void from_jsonWeights(const json &pars,
