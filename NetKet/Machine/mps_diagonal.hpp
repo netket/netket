@@ -427,8 +427,8 @@ class MPSDiagonal : public AbstractMPS<T> {
   inline void to_jsonWeights(json &j) const {
     VectorType params(npar_);
     for (int i = 0; i < symperiod_; i++) {
-      for (int j = 0; j < d_; j++) {
-        params.segment((d_ * i + j) * D_, D_) = W_[i][j];
+      for (int k = 0; k < d_; k++) {
+        params.segment((d_ * i + k) * D_, D_) = W_[i][k];
       }
     }
     j["Machine"]["W"] = params;
@@ -471,19 +471,19 @@ class MPSDiagonal : public AbstractMPS<T> {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars["Machine"], "W")) {
-      InfoMessage() << "Load W check. 1" << std::endl;
       from_jsonWeights(pars, 0);
-      InfoMessage() << "Load W check. 2" << std::endl;
     }
   };
 
   // Used in SBS too
   inline void from_jsonWeights(const json &pars, const int &seg_init) override {
-    for (int i = 0; i < symperiod_; i++) {
-      for (int j = 0; j < d_; j++) {
-        for (int k = 0; k < D_; k++) {
-          W_[i][j](k) = pars["Machine"]["W"][seg_init + (d_ * i + j) * D_ + k];
-        }
+    int i = 0, j = 0;
+    for (auto const &params : pars["Machine"]["W"]) {
+      W_[i][j] = params;
+      j++;
+      if (j >= d_) {
+        j = 0;
+        i++;
       }
     }
   };
