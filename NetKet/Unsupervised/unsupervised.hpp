@@ -55,6 +55,8 @@ class Unsupervised {
       Optimizer optimizer(pars);
 
       ContrastiveDivergence cd(hamiltonian,sampler,optimizer,pars);
+      //cd.TestDerKL();
+      cd.Run();
 //      VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
 //      vmc.Run();
 
