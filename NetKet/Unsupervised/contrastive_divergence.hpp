@@ -86,12 +86,10 @@ class ContrastiveDivergence {
 
   bool dosr_;
 
-  Eigen::MatrixXd trainSamples_;
-  Eigen::VectorXd wf_;
 
-  int batchsize_=1000; //TODO
+  int batchsize_=10; //TODO
   int batchsize_node_;
-  int cd_;
+  int cd_ = 10; //TODO
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
@@ -103,6 +101,15 @@ class ContrastiveDivergence {
   int npar_;
   
   netket::default_random_engine rgen_;
+  
+  //TODO TEMPORARY STUFF
+  Eigen::MatrixXd trainSamples_;
+  Eigen::VectorXd wf_;
+  Eigen::MatrixXd basis_states_;
+  double fidelity_;
+  double KL_;
+  double Z_; 
+  
   public:
 
   ContrastiveDivergence(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
@@ -135,10 +142,18 @@ class ContrastiveDivergence {
 
   void Init(const json &pars) {
     
-    //TODO Remove dummy loading functions
+    //TODO TEMPOERARY STUFF 
     LoadTrainingData();
     LoadWavefunction();
-    
+    basis_states_.resize(1<<psi_.Nvisible(),psi_.Nvisible());
+    std::bitset<10> bit;
+    for(int i=0;i<1<<psi_.Nvisible();i++){
+      bit = i;
+      for(int j=0;j<psi_.Nvisible();j++){
+        basis_states_(i,j) = 1.0-2.0*bit[psi_.Nvisible()-j-1];
+      }
+    }
+    //TODO 
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -231,55 +246,68 @@ class ContrastiveDivergence {
     }
 
     // Positive phase driven by data
-    const int ndata = batchSamples.rows();
+    const int ndata = batchsize_node_;
     Ok_.resize(ndata, psi_.Npar());
     for (int i = 0; i < ndata; i++) {
       Ok_.row(i) = psi_.DerLog(batchSamples.row(i));
     }
-    Okmean_ = Ok_.colwise().mean();
-    SumOnNodes(Okmean_);
-    Okmean_ /= double(totalnodes_);
-
-    grad_ = Ok_;
-    SumOnNodes(grad_);
-    grad_ /= double(totalnodes_ * ndata);
-
-    //// Negative phase driven by the machine
-    //const int nsamp = vsamp_.rows();
-    //elocs_.resize(nsamp);
-    //Ok_.resize(nsamp, psi_.Npar());
-
-    //for (int i = 0; i < nsamp; i++) {
-    //  elocs_(i) = Eloc(vsamp_.row(i));
-    //  Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
-    //  obsmanager_.Push("Energy", elocs_(i).real());
-
-    //  for (const auto &ob : obs_) {
-    //    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
-    //  }
-    //}
-
-    //elocmean_ = elocs_.mean();
-    //SumOnNodes(elocmean_);
-    //elocmean_ /= double(totalnodes_);
-
+    //std::cout<< "+ phase : (" << Ok_.rows()<<","<<Ok_.cols()<<std::endl;
     //Okmean_ = Ok_.colwise().mean();
     //SumOnNodes(Okmean_);
     //Okmean_ /= double(totalnodes_);
 
-    ////Ok_ = Ok_.rowwise() - Okmean_.transpose();
-    //elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
+    //grad_ = Ok_ / double(totalnodes_ * ndata);
+    grad_ = -2.0*Ok_.colwise().mean().real();
+    
+    //TODO Negative phase exact
+    ExactPartitionFunction();
+    //for(int j=0;j<basis_states_.rows();j++){
+    //  grad_ -= 2.0*std::norm(std::exp(psi_.LogVal(basis_states_.row(j)))) * psi_.DerLog(batchSamples.row(j)).real() / Z_;
+    //}
+    for(int j=0;j<basis_states_.rows();j++){
+      grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
+    }
+    
+    
+    
+    
+    
+    //// Negative phase driven by the machine
+    //Sample();
+
+    //const int nsamp = vsamp_.rows();
+    ////std::cout<< "nsamp = " << nsamp <<std::endl;
+    //elocs_.resize(nsamp);
+    //Ok_.resize(nsamp, psi_.Npar());
+
 
     //for (int i = 0; i < nsamp; i++) {
-    //  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
+    //  elocs_(i) = Eloc(vsamp_.row(i));
+    //  Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
+    ////  obsmanager_.Push("Energy", elocs_(i).real());
+
+    ////  for (const auto &ob : obs_) {
+    ////    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+    ////  }
     //}
+    ////elocmean_ = elocs_.mean();
+    ////SumOnNodes(elocmean_);
+    ////elocmean_ /= double(totalnodes_);
 
-    //grad_ -= Ok_;
-    ////grad_ = 2. * (Ok_.adjoint() * elocs_);
+    ////Okmean_ = Ok_.colwise().mean();
+    ////SumOnNodes(Okmean_);
+    ////Okmean_ /= double(totalnodes_);
 
-    //// Summing the gradient over the nodes
-    //SumOnNodes(grad_);
-    //grad_ /= double(totalnodes_ * nsamp);
+    ////elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
+    ////for (int i = 0; i < nsamp; i++) {
+    ////  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
+    ////}
+
+    //grad_ += Ok_.colwise().mean();// / double(totalnodes_ * nsamp);
+    
+    // Summing the gradient over the nodes
+    SumOnNodes(grad_);
+    grad_ /= double(totalnodes_);
   }
 
   std::complex<double> Eloc(const Eigen::VectorXd &v) {
@@ -322,93 +350,105 @@ class ContrastiveDivergence {
 
   double Elocvar() { return elocvar_; }
 
-  void Run(const Eigen::MatrixXd & trainSamples) {
+//  void Run(const Eigen::MatrixXd & trainSamples) {
+  void Run(){
+    Eigen::MatrixXd batch_samples;
     opt_.Reset();
 
     InitSweeps();
 
     for (int i = 0; i < niter_opt_; i++) {
-      Sample();
+      //Sample();
+      int index;
+      // Initialize the visible layer to random data samples
+      //TODO Check the initialization of the distribution
+      std::uniform_int_distribution<int> distribution(0,trainSamples_.rows()-1);
+      batch_samples.resize(batchsize_node_,psi_.Nvisible());
+      for(int k=0;k<batchsize_node_;k++){
+        index = distribution(rgen_);
+        batch_samples.row(k) = trainSamples_.row(index);
+      }
 
-      //Gradient();
-
-      //UpdateParameters();
-
-      //PrintOutput(i);
+      Gradient(batch_samples);
+      
+      UpdateParameters();
+      Scan(i);
+      
+      PrintOutput(i);
     }
   }
 
-//  void UpdateParameters() {
-//    auto pars = psi_.GetParameters();
-//
-//    if (dosr_) {
-//      const int nsamp = vsamp_.rows();
-//
-//      Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
-//      SumOnNodes(b);
-//      b /= double(nsamp * totalnodes_);
-//
-//      if (!use_iterative_) {
-//        // Explicit construction of the S matrix
-//        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
-//        SumOnNodes(S);
-//        S /= double(nsamp * totalnodes_);
-//
-//        // Adding diagonal shift
-//        S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
-//             sr_diag_shift_;
-//
-//        Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
-//        qr.setThreshold(1.0e-6);
-//        qr.compute(S);
-//        const Eigen::VectorXcd deltaP = qr.solve(b);
-//        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
-//        // ComputeThinV).solve(b);
-//
-//        assert(deltaP.size() == grad_.size());
-//        grad_ = deltaP;
-//
-//        if (sr_rescale_shift_) {
-//          std::complex<double> nor = (deltaP.dot(S * deltaP));
-//          grad_ /= std::sqrt(nor.real());
-//        }
-//
-//      } else {
-//        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
-//                                 Eigen::IdentityPreconditioner>
-//            it_solver;
-//        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-//        // it_solver;
-//        it_solver.setTolerance(1.0e-3);
-//        MatrixReplacement S;
-//        S.attachMatrix(Ok_);
-//        S.setShift(sr_diag_shift_);
-//        S.setScale(1. / double(nsamp * totalnodes_));
-//
-//        it_solver.compute(S);
-//        auto deltaP = it_solver.solve(b);
-//
-//        grad_ = deltaP;
-//        if (sr_rescale_shift_) {
-//          auto nor = deltaP.dot(S * deltaP);
-//          grad_ /= std::sqrt(nor.real());
-//        }
-//
-//        // if(mynode_==0){
-//        //   std::cerr<<it_solver.iterations()<<"
-//        //   "<<it_solver.error()<<std::endl;
-//        // }
-//        MPI_Barrier(MPI_COMM_WORLD);
-//      }
-//    }
-//
-//    opt_.Update(grad_, pars);
-//
-//    SendToAll(pars);
-//
-//    psi_.SetParameters(pars);
-//    MPI_Barrier(MPI_COMM_WORLD);
-//  }
+  void UpdateParameters() {
+    auto pars = psi_.GetParameters();
+
+    if (dosr_) {
+      const int nsamp = vsamp_.rows();
+
+      Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
+      SumOnNodes(b);
+      b /= double(nsamp * totalnodes_);
+
+      if (!use_iterative_) {
+        // Explicit construction of the S matrix
+        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
+        SumOnNodes(S);
+        S /= double(nsamp * totalnodes_);
+
+        // Adding diagonal shift
+        S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
+             sr_diag_shift_;
+
+        Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
+        qr.setThreshold(1.0e-6);
+        qr.compute(S);
+        const Eigen::VectorXcd deltaP = qr.solve(b);
+        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
+        // ComputeThinV).solve(b);
+
+        assert(deltaP.size() == grad_.size());
+        grad_ = deltaP;
+
+        if (sr_rescale_shift_) {
+          std::complex<double> nor = (deltaP.dot(S * deltaP));
+          grad_ /= std::sqrt(nor.real());
+        }
+
+      } else {
+        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
+                                 Eigen::IdentityPreconditioner>
+            it_solver;
+        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
+        // it_solver;
+        it_solver.setTolerance(1.0e-3);
+        MatrixReplacement S;
+        S.attachMatrix(Ok_);
+        S.setShift(sr_diag_shift_);
+        S.setScale(1. / double(nsamp * totalnodes_));
+
+        it_solver.compute(S);
+        auto deltaP = it_solver.solve(b);
+
+        grad_ = deltaP;
+        if (sr_rescale_shift_) {
+          auto nor = deltaP.dot(S * deltaP);
+          grad_ /= std::sqrt(nor.real());
+        }
+
+        // if(mynode_==0){
+        //   std::cerr<<it_solver.iterations()<<"
+        //   "<<it_solver.error()<<std::endl;
+        // }
+        MPI_Barrier(MPI_COMM_WORLD);
+      }
+    }
+
+    opt_.Update(grad_, pars);
+
+    SendToAll(pars);
+
+    psi_.SetParameters(pars);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
 
   void PrintOutput(int i) {
     // Note: This has to be called in all MPI processes, because converting the
@@ -436,9 +476,11 @@ class ContrastiveDivergence {
     trainSamples_.resize(trainSize,psi_.Nvisible());
     std::string fileName = "data_tfim10.txt";
     std::ifstream fin_samples(fileName);
+    int tmp;
     for (int n=0; n<trainSize; n++) {
       for (int j=0; j<psi_.Nvisible(); j++) {
-        fin_samples>> trainSamples_(n,j);
+        fin_samples>> tmp;
+        trainSamples_(n,j) = 1.0-2.0*tmp;
       }
       //std::cout<<trainSamples_.row(n)<<std::endl;
     }
@@ -447,31 +489,122 @@ class ContrastiveDivergence {
   void LoadWavefunction(){
     std::string fileName = "wf_tfim10.txt";
     std::ifstream fin(fileName);
-    wf_.resize(1<<10);
-    for(int i=0;i<1<<10;i++){
+    wf_.resize(1<<psi_.Nvisible());
+    for(int i=0;i<1<<psi_.Nvisible();i++){
       fin >> wf_(i);
       //std::cout<<wf_(i)<<"   ";
     }
   }
-  // Setup the training batch and visible layer initial configuration
-  void SetUpTrainingStep(Eigen::MatrixXd &batch_samples,
-                         std::uniform_int_distribution<int> & distribution){
-    int index;
-    // Initialize the visible layer to random data samples
-    batch_samples.resize(batchsize_node_,psi_.Nvisible());
-    for(int k=0;k<batchsize_node_;k++){
-      index = distribution(rgen_);
-      batch_samples.row(k) = trainSamples_.row(index);
-    }
-    //NNstate_.SetVisibleLayer(batch_samples);
-    //sampler_.SetVisible( 
-    //// Build the batch of data
-    //batch_samples.resize(batchsize__,psi_.Nvisible()); 
-    //for(int k=0;k<batchsize_;k++){
-    //  index = distribution(rgen_);
-    //  batch_samples.row(k) = trainData.row(index);
-    //}
+//  // Setup the training batch and visible layer initial configuration
+//  void SetUpTrainingStep(Eigen::MatrixXd &batch_samples,
+//                         std::uniform_int_distribution<int> & distribution){
+//    int index;
+//    // Initialize the visible layer to random data samples
+//    batch_samples.resize(batchsize_node_,psi_.Nvisible());
+//    for(int k=0;k<batchsize_node_;k++){
+//      index = distribution(rgen_);
+//      batch_samples.row(k) = trainSamples_.row(index);
+//    }
+//    //NNstate_.SetVisibleLayer(batch_samples);
+//    //sampler_.SetVisible( 
+//    //// Build the batch of data
+//    //batch_samples.resize(batchsize__,psi_.Nvisible()); 
+//    //for(int k=0;k<batchsize_;k++){
+//    //  index = distribution(rgen_);
+//    //  batch_samples.row(k) = trainData.row(index);
+//    //}
+//  }
+  //Compute different estimators for the training performance
+  void Scan(int i){//,Eigen::MatrixXd &nll_test,std::ofstream &obs_out){
+    ExactPartitionFunction();
+    ExactKL(); 
+    Fidelity();
+    PrintStats(i);
   }
+
+  //Compute the partition function by exact enumeration 
+  void ExactPartitionFunction() {
+      Z_ = 0.0;
+      for(int i=0;i<basis_states_.rows();i++){
+          Z_ += std::norm(std::exp(psi_.LogVal(basis_states_.row(i))));
+      }
+  }
+
+  // Compute the overlap with the target wavefunction
+  void Fidelity(){
+      std::complex<double> tmp;
+      for(int i=0;i<basis_states_.rows();i++){
+          tmp += std::conj(wf_(i))*abs(exp(psi_.LogVal(basis_states_.row(i))))/std::sqrt(Z_);
+      }
+      fidelity_ = abs(tmp)*abs(tmp);
+  }
+  
+  //Compute KL divergence exactly
+  void ExactKL(){
+    //KL in the standard basis
+    KL_ = 0.0;
+    for(int i=0;i<basis_states_.rows();i++){
+      if (std::norm(wf_(i))>0.0){
+        KL_ += std::norm(wf_(i))*log(std::norm(wf_(i)));
+      }
+      KL_ -= std::norm(wf_(i))*log(std::norm(exp(psi_.LogVal(basis_states_.row(i)))));
+      KL_ += std::norm(wf_(i))*log(Z_);
+    }
+  }
+  
+  //Print observer
+  void PrintStats(int i){
+      std::cout << "Epoch: " << i << " \t";     
+      std::cout << "KL = " << std::setprecision(10) << KL_ << " \t";
+      std::cout << "Fidelity = " << std::setprecision(10) << fidelity_<< "\t";//<< Fcheck_;
+      std::cout << std::endl;
+  } 
+
+  // Test the derivatives of the KL divergence
+  void TestDerKL(double eps=0.00001){
+    auto pars = psi_.GetParameters();
+    ExactPartitionFunction();
+    Eigen::VectorXcd derKL(npar_);
+    Eigen::VectorXcd alg_ders;
+    Eigen::VectorXcd num_ders;
+    alg_ders.setZero(npar_);
+    num_ders.setZero(npar_);
+     
+    //-- ALGORITHMIC DERIVATIVES --//
+    for(int j=0;j<basis_states_.rows();j++){
+      //Positive phase - Lambda gradient in reference basis
+      alg_ders +=  2.0*std::norm(wf_(j))*psi_.DerLog(basis_states_.row(j)).real();
+      //Negative phase - Lambda gradient in reference basis       
+      alg_ders -= 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
+    }
+      
+    //-- NUMERICAL DERIVATIVES --//
+    for(int p=0;p<npar_;p++){
+      pars(p)+=eps;
+      psi_.SetParameters(pars);
+      double valp=0.0;
+      ExactPartitionFunction();
+      ExactKL();
+      valp = KL_;
+      pars(p)-=2*eps;
+      psi_.SetParameters(pars);
+      double valm=0.0;
+      ExactPartitionFunction();
+      ExactKL();
+      valm = KL_;
+      pars(p)+=eps;
+      num_ders(p)=(-valm+valp)/(eps*2);
+      std::cout<<std::setprecision(8)<<num_ders(p) <<"\t\t"<<std::setprecision(8)<<alg_ders(p)<<"\t\t\t\t";
+      std::cout<<std::endl; 
+    }
+
+    //double tmp =0.0;
+    //for (int j=0;j<basis_states_.rows();j++){
+    //  tmp += (std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_);
+    //}
+    //std::cout<< "TMP = " << tmp << std::endl;
+  }
+
 
  
 };
