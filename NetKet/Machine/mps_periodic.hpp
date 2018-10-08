@@ -418,10 +418,10 @@ class MPSPeriodic : public AbstractMPS<T> {
     j["Machine"]["BondDim"] = D_;
     j["Machine"]["PhysDim"] = d_;
     j["Machine"]["SymmetryPeriod"] = symperiod_;
-    to_jsonWeights(j);
+    to_jsonWeights(j["Machine"]["W"]);
   };
 
-  void to_jsonWeights(json &jj) const {
+  void to_jsonWeights(json &jj) const override {
     VectorType params(npar_);
     int n = 0;
     for (int i = 0; i < symperiod_; i++) {
@@ -434,7 +434,7 @@ class MPSPeriodic : public AbstractMPS<T> {
         }
       }
     }
-    jj["Machine"]["W"] = params;
+    jj = params;
   }
 
   void from_json(const json &pars) override {
@@ -475,22 +475,19 @@ class MPSPeriodic : public AbstractMPS<T> {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars["Machine"], "W")) {
-      from_jsonWeights(pars, 0);
+      from_jsonWeights(pars["Machine"]["W"]);
     }
   };
 
   // Used in SBS too
-  inline void from_jsonWeights(const json &pars, const int &seg_init) override {
-    const int Dsq = D_ * D_;
-
-    for (int i = 0; i < symperiod_; i++) {
-      for (int j = 0; j < d_; j++) {
-        for (int k = 0; k < D_; k++) {
-          for (int l = 0; l < D_; l++) {
-            W_[i][j](k, l) = pars["Machine"]["W"]
-                                 [seg_init + (d_ * i + j) * Dsq + D_ * k + l];
-          }
-        }
+  inline void from_jsonWeights(const json &pars) override {
+    int i = 0, j = 0;
+    for (auto const &params : pars) {
+      W_[i][j] = params;
+      j++;
+      if (j >= d_) {
+        j = 0;
+        i++;
       }
     }
   }
