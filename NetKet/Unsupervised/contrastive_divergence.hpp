@@ -87,7 +87,7 @@ class ContrastiveDivergence {
   bool dosr_;
 
 
-  int batchsize_=10; //TODO
+  int batchsize_=100; //TODO
   int batchsize_node_;
   int cd_ = 10; //TODO
   int nsamples_;
@@ -103,6 +103,7 @@ class ContrastiveDivergence {
   netket::default_random_engine rgen_;
   
   //TODO TEMPORARY STUFF
+  const std::complex<double> I_;
   Eigen::MatrixXd trainSamples_;
   Eigen::VectorXd wf_;
   Eigen::MatrixXd basis_states_;
@@ -119,7 +120,8 @@ class ContrastiveDivergence {
         psi_(sampler.Psi()),
         opt_(opt),
         obs_(Observable::FromJson(ham.GetHilbert(), pars)),
-        elocvar_(0.) {
+        elocvar_(0.),
+        I_(0,1) {
     // DEPRECATED (to remove for v2.0.0)
     if (FieldExists(pars, "Learning")) {
       auto pars1 = pars;
@@ -251,59 +253,47 @@ class ContrastiveDivergence {
     for (int i = 0; i < ndata; i++) {
       Ok_.row(i) = psi_.DerLog(batchSamples.row(i));
     }
-    //std::cout<< "+ phase : (" << Ok_.rows()<<","<<Ok_.cols()<<std::endl;
+    grad_ = -2.0*(Ok_.colwise().mean()).conjugate();
+    
+    //TODO Negative phase exact
+    //ExactPartitionFunction();
+    //for(int j=0;j<basis_states_.rows();j++){
+    //  //grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
+    //  grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) * (psi_.DerLog(basis_states_.row(j))).conjugate();
+    //}
+    
+    // Negative phase driven by the machine
+    Sample();
+
+    const int nsamp = vsamp_.rows();
+    //std::cout<< "nsamp = " << nsamp <<std::endl;
+    elocs_.resize(nsamp);
+    Ok_.resize(nsamp, psi_.Npar());
+
+
+    for (int i = 0; i < nsamp; i++) {
+      elocs_(i) = Eloc(vsamp_.row(i));
+      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
+    //  obsmanager_.Push("Energy", elocs_(i).real());
+
+    //  for (const auto &ob : obs_) {
+    //    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+    //  }
+    }
+    //elocmean_ = elocs_.mean();
+    //SumOnNodes(elocmean_);
+    //elocmean_ /= double(totalnodes_);
+
     //Okmean_ = Ok_.colwise().mean();
     //SumOnNodes(Okmean_);
     //Okmean_ /= double(totalnodes_);
 
-    //grad_ = Ok_ / double(totalnodes_ * ndata);
-    grad_ = -2.0*Ok_.colwise().mean().real();
-    
-    //TODO Negative phase exact
-    ExactPartitionFunction();
-    //for(int j=0;j<basis_states_.rows();j++){
-    //  grad_ -= 2.0*std::norm(std::exp(psi_.LogVal(basis_states_.row(j)))) * psi_.DerLog(batchSamples.row(j)).real() / Z_;
-    //}
-    for(int j=0;j<basis_states_.rows();j++){
-      grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
-    }
-    
-    
-    
-    
-    
-    //// Negative phase driven by the machine
-    //Sample();
-
-    //const int nsamp = vsamp_.rows();
-    ////std::cout<< "nsamp = " << nsamp <<std::endl;
-    //elocs_.resize(nsamp);
-    //Ok_.resize(nsamp, psi_.Npar());
-
-
+    //elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
     //for (int i = 0; i < nsamp; i++) {
-    //  elocs_(i) = Eloc(vsamp_.row(i));
-    //  Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
-    ////  obsmanager_.Push("Energy", elocs_(i).real());
-
-    ////  for (const auto &ob : obs_) {
-    ////    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
-    ////  }
+    //  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
     //}
-    ////elocmean_ = elocs_.mean();
-    ////SumOnNodes(elocmean_);
-    ////elocmean_ /= double(totalnodes_);
 
-    ////Okmean_ = Ok_.colwise().mean();
-    ////SumOnNodes(Okmean_);
-    ////Okmean_ /= double(totalnodes_);
-
-    ////elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
-    ////for (int i = 0; i < nsamp; i++) {
-    ////  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
-    ////}
-
-    //grad_ += Ok_.colwise().mean();// / double(totalnodes_ * nsamp);
+    grad_ += Ok_.colwise().mean();// / double(totalnodes_ * nsamp);
     
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
@@ -471,6 +461,115 @@ class ContrastiveDivergence {
   }
  
 
+  //Compute the partition function by exact enumeration 
+  void ExactPartitionFunction() {
+      Z_ = 0.0;
+      for(int i=0;i<basis_states_.rows();i++){
+          Z_ += std::norm(std::exp(psi_.LogVal(basis_states_.row(i))));
+      }
+  }
+
+  // Compute the overlap with the target wavefunction
+  void Fidelity(){
+      std::complex<double> tmp;
+      for(int i=0;i<basis_states_.rows();i++){
+          tmp += wf_(i)*std::abs(std::exp(psi_.LogVal(basis_states_.row(i))))/std::sqrt(Z_);
+      }
+      fidelity_ = std::norm(tmp);
+  }
+  
+  //Compute KL divergence exactly
+  void ExactKL(){
+    //KL in the standard basis
+    KL_ = 0.0;
+    //complex<double> tmp;
+    for(int i=0;i<basis_states_.rows();i++){
+      if (std::norm(wf_(i))>0.0){
+        KL_ += std::norm(wf_(i))*log(std::norm(wf_(i)));
+      }
+      KL_ -= std::norm(wf_(i))*log(std::norm(exp(psi_.LogVal(basis_states_.row(i)))));
+      KL_ += std::norm(wf_(i))*log(Z_);
+    }
+  }
+
+  // Test the derivatives of the KL divergence
+  void TestDerKL(double eps=0.00001){
+    auto pars = psi_.GetParameters();
+    ExactPartitionFunction();
+    Eigen::VectorXcd derKL(npar_);
+    Eigen::VectorXcd alg_ders;
+    Eigen::VectorXcd num_ders_real;
+    Eigen::VectorXcd num_ders_imag;
+    alg_ders.setZero(npar_);
+    num_ders_real.setZero(npar_);
+    num_ders_imag.setZero(npar_);
+     
+    //-- ALGORITHMIC DERIVATIVES --//
+    for(int j=0;j<basis_states_.rows();j++){
+      alg_ders -= 2.0*std::norm(wf_(j))*psi_.DerLog(basis_states_.row(j));
+      alg_ders += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) * psi_.DerLog(basis_states_.row(j));
+      //alg_ders +=  2.0*std::norm(wf_(j))*psi_.DerLog(basis_states_.row(j)).real();
+      //alg_ders -= 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
+    }
+      
+    //-- NUMERICAL DERIVATIVES --//
+//    std::cout<<"\n- - - - - - - - - - - -\n"<< "Real Part of Derivatives"<<std::endl;
+    for(int p=0;p<npar_;p++){
+      pars(p)+=eps;
+      psi_.SetParameters(pars);
+      double valp=0.0;
+      ExactPartitionFunction();
+      ExactKL();
+      valp = KL_;
+      pars(p)-=2.0*eps;
+      psi_.SetParameters(pars);
+      double valm=0.0;
+      ExactPartitionFunction();
+      ExactKL();
+      valm = KL_;
+      pars(p)+=eps;
+      num_ders_real(p)=(-valm+valp)/(eps*2.0);
+
+      pars(p)+=I_*eps;
+      psi_.SetParameters(pars);
+      ExactPartitionFunction();
+      ExactKL();
+      valp = KL_;
+      pars(p)-=I_*2.0*eps;
+      psi_.SetParameters(pars);
+      ExactPartitionFunction();
+      ExactKL();
+      valm = KL_;
+      pars(p)+=eps;
+      num_ders_imag(p)=(-valm+valp)/(I_*eps*2.0);
+      std::cout<<"Numerical Gradient = (";
+      std::cout<<num_ders_real(p).real()<<" , "<<num_ders_imag(p).imag()<<")\t-->";
+      std::cout<<"(";
+      std::cout<<alg_ders(p).real()<<" , "<<alg_ders(p).imag()<<")     ";
+      //std::cout<<std::setprecision(8)<<num_ders(p).real() <<"\t\t"<<std::setprecision(8)<<alg_ders(p).real()<<"\t\t\t\t";
+      std::cout<<std::endl; 
+    }
+//    std::cout<<"\n- - - - - - - - - - - -\n"<< "Imaginary Part of Derivatives"<<std::endl;
+//    for(int p=0;p<npar_;p++){
+//      pars(p)+=I_*eps;
+//      psi_.SetParameters(pars);
+//      double valp=0.0;
+//      ExactPartitionFunction();
+//      ExactKL();
+//      valp = KL_;
+//      pars(p)-=I_*2.0*eps;
+//      psi_.SetParameters(pars);
+//      double valm=0.0;
+//      ExactPartitionFunction();
+//      ExactKL();
+//      valm = KL_;
+//      pars(p)+=eps;
+//      num_ders(p)=(-valm+valp)/(I_*eps*2.0);
+//      std::cout<<std::setprecision(8)<<num_ders(p).imag() <<"\t\t"<<std::setprecision(8)<<alg_ders(p).imag()<<"\t\t\t\t";
+//      std::cout<<std::endl; 
+//    }
+  }
+
   void LoadTrainingData(){
     int trainSize = 10000;
     trainSamples_.resize(trainSize,psi_.Nvisible());
@@ -495,25 +594,7 @@ class ContrastiveDivergence {
       //std::cout<<wf_(i)<<"   ";
     }
   }
-//  // Setup the training batch and visible layer initial configuration
-//  void SetUpTrainingStep(Eigen::MatrixXd &batch_samples,
-//                         std::uniform_int_distribution<int> & distribution){
-//    int index;
-//    // Initialize the visible layer to random data samples
-//    batch_samples.resize(batchsize_node_,psi_.Nvisible());
-//    for(int k=0;k<batchsize_node_;k++){
-//      index = distribution(rgen_);
-//      batch_samples.row(k) = trainSamples_.row(index);
-//    }
-//    //NNstate_.SetVisibleLayer(batch_samples);
-//    //sampler_.SetVisible( 
-//    //// Build the batch of data
-//    //batch_samples.resize(batchsize__,psi_.Nvisible()); 
-//    //for(int k=0;k<batchsize_;k++){
-//    //  index = distribution(rgen_);
-//    //  batch_samples.row(k) = trainData.row(index);
-//    //}
-//  }
+
   //Compute different estimators for the training performance
   void Scan(int i){//,Eigen::MatrixXd &nll_test,std::ofstream &obs_out){
     ExactPartitionFunction();
@@ -521,91 +602,16 @@ class ContrastiveDivergence {
     Fidelity();
     PrintStats(i);
   }
-
-  //Compute the partition function by exact enumeration 
-  void ExactPartitionFunction() {
-      Z_ = 0.0;
-      for(int i=0;i<basis_states_.rows();i++){
-          Z_ += std::norm(std::exp(psi_.LogVal(basis_states_.row(i))));
-      }
-  }
-
-  // Compute the overlap with the target wavefunction
-  void Fidelity(){
-      std::complex<double> tmp;
-      for(int i=0;i<basis_states_.rows();i++){
-          tmp += std::conj(wf_(i))*abs(exp(psi_.LogVal(basis_states_.row(i))))/std::sqrt(Z_);
-      }
-      fidelity_ = abs(tmp)*abs(tmp);
-  }
-  
-  //Compute KL divergence exactly
-  void ExactKL(){
-    //KL in the standard basis
-    KL_ = 0.0;
-    for(int i=0;i<basis_states_.rows();i++){
-      if (std::norm(wf_(i))>0.0){
-        KL_ += std::norm(wf_(i))*log(std::norm(wf_(i)));
-      }
-      KL_ -= std::norm(wf_(i))*log(std::norm(exp(psi_.LogVal(basis_states_.row(i)))));
-      KL_ += std::norm(wf_(i))*log(Z_);
-    }
-  }
   
   //Print observer
   void PrintStats(int i){
       std::cout << "Epoch: " << i << " \t";     
       std::cout << "KL = " << std::setprecision(10) << KL_ << " \t";
       std::cout << "Fidelity = " << std::setprecision(10) << fidelity_<< "\t";//<< Fcheck_;
+      //auto pars = psi_.GetParameters();
+      //std::cout << "Par = " << pars(34);
       std::cout << std::endl;
   } 
-
-  // Test the derivatives of the KL divergence
-  void TestDerKL(double eps=0.00001){
-    auto pars = psi_.GetParameters();
-    ExactPartitionFunction();
-    Eigen::VectorXcd derKL(npar_);
-    Eigen::VectorXcd alg_ders;
-    Eigen::VectorXcd num_ders;
-    alg_ders.setZero(npar_);
-    num_ders.setZero(npar_);
-     
-    //-- ALGORITHMIC DERIVATIVES --//
-    for(int j=0;j<basis_states_.rows();j++){
-      //Positive phase - Lambda gradient in reference basis
-      alg_ders +=  2.0*std::norm(wf_(j))*psi_.DerLog(basis_states_.row(j)).real();
-      //Negative phase - Lambda gradient in reference basis       
-      alg_ders -= 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
-    }
-      
-    //-- NUMERICAL DERIVATIVES --//
-    for(int p=0;p<npar_;p++){
-      pars(p)+=eps;
-      psi_.SetParameters(pars);
-      double valp=0.0;
-      ExactPartitionFunction();
-      ExactKL();
-      valp = KL_;
-      pars(p)-=2*eps;
-      psi_.SetParameters(pars);
-      double valm=0.0;
-      ExactPartitionFunction();
-      ExactKL();
-      valm = KL_;
-      pars(p)+=eps;
-      num_ders(p)=(-valm+valp)/(eps*2);
-      std::cout<<std::setprecision(8)<<num_ders(p) <<"\t\t"<<std::setprecision(8)<<alg_ders(p)<<"\t\t\t\t";
-      std::cout<<std::endl; 
-    }
-
-    //double tmp =0.0;
-    //for (int j=0;j<basis_states_.rows();j++){
-    //  tmp += (std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_);
-    //}
-    //std::cout<< "TMP = " << tmp << std::endl;
-  }
-
-
  
 };
 
