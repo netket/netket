@@ -35,7 +35,7 @@ class AbstractMPS : public AbstractMachine<T> {
 
   // Auxiliary function used for setting initial random parameters and adding
   // identities in every matrix
-  virtual inline void SetParametersIdentity(const VectorType &pars) = 0;
+  virtual void SetParametersIdentity(const VectorType &pars) = 0;
 
   virtual void InitLookup(const std::vector<int> &v, LookupType &lt,
                           const int &start_ind) = 0;
@@ -66,9 +66,10 @@ class AbstractMPS : public AbstractMachine<T> {
 
   virtual VectorType DerLog(const std::vector<int> &v) = 0;
 
-  virtual inline void to_jsonWeights(json &j) const = 0;
+  virtual void to_json_strings(json &j,
+                               const std::vector<int> &string2site) const = 0;
 
-  virtual inline void from_jsonWeights(const json &pars) = 0;
+  virtual void from_jsonWeights(const json &pars) = 0;
 
   virtual ~AbstractMPS() {}
 };
