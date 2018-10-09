@@ -87,9 +87,9 @@ class ContrastiveDivergence {
   bool dosr_;
 
 
-  int batchsize_=100; //TODO
+  int batchsize_; //TODO
   int batchsize_node_;
-  int cd_ = 10; //TODO
+  int cd_; //TODO
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
@@ -168,10 +168,12 @@ class ContrastiveDivergence {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    //batch_size_ = ...
+    cd_ = 10;//FieldVal(pars["Unsupervised"], "CDsteps", "Unsupervised");
+
+    batchsize_ = 100;//FieldVal(pars["Unsupervised"], "Batchsize", "Unsupervised");
     batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
 
-    nsamples_ = FieldVal(pars["Unsupervised"], "Nsamples", "GroundState");
+    nsamples_ = FieldVal(pars["Unsupervised"], "Nsamples", "Unsupervised");
 
     nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
 
@@ -181,7 +183,7 @@ class ContrastiveDivergence {
     ndiscardedsamples_ = FieldOrDefaultVal(
         pars["Unsupervised"], "DiscardedSamples", 0.1 * nsamples_node_);
 
-    niter_opt_ = FieldVal(pars["Unsupervised"], "NiterOpt", "GroundState");
+    niter_opt_ = FieldVal(pars["Unsupervised"], "NiterOpt", "Unsupervised");
 
     if (pars["Unsupervised"]["Method"] == "Gd") {
       dosr_ = false;
@@ -220,6 +222,21 @@ class ContrastiveDivergence {
     }
   }
 
+  void Sample_VMC() {
+    sampler_.Reset();
+
+    for (int i = 0; i < ndiscardedsamples_; i++) {
+      sampler_.Sweep();
+    }
+
+    vsamp_.resize(nsamples_node_, psi_.Nvisible());
+
+    for (int i = 0; i < nsamples_node_; i++) {
+      sampler_.Sweep();
+      vsamp_.row(i) = sampler_.Visible();
+    }
+  }
+
   void Sample() {
     sampler_.Reset();
     vsamp_.resize(nsamples_node_, psi_.Nvisible());
@@ -227,12 +244,12 @@ class ContrastiveDivergence {
     
     //TODO Check the initialization of the distribution
     std::uniform_int_distribution<int> distribution(0,trainSamples_.rows()-1);
-    index = distribution(rgen_);
-    sampler_.SetVisible(trainSamples_.row(index));
     
     for (int i = 0; i < nsamples_node_; i++) {
       //TODO Check this loop
-      for (int j=0; j<cd_*psi_.Nvisible(); j++){
+      index = distribution(rgen_);
+      sampler_.SetVisible(trainSamples_.row(index));
+      for (int j=0; j<cd_; j++){
         sampler_.Sweep();
       }
       vsamp_.row(i) = sampler_.Visible();
@@ -258,42 +275,35 @@ class ContrastiveDivergence {
     //TODO Negative phase exact
     //ExactPartitionFunction();
     //for(int j=0;j<basis_states_.rows();j++){
-    //  //grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) *psi_.DerLog(basis_states_.row(j)).real();
     //  grad_ += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))))/Z_) * (psi_.DerLog(basis_states_.row(j))).conjugate();
     //}
     
     // Negative phase driven by the machine
-    Sample();
+    Sample_VMC();
 
     const int nsamp = vsamp_.rows();
-    //std::cout<< "nsamp = " << nsamp <<std::endl;
     elocs_.resize(nsamp);
     Ok_.resize(nsamp, psi_.Npar());
-
 
     for (int i = 0; i < nsamp; i++) {
       elocs_(i) = Eloc(vsamp_.row(i));
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
-    //  obsmanager_.Push("Energy", elocs_(i).real());
+      obsmanager_.Push("Energy", elocs_(i).real());
 
-    //  for (const auto &ob : obs_) {
-    //    obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
-    //  }
+      for (const auto &ob : obs_) {
+        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+      }
     }
-    //elocmean_ = elocs_.mean();
-    //SumOnNodes(elocmean_);
-    //elocmean_ /= double(totalnodes_);
+    elocmean_ = elocs_.mean();
+    SumOnNodes(elocmean_);
+    elocmean_ /= double(totalnodes_);
 
-    //Okmean_ = Ok_.colwise().mean();
-    //SumOnNodes(Okmean_);
-    //Okmean_ /= double(totalnodes_);
+    elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
+    for (int i = 0; i < nsamp; i++) {
+      obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
+    }
 
-    //elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
-    //for (int i = 0; i < nsamp; i++) {
-    //  obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
-    //}
-
-    grad_ += Ok_.colwise().mean();// / double(totalnodes_ * nsamp);
+    grad_ += 2.0*(Ok_.colwise().mean()).conjugate();
     
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
@@ -312,7 +322,7 @@ class ContrastiveDivergence {
     std::complex<double> eloc = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
-      eloc += mel_[i] * std::exp(logvaldiffs(i));
+      eloc += mel_[i] * std::abs(std::exp(logvaldiffs(i)));
     }
 
     return eloc;
@@ -330,7 +340,7 @@ class ContrastiveDivergence {
     std::complex<double> obval = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
-      obval += mel_[i] * std::exp(logvaldiffs(i));
+      obval += mel_[i] * std::abs(std::exp(logvaldiffs(i)));
     }
 
     return obval.real();
@@ -346,13 +356,11 @@ class ContrastiveDivergence {
     opt_.Reset();
 
     InitSweeps();
+    std::uniform_int_distribution<int> distribution(0,trainSamples_.rows()-1);
 
     for (int i = 0; i < niter_opt_; i++) {
       //Sample();
       int index;
-      // Initialize the visible layer to random data samples
-      //TODO Check the initialization of the distribution
-      std::uniform_int_distribution<int> distribution(0,trainSamples_.rows()-1);
       batch_samples.resize(batchsize_node_,psi_.Nvisible());
       for(int k=0;k<batchsize_node_;k++){
         index = distribution(rgen_);
@@ -549,25 +557,6 @@ class ContrastiveDivergence {
       //std::cout<<std::setprecision(8)<<num_ders(p).real() <<"\t\t"<<std::setprecision(8)<<alg_ders(p).real()<<"\t\t\t\t";
       std::cout<<std::endl; 
     }
-//    std::cout<<"\n- - - - - - - - - - - -\n"<< "Imaginary Part of Derivatives"<<std::endl;
-//    for(int p=0;p<npar_;p++){
-//      pars(p)+=I_*eps;
-//      psi_.SetParameters(pars);
-//      double valp=0.0;
-//      ExactPartitionFunction();
-//      ExactKL();
-//      valp = KL_;
-//      pars(p)-=I_*2.0*eps;
-//      psi_.SetParameters(pars);
-//      double valm=0.0;
-//      ExactPartitionFunction();
-//      ExactKL();
-//      valm = KL_;
-//      pars(p)+=eps;
-//      num_ders(p)=(-valm+valp)/(I_*eps*2.0);
-//      std::cout<<std::setprecision(8)<<num_ders(p).imag() <<"\t\t"<<std::setprecision(8)<<alg_ders(p).imag()<<"\t\t\t\t";
-//      std::cout<<std::endl; 
-//    }
   }
 
   void LoadTrainingData(){
@@ -581,7 +570,6 @@ class ContrastiveDivergence {
         fin_samples>> tmp;
         trainSamples_(n,j) = 1.0-2.0*tmp;
       }
-      //std::cout<<trainSamples_.row(n)<<std::endl;
     }
   }
 
@@ -591,7 +579,6 @@ class ContrastiveDivergence {
     wf_.resize(1<<psi_.Nvisible());
     for(int i=0;i<1<<psi_.Nvisible();i++){
       fin >> wf_(i);
-      //std::cout<<wf_(i)<<"   ";
     }
   }
 
@@ -608,8 +595,6 @@ class ContrastiveDivergence {
       std::cout << "Epoch: " << i << " \t";     
       std::cout << "KL = " << std::setprecision(10) << KL_ << " \t";
       std::cout << "Fidelity = " << std::setprecision(10) << fidelity_<< "\t";//<< Fcheck_;
-      //auto pars = psi_.GetParameters();
-      //std::cout << "Par = " << pars(34);
       std::cout << std::endl;
   } 
  
