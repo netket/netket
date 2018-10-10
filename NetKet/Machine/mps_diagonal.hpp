@@ -292,7 +292,7 @@ class MPSDiagonal : public AbstractMPS<T> {
     return std::log(mps_contraction(v, 0, N_).sum());
   };
 
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd & /* v */, const LookupType &lt) override {
     return std::log(lt.V(2 * N_ - 2).sum());
   };
 
