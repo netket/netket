@@ -295,7 +295,7 @@ class MPSPeriodic : public AbstractMPS<T> {
     return std::log(mps_contraction(v, 0, N_).trace());
   };
 
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(const Eigen::VectorXd & /* v */, const LookupType &lt) override {
     return std::log(lt.M(2 * N_ - 2).trace());
   };
 
