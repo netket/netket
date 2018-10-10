@@ -36,7 +36,7 @@ target_include_directories(nlohmann_json
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
     file(DOWNLOAD
-        "https://raw.githubusercontent.com/martinmoene/optional-lite/master/include/nonstd/optional.hpp"
+        "https://raw.githubusercontent.com/martinmoene/optional-lite/e240fdaaa4071a980926dea4ed5b610aa8fbc538/include/nonstd/optional.hpp"
         "External/optional-lite/nonstd/optional.hpp")
 endif()
 add_library(optional_lite INTERFACE)
