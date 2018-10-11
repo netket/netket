@@ -356,7 +356,7 @@ class ContrastiveDivergence {
     auto pars = psi_.GetParameters();
 
     if (dosr_) {
-      //const int nsamp = vsamp_.rows();
+      const int nsamp = vsamp_.rows();
 
       //Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
       //SumOnNodes(b);
@@ -365,11 +365,11 @@ class ContrastiveDivergence {
       
       if (!use_iterative_) {
         // Explicit construction of the S matrix
-        //Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
-        Eigen::MatrixXcd S = gradfull_.adjoint() * gradfull_;
-        //SumOnNodes(S);
-        //S /= double(nsamp * totalnodes_);
-        S /= double(gradfull_.rows());
+        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
+        //Eigen::MatrixXcd S = gradfull_.adjoint() * gradfull_;
+        SumOnNodes(S);
+        S /= double(nsamp * totalnodes_);
+        //S /= double(gradfull_.rows());
         // Adding diagonal shift
         S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
              sr_diag_shift_;
@@ -397,11 +397,12 @@ class ContrastiveDivergence {
         // it_solver;
         it_solver.setTolerance(1.0e-3);
         MatrixReplacement S;
-        //S.attachMatrix(Ok_);
-        S.attachMatrix(gradfull_);
+        S.attachMatrix(Ok_);
+        //S.attachMatrix(gradfull_);
         S.setShift(sr_diag_shift_);
-        //S.setScale(1. / double(nsamp * totalnodes_));
-        S.setScale(1. / double(gradfull_.rows()));
+        S.setScale(1. / double(nsamp));
+        //S.setScale(1. / double(gradfull_.rows()));
+        //S.setScale(1. / double(OK_.rows()));
         it_solver.compute(S);
         auto deltaP = it_solver.solve(b);
 
