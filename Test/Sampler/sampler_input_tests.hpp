@@ -96,5 +96,13 @@ std::vector<netket::json> GetSamplerInputs() {
   pars["Sampler"]["Nreplicas"] = 4;
   input_tests.push_back(pars);
 
+  // Ising 1d with exact sampler
+  pars = {{"Graph",
+           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
+          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
+          {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
+          {"Sampler", {{"Name", "Exact"}}}};
+  input_tests.push_back(pars);
+
   return input_tests;
 }
