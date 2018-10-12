@@ -38,7 +38,7 @@ pars['Machine'] = {
     'Name': 'MPSperiodic',
     'BondDim': 5,
     'SymmetryPeriod': 1,
-    'SigmaRand' : 0.05,
+    'SigmaRand' : 0.01,
     'Diagonal': False
 }
 
@@ -52,13 +52,13 @@ pars['Sampler'] = {
 # here we use the Stochastic Gradient Descent
 pars['Optimizer'] = {
     'Name': 'Sgd',
-    'LearningRate': 0.05,
+    'LearningRate': 0.02,
 }
 
 pars['GroundState']={
     'Method'         : 'Sr',
-    'Nsamples'       : 500,
-    'NiterOpt'       : 200,
+    'Nsamples'       : 1.0e3,
+    'NiterOpt'       : 500,
     'Diagshift'      : 0.1,
     'UseIterative'   : True,
     'OutputFile'     : 'test',

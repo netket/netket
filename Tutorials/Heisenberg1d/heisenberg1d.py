@@ -48,6 +48,7 @@ pars['Sampler'] = {
 
 # defining the Optimizer
 # here we use AdaMax
+# notice that Sgd would lead to much faster convergence in this case
 pars['Optimizer'] = {
     'Name': 'AdaMax',
 }
