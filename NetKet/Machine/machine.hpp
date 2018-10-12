@@ -24,7 +24,6 @@
 #include "ffnn.hpp"
 #include "jastrow.hpp"
 #include "jastrow_symm.hpp"
-#include "mps_diagonal.hpp"
 #include "mps_periodic.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
@@ -81,6 +80,13 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "Jastrow") {
       m_ = Ptype(new Jastrow<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
+      if (FieldExists(pars["Machine"], "Diagonal") and
+          pars["Machine"]["Diagonal"]) {
+        m_ = Ptype(new MPSPeriodic<T, true>(hilbert, pars));
+      } else {
+        m_ = Ptype(new MPSPeriodic<T, false>(hilbert, pars));
+      }
     }
   }
 
@@ -92,10 +98,6 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
     } else if (pars["Machine"]["Name"] == "JastrowSymm") {
       m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
-      m_ = Ptype(new MPSPeriodic<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "MPSdiagonal") {
-      m_ = Ptype(new MPSDiagonal<T>(hilbert, pars));
     }
   }
 
