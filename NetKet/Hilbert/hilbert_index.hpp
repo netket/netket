@@ -69,6 +69,7 @@ class HilbertIndex {
     std::size_t number = 0;
 
     for (int i = 0; i < size_; i++) {
+      assert(statenumber_.count(v(size_ - i - 1)) > 0);
       number += statenumber_.at(v(size_ - i - 1)) * basis_[i];
     }
 
