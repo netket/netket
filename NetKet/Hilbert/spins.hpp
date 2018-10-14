@@ -1,4 +1,5 @@
 // Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018 Tom Westerhout
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +68,7 @@ class Spin : public AbstractHilbert {
     }
 
     if (std::floor(2. * S) != 2. * S) {
-      throw InvalidInputError("Spin value is hot integer or half integer");
+      throw InvalidInputError("Spin value is neither integer nor half integer");
     }
 
     nstates_ = std::floor(2. * S) + 1;
@@ -105,46 +106,41 @@ class Spin : public AbstractHilbert {
       for (int i = 0; i < state.size(); i++) {
         state(i) = 2. * (distribution(rgen) - S_);
       }
+    } else if (S_ == 0.5) {
+      using std::begin;
+      using std::end;
+      // Magnetisation as a count
+      auto const m = static_cast<int>(2 * totalS_);
+      if (std::abs(m) > nspins_) {
+        throw InvalidInputError(
+            "Cannot fix the total magnetization: 2|M| cannot "
+            "exceed Nspins.");
+      }
+      if ((nspins_ + m) % 2 != 0) {
+        throw InvalidInputError(
+            "Cannot fix the total magnetization: Nspins + "
+            "totalSz must be even.");
+      }
+      auto const nup = (nspins_ + m) / 2;
+      auto const ndown = (nspins_ - m) / 2;
+      std::fill_n(state.data(), nup, 1.0);
+      std::fill_n(state.data() + nup, ndown, -1.0);
+      std::shuffle(state.data(), state.data() + nspins_, rgen);
+      return;
     } else {
-      if (S_ == 0.5) {
-        int nup = nspins_ / 2 + int(totalS_);
-        int ndown = nspins_ - nup;
+      std::vector<int> sites;
+      for (int i = 0; i < nspins_; ++i) sites.push_back(i);
 
-        if ((nup - ndown) != int(2 * totalS_)) {
-          throw InvalidInputError("Cannot fix the total magnetization");
-        }
+      state.setConstant(-2 * S_);
+      int ss = nspins_;
 
-        std::vector<double> vect(nspins_);
-
-        for (int i = 0; i < nup; i++) {
-          vect[i] = +1.;
-        }
-        for (int i = nup; i < nspins_; i++) {
-          vect[i] = -1.;
-        }
-
-        // now random shuffle
-        std::shuffle(vect.begin(), vect.end(), rgen);
-
-        for (int i = 0; i < nspins_; i++) {
-          state(i) = vect[i];
-        }
-        return;
-      } else {
-        std::vector<int> sites;
-        for (int i = 0; i < nspins_; ++i) sites.push_back(i);
-
-        state.setConstant(-2 * S_);
-        int ss = nspins_;
-
-        for (int i = 0; i < S_ * nspins_ + totalS_; ++i) {
-          std::uniform_int_distribution<int> distribution_ss(0, ss - 1);
-          int s = distribution_ss(rgen);
-          state(sites[s]) += 2;
-          if (state(sites[s]) > 2 * S_ - 1) {
-            sites.erase(sites.begin() + s);
-            ss -= 1;
-          }
+      for (int i = 0; i < S_ * nspins_ + totalS_; ++i) {
+        std::uniform_int_distribution<int> distribution_ss(0, ss - 1);
+        int s = distribution_ss(rgen);
+        state(sites[s]) += 2;
+        if (state(sites[s]) > 2 * S_ - 1) {
+          sites.erase(sites.begin() + s);
+          ss -= 1;
         }
       }
     }
