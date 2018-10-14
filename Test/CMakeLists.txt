@@ -1,64 +1,37 @@
-option(NETKET_Coverage "Build test suite with coverage information" OFF)
 option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
-option(NETKET_Valgrind "Execute test suite with Valgrind" OFF)
 
-
-if(NETKET_Coverage)
-    message(STATUS "Building test suite with coverage information")
-    if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        message(FATAL_ERROR "NETKET_Coverage requires GCC.")
-    endif()
-
-    # enable profiling
-    set(CMAKE_CXX_FLAGS "--coverage -g -O0 -fprofile-arcs -ftest-coverage")
-
-    # from https://github.com/RWTH-HPC/CMake-codecov/blob/master/cmake/FindGcov.cmake
-    get_filename_component(COMPILER_PATH "${CMAKE_CXX_COMPILER}" PATH)
-    string(REGEX MATCH "^[0-9]+" GCC_VERSION "${CMAKE_CXX_COMPILER_VERSION}")
-    find_program(GCOV_BIN NAMES gcov-${GCC_VERSION} gcov HINTS ${COMPILER_PATH})
-
-    # collect all source files from the chosen include dir
-    file(GLOB_RECURSE SOURCE_FILES ${NETKET_SOURCE_DIR}*.hpp)
-
-    # add target to collect coverage information and generate HTML file
-    # (filter script from https://stackoverflow.com/a/43726240/266378)
-    add_custom_target(lcov_html
-        COMMAND lcov --directory . --capture --output-file json.info --gcov-tool ${GCOV_BIN} --rc lcov_branch_coverage=1
-        COMMAND lcov -e json.info ${SOURCE_FILES} --output-file json.info.filtered --rc lcov_branch_coverage=1
-        COMMAND ${CMAKE_SOURCE_DIR}/test/thirdparty/imapdl/filterbr.py json.info.filtered > json.info.filtered.noexcept
-        COMMAND genhtml --title "NetKet" --legend --demangle-cpp --output-directory html --show-details --branch-coverage json.info.filtered.noexcept
-        COMMENT "Generating HTML report test/html/index.html"
-    )
-endif()
+add_library(netket_test INTERFACE)
+target_link_libraries(netket_test INTERFACE netket_lib Catch2)
 
 if(NETKET_Sanitizer)
     message(STATUS "Building test suite with Clang sanitizer")
     if(NOT MSVC)
-        set(CMAKE_CXX_FLAGS "-g -O2 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
+        target_compile_options(netket_test
+            INTERFACE
+                -O2 -g -fno-omit-frame-pointer
+                -fsanitize=address -fsanitize=undefined
+        )
+        target_link_libraries(netket_test
+            INTERFACE
+                -fsanitize=address -fsanitize=undefined
+        )
     endif()
 endif()
 
-if(NETKET_Valgrind)
-    find_program(CMAKE_MEMORYCHECK_COMMAND valgrind)
-    message(STATUS "Executing test suite with Valgrind (${CMAKE_MEMORYCHECK_COMMAND})")
-    set(memcheck_command "${CMAKE_MEMORYCHECK_COMMAND} ${CMAKE_MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode=1 --leak-check=full")
-    separate_arguments(memcheck_command)
-endif()
-
-### Find boost odeint
+# Find Boost.Odeint
 find_package(Boost)
-if(Boost_FOUND)
-    include_directories(Boost_INCLUDE_DIRS)
-    add_definitions(-DWITH_BOOST_ODEINT)
-endif()
 
-### Catch unit tests
-include_directories(${EXTERNAL_INCLUDE_DIR}/Catch)
+#
+# Catch2 unit tests
+#
 
-add_library(catch_main OBJECT
-    "unit-tests.cc"
-)
-
+add_library(catch_main OBJECT "unit-tests.cc")
+# This is _very_ ugly, but in CMake 3.1 object libraries can't link to anything
+# so we can't make it use netket_test
+get_property(_catch2_include_dir
+    TARGET Catch2
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(catch_main PRIVATE ${_catch2_include_dir} ${MPI_C_INCLUDE_PATH})
 
 file(GLOB TEST_SOURCES
     Dynamics/*.cpp
@@ -72,24 +45,26 @@ file(GLOB TEST_SOURCES
     Utils/*.cc
     Optimizer/*.cc)
 
-foreach(file ${TEST_SOURCES})
-   get_filename_component(file_basename ${file} NAME_WE)
+foreach(_file ${TEST_SOURCES})
+   get_filename_component(_file_basename ${_file} NAME_WE)
+   string(REGEX REPLACE "unit-(.+)" "test-\\1" testcase ${_file_basename})
 
-   string(REGEX REPLACE "unit-([^$]+)" "test-\\1" testcase ${file_basename})
-
-   add_executable(${testcase} $<TARGET_OBJECTS:catch_main> ${file})
-   target_link_libraries(${testcase}  ${MPI_LIBRARIES})
+   add_executable(${testcase} $<TARGET_OBJECTS:catch_main> ${_file})
+   target_link_libraries(${testcase} PUBLIC netket_test)
+   if(Boost_FOUND)
+       target_include_directories(${testcase} SYSTEM PUBLIC ${Boost_INCLUDE_DIRS})
+       target_compile_definitions(${testcase} PUBLIC WITH_BOOST_ODEINT)
+   endif()
 
    add_test(NAME "${testcase}_default"
-      COMMAND ${testcase} ${CATCH_TEST_FILTER}
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
-    set_tests_properties("${testcase}_default" PROPERTIES LABELS "default")
+     COMMAND ${testcase} ${CATCH_TEST_FILTER}
+     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   )
+   set_tests_properties("${testcase}_default" PROPERTIES LABELS "default")
 
-    add_test(NAME "${testcase}_all"
-      COMMAND ${testcase} ${CATCH_TEST_FILTER} "*"
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
-    set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
-
+   # add_test(NAME "${testcase}_all"
+   #   COMMAND ${testcase} ${CATCH_TEST_FILTER} "*"
+   #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+   # )
+   # set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
 endforeach()
