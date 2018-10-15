@@ -2,14 +2,20 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+option(ENABLE_TESTS "Enable unit tests." OFF)
 
 project(NetKet)
 
-include(CTest) # adds option BUILD_TESTING (default ON)
+if(ENABLE_TESTS)
+   include(CTest) # adds option BUILD_TESTING (default ON)
+endif()
+
 include(ExternalProject)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
 
 #
 # Dependencies
@@ -30,7 +36,7 @@ target_include_directories(nlohmann_json
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
     file(DOWNLOAD
-        "https://github.com/martinmoene/optional-lite/releases/download/v3.0.0/optional.hpp"
+        "https://raw.githubusercontent.com/martinmoene/optional-lite/e240fdaaa4071a980926dea4ed5b610aa8fbc538/include/nonstd/optional.hpp"
         "External/optional-lite/nonstd/optional.hpp")
 endif()
 add_library(optional_lite INTERFACE)
@@ -119,6 +125,21 @@ target_link_libraries(netket_lib
         optional_lite
 )
 
+# Check if we should use native Lapack with Eigen
+option(USE_LAPACK "Enable Lapack Support." OFF)
+if(USE_LAPACK)
+    find_package(LAPACK REQUIRED)
+    add_definitions(-DEIGEN_USE_BLAS)
+    target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
+    find_package(LAPACKE)
+    if(LAPACKE_FOUND)
+    add_definitions(-DEIGEN_USE_LAPACKE)
+    target_link_libraries(netket_lib INTERFACE ${LAPACKE_LIBRARIES})
+    endif()
+
+endif()
+
+
 add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
@@ -139,4 +160,3 @@ endif()
 #
 
 install (TARGETS netket DESTINATION bin)
-
