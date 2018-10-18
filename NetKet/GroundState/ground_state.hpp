@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
 #include "Observable/observable.hpp"
@@ -83,30 +84,47 @@ class GroundState {
 
       driver.Run(initial);
 
-    } else if (method_name == "EdFull") {
+    } else if (method_name == "ED") {
       double precision;
       int n_eigenvalues, max_iter, random_seed;
       get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
-      std::vector<double> eigs = eigenvalues_full(hamiltonian, n_eigenvalues);
-      write_ed_eigenvalues(pars, eigs);
-    } else if (method_name == "EdSparse") {
-      double precision;
-      int n_eigenvalues, max_iter, random_seed;
-      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
-      std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, false,
-                                                     n_eigenvalues,
-                                                     max_iter, random_seed,
-                                                     precision);
-      write_ed_eigenvalues(pars, eigs);
-    } else if (method_name == "EdFly") {
-      double precision;
-      int n_eigenvalues, max_iter, random_seed;
-      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
-      std::vector<double> eigs = eigenvalues_lanczos(hamiltonian, true,
-                                                     n_eigenvalues,
-                                                     max_iter, random_seed,
-                                                     precision);
-      write_ed_eigenvalues(pars, eigs);
+
+      // Compute eigenvalues and groundstate, if needed
+      eddetail::result_t edresult;
+      std::string matrix_format =
+        FieldOrDefaultVal<json, std::string>(pars, "MatrixFormat", "Sparse");
+      bool get_groundstate = FieldExists(pars, "Observables");
+      if (matrix_format == "Sparse") {
+        edresult = lanczos_ed(hamiltonian, false, n_eigenvalues, max_iter,
+                              random_seed, precision, get_groundstate);
+      } else if (matrix_format == "Direct") {
+        edresult = lanczos_ed(hamiltonian, true, n_eigenvalues, max_iter,
+                              random_seed, precision, get_groundstate);
+      } else if (matrix_format == "Dense") {
+        edresult = full_ed(hamiltonian, n_eigenvalues, get_groundstate);
+      } else {
+        std::stringstream s;
+        s << "Unknown MatrixFormat for ED: "
+          << FieldVal(pars["GroundState"], "MatrixFormat");
+        throw InvalidInputError(s.str());
+      }
+
+      // Evaluate observables
+      std::map<std::string, double> observables_results;
+      if (FieldExists(pars, "Observables")) {
+        json j;
+        j["MatrixWrapper"] = matrix_format;
+        auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
+        const auto& state = edresult.eigenvectors[0];
+        for (const auto& entry : observables) {
+          const auto& obs = ConstructMatrixWrapper(j, entry);
+          const auto value = obs->Mean(state).real();
+          observables_results[entry.Name()] = value;
+        }
+      }
+
+      write_ed_results(pars, edresult.eigenvalues, observables_results);
+
     } else {
       std::stringstream s;
       s << "Unknown GroundState method: " << method_name;

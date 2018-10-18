@@ -95,7 +95,8 @@ private:
 
 
     template <class IN, class OUT, class GEN>
-    void eigenvectors(IN in_eigvals_start, IN in_eigvals_end , OUT eig_vectors, Info<magnitude_type>& inf, GEN gen, int maxiter=0, int maxcount=50);
+    void eigenvectors(IN in_eigvals_start, IN in_eigvals_end , OUT eig_vectors, 
+		      Info<magnitude_type>& inf, GEN gen, int maxiter=0, int maxcount=50);
 
     std::vector<std::vector<magnitude_type> >  const& t_eigenvectors() { return Tvectors;}
 
@@ -169,7 +170,6 @@ private:
     std::vector<int>::iterator M2_itr = M2.begin();
 
     while(in_eigvals_start !=  in_eigvals_end) {
-
       lambda = 0; count = 0;
       typename Info<magnitude_type>::errorinfo errInf = Info<magnitude_type>::ok;
 
@@ -227,14 +227,14 @@ private:
           }
           else {
             error = fabs(super_type::beta[ma-1] * z(ma - 1, nth)); // beta[ma - 1] = betaMplusOne.
-            if(error > super_type::error_tol) {
+	    if(error > super_type::error_tol) {
               ma += deltam;
               eval.resize(ma);
               z.resize(ma,ma);
             }
           } // end of else
         } while(error > super_type::error_tol && count < maxcount);
-
+	
         if(error > super_type::error_tol) {
           eigvectors.back()*=0.;
           errInf = Info<magnitude_type>::not_calculated;
@@ -290,7 +290,7 @@ private:
       while(eigenvectors_itr !=  eigvectors.end()){
         if(Tvectors_itr->size() > j && std::abs((*Tvectors_itr)[j]) > super_type::error_tol) {
           *eigenvectors_itr+=(*Tvectors_itr)[j]*vec2;
-        // vec2 is being added in one vector of eigvectors.
+	  // vec2 is being added in one vector of eigvectors.
         }
         eigenvectors_itr++;
         Tvectors_itr++;

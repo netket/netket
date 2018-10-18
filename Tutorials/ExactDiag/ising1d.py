@@ -18,10 +18,12 @@ import json
 
 pars={}
 
+L=20
+
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',
-    'L'              : 20,
+    'L'              : L,
     'Dimension'      : 1 ,
     'Pbc'            : True,
 }
@@ -32,12 +34,28 @@ pars['Hamiltonian']={
     'h'              : 1.0,
 }
 
+#defining the observables to be measured
+sigmaxop = []
+sites = []
+for i in range(L):
+    # \sum_i sigma^x(i)
+    sigmaxop.append([[0, 1], [1, 0]])
+    sites.append([i])
+
+pars['Observables'] = {
+    'Operators': sigmaxop,
+    'ActingOn': sites,
+    'Name': 'SigmaX',
+}
+
+
 
 #defining the GroundState method
 #here we use Exact Diagonalization
 #suitable for this small system
 pars['GroundState']={
-    'Method'         : 'EdSparse',
+    'Method'         : 'ED',
+    'MatrixFormat'   : 'Free',   #choose between 'Dense', 'Sparse', and 'Free'
     'OutputFile'     : "test",
     'NumEigenvalues' : 1,
     'Precision'      : 1e-14,

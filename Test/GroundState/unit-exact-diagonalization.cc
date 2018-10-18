@@ -32,9 +32,28 @@ TEST_CASE("Full / Lanczos ED give same ground state energy", "[ground state]") {
       netket::Graph graph(pars);
       netket::Hamiltonian hamiltonian(graph, pars);
 
-      std::vector<double> eigs_lanczos = eigenvalues_lanczos(hamiltonian);
-      std::vector<double> eigs_full = eigenvalues_full(hamiltonian);
-      REQUIRE(std::abs(eigs_full[0] - eigs_lanczos[0]) < 1e-12);
+      // Check whether full and sparse ED yield same result
+      auto result_lanczos = lanczos_ed(hamiltonian);
+      auto result_full = full_ed(hamiltonian);
+      REQUIRE(std::abs(result_full.eigenvalues[0] - 
+		       result_lanczos.eigenvalues[0]) < 1e-12);
+
+      // Check whether ground state has lowest eigenvalue energy
+      auto mat = netket::SparseMatrixWrapper<netket::Hamiltonian>(hamiltonian);
+      result_lanczos = lanczos_ed(hamiltonian, false, 1, 1000, 42, 1e-12, true);
+      const auto state_lanczos = result_lanczos.eigenvectors[0];
+      auto mean_variance_lanczos = mat.MeanVariance(state_lanczos);
+      REQUIRE(std::abs(mean_variance_lanczos[0] - 
+      		       result_lanczos.eigenvalues[0]) < 1e-10);
+      REQUIRE(std::abs(mean_variance_lanczos[1]) < 1e-10);
+
+      result_full = full_ed(hamiltonian, 1, true);
+      const auto state_full = result_full.eigenvectors[0];
+      auto mean_variance_full = mat.MeanVariance(state_full);
+      REQUIRE(std::abs(mean_variance_full[0] - 
+      		       result_full.eigenvalues[0]) < 1e-10);
+      REQUIRE(std::abs(mean_variance_full[1]) < 1e-10);
+
     }
   }
 }

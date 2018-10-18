@@ -21,25 +21,25 @@ std::vector<netket::json> GetExactDiagonalizationInputs() {
 
   // Ising 1d
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
   input_tests.push_back(pars);
 
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
   input_tests.push_back(pars);
 
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
   input_tests.push_back(pars);
 
   pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 1}, {"Pbc", true}}},
+           {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
   input_tests.push_back(pars);
