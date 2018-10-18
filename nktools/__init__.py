@@ -14,12 +14,10 @@
 """
 NetKet
 
-This modules contains the python scripts used to run NetKet. To import the
-netket module make sure you add the path to this directory to your PYTHONPATH
-environment variable.
+This modules contains the python scripts used to run NetKet.
 """
 
-from netket_tools.general_utils import write_input
-from netket_tools.general_utils import get_obsv_from_json
-from netket_tools.general_utils import plot_observable
-from netket_tools.graph_utils import graph
+from nktools.general_utils import write_input
+from nktools.general_utils import get_obsv_from_json
+from nktools.general_utils import plot_observable
+from nktools.graph_utils import graph

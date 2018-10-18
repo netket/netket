@@ -16,7 +16,7 @@
 '''
 
 import unittest
-import netket_tools as nkt
+import nktools as nkt
 
 # Test to see if networkx is installed
 try:

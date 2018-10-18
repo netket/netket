@@ -67,3 +67,23 @@ foreach(_file ${TEST_SOURCES})
    # )
    # set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
 endforeach()
+
+
+# Python Tests
+file(GLOB PY_TEST_SOURCES
+  nktools/*.py
+  )
+
+# Make tests for all python files
+foreach(_file ${PY_TEST_SOURCES})
+  # Strip filename
+  get_filename_component(_file_basename ${_file} NAME_WE)
+  string(REGEX REPLACE "unit-(.+)" "python-test-\\1" testcase ${_file_basename})
+
+  # Add tests
+  add_test(
+    NAME ${testcase}
+    COMMAND python ${_file}
+    )
+
+endforeach()

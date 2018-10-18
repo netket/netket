@@ -78,6 +78,20 @@ endif()
 #
 ################################################################################
 
+# Install Python module
+################################################################################
+
+find_program(PIP pip)
+add_custom_target(
+ install_nktools ALL
+ COMMAND ${PIP} install ..
+ COMMENT "Install nktools."
+)
+
+#
+################################################################################
+
+
 # option(NETKET_ENABLE_BENCHMARKS "Enable building benchmarks." ON)
 # option(BENCHMARK_ENABLE_TESTING "" OFF)
 # option(BENCHMARK_ENABLE_INSTALL "" OFF)
@@ -144,7 +158,7 @@ add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
 # dependency to an interface library
-add_dependencies(netket eigen_project)
+add_dependencies(netket eigen_project install_nktools)
 
 #
 # Testing
