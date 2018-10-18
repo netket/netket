@@ -84,7 +84,7 @@ endif()
 find_program(PIP pip)
 add_custom_target(
  install_nktools ALL
- COMMAND ${PIP} install ..
+ COMMAND ${PIP} install .. "--user"
  COMMENT "Install nktools."
 )
 
