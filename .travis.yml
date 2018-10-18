@@ -92,6 +92,9 @@ script:
   - uname -a
   - $CXX --version
 
+  # Install python packages
+  - pip install scipy matplotlib
+
   # compile and execute unit tests
   - mkdir -p build && cd build
   - cmake .. ${CMAKE_OPTIONS} -DENABLE_TESTS=ON -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
