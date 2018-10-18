@@ -43,7 +43,7 @@ namespace ietl {
     typedef typename vectorspace_traits<VS>::magnitude_type magnitude_type;
     typedef typename vectorspace_traits<VS>::size_type size_type;
 
-    Tmatrix() : error_tol(pow(std::numeric_limits<magnitude_type>::epsilon(),2./3.)) {}
+    Tmatrix() : error_tol(pow(std::numeric_limits<magnitude_type>::epsilon(), 2./3.)) {}
 
     inline void push_back(magnitude_type a, magnitude_type b);
     inline void push_back(std::pair<magnitude_type,magnitude_type> a_and_b)
