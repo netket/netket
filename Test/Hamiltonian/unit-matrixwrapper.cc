@@ -51,8 +51,9 @@ std::vector<netket::json> GetHamiltonianInputs() {
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
   std::vector<std::vector<double>> szsz = {
       {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}};
-  std::complex<double> I(0, 1);
-  std::vector<std::vector<std::complex<double>>> sy = {{0, I}, {-I, 0}};
+
+  std::complex<double> Iu(0, 1);
+  std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
 
   pars.clear();
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
@@ -172,7 +173,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
     auto ed = sparse.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
     std::sort(eigs.data(), eigs.data() + eigs.size());
-
+    
     const double sqrt5 = std::sqrt(5);
     CHECK(eigs(0) == Approx(-sqrt5));
     CHECK(eigs(1) == Approx(sqrt5));
