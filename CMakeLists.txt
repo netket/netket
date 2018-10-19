@@ -74,8 +74,7 @@ target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 # IETL
 ################################################################################
 add_library(IETL INTERFACE)
-target_include_directories(IETL
-    SYSTEM INTERFACE "External/IETL")
+target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/IETL")
 
 
 # MPI
