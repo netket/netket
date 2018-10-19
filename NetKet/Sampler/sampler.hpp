@@ -23,6 +23,7 @@
 #include "abstract_sampler.hpp"
 #include "custom_sampler.hpp"
 #include "custom_sampler_pt.hpp"
+#include "exact_sampler.hpp"
 #include "metropolis_exchange.hpp"
 #include "metropolis_exchange_pt.hpp"
 #include "metropolis_hamiltonian.hpp"
@@ -70,6 +71,8 @@ class Sampler : public AbstractSampler<WfType> {
         s_ = Ptype(new MetropolisLocal<WfType>(psi));
       } else if (pars["Sampler"]["Name"] == "MetropolisLocalPt") {
         s_ = Ptype(new MetropolisLocalPt<WfType>(psi, pars));
+      } else if (pars["Sampler"]["Name"] == "Exact") {
+        s_ = Ptype(new ExactSampler<WfType>(psi));
       }
     } else {
       if (FieldExists(pars["Sampler"], "Nreplicas")) {
@@ -114,7 +117,8 @@ class Sampler : public AbstractSampler<WfType> {
           "MetropolisLocal",       "MetropolisLocalPt",
           "MetropolisExchange",    "MetropolisExchangePt",
           "MetropolisHamiltonian", "MetropolisHamiltonianPt",
-          "MetropolisHop"};
+          "MetropolisHop",         "Exact",
+      };
 
       const auto name = pars["Sampler"]["Name"];
 
