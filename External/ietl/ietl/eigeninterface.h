@@ -23,13 +23,13 @@ namespace ietl {
 template <class Gen>
 void generate(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>& c,
               Gen& gen) {
-  for (size_t i = 0; i < c.rows(); ++i)
+  for (int i = 0; i < c.rows(); ++i)
     c(i, 0) = std::complex<double>(gen(), gen());
 }
 
 template <class Gen>
 void generate(Eigen::Matrix<double, Eigen::Dynamic, 1>& c, Gen& gen) {
-  for (size_t i = 0; i < c.rows(); ++i) c(i, 0) = static_cast<double>(gen());
+  for (int i = 0; i < c.rows(); ++i) c(i, 0) = static_cast<double>(gen());
 }
 
 template <class TCoeffs>
