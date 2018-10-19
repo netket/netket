@@ -75,7 +75,8 @@ target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 ################################################################################
 add_library(IETL INTERFACE)
 target_include_directories(IETL
-    INTERFACE "External/IETL")
+    SYSTEM INTERFACE "External/IETL")
+
 
 # MPI
 ################################################################################
