@@ -62,6 +62,9 @@ matrix:
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
 
+install:
+  - pip install scipy matplotlib --user
+
 
 cache:
   apt: true
@@ -91,9 +94,6 @@ script:
   # show OS/compiler version
   - uname -a
   - $CXX --version
-
-  # Install python packages
-  - pip install scipy matplotlib
 
   # compile and execute unit tests
   - mkdir -p build && cd build
