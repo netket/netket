@@ -37,7 +37,9 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test']
         packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev',
+                   'python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
   - os: linux
     compiler: gcc
@@ -48,7 +50,9 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test']
         packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev','liblapack3',
-                   'libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'libblas-dev', 'liblapack-dev','liblapacke-dev',
+                   'python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
   - os: linux
     compiler: clang
@@ -60,7 +64,9 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev',
+                   'python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
 
 cache:
@@ -86,8 +92,6 @@ script:
        brew upgrade openmpi
        cmake --version
        pip install scipy matplotlib --user
-     else
-       apt-get install python-numpy python-scipy python-matplotlib python-tk
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
