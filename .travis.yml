@@ -62,9 +62,6 @@ matrix:
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
 
-install:
-  - pip install scipy matplotlib --user
-
 
 cache:
   apt: true
@@ -78,6 +75,7 @@ cache:
 
 script:
   # get CMake and Mpi (only for systems with brew - macOS)
+  # get Python-tk package if Linux
   - |
      if [[ (-x $(which brew)) ]]; then
        brew install cmake
@@ -87,6 +85,9 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
+       pip install scipy matplotlib --user
+     else
+       apt-get install python-numpy python-scipy python-matplotlib python-tk
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
