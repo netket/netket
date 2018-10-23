@@ -91,6 +91,8 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
+       brew install python
+       brew upgrade python
        pip install scipy matplotlib --user
      fi
   # make sure CXX is correctly set
