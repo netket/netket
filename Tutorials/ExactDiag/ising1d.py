@@ -55,7 +55,7 @@ pars['Observables'] = {
 #suitable for this small system
 pars['GroundState']={
     'Method'         : 'ED',
-    'MatrixFormat'   : 'Free',   #choose between 'Dense', 'Sparse', and 'Free'
+    'MatrixFormat'   : 'Direct',   #choose between 'Dense', 'Sparse', and 'Direct'
     'OutputFile'     : "test",
     'NumEigenvalues' : 1,
     'Precision'      : 1e-14,

@@ -27,9 +27,10 @@
 *****************************************************************************/
 
 /* $Id: iteration.h,v 1.11 2004/06/29 09:27:48 troyer Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_ITERATION_H_
-#define EXTERNAL_IETL_ITERATION_H_
+#ifndef EXTERNAL_IETL_IETL_ITERATION_H_
+#define EXTERNAL_IETL_IETL_ITERATION_H_
 
 #include <complex>
 #include <string>
@@ -316,4 +317,4 @@ class bandlanczos_iteration_nhighest {
 
 }
 
-#endif  // EXTERNAL_IETL_ITERATION_H_
+#endif  // EXTERNAL_IETL_IETL_ITERATION_H_

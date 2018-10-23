@@ -28,9 +28,10 @@
 *****************************************************************************/
 
 /* $Id: fmatrix.h,v 1.8 2003/04/24 13:49:40 renev Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_FMATRIX_H_
-#define EXTERNAL_IETL_FMATRIX_H_
+#ifndef EXTERNAL_IETL_IETL_FMATRIX_H_
+#define EXTERNAL_IETL_IETL_FMATRIX_H_
 
 #include <cstddef>
 
@@ -64,4 +65,4 @@ namespace ietl {
     size_type minor() { return n_; }
   };
 }
-#endif  // EXTERNAL_IETL_FMATRIX_H_
+#endif  // EXTERNAL_IETL_IETL_FMATRIX_H_

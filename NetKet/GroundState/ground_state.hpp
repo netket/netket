@@ -92,8 +92,10 @@ class GroundState {
       // Compute eigenvalues and groundstate, if needed
       eddetail::result_t edresult;
       std::string matrix_format =
-        FieldOrDefaultVal<json, std::string>(pars, "MatrixFormat", "Sparse");
+        FieldOrDefaultVal<json, std::string>(pars["GroundState"],
+                                             "MatrixFormat", "Sparse");
       bool get_groundstate = FieldExists(pars, "Observables");
+
       if (matrix_format == "Sparse") {
         edresult = lanczos_ed(hamiltonian, false, n_eigenvalues, max_iter,
                               random_seed, precision, get_groundstate);
