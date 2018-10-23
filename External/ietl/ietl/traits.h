@@ -27,9 +27,10 @@
 *****************************************************************************/
 
 /* $Id: traits.h,v 1.2 2004/02/15 23:30:42 troyer Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_TRAITS_H_
-#define EXTERNAL_IETL_TRAITS_H_
+#ifndef EXTERNAL_IETL_IETL_TRAITS_H_
+#define EXTERNAL_IETL_IETL_TRAITS_H_
 
 #include <complex>
 
@@ -53,4 +54,4 @@ namespace ietl {
   };
 }
 
-#endif  // EXTERNAL_IETL_TRAITS_H_
+#endif  // EXTERNAL_IETL_IETL_TRAITS_H_

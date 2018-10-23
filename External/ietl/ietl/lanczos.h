@@ -27,9 +27,10 @@
  *****************************************************************************/
 
 /* $Id: lanczos.h,v 1.34 2004/06/29 08:31:02 troyer Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_LANCZOS_H_
-#define EXTERNAL_IETL_LANCZOS_H_
+#ifndef EXTERNAL_IETL_IETL_LANCZOS_H_
+#define EXTERNAL_IETL_IETL_LANCZOS_H_
 
 #include <ietl/complex.h>
 #include <ietl/eigeninterface.h>
@@ -446,4 +447,4 @@ lanczos<MATRIX, VS>::make_step(int j, vector_type& vec3) {
 
 }  // end of namespace ietl.
 
-#endif  // EXTERNAL_IETL_LANCZOS_H_
+#endif  // EXTERNAL_IETL_IETL_LANCZOS_H_

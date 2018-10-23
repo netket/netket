@@ -27,9 +27,10 @@
 *****************************************************************************/
 
 /* $Id: complex.h,v 1.5 2003/09/13 10:30:24 troyer Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_COMPLEX_H_
-#define EXTERNAL_IETL_COMPLEX_H_
+#ifndef EXTERNAL_IETL_IETL_COMPLEX_H_
+#define EXTERNAL_IETL_IETL_COMPLEX_H_
 
 #include <complex>
 
@@ -51,4 +52,4 @@ namespace ietl {
   template <class T> std::complex<T> conj(std::complex<T> x)
   { return std::conj(x); }
 }
-#endif  // EXTERNAL_IETL_COMPLEX_H_
+#endif  // EXTERNAL_IETL_IETL_COMPLEX_H_

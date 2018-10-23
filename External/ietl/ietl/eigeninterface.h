@@ -1,4 +1,4 @@
-// Copyright 2018 Alexander Wietek - All Rights Reserved.
+// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXTERNAL_IETL_EIGENINTERFACE_H_
-#define EXTERNAL_IETL_EIGENINTERFACE_H_
+/* author: Alexander Wietek, 2018/10/22 */
+
+#ifndef EXTERNAL_IETL_IETL_EIGENINTERFACE_H_
+#define EXTERNAL_IETL_IETL_EIGENINTERFACE_H_
 
 #include <ietl/complex.h>
 #include <Eigen/SparseCore>
@@ -58,4 +60,4 @@ typename real_type<TCoeffs>::type two_norm(
 }
 }  // namespace ietl
 
-#endif  // EXTERNAL_IETL_EIGENINTERFACE_H_
+#endif  // EXTERNAL_IETL_IETL_EIGENINTERFACE_H_

@@ -27,9 +27,10 @@
 *****************************************************************************/
 
 /* $Id: tmatrix.h,v 1.12 2004/02/15 23:32:29 troyer Exp $ */
+/* Modified by Alexander Wietek, 2018/10/22 */
 
-#ifndef EXTERNAL_IETL_TMATRIX_H_
-#define EXTERNAL_IETL_TMATRIX_H_
+#ifndef EXTERNAL_IETL_IETL_TMATRIX_H_
+#define EXTERNAL_IETL_IETL_TMATRIX_H_
 #include <ietl/vectorspace.h>
 #include <stdexcept>
 #include <limits>
@@ -241,4 +242,4 @@ namespace ietl {
     }
   } // end of compute.
 }  //----------------------------------------------------------------------
-#endif  // EXTERNAL_IETL_TMATRIX_H_
+#endif  // EXTERNAL_IETL_IETL_TMATRIX_H_
