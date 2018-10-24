@@ -25,7 +25,6 @@ matrix:
   - os: osx
     osx_image: xcode8.3
     install:
-      - brew install python
       - brew upgrade python
 
   - os: osx
