@@ -18,18 +18,18 @@ matrix:
   # clang sanitizer
   - os: osx
     osx_image: xcode9.4
-    python: 3.6
     compiler: clang
     env:
       - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
 
   - os: osx
     osx_image: xcode8.3
-    python: 3.6
+    install:
+      - brew install python
+      - brew upgrade python
 
   - os: osx
     osx_image: xcode9.4
-    python: 3.6
 
   - os: linux
     compiler: gcc
@@ -96,7 +96,7 @@ script:
        cmake --version
        pip install numpy scipy matplotlib networkx --user
      fi
-     
+
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
