@@ -51,6 +51,24 @@ class KnownOutput(unittest.TestCase):
             pars['Graph'] = {
                 'Edges': list(G.edges),
                 'EdgeColors': edge_colors,
+                'IsBipartite': False,
+            }
+
+            self.assertEqual(pars["Graph"], nkt.graph(G))
+
+    @unittest.skipIf((not import_nx), "No NetworkX module found.")
+    def test1_nx_graph(self):
+        if import_nx:
+            L = 20
+            G = nx.Graph()
+            for i in range(L):
+                G.add_edge(i, (i + 1) % L)
+
+            # Specify custom graph
+            pars = {}
+            pars['Graph'] = {
+            'Edges': list(G.edges),
+            'IsBipartite': True,
             }
 
             self.assertEqual(pars["Graph"], nkt.graph(G))
@@ -74,9 +92,10 @@ class KnownOutput(unittest.TestCase):
             pars['Graph'] = {
                 'Edges': list(G.get_edgelist()),
                 'EdgeColors': edge_colors,
+                'IsBipartite': False,
             }
 
-            self.assertEqual(pars["Graph"], nkt.graph(G))
+            self.assertEqual(pars["Graph"], nkt.graph(G,automorphisms=False))
 
 
 if __name__ == "__main__":

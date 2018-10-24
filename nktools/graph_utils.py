@@ -19,6 +19,7 @@ Input script helper functions for creating custom graphs.
 # Test to see if networkx is installed
 try:
     import networkx as nx
+    from networkx.algorithms import bipartite
     import_nx = True
 except ImportError:
     import_nx = False
@@ -31,7 +32,7 @@ except ImportError:
     import_ig = False
 
 
-def graph(graph):
+def graph(graph,automorphisms=True):
     """
     Takes a networkx (or igraph) graph as input and extracts necessary data to
     write to NetKet Graph parameters.
@@ -41,6 +42,9 @@ def graph(graph):
 
         graph : (nx.Graph or ig.igraphs)
              Custom graph.
+
+        automorphisms: (bool, default True)
+             Whether to compute the automorphisms.
 
     Returns
     -------
@@ -70,10 +74,12 @@ def graph(graph):
             except KeyError:
                 print("No edge colors found.")
 
+            pars['IsBipartite']=bipartite.is_bipartite(graph)
+
             return pars
 
     # Check for igraph graph
-    elif import_ig:
+    if import_ig:
         if isinstance(graph, type(ig.Graph())):
 
             # Extract edge data
@@ -86,11 +92,20 @@ def graph(graph):
             try:
                 pars['EdgeColors'] = [[u, v, graph.es['color']]
                                       for u, v in graph.get_edgelist()]
-
             except KeyError:
                 print("No edge colors found.")
+
+            if(automorphisms):
+                pars['Automorphisms']=graph.get_isomorphisms_vf2()
+
+            pars['IsBipartite']=graph.is_bipartite()
+
+
 
             return pars
 
     else:
         raise TypeError("Neither igraph nor networkx could be imported")
+
+
+    raise TypeError("Cannot convert the given graph into NetKet format")

@@ -18,6 +18,7 @@ Netket python utilities.
 from __future__ import print_function
 import json
 import numpy as np
+import numbers
 import matplotlib.pyplot as plt
 
 
@@ -97,7 +98,7 @@ def get_obsv_from_json(outputfile):
     return data
 
 
-def plot_observable(outputfile, observable, exact=None):
+def plot_observable(outputfile, observable, obstag="Iteration",cut=50,exact=None):
     """
     Arguments
     ---------
@@ -111,8 +112,16 @@ def plot_observable(outputfile, observable, exact=None):
             observables can also be used. See the tutorial
             Input_Driver/sigmax.py.
 
+        obstag: string (default "Iteration")
+           Name of the quantity to plot the given observable against.
+
+        cut : int (default 50)
+            Only the last cut values are used for plotting.
+
         exact : None (or float)
             Exact answer for observable. If given, used to calculate the error.
+
+
     """
 
     plt.ion()
@@ -120,15 +129,30 @@ def plot_observable(outputfile, observable, exact=None):
     while (True):
         plt.clf()
         plt.ylabel(observable)
-        plt.xlabel('Iteration #')
+        plt.xlabel(obstag)
 
         data = get_obsv_from_json(outputfile)
-        iters = data["Iteration"]
-        obsv = data[observable]["Mean"]
-        sigma = data[observable]["Sigma"]
+        iters = data[obstag]
+
+        if("Mean" in data[observable]):
+            obsv = data[observable]["Mean"]
+            has_mean=True
+
+        if(not has_mean):
+            obsv=data[observable]        
+
+        if("Sigma" in data[observable]):
+            has_sigma=True
+            sigma = data[observable]["Sigma"]
+            has_sigma=all(isinstance(s,numbers.Real) for s in sigma)
+        else:
+            has_sigma=False
 
         nres = len(iters)
-        cut = 50
+
+        if(cut==None or cut<0):
+            cut=0
+
         if (nres > cut):
 
             fitx = iters[-cut:-1]
@@ -136,7 +160,7 @@ def plot_observable(outputfile, observable, exact=None):
             z = np.polyfit(fitx, fity, deg=0)
             p = np.poly1d(z)
 
-            plt.xlim([nres - cut, nres])
+            plt.xlim([iters[-cut], iters[-1]])
             maxval = np.max(obsv[-cut:-1])
             minval = np.min(obsv[-cut:-1])
 
@@ -153,16 +177,6 @@ def plot_observable(outputfile, observable, exact=None):
                     fontsize=15,
                     transform=plt.gca().transAxes)
 
-                plt.axhline(
-                    y=exact,
-                    xmin=0,
-                    xmax=iters[-1],
-                    linewidth=2,
-                    color='k',
-                    label='Exact')
-
-                plt.legend(frameon=False)
-
                 plt.ylim([
                     exact - (np.abs(exact) * 0.01),
                     maxval + (np.abs(maxval) * 0.01)
@@ -174,7 +188,22 @@ def plot_observable(outputfile, observable, exact=None):
                 ])
 
             plt.plot(fitx, p(fitx))
-            plt.errorbar(iters, obsv, yerr=sigma, color='red')
+
+        if(exact!= None):
+            plt.axhline(
+                y=exact,
+                xmin=iters[0],
+                xmax=iters[-1],
+                linewidth=2,
+                color='k',
+                label='Exact')
+
+        if(has_sigma):
+            plt.errorbar(iters, obsv, yerr=sigma, color='red',label=observable)
+        else:
+            plt.plot(iters,obsv,color='red')
+
+        plt.legend(frameon=False)
         plt.pause(1)
         # plt.draw()
 

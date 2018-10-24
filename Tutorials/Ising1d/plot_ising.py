@@ -20,4 +20,4 @@ exact = -1.274549484318e+00 * 20
 #N=80
 # exact=-1.273321360724e+00*80
 
-nkt.general_utils.plot_observable("test", "Energy", exact=exact)
+nkt.general_utils.plot_observable("test", "Energy", "Iteration",exact=exact)
