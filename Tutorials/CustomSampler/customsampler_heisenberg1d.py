@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from __future__ import print_function
-import json
+import nktools as nkt
 
 pars = {}
 
@@ -23,7 +21,7 @@ pars = {}
 # (adapted from Heisenberg1d tutorial)
 # (you can use plot_heis.py from Heisenberg1d folder identically here to plot results)
 
-L=20
+L = 20
 
 # defining the lattice
 pars['Graph'] = {
@@ -59,18 +57,18 @@ operators = []
 sites = []
 weights = []
 for i in range(L):
-     operators.append(exchange_flip)
-     sites.append([i, (i + 1) % L])
-     weights.append(weight_exchange_flip)
-     operators.append(spin_flip)
-     sites.append([i])
-     weights.append(weight_spin_flip)
+    operators.append(exchange_flip)
+    sites.append([i, (i + 1) % L])
+    weights.append(weight_exchange_flip)
+    operators.append(spin_flip)
+    sites.append([i])
+    weights.append(weight_spin_flip)
 
 # now we define the custom sampler accordingly
 pars['Sampler'] = {
-    'MoveOperators' : operators,
-    'ActingOn' : sites,
-    'MoveWeights' : weights,
+    'MoveOperators': operators,
+    'ActingOn': sites,
+    'MoveWeights': weights,
     # parallel tempering is also possible with custom sampler (uncomment the following line)
     #'Nreplicas' : 12,
 }
@@ -92,11 +90,4 @@ pars['GroundState'] = {
     'OutputFile': 'test',
 }
 
-json_file = "customsampler_heisenberg1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+nkt.write_input(pars, json_file="customsampler_heisenberg1d.json")

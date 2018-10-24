@@ -15,6 +15,7 @@
 """
 Netket python utilities.
 """
+from __future__ import print_function
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -115,7 +116,7 @@ def plot_observable(outputfile, observable, exact=None):
     """
 
     plt.ion()
-    plt.pause(2)  # Necessary to give NetKet time to write to outputfile
+
     while (True):
         plt.clf()
         plt.ylabel(observable)
@@ -127,7 +128,7 @@ def plot_observable(outputfile, observable, exact=None):
         sigma = data[observable]["Sigma"]
 
         nres = len(iters)
-        cut = 60
+        cut = 50
         if (nres > cut):
 
             fitx = iters[-cut:-1]

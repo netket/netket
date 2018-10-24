@@ -12,62 +12,61 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
+import nktools as nkt
 
-from __future__ import print_function
-import json
-
-pars={}
+pars = {}
 
 #defining the lattice
-pars['Graph']={
-    'Name'           : 'Hypercube',
-    'L'              : 20,
-    'Dimension'      : 1,
-    'Pbc'            : True,
+pars['Graph'] = {
+    'Name': 'Hypercube',
+    'L': 20,
+    'Dimension': 1,
+    'Pbc': True,
 }
 
 #defining the hamiltonian
-pars['Hamiltonian']={
-    'Name'           : 'Heisenberg',
-    'TotalSz'        : 0,
+pars['Hamiltonian'] = {
+    'Name': 'Heisenberg',
+    'TotalSz': 0,
 }
 
 #defining the wave function
-pars['Machine']={
-    'Name'           : 'FFNN',
-    'Alpha'          : 1,
-    'Layers'         : [{'Name':'FullyConnected', 'Inputs': 20, 'Outputs':20,"UseBias":True,'Activation':'Lncosh'}],
+pars['Machine'] = {
+    'Name':
+    'FFNN',
+    'Alpha':
+    1,
+    'Layers': [{
+        'Name': 'FullyConnected',
+        'Inputs': 20,
+        'Outputs': 20,
+        "UseBias": True,
+        'Activation': 'Lncosh'
+    }],
 }
 
 #defining the sampler
 #here we use Metropolis sampling
 #using moves from the matrix elements of the hamiltonian
-pars['Sampler']={
-    'Name'           : 'MetropolisHamiltonian',
+pars['Sampler'] = {
+    'Name': 'MetropolisHamiltonian',
 }
 
 # defining the Optimizer
 pars['Optimizer'] = {
     'Name': 'Sgd',
-    'LearningRate'   : 0.01,
+    'LearningRate': 0.01,
 }
 
 #defining the GroundState method
 #here we use the Stochastic Reconfiguration Method
-pars['GroundState']={
-    'Method'         : 'Sr',
-    'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 1000,
-    'Diagshift'      : 0.01,
-    'UseIterative'   : False,
-    'OutputFile'     : 'test',
+pars['GroundState'] = {
+    'Method': 'Sr',
+    'Nsamples': 1.0e3,
+    'NiterOpt': 1000,
+    'Diagshift': 0.01,
+    'UseIterative': False,
+    'OutputFile': 'test',
 }
 
-json_file="heisenberg1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+nkt.write_input(pars, json_file="heisenberg1d.json")

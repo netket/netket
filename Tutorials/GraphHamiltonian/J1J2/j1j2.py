@@ -12,8 +12,7 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
-from __future__ import print_function
-import json
+import nktools as nkt
 import numpy as np
 import networkx as nx
 
@@ -49,10 +48,7 @@ for i in range(L):
 edge_colors = [[u, v, G[u][v]['color']] for u, v in G.edges]
 
 # Specify custom graph
-pars['Graph'] = {
-    'Edges': list(G.edges),
-    'EdgeColors': edge_colors,
-}
+pars['Graph'] = nkt.graph(G)
 
 #We chose a spin 1/2 hilbert space with total Sigmaz=0
 pars['Hilbert'] = {
@@ -100,11 +96,4 @@ pars['GroundState'] = {
     'OutputFile': "test",
 }
 
-json_file = "j1j2.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+nkt.write_input(pars, json_file="j1j2.json")

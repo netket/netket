@@ -12,24 +12,22 @@
 #See the License for the specific language governing permissions and
 #limitations under the License.
 
+import nktools as nkt
 
-from __future__ import print_function
-import json
-
-pars={}
+pars = {}
 
 #defining the lattice
-pars['Graph']={
-    'Name'           : 'Hypercube',
-    'L'              : 10,
-    'Dimension'      : 1 ,
-    'Pbc'            : True,
+pars['Graph'] = {
+    'Name': 'Hypercube',
+    'L': 10,
+    'Dimension': 1,
+    'Pbc': True,
 }
 
 #defining the hamiltonian
-pars['Hamiltonian']={
-    'Name'           : 'Ising',
-    'h'              : 1.0,
+pars['Hamiltonian'] = {
+    'Name': 'Ising',
+    'h': 1.0,
 }
 
 # define two initial states
@@ -40,27 +38,18 @@ initial_states.append([[fraction, .0] for _ in range(1024)])
 # state 1: exactly the first basis state
 initial_states.append([[1., .0]] + [[0., 0.] for _ in range(1023)])
 
-
-
 # Specify the parameters for the time evolution
-pars['TimeEvolution']={
-    'TimeStepper'    : 'Dopri54',
-    'AbsTol'         : 1e-9,
-    'RelTol'         : 1e-9,
-    'MatrixWrapper'  : 'Sparse',
-    'StartTime'      :  0.0,
-    'EndTime'        : 10.0,
-    'TimeStep'       :  0.5,
-    'OutputFiles'    : 'ising1d_output_%i.txt',
-# Specifiy a set of initial configurations to propagate
-    'InitialStates'  : initial_states
+pars['TimeEvolution'] = {
+    'TimeStepper': 'Dopri54',
+    'AbsTol': 1e-9,
+    'RelTol': 1e-9,
+    'MatrixWrapper': 'Sparse',
+    'StartTime': 0.0,
+    'EndTime': 10.0,
+    'TimeStep': 0.5,
+    'OutputFiles': 'ising1d_output_%i.txt',
+    # Specifiy a set of initial configurations to propagate
+    'InitialStates': initial_states
 }
 
-json_file="ising1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile, indent=4)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+nkt.write_input(pars, json_file="ising1d.json")
