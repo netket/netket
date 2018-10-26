@@ -45,6 +45,15 @@ class MPSPeriodic : public AbstractMachine<T> {
   // Period of translational symmetry (has to be a divisor of N)
   int symperiod_;
 
+  // Used for tree look up
+  int Nleaves_;
+  // Map from site that changes to the corresponding "leaves"
+  // Shape (N_, nr of leaves for the corresponding site)
+  std::vector<std::vector<int>> leaves_of_site_;
+  // Contractions needed to produce each leaf
+  // Shape (total leaves, 2)
+  std::vector<std::vector<int>> leaf_contractions_;
+
   // MPS Matrices (stored as [symperiod, d, D, D] or [symperiod, d, D, 1])
   std::vector<std::vector<MatrixType>> W_;
 
@@ -119,6 +128,9 @@ class MPSPeriodic : public AbstractMachine<T> {
       }
     }
 
+    // Initialize tree parameters
+    InitTree();
+
     // Machine creation messages
     if (diag) {
       InfoMessage() << "Periodic diagonal MPS machine with " << N_
@@ -143,6 +155,80 @@ class MPSPeriodic : public AbstractMachine<T> {
     for (int i = 0; i < d_; i++) {
       confindex_[localstates[i]] = i;
     }
+  }
+
+  void InitTree() {
+    // Initializes vectors used for tree look up tables
+    // leaves_of_site_ and leaf_contractions_
+
+    std::vector<int> two_vector(2), empty_vector, level_start;
+    std::vector<std::vector<int>> above;
+    int level = 1, available_ind = 0, available_level = 0;
+    bool available = false;
+
+    level_start.push_back(0);
+    level_start.push_back(N_);
+
+    int length = level_start[level] - level_start[level - 1];
+    while (length > 1 or available) {
+      above.push_back(empty_vector);
+      // Iterate level-1
+      for (int i = 0; i < length - 1; i += 2) {
+        // Construct above for level-1
+        above.back().push_back(level_start[level] + i / 2);
+        above.back().push_back(level_start[level] + i / 2);
+        // Construct leaf_contractions_ for level
+        two_vector[0] = level_start[level - 1] + i;
+        two_vector[1] = level_start[level - 1] + i + 1;
+        leaf_contractions_.push_back(two_vector);
+      }
+      if (length % 2 == 1) {
+        if (available) {
+          // Connect the two odd leaves
+          above.back().push_back(level_start[level] + (length - 1) / 2);
+          above[available_level].push_back(level_start[level] +
+                                           (length - 1) / 2);
+
+          two_vector[0] = level_start[level] - 1;
+          two_vector[1] = available_ind;
+          leaf_contractions_.push_back(two_vector);
+
+          level_start.push_back(level_start.back() + length / 2 + 1);
+          available = false;
+        } else {
+          available = true;
+          available_ind = level_start[level] - 1;
+          available_level = level - 1;
+          level_start.push_back(level_start.back() + length / 2);
+        }
+      } else {
+        level_start.push_back(level_start.back() + length / 2);
+      }
+      level++;
+      length = level_start[level] - level_start[level - 1];
+    }
+    Nleaves_ = level_start.back();
+
+    // Flatten above vector
+    std::vector<int> flat_above;
+    for (std::size_t l = 0; l < above.size(); l++) {
+      for (std::size_t k = 0; k < above[l].size(); k++) {
+        flat_above.push_back(above[l][k]);
+      }
+    }
+
+    // Create leaves_of_site_ from above vector
+    for (int i = 0; i < N_; i++) {
+      std::vector<int> leaves;
+      leaves.push_back(flat_above[i]);
+      while (flat_above[leaves.back()] < Nleaves_ - 1) {
+        leaves.push_back(flat_above[leaves.back()]);
+      }
+      leaves.push_back(Nleaves_ - 1);
+      leaves_of_site_.push_back(leaves);
+      leaves.clear();
+    }
+    Nleaves_ += -N_;
   }
 
   int Npar() const override { return npar_; }
@@ -201,26 +287,30 @@ class MPSPeriodic : public AbstractMachine<T> {
   int Nvisible() const override { return N_; }
 
   void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
-    // We need 2 * L matrix lookups for each string, where L is the MPS length
+    for (int k = 0; k < Nleaves_; k++) {
+      _InitLookup_check(lt, k);
+      if (leaf_contractions_[k][0] < N_) {
+        if (leaf_contractions_[k][1] < N_) {
+          lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                           [confindex_[v(leaf_contractions_[k][0])]],
+                         W_[leaf_contractions_[k][1] % symperiod_]
+                           [confindex_[v(leaf_contractions_[k][1])]]);
+        } else {
+          lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                           [confindex_[v(leaf_contractions_[k][0])]],
+                         lt.M(leaf_contractions_[k][1] - N_));
+        }
 
-    // First (left) site
-    _InitLookup_check(lt, 0);
-    lt.M(0) = W_[0][confindex_[v(0)]];
-
-    // Last (right) site
-    _InitLookup_check(lt, 1);
-    lt.M(1) = W_[(N_ - 1) % symperiod_][confindex_[v(N_ - 1)]];
-
-    // Rest sites
-    for (int i = 2; i < 2 * N_; i += 2) {
-      _InitLookup_check(lt, i);
-      int site = i / 2;
-      lt.M(i) = prod(lt.M(i - 2), W_[(site % symperiod_)][confindex_[v(site)]]);
-
-      _InitLookup_check(lt, i + 1);
-      site = N_ - 1 - site;
-      lt.M(i + 1) =
-          prod(W_[site % symperiod_][confindex_[v(site)]], lt.M(i - 1));
+      } else {
+        if (leaf_contractions_[k][1] < N_) {
+          lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
+                         W_[leaf_contractions_[k][1] % symperiod_]
+                           [confindex_[v(leaf_contractions_[k][1])]]);
+        } else {
+          lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
+                         lt.M(leaf_contractions_[k][1] - N_));
+        }
+      }
     }
   }
 
@@ -245,7 +335,6 @@ class MPSPeriodic : public AbstractMachine<T> {
     return idx;
   }
 
-  // Check lookups later
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
@@ -253,64 +342,41 @@ class MPSPeriodic : public AbstractMachine<T> {
     if (nchange <= 0) {
       return;
     }
+
+    MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
     std::vector<std::size_t> sorted_ind = sort_indeces(tochange);
-    int site = tochange[sorted_ind[0]];
 
-    // Update left (site++)
-    if (site == 0) {
-      lt.M(0) = W_[0][confindex_[newconf[sorted_ind[0]]]];
-    } else {
-      lt.M(2 * site) =
-          prod(lt.M(2 * (site - 1)),
-               W_[site % symperiod_][confindex_[newconf[sorted_ind[0]]]]);
-    }
+    std::set<int> leaves2update;
+    std::size_t set_len = 0;
+    std::map<int, MatrixType *> base_mat;
 
-    for (std::size_t k = 1; k < nchange; k++) {
-      for (site = tochange[sorted_ind[k - 1]] + 1;
-           site < tochange[sorted_ind[k]]; site++) {
-        lt.M(2 * site) = prod(lt.M(2 * (site - 1)),
-                              W_[site % symperiod_][confindex_[v(site)]]);
+    for (std::size_t k = 0; k < nchange; k++) {
+      int site = tochange[sorted_ind[k]];
+      // Add changed visible matrices to map
+      base_mat[site] =
+          &(W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]]);
+      // Add the rest of matrices that affects
+      for (std::size_t l = 0; l < leaves_of_site_[site].size(); l++) {
+        int leaf = leaves_of_site_[site][l];
+        leaves2update.insert(leaf);
+        if (leaves2update.size() > set_len) {
+          set_len++;
+          for (int i = 0; i < 2; i++) {
+            int lc = leaf_contractions_[leaf - N_][i];
+            if (lc < N_) {
+              if (base_mat.count(lc) == 0) {
+                base_mat[lc] = &(W_[lc % symperiod_][confindex_[v(lc)]]);
+              }
+            } else {
+              base_mat[lc] = &(lt.M(lc - N_));
+            }
+          }
+        }
       }
-      site = tochange[sorted_ind[k]];
-      lt.M(2 * site) =
-          prod(lt.M(2 * (site - 1)),
-               W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]]);
     }
-
-    for (site = tochange[sorted_ind[nchange - 1]] + 1; site < N_; site++) {
-      lt.M(2 * site) = prod(lt.M(2 * (site - 1)),
-                            W_[site % symperiod_][confindex_[v(site)]]);
-    }
-
-    // Update right (site--)
-    site = tochange[sorted_ind[nchange - 1]];
-    if (site == N_ - 1) {
-      lt.M(1) = W_[(N_ - 1) % symperiod_]
-                  [confindex_[newconf[sorted_ind[nchange - 1]]]];
-    } else {
-      lt.M(2 * (N_ - site) - 1) = prod(
-          W_[site % symperiod_][confindex_[newconf[sorted_ind[nchange - 1]]]],
-          lt.M(2 * (N_ - site) - 3));
-    }
-
-    for (std::size_t k = 0; k < nchange - 1; k++) {
-      for (site = tochange[sorted_ind[nchange - 1 - k]] - 1;
-           site > tochange[sorted_ind[nchange - 2 - k]]; site--) {
-        lt.M(2 * (N_ - site) - 1) =
-            prod(W_[site % symperiod_][confindex_[v(site)]],
-                 lt.M(2 * (N_ - site) - 3));
-      }
-      site = tochange[sorted_ind[nchange - 2 - k]];
-      lt.M(2 * (N_ - site) - 1) =
-          prod(W_[site % symperiod_]
-                 [confindex_[newconf[sorted_ind[nchange - 2 - k]]]],
-               lt.M(2 * (N_ - site) - 3));
-    }
-
-    for (site = tochange[sorted_ind[0]] - 1; site >= 0; site--) {
-      lt.M(2 * (N_ - site) - 1) =
-          prod(W_[site % symperiod_][confindex_[v(site)]],
-               lt.M(2 * (N_ - site) - 3));
+    for (auto leaf : leaves2update) {
+      lt.M(leaf - N_) = prod(*(base_mat[leaf_contractions_[leaf - N_][0]]),
+                             *(base_mat[leaf_contractions_[leaf - N_][1]]));
     }
   }
 
@@ -329,7 +395,7 @@ class MPSPeriodic : public AbstractMachine<T> {
   }
 
   T LogVal(const Eigen::VectorXd & /* v */, const LookupType &lt) override {
-    return std::log(trace(lt.M(2 * N_ - 2)));
+    return std::log(trace(lt.M(Nleaves_ - 1)));
   }
 
   VectorType LogValDiff(
@@ -377,36 +443,69 @@ class MPSPeriodic : public AbstractMachine<T> {
   T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
-    const std::size_t nflip = toflip.size();
+    // Assumes number of levels > 1 (?)
+    std::size_t nflip = toflip.size();
     if (nflip <= 0) {
       return T(0, 0);
     }
-    MatrixType new_prod;
+
+    MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
     std::vector<std::size_t> sorted_ind = sort_indeces(toflip);
-    int site = toflip[sorted_ind[0]];
 
-    if (site == 0) {
-      new_prod = W_[0][confindex_[newconf[sorted_ind[0]]]];
-    } else {
-      new_prod =
-          prod(lt.M(2 * (site - 1)),
-               W_[site % symperiod_][confindex_[newconf[sorted_ind[0]]]]);
+    std::set<int> leaves2update;
+    std::map<int, MatrixType> ltpM;
+    std::size_t set_len = 0;
+
+    std::vector<bool> two_vector(2, false);
+    std::map<int, std::vector<bool>> contractions_change;
+
+    for (std::size_t k = 0; k < nflip; k++) {
+      int site = toflip[sorted_ind[k]];
+      // Add changed visible matrices to map
+      ltpM[site] = W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]];
+
+      // Add the rest of matrices that affects
+      for (std::size_t l = 0; l < leaves_of_site_[site].size(); l++) {
+        int leaf = leaves_of_site_[site][l];
+        leaves2update.insert(leaf);
+        if (leaves2update.size() > set_len) {
+          set_len++;
+          ltpM[leaf] = empty_matrix;
+        }
+        // Check the contractions of the new matrix (if they change)
+        for (int i = 0; i < 2; i++) {
+          if (std::find(toflip.begin(), toflip.end(),
+                        leaf_contractions_[leaf - N_][i]) != toflip.end()) {
+            two_vector[i] = true;
+          } else if (leaves2update.find(leaf_contractions_[leaf - N_][i]) !=
+                     leaves2update.end()) {
+            two_vector[i] = true;
+          }
+        }
+        contractions_change[leaf] = two_vector;
+        two_vector[0] = false;
+        two_vector[1] = false;
+      }
     }
 
-    for (std::size_t k = 1; k < nflip; k++) {
-      site = toflip[sorted_ind[k]];
-      new_prod =
-          prod(new_prod,
-               prod(mps_contraction(v, toflip[sorted_ind[k - 1]] + 1, site),
-                    W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]]));
+    // Calculate products
+    for (auto leaf : leaves2update) {
+      std::vector<MatrixType> m(2);
+      for (int i = 0; i < 2; i++) {
+        int lc = leaf_contractions_[leaf - N_][i];
+        if (contractions_change[leaf][i]) {
+          m[i] = ltpM[lc];
+        } else {
+          if (lc < N_) {
+            m[i] = W_[lc % symperiod_][confindex_[v(lc)]];
+          } else {
+            m[i] = lt.M(lc - N_);
+          }
+        }
+      }
+      ltpM[leaf] = prod(m[0], m[1]);
     }
-
-    site = toflip[sorted_ind[nflip - 1]];
-    if (site < N_ - 1) {
-      new_prod = prod(new_prod, lt.M(2 * (N_ - site) - 3));
-    }
-
-    return std::log(trace(new_prod) / trace(lt.M(2 * N_ - 2)));
+    return std::log(trace(ltpM[Nleaves_ + N_ - 1]) / trace(lt.M(Nleaves_ - 1)));
   }
 
   // Derivative with full calculation
