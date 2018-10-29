@@ -87,19 +87,11 @@ class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     matrix_.setZero();
 
     for (int i = 0; i < dim_; ++i) {
-      auto v = hilbert_index.NumberToState(i);
-
-      std::vector<std::complex<double>> matrix_elements;
-      std::vector<std::vector<int>> connectors;
-      std::vector<std::vector<double>> newconfs;
-      the_operator.FindConn(v, matrix_elements, connectors, newconfs);
-
-      for (size_t k = 0; k < connectors.size(); ++k) {
-        auto vk = v;
-        hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
-        auto j = hilbert_index.StateToNumber(vk);
-        matrix_(i, j) += matrix_elements[k];
-      }
+      const auto v = hilbert_index.NumberToState(i);
+      the_operator.ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions, conn.values);
+        matrix_(i, j) += conn.weight;
+      });
     }
   }
 };
