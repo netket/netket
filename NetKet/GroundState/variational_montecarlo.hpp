@@ -159,7 +159,7 @@ class VariationalMonteCarlo {
       bool use_iterative =
           FieldOrDefaultVal(pars["GroundState"], "UseIterative", false);
       use_cholesky_ =
-          FieldOrDefaultVal(pars["GroundState"], "UseCholesky", false);
+          FieldOrDefaultVal(pars["GroundState"], "UseCholesky", true);
       setSrParameters(diagshift, rescale_shift, use_iterative);
     }
 
