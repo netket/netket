@@ -59,6 +59,11 @@ class Hamiltonian : public AbstractHamiltonian {
     return h_->FindConn(v, mel, connectors, newconfs);
   }
 
+  void ForEachConn(const Eigen::VectorXd &v,
+                   ConnCallback callback) const override {
+    return h_->ForEachConn(v, callback);
+  }
+
   const Hilbert &GetHilbert() const override { return h_->GetHilbert(); }
 };
 }  // namespace netket

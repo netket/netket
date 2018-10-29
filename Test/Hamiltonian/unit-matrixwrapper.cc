@@ -16,6 +16,7 @@
 
 #include <Graph/graph.hpp>
 #include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
+#include <Hamiltonian/MatrixWrapper/direct_matrix_wrapper.hpp>
 #include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
 #include <Hamiltonian/hamiltonian.hpp>
 #include <Observable/observable.hpp>
@@ -50,6 +51,7 @@ std::vector<netket::json> GetHamiltonianInputs() {
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
   std::vector<std::vector<double>> szsz = {
       {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}};
+
   std::complex<double> Iu(0, 1);
   std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
 
@@ -106,6 +108,39 @@ TEST_CASE("DenseMatrixWrapper for Hamiltonian is Hermitian",
   }
 }
 
+TEST_CASE("DirectMatrixWrapper gives same results as SparseMatrixWrapper",
+          "[matrix-wrapper]") {
+  auto input_tests = GetHamiltonianInputs();
+  std::size_t ntests = input_tests.size();
+
+  for (std::size_t it = 0; it < ntests; it++) {
+    SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
+            input_tests[it]["Hamiltonian"].dump()) {
+      auto pars = input_tests[it];
+      netket::Graph graph(pars);
+      netket::Hamiltonian hamiltonian(graph, pars);
+
+      netket::DirectMatrixWrapper<netket::AbstractHamiltonian> direct(
+          hamiltonian);
+      netket::SparseMatrixWrapper<netket::AbstractHamiltonian> sparse(
+          hamiltonian);
+
+      Eigen::VectorXcd basis(direct.GetDimension());
+      Eigen::VectorXcd direct_result(direct.GetDimension());
+      Eigen::VectorXcd sparse_result(direct.GetDimension());
+      for (int i = 0; i < direct.GetDimension(); i++) {
+        basis.setZero();
+        basis(i) = 1.0;
+        direct_result = direct.Apply(basis);
+        sparse_result = sparse.Apply(basis);
+
+        INFO("i=" << i);
+        REQUIRE(direct_result.isApprox(sparse_result));
+      }
+    }
+  }
+}
+
 TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
   netket::json pars;
 
@@ -138,7 +173,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
     auto ed = sparse.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
     std::sort(eigs.data(), eigs.data() + eigs.size());
-
+    
     const double sqrt5 = std::sqrt(5);
     CHECK(eigs(0) == Approx(-sqrt5));
     CHECK(eigs(1) == Approx(sqrt5));

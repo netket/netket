@@ -12,15 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GROUND_STATE_CC
-#define NETKET_GROUND_STATE_CC
+#ifndef NETKET_GROUND_STATE_HPP
+#define NETKET_GROUND_STATE_HPP
 
 #include <memory>
+#include <string>
+#include <vector>
+#include <map>
 
 #include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
 #include "Observable/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 
+#include "exact_diagonalization.hpp"
 #include "imaginary_time.hpp"
 #include "variational_montecarlo.hpp"
 
@@ -70,8 +74,8 @@ class GroundState {
       auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
 
       const auto pars_gs = FieldVal(pars, "GroundState");
-      auto driver = ImaginaryTimePropagation::FromJson(hamiltonian, observables,
-                                                       pars_gs);
+      auto driver =
+          ImaginaryTimePropagation::FromJson(hamiltonian, observables, pars_gs);
 
       // Start with random initial vector
       Eigen::VectorXcd initial =
@@ -80,32 +84,54 @@ class GroundState {
 
       driver.Run(initial);
 
-    } else if (method_name == "Ed") {
-      std::string file_base = FieldVal(pars["Learning"], "OutputFile");
-      SaveEigenValues(hamiltonian, file_base + std::string(".log"));
+    } else if (method_name == "ED") {
+      double precision;
+      int n_eigenvalues, max_iter, random_seed;
+      get_ed_parameters(pars, precision, n_eigenvalues, random_seed, max_iter);
+
+      // Compute eigenvalues and groundstate, if needed
+      eddetail::result_t edresult;
+      std::string matrix_format =
+        FieldOrDefaultVal<json, std::string>(pars["GroundState"],
+                                             "MatrixFormat", "Sparse");
+      bool get_groundstate = FieldExists(pars, "Observables");
+
+      if (matrix_format == "Sparse") {
+        edresult = lanczos_ed(hamiltonian, false, n_eigenvalues, max_iter,
+                              random_seed, precision, get_groundstate);
+      } else if (matrix_format == "Direct") {
+        edresult = lanczos_ed(hamiltonian, true, n_eigenvalues, max_iter,
+                              random_seed, precision, get_groundstate);
+      } else if (matrix_format == "Dense") {
+        edresult = full_ed(hamiltonian, n_eigenvalues, get_groundstate);
+      } else {
+        std::stringstream s;
+        s << "Unknown MatrixFormat for ED: "
+          << FieldVal(pars["GroundState"], "MatrixFormat");
+        throw InvalidInputError(s.str());
+      }
+
+      // Evaluate observables
+      std::map<std::string, double> observables_results;
+      if (FieldExists(pars, "Observables")) {
+        json j;
+        j["MatrixWrapper"] = matrix_format;
+        auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
+        const auto& state = edresult.eigenvectors[0];
+        for (const auto& entry : observables) {
+          const auto& obs = ConstructMatrixWrapper(j, entry);
+          const auto value = obs->Mean(state).real();
+          observables_results[entry.Name()] = value;
+        }
+      }
+
+      write_ed_results(pars, edresult.eigenvalues, observables_results);
 
     } else {
       std::stringstream s;
       s << "Unknown GroundState method: " << method_name;
       throw InvalidInputError(s.str());
     }
-  }
-
-  void SaveEigenValues(const Hamiltonian &hamiltonian,
-                       const std::string &filename, int first_n = 1) {
-    std::ofstream file_ed(filename);
-
-    auto matrix = SparseMatrixWrapper<Hamiltonian>(hamiltonian);
-
-    auto ed = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
-
-    auto eigs = ed.eigenvalues();
-    eigs.conservativeResize(first_n);
-
-    json j(eigs);
-    file_ed << j << std::endl;
-
-    file_ed.close();
   }
 };
 
