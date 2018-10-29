@@ -16,16 +16,18 @@
 
 #include <Eigen/Dense>
 #include <complex>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Utils/random_utils.hpp"
+
+#include <nonstd/span.hpp>
 
 namespace netket {
+
 /**
   Abstract class for Hilbert spaces.
   This class prototypes the methods needed
   by a class satisfying the Hilbert concept.
 */
-
 class AbstractHilbert {
  public:
   /**
