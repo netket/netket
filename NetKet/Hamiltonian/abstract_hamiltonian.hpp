@@ -19,7 +19,24 @@
 #include <complex>
 #include <vector>
 
+#include "Hilbert/hilbert.hpp"
+
 namespace netket {
+
+/**
+ * This struct represents a non-zero matrix-element H(v,v') of an operator for a
+ * given visible state v.
+ */
+struct ConnectorRef {
+  /// The matrix element H(v,v')
+  std::complex<double> weight;
+  /// The positions at which v needs to be changes to obtain v'
+  nonstd::span<const int> positions;
+  /// The new values such that
+  ///    v'(positions[k]) = values[k]
+  /// and v'(i) = v(i) for i ∉ positions.
+  nonstd::span<const double> values;
+};
 
 /**
       Abstract class for Hamiltonians.
@@ -50,6 +67,21 @@ class AbstractHamiltonian {
                         std::vector<std::vector<int>> &connectors,
                         std::vector<std::vector<double>> &newconfs) const = 0;
 
+  using ConnCallback = std::function<void(ConnectorRef)>;
+  /**
+   * Iterates over all states reachable from a given visible configuration v,
+   * i.e., all states v' such that H(v,v') is non-zero.
+   * @param v The visible configuration.
+   * @param callback Function void callback(ConnectorRef conn) which will be
+   * called once for each reachable configuration v'. The parameter conn
+   * contains the value H(v,v') and the information to obtain v' from v. Note
+   * that the members conn.positions and conn.values are spans that can only be
+   * savely used inside the callback. They will become invalid once callback
+   * returns.
+   */
+  virtual void ForEachConn(const Eigen::VectorXd &v,
+                           ConnCallback callback) const;
+
   /**
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
@@ -58,6 +90,21 @@ class AbstractHamiltonian {
 
   virtual ~AbstractHamiltonian() {}
 };
+
+void AbstractHamiltonian::ForEachConn(const Eigen::VectorXd &v,
+                                      ConnCallback callback) const {
+  std::vector<std::complex<double>> weights;
+  std::vector<std::vector<int>> connectors;
+  std::vector<std::vector<double>> newconfs;
+
+  FindConn(v, weights, connectors, newconfs);
+
+  for (size_t k = 0; k < connectors.size(); k++) {
+    const ConnectorRef conn{weights[k], connectors[k], newconfs[k]};
+    callback(conn);
+  }
+}
+
 }  // namespace netket
 
 #endif
