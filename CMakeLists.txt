@@ -43,6 +43,19 @@ add_library(optional_lite INTERFACE)
 target_include_directories(optional_lite
     INTERFACE "${CMAKE_BINARY_DIR}/External/optional-lite")
 
+
+# span-lite
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/span-lite/nonstd/span.hpp")
+    file(DOWNLOAD
+        "https://raw.githubusercontent.com/martinmoene/span-lite/308482109be5df5af750f8ad9d4fb76639a28efb/include/nonstd/span.hpp"
+        "External/span-lite/nonstd/span.hpp")
+endif()
+add_library(span_lite INTERFACE)
+target_include_directories(span_lite
+    INTERFACE "${CMAKE_BINARY_DIR}/External/span-lite")
+
+
 # Eigen3
 ################################################################################
 ExternalProject_Add(
@@ -57,6 +70,12 @@ ExternalProject_Add(
 ExternalProject_Get_Property(eigen_project SOURCE_DIR)
 add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
+
+# IETL
+################################################################################
+add_library(IETL INTERFACE)
+target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
+
 
 # MPI
 ################################################################################
@@ -123,6 +142,8 @@ target_link_libraries(netket_lib
         Eigen3
         nlohmann_json
         optional_lite
+        span_lite
+        IETL
 )
 
 # Check if we should use native Lapack with Eigen
