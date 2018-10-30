@@ -21,7 +21,8 @@
 #include "Observable/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 
-#include "contrastive_divergence.hpp"
+#include "unsupervised_learning.hpp"
+#include "test.hpp"
 
 namespace netket {
 
@@ -37,10 +38,10 @@ class Unsupervised {
       // DEPRECATED (to remove for v2.0.0)
       WarningMessage()
           << "Use of the Learning section is "
-             "deprecated.\n Please use the dedicated GroundState section.\n";
+             "deprecated.\n Please use the dedicated Unsupervised section.\n";
     } else {
       std::stringstream s;
-      s << "The GroundState section has not been specified.\n";
+      s << "The Unsupervised section has not been specified.\n";
       throw InvalidInputError(s.str());
     }
 
@@ -54,15 +55,15 @@ class Unsupervised {
       Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
       Optimizer optimizer(pars);
 
-      ContrastiveDivergence cd(hamiltonian,sampler,optimizer,pars);
-      //cd.TestDerKL();
-      cd.Run();
-//      VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
-//      vmc.Run();
+      //UnsupervisedLearning unsupervised(hamiltonian,sampler,optimizer,pars);
+      //unsupervised.TestDerKL();
+      //unsupervised.Run();
+      Test t(sampler,pars);
+      t.TestDerKL();
 
     } else {
       std::stringstream s;
-      s << "Unknown GroundState method: " << method_name;
+      s << "Unknown Unsupervised method: " << method_name;
       throw InvalidInputError(s.str());
     }
   }
