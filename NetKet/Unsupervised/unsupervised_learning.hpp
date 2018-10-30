@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_UNSUPERVISED_HPP
-#define NETKET_UNSUPERVISED_HPP
+#ifndef NETKET_UNSUPERVISEDLEARNING_HPP
+#define NETKET_UNSUPERVISEDLEARNING_HPP
 
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
@@ -37,7 +37,7 @@ namespace netket {
 
 // Class for unsupervised learning
 
-class ContrastiveDivergence {
+class UnsupervisedLearning {
  
   using GsType = std::complex<double>;
 
@@ -106,7 +106,7 @@ class ContrastiveDivergence {
   
   public:
 
-  ContrastiveDivergence(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+  UnsupervisedLearning(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
                         Optimizer &opt, const json &pars)
       : ham_(ham),
         sampler_(sampler),
@@ -477,6 +477,9 @@ class ContrastiveDivergence {
       KL_ += std::norm(wf_(i))*log(Z_);
     }
   }
+
+
+
 
   // Test the derivatives of the KL divergence
   void TestDerKL(double eps=0.0000001){
