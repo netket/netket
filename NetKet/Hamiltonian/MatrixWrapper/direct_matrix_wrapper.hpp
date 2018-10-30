@@ -15,6 +15,11 @@
 #ifndef NETKET_DIRECT_HAMILTONIAN_OPERATOR_HPP
 #define NETKET_DIRECT_HAMILTONIAN_OPERATOR_HPP
 
+#include <complex>
+#include <vector>
+
+#include <Eigen/Dense>
+
 #include "Hilbert/hilbert_index.hpp"
 #include "abstract_matrix_wrapper.hpp"
 
@@ -26,37 +31,27 @@ namespace netket {
  * computed from Operator::FindConn every time Apply is called.
  */
 template <class Operator, class WfType = Eigen::VectorXcd>
-class DirectMatrixWrapper : public AbstractMatrixWrapper<WfType> {
+class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
   const Operator& operator_;
+  HilbertIndex hilbert_index_;
   size_t dim_;
 
  public:
   explicit DirectMatrixWrapper(const Operator& the_operator)
       : operator_(the_operator),
-        dim_(HilbertIndex(the_operator.GetHilbert()).NStates()) {}
+        hilbert_index_(the_operator.GetHilbert()),
+        dim_(hilbert_index_.NStates()) {}
 
   WfType Apply(const WfType& state) const override {
-    const auto& hilbert = operator_.GetHilbert();
-    const HilbertIndex hilbert_index(hilbert);
-
     WfType result(dim_);
     result.setZero();
 
-    for (int i = 0; i < dim_; ++i) {
-      auto v = hilbert_index.NumberToState(i);
-
-      std::vector<std::complex<double>> matrix_elements;
-      std::vector<std::vector<int>> connectors;
-      std::vector<std::vector<double>> newconfs;
-      operator_.FindConn(v, matrix_elements, connectors, newconfs);
-
-      for (size_t k = 0; k < connectors.size(); ++k) {
-        auto vk = v;
-        hilbert.UpdateConf(vk, connectors[k], newconfs[k]);
-        auto j = hilbert_index.StateToNumber(vk);
-
-        result(j) += matrix_elements[k] * state(i);
-      }
+    for (size_t i = 0; i < dim_; ++i) {
+      const auto v = hilbert_index_.NumberToState(i);
+      operator_.ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.positions, conn.values);
+        result(i) += conn.weight * state(j);
+      });
     }
     return result;
   }
