@@ -32,19 +32,24 @@ of many-body quantum systems with artificial neural networks and machine learnin
   * Custom Hamiltonians
     * General k-local Hamiltonians defined on Graphs 
     * Any k-local Hamiltonian [from input file]
+ 
+ * Ground State Solvers  
+   * Stochastic Learning Methods 
+     * Gradient Descent
+     * Stochastic Reconfiguration Method
+       * Direct Solver
+       * Iterative Solver for Large Number of Parameters  
+   * Exact Diagonalization 
+     * Full Solver 
+     * Lanczos Solver 
+     * Imaginary-Time Dynamics 
 
-* Learning
-  * Optimizers
+ * Optimizers
     * Stochastic Gradient Descent
     * AdaMax, AdaDelta, AdaGrad, AMSGrad
     * RMSProp
     * Momentum
     * Gradient Clipping 
-  * Ground-state Learning
-    * Gradient Descent
-    * Stochastic Reconfiguration Method
-      * Direct Solver
-      * Iterative Solver for Large Number of Parameters  
 
 * Machines
   * Restricted Boltzmann Machines

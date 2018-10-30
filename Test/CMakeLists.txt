@@ -36,6 +36,7 @@ target_include_directories(catch_main PRIVATE ${_catch2_include_dir} ${MPI_C_INC
 file(GLOB TEST_SOURCES
     Dynamics/*.cpp
     Graph/*.cc
+    GroundState/*.cc
     Hamiltonian/*.cc
     Hilbert/*.cc
     Machine/*.cc
