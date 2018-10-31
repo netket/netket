@@ -3,7 +3,7 @@
 
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/acfc9fcbedd54b77a2d45351f4518728)](https://www.codacy.com/app/gcarleo/netket?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=netket/netket&amp;utm_campaign=Badge_Grade)
+[![CodeFactor](https://www.codefactor.io/repository/github/netket/netket/badge)](https://www.codefactor.io/repository/github/netket/netket)
 [![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
