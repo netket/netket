@@ -12,25 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include "Utils/random_utils.hpp"
+#include "catch.hpp"
 
 #include "netket.hpp"
 #include "observable_input_tests.hpp"
 
 TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
-
   auto input_tests = GetObservableInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Observable test (" + std::to_string(it) + ") on " +
             input_tests[it]["Observable"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Hilbert hilbert(pars);
@@ -68,15 +65,12 @@ TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
 }
 
 TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
-
   auto input_tests = GetObservableInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Observable test (" + std::to_string(it) + ") on " +
             input_tests[it]["Observable"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Hilbert hilbert(pars);
@@ -111,15 +105,12 @@ TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
 }
 
 TEST_CASE("observables are hermitean", "[observable]") {
-
   auto input_tests = GetObservableInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Observable test (" + std::to_string(it) + ") on " +
             input_tests[it]["Observable"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Hilbert hilbert(pars);
