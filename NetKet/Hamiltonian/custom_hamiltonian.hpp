@@ -30,8 +30,7 @@ class CustomHamiltonian : public AbstractHamiltonian {
  public:
   using MatType = LocalOperator::MatType;
 
-  explicit CustomHamiltonian(const json &pars) : hilbert_(pars)
-  {
+  explicit CustomHamiltonian(const json &pars) : hilbert_(pars) {
     auto pars_hamiltonian = pars["Hamiltonian"];
 
     CheckFieldExists(pars_hamiltonian, "Operators");
@@ -49,8 +48,9 @@ class CustomHamiltonian : public AbstractHamiltonian {
         pars_hamiltonian["ActingOn"].get<std::vector<std::vector<int>>>();
 
     if (sites.size() != jop.size()) {
-      throw InvalidInputError("The custom Hamiltonian definition is inconsistent: "
-                              "Check that ActingOn is defined");
+      throw InvalidInputError(
+          "The custom Hamiltonian definition is inconsistent: "
+          "Check that ActingOn is defined");
     }
 
     for (std::size_t i = 0; i < jop.size(); i++) {

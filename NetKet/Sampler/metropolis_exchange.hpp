@@ -88,7 +88,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
   template <class G>
   void GenerateClusters(G &graph, int dmax) {
-    auto dist = graph.Distances();
+    auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);
 
