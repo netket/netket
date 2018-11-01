@@ -92,14 +92,16 @@ class Supervised {
             gradC = gradC + partial_gradient * (value - targets_(x));
 
             // std::cout << "Current gradient: " << gradC << std::endl;
-            sum_aibi += std::conj(value)*targets_(x);
-            sum_aiai += std::conj(value)*value;
-            sum_bibi += std::conj(targets_(x))*targets_(x);
+            sum_aibi += std::conj(value) * targets_(x);
+            sum_aiai += std::conj(value) * value;
+            sum_bibi += std::conj(targets_(x)) * targets_(x);
           }
 
           // Update the parameters
           double alpha = 1e-4;
-          std::cout<<" inner "<<sum_aibi/std::sqrt(sum_aiai)/std::sqrt(sum_bibi)<<" grad norm "<<gradC.norm()<<std::endl;
+          std::cout << " inner "
+                    << sum_aibi / std::sqrt(sum_aiai) / std::sqrt(sum_bibi)
+                    << " grad norm " << gradC.norm() << std::endl;
           machine.SetParameters(machine.GetParameters() - alpha * gradC);
         }
       }

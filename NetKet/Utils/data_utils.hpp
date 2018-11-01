@@ -131,7 +131,7 @@ class Data {
                      Eigen::VectorXcd &log_amp_sampled) {
     // Clip batchsize to number of samples
     if (batchsize >= ndata_) {
-      std::cout<<"Using deterministic sampling\n";
+      std::cout << "Using deterministic sampling\n";
       batchsize = ndata_;
       config_sampled.resize(batchsize, config_sampled.cols());
       log_amp_sampled.resize(batchsize);
@@ -140,17 +140,18 @@ class Data {
         std::complex<double> amp_complex(amplitudes(s, 0), amplitudes(s, 1));
         log_amp_sampled(s) = std::log(amp_complex);
       }
-    }
-    else{
+    } else {
       std::mt19937 rng(
           rd());  // random-number engine used (Mersenne-Twister in this case)
-      std::uniform_int_distribution<int> uni(0,
-                                             ndata_ - 1);  // guaranteed unbiased
+      std::uniform_int_distribution<int> uni(
+          0,
+          ndata_ - 1);  // guaranteed unbiased
 
       for (unsigned int s = 0; s < batchsize; ++s) {
         auto random_integer = uni(rng);
         config_sampled.row(s) = configs.row(random_integer);
-        std::complex<double> amp_complex(amplitudes(random_integer, 0), amplitudes(random_integer, 1));
+        std::complex<double> amp_complex(amplitudes(random_integer, 0),
+                                         amplitudes(random_integer, 1));
         log_amp_sampled(s) = std::log(amp_complex);
       }
     }
@@ -170,14 +171,15 @@ class Data {
         std::complex<double> amp_complex(amplitudes(s, 0), amplitudes(s, 1));
         log_amp_sampled(s) = std::log(amp_complex);
       }
-    }
-    else{
-      std::uniform_int_distribution<int> uni(0,
-                                             ndata_ - 1);  // guaranteed unbiased
+    } else {
+      std::uniform_int_distribution<int> uni(
+          0,
+          ndata_ - 1);  // guaranteed unbiased
       for (unsigned int s = 0; s < batchsize; ++s) {
         auto random_integer = uni(rng);
         config_sampled.row(s) = configs.row(random_integer);
-        std::complex<double> amp_complex(amplitudes(random_integer, 0), amplitudes(random_integer, 1));
+        std::complex<double> amp_complex(amplitudes(random_integer, 0),
+                                         amplitudes(random_integer, 1));
         log_amp_sampled(s) = std::log(amp_complex);
       }
     }

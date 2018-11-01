@@ -28,9 +28,9 @@
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
+#include "Utils/data_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include "Utils/data_utils.hpp"
 
 namespace netket {
 
@@ -99,8 +99,9 @@ class SupervisedVariationalMonteCarlo {
 
  public:
   // JSON constructor
-  SupervisedVariationalMonteCarlo(DataType &data, Sampler<Machine<GsType>> &sampler,
-                        Optimizer &opt, const json &pars)
+  SupervisedVariationalMonteCarlo(DataType &data,
+                                  Sampler<Machine<GsType>> &sampler,
+                                  Optimizer &opt, const json &pars)
       : data_(data),
         sampler_(sampler),
         psi_(sampler.Psi()),
@@ -110,7 +111,7 @@ class SupervisedVariationalMonteCarlo {
     if (FieldExists(pars, "Supervised")) {
       Init(pars);
     } else {
-      std::cout<<"error in Supervised VMC initialization\n";
+      std::cout << "error in Supervised VMC initialization\n";
     }
   }
 
@@ -225,8 +226,8 @@ class SupervisedVariationalMonteCarlo {
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-        psi_log_amps_(i) = psi_.LogVal(vsamp_.row(i));
-        phi_log_amps_(i) = data_.logVal(vsamp_.row(i));
+      psi_log_amps_(i) = psi_.LogVal(vsamp_.row(i));
+      phi_log_amps_(i) = data_.logVal(vsamp_.row(i));
     }
     auto psi_log_amps_max_ = psi_log_amps_.real().maxCoeff();
     psi_log_amps_ -= psi_log_amps_max_ * Eigen::VectorXd::Ones(nsamp);
@@ -259,7 +260,7 @@ class SupervisedVariationalMonteCarlo {
     }
 
     // grad_ = 2. * (Ok_.adjoint() * ratios_);
-    grad_ = - (Ok_.adjoint() * ratios_) / ratio_mean_;
+    grad_ = -(Ok_.adjoint() * ratios_) / ratio_mean_;
 
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
@@ -267,10 +268,10 @@ class SupervisedVariationalMonteCarlo {
   }
 
   std::complex<double> Ratio(const Eigen::VectorXd &v) {
-      auto log_amp_psi = psi_.LogVal(v);
-      auto log_amp_phi = data_.logVal(v);
-      std::complex<double> log_amp_diff = log_amp_phi - log_amp_psi;
-      return std::exp(log_amp_diff);
+    auto log_amp_psi = psi_.LogVal(v);
+    auto log_amp_phi = data_.logVal(v);
+    std::complex<double> log_amp_diff = log_amp_phi - log_amp_psi;
+    return std::exp(log_amp_diff);
   }
 
   double ObSamp(Observable &ob, const Eigen::VectorXd &v) {
