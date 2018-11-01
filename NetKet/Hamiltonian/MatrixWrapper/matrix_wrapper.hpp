@@ -7,6 +7,7 @@
 #include "Hamiltonian/hamiltonian.hpp"
 #include "Utils/json_helper.hpp"
 
+#include "abstract_matrix_wrapper.hpp"
 #include "dense_matrix_wrapper.hpp"
 #include "direct_matrix_wrapper.hpp"
 #include "sparse_matrix_wrapper.hpp"
@@ -20,13 +21,16 @@ std::unique_ptr<AbstractMatrixWrapper<Wrapped>> ConstructMatrixWrapper(
 
   std::string wrapper_name =
       FieldOrDefaultVal<json, std::string>(pars, "MatrixWrapper", "Sparse");
-  if (wrapper_name == "Sparse") {
-    return WrapperPtr(new SparseMatrixWrapper<Wrapped>(wrapped));
-  } else if (wrapper_name == "Dense") {
+  if (wrapper_name == "Dense") {
     return WrapperPtr(new DenseMatrixWrapper<Wrapped>(wrapped));
+  } else if (wrapper_name == "Direct") {
+    return WrapperPtr(new DirectMatrixWrapper<Wrapped>(wrapped));
+  } else if (wrapper_name == "Sparse") {
+    return WrapperPtr(new SparseMatrixWrapper<Wrapped>(wrapped));
   } else {
-    std::cout << "Unknown MatrixWrapper: " << wrapper_name << std::endl;
-    std::abort();
+    std::stringstream str;
+    str << "Unknown MatrixWrapper: " << wrapper_name;
+    throw InvalidInputError(str.str());
   }
 }
 
