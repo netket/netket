@@ -34,8 +34,7 @@ TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
       auto pars = input_tests[it];
 
       netket::Hilbert hilbert(pars);
-
-      netket::Observables observables(hilbert, pars);
+      auto observables = netket::Observable::FromJson(hilbert, pars);
 
       const auto lstate = hilbert.LocalStates();
       REQUIRE(int(lstate.size()) == hilbert.LocalSize());
@@ -50,11 +49,10 @@ TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
-      for (std::size_t o = 0; o < observables.Size(); o++) {
-
+      for (const auto& ob : observables) {
         for (int i = 0; i < 1000; i++) {
           hilbert.RandomVals(v, rgen);
-          observables(o).FindConn(v, mel, connectors, newconfs);
+          ob.FindConn(v, mel, connectors, newconfs);
 
           for (std::size_t k = 0; k < connectors.size(); k++) {
             Eigen::VectorXd vp = v;
@@ -83,7 +81,7 @@ TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
 
       netket::Hilbert hilbert(pars);
 
-      netket::Observables observables(hilbert, pars);
+      auto observables = netket::Observable::FromJson(hilbert, pars);
 
       netket::default_random_engine rgen(3421);
 
@@ -93,11 +91,10 @@ TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
-      for (std::size_t o = 0; o < observables.Size(); o++) {
-
+      for (const auto& ob : observables) {
         for (int i = 0; i < 1000; i++) {
           hilbert.RandomVals(v, rgen);
-          observables(o).FindConn(v, mel, connectors, newconfs);
+          ob.FindConn(v, mel, connectors, newconfs);
 
           for (std::size_t k = 0; k < connectors.size(); k++) {
             if (connectors[k].size() > 0) {
@@ -127,7 +124,7 @@ TEST_CASE("observables are hermitean", "[observable]") {
 
       netket::Hilbert hilbert(pars);
 
-      netket::Observables observables(hilbert, pars);
+      auto observables = netket::Observable::FromJson(hilbert, pars);
 
       netket::default_random_engine rgen(3421);
 
@@ -137,10 +134,10 @@ TEST_CASE("observables are hermitean", "[observable]") {
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
-      for (std::size_t o = 0; o < observables.Size(); o++) {
+      for (const auto& ob : observables) {
         for (int i = 0; i < 1000; i++) {
           hilbert.RandomVals(v, rgen);
-          observables(o).FindConn(v, mel, connectors, newconfs);
+          ob.FindConn(v, mel, connectors, newconfs);
 
           std::uniform_int_distribution<> dis(0, mel.size() - 1);
           int rc = dis(rgen);
@@ -149,7 +146,7 @@ TEST_CASE("observables are hermitean", "[observable]") {
 
           Eigen::VectorXd vp = v;
           hilbert.UpdateConf(vp, connectors[rc], newconfs[rc]);
-          observables(o).FindConn(vp, mel, connectors, newconfs);
+          ob.FindConn(vp, mel, connectors, newconfs);
 
           auto melic = melrc;
           bool found_inverse_mel = false;
