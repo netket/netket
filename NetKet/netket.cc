@@ -22,7 +22,31 @@ int main(int argc, char *argv[]) {
 
   try {
     auto pars = netket::ReadJsonFromFile(argv[1]);
-    netket::Learning learning(pars);
+
+    // DEPRECATED (to remove for v2.0.0)
+    if (netket::FieldExists(pars, "GroundState") ||
+        netket::FieldExists(pars, "Learning")) {
+      netket::GroundState gs(pars);
+
+    } else if (netket::FieldExists(pars, "TimeEvolution")) {
+      netket::RunTimeEvolution(pars);
+
+    } else if (netket::FieldExists(pars, "Supervised")) {
+      netket::ErrorMessage()
+          << "Supervised Learning still under development, try later."
+          << "\n";
+
+    } else if (netket::FieldExists(pars, "Unsupervised")) {
+      netket::ErrorMessage()
+          << "Unsupervised Learning still under development, try later."
+          << "\n";
+
+    } else {
+      netket::ErrorMessage()
+          << "No task specified. Please include one of the sections"
+             "'GroundState' or 'TimeEvolution' in the input file.\n";
+    }
+
   } catch (const netket::InvalidInputError &e) {
     netket::ErrorMessage() << e.what() << "\n";
   }
