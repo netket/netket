@@ -15,6 +15,7 @@
 #ifndef NETKET_ALLUTILS_HPP
 #define NETKET_ALLUTILS_HPP
 
+#include "data_utils.hpp"
 #include "exceptions.hpp"
 #include "json_utils.hpp"
 #include "math_helpers.hpp"

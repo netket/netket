@@ -32,9 +32,7 @@ int main(int argc, char *argv[]) {
       netket::RunTimeEvolution(pars);
 
     } else if (netket::FieldExists(pars, "Supervised")) {
-      netket::ErrorMessage()
-          << "Supervised Learning still under development, try later."
-          << "\n";
+      netket::Supervised supervised(pars);
 
     } else if (netket::FieldExists(pars, "Unsupervised")) {
       netket::ErrorMessage()
