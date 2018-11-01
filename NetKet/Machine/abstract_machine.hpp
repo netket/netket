@@ -18,9 +18,9 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <fstream>
-#include "Utils/random_utils.hpp"
 #include <vector>
 #include "Lookup/lookup.hpp"
+#include "Utils/random_utils.hpp"
 
 namespace netket {
 /**
@@ -168,12 +168,14 @@ class AbstractMachine {
 
   void Save(std::string filename) const {
     std::ofstream filewf(filename);
+    Save(filewf);
+    filewf.close();
+  }
 
+  void Save(std::ofstream& stream) const {
     json j;
     to_json(j);
-    filewf << j << std::endl;
-
-    filewf.close();
+    stream << j << std::endl;
   }
 
   virtual ~AbstractMachine() {}
