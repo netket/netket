@@ -391,8 +391,10 @@ class VariationalMonteCarlo {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
-    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0,
-                                // so the output is only written once
+    obs_data["Acceptance"] = sampler_.Acceptance();
+
+    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
+                                // the output is only written once
       output_->WriteLog(i, obs_data);
       output_->WriteState(i, psi_);
     }
