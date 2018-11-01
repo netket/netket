@@ -33,7 +33,6 @@ const double pi = 3.14159265358979323846;
 // correctly, real and imag parts not getting mixed, etc.
 TEST_CASE("optimizers step twice correctly", "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
-  std::size_t ntests = input_tests.size();
   std::cout << "# Correct output tests size = " << 7 << std::endl;
 
   for (std::size_t it = 0; it < 7; it++) {
@@ -171,9 +170,6 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         netket::Optimizer optimizer(input_tests[it]);
 
         double alpha = input_tests[it]["Optimizer"]["Alpha"];
-        double beta1 = input_tests[it]["Optimizer"]["Beta1"];
-        double beta2 = input_tests[it]["Optimizer"]["Beta2"];
-        double eps = input_tests[it]["Optimizer"]["Epscut"];
 
         Eigen::VectorXcd grad(2);
         grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
@@ -470,7 +466,6 @@ TEST_CASE("optimizers correctly minimize Rosenbrock function", "[optimizer]") {
 
 TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
-  std::size_t ntests = input_tests.size();
   std::cout << "# Ackley input tests size = " << 7 << std::endl;
 
   for (std::size_t it = 21; it < 28; it++) {
@@ -503,7 +498,7 @@ TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
       netket::Optimizer optimizer(input_tests[it]);
       optimizer.Init(params);
 
-      while (err > tol and iter < 1e5) {
+      while (err > tol and iter < 5e5) {
         grad(0) =
             2. * std::sqrt(2) * params(0) *
                 std::exp(-0.2 * std::sqrt(0.5 * (std::pow(params(0), 2) +
@@ -535,7 +530,6 @@ TEST_CASE("optimizers correctly minimize Ackley function", "[optimizer]") {
 TEST_CASE("optimizers correctly minimize complex Ackley function",
           "[optimizer]") {
   auto input_tests = GetOptimizerInputs();
-  std::size_t ntests = input_tests.size();
   std::cout << "# complex Ackley input tests size = " << 7 << std::endl;
 
   for (std::size_t it = 28; it < 35; it++) {
@@ -568,7 +562,7 @@ TEST_CASE("optimizers correctly minimize complex Ackley function",
       netket::Optimizer optimizer(input_tests[it]);
       optimizer.Init(params);
 
-      while (err > tol and iter < 1e5) {
+      while (err > tol and iter < 5e5) {
         grad(0) =
             0.0 +
             I * (2. * std::sqrt(2) * params(0).imag() *
