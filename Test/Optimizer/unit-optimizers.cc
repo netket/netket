@@ -25,8 +25,8 @@
 #include "netket.hpp"
 
 #include "optimizer_input_tests.hpp"
-
-const std::complex<double> I(0.0, 1.0);
+const std::complex<double> im(0, 1);
+// const std::complex<double> I(0.0, 1.0);
 const double pi = 3.14159265358979323846;
 
 // Check that optimizer steps correctly. This means parameters initialized
@@ -43,13 +43,13 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         netket::Optimizer optimizer(input_tests[it]);
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd sol(2);
-        sol << 4.9 - 0.4 * I, 4.8 - 0.5 * I;
+        sol << 4.9 - 0.4 * im, 4.8 - 0.5 * im;
         Eigen::VectorXcd sol2(2);
-        sol2 << 4.8 - 0.8 * I, 4.6 - 1.0 * I;
+        sol2 << 4.8 - 0.8 * im, 4.6 - 1.0 * im;
 
         optimizer.Init(params);
         optimizer.Update(grad, params);
@@ -67,7 +67,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double rho = input_tests[it]["Optimizer"]["Rho"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd diff(2);
@@ -77,14 +77,14 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                         std::sqrt(
                             eps /
                             (std::pow(grad(0).imag(), 2) * (1. - rho) + eps)) *
-                        I,
+                        im,
             -grad(1).real() *
                     std::sqrt(eps / (std::pow(grad(1).real(), 2) * (1. - rho) +
                                      eps)) -
                 grad(1).imag() *
                     std::sqrt(eps / (std::pow(grad(1).imag(), 2) * (1. - rho) +
                                      eps)) *
-                    I;
+                    im;
         Eigen::VectorXcd sol(2);
         sol << params + diff;
         Eigen::VectorXcd diff2(2);
@@ -100,7 +100,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                              ((1. + rho) * (1. - rho) *
                                   std::pow(grad(0).imag(), 2) +
                               eps)) *
-                         I,
+                         im,
             -grad(1).real() *
                     std::sqrt(
                         ((1. - rho) * std::pow(diff(1).real(), 2) + eps) /
@@ -111,7 +111,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                         ((1. - rho) * std::pow(diff(1).imag(), 2) + eps) /
                         ((1. + rho) * (1. - rho) * std::pow(grad(1).imag(), 2) +
                          eps)) *
-                    I;
+                    im;
         Eigen::VectorXcd sol2(2);
         sol2 << params + diff + diff2;
 
@@ -131,29 +131,29 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double eps = input_tests[it]["Optimizer"]["Epscut"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd diff(2);
         diff << -eta * grad(0).real() /
                         std::sqrt(std::pow(grad(0).real(), 2) + eps) -
                     eta * grad(0).imag() /
-                        std::sqrt(std::pow(grad(0).imag(), 2) + eps) * I,
+                        std::sqrt(std::pow(grad(0).imag(), 2) + eps) * im,
             -eta * grad(1).real() /
                     std::sqrt(std::pow(grad(1).real(), 2) + eps) -
                 eta * grad(1).imag() /
-                    std::sqrt(std::pow(grad(1).imag(), 2) + eps) * I;
+                    std::sqrt(std::pow(grad(1).imag(), 2) + eps) * im;
         Eigen::VectorXcd sol(2);
         sol << params + diff;
         Eigen::VectorXcd diff2(2);
         diff2 << -eta * grad(0).real() /
                          std::sqrt(2. * std::pow(grad(0).real(), 2) + eps) -
                      eta * grad(0).imag() /
-                         std::sqrt(2. * std::pow(grad(0).imag(), 2) + eps) * I,
+                         std::sqrt(2. * std::pow(grad(0).imag(), 2) + eps) * im,
             -eta * grad(1).real() /
                     std::sqrt(2. * std::pow(grad(1).real(), 2) + eps) -
                 eta * grad(1).imag() /
-                    std::sqrt(2. * std::pow(grad(1).imag(), 2) + eps) * I;
+                    std::sqrt(2. * std::pow(grad(1).imag(), 2) + eps) * im;
         Eigen::VectorXcd sol2(2);
         sol2 << params + diff + diff2;
 
@@ -172,11 +172,11 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double alpha = input_tests[it]["Optimizer"]["Alpha"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd diff(2);
-        diff << -alpha - alpha * I, -alpha - alpha * I;
+        diff << -alpha - alpha * im, -alpha - alpha * im;
         Eigen::VectorXcd sol(2);
         sol << params + diff;
         Eigen::VectorXcd sol2(2);
@@ -200,7 +200,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double eps = input_tests[it]["Optimizer"]["Epscut"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd diff(2);
@@ -210,12 +210,12 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                     eta * (1 - beta1) * grad(0).imag() /
                         std::sqrt((1 - beta2) * std::pow(grad(0).imag(), 2) +
                                   eps) *
-                        I,
+                        im,
             -eta * (1 - beta1) * grad(1).real() /
                     std::sqrt((1 - beta2) * std::pow(grad(1).real(), 2) + eps) -
                 eta * (1 - beta1) * grad(1).imag() /
                     std::sqrt((1 - beta2) * std::pow(grad(1).imag(), 2) + eps) *
-                    I;
+                    im;
         Eigen::VectorXcd sol(2);
         sol << params + diff;
         Eigen::VectorXcd diff2(2);
@@ -227,7 +227,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                          std::sqrt((1 - beta2) * (1 + beta2) *
                                        std::pow(grad(0).imag(), 2) +
                                    eps) *
-                         I,
+                         im,
             -eta * (1 + beta1) * (1 - beta1) * grad(1).real() /
                     std::sqrt((1 - beta2) * (1 + beta2) *
                                   std::pow(grad(1).real(), 2) +
@@ -236,7 +236,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                     std::sqrt((1 - beta2) * (1 + beta2) *
                                   std::pow(grad(1).imag(), 2) +
                               eps) *
-                    I;
+                    im;
         Eigen::VectorXcd sol2(2);
         sol2 << params + diff + diff2;
 
@@ -257,7 +257,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double eps = input_tests[it]["Optimizer"]["Epscut"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd diff(2);
@@ -267,12 +267,12 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                     eta * grad(0).imag() /
                         std::sqrt((1 - beta) * std::pow(grad(0).imag(), 2) +
                                   eps) *
-                        I,
+                        im,
             -eta * grad(1).real() /
                     std::sqrt((1 - beta) * std::pow(grad(1).real(), 2) + eps) -
                 eta * grad(1).imag() /
                     std::sqrt((1 - beta) * std::pow(grad(1).imag(), 2) + eps) *
-                    I;
+                    im;
         Eigen::VectorXcd sol(2);
         sol << params + diff;
         Eigen::VectorXcd diff2(2);
@@ -284,7 +284,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                          std::sqrt((1 + beta) * (1 - beta) *
                                        std::pow(grad(0).imag(), 2) +
                                    eps) *
-                         I,
+                         im,
             -eta * grad(1).real() /
                     std::sqrt((1 + beta) * (1 - beta) *
                                   std::pow(grad(1).real(), 2) +
@@ -293,7 +293,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
                     std::sqrt((1 + beta) * (1 - beta) *
                                   std::pow(grad(1).imag(), 2) +
                               eps) *
-                    I;
+                    im;
         Eigen::VectorXcd sol2(2);
         sol2 << params + diff + diff2;
 
@@ -311,7 +311,7 @@ TEST_CASE("optimizers step twice correctly", "[optimizer]") {
         double beta = input_tests[it]["Optimizer"]["Beta"];
 
         Eigen::VectorXcd grad(2);
-        grad << 1.0 + 4.0 * I, 2.0 + 5.0 * I;
+        grad << 1.0 + 4.0 * im, 2.0 + 5.0 * im;
         Eigen::VectorXcd params(2);
         params << 5.0, 5.0;
         Eigen::VectorXcd sol(2);
@@ -554,10 +554,10 @@ TEST_CASE("optimizers correctly minimize complex Ackley function",
       std::normal_distribution<double> dist(mean, stddev);
 
       Eigen::VectorXcd sol(2);
-      sol << 0.0 + 0.0 * I, 0.0 + 0.0 * I;
+      sol << 0.0 + 0.0 * im, 0.0 + 0.0 * im;
       Eigen::VectorXcd grad(2);
       Eigen::VectorXcd params(2);
-      params << 0.0 + 2.5 * I, 0.0 + 2.5 * I;
+      params << 0.0 + 2.5 * im, 0.0 + 2.5 * im;
 
       netket::Optimizer optimizer(input_tests[it]);
       optimizer.Init(params);
@@ -565,30 +565,30 @@ TEST_CASE("optimizers correctly minimize complex Ackley function",
       while (err > tol and iter < 5e5) {
         grad(0) =
             0.0 +
-            I * (2. * std::sqrt(2) * params(0).imag() *
-                     std::exp(
-                         -0.2 *
-                         std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
-                                          std::pow(params(1).imag(), 2)))) /
-                     std::sqrt((std::pow(params(0).imag(), 2) +
-                                std::pow(params(1).imag(), 2))) +
-                 pi * std::sin(2 * pi * params(0).imag()) *
-                     std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
-                                     std::cos(2 * pi * params(1).imag()))) +
-                 dist(generator));
+            im * (2. * std::sqrt(2) * params(0).imag() *
+                      std::exp(
+                          -0.2 *
+                          std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
+                                           std::pow(params(1).imag(), 2)))) /
+                      std::sqrt((std::pow(params(0).imag(), 2) +
+                                 std::pow(params(1).imag(), 2))) +
+                  pi * std::sin(2 * pi * params(0).imag()) *
+                      std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
+                                      std::cos(2 * pi * params(1).imag()))) +
+                  dist(generator));
         grad(1) =
             0.0 +
-            I * (2. * std::sqrt(2) * params(1).imag() *
-                     std::exp(
-                         -0.2 *
-                         std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
-                                          std::pow(params(1).imag(), 2)))) /
-                     std::sqrt((std::pow(params(0).imag(), 2) +
-                                std::pow(params(1).imag(), 2))) +
-                 pi * std::sin(2 * pi * params(1).imag()) *
-                     std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
-                                     std::cos(2 * pi * params(1).imag()))) +
-                 dist(generator));
+            im * (2. * std::sqrt(2) * params(1).imag() *
+                      std::exp(
+                          -0.2 *
+                          std::sqrt(0.5 * (std::pow(params(0).imag(), 2) +
+                                           std::pow(params(1).imag(), 2)))) /
+                      std::sqrt((std::pow(params(0).imag(), 2) +
+                                 std::pow(params(1).imag(), 2))) +
+                  pi * std::sin(2 * pi * params(1).imag()) *
+                      std::exp(0.5 * (std::cos(2 * pi * params(0).imag()) +
+                                      std::cos(2 * pi * params(1).imag()))) +
+                  dist(generator));
 
         optimizer.Update(grad, params);
         err = (params - sol).norm();
