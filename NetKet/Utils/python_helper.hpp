@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_JSONHELPER_HPP
-#define NETKET_JSONHELPER_HPP
+#ifndef NETKET_PYTHONHELPER_HPP
+#define NETKET_PYTHONHELPER_HPP
 
+#include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 #include <fstream>
 #include <iostream>
-#include <json.hpp>
 #include <string>
 #include <vector>
 
@@ -25,10 +26,8 @@
 
 namespace netket {
 
-using json = nlohmann::json;
-
-bool FieldExists(const json& pars, const std::string& field) {
-  return pars.count(field) > 0;
+bool FieldExists(const pybind11::kwargs& pars, const std::string& field) {
+  return pars.contains(pybind11::cast(field));
 }
 
 /**
@@ -41,8 +40,7 @@ bool FieldExists(const json& pars, const std::string& field) {
  * If SubKey does not exists, this will throw and error with message
  * "Field 'SubKey' (below 'Key') is not defined in the input".
  */
-
-void CheckFieldExists(const json& pars, const std::string& field,
+void CheckFieldExists(const pybind11::kwargs& pars, const std::string& field,
                       const std::string& context = "") {
   if (!FieldExists(pars, field)) {
     std::stringstream s;
@@ -55,49 +53,21 @@ void CheckFieldExists(const json& pars, const std::string& field,
   }
 }
 
-json FieldVal(const json& pars, const std::string& field,
-              const std::string& context = "") {
+template <class Value>
+Value FieldVal(const pybind11::kwargs& pars, const std::string& field,
+               const std::string& context = "") {
   CheckFieldExists(pars, field, context);
-  return pars[field];
+  return pars[pybind11::cast(field)].cast<Value>();
 }
 
 template <class Value>
-json FieldVal(const json& pars, const std::string& field,
-              const std::string& context = "") {
-  CheckFieldExists(pars, field, context);
-  return pars[field].get<Value>();
-}
-
-void FieldArray(const json& pars, const std::string& field,
-                std::vector<int>& arr, const std::string& context = "") {
-  CheckFieldExists(pars, field, context);
-  arr.resize(pars[field].size());
-  for (std::size_t i = 0; i < pars[field].size(); i++) {
-    arr[i] = pars[field][i];
-  }
-}
-
-template <class Value>
-Value FieldOrDefaultVal(const json& pars, std::string field, Value defval) {
+Value FieldOrDefaultVal(const pybind11::kwargs& pars, const std::string& field,
+                        Value defval) {
   if (FieldExists(pars, field)) {
-    return pars[field];
+    return pars[pybind11::cast(field)].cast<Value>();
   } else {
     return defval;
   }
-}
-
-json ReadJsonFromFile(std::string filename) {
-  json pars;
-
-  std::ifstream filein(filename);
-  if (filein.is_open()) {
-    filein >> pars;
-  } else {
-    std::stringstream s;
-    s << "Cannot read Json from file: " << filename;
-    throw InvalidInputError(s.str());
-  }
-  return pars;
 }
 
 }  // namespace netket
