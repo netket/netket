@@ -20,6 +20,7 @@
 #include "math_helpers.hpp"
 #include "messages.hpp"
 #include "parallel_utils.hpp"
+#include "python_helper.hpp"
 #include "random_utils.hpp"
 #include "stopwatch.hpp"
 

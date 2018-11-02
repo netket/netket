@@ -20,7 +20,7 @@ std::unique_ptr<AbstractMatrixWrapper<Wrapped>> ConstructMatrixWrapper(
   using WrapperPtr = std::unique_ptr<AbstractMatrixWrapper<Wrapped>>;
 
   std::string wrapper_name =
-      FieldOrDefaultVal<json, std::string>(pars, "MatrixWrapper", "Sparse");
+      FieldOrDefaultVal<std::string>(pars, "MatrixWrapper", "Sparse");
   if (wrapper_name == "Dense") {
     return WrapperPtr(new DenseMatrixWrapper<Wrapped>(wrapped));
   } else if (wrapper_name == "Direct") {

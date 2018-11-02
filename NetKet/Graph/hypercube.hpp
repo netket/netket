@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
+#include "Utils/python_helper.hpp"
 
 namespace netket {
 
@@ -50,11 +51,11 @@ class Hypercube : public AbstractGraph {
   int nsites_;
 
  public:
-  // Json constructor
-  explicit Hypercube(const json &pars)
-      : L_(FieldVal(pars["Graph"], "L", "Graph")),
-        ndim_(FieldVal(pars["Graph"], "Dimension", "Graph")),
-        pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {
+  template <class Ptype>
+  explicit Hypercube(const Ptype &pars)
+      : L_(FieldVal<int>(pars, "L", "Graph")),
+        ndim_(FieldVal<int>(pars, "Dimension", "Graph")),
+        pbc_(FieldOrDefaultVal(pars, "Pbc", true)) {
     if (pbc_ && L_ <= 2) {
       throw InvalidInputError(
           "L<=2 hypercubes cannot have periodic boundary conditions");
@@ -62,7 +63,8 @@ class Hypercube : public AbstractGraph {
     Init(pars);
   }
 
-  void Init(const json &pars) {
+  template <class Ptype>
+  void Init(const Ptype &pars) {
     assert(L_ > 0);
     assert(ndim_ >= 1);
     GenerateLatticePoints();
@@ -70,9 +72,9 @@ class Hypercube : public AbstractGraph {
 
     // If edge colors are specificied read them in, otherwise set them all to
     // 0
-    if (FieldExists(pars["Graph"], "EdgeColors")) {
+    if (FieldExists(pars, "EdgeColors")) {
       std::vector<std::vector<int>> colorlist =
-          pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+          FieldVal<std::vector<std::vector<int>>>(pars, "EdgeColors", "Graph");
       EdgeColorsFromList(colorlist, eclist_);
     } else {
       InfoMessage() << "No colors specified, edge colors set to 0 "

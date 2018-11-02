@@ -32,7 +32,7 @@ template <class State>
 std::unique_ptr<AbstractTimeStepper<State>> ConstructTimeStepper(
     const json& pars, int dim) {
   std::string stepper_name =
-      FieldOrDefaultVal<json, std::string>(pars, "TimeStepper", "Dopri54");
+      FieldOrDefaultVal<std::string>(pars, "TimeStepper", "Dopri54");
   if (stepper_name == "Dopri54") {
     return detail::ControlledStepperFromJson<Dopri54TimeStepper<State>>(pars,
                                                                         dim);

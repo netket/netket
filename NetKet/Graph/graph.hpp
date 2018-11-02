@@ -14,6 +14,7 @@
 
 #ifndef NETKET_GRAPH_HPP
 #define NETKET_GRAPH_HPP
+#include <pybind11/pybind11.h>
 #include <array>
 #include <unordered_map>
 #include <vector>
@@ -36,7 +37,7 @@ class Graph : public AbstractGraph {
       if (FieldExists(pars["Graph"], "Name")) {
         std::string graph_name = pars["Graph"]["Name"];
         if (graph_name == "Hypercube") {
-          g_ = Ptype(new Hypercube(pars));
+          g_ = Ptype(new Hypercube(pars["Graph"]));
         } else {
           std::stringstream s;
           s << "Unknown Graph type: " << graph_name;
@@ -45,12 +46,29 @@ class Graph : public AbstractGraph {
       }
       // Otherwise using a user-defined graph
       else {
-        g_ = Ptype(new CustomGraph(pars));
+        g_ = Ptype(new CustomGraph(pars["Graph"]));
       }
     } else {
-      // Otherwise try to construct a custom graph using Hilbert space
-      // information
-      g_ = Ptype(new CustomGraph(pars));
+      std::stringstream s;
+      s << "Unknown Graph type";
+      throw InvalidInputError(s.str());
+    }
+    // } else {
+    //   // Otherwise try to construct a custom graph using Hilbert space
+    //   // information
+    //   g_ = Ptype(new CustomGraph(pars));
+    // }
+  }
+
+  explicit Graph(const std::string& name, const pybind11::kwargs& kwargs) {
+    if (name == "Hypercube") {
+      g_ = Ptype(new Hypercube(kwargs));
+    } else if (name == "Custom") {
+      g_ = Ptype(new CustomGraph(kwargs));
+    } else {
+      std::stringstream s;
+      s << "Unknown Graph type: " << name;
+      throw InvalidInputError(s.str());
     }
   }
 
@@ -66,17 +84,17 @@ class Graph : public AbstractGraph {
 
   const ColorMap& EdgeColors() const override { return g_->EdgeColors(); }
 
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
     g_->BreadthFirstSearch(start, max_depth, visitor_func);
   }
 
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, Func visitor_func) const {
     BreadthFirstSearch(start, Nsites(), visitor_func);
   }
 
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(Func visitor_func) const {
     g_->BreadthFirstSearch(visitor_func);
   }
@@ -92,7 +110,6 @@ class Graph : public AbstractGraph {
   std::vector<std::vector<int>> AllDistances() const override {
     return g_->AllDistances();
   }
-
 };
 }  // namespace netket
 

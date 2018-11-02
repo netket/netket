@@ -44,69 +44,76 @@ class CustomGraph : public AbstractGraph {
   bool is_connected_;
 
  public:
-  // Json constructor
-  explicit CustomGraph(const json &pars) { Init(pars); }
+  template <class Ptype>
+  explicit CustomGraph(const Ptype &pars) {
+    Init(pars);
+  }
 
-  void Init(const json &pars) {
+  template <class Ptype>
+  void Init(const Ptype &pars) {
     // Try to construct from explicit graph definition
-    if (FieldExists(pars, "Graph")) {
-      if (FieldExists(pars["Graph"], "AdjacencyList")) {
-        adjlist_ =
-            pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
-      }
-      if (FieldExists(pars["Graph"], "Edges")) {
-        std::vector<std::vector<int>> edges =
-            pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
-        AdjacencyListFromEdges(edges);
-      }
-      if (FieldExists(pars["Graph"], "Size")) {
-        assert(pars["Graph"]["Size"] > 0);
-        adjlist_.resize(pars["Graph"]["Size"]);
-      }
-    } else if (FieldExists(pars, "Hilbert")) {
-      Hilbert hilbert(pars);
-      nsites_ = hilbert.Size();
-      assert(nsites_ > 0);
-      adjlist_.resize(nsites_);
+
+    if (FieldExists(pars, "AdjacencyList")) {
+      std::vector<std::vector<int>> adjl =
+          FieldVal<std::vector<std::vector<int>>>(pars, "AdjacencyList",
+                                                  "Graph");
+      adjlist_ = adjl;
     } else {
-      throw InvalidInputError(
-          "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
-          "Space Size must be specified");
+      adjlist_.resize(0);
     }
+
+    if (FieldExists(pars, "Edges")) {
+      std::vector<std::vector<int>> edges =
+          FieldVal<std::vector<std::vector<int>>>(pars, "Edges", "Graph");
+      AdjacencyListFromEdges(edges);
+    }
+    if (FieldExists(pars, "Size")) {
+      int size = FieldVal<int>(pars, "Size");
+      assert(size > 0);
+      adjlist_.resize(size);
+    }
+
+    // if (FieldExists(pars, "Hilbert")) {
+    //   Hilbert hilbert(pars);
+    //   nsites_ = hilbert.Size();
+    //   assert(nsites_ > 0);
+    //   adjlist_.resize(nsites_);
+    // }
 
     nsites_ = adjlist_.size();
 
-    automorphisms_.resize(1, std::vector<int>(nsites_));
-    for (int i = 0; i < nsites_; i++) {
-      // If no automorphism is specified, we stick to the identity one
-      automorphisms_[0][i] = i;
+    if (nsites_ < 1) {
+      throw InvalidInputError("The number of graph nodes is invalid");
     }
 
-    isbipartite_ = false;
     is_connected_ = ComputeConnected();
 
     // Other graph properties
-    if (FieldExists(pars, "Graph")) {
-      if (FieldExists(pars["Graph"], "Automorphisms")) {
-        automorphisms_ =
-            pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
+    if (FieldExists(pars, "Automorphisms")) {
+      std::vector<std::vector<int>> ams =
+          FieldVal<std::vector<std::vector<int>>>(pars, "Automorphisms",
+                                                  "Graph");
+      automorphisms_ = ams;
+    } else {
+      automorphisms_.resize(1, std::vector<int>(nsites_));
+      for (int i = 0; i < nsites_; i++) {
+        // If no automorphism is specified, we stick to the identity one
+        automorphisms_[0][i] = i;
       }
+    }
 
-      if (FieldExists(pars["Graph"], "IsBipartite")) {
-        isbipartite_ = pars["Graph"]["IsBipartite"];
-      }
+    isbipartite_ = FieldOrDefaultVal<bool>(pars, "IsBipartite", false);
 
-      // If edge colors are specificied read them in, otherwise set them all to
-      // 0
-      if (FieldExists(pars["Graph"], "EdgeColors")) {
-        std::vector<std::vector<int>> colorlist =
-            pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
-        EdgeColorsFromList(colorlist, eclist_);
-      } else {
-        InfoMessage() << "No colors specified, edge colors set to 0 "
-                      << std::endl;
-        EdgeColorsFromAdj(adjlist_, eclist_);
-      }
+    // If edge colors are specificied read them in, otherwise set them all to
+    // 0
+    if (FieldExists(pars, "EdgeColors")) {
+      std::vector<std::vector<int>> colorlist =
+          FieldVal<std::vector<std::vector<int>>>(pars, "EdgeColors", "Graph");
+      EdgeColorsFromList(colorlist, eclist_);
+    } else {
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+      EdgeColorsFromAdj(adjlist_, eclist_);
     }
 
     CheckGraph();
@@ -180,7 +187,7 @@ class CustomGraph : public AbstractGraph {
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const override { return eclist_; }
-  
+
  private:
   bool ComputeConnected() const {
     const int start = 0;  // arbitrary node

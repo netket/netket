@@ -71,11 +71,30 @@ ExternalProject_Get_Property(eigen_project SOURCE_DIR)
 add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
+
+
 # IETL
 ################################################################################
 add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
 
+# PYBIND11
+
+
+ExternalProject_Add(
+    pybind11
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/pybind11"
+    URL "https://github.com/pybind/pybind11/archive/v2.2.4.tar.gz"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+find_package(pybind11 REQUIRED)
+#ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
+#add_library(pybind11 INTERFACE)
+#target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR})
+
+#add_subdirectory("${CMAKE_SOURCE_DIR}/External/pybind11")
 
 # MPI
 ################################################################################
@@ -144,6 +163,7 @@ target_link_libraries(netket_lib
         optional_lite
         span_lite
         IETL
+        pybind11::embed
 )
 
 # Check if we should use native Lapack with Eigen
@@ -161,11 +181,21 @@ if(USE_LAPACK)
 endif()
 
 
+
 add_executable(netket NetKet/netket.cc)
 target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
 # dependency to an interface library
 add_dependencies(netket eigen_project)
+
+
+
+add_library(pynetket MODULE NetKet/pynetket.cc)
+target_link_libraries(pynetket  PRIVATE pybind11::module)
+target_link_libraries(pynetket PUBLIC netket_lib)
+set_target_properties(pynetket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
+add_dependencies(pynetket eigen_project)
 
 #
 # Testing
