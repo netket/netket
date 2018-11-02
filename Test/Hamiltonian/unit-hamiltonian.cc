@@ -12,26 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include "Utils/random_utils.hpp"
+#include "catch.hpp"
 
 #include "hamiltonian_input_tests.hpp"
 #include "netket.hpp"
 
 TEST_CASE("hamiltonians produce elements in the hilbert space",
           "[hamiltonian]") {
-
   auto input_tests = GetHamiltonianInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
             input_tests[it]["Hamiltonian"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -69,16 +66,14 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
   }
 }
 
-TEST_CASE("hamiltonians do not have duplicate connections or newconfs", "[hamiltonian]") {
-
+TEST_CASE("hamiltonians do not have duplicate connections or newconfs",
+          "[hamiltonian]") {
   auto input_tests = GetHamiltonianInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
             input_tests[it]["Hamiltonian"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
@@ -116,15 +111,12 @@ TEST_CASE("hamiltonians do not have duplicate connections or newconfs", "[hamilt
 }
 
 TEST_CASE("hamiltonians are hermitean", "[hamiltonian]") {
-
   auto input_tests = GetHamiltonianInputs();
   std::size_t ntests = input_tests.size();
 
   for (std::size_t it = 0; it < ntests; it++) {
-
     SECTION("Hamiltonian test (" + std::to_string(it) + ") on " +
             input_tests[it]["Hamiltonian"].dump()) {
-
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);

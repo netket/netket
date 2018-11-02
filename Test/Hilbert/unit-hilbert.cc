@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
 #include <cfloat>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <vector>
+#include "catch.hpp"
+#include "netket.hpp"
 
 #include "hilbert_input_tests.hpp"
 
 TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
-
   auto input_tests = GetHilbertInputs();
   std::size_t ntests = input_tests.size();
 
@@ -36,7 +35,6 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
 
     SECTION("Hilbert test (" + std::to_string(i) + ") (" + std::to_string(i) +
             ") on " + name) {
-
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
@@ -64,7 +62,6 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
 }
 
 TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
-
   auto input_tests = GetHilbertInputs();
   std::size_t ntests = input_tests.size();
 
@@ -76,7 +73,6 @@ TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
     std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
-
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
@@ -91,7 +87,6 @@ TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
       REQUIRE(hilbert.LocalSize() > 0);
 
       if (hilbert.IsDiscrete()) {
-
         netket::default_random_engine rgen(3421);
         Eigen::VectorXd rstate(hilbert.Size());
 
@@ -123,7 +118,6 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
     std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
-
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
@@ -140,11 +134,9 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
       // Only do the test for small hilbert spaces
       if (hilbert.Size() * std::log(hilbert.LocalSize()) <
           std::log(netket::HilbertIndex::MaxStates)) {
-
         netket::HilbertIndex hilb_index(hilbert);
 
         for (std::size_t k = 0; k < hilb_index.NStates(); k++) {
-
           const auto state = hilb_index.NumberToState(k);
 
           REQUIRE(hilb_index.StateToNumber(state) == k);
