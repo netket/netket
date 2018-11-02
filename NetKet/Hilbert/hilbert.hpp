@@ -99,6 +99,4 @@ class Hilbert : public AbstractHilbert {
 };
 }  // namespace netket
 
-#include "hilbert_index.hpp"
-
 #endif
