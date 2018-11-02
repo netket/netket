@@ -79,22 +79,7 @@ add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
 
 # PYBIND11
-
-
-ExternalProject_Add(
-    pybind11
-    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/pybind11"
-    URL "https://github.com/pybind/pybind11/archive/v2.2.4.tar.gz"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-)
-find_package(pybind11 REQUIRED)
-#ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
-#add_library(pybind11 INTERFACE)
-#target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR})
-
-#add_subdirectory("${CMAKE_SOURCE_DIR}/External/pybind11")
+add_subdirectory("${CMAKE_SOURCE_DIR}/External/pybind11")
 
 # MPI
 ################################################################################
