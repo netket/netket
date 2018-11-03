@@ -72,23 +72,21 @@ class BoseHubbard : public AbstractHamiltonian {
 
     // Specifying the hilbert space
     json hil;
-    hil["Hilbert"]["Name"] = "Boson";
-    hil["Hilbert"]["Nsites"] = nsites_;
-    hil["Hilbert"]["Nmax"] = nmax_;
+    hil["Name"] = "Boson";
+    hil["Nmax"] = nmax_;
 
-    hilbert_.Init(hil);
+    hilbert_.InitWithGraph(graph_, hil);
 
     InfoMessage() << "Bose Hubbard model created " << std::endl;
   }
 
   void SetNbosons(int nbosons) {
     json hil;
-    hil["Hilbert"]["Name"] = "Boson";
-    hil["Hilbert"]["Nsites"] = nsites_;
-    hil["Hilbert"]["Nmax"] = nmax_;
-    hil["Hilbert"]["Nbosons"] = nbosons;
+    hil["Name"] = "Boson";
+    hil["Nmax"] = nmax_;
+    hil["Nbosons"] = nbosons;
 
-    hilbert_.Init(hil);
+    hilbert_.InitWithGraph(graph_, hil);
   }
 
   void GenerateBonds() {

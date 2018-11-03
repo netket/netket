@@ -17,12 +17,13 @@
 
 #include <memory>
 #include <set>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/python_helper.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"
-#include "next_variation.hpp"
 #include "qubits.hpp"
 #include "spins.hpp"
 
@@ -36,32 +37,62 @@ class Hilbert : public AbstractHilbert {
 
   explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
 
-  explicit Hilbert(const json &pars) { Init(pars); }
+  explicit Hilbert(const json &pars) { InitWithoutGraph(pars["Hilbert"]); }
 
-  void Init(const json &pars) {
-    CheckInput(pars);
+  explicit Hilbert(const Graph &graph, const json &pars) {
+    InitWithGraph(graph, pars["Hilbert"]);
+  }
 
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      if (pars["Hilbert"]["Name"] == "Spin") {
-        h_ = std::make_shared<Spin>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Boson") {
-        h_ = std::make_shared<Boson>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Qubit") {
-        h_ = std::make_shared<Qubit>(pars);
+  explicit Hilbert(const pybind11::kwargs &kwargs) { InitWithoutGraph(kwargs); }
+
+  explicit Hilbert(const Graph &graph, const pybind11::kwargs &kwargs) {
+    InitWithGraph(graph, kwargs);
+  }
+
+  template <class Ptype>
+  void InitWithoutGraph(const Ptype &pars) {
+    // CheckInput(pars);
+    int size = FieldVal<int>(pars, "Size");
+
+    json gpars;
+    gpars["Graph"]["Name"] = "Custom";
+    gpars["Graph"]["Size"] = size;
+    Graph graph(gpars);
+
+    InitWithGraph(graph, pars);
+  }
+
+  template <class Ptype>
+  void InitWithGraph(const Graph &graph, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name = FieldVal<std::string>(pars, "Name");
+      if (name == "Spin") {
+        h_ = std::make_shared<Spin>(graph, pars);
+      } else if (name == "Boson") {
+        h_ = std::make_shared<Boson>(graph, pars);
+      } else if (name == "Qubit") {
+        h_ = std::make_shared<Qubit>(graph, pars);
+      } else if (name == "Custom") {
+        h_ = std::make_shared<CustomHilbert>(graph, pars);
+      } else {
+        std::stringstream s;
+        s << "Unknown Hilbert type: " << name;
+        throw InvalidInputError(s.str());
       }
     } else {
-      h_ = std::make_shared<CustomHilbert>(pars);
+      h_ = std::make_shared<CustomHilbert>(graph, pars);
     }
   }
 
-  void CheckInput(const json &pars)
-  {
+  void CheckInput(const json &pars) {
     if (!FieldExists(pars, "Hilbert")) {
       if (!FieldExists(pars, "Hamiltonian")) {
-        throw InvalidInputError("Not enough information to construct Hilbert space");
+        throw InvalidInputError(
+            "Not enough information to construct Hilbert space");
       } else {
         if (!FieldExists(pars["Hamiltonian"], "Name")) {
-          throw InvalidInputError("Not enough information to construct Hilbert space");
+          throw InvalidInputError(
+              "Not enough information to construct Hilbert space");
         }
       }
     }
@@ -92,7 +123,8 @@ class Hilbert : public AbstractHilbert {
     return h_->RandomVals(state, rgen);
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     return h_->UpdateConf(v, tochange, newconf);
   }

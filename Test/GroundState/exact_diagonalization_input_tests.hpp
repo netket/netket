@@ -53,12 +53,13 @@ std::vector<netket::json> GetExactDiagonalizationInputs() {
   std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
 
   pars.clear();
+
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 8;
-  pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx,   sy, sy,
-                                      sy, szsz, sx,  szsz};
-  pars["Hamiltonian"]["ActingOn"] = {{0}, {0, 1}, {1, 0}, {1}, {2}, {3},
-                                     {4}, {4, 5}, {5}, {7, 0}};
+  pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx, sy,
+                                      sy, sy,   szsz, sx, szsz};
+  pars["Hamiltonian"]["ActingOn"] = {{0}, {0, 1}, {1, 0}, {1}, {2},
+                                     {3}, {4},    {4, 5}, {5}, {7, 0}};
 
   input_tests.push_back(pars);
 
