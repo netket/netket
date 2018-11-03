@@ -129,7 +129,7 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  bool CheckConstraint(Eigen::VectorXd &v) const {
+  bool CheckConstraint(const Eigen::VectorXd &v) const {
     int tot = 0;
     for (int i = 0; i < v.size(); i++) {
       tot += int(v(i));
