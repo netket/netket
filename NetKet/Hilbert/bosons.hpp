@@ -16,9 +16,11 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/python_helper.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_BOSONS_HPP
@@ -48,23 +50,19 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
  public:
-  explicit Boson(const json &pars) {
-    if (!FieldExists(pars["Hilbert"], "Nsites")) {
-      std::cerr << "Nsites is not defined" << std::endl;
-    }
+  template <class Ptype>
+  explicit Boson(const Graph &graph, const Ptype &pars) {
+    nsites_ = graph.Size();
 
-    nsites_ = pars["Hilbert"]["Nsites"];
+    CheckFieldExists(pars, "Nmax", "Hilbert");
 
-    if (!FieldExists(pars["Hilbert"], "Nmax")) {
-      std::cerr << "Nmax is not defined" << std::endl;
-    }
-
-    nmax_ = pars["Hilbert"]["Nmax"];
+    nmax_ = FieldVal<int>(pars, "Nmax");
 
     Init();
 
-    if (FieldExists(pars["Hilbert"], "Nbosons")) {
-      SetNbosons(pars["Hilbert"]["Nbosons"]);
+    if (FieldExists(pars, "Nbosons")) {
+      auto nbosons = FieldVal<int>(pars, "Nbosons");
+      SetNbosons(nbosons);
     } else {
       constraintN_ = false;
     }
@@ -140,7 +138,8 @@ class Boson : public AbstractHilbert {
     return tot == nbosons_;
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == nsites_);
 

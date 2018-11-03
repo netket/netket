@@ -17,9 +17,11 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/python_helper.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_SPIN_HPP
@@ -46,14 +48,16 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
  public:
-  explicit Spin(const json &pars) {
-    const int nspins = FieldVal(pars["Hilbert"], "Nspins", "Hilbert");
-    const double S = FieldVal(pars["Hilbert"], "S", "Hilbert");
+  template <class Ptype>
+  explicit Spin(const Graph &graph, const Ptype &pars) {
+    const int nspins = graph.Size();
+    const double S = FieldVal<double>(pars, "S", "Hilbert");
 
     Init(nspins, S);
 
-    if (FieldExists(pars["Hilbert"], "TotalSz")) {
-      SetConstraint(pars["Hilbert"]["TotalSz"]);
+    if (FieldExists(pars, "TotalSz")) {
+      auto totalSz = FieldVal<double>(pars, "TotalSz");
+      SetConstraint(totalSz);
     } else {
       constraintSz_ = false;
     }
@@ -146,7 +150,8 @@ class Spin : public AbstractHilbert {
     }
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == nspins_);
 

@@ -66,23 +66,21 @@ class Heisenberg : public AbstractHamiltonian {
 
     // Specifying the hilbert space
     json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
+    hil["Name"] = "Spin";
+    hil["S"] = 0.5;
 
-    hilbert_.Init(hil);
+    hilbert_.InitWithGraph(graph_, hil);
 
     InfoMessage() << "Heisenberg model created " << std::endl;
   }
 
   void SetTotalSz(double totalSz) {
     json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
-    hil["Hilbert"]["TotalSz"] = totalSz;
+    hil["Name"] = "Spin";
+    hil["S"] = 0.5;
+    hil["TotalSz"] = totalSz;
 
-    hilbert_.Init(hil);
+    hilbert_.InitWithGraph(graph_, hil);
   }
 
   void GenerateBonds() {

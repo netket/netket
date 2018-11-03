@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
+#include "Utils/next_variation.hpp"
 #include "Utils/python_helper.hpp"
 
 namespace netket {

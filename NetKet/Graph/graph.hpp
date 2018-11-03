@@ -38,26 +38,31 @@ class Graph : public AbstractGraph {
         std::string graph_name = pars["Graph"]["Name"];
         if (graph_name == "Hypercube") {
           g_ = Ptype(new Hypercube(pars["Graph"]));
+        } else if (graph_name == "Custom") {
+          g_ = Ptype(new CustomGraph(pars["Graph"]));
         } else {
           std::stringstream s;
           s << "Unknown Graph type: " << graph_name;
           throw InvalidInputError(s.str());
         }
       }
-      // Otherwise using a user-defined graph
+      // Otherwise try with a user-defined graph
       else {
         g_ = Ptype(new CustomGraph(pars["Graph"]));
       }
     } else {
-      std::stringstream s;
-      s << "Unknown Graph type";
-      throw InvalidInputError(s.str());
+      if (FieldExists(pars, "Hilbert")) {
+        int size = FieldVal<int>(pars["Hilbert"], "Size", "Graph");
+        json parsg;
+        parsg["Graph"]["Name"] = "Custom";
+        parsg["Graph"]["Size"] = size;
+        g_ = Ptype(new CustomGraph(parsg["Graph"]));
+      } else {
+        std::stringstream s;
+        s << "Unknown Graph type";
+        throw InvalidInputError(s.str());
+      }
     }
-    // } else {
-    //   // Otherwise try to construct a custom graph using Hilbert space
-    //   // information
-    //   g_ = Ptype(new CustomGraph(pars));
-    // }
   }
 
   explicit Graph(const std::string& name, const pybind11::kwargs& kwargs) {
@@ -73,6 +78,8 @@ class Graph : public AbstractGraph {
   }
 
   int Nsites() const override { return g_->Nsites(); }
+
+  int Size() const { return g_->Nsites(); }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return g_->AdjacencyList();

@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "exceptions.hpp"
+#include "json_helper.hpp"
 
 namespace netket {
 

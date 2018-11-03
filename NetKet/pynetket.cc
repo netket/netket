@@ -16,6 +16,7 @@
 #define NETKET_PYNETKET_CC
 
 #include <mpi.h>
+#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "netket.hpp"
@@ -35,6 +36,15 @@ PYBIND11_MODULE(pynetket, m) {
       .def("IsConnected", &Graph::IsConnected)
       .def("Distances", &Graph::Distances)
       .def("AllDistances", &Graph::AllDistances);
+
+  py::class_<Hilbert>(m, "Hilbert")
+      .def(py::init<py::kwargs>())
+      .def(py::init<const Graph&, py::kwargs>())
+      .def("IsDiscrete", &Hilbert::IsDiscrete)
+      .def("LocalSize", &Hilbert::LocalSize)
+      .def("Size", &Hilbert::Size)
+      .def("LocalStates", &Hilbert::LocalStates)
+      .def("UpdateConf", &Hilbert::UpdateConf);
 }
 
 }  // namespace netket

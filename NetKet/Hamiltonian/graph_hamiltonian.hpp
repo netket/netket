@@ -40,7 +40,7 @@ class GraphHamiltonian : public AbstractHamiltonian {
   using MatType = LocalOperator::MatType;
 
   explicit GraphHamiltonian(const G &graph, const json &pars)
-      : hilbert_(pars), graph_(graph), nvertices_(graph.Nsites()) {
+      : hilbert_(graph, pars), graph_(graph), nvertices_(graph.Nsites()) {
     auto pars_hamiltonian = pars["Hamiltonian"];
 
     // Ensure that at least one of SiteOps and BondOps was initialized

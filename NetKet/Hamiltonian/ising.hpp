@@ -66,11 +66,10 @@ class Ising : public AbstractHamiltonian {
 
     // Specifying the hilbert space
     json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
+    hil["Name"] = "Spin";
+    hil["S"] = 0.5;
 
-    hilbert_.Init(hil);
+    hilbert_.InitWithGraph(graph_, hil);
 
     InfoMessage() << "Transverse-Field Ising model created " << std::endl;
     InfoMessage() << "h = " << h_ << std::endl;

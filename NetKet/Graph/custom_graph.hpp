@@ -21,7 +21,6 @@
 #include <cassert>
 #include <unordered_map>
 #include <vector>
-#include "Hilbert/hilbert.hpp"
 #include "Utils/all_utils.hpp"
 
 namespace netket {
@@ -72,13 +71,6 @@ class CustomGraph : public AbstractGraph {
       assert(size > 0);
       adjlist_.resize(size);
     }
-
-    // if (FieldExists(pars, "Hilbert")) {
-    //   Hilbert hilbert(pars);
-    //   nsites_ = hilbert.Size();
-    //   assert(nsites_ > 0);
-    //   adjlist_.resize(nsites_);
-    // }
 
     nsites_ = adjlist_.size();
 

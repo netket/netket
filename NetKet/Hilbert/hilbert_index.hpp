@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "Hamiltonian/ising.hpp"
-#include "hilbert.hpp"
+#include "Utils/next_variation.hpp"
 
 namespace netket {
 

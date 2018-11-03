@@ -16,9 +16,11 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/python_helper.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_CUSTOM_HILBERT_HPP
@@ -38,25 +40,19 @@ class CustomHilbert : public AbstractHilbert {
   int size_;
 
  public:
-  explicit CustomHilbert(const json &pars) {
-    if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
-      if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
-        throw InvalidInputError("QuantumNumbers is not an array");
-      }
-      local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
-    } else {
-      throw InvalidInputError("QuantumNumbers are not defined");
-    }
+  template <class Ptype>
+  explicit CustomHilbert(const Graph &graph, const Ptype &pars) {
+    CheckFieldExists(pars, "QuantumNumbers", "Hilbert");
+    // if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
+    //   throw InvalidInputError("QuantumNumbers is not an array");
+    // }
 
-    if (FieldExists(pars["Hilbert"], "Size")) {
-      size_ = pars["Hilbert"]["Size"];
-      if (size_ <= 0) {
-        throw InvalidInputError("Hilbert Size parameter must be positive");
-      }
-    } else {
-      throw InvalidInputError("Hilbert space extent is not defined");
-    }
+    std::vector<double> qn =
+        FieldVal<std::vector<double>>(pars, "QuantumNumbers");
 
+    local_ = qn;
+
+    size_ = graph.Size();
     nstates_ = local_.size();
   }
 
@@ -80,7 +76,8 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == size_);
 
@@ -90,7 +87,7 @@ class CustomHilbert : public AbstractHilbert {
       i++;
     }
   }
-};
+};  // namespace netket
 
 }  // namespace netket
 #endif

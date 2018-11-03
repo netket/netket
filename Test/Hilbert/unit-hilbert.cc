@@ -38,7 +38,12 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        hilbert = netket::Hilbert(input_tests[i]);
+        if (netket::FieldExists(input_tests[i], "Graph")) {
+          netket::Graph graph(input_tests[i]);
+          hilbert = netket::Hilbert(graph, input_tests[i]);
+        } else {
+          hilbert = netket::Hilbert(input_tests[i]);
+        }
       } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
         netket::Graph graph(input_tests[i]);
         netket::Hamiltonian hamiltonian(graph, input_tests[i]);
@@ -76,7 +81,13 @@ TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        hilbert = netket::Hilbert(input_tests[i]);
+        if (netket::FieldExists(input_tests[i], "Graph")) {
+          netket::Graph graph(input_tests[i]);
+          hilbert = netket::Hilbert(graph, input_tests[i]);
+        } else {
+          hilbert = netket::Hilbert(input_tests[i]);
+        }
+
       } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
         netket::Graph graph(input_tests[i]);
         netket::Hamiltonian hamiltonian(graph, input_tests[i]);
@@ -121,7 +132,12 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
       netket::Hilbert hilbert;
 
       if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        hilbert = netket::Hilbert(input_tests[i]);
+        if (netket::FieldExists(input_tests[i], "Graph")) {
+          netket::Graph graph(input_tests[i]);
+          hilbert = netket::Hilbert(graph, input_tests[i]);
+        } else {
+          hilbert = netket::Hilbert(input_tests[i]);
+        }
       } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
         netket::Graph graph(input_tests[i]);
         netket::Hamiltonian hamiltonian(graph, input_tests[i]);
