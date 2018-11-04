@@ -33,6 +33,7 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
+  const Graph &graph_;
   std::vector<double> local_;
 
   int nstates_;
@@ -41,7 +42,8 @@ class CustomHilbert : public AbstractHilbert {
 
  public:
   template <class Ptype>
-  explicit CustomHilbert(const Graph &graph, const Ptype &pars) {
+  explicit CustomHilbert(const Graph &graph, const Ptype &pars)
+      : graph_(graph) {
     CheckFieldExists(pars, "QuantumNumbers", "Hilbert");
     // if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
     //   throw InvalidInputError("QuantumNumbers is not an array");
@@ -87,6 +89,8 @@ class CustomHilbert : public AbstractHilbert {
       i++;
     }
   }
+
+  const Graph &GetGraph() const override { return graph_; }
 };  // namespace netket
 
 }  // namespace netket

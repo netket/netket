@@ -37,9 +37,15 @@ for i in range(L):
 
 pars = {}
 
+
 # first we choose a hilbert space for our custom hamiltonian
 pars['Hilbert'] = {
     'QuantumNumbers': [1, -1],
+}
+
+# defining the graph
+pars['Graph'] = {
+    'Name': 'Custom',
     'Size': L,
 }
 

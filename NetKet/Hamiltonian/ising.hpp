@@ -20,6 +20,8 @@
 #include <complex>
 #include <iostream>
 #include <vector>
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_hamiltonian.hpp"
 
@@ -28,23 +30,23 @@ namespace netket {
 /**
   Transverse field Ising model on an arbitrary graph.
 */
-template <class G>
+
 class Ising : public AbstractHamiltonian {
+  /**
+    Hilbert space descriptor for this hamiltonian.
+  */
+  const Hilbert &hilbert_;
+
+  const Graph &graph_;
+
   const int nspins_;
   double h_;
   double J_;
-
-  const G &graph_;
 
   /**
     List of bonds for the interaction part.
   */
   std::vector<std::vector<int>> bonds_;
-
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
 
  public:
   /**
@@ -53,24 +55,18 @@ class Ising : public AbstractHamiltonian {
     obtained.
     @param pars is a json list of parameters. The default value of J is 1.0
   */
-  explicit Ising(const G &graph, const json &pars)
-      : nspins_(graph.Nsites()),
-        h_(FieldVal(pars["Hamiltonian"], "h")),
-        J_(FieldOrDefaultVal(pars["Hamiltonian"], "J", 1.0)),
-        graph_(graph) {
+  template <class Ptype>
+  explicit Ising(const Hilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nspins_(hilbert.Size()),
+        h_(FieldVal<double>(pars, "h")),
+        J_(FieldOrDefaultVal<double>(pars, "J", 1.0)) {
     Init();
   }
 
   void Init() {
     GenerateBonds();
-
-    // Specifying the hilbert space
-    json hil;
-    hil["Name"] = "Spin";
-    hil["S"] = 0.5;
-
-    hilbert_.InitWithGraph(graph_, hil);
-
     InfoMessage() << "Transverse-Field Ising model created " << std::endl;
     InfoMessage() << "h = " << h_ << std::endl;
     InfoMessage() << "J = " << J_ << std::endl;

@@ -34,6 +34,8 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
+  const Graph &graph_;
+
   int nsites_;
 
   std::vector<double> local_;
@@ -51,7 +53,7 @@ class Boson : public AbstractHilbert {
 
  public:
   template <class Ptype>
-  explicit Boson(const Graph &graph, const Ptype &pars) {
+  explicit Boson(const Graph &graph, const Ptype &pars) : graph_(graph) {
     nsites_ = graph.Size();
 
     CheckFieldExists(pars, "Nmax", "Hilbert");
@@ -154,6 +156,8 @@ class Boson : public AbstractHilbert {
       assert(CheckConstraint(v));
     }
   }
+
+  const Graph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

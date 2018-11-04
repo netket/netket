@@ -59,7 +59,6 @@ pars['Hilbert'] = {
     'Name': 'Spin',
     'S': 0.5,
     'TotalSz': 0,
-    'Nspins': L,
 }
 
 #defining our custom hamiltonian

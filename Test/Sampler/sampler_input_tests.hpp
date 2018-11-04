@@ -14,6 +14,8 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"Sampler", {{"Name", "MetropolisLocal"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Ising 1d with replicas
@@ -22,6 +24,8 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"Sampler", {{"Name", "MetropolisLocalPt"}, {"Nreplicas", 4}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Ising 1d
@@ -30,6 +34,8 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"Sampler", {{"Name", "MetropolisHamiltonian"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Ising 1d with replicas
@@ -38,30 +44,38 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"Sampler", {{"Name", "MetropolisHamiltonianPt"}, {"Nreplicas", 4}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Bose-Hubbard 1d with symmetric machine
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 1.0}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 3}}},
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}}},
           {"Sampler", {{"Name", "MetropolisLocal"}}}};
+  pars["Hilbert"]["Name"] = "Boson";
+  pars["Hilbert"]["Nmax"] = 3;
   input_tests.push_back(pars);
 
   // Bose-Hubbard 1d
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 3}}},
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}}},
           {"Sampler", {{"Name", "MetropolisLocalPt"}, {"Nreplicas", 4}}}};
+  pars["Hilbert"]["Name"] = "Boson";
+  pars["Hilbert"]["Nmax"] = 3;
   input_tests.push_back(pars);
 
   // Bose-Hubbard 1d with multi-val rbm
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmMultival"}, {"Alpha", 2.0}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 3}}},
+          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}}},
           {"Sampler", {{"Name", "MetropolisLocalPt"}, {"Nreplicas", 4}}}};
+  pars["Hilbert"]["Name"] = "Boson";
+  pars["Hilbert"]["Nmax"] = 3;
   input_tests.push_back(pars);
 
   // Ising 1d with Custom Sampler
@@ -72,6 +86,8 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
   pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx, sx, sx};
   pars["Sampler"]["ActingOn"] = {{0}, {1}, {2}, {3}, {4}, {5}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Ising 1D with CustomSampler two types of updates
@@ -81,6 +97,8 @@ std::vector<netket::json> GetSamplerInputs() {
            {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx, spsm, spsm, spsm, spsm};
   pars["Sampler"]["ActingOn"] = {{0},    {1},    {2},    {3},
                                  {0, 1}, {1, 2}, {2, 3}, {3, 0}};
@@ -91,6 +109,8 @@ std::vector<netket::json> GetSamplerInputs() {
            {{"Name", "Hypercube"}, {"L", 4}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   pars["Sampler"]["MoveOperators"] = {sx, sx, sx, sx};
   pars["Sampler"]["ActingOn"] = {{0}, {1}, {2}, {3}};
   pars["Sampler"]["Nreplicas"] = 4;
@@ -102,6 +122,8 @@ std::vector<netket::json> GetSamplerInputs() {
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"Sampler", {{"Name", "Exact"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   return input_tests;

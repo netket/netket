@@ -23,7 +23,8 @@ class TimeEvolutionDriver {
 
   static TimeEvolutionDriver FromJson(const json& pars) {
     Graph graph(pars);
-    Hamiltonian hamiltonian(graph, pars);
+    Hilbert hilbert(graph, pars);
+    Hamiltonian hamiltonian(hilbert, pars);
 
     auto pars_te = pars["TimeEvolution"];
     auto matrix = ConstructMatrixWrapper(pars_te, hamiltonian);

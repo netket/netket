@@ -30,13 +30,9 @@
 namespace netket {
 
 class Hilbert : public AbstractHilbert {
-  std::shared_ptr<AbstractHilbert> h_;
+  std::unique_ptr<AbstractHilbert> h_;
 
  public:
-  explicit Hilbert() {}
-
-  explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
-
   explicit Hilbert(const json &pars) { InitWithoutGraph(pars["Hilbert"]); }
 
   explicit Hilbert(const Graph &graph, const json &pars) {
@@ -51,7 +47,6 @@ class Hilbert : public AbstractHilbert {
 
   template <class Ptype>
   void InitWithoutGraph(const Ptype &pars) {
-    // CheckInput(pars);
     int size = FieldVal<int>(pars, "Size");
 
     json gpars;
@@ -67,46 +62,20 @@ class Hilbert : public AbstractHilbert {
     if (FieldExists(pars, "Name")) {
       std::string name = FieldVal<std::string>(pars, "Name");
       if (name == "Spin") {
-        h_ = std::make_shared<Spin>(graph, pars);
+        h_ = netket::make_unique<Spin>(graph, pars);
       } else if (name == "Boson") {
-        h_ = std::make_shared<Boson>(graph, pars);
+        h_ = netket::make_unique<Boson>(graph, pars);
       } else if (name == "Qubit") {
-        h_ = std::make_shared<Qubit>(graph, pars);
+        h_ = netket::make_unique<Qubit>(graph, pars);
       } else if (name == "Custom") {
-        h_ = std::make_shared<CustomHilbert>(graph, pars);
+        h_ = netket::make_unique<CustomHilbert>(graph, pars);
       } else {
         std::stringstream s;
         s << "Unknown Hilbert type: " << name;
         throw InvalidInputError(s.str());
       }
     } else {
-      h_ = std::make_shared<CustomHilbert>(graph, pars);
-    }
-  }
-
-  void CheckInput(const json &pars) {
-    if (!FieldExists(pars, "Hilbert")) {
-      if (!FieldExists(pars, "Hamiltonian")) {
-        throw InvalidInputError(
-            "Not enough information to construct Hilbert space");
-      } else {
-        if (!FieldExists(pars["Hamiltonian"], "Name")) {
-          throw InvalidInputError(
-              "Not enough information to construct Hilbert space");
-        }
-      }
-    }
-
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      std::set<std::string> hilberts = {"Spin", "Boson", "Qubit"};
-
-      const auto name = pars["Hilbert"]["Name"];
-
-      if (hilberts.count(name) == 0) {
-        std::stringstream s;
-        s << "Hilbert space type " << name << " not found.";
-        throw InvalidInputError(s.str());
-      }
+      h_ = netket::make_unique<CustomHilbert>(graph, pars);
     }
   }
 
@@ -128,6 +97,8 @@ class Hilbert : public AbstractHilbert {
                   const std::vector<double> &newconf) const override {
     return h_->UpdateConf(v, tochange, newconf);
   }
+
+  const Graph &GetGraph() const override { return h_->GetGraph(); }
 };
 }  // namespace netket
 

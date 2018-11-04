@@ -57,8 +57,9 @@ TEST_CASE("machines write/read to/from json correctly", "[layers]") {
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       using MType = std::complex<double>;
 
@@ -97,8 +98,9 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       using MType = std::complex<double>;
 
@@ -106,8 +108,6 @@ TEST_CASE("layers compute log derivatives correctly", "[layer]") {
 
       double sigma = 1.;
       machine.InitRandomPars(1234, sigma);
-
-      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
 
       int nv = hilbert.Size();
       Eigen::VectorXd v(nv);
@@ -156,8 +156,9 @@ TEST_CASE("Layers update look-up tables correctly", "[layer]") {
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       using MType = std::complex<double>;
       using WfType = netket::Machine<MType>;
@@ -166,8 +167,6 @@ TEST_CASE("Layers update look-up tables correctly", "[layer]") {
 
       double sigma = 1;
       machine.InitRandomPars(1234, sigma);
-
-      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
 
       typename WfType::LookupType lt;
       typename WfType::LookupType ltnew;

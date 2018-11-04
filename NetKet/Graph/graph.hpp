@@ -14,11 +14,13 @@
 
 #ifndef NETKET_GRAPH_HPP
 #define NETKET_GRAPH_HPP
-#include <pybind11/pybind11.h>
+
 #include <array>
 #include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
+#include "Utils/memory_utils.hpp"
+#include "Utils/python_helper.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
 #include "hypercube.hpp"
@@ -26,8 +28,7 @@
 namespace netket {
 
 class Graph : public AbstractGraph {
-  using Ptype = std::unique_ptr<AbstractGraph>;
-  Ptype g_;
+  std::unique_ptr<AbstractGraph> g_;
 
  public:
   explicit Graph(const json& pars) {
@@ -37,9 +38,9 @@ class Graph : public AbstractGraph {
       if (FieldExists(pars["Graph"], "Name")) {
         std::string graph_name = pars["Graph"]["Name"];
         if (graph_name == "Hypercube") {
-          g_ = Ptype(new Hypercube(pars["Graph"]));
+          g_ = netket::make_unique<Hypercube>(pars["Graph"]);
         } else if (graph_name == "Custom") {
-          g_ = Ptype(new CustomGraph(pars["Graph"]));
+          g_ = netket::make_unique<CustomGraph>(pars["Graph"]);
         } else {
           std::stringstream s;
           s << "Unknown Graph type: " << graph_name;
@@ -48,7 +49,7 @@ class Graph : public AbstractGraph {
       }
       // Otherwise try with a user-defined graph
       else {
-        g_ = Ptype(new CustomGraph(pars["Graph"]));
+        g_ = netket::make_unique<CustomGraph>(pars["Graph"]);
       }
     } else {
       if (FieldExists(pars, "Hilbert")) {
@@ -56,7 +57,7 @@ class Graph : public AbstractGraph {
         json parsg;
         parsg["Graph"]["Name"] = "Custom";
         parsg["Graph"]["Size"] = size;
-        g_ = Ptype(new CustomGraph(parsg["Graph"]));
+        g_ = netket::make_unique<CustomGraph>(parsg["Graph"]);
       } else {
         std::stringstream s;
         s << "Unknown Graph type";
@@ -67,9 +68,9 @@ class Graph : public AbstractGraph {
 
   explicit Graph(const std::string& name, const pybind11::kwargs& kwargs) {
     if (name == "Hypercube") {
-      g_ = Ptype(new Hypercube(kwargs));
+      g_ = netket::make_unique<Hypercube>(kwargs);
     } else if (name == "Custom") {
-      g_ = Ptype(new CustomGraph(kwargs));
+      g_ = netket::make_unique<CustomGraph>(kwargs);
     } else {
       std::stringstream s;
       s << "Unknown Graph type: " << name;

@@ -17,6 +17,7 @@
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
+#include <complex>
 #include <fstream>
 #include <iostream>
 #include <string>

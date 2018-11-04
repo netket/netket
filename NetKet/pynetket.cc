@@ -16,16 +16,32 @@
 #define NETKET_PYNETKET_CC
 
 #include <mpi.h>
+#include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+#include <complex>
+#include <vector>
 #include "netket.hpp"
 
 namespace py = pybind11;
 
+PYBIND11_MAKE_OPAQUE(std::vector<int>);
+PYBIND11_MAKE_OPAQUE(std::vector<double>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::complex<double>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::vector<int>>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
+
 namespace netket {
 
 PYBIND11_MODULE(pynetket, m) {
+  py::bind_vector<std::vector<int>>(m, "VectorInt");
+  py::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorInt");
+  py::bind_vector<std::vector<double>>(m, "VectorDouble");
+  py::bind_vector<std::vector<std::vector<double>>>(m, "VectorVectorDouble");
+  py::bind_vector<std::vector<std::complex<double>>>(m, "VectorComplexDouble");
+
   py::class_<Graph>(m, "Graph")
       .def(py::init<std::string, py::kwargs>())
       .def("Nsites", &Graph::Nsites)
@@ -39,12 +55,22 @@ PYBIND11_MODULE(pynetket, m) {
 
   py::class_<Hilbert>(m, "Hilbert")
       .def(py::init<py::kwargs>())
-      .def(py::init<const Graph&, py::kwargs>())
+      .def(py::init<const Graph &, py::kwargs>())
       .def("IsDiscrete", &Hilbert::IsDiscrete)
       .def("LocalSize", &Hilbert::LocalSize)
       .def("Size", &Hilbert::Size)
       .def("LocalStates", &Hilbert::LocalStates)
       .def("UpdateConf", &Hilbert::UpdateConf);
+
+  py::class_<Hamiltonian>(m, "Hamiltonian")
+      .def(py::init<const Hilbert &, py::kwargs>())
+      .def("FindConn", &Hamiltonian::FindConn)
+      .def("ForEachConn", &Hamiltonian::ForEachConn)
+      .def("GetHilbert", &Hamiltonian::GetHilbert);
+
+  py::class_<SparseMatrixWrapper<Hamiltonian>>(m, "SparseHamiltonianWrapper")
+      .def(py::init<const Hamiltonian &>())
+      .def("GetMatrix", &SparseMatrixWrapper<Hamiltonian>::GetMatrix);
 }
 
 }  // namespace netket

@@ -19,40 +19,35 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "abstract_hamiltonian.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G>
+
 class Heisenberg : public AbstractHamiltonian {
+  const Hilbert &hilbert_;
+  const Graph &graph_;
+
   const int nspins_;
   double offdiag_;
-
-  const G &graph_;
 
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
-
  public:
-  explicit Heisenberg(const G &graph) : graph_(graph), nspins_(graph.Nsites()) {
+  explicit Heisenberg(const Hilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
 
   // Json constructor
-  explicit Heisenberg(const G &graph, const json &pars)
-      : nspins_(graph.Nsites()), graph_(graph) {
+  template <class Ptype>
+  explicit Heisenberg(const Hilbert &hilbert, const Ptype & /*pars*/)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
-
-    if (FieldExists(pars["Hamiltonian"], "TotalSz")) {
-      double totalsz = pars["Hamiltonian"]["TotalSz"];
-      SetTotalSz(totalsz);
-    }
   }
 
   void Init() {
@@ -64,23 +59,7 @@ class Heisenberg : public AbstractHamiltonian {
 
     GenerateBonds();
 
-    // Specifying the hilbert space
-    json hil;
-    hil["Name"] = "Spin";
-    hil["S"] = 0.5;
-
-    hilbert_.InitWithGraph(graph_, hil);
-
     InfoMessage() << "Heisenberg model created " << std::endl;
-  }
-
-  void SetTotalSz(double totalSz) {
-    json hil;
-    hil["Name"] = "Spin";
-    hil["S"] = 0.5;
-    hil["TotalSz"] = totalSz;
-
-    hilbert_.InitWithGraph(graph_, hil);
   }
 
   void GenerateBonds() {

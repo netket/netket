@@ -19,74 +19,52 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
-
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/json_helper.hpp"
-
 #include "abstract_hamiltonian.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G>
 class BoseHubbard : public AbstractHamiltonian {
+  const Hilbert &hilbert_;
+  const Graph &graph_;
+
   int nsites_;
+
+  // cutoff in occupation number
+  int nmax_;
+
   double U_;
   double V_;
 
   double mu_;
 
-  const G &graph_;
-
-  // cutoff in occupation number
-  int nmax_;
-
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
-
  public:
   // Json constructor
-  explicit BoseHubbard(const G &graph, const json &pars)
-      : nsites_(graph.Nsites()), graph_(graph) {
-    nmax_ = FieldVal(pars["Hamiltonian"], "Nmax", "Hamiltonian");
-    U_ = FieldVal(pars["Hamiltonian"], "U", "Hamiltonian");
+  template <class Ptype>
+  explicit BoseHubbard(const Hilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nsites_(hilbert.Size()) {
+    nmax_ = hilbert_.LocalSize() - 1;
+    U_ = FieldVal<double>(pars, "U", "Hamiltonian");
 
-    V_ = FieldOrDefaultVal(pars["Hamiltonian"], "V", .0);
-    mu_ = FieldOrDefaultVal(pars["Hamiltonian"], "Mu", .0);
-
+    V_ = FieldOrDefaultVal<double>(pars, "V", .0);
+    mu_ = FieldOrDefaultVal<double>(pars, "Mu", .0);
     Init();
-
-    if (FieldExists(pars["Hamiltonian"], "Nbosons")) {
-      int nbosons = pars["Hamiltonian"]["Nbosons"];
-      SetNbosons(nbosons);
-    }
   }
 
   void Init() {
     GenerateBonds();
-
-    // Specifying the hilbert space
-    json hil;
-    hil["Name"] = "Boson";
-    hil["Nmax"] = nmax_;
-
-    hilbert_.InitWithGraph(graph_, hil);
-
-    InfoMessage() << "Bose Hubbard model created " << std::endl;
-  }
-
-  void SetNbosons(int nbosons) {
-    json hil;
-    hil["Name"] = "Boson";
-    hil["Nmax"] = nmax_;
-    hil["Nbosons"] = nbosons;
-
-    hilbert_.InitWithGraph(graph_, hil);
+    InfoMessage() << "Bose Hubbard model created \n";
+    InfoMessage() << "U= " << U_ << std::endl;
+    InfoMessage() << "V= " << V_ << std::endl;
+    InfoMessage() << "mu= " << mu_ << std::endl;
+    InfoMessage() << "Nmax= " << nmax_ << std::endl;
   }
 
   void GenerateBonds() {

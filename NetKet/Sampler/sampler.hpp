@@ -45,7 +45,7 @@ class Sampler : public AbstractSampler<WfType> {
     Init(psi, pars);
   }
 
-  explicit Sampler(Graph &graph, WfType &psi, const json &pars) {
+  explicit Sampler(const Graph &graph, WfType &psi, const json &pars) {
     CheckInput(pars);
     Init(psi, pars);
     Init(graph, psi, pars);
@@ -57,7 +57,7 @@ class Sampler : public AbstractSampler<WfType> {
     Init(hamiltonian, psi, pars);
   }
 
-  explicit Sampler(Graph &graph, Hamiltonian &hamiltonian, WfType &psi,
+  explicit Sampler(const Graph &graph, Hamiltonian &hamiltonian, WfType &psi,
                    const json &pars) {
     CheckInput(pars);
     Init(psi, pars);
@@ -83,7 +83,7 @@ class Sampler : public AbstractSampler<WfType> {
     }
   }
 
-  void Init(Graph &graph, WfType &psi, const json &pars) {
+  void Init(const Graph &graph, WfType &psi, const json &pars) {
     if (FieldExists(pars["Sampler"], "Name")) {
       if (pars["Sampler"]["Name"] == "MetropolisExchange") {
         s_ = Ptype(new MetropolisExchange<WfType>(graph, psi, pars));

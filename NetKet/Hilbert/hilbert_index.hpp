@@ -88,6 +88,8 @@ class HilbertIndex {
 
     for (int k = 0; k < connector.size(); k++) {
       const int ich = connector[k];
+      assert(statenumber_.count(v(ich)) > 0);
+      assert(statenumber_.count(newconf[k]) > 0);
       number -= statenumber_.at(v(ich)) * basis_[size_ - ich - 1];
       number += statenumber_.at(newconf[k]) * basis_[size_ - ich - 1];
     }
@@ -104,6 +106,7 @@ class HilbertIndex {
     int k = size_ - 1;
 
     while (ip > 0) {
+      assert((ip % localsize_) < localstates_.size());
       result(k) = localstates_[ip % localsize_];
       ip /= localsize_;
       k--;

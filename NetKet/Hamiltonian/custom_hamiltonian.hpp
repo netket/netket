@@ -25,27 +25,32 @@ namespace netket {
 
 class CustomHamiltonian : public AbstractHamiltonian {
   std::vector<LocalOperator> operators_;
-  Hilbert hilbert_;
+  const Hilbert &hilbert_;
+  const Graph &graph_;
 
  public:
   using MatType = LocalOperator::MatType;
 
-  explicit CustomHamiltonian(const json &pars) : hilbert_(pars) {
-    auto pars_hamiltonian = pars["Hamiltonian"];
+  template <class Ptype>
+  explicit CustomHamiltonian(const Hilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()) {
+    CheckFieldExists(pars, "Operators");
+    // TODO
+    // if (!pars_hamiltonian["Operators"].is_array()) {
+    //   throw InvalidInputError("Hamiltonian: Local operators is not an
+    //   array");
+    // }
 
-    CheckFieldExists(pars_hamiltonian, "Operators");
-    if (!pars_hamiltonian["Operators"].is_array()) {
-      throw InvalidInputError("Hamiltonian: Local operators is not an array");
-    }
+    CheckFieldExists(pars, "ActingOn");
+    // if (!pars_hamiltonian["ActingOn"].is_array()) {
+    //   throw InvalidInputError("Hamiltonian.ActingOn is not an array");
+    // }
 
-    CheckFieldExists(pars_hamiltonian, "ActingOn");
-    if (!pars_hamiltonian["ActingOn"].is_array()) {
-      throw InvalidInputError("Hamiltonian.ActingOn is not an array");
-    }
+    std::vector<MatType> jop =
+        FieldVal<std::vector<MatType>>(pars, "Operators");
 
-    auto jop = pars_hamiltonian["Operators"].get<std::vector<MatType>>();
-    auto sites =
-        pars_hamiltonian["ActingOn"].get<std::vector<std::vector<int>>>();
+    std::vector<std::vector<int>> sites =
+        FieldVal<std::vector<std::vector<int>>>(pars, "ActingOn");
 
     if (sites.size() != jop.size()) {
       throw InvalidInputError(

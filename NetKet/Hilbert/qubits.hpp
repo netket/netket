@@ -33,13 +33,15 @@ namespace netket {
 */
 
 class Qubit : public AbstractHilbert {
+  const Graph &graph_;
+
   std::vector<double> local_;
 
   int nqubits_;
 
  public:
   template <class Ptype>
-  explicit Qubit(const Graph &graph, const Ptype & /*pars*/) {
+  explicit Qubit(const Graph &graph, const Ptype & /*pars*/) : graph_(graph) {
     const int nqubits = graph.Size();
     Init(nqubits);
   }
@@ -84,6 +86,8 @@ class Qubit : public AbstractHilbert {
       i++;
     }
   }
+
+  const Graph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket
