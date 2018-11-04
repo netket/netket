@@ -6,6 +6,8 @@ option(ENABLE_TESTS "Enable unit tests." OFF)
 
 project(NetKet)
 
+set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
+
 if(ENABLE_TESTS)
    include(CTest) # adds option BUILD_TESTING (default ON)
 endif()
@@ -79,7 +81,27 @@ add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
 
 # PYBIND11
-add_subdirectory("${CMAKE_SOURCE_DIR}/External/pybind11")
+###############################################################################
+ExternalProject_Add(
+    pybind11_project
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/pybind11"
+    URL "https://github.com/pybind/pybind11/archive/v2.2.4.tar.gz"
+    URL_HASH MD5=c533a107bc95bd0c5525ff650b11bfa1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 3.4)
+find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
+add_library(pybind11 INTERFACE)
+ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
+target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR}/include)
+target_include_directories(pybind11 SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
+if(NOT MSVC)
+    # Greatly reduces the code bloat
+    target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
+endif()
 
 # MPI
 ################################################################################
@@ -148,7 +170,7 @@ target_link_libraries(netket_lib
         optional_lite
         span_lite
         IETL
-        pybind11::embed
+        pybind11
 )
 
 # Check if we should use native Lapack with Eigen
@@ -176,7 +198,7 @@ add_dependencies(netket eigen_project)
 
 
 add_library(pynetket MODULE NetKet/pynetket.cc)
-target_link_libraries(pynetket  PRIVATE pybind11::module)
+target_link_libraries(pynetket  PRIVATE pybind11)
 target_link_libraries(pynetket PUBLIC netket_lib)
 set_target_properties(pynetket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
