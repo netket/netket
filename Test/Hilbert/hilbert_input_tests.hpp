@@ -44,20 +44,6 @@ std::vector<netket::json> GetHilbertInputs() {
   pars = {{"Hilbert", {{"QuantumNumbers", {-1232, 132, 0}}, {"Size", 34}}}};
   input_tests.push_back(pars);
 
-  // Heisenberg 1d
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Hamiltonian", {{"Name", "Heisenberg"}, {"TotalSz", 0}}}};
-  input_tests.push_back(pars);
-  //
-  // Bose Hubbard
-  pars = {
-      {"Graph",
-       {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-      {"Hamiltonian",
-       {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}, {"Nbosons", 20}}}};
-  input_tests.push_back(pars);
-
   // // Small hilbert spaces
   // Spin 1/2
   pars = {{"Hilbert", {{"Name", "Spin"}, {"Size", 10}, {"S", 0.5}}}};
@@ -77,18 +63,6 @@ std::vector<netket::json> GetHilbertInputs() {
 
   // Custom Hilbert
   pars = {{"Hilbert", {{"QuantumNumbers", {-1232, 132, 0}}, {"Size", 5}}}};
-  input_tests.push_back(pars);
-  //
-  // Heisenberg 1d
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 9}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
-  input_tests.push_back(pars);
-  //
-  // Bose Hubbard
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 2}, {"Dimension", 1}, {"Pbc", false}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 4}}}};
   input_tests.push_back(pars);
 
   return input_tests;

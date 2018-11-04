@@ -17,6 +17,10 @@
 
 #include <memory>
 
+#include "Hilbert/hilbert.hpp"
+#include "Utils/json_utils.hpp"
+#include "Utils/memory_utils.hpp"
+#include "Utils/python_helper.hpp"
 #include "abstract_hamiltonian.hpp"
 #include "bosonhubbard.hpp"
 #include "custom_hamiltonian.hpp"
@@ -27,28 +31,38 @@
 namespace netket {
 
 class Hamiltonian : public AbstractHamiltonian {
-  std::shared_ptr<AbstractHamiltonian> h_;
+  std::unique_ptr<AbstractHamiltonian> h_;
 
  public:
-  explicit Hamiltonian(const Graph &graph, const json &pars) {
-    if (!FieldExists(pars, "Hamiltonian")) {
-      throw InvalidInputError("Hamiltonian is not defined in the input");
-    }
+  explicit Hamiltonian(const Hilbert &hilbert, const json &pars) {
+    Init(hilbert, pars["Hamiltonian"]);
+  }
 
-    if (FieldExists(pars["Hamiltonian"], "Name")) {
-      if (pars["Hamiltonian"]["Name"] == "Ising") {
-        h_ = std::make_shared<Ising<Graph>>(graph, pars);
-      } else if (pars["Hamiltonian"]["Name"] == "Heisenberg") {
-        h_ = std::make_shared<Heisenberg<Graph>>(graph, pars);
-      } else if (pars["Hamiltonian"]["Name"] == "BoseHubbard") {
-        h_ = std::make_shared<BoseHubbard<Graph>>(graph, pars);
-      } else if (pars["Hamiltonian"]["Name"] == "Graph") {
-        h_ = std::make_shared<GraphHamiltonian<Graph>>(graph, pars);
+  explicit Hamiltonian(const Hilbert &hilbert, const pybind11::kwargs &kwargs) {
+    Init(hilbert, kwargs);
+  }
+
+  template <class Ptype>
+  void Init(const Hilbert &hilbert, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name;
+      name = FieldVal<std::string>(pars, "Name");
+
+      if (name == "Ising") {
+        h_ = netket::make_unique<Ising>(hilbert, pars);
+      } else if (name == "Heisenberg") {
+        h_ = netket::make_unique<Heisenberg>(hilbert, pars);
+      } else if (name == "BoseHubbard") {
+        h_ = netket::make_unique<BoseHubbard>(hilbert, pars);
+      } else if (name == "Graph") {
+        h_ = netket::make_unique<GraphHamiltonian>(hilbert, pars);
       } else {
-        throw InvalidInputError("Hamiltonian name not found");
+        std::stringstream s;
+        s << "Unknown Hamiltonian type: " << name;
+        throw InvalidInputError(s.str());
       }
     } else {
-      h_ = std::make_shared<CustomHamiltonian>(pars);
+      h_ = netket::make_unique<CustomHamiltonian>(hilbert, pars);
     }
   }
 

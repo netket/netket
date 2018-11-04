@@ -12,78 +12,66 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_BOND_HAMILTONIAN_CC
-#define NETKET_BOND_HAMILTONIAN_CC
+#ifndef NETKET_GRAPH_HAMILTONIAN_CC
+#define NETKET_GRAPH_HAMILTONIAN_CC
 
 #include <Eigen/Dense>
 #include <array>
 #include <unordered_map>
 #include <vector>
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "Utils/json_helper.hpp"
 #include "local_operator.hpp"
 
 namespace netket {
 
-// BondHamiltonian on an arbitrary graph
-template <class G>
+// Graph Hamiltonian on an arbitrary graph
 class GraphHamiltonian : public AbstractHamiltonian {
-  std::vector<LocalOperator> operators_;
-  Hilbert hilbert_;
+  const Hilbert &hilbert_;
 
   // Arbitrary graph
-  const G &graph_;
+  const Graph &graph_;
 
-  // const std::size_t nvertices_;
+  std::vector<LocalOperator> operators_;
   const int nvertices_;
 
  public:
   using MatType = LocalOperator::MatType;
 
-  explicit GraphHamiltonian(const G &graph, const json &pars)
-      : hilbert_(graph, pars), graph_(graph), nvertices_(graph.Nsites()) {
-    auto pars_hamiltonian = pars["Hamiltonian"];
-
+  template <class Ptype>
+  explicit GraphHamiltonian(const Hilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nvertices_(hilbert.Size()) {
     // Ensure that at least one of SiteOps and BondOps was initialized
-    if (!FieldExists(pars_hamiltonian, "SiteOps") and
-        FieldExists(pars_hamiltonian, "BondOps")) {
-      pars_hamiltonian["SiteOps"] = std::vector<MatType>();
-
-    } else if (!FieldExists(pars_hamiltonian, "BondOps") and
-               FieldExists(pars_hamiltonian, "SiteOps")) {
-      pars_hamiltonian["BondOps"] = std::vector<MatType>();
-    } else if (!FieldExists(pars_hamiltonian, "BondOps") and
-               !FieldExists(pars_hamiltonian, "SiteOps")) {
+    if (!FieldExists(pars, "BondOps") && !FieldExists(pars, "SiteOps")) {
       throw InvalidInputError("Must input at least SiteOps or BondOps");
     }
 
-    // Ensure that parameters are arrays
-    if (!pars_hamiltonian["SiteOps"].is_array()) {
-      throw InvalidInputError(
-          "Hamiltonian: Bond operators object is not an array!");
-    }
-    if (!pars_hamiltonian["BondOps"].is_array()) {
-      throw InvalidInputError(
-          "Hamiltonian: Bond operators object is not an array!");
-    }
+    // // Ensure that parameters are arrays
+    // if (!pars_hamiltonian["SiteOps"].is_array()) {
+    //   throw InvalidInputError(
+    //       "Hamiltonian: Bond operators object is not an array!");
+    // }
+    // if (!pars_hamiltonian["BondOps"].is_array()) {
+    //   throw InvalidInputError(
+    //       "Hamiltonian: Bond operators object is not an array!");
+    // }
 
-    // Check BondOpColors
-    if (!FieldExists(pars_hamiltonian, "BondOpColors")) {
-      if (pars_hamiltonian["BondOps"].size() == 0) {
-        pars_hamiltonian["BondOpColors"] = std::vector<int>();
-      } else {
-        pars_hamiltonian["BondOpColors"] =
-            std::vector<int>(pars_hamiltonian["BondOps"].size(), 0);
-      }
-    }
-
-    if (!pars_hamiltonian["BondOpColors"].is_array()) {
-      throw InvalidInputError("Hamiltonian.BondOpColors is not an array");
-    }
+    // if (!pars_hamiltonian["BondOpColors"].is_array()) {
+    //   throw InvalidInputError("Hamiltonian.BondOpColors is not an array");
+    // }
 
     // Save operators and bond colors
-    auto sop = pars_hamiltonian["SiteOps"].get<std::vector<MatType>>();
-    auto bop = pars_hamiltonian["BondOps"].get<std::vector<MatType>>();
-    auto op_color = pars_hamiltonian["BondOpColors"].get<std::vector<int>>();
+    std::vector<MatType> sop =
+        FieldOrDefaultVal(pars, "SiteOps", std::vector<MatType>());
+
+    std::vector<MatType> bop =
+        FieldOrDefaultVal(pars, "BondOps", std::vector<MatType>());
+
+    std::vector<int> op_color = FieldOrDefaultVal(
+        pars, "BondOpColors", std::vector<int>(bop.size(), 0));
 
     // Site operators
     if (sop.size() > 0) {
@@ -131,6 +119,6 @@ class GraphHamiltonian : public AbstractHamiltonian {
   }
 
   const Hilbert &GetHilbert() const override { return hilbert_; }
-};
+};  // namespace netket
 }  // namespace netket
 #endif

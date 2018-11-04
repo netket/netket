@@ -17,10 +17,20 @@
 #include <iostream>
 #include <set>
 #include <vector>
+#include "Hilbert/hilbert.hpp"
+#include "Utils/json_utils.hpp"
 #include "catch.hpp"
+#include "hilbert_input_tests.hpp"
 #include "netket.hpp"
 
-#include "hilbert_input_tests.hpp"
+netket::Hilbert MakeHilbert(const netket::json& pars) {
+  if (netket::FieldExists(pars, "Graph")) {
+    netket::Graph graph(pars);
+    return netket::Hilbert(graph, pars);
+  } else {
+    return netket::Hilbert(pars);
+  }
+}
 
 TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
   auto input_tests = GetHilbertInputs();
@@ -28,27 +38,13 @@ TEST_CASE("hilbert has consistent sizes and definitions", "[hilbert]") {
 
   for (std::size_t i = 0; i < ntests; i++) {
     std::string parname = "Hilbert";
-    if (!netket::FieldExists(input_tests[i], "Hilbert")) {
-      parname = "Hamiltonian";
-    }
+
+    REQUIRE(netket::FieldExists(input_tests[i], "Hilbert"));
     std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test (" + std::to_string(i) + ") (" + std::to_string(i) +
             ") on " + name) {
-      netket::Hilbert hilbert;
-
-      if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        if (netket::FieldExists(input_tests[i], "Graph")) {
-          netket::Graph graph(input_tests[i]);
-          hilbert = netket::Hilbert(graph, input_tests[i]);
-        } else {
-          hilbert = netket::Hilbert(input_tests[i]);
-        }
-      } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
-        netket::Graph graph(input_tests[i]);
-        netket::Hamiltonian hamiltonian(graph, input_tests[i]);
-        hilbert = netket::Hilbert(hamiltonian.GetHilbert());
-      }
+      netket::Hilbert hilbert = MakeHilbert(input_tests[i]);
 
       REQUIRE(hilbert.Size() > 0);
       REQUIRE(hilbert.LocalSize() > 0);
@@ -72,27 +68,11 @@ TEST_CASE("hilbert generates consistent random states", "[hilbert]") {
 
   for (std::size_t i = 0; i < ntests; i++) {
     std::string parname = "Hilbert";
-    if (!netket::FieldExists(input_tests[i], "Hilbert")) {
-      parname = "Hamiltonian";
-    }
+    REQUIRE(netket::FieldExists(input_tests[i], "Hilbert"));
     std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
-      netket::Hilbert hilbert;
-
-      if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        if (netket::FieldExists(input_tests[i], "Graph")) {
-          netket::Graph graph(input_tests[i]);
-          hilbert = netket::Hilbert(graph, input_tests[i]);
-        } else {
-          hilbert = netket::Hilbert(input_tests[i]);
-        }
-
-      } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
-        netket::Graph graph(input_tests[i]);
-        netket::Hamiltonian hamiltonian(graph, input_tests[i]);
-        hilbert = netket::Hilbert(hamiltonian.GetHilbert());
-      }
+      netket::Hilbert hilbert = MakeHilbert(input_tests[i]);
 
       REQUIRE(hilbert.Size() > 0);
       REQUIRE(hilbert.LocalSize() > 0);
@@ -123,26 +103,11 @@ TEST_CASE("hilbert index generates consistent mappings", "[hilbert]") {
 
   for (std::size_t i = 0; i < ntests; i++) {
     std::string parname = "Hilbert";
-    if (!netket::FieldExists(input_tests[i], "Hilbert")) {
-      parname = "Hamiltonian";
-    }
+    REQUIRE(netket::FieldExists(input_tests[i], "Hilbert"));
     std::string name = input_tests[i][parname].dump();
 
     SECTION("Hilbert test (" + std::to_string(i) + ") on " + name) {
-      netket::Hilbert hilbert;
-
-      if (netket::FieldExists(input_tests[i], "Hilbert")) {
-        if (netket::FieldExists(input_tests[i], "Graph")) {
-          netket::Graph graph(input_tests[i]);
-          hilbert = netket::Hilbert(graph, input_tests[i]);
-        } else {
-          hilbert = netket::Hilbert(input_tests[i]);
-        }
-      } else if (netket::FieldExists(input_tests[i], "Hamiltonian")) {
-        netket::Graph graph(input_tests[i]);
-        netket::Hamiltonian hamiltonian(graph, input_tests[i]);
-        hilbert = netket::Hilbert(hamiltonian.GetHilbert());
-      }
+      netket::Hilbert hilbert = MakeHilbert(input_tests[i]);
 
       REQUIRE(hilbert.Size() > 0);
       REQUIRE(hilbert.LocalSize() > 0);

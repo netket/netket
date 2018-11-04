@@ -50,13 +50,15 @@ class GroundState {
     }
 
     Graph graph(pars);
-    Hamiltonian hamiltonian(graph, pars);
+    Hilbert hilbert(graph, pars);
+    Hamiltonian hamiltonian(hilbert, pars);
 
     if (method_name == "Gd" || method_name == "Sr") {
       using MachineType = Machine<std::complex<double>>;
-      MachineType machine(graph, hamiltonian, pars);
+      MachineType machine(hilbert.GetGraph(), hamiltonian, pars);
 
-      Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
+      Sampler<MachineType> sampler(hilbert.GetGraph(), hamiltonian, machine,
+                                   pars);
       Optimizer optimizer(pars);
 
       VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);

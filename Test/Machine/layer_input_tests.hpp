@@ -19,6 +19,8 @@ std::vector<netket::json> GetLayerInputs() {
                {"Outputs", 40},
                {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Convolutional layer
@@ -38,6 +40,8 @@ std::vector<netket::json> GetLayerInputs() {
                {"Distance", 2},
                {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Sum out layer
@@ -57,6 +61,8 @@ std::vector<netket::json> GetLayerInputs() {
                {"Outputs", 2},
                {"Activation", "Lncosh"}}}}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   return input_tests;

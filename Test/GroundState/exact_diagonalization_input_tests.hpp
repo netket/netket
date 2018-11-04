@@ -24,24 +24,32 @@ std::vector<netket::json> GetExactDiagonalizationInputs() {
            {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Complex hamiltonian

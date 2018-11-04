@@ -37,6 +37,8 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
+  const Graph &graph_;
+
   double S_;
   double totalS_;
   bool constraintSz_;
@@ -49,7 +51,7 @@ class Spin : public AbstractHilbert {
 
  public:
   template <class Ptype>
-  explicit Spin(const Graph &graph, const Ptype &pars) {
+  explicit Spin(const Graph &graph, const Ptype &pars) : graph_(graph) {
     const int nspins = graph.Size();
     const double S = FieldVal<double>(pars, "S", "Hilbert");
 
@@ -161,6 +163,8 @@ class Spin : public AbstractHilbert {
       i++;
     }
   }
+
+  const Graph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket
