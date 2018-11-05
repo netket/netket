@@ -33,17 +33,21 @@ class Hilbert : public AbstractHilbert {
   std::unique_ptr<AbstractHilbert> h_;
 
  public:
-  explicit Hilbert(const json &pars) { InitWithoutGraph(pars["Hilbert"]); }
-
-  explicit Hilbert(const Graph &graph, const json &pars) {
-    InitWithGraph(graph, pars["Hilbert"]);
+  template <class Ptype>
+  explicit Hilbert(const Ptype &pars) {
+    InitWithoutGraph(ParsConv(pars));
   }
 
-  explicit Hilbert(const pybind11::kwargs &kwargs) { InitWithoutGraph(kwargs); }
-
-  explicit Hilbert(const Graph &graph, const pybind11::kwargs &kwargs) {
-    InitWithGraph(graph, kwargs);
+  template <class Ptype>
+  explicit Hilbert(const Graph &graph, const Ptype &pars) {
+    InitWithGraph(graph, ParsConv(pars));
   }
+
+  json ParsConv(const json &pars) {
+    CheckFieldExists(pars, "Hilbert");
+    return pars["Hilbert"];
+  }
+  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
 
   template <class Ptype>
   void InitWithoutGraph(const Ptype &pars) {

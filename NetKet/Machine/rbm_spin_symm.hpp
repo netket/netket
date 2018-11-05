@@ -406,13 +406,13 @@ class RbmSpinSymm : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "RbmSpinSymm") {
+    if (pars.at("Name") != "RbmSpinSymm") {
       throw InvalidInputError(
           "Error while constructing RbmSpinSymm from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -420,27 +420,27 @@ class RbmSpinSymm : public AbstractMachine<T> {
           "Hilbert space");
     }
 
-    alpha_ = FieldVal(pars["Machine"], "Alpha", "Machine");
+    alpha_ = FieldVal(pars, "Alpha", "Machine");
 
-    usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
 
     Init(graph_);
 
     // Loading parameters, if defined in the input
-    if (FieldExists(pars["Machine"], "asymm")) {
-      asymm_ = pars["Machine"]["asymm"].get<T>();
+    if (FieldExists(pars, "asymm")) {
+      asymm_ = pars["asymm"].get<T>();
     } else {
       asymm_ = 0;
     }
 
-    if (FieldExists(pars["Machine"], "bsymm")) {
-      bsymm_ = pars["Machine"]["bsymm"];
+    if (FieldExists(pars, "bsymm")) {
+      bsymm_ = pars["bsymm"];
     } else {
       bsymm_.setZero();
     }
-    if (FieldExists(pars["Machine"], "Wsymm")) {
-      Wsymm_ = pars["Machine"]["Wsymm"];
+    if (FieldExists(pars, "Wsymm")) {
+      Wsymm_ = pars["Wsymm"];
     }
 
     SetBareParameters();

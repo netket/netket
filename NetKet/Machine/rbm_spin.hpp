@@ -64,9 +64,55 @@ class RbmSpin : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit RbmSpin(const Hilbert &hilbert, const json &pars)
+  template <class Ptype>
+  explicit RbmSpin(const Hilbert &hilbert, const Ptype &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert) {
-    from_json(pars);
+    FromParameters(pars);
+  }
+
+  template <class Ptype>
+  void FromParameters(const Ptype &pars) {
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name != "RbmSpin") {
+      throw InvalidInputError(
+          "Error while constructing RbmSpin from input parameters");
+    }
+
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = FieldVal<int>(pars, "Nvisible");
+    }
+    if (nv_ != hilbert_.Size()) {
+      throw InvalidInputError(
+          "Number of visible units is incompatible with given "
+          "Hilbert space");
+    }
+
+    if (FieldExists(pars, "Nhidden")) {
+      nh_ = FieldVal<int>(pars, "Nhidden");
+    } else {
+      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
+    }
+
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
+
+    Init();
+
+    // Loading parameters, if defined in the input
+    if (FieldExists(pars, "a")) {
+      a_ = FieldVal<VectorType>(pars, "a");
+    } else {
+      a_.setZero();
+    }
+
+    if (FieldExists(pars, "b")) {
+      b_ = FieldVal<VectorType>(pars, "b");
+    } else {
+      b_.setZero();
+    }
+    if (FieldExists(pars, "W")) {
+      W_ = FieldVal<MatrixType>(pars, "W");
+    }
   }
 
   void Init() {
@@ -339,48 +385,7 @@ class RbmSpin : public AbstractMachine<T> {
     j["Machine"]["W"] = W_;
   }
 
-  void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "RbmSpin") {
-      throw InvalidInputError(
-          "Error while constructing RbmSpin from Json input");
-    }
-
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
-    }
-    if (nv_ != hilbert_.Size()) {
-      throw InvalidInputError(
-          "Number of visible units is incompatible with given "
-          "Hilbert space");
-    }
-
-    if (FieldExists(pars["Machine"], "Nhidden")) {
-      nh_ = FieldVal(pars["Machine"], "Nhidden");
-    } else {
-      nh_ = nv_ * double(FieldVal(pars["Machine"], "Alpha"));
-    }
-
-    usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
-
-    Init();
-
-    // Loading parameters, if defined in the input
-    if (FieldExists(pars["Machine"], "a")) {
-      a_ = pars["Machine"]["a"];
-    } else {
-      a_.setZero();
-    }
-
-    if (FieldExists(pars["Machine"], "b")) {
-      b_ = pars["Machine"]["b"];
-    } else {
-      b_.setZero();
-    }
-    if (FieldExists(pars["Machine"], "W")) {
-      W_ = pars["Machine"]["W"];
-    }
-  }
+  void from_json(const json &pars) override { FromParameters(pars); }
 };
 
 }  // namespace netket

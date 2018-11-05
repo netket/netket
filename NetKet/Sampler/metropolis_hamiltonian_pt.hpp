@@ -72,13 +72,13 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     Init();
   }
 
-  // Json constructor
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const json &pars)
+  template <class Ptype>
+  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const Ptype &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
+        nrep_(FieldVal<int>(pars, "Nreplicas")) {
     Init();
   }
 

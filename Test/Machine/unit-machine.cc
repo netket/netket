@@ -78,7 +78,7 @@ TEST_CASE("machines write/read to/from json correctly", "[machine]") {
       netket::json pars_out;
       machine.to_json(pars_out);
 
-      machine.from_json(pars_out);
+      machine.from_json(pars_out["Machine"]);
 
       netket::Machine<MType>::VectorType params_out(machine.Npar());
 

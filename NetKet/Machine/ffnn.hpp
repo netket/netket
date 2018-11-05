@@ -60,8 +60,8 @@ class FFNN : public AbstractMachine<T> {
 
   void Init(const json &pars) {
     json layers_par;
-    if (FieldExists(pars["Machine"], "Layers")) {
-      layers_par = pars["Machine"]["Layers"];
+    if (FieldExists(pars, "Layers")) {
+      layers_par = pars["Layers"];
       nlayer_ = layers_par.size();
     } else {
       throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
@@ -125,8 +125,8 @@ class FFNN : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     json layers_par;
-    if (FieldExists(pars["Machine"], "Layers")) {
-      layers_par = pars["Machine"]["Layers"];
+    if (FieldExists(pars, "Layers")) {
+      layers_par = pars["Layers"];
       nlayer_ = layers_par.size();
     } else {
       throw InvalidInputError(

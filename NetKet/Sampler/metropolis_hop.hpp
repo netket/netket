@@ -54,21 +54,19 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  template <class G>
-  MetropolisHop(G &graph, WfType &psi, int dmax = 1)
+  MetropolisHop(const Graph &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
-  // Json constructor
-  explicit MetropolisHop(Graph &graph, WfType &psi, const json &pars)
+  template <class Ptype>
+  explicit MetropolisHop(const Graph &graph, WfType &psi, const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
+    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
   }
 
-  template <class G>
-  void Init(G &graph, int dmax) {
+  void Init(const Graph &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -92,8 +90,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
                   << std::endl;
   }
 
-  template <class G>
-  void GenerateClusters(G &graph, int dmax) {
+  void GenerateClusters(const Graph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);
