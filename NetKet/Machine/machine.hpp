@@ -32,9 +32,7 @@ namespace netket {
 
 template <class T>
 class Machine : public AbstractMachine<T> {
-  using Ptype = std::unique_ptr<AbstractMachine<T>>;
-
-  Ptype m_;
+  std::unique_ptr<AbstractMachine<T>> m_;
 
   const Hilbert &hilbert_;
 
@@ -44,73 +42,92 @@ class Machine : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit Machine(const Hilbert &hilbert, const json &pars)
+  template <class Partype>
+  explicit Machine(const Hilbert &hilbert, const Partype &pars)
       : hilbert_(hilbert) {
-    Init(hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
+  template <class Partype>
+  explicit Machine(const Hamiltonian &hamiltonian, const Partype &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    Init(hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
+  template <class Partype>
+  explicit Machine(const Graph &graph, const Hilbert &hilbert,
+                   const Partype &pars)
       : hilbert_(hilbert) {
-    Init(hilbert_, pars);
-    Init(graph, hilbert, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    Init(graph, hilbert, pconv);
+    InitParameters(pconv);
   }
 
+  template <class Partype>
   explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
-                   const json &pars)
+                   const Partype &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    Init(hilbert_, pars);
-    Init(graph, hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    Init(graph, hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  void Init(const Hilbert &hilbert, const json &pars) {
+  template <class Partype>
+  void Init(const Hilbert &hilbert, const Partype &pars) {
     CheckInput(pars);
-    if (pars["Machine"]["Name"] == "RbmSpin") {
-      m_ = Ptype(new RbmSpin<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "RbmMultival") {
-      m_ = Ptype(new RbmMultival<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "Jastrow") {
-      m_ = Ptype(new Jastrow<T>(hilbert, pars));
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name == "RbmSpin") {
+      m_ = netket::make_unique<RbmSpin<T>>(hilbert, pars);
+    } else if (name == "RbmMultival") {
+      m_ = netket::make_unique<RbmMultival<T>>(hilbert, pars);
+    } else if (name == "Jastrow") {
+      m_ = netket::make_unique<Jastrow<T>>(hilbert, pars);
+    }
+  }
+  template <class Partype>
+  void Init(const Graph &graph, const Hilbert &hilbert, const Partype &pars) {
+    CheckInput(pars);
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name == "RbmSpinSymm") {
+      m_ = netket::make_unique<RbmSpinSymm<T>>(graph, hilbert, pars);
+    } else if (name == "FFNN") {
+      m_ = netket::make_unique<FFNN<T>>(graph, hilbert, pars);
+    } else if (name == "JastrowSymm") {
+      m_ = netket::make_unique<JastrowSymm<T>>(graph, hilbert, pars);
     }
   }
 
-  void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
-    CheckInput(pars);
-    if (pars["Machine"]["Name"] == "RbmSpinSymm") {
-      m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "FFNN") {
-      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "JastrowSymm") {
-      m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
-    }
+  json ParsConv(const json &pars) {
+    CheckFieldExists(pars, "Machine");
+    return pars["Machine"];
   }
+  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
 
-  void InitParameters(const json &pars) {
-    if (FieldOrDefaultVal(pars["Machine"], "InitRandom", true)) {
-      double sigma_rand = FieldOrDefaultVal(pars["Machine"], "SigmaRand", 0.1);
+  template <class Partype>
+  void InitParameters(const Partype &pars) {
+    if (FieldOrDefaultVal(pars, "InitRandom", true)) {
+      double sigma_rand = FieldOrDefaultVal(pars, "SigmaRand", 0.1);
       m_->InitRandomPars(1232, sigma_rand);
 
       InfoMessage() << "Machine initialized with random parameters"
                     << std::endl;
     }
 
-    if (FieldExists(pars["Machine"], "InitFile")) {
-      std::string filename = pars["Machine"]["InitFile"];
+    if (FieldExists(pars, "InitFile")) {
+      std::string filename = pars["InitFile"];
 
       std::ifstream ifs(filename);
 
       if (ifs.is_open()) {
         json jmachine;
         ifs >> jmachine;
-        m_->from_json(jmachine);
+        m_->from_json(jmachine["Machine"]);
       } else {
         std::stringstream s;
         s << "Error opening file: " << filename;
@@ -123,8 +140,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   void CheckInput(const json &pars) {
-    CheckFieldExists(pars, "Machine");
-    const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
+    const std::string name = FieldVal<std::string>(pars, "Name", "Machine");
 
     std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
                                       "FFNN",    "Jastrow",     "JastrowSymm"};

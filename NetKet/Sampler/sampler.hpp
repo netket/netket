@@ -19,7 +19,9 @@
 #include <set>
 #include "Graph/graph.hpp"
 #include "Hamiltonian/hamiltonian.hpp"
+#include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/python_helper.hpp"
 #include "abstract_sampler.hpp"
 #include "custom_sampler.hpp"
 #include "custom_sampler_pt.hpp"
@@ -36,83 +38,103 @@ namespace netket {
 
 template <class WfType>
 class Sampler : public AbstractSampler<WfType> {
-  using Ptype = std::unique_ptr<AbstractSampler<WfType>>;
-  Ptype s_;
+  std::unique_ptr<AbstractSampler<WfType>> s_;
 
  public:
-  explicit Sampler(WfType &psi, const json &pars) {
-    CheckInput(pars);
-    Init(psi, pars);
+  template <class Ptype>
+  explicit Sampler(WfType &psi, const Ptype &pars) {
+    const auto pconv = ParsConv(pars);
+    CheckInput(pconv);
+    Init(psi, pconv);
   }
 
-  explicit Sampler(const Graph &graph, WfType &psi, const json &pars) {
-    CheckInput(pars);
-    Init(psi, pars);
-    Init(graph, psi, pars);
+  template <class Ptype>
+  explicit Sampler(const Graph &graph, WfType &psi, const Ptype &pars) {
+    const auto pconv = ParsConv(pars);
+    CheckInput(pconv);
+    Init(psi, pconv);
+    Init(graph, psi, pconv);
   }
 
-  explicit Sampler(Hamiltonian &hamiltonian, WfType &psi, const json &pars) {
-    CheckInput(pars);
-    Init(psi, pars);
-    Init(hamiltonian, psi, pars);
+  template <class Ptype>
+  explicit Sampler(Hamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
+    const auto pconv = ParsConv(pars);
+    CheckInput(pconv);
+    Init(psi, pconv);
+    Init(hamiltonian, psi, pconv);
   }
 
+  template <class Ptype>
   explicit Sampler(const Graph &graph, Hamiltonian &hamiltonian, WfType &psi,
-                   const json &pars) {
-    CheckInput(pars);
-    Init(psi, pars);
-    Init(graph, psi, pars);
-    Init(hamiltonian, psi, pars);
+                   const Ptype &pars) {
+    const auto pconv = ParsConv(pars);
+    CheckInput(pconv);
+    Init(psi, pconv);
+    Init(graph, psi, pconv);
+    Init(hamiltonian, psi, pconv);
   }
 
-  void Init(WfType &psi, const json &pars) {
-    if (FieldExists(pars["Sampler"], "Name")) {
-      if (pars["Sampler"]["Name"] == "MetropolisLocal") {
-        s_ = Ptype(new MetropolisLocal<WfType>(psi));
-      } else if (pars["Sampler"]["Name"] == "MetropolisLocalPt") {
-        s_ = Ptype(new MetropolisLocalPt<WfType>(psi, pars));
-      } else if (pars["Sampler"]["Name"] == "Exact") {
-        s_ = Ptype(new ExactSampler<WfType>(psi));
+  template <class Ptype>
+  void Init(WfType &psi, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name = FieldVal<std::string>(pars, "Name");
+      if (name == "MetropolisLocal") {
+        s_ = netket::make_unique<MetropolisLocal<WfType>>(psi);
+      } else if (name == "MetropolisLocalPt") {
+        s_ = netket::make_unique<MetropolisLocalPt<WfType>>(psi, pars);
+      } else if (name == "Exact") {
+        s_ = netket::make_unique<ExactSampler<WfType>>(psi);
       }
     } else {
-      if (FieldExists(pars["Sampler"], "Nreplicas")) {
-        s_ = Ptype(new CustomSamplerPt<WfType>(psi, pars));
+      if (FieldExists(pars, "Nreplicas")) {
+        s_ = netket::make_unique<CustomSamplerPt<WfType>>(psi, pars);
       } else {
-        s_ = Ptype(new CustomSampler<WfType>(psi, pars));
+        s_ = netket::make_unique<CustomSampler<WfType>>(psi, pars);
       }
     }
   }
 
-  void Init(const Graph &graph, WfType &psi, const json &pars) {
-    if (FieldExists(pars["Sampler"], "Name")) {
-      if (pars["Sampler"]["Name"] == "MetropolisExchange") {
-        s_ = Ptype(new MetropolisExchange<WfType>(graph, psi, pars));
-      } else if (pars["Sampler"]["Name"] == "MetropolisExchangePt") {
-        s_ = Ptype(new MetropolisExchangePt<WfType>(graph, psi, pars));
-      } else if (pars["Sampler"]["Name"] == "MetropolisHop") {
-        s_ = Ptype(new MetropolisHop<WfType>(graph, psi, pars));
+  template <class Ptype>
+  void Init(const Graph &graph, WfType &psi, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name = FieldVal<std::string>(pars, "Name");
+      if (name == "MetropolisExchange") {
+        s_ = netket::make_unique<MetropolisExchange<WfType>>(graph, psi, pars);
+      } else if (name == "MetropolisExchangePt") {
+        s_ =
+            netket::make_unique<MetropolisExchangePt<WfType>>(graph, psi, pars);
+      } else if (name == "MetropolisHop") {
+        s_ = netket::make_unique<MetropolisHop<WfType>>(graph, psi, pars);
       }
     }
   }
 
-  void Init(Hamiltonian &hamiltonian, WfType &psi, const json &pars) {
-    if (FieldExists(pars["Sampler"], "Name")) {
-      if (pars["Sampler"]["Name"] == "MetropolisHamiltonian") {
-        s_ = Ptype(
-            new MetropolisHamiltonian<WfType, Hamiltonian>(psi, hamiltonian));
-      } else if (pars["Sampler"]["Name"] == "MetropolisHamiltonianPt") {
-        s_ = Ptype(new MetropolisHamiltonianPt<WfType, Hamiltonian>(
-            psi, hamiltonian, pars));
+  template <class Ptype>
+  void Init(Hamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name = FieldVal<std::string>(pars, "Name");
+      if (name == "MetropolisHamiltonian") {
+        s_ = netket::make_unique<MetropolisHamiltonian<WfType, Hamiltonian>>(
+            psi, hamiltonian);
+      } else if (name == "MetropolisHamiltonianPt") {
+        s_ = netket::make_unique<MetropolisHamiltonianPt<WfType, Hamiltonian>>(
+            psi, hamiltonian, pars);
       }
     }
   }
 
-  void CheckInput(const json &pars) {
+  json ParsConv(const json &pars) {
+    CheckFieldExists(pars, "Sampler");
+    return pars["Sampler"];
+  }
+  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
+
+  template <class Ptype>
+  void CheckInput(const Ptype &pars) {
     int mynode;
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode);
 
-    CheckFieldExists(pars, "Sampler");
-    if (FieldExists(pars["Sampler"], "Name")) {
+    if (FieldExists(pars, "Name")) {
       std::set<std::string> samplers = {
           "MetropolisLocal",       "MetropolisLocalPt",
           "MetropolisExchange",    "MetropolisExchangePt",
@@ -120,7 +142,7 @@ class Sampler : public AbstractSampler<WfType> {
           "MetropolisHop",         "Exact",
       };
 
-      const auto name = pars["Sampler"]["Name"];
+      std::string name = FieldVal<std::string>(pars, "Name");
 
       if (samplers.count(name) == 0) {
         std::stringstream s;
@@ -128,8 +150,8 @@ class Sampler : public AbstractSampler<WfType> {
         throw InvalidInputError(s.str());
       }
     } else {
-      if (!FieldExists(pars["Sampler"], "ActingOn") and
-          !FieldExists(pars["Sampler"], "MoveOperators")) {
+      if (!FieldExists(pars, "ActingOn") and
+          !FieldExists(pars, "MoveOperators")) {
         throw InvalidInputError(
             "No SamplerName provided or Custom Sampler (MoveOperators and "
             "ActingOn) defined");

@@ -53,20 +53,20 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
  public:
   template <class G>
-  MetropolisExchange(G &graph, WfType &psi, int dmax = 1)
+  MetropolisExchange(const G &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
-  // Json constructor
-  MetropolisExchange(Graph &graph, WfType &psi, const json &pars)
+  template <class Ptype>
+  MetropolisExchange(const Graph &graph, WfType &psi, const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
+    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
   }
 
   template <class G>
-  void Init(G &graph, int dmax) {
+  void Init(const G &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -87,7 +87,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   }
 
   template <class G>
-  void GenerateClusters(G &graph, int dmax) {
+  void GenerateClusters(const G &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);

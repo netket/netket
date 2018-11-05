@@ -50,10 +50,10 @@ class Ising : public AbstractHamiltonian {
 
  public:
   /**
-    Json constructor.
-    @param G is a graph from which the number of spins and the bonds are
-    obtained.
-    @param pars is a json list of parameters. The default value of J is 1.0
+    Constructor.
+    @param hilbert is the input hilbert space from which the number of spins and
+    the bonds are obtained.
+    @param pars is a list of parameters. The default value of J is 1.0
   */
   template <class Ptype>
   explicit Ising(const Hilbert &hilbert, const Ptype &pars)

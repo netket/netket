@@ -57,14 +57,14 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  // Json constructor
+  template <class Ptype>
   explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
-                                const json &pars)
+                                const Ptype &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
+        nrep_(FieldVal<int>(pars, "Nreplicas")) {
+    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
   }
 

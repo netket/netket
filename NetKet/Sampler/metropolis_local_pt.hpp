@@ -62,11 +62,12 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
  public:
   // Json constructor
-  explicit MetropolisLocalPt(WfType &psi, const json &pars)
+  template <class Ptype>
+  explicit MetropolisLocalPt(WfType &psi, const Ptype &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
+        nrep_(FieldVal<int>(pars, "Nreplicas")) {
     Init();
   }
 

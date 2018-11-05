@@ -9,7 +9,6 @@ std::vector<netket::json> GetMachineInputs() {
   netket::json pars;
 
   // Ising 1d
-
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},

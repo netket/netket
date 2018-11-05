@@ -297,20 +297,19 @@ class JastrowSymm : public AbstractMachine<T> {
   const Hilbert &GetHilbert() const { return hilbert_; }
 
   void to_json(json &j) const override {
-    // std::cout << "to json"<< std::endl;
     j["Machine"]["Name"] = "JastrowSymm";
     j["Machine"]["Nvisible"] = nv_;
     j["Machine"]["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "JastrowSymm") {
+    if (pars.at("Name") != "JastrowSymm") {
       throw InvalidInputError(
           "Error while constructing JastrowSymm from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -320,8 +319,8 @@ class JastrowSymm : public AbstractMachine<T> {
 
     Init(graph_);
 
-    if (FieldExists(pars["Machine"], "Wsymm")) {
-      Wsymm_ = pars["Machine"]["Wsymm"];
+    if (FieldExists(pars, "Wsymm")) {
+      Wsymm_ = pars["Wsymm"];
     }
 
     SetBareParameters();

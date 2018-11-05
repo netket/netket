@@ -63,22 +63,25 @@ class CustomSampler : public AbstractSampler<WfType> {
  public:
   using MatType = std::vector<std::vector<std::complex<double>>>;
 
-  explicit CustomSampler(WfType &psi, const json &pars)
+  template <class Ptype>
+  explicit CustomSampler(WfType &psi, const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    CheckFieldExists(pars["Sampler"], "MoveOperators");
+    CheckFieldExists(pars, "MoveOperators");
 
-    if (!pars["Sampler"]["MoveOperators"].is_array()) {
-      throw InvalidInputError("MoveOperators is not an array");
-    }
-    CheckFieldExists(pars["Sampler"], "ActingOn");
+    // TODO
+    // if (!pars["MoveOperators"].is_array()) {
+    //   throw InvalidInputError("MoveOperators is not an array");
+    // }
+    CheckFieldExists(pars, "ActingOn");
 
-    if (!pars["Sampler"]["ActingOn"].is_array()) {
-      throw InvalidInputError("ActingOn is not an array");
-    }
+    // if (!pars["ActingOn"].is_array()) {
+    //   throw InvalidInputError("ActingOn is not an array");
+    // }
 
-    auto jop = pars["Sampler"]["MoveOperators"].get<std::vector<MatType>>();
-    auto sites =
-        pars["Sampler"]["ActingOn"].get<std::vector<std::vector<int>>>();
+    std::vector<MatType> jop =
+        FieldVal<std::vector<MatType>>(pars, "MoveOperators");
+    std::vector<std::vector<int>> sites =
+        FieldVal<std::vector<std::vector<int>>>(pars, "ActingOn");
 
     if (sites.size() != jop.size()) {
       throw InvalidInputError(
@@ -155,12 +158,13 @@ class CustomSampler : public AbstractSampler<WfType> {
       InfoMessage() << "Check ergodicity" << std::endl;
     }
 
-    if (FieldExists(pars["Sampler"], "MoveWeights")) {
-      if (!pars["Sampler"]["MoveWeights"].is_array()) {
-        throw InvalidInputError("MoveWeights is not an array");
-      }
-      operatorsweights_ =
-          pars["Sampler"]["MoveWeights"].get<std::vector<double>>();
+    if (FieldExists(pars, "MoveWeights")) {
+      // if (!pars["MoveWeights"].is_array()) {
+      //   throw InvalidInputError("MoveWeights is not an array");
+      // }
+      const std::vector<double> opw =
+          FieldVal<std::vector<double>>(pars, "MoveWeights");
+      operatorsweights_ = opw;
 
       if (operatorsweights_.size() != jop.size()) {
         throw InvalidInputError(

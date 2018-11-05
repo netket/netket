@@ -215,13 +215,13 @@ class Jastrow : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "Jastrow") {
+    if (pars.at("Name") != "Jastrow") {
       throw InvalidInputError(
           "Error while constructing Jastrow from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -231,8 +231,8 @@ class Jastrow : public AbstractMachine<T> {
 
     Init();
 
-    if (FieldExists(pars["Machine"], "W")) {
-      W_ = pars["Machine"]["W"];
+    if (FieldExists(pars, "W")) {
+      W_ = pars["W"];
     }
   }
 };
