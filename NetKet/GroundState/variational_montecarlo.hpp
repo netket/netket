@@ -48,9 +48,9 @@ class VariationalMonteCarlo {
   using MatrixT = Eigen::Matrix<typename Machine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
-  Hamiltonian &ham_;
-  Sampler<Machine<GsType>> &sampler_;
-  Machine<GsType> &psi_;
+  AbstractHamiltonian &ham_;
+  AbstractSampler<AbstractMachine<GsType>> &sampler_;
+  AbstractMachine<GsType> &psi_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -96,7 +96,8 @@ class VariationalMonteCarlo {
 
  public:
   // JSON constructor
-  VariationalMonteCarlo(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
+  VariationalMonteCarlo(Hamiltonian &ham,
+                        Sampler<AbstractMachine<GsType>> &sampler,
                         Optimizer &opt, const json &pars)
       : ham_(ham),
         sampler_(sampler),
