@@ -14,10 +14,7 @@
 
 from __future__ import print_function
 import pynetket as nk
-import networkx as nx
-import numpy as np
 from mpi4py import MPI
-import scipy.sparse as sparse
 
 #Constructing a 1d lattice
 g=nk.Hypercube(L=20,ndim=1)
