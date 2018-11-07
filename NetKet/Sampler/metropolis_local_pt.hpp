@@ -61,6 +61,16 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
+  // Constructor with one replica by default
+  explicit MetropolisLocalPt(WfType &psi, int nreplicas = 1)
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
+        nrep_(nreplicas) {
+    Init();
+  }
+
+  // TODO remove
   // Json constructor
   template <class Ptype>
   explicit MetropolisLocalPt(WfType &psi, const Ptype &pars)
@@ -68,12 +78,6 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
         nrep_(FieldVal<int>(pars, "Nreplicas")) {
-    Init();
-  }
-
-  // Constructor with one replica
-  explicit MetropolisLocalPt(WfType &psi)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()), nrep_(1) {
     Init();
   }
 

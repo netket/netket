@@ -66,12 +66,13 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
         hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()),
         nrep_(nrep) {
     Init();
   }
 
+  // TODO remove
   template <class Ptype>
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const Ptype &pars)
       : psi_(psi),

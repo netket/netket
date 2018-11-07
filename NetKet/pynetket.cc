@@ -223,6 +223,125 @@ PYBIND11_MODULE(pynetket, m) {
       .def("Psi", &MetropolisLocal<AbMachineType>::Psi)
       .def("Acceptance", &MetropolisLocal<AbMachineType>::Acceptance);
 
+  py::class_<MetropolisLocalPt<AbMachineType>, SamplerType>(m,
+                                                            "MetropolisLocalPt")
+      .def(py::init<AbMachineType &, int>(), py::arg("machine"),
+           py::arg("nreplicas"))
+      .def("Reset", &MetropolisLocalPt<AbMachineType>::Reset)
+      .def("Sweep", &MetropolisLocalPt<AbMachineType>::Sweep)
+      .def("Visible", &MetropolisLocalPt<AbMachineType>::Visible)
+      .def("SetVisible", &MetropolisLocalPt<AbMachineType>::SetVisible)
+      .def("Psi", &MetropolisLocalPt<AbMachineType>::Psi)
+      .def("Acceptance", &MetropolisLocalPt<AbMachineType>::Acceptance);
+
+  py::class_<MetropolisHop<AbMachineType>, SamplerType>(m, "MetropolisHop")
+      .def(py::init<AbstractGraph &, AbMachineType &, int>(), py::arg("graph"),
+           py::arg("machine"), py::arg("dmax"))
+      .def("Reset", &MetropolisHop<AbMachineType>::Reset)
+      .def("Sweep", &MetropolisHop<AbMachineType>::Sweep)
+      .def("Visible", &MetropolisHop<AbMachineType>::Visible)
+      .def("SetVisible", &MetropolisHop<AbMachineType>::SetVisible)
+      .def("Psi", &MetropolisHop<AbMachineType>::Psi)
+      .def("Acceptance", &MetropolisHop<AbMachineType>::Acceptance);
+
+  using MetroHamType =
+      MetropolisHamiltonian<AbMachineType, AbstractHamiltonian>;
+  py::class_<MetroHamType, SamplerType>(m, "MetropolisHamiltonian")
+      .def(py::init<AbMachineType &, AbstractHamiltonian &>(),
+           py::arg("machine"), py::arg("hamiltonian"))
+      .def("Reset", &MetroHamType::Reset)
+      .def("Sweep", &MetroHamType::Sweep)
+      .def("Visible", &MetroHamType::Visible)
+      .def("SetVisible", &MetroHamType::SetVisible)
+      .def("Psi", &MetroHamType::Psi)
+      .def("Acceptance", &MetroHamType::Acceptance);
+
+  using MetroHamPtType =
+      MetropolisHamiltonianPt<AbMachineType, AbstractHamiltonian>;
+  py::class_<MetroHamPtType, SamplerType>(m, "MetropolisHamiltonianPt")
+      .def(py::init<AbMachineType &, AbstractHamiltonian &, int>(),
+           py::arg("machine"), py::arg("hamiltonian"), py::arg("nreplicas"))
+      .def("Reset", &MetroHamPtType::Reset)
+      .def("Sweep", &MetroHamPtType::Sweep)
+      .def("Visible", &MetroHamPtType::Visible)
+      .def("SetVisible", &MetroHamPtType::SetVisible)
+      .def("Psi", &MetroHamPtType::Psi)
+      .def("Acceptance", &MetroHamPtType::Acceptance);
+
+  using MetroExType = MetropolisExchange<AbMachineType>;
+  py::class_<MetroExType, SamplerType>(m, "MetropolisExchange")
+      .def(py::init<const AbstractGraph &, AbMachineType &, int>(),
+           py::arg("graph"), py::arg("machine"), py::arg("dmax") = 1)
+      .def("Reset", &MetroExType::Reset)
+      .def("Sweep", &MetroExType::Sweep)
+      .def("Visible", &MetroExType::Visible)
+      .def("SetVisible", &MetroExType::SetVisible)
+      .def("Psi", &MetroExType::Psi)
+      .def("Acceptance", &MetroExType::Acceptance);
+
+  {
+    using DerSampler = MetropolisExchangePt<AbMachineType>;
+    py::class_<DerSampler, SamplerType>(m, "MetropolisExchangePt")
+        .def(py::init<const AbstractGraph &, AbMachineType &, int, int>(),
+             py::arg("graph"), py::arg("machine"), py::arg("dmax") = 1,
+             py::arg("nreplicas") = 1)
+        .def("Reset", &DerSampler::Reset)
+        .def("Sweep", &DerSampler::Sweep)
+        .def("Visible", &DerSampler::Visible)
+        .def("SetVisible", &DerSampler::SetVisible)
+        .def("Psi", &DerSampler::Psi)
+        .def("Acceptance", &DerSampler::Acceptance);
+  }
+
+  {
+    using DerSampler = ExactSampler<AbMachineType>;
+    py::class_<DerSampler, SamplerType>(m, "ExactSampler")
+        .def(py::init<AbMachineType &>(), py::arg("machine"))
+        .def("Reset", &DerSampler::Reset)
+        .def("Sweep", &DerSampler::Sweep)
+        .def("Visible", &DerSampler::Visible)
+        .def("SetVisible", &DerSampler::SetVisible)
+        .def("Psi", &DerSampler::Psi)
+        .def("Acceptance", &DerSampler::Acceptance);
+  }
+
+  {
+    using DerSampler = CustomSampler<AbMachineType>;
+    using MatType = DerSampler::MatType;
+    py::class_<DerSampler, SamplerType>(m, "CustomSampler")
+        .def(py::init<AbMachineType &, const std::vector<MatType> &,
+                      const std::vector<std::vector<int>> &,
+                      std::vector<double>>(),
+             py::arg("machine"), py::arg("move_operators"),
+             py::arg("acting_on"),
+             py::arg("move_weights") = std::vector<double>())
+        .def("Reset", &DerSampler::Reset)
+        .def("Sweep", &DerSampler::Sweep)
+        .def("Visible", &DerSampler::Visible)
+        .def("SetVisible", &DerSampler::SetVisible)
+        .def("Psi", &DerSampler::Psi)
+        .def("Acceptance", &DerSampler::Acceptance);
+  }
+
+  {
+    using DerSampler = CustomSamplerPt<AbMachineType>;
+    using MatType = DerSampler::MatType;
+    py::class_<DerSampler, SamplerType>(m, "CustomSamplerPt")
+        .def(py::init<AbMachineType &, const std::vector<MatType> &,
+                      const std::vector<std::vector<int>> &,
+                      std::vector<double>, int>(),
+             py::arg("machine"), py::arg("move_operators"),
+             py::arg("acting_on"),
+             py::arg("move_weights") = std::vector<double>(),
+             py::arg("nreplicas"))
+        .def("Reset", &DerSampler::Reset)
+        .def("Sweep", &DerSampler::Sweep)
+        .def("Visible", &DerSampler::Visible)
+        .def("SetVisible", &DerSampler::SetVisible)
+        .def("Psi", &DerSampler::Psi)
+        .def("Acceptance", &DerSampler::Acceptance);
+  }
+
   py::class_<AbstractOptimizer>(m, "Optimizer");
 
   py::class_<Sgd, AbstractOptimizer>(m, "Sgd").def(

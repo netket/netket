@@ -52,14 +52,13 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   typename WfType::LookupType lt_;
 
  public:
-  template <class G>
-  MetropolisExchange(const G &graph, WfType &psi, int dmax = 1)
+  MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
-  template <class Ptype>
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const Ptype &pars)
+  // TODO remove
+  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const json &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);

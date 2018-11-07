@@ -57,9 +57,18 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  template <class Ptype>
   explicit MetropolisExchangePt(const AbstractGraph &graph, WfType &psi,
-                                const Ptype &pars)
+                                int dmax = 1, int nreplicas = 1)
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
+        nrep_(nreplicas) {
+    Init(graph, dmax);
+  }
+
+  // TODO remove
+  explicit MetropolisExchangePt(const AbstractGraph &graph, WfType &psi,
+                                const json &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
