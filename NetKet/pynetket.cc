@@ -222,6 +222,27 @@ PYBIND11_MODULE(pynetket, m) {
       .def("SetVisible", &MetropolisLocal<AbMachineType>::SetVisible)
       .def("Psi", &MetropolisLocal<AbMachineType>::Psi)
       .def("Acceptance", &MetropolisLocal<AbMachineType>::Acceptance);
+
+  py::class_<AbstractOptimizer>(m, "Optimizer");
+
+  py::class_<Sgd, AbstractOptimizer>(m, "Sgd").def(
+      py::init<double, double, double>(), py::arg("learning_rate"),
+      py::arg("l2reg") = 0, py::arg("decay_factor") = 1.0);
+  // TODO add other methods?
+
+  py::class_<VariationalMonteCarlo>(m, "Vmc")
+      .def(py::init<AbstractHamiltonian &, SamplerType &, AbstractOptimizer &,
+                    int, int, std::string, int, int, std::string, double, bool,
+                    bool, bool, int>(),
+           py::arg("hamiltonian"), py::arg("sampler"), py::arg("optimizer"),
+           py::arg("nsamples"), py::arg("niter_opt"), py::arg("output_file"),
+           py::arg("discarded_samples") = -1,
+           py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
+           py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
+           py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
+           py::arg("save_every") = 50)
+
+      .def("Run", &VariationalMonteCarlo::Run);
 }
 
 }  // namespace netket

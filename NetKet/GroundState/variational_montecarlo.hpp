@@ -75,7 +75,7 @@ class VariationalMonteCarlo {
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
 
-  Optimizer &opt_;
+  AbstractOptimizer &opt_;
 
   std::vector<Observable> obs_;
   ObsManager obsmanager_;
@@ -95,6 +95,91 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
+  VariationalMonteCarlo(AbstractHamiltonian &ham,
+                        AbstractSampler<AbstractMachine<GsType>> &sampler,
+                        AbstractOptimizer &opt, int nsamples, int niter_opt,
+                        std::string output_file, int discarded_samples = -1,
+                        int discarded_samples_on_init = 0,
+                        std::string method = "Sr", double diagshift = 0.01,
+                        bool rescale_shift = false, bool use_iterative = false,
+                        bool use_cholesky = true, int save_every = 50)
+      : ham_(ham),
+        sampler_(sampler),
+        psi_(sampler.Psi()),
+        opt_(opt),
+        // TODO obs_(Observable::FromJson(ham.GetHilbert(), pars)),
+        elocvar_(0.) {
+    Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
+         method, diagshift, rescale_shift, use_iterative, use_cholesky);
+
+    InitOutput(output_file, save_every);
+  }
+
+  void Init(int nsamples, int niter_opt, int discarded_samples,
+            int discarded_samples_on_init, const std::string &method,
+            double diagshift, bool rescale_shift, bool use_iterative,
+            bool use_cholesky) {
+    npar_ = psi_.Npar();
+
+    opt_.Init(psi_.GetParameters());
+
+    grad_.resize(npar_);
+    Okmean_.resize(npar_);
+
+    setSrParameters();
+
+    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    nsamples_ = nsamples;
+
+    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
+
+    ninitsamples_ = discarded_samples_on_init;
+
+    if (discarded_samples == -1) {
+      ndiscardedsamples_ = 0.1 * nsamples_node_;
+    } else {
+      ndiscardedsamples_ = discarded_samples;
+    }
+
+    niter_opt_ = niter_opt;
+
+    if (method == "Gd") {
+      dosr_ = false;
+    } else {
+      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
+    }
+
+    if (dosr_) {
+      InfoMessage() << "Using the Stochastic reconfiguration method"
+                    << std::endl;
+
+      if (use_iterative_) {
+        InfoMessage() << "With iterative solver" << std::endl;
+      } else {
+        if (use_cholesky_) {
+          InfoMessage() << "Using Cholesky decomposition" << std::endl;
+        }
+      }
+    } else {
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
+    }
+
+    InfoMessage() << "Variational Monte Carlo running on " << totalnodes_
+                  << " processes" << std::endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  void InitOutput(std::string filebase, int freqbackup) {
+    if (mynode_ == 0) {
+      output_ =
+          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
+    }
+  }
+
+  // TODO remove
   // JSON constructor
   VariationalMonteCarlo(Hamiltonian &ham,
                         Sampler<AbstractMachine<GsType>> &sampler,
@@ -109,13 +194,14 @@ class VariationalMonteCarlo {
     if (FieldExists(pars, "Learning")) {
       auto pars1 = pars;
       pars1["GroundState"] = pars["Learning"];
-      Init(pars1);
+      InitOld(pars1);
     } else {
-      Init(pars);
+      InitOld(pars);
     }
     InitOutput(pars);
   }
 
+  // TODO remove
   void InitOutput(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
     auto pars_gs = FieldExists(pars, "GroundState") ? pars["GroundState"]
@@ -125,7 +211,8 @@ class VariationalMonteCarlo {
     }
   }
 
-  void Init(const json &pars) {
+  // TODO remove
+  void InitOld(const json &pars) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -161,7 +248,7 @@ class VariationalMonteCarlo {
           FieldOrDefaultVal(pars["GroundState"], "UseIterative", false);
       use_cholesky_ =
           FieldOrDefaultVal(pars["GroundState"], "UseCholesky", true);
-      setSrParameters(diagshift, rescale_shift, use_iterative);
+      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky_);
     }
 
     if (dosr_) {
@@ -403,11 +490,12 @@ class VariationalMonteCarlo {
   }
 
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
-                       bool use_iterative = false) {
+                       bool use_iterative = false, bool use_cholesky = true) {
     sr_diag_shift_ = diagshift;
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
+    use_cholesky_ = use_cholesky;
   }
 };
 
