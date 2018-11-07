@@ -204,6 +204,24 @@ PYBIND11_MODULE(pynetket, m) {
       .def("Nvisible", &RbmSpinType::Nvisible)
       .def("GetHilbert", &RbmSpinType::GetHilbert);
   // TODO add other methods
+
+  using SamplerType = AbstractSampler<AbMachineType>;
+  py::class_<AbstractSampler<AbMachineType>>(m, "Sampler")
+      .def("Reset", &SamplerType::Reset)
+      .def("Sweep", &SamplerType::Sweep)
+      .def("Visible", &SamplerType::Visible)
+      .def("SetVisible", &SamplerType::SetVisible)
+      .def("Psi", &SamplerType::Psi)
+      .def("Acceptance", &SamplerType::Acceptance);
+
+  py::class_<MetropolisLocal<AbMachineType>, SamplerType>(m, "MetropolisLocal")
+      .def(py::init<AbMachineType &>(), py::arg("machine"))
+      .def("Reset", &MetropolisLocal<AbMachineType>::Reset)
+      .def("Sweep", &MetropolisLocal<AbMachineType>::Sweep)
+      .def("Visible", &MetropolisLocal<AbMachineType>::Visible)
+      .def("SetVisible", &MetropolisLocal<AbMachineType>::SetVisible)
+      .def("Psi", &MetropolisLocal<AbMachineType>::Psi)
+      .def("Acceptance", &MetropolisLocal<AbMachineType>::Acceptance);
 }
 
 }  // namespace netket

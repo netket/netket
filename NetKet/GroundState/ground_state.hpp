@@ -57,8 +57,8 @@ class GroundState {
       using MachineType = Machine<std::complex<double>>;
       MachineType machine(hilbert.GetGraph(), hamiltonian, pars);
 
-      Sampler<MachineType> sampler(hilbert.GetGraph(), hamiltonian, machine,
-                                   pars);
+      Sampler<AbstractMachine<std::complex<double>>> sampler(
+          hilbert.GetGraph(), hamiltonian, machine, pars);
       Optimizer optimizer(pars);
 
       VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
