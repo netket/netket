@@ -1,49 +1,43 @@
 
+#include <Graph/graph.hpp>
 #include <fstream>
 #include <string>
 #include <vector>
-#include "Utils/json_utils.hpp"
+#include "Graph/abstract_graph.hpp"
+#include "Utils/memory_utils.hpp"
 
-std::vector<netket::json> GetGraphInputs() {
-  std::vector<netket::json> input_tests;
-  netket::json pars;
-
-  // Small 1d graph
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 3}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Test:IsConnected", true},
-          {"Test:NumComponents", 1}};
-  input_tests.push_back(pars);
-
-  // Hypercube 1d
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Test:IsConnected", true},
-          {"Test:NumComponents", 1}};
-  input_tests.push_back(pars);
-
-  // Hypercube 2d
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 2}, {"Pbc", true}}},
-          {"Test:IsConnected", true},
-          {"Test:NumComponents", 1}};
-  input_tests.push_back(pars);
-
-  // Hypercube 3d
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 3}, {"Pbc", true}}},
-          {"Test:IsConnected", true},
-          {"Test:NumComponents", 1}};
-  input_tests.push_back(pars);
-
-  // Graph from hilbert space
-  pars.clear();
-  pars["Hilbert"]["QuantumNumbers"] = {1, -1};
-  pars["Hilbert"]["Size"] = 10;
-  pars["Test:IsConnected"] = false;
-  pars["Test:NumComponents"] = 10;
-
-  input_tests.push_back(pars);
-
-  return input_tests;
+using Ptype = std::unique_ptr<netket::AbstractGraph>;
+std::vector<Ptype> GetGraphs() {
+  using namespace netket;
+  std::vector<Ptype> graphs;
+  {
+    netket::Hypercube graph(3, 1, true);
+    graphs.push_back(netket::make_unique<Hypercube>(graph));
+  }
+  {
+    netket::Hypercube graph(20, 1, true);
+    graphs.push_back(netket::make_unique<Hypercube>(graph));
+  }
+  {
+    netket::Hypercube graph(20, 2, true);
+    graphs.push_back(netket::make_unique<Hypercube>(graph));
+  }
+  {
+    netket::Hypercube graph(10, 3, true);
+    graphs.push_back(netket::make_unique<Hypercube>(graph));
+  }
+  {
+    netket::CustomGraph graph(14);
+    graphs.push_back(netket::make_unique<CustomGraph>(graph));
+  }
+  {
+    netket::CustomGraph graph(0, {{1, 2}, {0, 2}, {0, 1}});
+    graphs.push_back(netket::make_unique<CustomGraph>(graph));
+  }
+  {
+    netket::CustomGraph graph(0, {}, {{0, 1}, {0, 2}, {0, 3}, {3, 1}});
+    graphs.push_back(netket::make_unique<CustomGraph>(graph));
+  }
+  // TODO add more CustomGraph constructors
+  return graphs;
 }

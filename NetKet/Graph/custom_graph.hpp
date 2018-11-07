@@ -52,7 +52,7 @@ class CustomGraph : public AbstractGraph {
       std::vector<std::vector<int>> edgecolors =
           std::vector<std::vector<int>>(),
       bool isbipartite = false)
-      : adjlist_(std::move(adjl)), isbipartite_(isbipartite) {
+      : adjlist_(adjl), isbipartite_(isbipartite) {
     Init(size, edges, automorphisms, edgecolors);
   }
 
@@ -70,9 +70,7 @@ class CustomGraph : public AbstractGraph {
 
     nsites_ = adjlist_.size();
 
-    if (nsites_ < 1) {
-      throw InvalidInputError("The number of graph nodes is invalid");
-    }
+    CheckGraph();
 
     is_connected_ = ComputeConnected();
 
@@ -89,6 +87,8 @@ class CustomGraph : public AbstractGraph {
       }
     }
 
+    CheckAutomorph();
+
     bool has_edge_colors = edgecolors.size() > 0;
 
     if (has_edge_colors) {
@@ -96,8 +96,6 @@ class CustomGraph : public AbstractGraph {
     } else {
       EdgeColorsFromAdj(adjlist_, eclist_);
     }
-
-    CheckGraph();
 
     InfoMessage() << "Graph created " << std::endl;
     InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
@@ -143,9 +141,7 @@ class CustomGraph : public AbstractGraph {
 
     nsites_ = adjlist_.size();
 
-    if (nsites_ < 1) {
-      throw InvalidInputError("The number of graph nodes is invalid");
-    }
+    CheckGraph();
 
     is_connected_ = ComputeConnected();
 
@@ -163,6 +159,8 @@ class CustomGraph : public AbstractGraph {
       }
     }
 
+    CheckAutomorph();
+
     isbipartite_ = FieldOrDefaultVal<bool>(pars, "IsBipartite", false);
 
     // If edge colors are specificied read them in, otherwise set them all to
@@ -176,8 +174,6 @@ class CustomGraph : public AbstractGraph {
                     << std::endl;
       EdgeColorsFromAdj(adjlist_, eclist_);
     }
-
-    CheckGraph();
 
     InfoMessage() << "Graph created " << std::endl;
     InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
@@ -209,6 +205,10 @@ class CustomGraph : public AbstractGraph {
   }
 
   void CheckGraph() {
+    if (nsites_ < 1) {
+      throw InvalidInputError("The number of graph nodes is invalid");
+    }
+
     for (int i = 0; i < nsites_; i++) {
       for (auto s : adjlist_[i]) {
         // Checking if the referenced nodes are within the expected range
@@ -223,14 +223,15 @@ class CustomGraph : public AbstractGraph {
         }
       }
     }
+  }
+
+  void CheckAutomorph() {
     for (std::size_t i = 0; i < automorphisms_.size(); i++) {
       if (int(automorphisms_[i].size()) != nsites_) {
         throw InvalidInputError("The automorphism list is invalid");
       }
     }
-    CheckEdgeColors();
   }
-
   void CheckEdgeColors() {
     // TODO write a meaningful check of edge colors
   }
