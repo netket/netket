@@ -29,7 +29,7 @@ template <class WfType>
 class MetropolisExchange : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -59,7 +59,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  MetropolisExchange(const Graph &graph, WfType &psi, const Ptype &pars)
+  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);

@@ -22,6 +22,7 @@
 #include <map>
 #include <vector>
 
+#include <nonstd/span.hpp>
 #include "Hamiltonian/ising.hpp"
 #include "Utils/next_variation.hpp"
 
@@ -41,7 +42,7 @@ class HilbertIndex {
   int nstates_;
 
  public:
-  explicit HilbertIndex(const Hilbert &hilbert)
+  explicit HilbertIndex(const AbstractHilbert &hilbert)
       : localstates_(hilbert.LocalStates()),
         localsize_(hilbert.LocalSize()),
         size_(hilbert.Size()) {

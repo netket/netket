@@ -73,7 +73,7 @@ class Convolutional : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Convolutional(const Graph &graph, const int input_channel,
+  Convolutional(const AbstractGraph &graph, const int input_channel,
                 const int output_channel, const int dist = 1,
                 const bool use_bias = true)
       : activation_(),
@@ -88,7 +88,7 @@ class Convolutional : public AbstractLayer<T> {
     Init(graph);
   }
 
-  explicit Convolutional(const Graph &graph, const json &pars)
+  explicit Convolutional(const AbstractGraph &graph, const json &pars)
       : activation_(), nv_(graph.Nsites()) {
     in_channels_ = FieldVal(pars, "InputChannels");
     in_size_ = in_channels_ * nv_;
@@ -103,7 +103,7 @@ class Convolutional : public AbstractLayer<T> {
     Init(graph);
   }
 
-  void Init(const Graph &graph) {
+  void Init(const AbstractGraph &graph) {
     // Construct neighbourhood of all nodes with distance of at most dist_ from
     // each node i kernel(k) will act on neighbours_[i][k]
     for (int i = 0; i < nv_; ++i) {

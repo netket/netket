@@ -23,7 +23,6 @@
 #include <vector>
 #include "Utils/json_utils.hpp"
 #include "Utils/next_variation.hpp"
-#include "Utils/python_helper.hpp"
 
 namespace netket {
 
@@ -52,6 +51,39 @@ class Hypercube : public AbstractGraph {
   int nsites_;
 
  public:
+  explicit Hypercube(int L, int ndim, bool pbc = true,
+                     std::vector<std::vector<int>> edgecolors =
+                         std::vector<std::vector<int>>())
+      : L_(L), ndim_(ndim), pbc_(pbc) {
+    Init(edgecolors);
+  }
+
+  void Init(const std::vector<std::vector<int>> &edgecolors) {
+    assert(L_ > 0);
+    assert(ndim_ >= 1);
+    GenerateLatticePoints();
+    GenerateAdjacencyList();
+
+    bool has_edge_colors = edgecolors.size() > 0;
+
+    if (has_edge_colors) {
+      EdgeColorsFromList(edgecolors, eclist_);
+    } else {
+      EdgeColorsFromAdj(adjlist_, eclist_);
+    }
+
+    CheckEdgeColors();
+
+    InfoMessage() << "Hypercube created " << std::endl;
+    InfoMessage() << "Dimension = " << ndim_ << std::endl;
+    InfoMessage() << "L = " << L_ << std::endl;
+    InfoMessage() << "Pbc = " << pbc_ << std::endl;
+    if (!has_edge_colors)
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+  }
+
+  // TODO REMOVE
   template <class Ptype>
   explicit Hypercube(const Ptype &pars)
       : L_(FieldVal<int>(pars, "L", "Graph")),
@@ -61,11 +93,12 @@ class Hypercube : public AbstractGraph {
       throw InvalidInputError(
           "L<=2 hypercubes cannot have periodic boundary conditions");
     }
-    Init(pars);
+    InitOld(pars);
   }
 
+  // TODO REMOVE
   template <class Ptype>
-  void Init(const Ptype &pars) {
+  void InitOld(const Ptype &pars) {
     assert(L_ > 0);
     assert(ndim_ >= 1);
     GenerateLatticePoints();
@@ -87,6 +120,10 @@ class Hypercube : public AbstractGraph {
     InfoMessage() << "Dimension = " << ndim_ << std::endl;
     InfoMessage() << "L = " << L_ << std::endl;
     InfoMessage() << "Pbc = " << pbc_ << std::endl;
+  }
+
+  void CheckEdgeColors() {
+    // TODO write a meaningful check of edge colors
   }
 
   void GenerateLatticePoints() {
@@ -159,6 +196,8 @@ class Hypercube : public AbstractGraph {
   }
 
   int Nsites() const override { return nsites_; }
+
+  int Size() const override { return nsites_; }
 
   int Length() const { return L_; }
 

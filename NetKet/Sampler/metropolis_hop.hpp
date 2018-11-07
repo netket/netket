@@ -28,7 +28,7 @@ template <class WfType>
 class MetropolisHop : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -54,19 +54,19 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  MetropolisHop(const Graph &graph, WfType &psi, int dmax = 1)
+  MetropolisHop(const AbstractGraph &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
   template <class Ptype>
-  explicit MetropolisHop(const Graph &graph, WfType &psi, const Ptype &pars)
+  explicit MetropolisHop(const AbstractGraph &graph, WfType &psi, const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
   }
 
-  void Init(const Graph &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -90,7 +90,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
                   << std::endl;
   }
 
-  void GenerateClusters(const Graph &graph, int dmax) {
+  void GenerateClusters(const AbstractGraph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);

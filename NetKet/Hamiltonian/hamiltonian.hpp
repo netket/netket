@@ -20,7 +20,6 @@
 #include "Hilbert/hilbert.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/memory_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "abstract_hamiltonian.hpp"
 #include "bosonhubbard.hpp"
 #include "custom_hamiltonian.hpp"
@@ -34,16 +33,12 @@ class Hamiltonian : public AbstractHamiltonian {
   std::unique_ptr<AbstractHamiltonian> h_;
 
  public:
-  explicit Hamiltonian(const Hilbert &hilbert, const json &pars) {
+  explicit Hamiltonian(const AbstractHilbert &hilbert, const json &pars) {
     Init(hilbert, pars["Hamiltonian"]);
   }
 
-  explicit Hamiltonian(const Hilbert &hilbert, const pybind11::kwargs &kwargs) {
-    Init(hilbert, kwargs);
-  }
-
   template <class Ptype>
-  void Init(const Hilbert &hilbert, const Ptype &pars) {
+  void Init(const AbstractHilbert &hilbert, const Ptype &pars) {
     if (FieldExists(pars, "Name")) {
       std::string name;
       name = FieldVal<std::string>(pars, "Name");
@@ -78,7 +73,9 @@ class Hamiltonian : public AbstractHamiltonian {
     return h_->ForEachConn(v, callback);
   }
 
-  const Hilbert &GetHilbert() const override { return h_->GetHilbert(); }
+  const AbstractHilbert &GetHilbert() const override {
+    return h_->GetHilbert();
+  }
 };
 }  // namespace netket
 #endif

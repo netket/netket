@@ -46,14 +46,14 @@ class Jastrow : public AbstractMachine<T> {
   VectorType thetas_;
   VectorType thetasnew_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(const Hilbert &hilbert, const json &pars)
+  explicit Jastrow(const AbstractHilbert &hilbert, const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert) {
     from_json(pars);
   }
@@ -207,6 +207,8 @@ class Jastrow : public AbstractMachine<T> {
 
     return der;
   }
+
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "Jastrow";

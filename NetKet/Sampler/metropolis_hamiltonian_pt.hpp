@@ -29,7 +29,7 @@ template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   H &hamiltonian_;
 

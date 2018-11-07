@@ -21,7 +21,6 @@
 #include "Hamiltonian/hamiltonian.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "abstract_sampler.hpp"
 #include "custom_sampler.hpp"
 #include "custom_sampler_pt.hpp"
@@ -35,7 +34,7 @@
 #include "metropolis_local_pt.hpp"
 
 namespace netket {
-
+// TODO remove
 template <class WfType>
 class Sampler : public AbstractSampler<WfType> {
   std::unique_ptr<AbstractSampler<WfType>> s_;
@@ -49,7 +48,7 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  explicit Sampler(const Graph &graph, WfType &psi, const Ptype &pars) {
+  explicit Sampler(const AbstractGraph &graph, WfType &psi, const Ptype &pars) {
     const auto pconv = ParsConv(pars);
     CheckInput(pconv);
     Init(psi, pconv);
@@ -57,7 +56,8 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  explicit Sampler(Hamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
+  explicit Sampler(AbstractHamiltonian &hamiltonian, WfType &psi,
+                   const Ptype &pars) {
     const auto pconv = ParsConv(pars);
     CheckInput(pconv);
     Init(psi, pconv);
@@ -65,8 +65,8 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  explicit Sampler(const Graph &graph, Hamiltonian &hamiltonian, WfType &psi,
-                   const Ptype &pars) {
+  explicit Sampler(const AbstractGraph &graph, AbstractHamiltonian &hamiltonian,
+                   WfType &psi, const Ptype &pars) {
     const auto pconv = ParsConv(pars);
     CheckInput(pconv);
     Init(psi, pconv);
@@ -95,7 +95,7 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  void Init(const Graph &graph, WfType &psi, const Ptype &pars) {
+  void Init(const AbstractGraph &graph, WfType &psi, const Ptype &pars) {
     if (FieldExists(pars, "Name")) {
       std::string name = FieldVal<std::string>(pars, "Name");
       if (name == "MetropolisExchange") {
@@ -110,14 +110,16 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  void Init(Hamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
+  void Init(AbstractHamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
     if (FieldExists(pars, "Name")) {
       std::string name = FieldVal<std::string>(pars, "Name");
       if (name == "MetropolisHamiltonian") {
-        s_ = netket::make_unique<MetropolisHamiltonian<WfType, Hamiltonian>>(
-            psi, hamiltonian);
+        s_ = netket::make_unique<
+            MetropolisHamiltonian<WfType, AbstractHamiltonian>>(psi,
+                                                                hamiltonian);
       } else if (name == "MetropolisHamiltonianPt") {
-        s_ = netket::make_unique<MetropolisHamiltonianPt<WfType, Hamiltonian>>(
+        s_ = netket::make_unique<
+            MetropolisHamiltonianPt<WfType, AbstractHamiltonian>>(
             psi, hamiltonian, pars);
       }
     }
@@ -127,7 +129,6 @@ class Sampler : public AbstractSampler<WfType> {
     CheckFieldExists(pars, "Sampler");
     return pars["Sampler"];
   }
-  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
 
   template <class Ptype>
   void CheckInput(const Ptype &pars) {

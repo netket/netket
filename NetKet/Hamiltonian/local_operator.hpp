@@ -37,7 +37,7 @@ class LocalOperator {
   using MatType = std::vector<std::vector<std::complex<double>>>;
 
  private:
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
   MatType mat_;
 
   std::vector<int> sites_;
@@ -49,7 +49,7 @@ class LocalOperator {
   std::vector<std::vector<int>> connected_;
 
  public:
-  LocalOperator(const Hilbert &hilbert, const MatType &mat,
+  LocalOperator(const AbstractHilbert &hilbert, const MatType &mat,
                 const std::vector<int> &sites)
       : hilbert_(hilbert), mat_(mat), sites_(sites) {
     Init();

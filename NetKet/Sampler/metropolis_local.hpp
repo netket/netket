@@ -30,7 +30,7 @@ template <class WfType>
 class MetropolisLocal : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -66,7 +66,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
     if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
-          "Hamiltonian Metropolis sampler works only for discrete "
+          "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
     }
 

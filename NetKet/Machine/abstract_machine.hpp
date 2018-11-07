@@ -172,11 +172,13 @@ class AbstractMachine {
     filewf.close();
   }
 
-  void Save(std::ofstream& stream) const {
+  void Save(std::ofstream &stream) const {
     json j;
     to_json(j);
     stream << j << std::endl;
   }
+
+  virtual const AbstractHilbert &GetHilbert() const = 0;
 
   virtual ~AbstractMachine() {}
 };

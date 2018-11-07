@@ -20,28 +20,18 @@ from mpi4py import MPI
 import scipy.sparse as sparse
 
 # #constructing a 1d lattice
-gr=nk.Graph("Hypercube",L=20,Dimension=1)
+g=nk.Hypercube(L=20,ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.Hilbert(gr,Name="Spin",S=0.5)
+hi=nk.Spin(S=0.5,graph=g)
 
 #Hamiltonian
-ha=nk.Hamiltonian(hi,Name="Ising",h=1.0)
+ha=nk.Ising(h=1.0,hilbert=hi)
 
-
-v=np.ones(20)
-#TODO define conversions between Vector types and python lists
-mels=nk.VectorComplexDouble()
-connectors=nk.VectorVectorInt()
-newconfs=nk.VectorVectorDouble()
-ha.FindConn(v,mels,connectors,newconfs)
-
-for mel in mels:
-    print(mel)
 
 #scipy sparse diagonalization
 print("Diagonalizing the Hamiltonian...")
-sm=nk.SparseHamiltonianWrapper(ha).GetMatrix()
+sm=nk.SparseMatrixWrapper(hamiltonian=ha).GetMatrix()
 
 vals = sparse.linalg.eigs(sm, k=1,return_eigenvectors=False,which='SR')
 print('Energy = ',vals[0].real)

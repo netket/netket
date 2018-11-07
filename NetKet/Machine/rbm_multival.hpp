@@ -59,7 +59,7 @@ class RbmMultival : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   Eigen::VectorXd localconfs_;
   Eigen::MatrixXd mask_;
@@ -76,7 +76,7 @@ class RbmMultival : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // Json constructor
-  explicit RbmMultival(const Hilbert &hilbert, const json &pars)
+  explicit RbmMultival(const AbstractHilbert &hilbert, const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert), ls_(hilbert.LocalSize()) {
     from_json(pars);
   }
@@ -352,7 +352,7 @@ class RbmMultival : public AbstractMachine<T> {
     vtilde = t.template cast<double>();
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmMultival";

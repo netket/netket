@@ -19,16 +19,16 @@ import numpy as np
 from mpi4py import MPI
 
 # #constructing a 1d lattice
-g=nk.Graph("Hypercube",L=10,Dimension=1)
+g=nk.Hypercube(L=10,ndim=1)
 
 # Hilbert space of spins from given graph
-h=nk.Hilbert(g,Name="Spin",S=0.5)
+h=nk.Spin(S=0.5,graph=g)
 
 print(h.LocalStates())
 print(h.Size())
 
 #Custom hilbert space
-h=nk.Hilbert(Name="Custom",Size=3,QuantumNumbers=[-1,0,1])
+h=nk.CustomHilbert(local_states=[-1,0,1],graph=g)
 print(h.Size())
 print(h.LocalStates())
 
