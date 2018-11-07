@@ -59,8 +59,10 @@ class MetropolisHop : public AbstractSampler<WfType> {
     Init(graph, dmax);
   }
 
+  // TODO remove
   template <class Ptype>
-  explicit MetropolisHop(const AbstractGraph &graph, WfType &psi, const Ptype &pars)
+  explicit MetropolisHop(const AbstractGraph &graph, WfType &psi,
+                         const Ptype &pars)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
