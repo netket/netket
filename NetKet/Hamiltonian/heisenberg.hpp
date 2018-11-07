@@ -28,8 +28,8 @@ namespace netket {
 // Heisenberg model on an arbitrary graph
 
 class Heisenberg : public AbstractHamiltonian {
-  const Hilbert &hilbert_;
-  const Graph &graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   const int nspins_;
   double offdiag_;
@@ -38,14 +38,15 @@ class Heisenberg : public AbstractHamiltonian {
   std::vector<std::vector<int>> bonds_;
 
  public:
-  explicit Heisenberg(const Hilbert &hilbert)
+  explicit Heisenberg(const AbstractHilbert &hilbert)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
 
+  // TODO remove
   // Json constructor
   template <class Ptype>
-  explicit Heisenberg(const Hilbert &hilbert, const Ptype & /*pars*/)
+  explicit Heisenberg(const AbstractHilbert &hilbert, const Ptype & /*pars*/)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
@@ -106,7 +107,7 @@ class Heisenberg : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

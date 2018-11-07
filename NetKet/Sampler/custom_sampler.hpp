@@ -32,7 +32,7 @@ namespace netket {
 template <class WfType>
 class CustomSampler : public AbstractSampler<WfType> {
   WfType &psi_;
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
   std::vector<LocalOperator> move_operators_;
   std::vector<double> operatorsweights_;
 

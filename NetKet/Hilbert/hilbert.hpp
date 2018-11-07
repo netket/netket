@@ -20,7 +20,6 @@
 #include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/parallel_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"
@@ -28,7 +27,7 @@
 #include "spins.hpp"
 
 namespace netket {
-
+// TODO remove
 class Hilbert : public AbstractHilbert {
   std::unique_ptr<AbstractHilbert> h_;
 
@@ -47,7 +46,6 @@ class Hilbert : public AbstractHilbert {
     CheckFieldExists(pars, "Hilbert");
     return pars["Hilbert"];
   }
-  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
 
   template <class Ptype>
   void InitWithoutGraph(const Ptype &pars) {
@@ -102,7 +100,7 @@ class Hilbert : public AbstractHilbert {
     return h_->UpdateConf(v, tochange, newconf);
   }
 
-  const Graph &GetGraph() const override { return h_->GetGraph(); }
+  const AbstractGraph &GetGraph() const override { return h_->GetGraph(); }
 };
 }  // namespace netket
 

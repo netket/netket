@@ -28,19 +28,71 @@ namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
 class GraphHamiltonian : public AbstractHamiltonian {
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // Arbitrary graph
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
   std::vector<LocalOperator> operators_;
   const int nvertices_;
 
  public:
   using MatType = LocalOperator::MatType;
+  using VecType = std::vector<MatType>;
+  explicit GraphHamiltonian(
+      const AbstractHilbert &hilbert, VecType siteops = VecType(),
+      VecType bondops = VecType(),
+      std::vector<int> bondops_colors = std::vector<int>())
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nvertices_(hilbert.Size()) {
+    // Ensure that at least one of SiteOps and BondOps was initialized
+    if (!siteops.size() && !bondops.size()) {
+      throw InvalidInputError("Must input at least SiteOps or BondOps");
+    }
 
+    std::vector<int> op_color;
+    if (bondops_colors.size() == 0) {
+      op_color = std::vector<int>(bondops.size(), 0);
+    } else {
+      op_color = bondops_colors;
+    }
+
+    // Site operators
+    if (siteops.size() > 0) {
+      for (int i = 0; i < nvertices_; i++) {
+        for (std::size_t j = 0; j < siteops.size(); j++) {
+          operators_.push_back(
+              LocalOperator(hilbert_, siteops[j], std::vector<int>{i}));
+        }
+      }
+    }
+
+    // Bond operators
+    if (bondops.size() != op_color.size()) {
+      throw InvalidInputError(
+          "The bond Hamiltonian definition is inconsistent."
+          "The sizes of BondOps and BondOpColors do not match.");
+    }
+
+    if (bondops.size() > 0) {
+      // Use EdgeColors to populate operators
+      for (auto const &kv : graph_.EdgeColors()) {
+        for (std::size_t c = 0; c < op_color.size(); c++) {
+          if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
+            std::vector<int> edge = {kv.first[0], kv.first[1]};
+            operators_.push_back(LocalOperator(hilbert_, bondops[c], edge));
+          }
+        }
+      }
+    }
+
+    InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
+  }
+
+  // TODO remove
   template <class Ptype>
-  explicit GraphHamiltonian(const Hilbert &hilbert, const Ptype &pars)
+  explicit GraphHamiltonian(const AbstractHilbert &hilbert, const Ptype &pars)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
         nvertices_(hilbert.Size()) {
@@ -118,7 +170,7 @@ class GraphHamiltonian : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };  // namespace netket
 }  // namespace netket
 #endif

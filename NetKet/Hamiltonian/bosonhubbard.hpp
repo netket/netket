@@ -29,8 +29,8 @@ namespace netket {
 
 // Heisenberg model on an arbitrary graph
 class BoseHubbard : public AbstractHamiltonian {
-  const Hilbert &hilbert_;
-  const Graph &graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   int nsites_;
 
@@ -46,9 +46,22 @@ class BoseHubbard : public AbstractHamiltonian {
   std::vector<std::vector<int>> bonds_;
 
  public:
+  explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
+                       double mu = 0.)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nsites_(hilbert.Size()),
+        U_(U),
+        V_(V),
+        mu_(mu) {
+    nmax_ = hilbert_.LocalSize() - 1;
+    Init();
+  }
+
+  // TODO remove
   // Json constructor
   template <class Ptype>
-  explicit BoseHubbard(const Hilbert &hilbert, const Ptype &pars)
+  explicit BoseHubbard(const AbstractHilbert &hilbert, const Ptype &pars)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()), nsites_(hilbert.Size()) {
     nmax_ = hilbert_.LocalSize() - 1;
     U_ = FieldVal<double>(pars, "U", "Hamiltonian");
@@ -120,7 +133,7 @@ class BoseHubbard : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

@@ -170,7 +170,6 @@ target_link_libraries(netket_lib
         optional_lite
         span_lite
         IETL
-        pybind11
 )
 
 # Check if we should use native Lapack with Eigen
@@ -202,7 +201,7 @@ target_link_libraries(pynetket  PRIVATE pybind11)
 target_link_libraries(pynetket PUBLIC netket_lib)
 set_target_properties(pynetket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(pynetket eigen_project)
+add_dependencies(pynetket eigen_project pybind11_project)
 
 #
 # Testing

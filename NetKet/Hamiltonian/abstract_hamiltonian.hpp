@@ -17,8 +17,8 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <nonstd/span.hpp>
 #include <vector>
-
 #include "Hilbert/hilbert.hpp"
 
 namespace netket {
@@ -86,7 +86,7 @@ class AbstractHamiltonian {
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
   */
-  virtual const Hilbert &GetHilbert() const = 0;
+  virtual const AbstractHilbert &GetHilbert() const = 0;
 
   virtual ~AbstractHamiltonian() {}
 };

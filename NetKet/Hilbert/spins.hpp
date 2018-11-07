@@ -20,7 +20,6 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
@@ -37,7 +36,7 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
   double S_;
   double totalS_;
@@ -50,6 +49,23 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
  public:
+  explicit Spin(const AbstractGraph &graph, double S) : graph_(graph) {
+    const int nspins = graph.Size();
+
+    Init(nspins, S);
+
+    constraintSz_ = false;
+  }
+  explicit Spin(const AbstractGraph &graph, double S, double totalSz)
+      : graph_(graph) {
+    const int nspins = graph.Size();
+
+    Init(nspins, S);
+
+    SetConstraint(totalSz);
+  }
+
+  // TODO Remove
   template <class Ptype>
   explicit Spin(const Graph &graph, const Ptype &pars) : graph_(graph) {
     const int nspins = graph.Size();
@@ -164,7 +180,7 @@ class Spin : public AbstractHilbert {
     }
   }
 
-  const Graph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

@@ -44,16 +44,17 @@ class FFNN : public AbstractMachine<T> {
   std::vector<VectorType> new_output_;
   typename AbstractMachine<T>::LookupType ltnew_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit FFNN(const Graph &graph, const Hilbert &hilbert, const json &pars)
+  explicit FFNN(const AbstractGraph &graph, const AbstractHilbert &hilbert,
+                const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
     Init(pars);
   }
@@ -299,6 +300,8 @@ class FFNN : public AbstractMachine<T> {
       layers_[i]->to_json(j);
     }
   }
+
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };  // namespace netket
 
 }  // namespace netket

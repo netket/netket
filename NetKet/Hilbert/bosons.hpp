@@ -19,7 +19,6 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
@@ -34,7 +33,7 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
   int nsites_;
 
@@ -52,8 +51,28 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
  public:
+  explicit Boson(const AbstractGraph &graph, int nmax)
+      : graph_(graph), nmax_(nmax) {
+    nsites_ = graph.Size();
+
+    Init();
+
+    constraintN_ = false;
+  }
+
+  explicit Boson(const AbstractGraph &graph, int nmax, int nbosons)
+      : graph_(graph), nmax_(nmax) {
+    nsites_ = graph.Size();
+
+    Init();
+
+    SetNbosons(nbosons);
+  }
+
+  // TODO remove
   template <class Ptype>
-  explicit Boson(const Graph &graph, const Ptype &pars) : graph_(graph) {
+  explicit Boson(const AbstractGraph &graph, const Ptype &pars)
+      : graph_(graph) {
     nsites_ = graph.Size();
 
     CheckFieldExists(pars, "Nmax", "Hilbert");
@@ -157,7 +176,7 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  const Graph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

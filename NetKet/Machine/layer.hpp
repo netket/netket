@@ -34,9 +34,11 @@ class Layer : public AbstractLayer<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = std::vector<VectorType>;
 
-  explicit Layer(const Graph &graph, const json &pars) { Init(graph, pars); }
+  explicit Layer(const AbstractGraph &graph, const json &pars) {
+    Init(graph, pars);
+  }
 
-  void Init(const Graph &graph, const json &pars) {
+  void Init(const AbstractGraph &graph, const json &pars) {
     CheckInput(pars);
     if (pars["Name"] == "FullyConnected") {
       if (pars["Activation"] == "Lncosh") {

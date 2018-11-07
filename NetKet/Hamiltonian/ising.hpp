@@ -35,9 +35,9 @@ class Ising : public AbstractHamiltonian {
   /**
     Hilbert space descriptor for this hamiltonian.
   */
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
   const int nspins_;
   double h_;
@@ -49,14 +49,24 @@ class Ising : public AbstractHamiltonian {
   std::vector<std::vector<int>> bonds_;
 
  public:
+  explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nspins_(hilbert.Size()),
+        h_(h),
+        J_(J) {
+    Init();
+  }
+
   /**
     Constructor.
     @param hilbert is the input hilbert space from which the number of spins and
     the bonds are obtained.
     @param pars is a list of parameters. The default value of J is 1.0
   */
+  // TODO remove
   template <class Ptype>
-  explicit Ising(const Hilbert &hilbert, const Ptype &pars)
+  explicit Ising(const AbstractHilbert &hilbert, const Ptype &pars)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
         nspins_(hilbert.Size()),
@@ -159,7 +169,7 @@ class Ising : public AbstractHamiltonian {
     callback(ConnectorRef{mel_J, {}, {}});
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

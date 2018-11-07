@@ -19,8 +19,6 @@
 #include <vector>
 #include "Utils/random_utils.hpp"
 
-#include <nonstd/span.hpp>
-
 namespace netket {
 
 /**
@@ -79,7 +77,7 @@ class AbstractHilbert {
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
 
-  virtual const Graph &GetGraph() const = 0;
+  virtual const AbstractGraph &GetGraph() const = 0;
 
   virtual ~AbstractHilbert() {}
 };

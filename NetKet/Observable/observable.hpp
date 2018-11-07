@@ -34,7 +34,7 @@ class Observable : public AbstractObservable {
  public:
   using MatType = LocalOperator::MatType;
 
-  Observable(const Hilbert &hilbert, const json &obspars) {
+  Observable(const AbstractHilbert &hilbert, const json &obspars) {
     CheckFieldExists(obspars, "Operators", "Observables");
     CheckFieldExists(obspars, "ActingOn", "Observables");
     CheckFieldExists(obspars, "Name", "Observables");
@@ -46,7 +46,7 @@ class Observable : public AbstractObservable {
     o_ = Ptype(new CustomObservable(hilbert, jop, sites, name));
   }
 
-  static std::vector<Observable> FromJson(const Hilbert &hilbert,
+  static std::vector<Observable> FromJson(const AbstractHilbert &hilbert,
                                           const json &pars) {
     std::vector<Observable> observables;
 
@@ -73,7 +73,7 @@ class Observable : public AbstractObservable {
     return o_->FindConn(v, mel, connectors, newconfs);
   }
 
-  const Hilbert &GetHilbert() const override { return o_->GetHilbert(); }
+  const AbstractHilbert &GetHilbert() const override { return o_->GetHilbert(); }
 
   const std::string Name() const override { return o_->Name(); }
 };

@@ -25,14 +25,31 @@ namespace netket {
 
 class CustomHamiltonian : public AbstractHamiltonian {
   std::vector<LocalOperator> operators_;
-  const Hilbert &hilbert_;
-  const Graph &graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
  public:
   using MatType = LocalOperator::MatType;
+  using VecType = std::vector<MatType>;
 
+  explicit CustomHamiltonian(const AbstractHilbert &hilbert,
+                             const VecType &operators,
+                             const std::vector<std::vector<int>> &acting_on)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()) {
+    if (acting_on.size() != operators.size()) {
+      throw InvalidInputError(
+          "The custom Hamiltonian definition is inconsistent: "
+          "Check that ActingOn is defined");
+    }
+
+    for (std::size_t i = 0; i < operators.size(); i++) {
+      operators_.push_back(LocalOperator(hilbert_, operators[i], acting_on[i]));
+    }
+  }
+
+  // TODO remove
   template <class Ptype>
-  explicit CustomHamiltonian(const Hilbert &hilbert, const Ptype &pars)
+  explicit CustomHamiltonian(const AbstractHilbert &hilbert, const Ptype &pars)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()) {
     CheckFieldExists(pars, "Operators");
     // TODO
@@ -76,7 +93,7 @@ class CustomHamiltonian : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 }  // namespace netket
 #endif

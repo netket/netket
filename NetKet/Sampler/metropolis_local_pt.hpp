@@ -30,7 +30,7 @@ template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;

@@ -31,6 +31,8 @@ class RbmSpin : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
+  const AbstractHilbert &hilbert_;
+
   // number of visible units
   int nv_;
 
@@ -57,16 +59,23 @@ class RbmSpin : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const Hilbert &hilbert_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
+                   int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+
+    Init();
+  }
+
+  // TODO remove
   // constructor
   template <class Ptype>
-  explicit RbmSpin(const Hilbert &hilbert, const Ptype &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert) {
+  explicit RbmSpin(const AbstractHilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
     FromParameters(pars);
   }
 
@@ -372,7 +381,7 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmSpin";

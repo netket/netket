@@ -61,7 +61,7 @@ class AbstractObservable {
   Member function returning the hilbert space associated with this Observable.
   @return Hilbert space specifier for this Observable
   */
-  virtual const Hilbert &GetHilbert() const = 0;
+  virtual const AbstractHilbert &GetHilbert() const = 0;
 
   virtual const std::string Name() const = 0;
 

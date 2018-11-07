@@ -29,7 +29,7 @@ namespace netket {
 template <class WfType>
 class MetropolisExchangePt : public AbstractSampler<WfType> {
   WfType &psi_;
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -58,7 +58,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
  public:
   template <class Ptype>
-  explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
+  explicit MetropolisExchangePt(const AbstractGraph &graph, WfType &psi,
                                 const Ptype &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
@@ -68,7 +68,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     Init(graph, dmax);
   }
 
-  void Init(const Graph &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 

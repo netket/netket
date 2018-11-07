@@ -20,13 +20,12 @@
 #include <vector>
 #include "Utils/json_utils.hpp"
 #include "Utils/memory_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
 #include "hypercube.hpp"
 
 namespace netket {
-
+// TODO remove
 class Graph : public AbstractGraph {
   std::unique_ptr<AbstractGraph> g_;
 
@@ -66,21 +65,9 @@ class Graph : public AbstractGraph {
     }
   }
 
-  explicit Graph(const std::string& name, const pybind11::kwargs& kwargs) {
-    if (name == "Hypercube") {
-      g_ = netket::make_unique<Hypercube>(kwargs);
-    } else if (name == "Custom") {
-      g_ = netket::make_unique<CustomGraph>(kwargs);
-    } else {
-      std::stringstream s;
-      s << "Unknown Graph type: " << name;
-      throw InvalidInputError(s.str());
-    }
-  }
-
   int Nsites() const override { return g_->Nsites(); }
 
-  int Size() const { return g_->Nsites(); }
+  int Size() const override { return g_->Size(); }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return g_->AdjacencyList();

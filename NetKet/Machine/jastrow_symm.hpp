@@ -56,22 +56,22 @@ class JastrowSymm : public AbstractMachine<T> {
   Eigen::MatrixXd DerMatSymm_;
   Eigen::MatrixXi Wtemp_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
-  const Graph &graph_;
+  const AbstractGraph &graph_;
 
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // Json constructor
-  explicit JastrowSymm(const Graph &graph, const Hilbert &hilbert,
+  explicit JastrowSymm(const AbstractGraph &graph, const AbstractHilbert &hilbert,
                        const json &pars)
       : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
     from_json(pars);
   }
 
-  void Init(const Graph &graph) {
+  void Init(const AbstractGraph &graph) {
     permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
 
@@ -294,7 +294,7 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "JastrowSymm";

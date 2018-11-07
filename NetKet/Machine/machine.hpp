@@ -29,12 +29,12 @@
 #include "rbm_spin_symm.hpp"
 
 namespace netket {
-
+// TODO remove
 template <class T>
 class Machine : public AbstractMachine<T> {
   std::unique_ptr<AbstractMachine<T>> m_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
@@ -43,7 +43,7 @@ class Machine : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   template <class Partype>
-  explicit Machine(const Hilbert &hilbert, const Partype &pars)
+  explicit Machine(const AbstractHilbert &hilbert, const Partype &pars)
       : hilbert_(hilbert) {
     const auto pconv = ParsConv(pars);
     Init(hilbert_, pconv);
@@ -59,7 +59,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   template <class Partype>
-  explicit Machine(const Graph &graph, const Hilbert &hilbert,
+  explicit Machine(const AbstractGraph &graph, const AbstractHilbert &hilbert,
                    const Partype &pars)
       : hilbert_(hilbert) {
     const auto pconv = ParsConv(pars);
@@ -69,7 +69,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   template <class Partype>
-  explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
+  explicit Machine(const AbstractGraph &graph, const Hamiltonian &hamiltonian,
                    const Partype &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
     const auto pconv = ParsConv(pars);
@@ -79,7 +79,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   template <class Partype>
-  void Init(const Hilbert &hilbert, const Partype &pars) {
+  void Init(const AbstractHilbert &hilbert, const Partype &pars) {
     CheckInput(pars);
     std::string name = FieldVal<std::string>(pars, "Name");
     if (name == "RbmSpin") {
@@ -91,7 +91,8 @@ class Machine : public AbstractMachine<T> {
     }
   }
   template <class Partype>
-  void Init(const Graph &graph, const Hilbert &hilbert, const Partype &pars) {
+  void Init(const AbstractGraph &graph, const AbstractHilbert &hilbert,
+            const Partype &pars) {
     CheckInput(pars);
     std::string name = FieldVal<std::string>(pars, "Name");
     if (name == "RbmSpinSymm") {
@@ -103,11 +104,11 @@ class Machine : public AbstractMachine<T> {
     }
   }
 
+  // TODO reove
   json ParsConv(const json &pars) {
     CheckFieldExists(pars, "Machine");
     return pars["Machine"];
   }
-  pybind11::kwargs ParsConv(const pybind11::kwargs &pars) { return pars; }
 
   template <class Partype>
   void InitParameters(const Partype &pars) {
@@ -207,7 +208,7 @@ class Machine : public AbstractMachine<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override { m_->to_json(j); }
 

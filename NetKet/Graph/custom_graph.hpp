@@ -43,13 +43,82 @@ class CustomGraph : public AbstractGraph {
   bool is_connected_;
 
  public:
-  template <class Ptype>
-  explicit CustomGraph(const Ptype &pars) {
-    Init(pars);
+  explicit CustomGraph(
+      int size = 0,
+      std::vector<std::vector<int>> adjl = std::vector<std::vector<int>>(),
+      std::vector<std::vector<int>> edges = std::vector<std::vector<int>>(),
+      std::vector<std::vector<int>> automorphisms =
+          std::vector<std::vector<int>>(),
+      std::vector<std::vector<int>> edgecolors =
+          std::vector<std::vector<int>>(),
+      bool isbipartite = false)
+      : adjlist_(std::move(adjl)), isbipartite_(isbipartite) {
+    Init(size, edges, automorphisms, edgecolors);
   }
 
+  void Init(int size, const std::vector<std::vector<int>> &edges,
+            const std::vector<std::vector<int>> &automorphisms,
+            const std::vector<std::vector<int>> &edgecolors) {
+    bool has_edges = edges.size() > 0;
+    if (has_edges) {
+      AdjacencyListFromEdges(edges);
+    }
+
+    if (size != 0) {
+      adjlist_.resize(size);
+    }
+
+    nsites_ = adjlist_.size();
+
+    if (nsites_ < 1) {
+      throw InvalidInputError("The number of graph nodes is invalid");
+    }
+
+    is_connected_ = ComputeConnected();
+
+    bool has_automorph = automorphisms.size() > 0;
+
+    // Other graph properties
+    if (has_automorph) {
+      automorphisms_ = automorphisms;
+    } else {
+      automorphisms_.resize(1, std::vector<int>(nsites_));
+      for (int i = 0; i < nsites_; i++) {
+        // If no automorphism is specified, we stick to the identity one
+        automorphisms_[0][i] = i;
+      }
+    }
+
+    bool has_edge_colors = edgecolors.size() > 0;
+
+    if (has_edge_colors) {
+      EdgeColorsFromList(edgecolors, eclist_);
+    } else {
+      EdgeColorsFromAdj(adjlist_, eclist_);
+    }
+
+    CheckGraph();
+
+    InfoMessage() << "Graph created " << std::endl;
+    InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
+    if (has_automorph) {
+      InfoMessage() << "Found automorphisms " << std::endl;
+    }
+    if (!has_edge_colors) {
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+    }
+  }
+
+  // TODO remove
   template <class Ptype>
-  void Init(const Ptype &pars) {
+  explicit CustomGraph(const Ptype &pars) {
+    InitOld(pars);
+  }
+
+  // TODO remove
+  template <class Ptype>
+  void InitOld(const Ptype &pars) {
     // Try to construct from explicit graph definition
 
     if (FieldExists(pars, "AdjacencyList")) {
@@ -159,6 +228,11 @@ class CustomGraph : public AbstractGraph {
         throw InvalidInputError("The automorphism list is invalid");
       }
     }
+    CheckEdgeColors();
+  }
+
+  void CheckEdgeColors() {
+    // TODO write a meaningful check of edge colors
   }
 
   // Returns a list of permuted sites constituting an automorphism of the
@@ -168,6 +242,8 @@ class CustomGraph : public AbstractGraph {
   }
 
   int Nsites() const override { return nsites_; }
+
+  int Size() const override { return nsites_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return adjlist_;

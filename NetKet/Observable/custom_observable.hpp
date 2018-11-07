@@ -23,13 +23,13 @@ namespace netket {
 
 class CustomObservable : public AbstractObservable {
   std::vector<LocalOperator> operators_;
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
   std::string name_;
 
  public:
   using MatType = LocalOperator::MatType;
 
-  CustomObservable(const Hilbert &hilbert, const std::vector<MatType> &jop,
+  CustomObservable(const AbstractHilbert &hilbert, const std::vector<MatType> &jop,
                    const std::vector<std::vector<int>> &sites,
                    const std::string &name)
       : hilbert_(hilbert), name_(name) {
@@ -56,7 +56,7 @@ class CustomObservable : public AbstractObservable {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   const std::string Name() const override { return name_; }
 };

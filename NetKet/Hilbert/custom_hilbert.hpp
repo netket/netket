@@ -19,7 +19,6 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
-#include "Utils/python_helper.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
@@ -33,7 +32,7 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
-  const Graph &graph_;
+  const AbstractGraph &graph_;
   std::vector<double> local_;
 
   int nstates_;
@@ -41,8 +40,16 @@ class CustomHilbert : public AbstractHilbert {
   int size_;
 
  public:
+  explicit CustomHilbert(const AbstractGraph &graph,
+                         const std::vector<double> &localstates)
+      : graph_(graph), local_(localstates) {
+    size_ = graph.Size();
+    nstates_ = local_.size();
+  }
+
+  // TODO remove
   template <class Ptype>
-  explicit CustomHilbert(const Graph &graph, const Ptype &pars)
+  explicit CustomHilbert(const AbstractGraph &graph, const Ptype &pars)
       : graph_(graph) {
     CheckFieldExists(pars, "QuantumNumbers", "Hilbert");
     // if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
@@ -90,7 +97,7 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  const Graph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const override { return graph_; }
 };  // namespace netket
 
 }  // namespace netket
