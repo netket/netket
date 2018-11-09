@@ -19,25 +19,35 @@ import numpy as np
 from mpi4py import MPI
 import scipy.sparse as sparse
 
+L=20
+
 #Constructing a 1d lattice
-g=nk.Hypercube(L=4,ndim=1)
+g=nk.Hypercube(L=L,ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.Spin(S=0.5,graph=g)
+hi=nk.Spin(S=0.5,total_sz=0,graph=g)
 
 #Hamiltonian
-ha=nk.Ising(h=1.0,hilbert=hi)
+ha=nk.Heisenberg(hilbert=hi)
 
-#Machine
-ma=nk.RbmSpin(hilbert=hi,alpha=1)
+#Layers
+act=nk.Lncosh()
+layers=[nk.FullyConnected(activation=act,input_size=L,output_size=L)]
+
+#FFNN Machine
+ma=nk.FFNN(hi,layers)
 ma.InitRandomPars(seed=1234,sigma=0.1)
-print(ma.GetParameters())
 
 
-#Layer
-a=np.ones(3,dtype=complex)
-b=np.zeros(3,dtype=complex)
-act=nk.Tanh()
+#Sampler
+sa=nk.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
 
-act(a,b)
-print(b)
+#Optimizer
+op=nk.Sgd(learning_rate=0.01)
+
+#Variational Monte Carlo
+gs=nk.Vmc(hamiltonian=ha,sampler=sa,
+          optimizer=op,nsamples=1000,
+          niter_opt=300,output_file='test',
+          diag_shift=0.01)
+gs.Run()

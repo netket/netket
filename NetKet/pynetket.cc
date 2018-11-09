@@ -190,21 +190,188 @@ PYBIND11_MODULE(pynetket, m) {
       .def("Nvisible", &AbMachineType::Nvisible)
       .def("GetHilbert", &AbMachineType::GetHilbert);
 
-  using RbmSpinType = RbmSpin<MachineType>;
-  py::class_<RbmSpinType, AbMachineType>(m, "RbmSpin")
-      .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true)
-      .def("Npar", &RbmSpinType::Npar)
-      .def("GetParameters", &RbmSpinType::GetParameters)
-      .def("SetParameters", &RbmSpinType::SetParameters)
-      .def("InitRandomPars", &RbmSpinType::InitRandomPars, py::arg("seed"),
-           py::arg("sigma"))
-      .def("Nvisible", &RbmSpinType::Nvisible)
-      .def("GetHilbert", &RbmSpinType::GetHilbert);
-  // TODO add other methods
+  using AbActivationType = AbstractActivation;
+  py::class_<AbActivationType>(m, "Activation")
+      .def("__call__", &AbActivationType::operator())
+      .def("ApplyJacobian", &AbActivationType::ApplyJacobian);
 
+  {
+    using WfType = RbmSpin<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "RbmSpin")
+        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
+             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+             py::arg("use_visible_bias") = true,
+             py::arg("use_hidden_bias") = true)
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+
+  {
+    using WfType = RbmSpinSymm<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "RbmSpinSymm")
+        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
+             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+             py::arg("use_visible_bias") = true,
+             py::arg("use_hidden_bias") = true)
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+
+  {
+    using WfType = RbmMultival<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "RbmMultival")
+        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
+             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+             py::arg("use_visible_bias") = true,
+             py::arg("use_hidden_bias") = true)
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+  {
+    using WfType = Jastrow<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "Jastrow")
+        .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+  {
+    using WfType = JastrowSymm<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "JastrowSymm")
+        .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+
+  // FEED-FORWARD NETWORK RELATED BINDINGS
+  // ACTIVATION FUNCTIONS
+  // TODO maybe move these into a separate python modules
+  {
+    using ActivationType = Tanh;
+    py::class_<ActivationType, AbActivationType>(m, "Tanh")
+        .def(py::init<>())
+        .def("__call__", &ActivationType::operator())
+        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
+  }
+  {
+    using ActivationType = Identity;
+    py::class_<ActivationType, AbActivationType>(m, "Identity")
+        .def(py::init<>())
+        .def("__call__", &ActivationType::operator())
+        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
+  }
+  {
+    using ActivationType = Lncosh;
+    py::class_<ActivationType, AbActivationType>(m, "Lncosh")
+        .def(py::init<>())
+        .def("__call__", &ActivationType::operator())
+        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
+  }
+
+  // LAYERS
+  // TODO maybe move these into a separate python modules
+  using AbLayerType = AbstractLayer<MachineType>;
+  {
+    py::class_<AbLayerType, std::shared_ptr<AbLayerType>>(m, "Layer")
+        .def("Ninput", &AbLayerType::Ninput)
+        .def("Noutput", &AbLayerType::Noutput)
+        .def("Npar", &AbLayerType::Npar)
+        .def("GetParameters", &AbLayerType::GetParameters)
+        .def("SetParameters", &AbLayerType::SetParameters)
+        .def("InitRandomPars", &AbLayerType::InitRandomPars);
+    // TODO add more methods
+  }
+  {
+    using LayerType = FullyConnected<MachineType>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
+        m, "FullyConnected")
+        .def(py::init<AbActivationType &, int, int, bool>(),
+             py::arg("activation"), py::arg("input_size"),
+             py::arg("output_size"), py::arg("use_bias") = false)
+        .def("Ninput", &LayerType::Ninput)
+        .def("Noutput", &LayerType::Noutput)
+        .def("Npar", &LayerType::Npar)
+        .def("GetParameters", &LayerType::GetParameters)
+        .def("SetParameters", &LayerType::SetParameters)
+        .def("InitRandomPars", &LayerType::InitRandomPars);
+    // TODO add other methods?
+  }
+  {
+    using LayerType = Convolutional<MachineType>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
+        m, "Convolutional")
+        .def(py::init<const AbstractGraph &, AbActivationType &, int, int, int,
+                      bool>(),
+             py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
+             py::arg("output_channels"), py::arg("distance") = 1,
+             py::arg("use_bias") = false)
+        .def("Ninput", &LayerType::Ninput)
+        .def("Noutput", &LayerType::Noutput)
+        .def("Npar", &LayerType::Npar)
+        .def("GetParameters", &LayerType::GetParameters)
+        .def("SetParameters", &LayerType::SetParameters)
+        .def("InitRandomPars", &LayerType::InitRandomPars);
+    // TODO add other methods?
+  }
+  {
+    using LayerType = SumOutput<MachineType>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(m,
+                                                                   "SumOutput")
+        .def(py::init<int>(), py::arg("input_size"))
+        .def("Ninput", &LayerType::Ninput)
+        .def("Noutput", &LayerType::Noutput)
+        .def("Npar", &LayerType::Npar)
+        .def("GetParameters", &LayerType::GetParameters)
+        .def("SetParameters", &LayerType::SetParameters)
+        .def("InitRandomPars", &LayerType::InitRandomPars);
+    // TODO add other methods?
+  }
+  {
+    using WfType = FFNN<MachineType>;
+    py::class_<WfType, AbMachineType>(m, "FFNN")
+        .def(py::init<const AbstractHilbert &,
+                      std::vector<std::shared_ptr<AbLayerType>>>(),
+             py::arg("hilbert"), py::arg("layers"))
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+
+  // Samplers
   using SamplerType = AbstractSampler<AbMachineType>;
   py::class_<AbstractSampler<AbMachineType>>(m, "Sampler")
       .def("Reset", &SamplerType::Reset)
@@ -362,7 +529,18 @@ PYBIND11_MODULE(pynetket, m) {
            py::arg("save_every") = 50)
 
       .def("Run", &VariationalMonteCarlo::Run);
-}
+
+  py::class_<eddetail::result_t>(m, "EdResult")
+      .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)
+      .def_readwrite("eigenvectors", &eddetail::result_t::eigenvectors)
+      .def_readwrite("which_eigenvector",
+                     &eddetail::result_t::which_eigenvector);
+
+  m.def("LanczosEd", &lanczos_ed, py::arg("hamiltonian"),
+        py::arg("matrix_free") = false, py::arg("first_n") = 1,
+        py::arg("max_iter") = 1000, py::arg("seed") = 42,
+        py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
+}  // namespace netket
 
 }  // namespace netket
 

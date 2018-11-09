@@ -33,6 +33,8 @@ class Jastrow : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
+  const AbstractHilbert &hilbert_;
+
   // number of visible units
   int nv_;
 
@@ -46,15 +48,20 @@ class Jastrow : public AbstractMachine<T> {
   VectorType thetas_;
   VectorType thetasnew_;
 
-  const AbstractHilbert &hilbert_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
+  explicit Jastrow(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
+    Init();
+  }
+
+  // TODO remove
+  // constructor
   explicit Jastrow(const AbstractHilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert) {
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
     from_json(pars);
   }
 

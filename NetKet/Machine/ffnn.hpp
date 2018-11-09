@@ -14,6 +14,7 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <vector>
 #include "Lookup/lookup.hpp"
@@ -29,8 +30,11 @@ template <typename T>
 class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using Ptype = std::unique_ptr<AbstractLayer<T>>;
+  using Ptype = std::shared_ptr<AbstractLayer<T>>;
 
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
   std::vector<Ptype> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
@@ -44,22 +48,84 @@ class FFNN : public AbstractMachine<T> {
   std::vector<VectorType> new_output_;
   typename AbstractMachine<T>::LookupType ltnew_;
 
-  const AbstractHilbert &hilbert_;
-
-  const AbstractGraph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> layers)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        layers_(layers),
+        nv_(hilbert.Size()) {
+    Init();
+  }
+
+  void Init() {
+    nlayer_ = layers_.size();
+
+    std::string buffer = "";
+    // Initialise Layers
+    layersizes_.push_back(nv_);
+    for (int i = 0; i < nlayer_; ++i) {
+      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
+
+      layersizes_.push_back(layers_[i]->Noutput());
+
+      if (layersizes_[i] != layers_[i]->Ninput()) {
+        throw InvalidInputError("input/output layer sizes do not match");
+      }
+    }
+
+    // Check that final layer has only 1 unit otherwise add pooling layer
+    if (layersizes_.back() != 1) {
+      nlayer_ += 1;
+
+      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
+
+      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
+
+      layersizes_.push_back(1);
+    }
+    depth_ = layersizes_.size();
+
+    din_.resize(depth_);
+    din_.back().resize(1);
+    din_.back()(0) = 1.0;
+
+    npar_ = 0;
+    for (int i = 0; i < nlayer_; ++i) {
+      npar_ += layers_[i]->Npar();
+    }
+
+    for (int i = 0; i < nlayer_; ++i) {
+      ltnew_.AddVector(layersizes_[i + 1]);
+      ltnew_.AddVV(1);
+    }
+
+    changed_nodes_.resize(nlayer_);
+    new_output_.resize(nlayer_);
+
+    InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
+                        << " Layers: ";
+    for (int i = 0; i < depth_ - 1; ++i) {
+      InfoMessage(buffer) << layersizes_[i] << " -> ";
+    }
+    InfoMessage(buffer) << layersizes_[depth_ - 1];
+    InfoMessage(buffer) << std::endl;
+    InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
+                        << std::endl;
+  }
+
+  // TODO remove
   // constructor
   explicit FFNN(const AbstractGraph &graph, const AbstractHilbert &hilbert,
                 const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
-    Init(pars);
+      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
+    InitOld(pars);
   }
 
-  void Init(const json &pars) {
+  // TODO remove
+  void InitOld(const json &pars) {
     json layers_par;
     if (FieldExists(pars, "Layers")) {
       layers_par = pars["Layers"];
@@ -74,7 +140,7 @@ class FFNN : public AbstractMachine<T> {
     for (int i = 0; i < nlayer_; ++i) {
       InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
 
-      layers_.push_back(Ptype(new Layer<T>(graph_, layers_par[i])));
+      layers_.push_back(std::make_shared<Layer<T>>(graph_, layers_par[i]));
 
       layersizes_.push_back(layers_.back()->Noutput());
 
@@ -83,14 +149,13 @@ class FFNN : public AbstractMachine<T> {
       }
     }
 
-    // Check that final layer has only 1 unit otherwise add unit identity layer
+    // Check that final layer has only 1 unit otherwise add pooling layer
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
       InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
 
-      layers_.push_back(
-          Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
+      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
 
       layersizes_.push_back(1);
     }

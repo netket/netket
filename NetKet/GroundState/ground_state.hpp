@@ -29,7 +29,7 @@
 #include "variational_montecarlo.hpp"
 
 namespace netket {
-
+// TODO remove
 class GroundState {
  public:
   explicit GroundState(const json& pars) {

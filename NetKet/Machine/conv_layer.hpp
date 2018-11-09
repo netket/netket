@@ -33,14 +33,14 @@ namespace netket {
  Important: In order for this to work correctly, VectorType and MatrixType must
  be column major.
  */
-template <typename Activation, typename T>
+template <typename T>
 class Convolutional : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
 
   using MatrixType = typename AbstractLayer<T>::MatrixType;
   static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
-  Activation activation_;  // activation function class
+  AbstractActivation &activation_;  // activation function class
 
   bool usebias_;  // boolean to turn or off bias
 
@@ -73,14 +73,14 @@ class Convolutional : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Convolutional(const AbstractGraph &graph, const int input_channel,
-                const int output_channel, const int dist = 1,
-                const bool use_bias = true)
-      : activation_(),
+  Convolutional(const AbstractGraph &graph, AbstractActivation &activation,
+                const int input_channels, const int output_channels,
+                const int dist = 1, const bool use_bias = true)
+      : activation_(activation),
         usebias_(use_bias),
         nv_(graph.Nsites()),
-        in_channels_(input_channel),
-        out_channels_(output_channel),
+        in_channels_(input_channels),
+        out_channels_(output_channels),
         dist_(dist) {
     in_size_ = in_channels_ * nv_;
     out_size_ = out_channels_ * nv_;
@@ -88,8 +88,10 @@ class Convolutional : public AbstractLayer<T> {
     Init(graph);
   }
 
-  explicit Convolutional(const AbstractGraph &graph, const json &pars)
-      : activation_(), nv_(graph.Nsites()) {
+  // TODO remove
+  explicit Convolutional(const AbstractGraph &graph,
+                         AbstractActivation &activation, const json &pars)
+      : activation_(activation), nv_(graph.Nsites()) {
     in_channels_ = FieldVal(pars, "InputChannels");
     in_size_ = in_channels_ * nv_;
 
@@ -179,6 +181,7 @@ class Convolutional : public AbstractLayer<T> {
     InfoMessage(buffer) << "# # Filter Distance = " << dist_ << std::endl;
     InfoMessage(buffer) << "# # Filter Size = " << kernel_size_ << std::endl;
     InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
+    InfoMessage(buffer) << "# # Npar = " << Npar() << std::endl;
   }
 
   void InitRandomPars(int seed, double sigma) override {

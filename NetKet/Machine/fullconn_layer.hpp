@@ -26,12 +26,12 @@
 
 namespace netket {
 
-template <typename Activation, typename T>
+template <typename T>
 class FullyConnected : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
   using MatrixType = typename AbstractLayer<T>::MatrixType;
 
-  Activation activation_;  // activation function class
+  AbstractActivation &activation_;  // activation function class
 
   bool usebias_;
 
@@ -50,40 +50,29 @@ class FullyConnected : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  FullyConnected(const int input_size, const int output_size,
-                 const bool use_bias = false)
-      : activation_(),
+  FullyConnected(AbstractActivation &activation, const int input_size,
+                 const int output_size, const bool use_bias = false)
+      : activation_(activation),
         usebias_(use_bias),
         in_size_(input_size),
         out_size_(output_size) {
     Init();
   }
 
-  explicit FullyConnected(const json &pars) : activation_() { Init(pars); }
+  // TODO remove
+  explicit FullyConnected(AbstractActivation &activation, const json &pars)
+      : activation_(activation) {
+    Init(pars);
+  }
 
+  // TODO remove
   void Init(const json &pars) {
     in_size_ = FieldVal(pars, "Inputs");
     out_size_ = FieldVal(pars, "Outputs");
 
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
-    scalar_bytesize_ = sizeof(std::complex<double>);
-
-    weight_.resize(in_size_, out_size_);
-    bias_.resize(out_size_);
-
-    npar_ = in_size_ * out_size_;
-
-    if (usebias_) {
-      npar_ += out_size_;
-    } else {
-      bias_.setZero();
-    }
-    std::string buffer = "";
-
-    InfoMessage(buffer) << "Fully Connected Layer " << in_size_ << " --> "
-                        << out_size_ << std::endl;
-    InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
+    Init();
   }
 
   void Init() {
