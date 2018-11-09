@@ -46,6 +46,14 @@ class SumOutput : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
+  explicit SumOutput(int in_size) : in_size_(in_size) {
+    out_size_ = 1;
+
+    Init();
+  }
+
+  // TODO remove
+  /// Constructor
   explicit SumOutput(const json &pars) {
     in_size_ = FieldVal(pars, "Inputs");
 

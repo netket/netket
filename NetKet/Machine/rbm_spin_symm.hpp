@@ -31,8 +31,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
-  std::vector<std::vector<int>> permtable_;
-  int permsize_;
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
 
   // number of visible units
   int nv_;
@@ -48,6 +49,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   // number of parameters without symmetries
   int nbarepar_;
+
+  std::vector<std::vector<int>> permtable_;
+  int permsize_;
 
   // weights
   MatrixType W_;
@@ -75,18 +79,45 @@ class RbmSpinSymm : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const AbstractHilbert &hilbert_;
-
-  const AbstractGraph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nv_(hilbert.Size()),
+        usea_(usea),
+        useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+
+    Init(graph_);
+
+    // // Loading parameters, if defined in the input
+    // if (FieldExists(pars, "asymm")) {
+    //   asymm_ = pars["asymm"].get<T>();
+    // } else {
+    //   asymm_ = 0;
+    // }
+    //
+    // if (FieldExists(pars, "bsymm")) {
+    //   bsymm_ = pars["bsymm"];
+    // } else {
+    //   bsymm_.setZero();
+    // }
+    // if (FieldExists(pars, "Wsymm")) {
+    //   Wsymm_ = pars["Wsymm"];
+    // }
+
+    SetBareParameters();
+  }
+
   // Json constructor
-  explicit RbmSpinSymm(const AbstractGraph &graph, const AbstractHilbert &hilbert,
-                       const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
+  // TODO remove
+  explicit RbmSpinSymm(const AbstractGraph &graph,
+                       const AbstractHilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
     from_json(pars);
   }
 

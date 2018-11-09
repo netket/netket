@@ -25,8 +25,9 @@ namespace netket {
 template <class T>
 class Layer : public AbstractLayer<T> {
   using Ptype = std::unique_ptr<AbstractLayer<T>>;
-
   Ptype m_;
+
+  Activation activation_;
 
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
@@ -34,28 +35,32 @@ class Layer : public AbstractLayer<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = std::vector<VectorType>;
 
-  explicit Layer(const AbstractGraph &graph, const json &pars) {
+  explicit Layer(const AbstractGraph &graph, const json &pars)
+      : activation_(pars) {
     Init(graph, pars);
   }
 
   void Init(const AbstractGraph &graph, const json &pars) {
     CheckInput(pars);
+
     if (pars["Name"] == "FullyConnected") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new FullyConnected<Identity, T>(pars));
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new FullyConnected<Tanh, T>(pars));
-      }
+      m_ = Ptype(new FullyConnected<T>(activation_, pars));
+      // if (pars["Activation"] == "Lncosh") {
+      //   m_ = Ptype(new FullyConnected<T>(Lncosh(), pars));
+      // } else if (pars["Activation"] == "Identity") {
+      //   m_ = Ptype(new FullyConnected<T>(Identity(), pars));
+      // } else if (pars["Activation"] == "Tanh") {
+      //   m_ = Ptype(new FullyConnected<T>(Tanh(), pars));
+      // }
     } else if (pars["Name"] == "Convolutional") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
-      }
+      Ptype(new Convolutional<T>(graph, activation_, pars));
+      // if (pars["Activation"] == "Lncosh") {
+      //   m_ = Ptype(new Convolutional<T>(graph, Lncosh(), pars));
+      // } else if (pars["Activation"] == "Identity") {
+      //   m_ = Ptype(new Convolutional<T>(graph, Identity(), pars));
+      // } else if (pars["Activation"] == "Tanh") {
+      //   m_ = Ptype(new Convolutional<T>(graph, Tanh(), pars));
+      // }
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }

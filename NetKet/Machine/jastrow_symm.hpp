@@ -32,6 +32,10 @@ class JastrowSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
+
   std::vector<std::vector<int>> permtable_;
   int permsize_;
 
@@ -56,18 +60,23 @@ class JastrowSymm : public AbstractMachine<T> {
   Eigen::MatrixXd DerMatSymm_;
   Eigen::MatrixXi Wtemp_;
 
-  const AbstractHilbert &hilbert_;
-
-  const AbstractGraph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  // constructor
+  explicit JastrowSymm(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
+    Init(graph_);
+
+    SetBareParameters();
+  }
+
+  // TODO remove
   // Json constructor
-  explicit JastrowSymm(const AbstractGraph &graph, const AbstractHilbert &hilbert,
-                       const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
+  explicit JastrowSymm(const AbstractGraph &graph,
+                       const AbstractHilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
     from_json(pars);
   }
 

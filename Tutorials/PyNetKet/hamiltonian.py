@@ -17,22 +17,36 @@ import pynetket as nk
 import networkx as nx
 import numpy as np
 from mpi4py import MPI
+from datetime import datetime
 import scipy.sparse as sparse
 
-# #constructing a 1d lattice
+#Constructing a 1d lattice
 g=nk.Hypercube(L=20,ndim=1)
 
-# Hilbert space of spins from given graph
+#Hilbert space of spins from given graph
 hi=nk.Spin(S=0.5,graph=g)
 
 #Hamiltonian
 ha=nk.Ising(h=1.0,hilbert=hi)
 
+print("\n")
+print("Diagonalizing the Hamiltonian with the internal NetKet solver...")
 
-#scipy sparse diagonalization
-print("Diagonalizing the Hamiltonian...")
+t1 = datetime.now()
+ed_result=nk.LanczosEd(hamiltonian=ha,first_n=1,get_groundstate=False)
+t2= datetime.now()
+
+print("Elapsed time =",(t2-t1).total_seconds()," s\n")
+
+#Scipy sparse diagonalization
+print("Diagonalizing the Hamiltonian with scipy...")
+
+t1 = datetime.now()
 sm=nk.SparseMatrixWrapper(hamiltonian=ha).GetMatrix()
-
 vals = sparse.linalg.eigs(sm, k=1,return_eigenvectors=False,which='SR')
-print('Energy = ',vals[0].real)
+t2 = datetime.now()
+
+print("Elapsed time =",(t2-t1).total_seconds()," s\n")
+
+print('Energy = ',ed_result.eigenvalues,vals[0].real)
 print('Expected = ',-1.274549484318e+00*20)

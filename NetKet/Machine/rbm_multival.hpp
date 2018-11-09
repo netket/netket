@@ -33,6 +33,8 @@ class RbmMultival : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
+  const AbstractHilbert &hilbert_;
+
   // number of visible units
   int nv_;
 
@@ -41,6 +43,9 @@ class RbmMultival : public AbstractMachine<T> {
 
   // number of parameters
   int npar_;
+
+  // local size of hilbert space
+  int ls_;
 
   // weights
   MatrixType W_;
@@ -59,15 +64,10 @@ class RbmMultival : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const AbstractHilbert &hilbert_;
-
   Eigen::VectorXd localconfs_;
   Eigen::MatrixXd mask_;
 
   Eigen::VectorXd vtilde_;
-
-  // local size of hilbert space
-  int ls_;
 
   std::map<double, int> confindex_;
 
@@ -75,9 +75,21 @@ class RbmMultival : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit RbmMultival(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert),
+        nv_(hilbert.Size()),
+        ls_(hilbert.LocalSize()),
+        usea_(usea),
+        useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+    Init();
+  }
+
+  // TODO remove
   // Json constructor
   explicit RbmMultival(const AbstractHilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), ls_(hilbert.LocalSize()) {
+      : hilbert_(hilbert), nv_(hilbert.Size()), ls_(hilbert.LocalSize()) {
     from_json(pars);
   }
 
