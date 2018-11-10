@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function
-import pynetket as nk
+import netket as nk
 import networkx as nx
 from mpi4py import MPI
 

@@ -42,6 +42,8 @@ class Convolutional : public AbstractLayer<T> {
 
   AbstractActivation &activation_;  // activation function class
 
+  const AbstractGraph &graph_;
+
   bool usebias_;  // boolean to turn or off bias
 
   int nv_;            // number of visible units in the full network
@@ -77,6 +79,7 @@ class Convolutional : public AbstractLayer<T> {
                 const int input_channels, const int output_channels,
                 const int dist = 1, const bool use_bias = true)
       : activation_(activation),
+        graph_(graph),
         usebias_(use_bias),
         nv_(graph.Nsites()),
         in_channels_(input_channels),
@@ -85,13 +88,13 @@ class Convolutional : public AbstractLayer<T> {
     in_size_ = in_channels_ * nv_;
     out_size_ = out_channels_ * nv_;
 
-    Init(graph);
+    Init();
   }
 
   // TODO remove
   explicit Convolutional(const AbstractGraph &graph,
                          AbstractActivation &activation, const json &pars)
-      : activation_(activation), nv_(graph.Nsites()) {
+      : activation_(activation), graph_(graph), nv_(graph.Nsites()) {
     in_channels_ = FieldVal(pars, "InputChannels");
     in_size_ = in_channels_ * nv_;
 
@@ -102,15 +105,15 @@ class Convolutional : public AbstractLayer<T> {
 
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
-    Init(graph);
+    Init();
   }
 
-  void Init(const AbstractGraph &graph) {
+  void Init() {
     // Construct neighbourhood of all nodes with distance of at most dist_ from
     // each node i kernel(k) will act on neighbours_[i][k]
     for (int i = 0; i < nv_; ++i) {
       std::vector<int> neigh;
-      graph.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
+      graph_.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
         neigh.push_back(node);
       });
       neighbours_.push_back(neigh);

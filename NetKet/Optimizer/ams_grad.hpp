@@ -15,13 +15,13 @@
 #ifndef NETKET_AMSGRAD_HPP
 #define NETKET_AMSGRAD_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -39,7 +39,16 @@ class AMSGrad : public AbstractOptimizer {
 
   const std::complex<double> I_;
 
-public:
+ public:
+  explicit AMSGrad(double eta = 0.001, double beta1 = 0.9, double beta2 = 0.999,
+                   double epscut = 1.0e-7)
+      : eta_(eta), beta1_(beta1), beta2_(beta2), epscut_(epscut), I_(0, 1) {
+    npar_ = -1;
+
+    PrintParameters();
+  }
+
+  // TODO remove
   // Json constructor
   explicit AMSGrad(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -99,9 +108,9 @@ public:
       vt_(2 * i) =
           std::max(vt_(2 * i), beta2_ * vt_(2 * i) +
                                    (1 - beta2_) * std::pow(grad(i).real(), 2));
-      vt_(2 * i + 1) = std::max(vt_(2 * i + 1),
-                                beta2_ * vt_(2 * i + 1) +
-                                    (1 - beta2_) * std::pow(grad(i).imag(), 2));
+      vt_(2 * i + 1) = std::max(
+          vt_(2 * i + 1),
+          beta2_ * vt_(2 * i + 1) + (1 - beta2_) * std::pow(grad(i).imag(), 2));
     }
 
     for (int i = 0; i < pars.size(); i++) {
@@ -116,6 +125,7 @@ public:
     vt_ = Eigen::VectorXd::Zero(npar_);
   }
 
+  // TODO remove
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
     std::string section = "Optimizer";
@@ -129,6 +139,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
