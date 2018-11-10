@@ -36,8 +36,10 @@ namespace netket {
 template <typename T>
 class Convolutional : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
-
   using MatrixType = typename AbstractLayer<T>::MatrixType;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
+
   static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
   AbstractActivation &activation_;  // activation function class
@@ -201,7 +203,7 @@ class Convolutional : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorType &pars, int start_idx) const override {
+  void GetParameters(VectorRefType pars, int start_idx) const override {
     int k = start_idx;
 
     if (usebias_) {
@@ -219,7 +221,7 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void SetParameters(const VectorType &pars, int start_idx) override {
+  void SetParameters(VectorConstRefType pars, int start_idx) override {
     int k = start_idx;
 
     if (usebias_) {

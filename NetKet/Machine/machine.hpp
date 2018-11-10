@@ -90,12 +90,11 @@ class Machine : public AbstractMachine<T> {
       m_ = netket::make_unique<RbmMultival<T>>(hilbert, pars);
     } else if (name == "Jastrow") {
       m_ = netket::make_unique<Jastrow<T>>(hilbert, pars);
-    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
-      if (FieldExists(pars["Machine"], "Diagonal") and
-          pars["Machine"]["Diagonal"]) {
-        m_ = Ptype(new MPSPeriodic<T, true>(hilbert, pars));
+    } else if (name == "MPSperiodic") {
+      if (FieldExists(pars, "Diagonal") && pars["Diagonal"]) {
+        m_ = netket::make_unique<MPSPeriodic<T, true>>(hilbert, pars);
       } else {
-        m_ = Ptype(new MPSPeriodic<T, false>(hilbert, pars));
+        m_ = netket::make_unique<MPSPeriodic<T, false>>(hilbert, pars);
       }
     }
   }
