@@ -24,6 +24,7 @@
 #include "ffnn.hpp"
 #include "jastrow.hpp"
 #include "jastrow_symm.hpp"
+#include "mps_periodic.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
@@ -81,6 +82,7 @@ class Machine : public AbstractMachine<T> {
   template <class Partype>
   void Init(const AbstractHilbert &hilbert, const Partype &pars) {
     CheckInput(pars);
+
     std::string name = FieldVal<std::string>(pars, "Name");
     if (name == "RbmSpin") {
       m_ = netket::make_unique<RbmSpin<T>>(hilbert, pars);
@@ -88,6 +90,13 @@ class Machine : public AbstractMachine<T> {
       m_ = netket::make_unique<RbmMultival<T>>(hilbert, pars);
     } else if (name == "Jastrow") {
       m_ = netket::make_unique<Jastrow<T>>(hilbert, pars);
+    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
+      if (FieldExists(pars["Machine"], "Diagonal") and
+          pars["Machine"]["Diagonal"]) {
+        m_ = Ptype(new MPSPeriodic<T, true>(hilbert, pars));
+      } else {
+        m_ = Ptype(new MPSPeriodic<T, false>(hilbert, pars));
+      }
     }
   }
   template <class Partype>
@@ -143,8 +152,9 @@ class Machine : public AbstractMachine<T> {
   void CheckInput(const json &pars) {
     const std::string name = FieldVal<std::string>(pars, "Name", "Machine");
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "FFNN",    "Jastrow",     "JastrowSymm"};
+    std::set<std::string> machines = {
+        "RbmSpin", "RbmSpinSymm", "RbmMultival", "FFNN",
+        "Jastrow", "JastrowSymm", "MPSperiodic", "MPSdiagonal"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
