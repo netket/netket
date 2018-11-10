@@ -109,7 +109,7 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
 
       netket::Machine<MType> machine(graph, hamiltonian, pars);
 
-      double sigma = 1.;
+      double sigma = 0.1;
       machine.InitRandomPars(1234, sigma);
 
       int nv = hilbert.Size();
