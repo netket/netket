@@ -64,7 +64,7 @@ setup(
     url='http://github.com/netket/netket',
     author_email='netket@netket.org',
     license='Apache',
-    ext_modules=[CMakeExtension('pynetket')],
+    ext_modules=[CMakeExtension('netket')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )

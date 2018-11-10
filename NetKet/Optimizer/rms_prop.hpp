@@ -15,13 +15,13 @@
 #ifndef NETKET_RMSPROP_HPP
 #define NETKET_RMSPROP_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -37,7 +37,15 @@ class RMSProp : public AbstractOptimizer {
 
   const std::complex<double> I_;
 
-public:
+ public:
+  explicit RMSProp(double eta = 0.001, double beta = 0.9,
+                   double epscut = 1.0e-7)
+      : eta_(eta), beta_(beta), epscut_(epscut), I_(0, 1) {
+    npar_ = -1;
+    PrintParameters();
+  }
+
+  // TODO remove
   // Json constructor
   explicit RMSProp(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -94,6 +102,7 @@ public:
 
   void Reset() override { st_ = Eigen::VectorXd::Zero(npar_); }
 
+  // TODO remove
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
     std::string section = "Optimizer";
@@ -106,6 +115,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

@@ -188,20 +188,19 @@ endif()
 
 
 
-add_executable(netket NetKet/netket.cc)
-target_link_libraries(netket PUBLIC netket_lib)
+#target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
 # dependency to an interface library
-add_dependencies(netket eigen_project)
+#add_dependencies(netket eigen_project)
 
 
 
-add_library(pynetket MODULE NetKet/pynetket.cc)
-target_link_libraries(pynetket  PRIVATE pybind11)
-target_link_libraries(pynetket PUBLIC netket_lib)
-set_target_properties(pynetket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+add_library(netket MODULE NetKet/pynetket.cc)
+target_link_libraries(netket  PRIVATE pybind11)
+target_link_libraries(netket PUBLIC netket_lib)
+set_target_properties(netket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(pynetket eigen_project pybind11_project)
+add_dependencies(netket eigen_project pybind11_project)
 
 #
 # Testing

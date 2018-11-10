@@ -15,13 +15,13 @@
 #ifndef NETKET_ADAMAX_HPP
 #define NETKET_ADAMAX_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -42,7 +42,18 @@ class AdaMax : public AbstractOptimizer {
 
   const std::complex<double> I_;
 
-public:
+ public:
+  explicit AdaMax(double alpha = 0.001, double beta1 = 0.9,
+                  double beta2 = 0.999, double epscut = 1.0e-7)
+      : alpha_(alpha), beta1_(beta1), beta2_(beta2), epscut_(epscut), I_(0, 1) {
+    npar_ = -1;
+    niter_ = 0;
+    niter_reset_ = -1;
+
+    PrintParameters();
+  }
+
+  // TODO remove
   // Json constructor
   explicit AdaMax(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -154,6 +165,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

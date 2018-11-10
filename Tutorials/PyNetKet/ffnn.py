@@ -13,11 +13,8 @@
 # limitations under the License.
 
 from __future__ import print_function
-import pynetket as nk
-import networkx as nx
-import numpy as np
+import netket as nk
 from mpi4py import MPI
-import scipy.sparse as sparse
 
 L=20
 
@@ -32,7 +29,7 @@ ha=nk.Heisenberg(hilbert=hi)
 
 #Layers
 act=nk.Lncosh()
-layers=[nk.FullyConnected(activation=act,input_size=L,output_size=L)]
+layers=[nk.Convolutional(graph=g,activation=act,input_channels=1,output_channels=4,distance=4)]
 
 #FFNN Machine
 ma=nk.FFNN(hi,layers)

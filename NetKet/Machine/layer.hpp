@@ -45,22 +45,8 @@ class Layer : public AbstractLayer<T> {
 
     if (pars["Name"] == "FullyConnected") {
       m_ = Ptype(new FullyConnected<T>(activation_, pars));
-      // if (pars["Activation"] == "Lncosh") {
-      //   m_ = Ptype(new FullyConnected<T>(Lncosh(), pars));
-      // } else if (pars["Activation"] == "Identity") {
-      //   m_ = Ptype(new FullyConnected<T>(Identity(), pars));
-      // } else if (pars["Activation"] == "Tanh") {
-      //   m_ = Ptype(new FullyConnected<T>(Tanh(), pars));
-      // }
     } else if (pars["Name"] == "Convolutional") {
-      Ptype(new Convolutional<T>(graph, activation_, pars));
-      // if (pars["Activation"] == "Lncosh") {
-      //   m_ = Ptype(new Convolutional<T>(graph, Lncosh(), pars));
-      // } else if (pars["Activation"] == "Identity") {
-      //   m_ = Ptype(new Convolutional<T>(graph, Identity(), pars));
-      // } else if (pars["Activation"] == "Tanh") {
-      //   m_ = Ptype(new Convolutional<T>(graph, Tanh(), pars));
-      // }
+      m_ = Ptype(new Convolutional<T>(graph, activation_, pars));
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }
@@ -72,8 +58,7 @@ class Layer : public AbstractLayer<T> {
 
     const std::string name = FieldVal(pars, "Name");
 
-    std::set<std::string> layers = {"FullyConnected", "Convolutional",
-                                    "Symmetric", "Sum"};
+    std::set<std::string> layers = {"FullyConnected", "Convolutional", "Sum"};
 
     if (layers.count(name) == 0) {
       std::stringstream s;

@@ -29,13 +29,15 @@ class CustomObservable : public AbstractObservable {
  public:
   using MatType = LocalOperator::MatType;
 
-  CustomObservable(const AbstractHilbert &hilbert, const std::vector<MatType> &jop,
+  CustomObservable(const AbstractHilbert &hilbert,
+                   const std::vector<MatType> &jop,
                    const std::vector<std::vector<int>> &sites,
                    const std::string &name)
       : hilbert_(hilbert), name_(name) {
     if (sites.size() != jop.size()) {
-      throw InvalidInputError("The custom Observable definition is inconsistent: "
-                              "Check that ActingOn is defined");
+      throw InvalidInputError(
+          "The custom Observable definition is inconsistent: "
+          "Check that ActingOn is defined");
     }
 
     for (std::size_t i = 0; i < jop.size(); i++) {

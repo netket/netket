@@ -35,7 +35,7 @@ namespace py = pybind11;
 
 namespace netket {
 
-PYBIND11_MODULE(pynetket, m) {
+PYBIND11_MODULE(netket, m) {
   // py::bind_vector<std::vector<int>>(m, "VectorInt");
   // py::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorInt");
   // py::bind_vector<std::vector<double>>(m, "VectorDouble");
@@ -359,7 +359,7 @@ PYBIND11_MODULE(pynetket, m) {
     using WfType = FFNN<MachineType>;
     py::class_<WfType, AbMachineType>(m, "FFNN")
         .def(py::init<const AbstractHilbert &,
-                      std::vector<std::shared_ptr<AbLayerType>>>(),
+                      std::vector<std::shared_ptr<AbLayerType>> &>(),
              py::arg("hilbert"), py::arg("layers"))
         .def("Npar", &WfType::Npar)
         .def("GetParameters", &WfType::GetParameters)
@@ -515,6 +515,52 @@ PYBIND11_MODULE(pynetket, m) {
       py::init<double, double, double>(), py::arg("learning_rate"),
       py::arg("l2reg") = 0, py::arg("decay_factor") = 1.0);
   // TODO add other methods?
+
+  {
+    using OptType = RMSProp;
+    py::class_<OptType, AbstractOptimizer>(m, "RMSProp")
+        .def(py::init<double, double, double>(),
+             py::arg("learning_rate") = 0.001, py::arg("beta") = 0.9,
+             py::arg("epscut") = 1.0e-7);
+    // TODO add other methods?
+  }
+  {
+    using OptType = Momentum;
+    py::class_<OptType, AbstractOptimizer>(m, "Momentum")
+        .def(py::init<double, double>(), py::arg("learning_rate") = 0.001,
+             py::arg("beta") = 0.9);
+    // TODO add other methods?
+  }
+  {
+    using OptType = AMSGrad;
+    py::class_<OptType, AbstractOptimizer>(m, "AMSGrad")
+        .def(py::init<double, double, double, double>(),
+             py::arg("learning_rate") = 0.001, py::arg("beta1") = 0.9,
+             py::arg("beta2") = 0.999, py::arg("epscut") = 1.0e-7);
+    // TODO add other methods?
+  }
+  {
+    using OptType = AdaMax;
+    py::class_<OptType, AbstractOptimizer>(m, "AdaMax")
+        .def(py::init<double, double, double, double>(),
+             py::arg("alpha") = 0.001, py::arg("beta1") = 0.9,
+             py::arg("beta2") = 0.999, py::arg("epscut") = 1.0e-7);
+    // TODO add other methods?
+  }
+  {
+    using OptType = AdaGrad;
+    py::class_<OptType, AbstractOptimizer>(m, "AdaGrad")
+        .def(py::init<double, double>(), py::arg("learning_rate") = 0.001,
+             py::arg("epscut") = 1.0e-7);
+    // TODO add other methods?
+  }
+  {
+    using OptType = AdaDelta;
+    py::class_<OptType, AbstractOptimizer>(m, "AdaDelta")
+        .def(py::init<double, double>(), py::arg("rho") = 0.95,
+             py::arg("epscut") = 1.0e-7);
+    // TODO add other methods?
+  }
 
   py::class_<VariationalMonteCarlo>(m, "Vmc")
       .def(py::init<AbstractHamiltonian &, SamplerType &, AbstractOptimizer &,

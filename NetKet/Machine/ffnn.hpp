@@ -52,7 +52,7 @@ class FFNN : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> layers)
+  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> &layers)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
         layers_(layers),

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from __future__ import print_function
-import pynetket as nk
+import netket as nk
 from mpi4py import MPI
 
 #Constructing a 1d lattice
@@ -33,11 +33,12 @@ ma.InitRandomPars(seed=1234,sigma=0.01)
 sa=nk.MetropolisLocal(machine=ma)
 
 #Optimizer
-op=nk.Sgd(learning_rate=0.1)
+# op=nk.Sgd(learning_rate=0.1)
+op=nk.AdaMax()
 
 #Variational Monte Carlo
 gs=nk.Vmc(hamiltonian=ha,sampler=sa,
           optimizer=op,nsamples=1000,
-          niter_opt=300,output_file='test',
-          diag_shift=0.1)
+          niter_opt=3000,output_file='test',
+          diag_shift=0.1,method='Gd')
 gs.Run()

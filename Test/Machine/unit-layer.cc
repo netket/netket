@@ -36,10 +36,13 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
       REQUIRE(netket::FieldExists(pars, "Machine"));
       REQUIRE(netket::FieldExists(pars["Machine"], "Layers"));
       REQUIRE(pars["Machine"]["Layers"].size() > 0);
+      std::cout << pars["Machine"]["Layers"][0] << std::endl;
       netket::Layer<MType> layer(graph, pars["Machine"]["Layers"][0]);
 
       int seed = 12342;
       double sigma = 1;
+      std::cout << layer.Npar() << std::endl;
+
       // BUG Check segmentation fault here
       netket::Layer<MType>::VectorType params_in(layer.Npar());
       netket::Layer<MType>::VectorType params_out(layer.Npar());
