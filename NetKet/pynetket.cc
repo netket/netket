@@ -271,6 +271,34 @@ PYBIND11_MODULE(netket, m) {
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
   }
+  {
+    using WfType = MPSPeriodic<MachineType, true>;
+    py::class_<WfType, AbMachineType>(m, "MPSPeriodicDiagonal")
+        .def(py::init<const AbstractHilbert &, double, int>(),
+             py::arg("hilbert"), py::arg("bond_dim"), py::arg("symperiod") = -1)
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
+  {
+    using WfType = MPSPeriodic<MachineType, false>;
+    py::class_<WfType, AbMachineType>(m, "MPSPeriodic")
+        .def(py::init<const AbstractHilbert &, double, int>(),
+             py::arg("hilbert"), py::arg("bond_dim"), py::arg("symperiod") = -1)
+        .def("Npar", &WfType::Npar)
+        .def("GetParameters", &WfType::GetParameters)
+        .def("SetParameters", &WfType::SetParameters)
+        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
+             py::arg("sigma"))
+        .def("Nvisible", &WfType::Nvisible)
+        .def("GetHilbert", &WfType::GetHilbert);
+    // TODO add other methods?
+  }
 
   // FEED-FORWARD NETWORK RELATED BINDINGS
   // ACTIVATION FUNCTIONS

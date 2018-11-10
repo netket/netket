@@ -33,6 +33,8 @@ class AbstractLayer {
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
   using StateType = T;
   using LookupType = std::vector<VectorType>;
+  using VectorRefType = Eigen::Ref<VectorType>;
+  using VectorConstRefType = Eigen::Ref<const VectorType>;
 
   /**
   Member function returning the number of inputs a layer takes.
@@ -57,14 +59,14 @@ class AbstractLayer {
   @param pars is where the layer parameters are written into.
   @param start_idx is the index of the vector pars to start writing from.
   */
-  virtual void GetParameters(VectorType &pars, int start_idx) const = 0;
+  virtual void GetParameters(VectorRefType pars, int start_idx) const = 0;
 
   /**
   Member function setting the current set of parameters in the layer.
   @param pars is where the layer parameters are to be read from.
   @param start_idx is the index of the vector pars to start reading from.
   */
-  virtual void SetParameters(const VectorType &pars, int start_idx) = 0;
+  virtual void SetParameters(VectorConstRefType pars, int start_idx) = 0;
 
   /**
   Member function providing a random initialization of the parameters.

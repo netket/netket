@@ -34,6 +34,8 @@ class Layer : public AbstractLayer<T> {
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = std::vector<VectorType>;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
   explicit Layer(const AbstractGraph &graph, const json &pars)
       : activation_(pars) {
@@ -73,11 +75,11 @@ class Layer : public AbstractLayer<T> {
 
   int Noutput() const override { return m_->Noutput(); }
 
-  void GetParameters(VectorType &pars, int start_idx) const override {
+  void GetParameters(VectorRefType pars, int start_idx) const override {
     return m_->GetParameters(pars, start_idx);
   }
 
-  void SetParameters(const VectorType &pars, int start_idx) override {
+  void SetParameters(VectorConstRefType pars, int start_idx) override {
     return m_->SetParameters(pars, start_idx);
   }
 

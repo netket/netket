@@ -30,6 +30,8 @@ template <typename T>
 class FullyConnected : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
   using MatrixType = typename AbstractLayer<T>::MatrixType;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
   AbstractActivation &activation_;  // activation function class
 
@@ -135,7 +137,7 @@ class FullyConnected : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorType &pars, int start_idx) const override {
+  void GetParameters(VectorRefType pars, int start_idx) const override {
     int k = start_idx;
 
     if (usebias_) {
@@ -147,7 +149,7 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void SetParameters(const VectorType &pars, int start_idx) override {
+  void SetParameters(VectorConstRefType pars, int start_idx) override {
     int k = start_idx;
 
     if (usebias_) {

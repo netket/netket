@@ -30,6 +30,8 @@ class MPSPeriodic : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
 
+  const AbstractHilbert &hilbert_;
+
   // Number of sites
   int N_;
   // Physical dimension
@@ -62,15 +64,28 @@ class MPSPeriodic : public AbstractMachine<T> {
   // Identity Matrix
   MatrixType identity_mat_;
 
-  const Hilbert &hilbert_;
-
  public:
   using StateType = T;
   using LookupType = Lookup<T>;
 
+  explicit MPSPeriodic(const AbstractHilbert &hilbert, double bond_dim,
+                       int symperiod = -1)
+      : hilbert_(hilbert),
+        N_(hilbert.Size()),
+        d_(hilbert.LocalSize()),
+        D_(bond_dim),
+        symperiod_(symperiod) {
+    if (symperiod_ == -1) {
+      symperiod_ = N_;
+    }
+
+    Init();
+  }
+
+  // TODO remove
   // constructor as a machine
-  explicit MPSPeriodic(const Hilbert &hilbert, const json &pars)
-      : N_(hilbert.Size()), d_(hilbert.LocalSize()), hilbert_(hilbert) {
+  explicit MPSPeriodic(const AbstractHilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), N_(hilbert.Size()), d_(hilbert.LocalSize()) {
     from_json(pars);
   }
 
@@ -543,7 +558,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return der / trace(left_prods[N_ - 1]);
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   // Json functions
   void to_json(json &j) const override {
@@ -561,34 +576,34 @@ class MPSPeriodic : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "MPSperiodic") {
+    if (pars.at("Name") != "MPSperiodic") {
       throw InvalidInputError("Error while constructing MPS from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Length")) {
-      N_ = pars["Machine"]["Length"];
+    if (FieldExists(pars, "Length")) {
+      N_ = pars["Length"];
     }
     if (N_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of spins is incompatible with given Hilbert space");
     }
 
-    if (FieldExists(pars["Machine"], "PhysDim")) {
-      d_ = pars["Machine"]["PhysDim"];
+    if (FieldExists(pars, "PhysDim")) {
+      d_ = pars["PhysDim"];
     }
     if (d_ != hilbert_.LocalSize()) {
       throw InvalidInputError(
           "Number of spins is incompatible with given Hilbert space");
     }
 
-    if (FieldExists(pars["Machine"], "BondDim")) {
-      D_ = pars["Machine"]["BondDim"];
+    if (FieldExists(pars, "BondDim")) {
+      D_ = pars["BondDim"];
     } else {
       throw InvalidInputError("Unspecified bond dimension");
     }
 
-    if (FieldExists(pars["Machine"], "SymmetryPeriod")) {
-      symperiod_ = pars["Machine"]["SymmetryPeriod"];
+    if (FieldExists(pars, "SymmetryPeriod")) {
+      symperiod_ = pars["SymmetryPeriod"];
     } else {
       // Default is symperiod = N, resp. no translational symmetry
       symperiod_ = N_;
@@ -597,7 +612,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     Init();
 
     // Loading parameters, if defined in the input
-    from_jsonWeights(pars["Machine"]);
+    from_jsonWeights(pars);
   }
 
   inline void from_jsonWeights(const json &pars) {

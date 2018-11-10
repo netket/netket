@@ -8,12 +8,10 @@ std::vector<netket::json> GetMachineInputs() {
   std::vector<netket::json> input_tests;
   netket::json pars;
 
-
   // Ising 1d
-
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
+          {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}}};
   pars["Hilbert"]["Name"] = "Spin";
   pars["Hilbert"]["S"] = 0.5;
@@ -22,7 +20,7 @@ std::vector<netket::json> GetMachineInputs() {
   // Heisenberg 1d
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 2.0}}},
+          {"Machine", {{"Name", "RbmSpinSymm"}, {"Alpha", 2}}},
           {"Hamiltonian", {{"Name", "Heisenberg"}}}};
   pars["Hilbert"]["Name"] = "Spin";
   pars["Hilbert"]["S"] = 0.5;
@@ -105,7 +103,7 @@ std::vector<netket::json> GetMachineInputs() {
           {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}}}};
   pars["Hilbert"]["Name"] = "Boson";
   pars["Hilbert"]["Nmax"] = 4;
-  input_tests.push_back(pars); 
+  input_tests.push_back(pars);
 
   // Ising 1d with MPS diagonal
   pars = {{"Graph",
