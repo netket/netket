@@ -224,7 +224,7 @@ class LocalOperator : public AbstractOperator {
   }
 
   LocalOperator &operator+=(const LocalOperator &rhs) {
-    assert(hilbert_.LocalStates().size() = rhs.hilbert_.LocalStates().size());
+    assert(hilbert_.LocalStates().size() == rhs.hilbert_.LocalStates().size());
 
     for (std::size_t opn = 0; opn < rhs.mat_.size(); opn++) {
       Push(rhs.mat_[opn], rhs.sites_[opn]);
