@@ -21,7 +21,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
-#include "../Hamiltonian/local_operator.hpp"
+#include "Operator/local_operator.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"

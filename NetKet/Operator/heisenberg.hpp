@@ -21,13 +21,13 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Hilbert/hilbert.hpp"
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
 
-class Heisenberg : public AbstractHamiltonian {
+class Heisenberg : public AbstractOperator {
   const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 

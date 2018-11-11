@@ -22,12 +22,13 @@
 #include "Graph/graph.hpp"
 #include "Hilbert/hilbert.hpp"
 #include "Utils/json_helper.hpp"
+#include "abstract_operator.hpp"
 #include "local_operator.hpp"
 
 namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
-class GraphHamiltonian : public AbstractHamiltonian {
+class GraphHamiltonian : public AbstractOperator {
   const AbstractHilbert &hilbert_;
 
   // Arbitrary graph

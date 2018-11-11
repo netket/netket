@@ -20,17 +20,17 @@
 #include "Hilbert/hilbert.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/memory_utils.hpp"
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 #include "bosonhubbard.hpp"
-#include "custom_hamiltonian.hpp"
 #include "graph_hamiltonian.hpp"
 #include "heisenberg.hpp"
 #include "ising.hpp"
+#include "local_operator.hpp"
 
 namespace netket {
 
-class Hamiltonian : public AbstractHamiltonian {
-  std::unique_ptr<AbstractHamiltonian> h_;
+class Hamiltonian : public AbstractOperator {
+  std::unique_ptr<AbstractOperator> h_;
 
  public:
   explicit Hamiltonian(const AbstractHilbert &hilbert, const json &pars) {
@@ -57,7 +57,12 @@ class Hamiltonian : public AbstractHamiltonian {
         throw InvalidInputError(s.str());
       }
     } else {
-      h_ = netket::make_unique<CustomHamiltonian>(hilbert, pars);
+      using MatType = LocalOperator::MatType;
+      std::vector<MatType> operators =
+          FieldVal<std::vector<MatType>>(pars, "Operators");
+      auto acting_on =
+          FieldVal<std::vector<std::vector<int>>>(pars, "ActingOn");
+      h_ = netket::make_unique<LocalOperator>(hilbert, operators, acting_on);
     }
   }
 

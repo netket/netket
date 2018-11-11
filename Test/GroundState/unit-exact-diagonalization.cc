@@ -14,7 +14,7 @@
 
 #include "Graph/graph.hpp"
 #include "GroundState/exact_diagonalization.hpp"
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "catch.hpp"
 #include "netket.hpp"
 

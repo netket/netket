@@ -23,7 +23,7 @@
 #include <vector>
 
 #include <nonstd/span.hpp>
-#include "Hamiltonian/ising.hpp"
+#include "Operator/ising.hpp"
 #include "Utils/next_variation.hpp"
 
 namespace netket {

@@ -16,8 +16,10 @@ from __future__ import print_function
 import netket as nk
 from mpi4py import MPI
 
+
+L=20
 #Constructing a 1d lattice
-g=nk.Hypercube(L=20,ndim=1)
+g=nk.Hypercube(L=L,ndim=1)
 
 # Hilbert space of spins from given graph
 hi=nk.Spin(S=0.5,graph=g)
@@ -38,7 +40,16 @@ op=nk.Sgd(learning_rate=0.1)
 
 #Variational Monte Carlo
 gs=nk.Vmc(hamiltonian=ha,sampler=sa,
-          optimizer=op,nsamples=1000,
-          niter_opt=3000,output_file='test',
+          optimizer=op,nsamples=4000,
+          niter_opt=300,output_file='test',
           diag_shift=0.1,method='Sr')
+
+
+#Adding an observable
+#The sum of sigma_x on all sites
+X=[[0,1],[1,0]]
+sx=nk.LocalOperator(hi,[X]*L,[[i] for i in range(L)])
+gs.AddObservable(sx,"SigmaX")
+
+#Running the optimization
 gs.Run()

@@ -138,22 +138,45 @@ PYBIND11_MODULE(netket, m) {
       .def("UpdateConf", &CustomHilbert::UpdateConf)
       .def("GetGraph", &CustomHilbert::GetGraph);
 
-  py::class_<AbstractHamiltonian>(m, "Hamiltonian")
-      .def("FindConn", &AbstractHamiltonian::FindConn)
-      .def("GetHilbert", &AbstractHamiltonian::GetHilbert);
+  py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
+      .def("FindConn", &AbstractOperator::FindConn)
+      .def("GetHilbert", &AbstractOperator::GetHilbert);
 
-  py::class_<Ising, AbstractHamiltonian>(m, "Ising")
+  py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
+      m, "LocalOperator")
+      .def(
+          py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
+                   std::vector<LocalOperator::SiteType>>(),
+          py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
+      .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
+                    LocalOperator::SiteType>(),
+           py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
+      .def("FindConn", &LocalOperator::FindConn)
+      .def("GetHilbert", &LocalOperator::GetHilbert)
+      .def("LocalMatrices", &LocalOperator::LocalMatrices)
+      .def(py::self += py::self)
+      .def(py::self *= double())
+      .def(py::self *= std::complex<double>())
+      .def(py::self * py::self);
+  // .def(double() * py::self)
+  // .def(py::self * double())
+  // .def(std::complex<double>() * py::self)
+  // .def(py::self * std::complex<double>());
+
+  py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(m, "Ising")
       .def(py::init<const AbstractHilbert &, double, double>(),
            py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
       .def("FindConn", &Ising::FindConn)
       .def("GetHilbert", &Ising::GetHilbert);
 
-  py::class_<Heisenberg, AbstractHamiltonian>(m, "Heisenberg")
+  py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
+      m, "Heisenberg")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
       .def("FindConn", &Heisenberg::FindConn)
       .def("GetHilbert", &Heisenberg::GetHilbert);
 
-  py::class_<GraphHamiltonian, AbstractHamiltonian>(m, "GraphHamiltonian")
+  py::class_<GraphHamiltonian, AbstractOperator,
+             std::shared_ptr<GraphHamiltonian>>(m, "GraphHamiltonian")
       .def(py::init<const AbstractHilbert &, GraphHamiltonian::VecType,
                     GraphHamiltonian::VecType, std::vector<int>>(),
            py::arg("hilbert"), py::arg("siteops") = GraphHamiltonian::VecType(),
@@ -162,23 +185,17 @@ PYBIND11_MODULE(netket, m) {
       .def("FindConn", &GraphHamiltonian::FindConn)
       .def("GetHilbert", &GraphHamiltonian::GetHilbert);
 
-  py::class_<CustomHamiltonian, AbstractHamiltonian>(m, "CustomHamiltonian")
-      .def(py::init<const AbstractHilbert &, const CustomHamiltonian::VecType &,
-                    const std::vector<std::vector<int>> &>(),
-           py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
-      .def("FindConn", &CustomHamiltonian::FindConn)
-      .def("GetHilbert", &CustomHamiltonian::GetHilbert);
-
-  py::class_<BoseHubbard, AbstractHamiltonian>(m, "BoseHubbard")
+  py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
+      m, "BoseHubbard")
       .def(py::init<const AbstractHilbert &, double, double, double>(),
            py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
            py::arg("mu") = 0.)
       .def("FindConn", &BoseHubbard::FindConn)
       .def("GetHilbert", &BoseHubbard::GetHilbert);
 
-  py::class_<SparseMatrixWrapper<AbstractHamiltonian>>(m, "SparseMatrixWrapper")
-      .def(py::init<const AbstractHamiltonian &>(), py::arg("hamiltonian"))
-      .def("GetMatrix", &SparseMatrixWrapper<AbstractHamiltonian>::GetMatrix);
+  py::class_<SparseMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
+      .def("GetMatrix", &SparseMatrixWrapper<AbstractOperator>::GetMatrix);
 
   using MachineType = std::complex<double>;
   using AbMachineType = AbstractMachine<MachineType>;
@@ -439,11 +456,10 @@ PYBIND11_MODULE(netket, m) {
       .def("Psi", &MetropolisHop<AbMachineType>::Psi)
       .def("Acceptance", &MetropolisHop<AbMachineType>::Acceptance);
 
-  using MetroHamType =
-      MetropolisHamiltonian<AbMachineType, AbstractHamiltonian>;
+  using MetroHamType = MetropolisHamiltonian<AbMachineType, AbstractOperator>;
   py::class_<MetroHamType, SamplerType>(m, "MetropolisHamiltonian")
-      .def(py::init<AbMachineType &, AbstractHamiltonian &>(),
-           py::arg("machine"), py::arg("hamiltonian"))
+      .def(py::init<AbMachineType &, AbstractOperator &>(), py::arg("machine"),
+           py::arg("hamiltonian"))
       .def("Reset", &MetroHamType::Reset)
       .def("Sweep", &MetroHamType::Sweep)
       .def("Visible", &MetroHamType::Visible)
@@ -452,9 +468,9 @@ PYBIND11_MODULE(netket, m) {
       .def("Acceptance", &MetroHamType::Acceptance);
 
   using MetroHamPtType =
-      MetropolisHamiltonianPt<AbMachineType, AbstractHamiltonian>;
+      MetropolisHamiltonianPt<AbMachineType, AbstractOperator>;
   py::class_<MetroHamPtType, SamplerType>(m, "MetropolisHamiltonianPt")
-      .def(py::init<AbMachineType &, AbstractHamiltonian &, int>(),
+      .def(py::init<AbMachineType &, AbstractOperator &, int>(),
            py::arg("machine"), py::arg("hamiltonian"), py::arg("nreplicas"))
       .def("Reset", &MetroHamPtType::Reset)
       .def("Sweep", &MetroHamPtType::Sweep)
@@ -591,9 +607,9 @@ PYBIND11_MODULE(netket, m) {
   }
 
   py::class_<VariationalMonteCarlo>(m, "Vmc")
-      .def(py::init<AbstractHamiltonian &, SamplerType &, AbstractOptimizer &,
-                    int, int, std::string, int, int, std::string, double, bool,
-                    bool, bool, int>(),
+      .def(py::init<AbstractOperator &, SamplerType &, AbstractOptimizer &, int,
+                    int, std::string, int, int, std::string, double, bool, bool,
+                    bool, int>(),
            py::arg("hamiltonian"), py::arg("sampler"), py::arg("optimizer"),
            py::arg("nsamples"), py::arg("niter_opt"), py::arg("output_file"),
            py::arg("discarded_samples") = -1,
@@ -601,7 +617,7 @@ PYBIND11_MODULE(netket, m) {
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
            py::arg("save_every") = 50)
-
+      .def("AddObservable", &VariationalMonteCarlo::AddObservable)
       .def("Run", &VariationalMonteCarlo::Run);
 
   py::class_<eddetail::result_t>(m, "EdResult")
@@ -610,7 +626,7 @@ PYBIND11_MODULE(netket, m) {
       .def_readwrite("which_eigenvector",
                      &eddetail::result_t::which_eigenvector);
 
-  m.def("LanczosEd", &lanczos_ed, py::arg("hamiltonian"),
+  m.def("LanczosEd", &lanczos_ed, py::arg("operator"),
         py::arg("matrix_free") = false, py::arg("first_n") = 1,
         py::arg("max_iter") = 1000, py::arg("seed") = 42,
         py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);

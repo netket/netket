@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "Graph/graph.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
+#include "Operator/hamiltonian.hpp"
 #include "Utils/json_helper.hpp"
 
 #include "abstract_matrix_wrapper.hpp"

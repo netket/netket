@@ -23,12 +23,12 @@
 #include "Hilbert/hilbert.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/json_helper.hpp"
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-class BoseHubbard : public AbstractHamiltonian {
+class BoseHubbard : public AbstractOperator {
   const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
