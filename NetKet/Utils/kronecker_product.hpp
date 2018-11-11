@@ -83,7 +83,7 @@ std::vector<std::vector<T>> MatrixProduct(
   const std::size_t colA = Am[0].size();
   const std::size_t colB = Bm[0].size();
 
-  assert(colA = rowB);
+  assert(colA == rowB);
 
   const std::size_t rowC = rowA;
   const std::size_t colC = colB;
