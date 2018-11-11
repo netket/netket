@@ -14,14 +14,12 @@
 
 from __future__ import print_function
 import netket as nk
-import networkx as nx
-import numpy as np
 from mpi4py import MPI
 from datetime import datetime
-import scipy.sparse as sparse
+import scipy.sparse.linalg as sparsediag
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=20,ndim=1)
+g=nk.Hypercube(L=10,ndim=1)
 
 #Hilbert space of spins from given graph
 hi=nk.Spin(S=0.5,graph=g)
@@ -33,7 +31,7 @@ print("\n")
 print("Diagonalizing the Hamiltonian with the internal NetKet solver...")
 
 t1 = datetime.now()
-ed_result=nk.LanczosEd(hamiltonian=ha,first_n=1,get_groundstate=False)
+ed_result=nk.LanczosEd(operator=ha,first_n=1,get_groundstate=False)
 t2= datetime.now()
 
 print("Elapsed time =",(t2-t1).total_seconds()," s\n")
@@ -42,8 +40,8 @@ print("Elapsed time =",(t2-t1).total_seconds()," s\n")
 print("Diagonalizing the Hamiltonian with scipy...")
 
 t1 = datetime.now()
-sm=nk.SparseMatrixWrapper(hamiltonian=ha).GetMatrix()
-vals = sparse.linalg.eigs(sm, k=1,return_eigenvectors=False,which='SR')
+sm=nk.SparseMatrixWrapper(operator=ha).GetMatrix()
+vals = sparsediag.eigs(sm, k=1,return_eigenvectors=False,which='SR')
 t2 = datetime.now()
 
 print("Elapsed time =",(t2-t1).total_seconds()," s\n")

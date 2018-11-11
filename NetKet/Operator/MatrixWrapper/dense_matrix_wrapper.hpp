@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH
-#define NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH
+#ifndef NETKET_DENSE_HAMILTONIAN_OPERATOR_HPP
+#define NETKET_DENSE_HAMILTONIAN_OPERATOR_HPP
 
-#include <Eigen/SparseCore>
+#include <Eigen/Dense>
 
 #include "Hilbert/hilbert_index.hpp"
 #include "abstract_matrix_wrapper.hpp"
@@ -24,17 +24,19 @@ namespace netket {
 
 /**
  * This class stores the matrix elements of a given Operator
- * (AbstractHamiltonian or AbstractObservable) as an Eigen dense matrix.
+ * as an Eigen dense matrix.
  */
 template <class Operator, class WfType = Eigen::VectorXcd>
-class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
-  using Matrix = Eigen::SparseMatrix<std::complex<double>>;
+class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
+ public:
+  using Matrix = Eigen::MatrixXcd;
 
+ private:
   Matrix matrix_;
   int dim_;
 
  public:
-  explicit SparseMatrixWrapper(const Operator& the_operator) {
+  explicit DenseMatrixWrapper(const Operator& the_operator) {
     InitializeMatrix(the_operator);
   }
 
@@ -57,6 +59,10 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
 
   int GetDimension() const override { return dim_; }
 
+  /**
+   * @return An Eigen::MatrixXcd containing the matrix elements of the wrapped
+   * operator.
+   */
   const Matrix& GetMatrix() const { return matrix_; }
 
   /**
@@ -77,11 +83,6 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     const HilbertIndex hilbert_index(hilbert);
     dim_ = hilbert_index.NStates();
 
-    using Triplet = Eigen::Triplet<std::complex<double>>;
-
-    std::vector<Triplet> tripletList;
-    tripletList.reserve(dim_);
-
     matrix_.resize(dim_, dim_);
     matrix_.setZero();
 
@@ -90,15 +91,12 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
       the_operator.ForEachConn(v, [&](ConnectorRef conn) {
         const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions,
                                                             conn.values);
-        tripletList.push_back(Triplet(i, j, conn.weight));
+        matrix_(i, j) += conn.weight;
       });
     }
-
-    matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
-    matrix_.makeCompressed();
   }
 };
 
 }  // namespace netket
 
-#endif  // NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH
+#endif  // NETKET_DENSE_HAMILTONIAN_OPERATOR_HPP

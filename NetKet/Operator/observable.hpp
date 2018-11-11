@@ -18,18 +18,18 @@
 #include <string>
 #include <vector>
 
-#include "Hamiltonian/local_operator.hpp"
 #include "Hilbert/hilbert.hpp"
+#include "Operator/abstract_operator.hpp"
+#include "Operator/local_operator.hpp"
 #include "Utils/json_helper.hpp"
 
-#include "abstract_observable.hpp"
-#include "custom_observable.hpp"
-
 namespace netket {
-
-class Observable : public AbstractObservable {
-  using Ptype = std::unique_ptr<AbstractObservable>;
+// TODO remove
+class Observable : public AbstractOperator {
+  using Ptype = std::unique_ptr<AbstractOperator>;
   Ptype o_;
+
+  std::string name_;
 
  public:
   using MatType = LocalOperator::MatType;
@@ -43,7 +43,8 @@ class Observable : public AbstractObservable {
     auto sites = obspars.at("ActingOn").get<std::vector<std::vector<int>>>();
     std::string name = obspars.at("Name");
 
-    o_ = Ptype(new CustomObservable(hilbert, jop, sites, name));
+    o_ = Ptype(new LocalOperator(hilbert, jop, sites));
+    name_ = name;
   }
 
   static std::vector<Observable> FromJson(const AbstractHilbert &hilbert,
@@ -73,9 +74,11 @@ class Observable : public AbstractObservable {
     return o_->FindConn(v, mel, connectors, newconfs);
   }
 
-  const AbstractHilbert &GetHilbert() const override { return o_->GetHilbert(); }
+  const AbstractHilbert &GetHilbert() const override {
+    return o_->GetHilbert();
+  }
 
-  const std::string Name() const override { return o_->Name(); }
+  const std::string Name() const { return name_; }
 };
 
 }  // namespace netket

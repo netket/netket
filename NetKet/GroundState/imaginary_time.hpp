@@ -4,12 +4,14 @@
 #include <Eigen/Dense>
 
 #include "Dynamics/TimeStepper/time_stepper.hpp"
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/observable.hpp"
 #include "Stats/stats.hpp"
 
 #include "json_output_writer.hpp"
 
+// TODO remove Observable and replace with AbstractOperator+name
+// Provide a method AddObservable, as in VariationalMonteCarlo
 namespace netket {
 
 class ImaginaryTimePropagation {

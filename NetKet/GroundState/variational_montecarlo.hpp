@@ -23,8 +23,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Operator/abstract_operator.hpp"
 #include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
@@ -48,7 +48,7 @@ class VariationalMonteCarlo {
   using MatrixT = Eigen::Matrix<typename Machine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
-  AbstractHamiltonian &ham_;
+  AbstractOperator &ham_;
   AbstractSampler<AbstractMachine<GsType>> &sampler_;
   AbstractMachine<GsType> &psi_;
 
@@ -77,7 +77,8 @@ class VariationalMonteCarlo {
 
   AbstractOptimizer &opt_;
 
-  std::vector<Observable> obs_;
+  std::vector<std::shared_ptr<AbstractOperator>> obs_;
+  std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
   bool dosr_;
@@ -95,7 +96,7 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
-  VariationalMonteCarlo(AbstractHamiltonian &ham,
+  VariationalMonteCarlo(AbstractOperator &ham,
                         AbstractSampler<AbstractMachine<GsType>> &sampler,
                         AbstractOptimizer &opt, int nsamples, int niter_opt,
                         std::string output_file, int discarded_samples = -1,
@@ -107,7 +108,6 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.Psi()),
         opt_(opt),
-        // TODO obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
     Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
          method, diagshift, rescale_shift, use_iterative, use_cholesky);
@@ -188,7 +188,7 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.Psi()),
         opt_(opt),
-        obs_(Observable::FromJson(ham.GetHilbert(), pars)),
+        // obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
     // DEPRECATED (to remove for v2.0.0)
     if (FieldExists(pars, "Learning")) {
@@ -272,6 +272,12 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
+  void AddObservable(std::shared_ptr<AbstractOperator> ob,
+                     const std::string &obname) {
+    obs_.push_back(ob);
+    obsnames_.push_back(obname);
+  }
+
   void InitSweeps() {
     sampler_.Reset();
 
@@ -299,8 +305,8 @@ class VariationalMonteCarlo {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (const auto &ob : obs_) {
-      obsmanager_.Reset(ob.Name());
+    for (const auto &obname : obsnames_) {
+      obsmanager_.Reset(obname);
     }
 
     const int nsamp = vsamp_.rows();
@@ -312,8 +318,8 @@ class VariationalMonteCarlo {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (const auto &ob : obs_) {
-        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+      for (std::size_t on = 0; on < obs_.size(); on++) {
+        obsmanager_.Push(obsnames_[on], ObSamp(obs_[on], vsamp_.row(i)));
       }
     }
 
@@ -358,8 +364,9 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(const Observable &ob, const Eigen::VectorXd &v) {
-    ob.FindConn(v, mel_, connectors_, newconfs_);
+  double ObSamp(std::shared_ptr<AbstractOperator> ob,
+                const Eigen::VectorXd &v) {
+    ob->FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
 

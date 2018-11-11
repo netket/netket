@@ -14,12 +14,12 @@
 
 #include "catch.hpp"
 
-#include <Graph/graph.hpp>
-#include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
-#include <Hamiltonian/MatrixWrapper/direct_matrix_wrapper.hpp>
-#include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
-#include <Hamiltonian/hamiltonian.hpp>
-#include <Observable/observable.hpp>
+#include "Graph/graph.hpp"
+#include "Operator/MatrixWrapper/dense_matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/direct_matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/sparse_matrix_wrapper.hpp"
+#include "Operator/hamiltonian.hpp"
+#include "Operator/observable.hpp"
 
 #include "../Observable/observable_input_tests.hpp"
 

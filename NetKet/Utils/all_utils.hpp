@@ -17,6 +17,7 @@
 
 #include "exceptions.hpp"
 #include "json_utils.hpp"
+#include "kronecker_product.hpp"
 #include "math_helpers.hpp"
 #include "memory_utils.hpp"
 #include "messages.hpp"

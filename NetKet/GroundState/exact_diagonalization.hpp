@@ -22,7 +22,7 @@
 #include <ietl/lanczos.h>
 #include <ietl/randomgenerator.h>
 
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 
 namespace netket {
 
@@ -71,7 +71,7 @@ result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
 }
 }  // namespace eddetail
 
-eddetail::result_t lanczos_ed(const AbstractHamiltonian& hamiltonian,
+eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
                               bool matrix_free = false, int first_n = 1,
                               int max_iter = 1000, int seed = 42,
                               double precision = 1e-14,
@@ -89,12 +89,12 @@ eddetail::result_t lanczos_ed(const AbstractHamiltonian& hamiltonian,
   int which_eigenvector = get_groundstate ? 0 : -1;
 
   if (matrix_free) {
-    using matrix_t = DirectMatrixWrapper<AbstractHamiltonian>;
+    using matrix_t = DirectMatrixWrapper<AbstractOperator>;
     matrix_t matrix(hamiltonian);
     results =
         eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);
   } else {  // computation using Sparse matrix
-    using matrix_t = SparseMatrixWrapper<AbstractHamiltonian>;
+    using matrix_t = SparseMatrixWrapper<AbstractOperator>;
     matrix_t matrix(hamiltonian);
     results =
         eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);

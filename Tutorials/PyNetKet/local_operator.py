@@ -14,31 +14,27 @@
 
 from __future__ import print_function
 import netket as nk
+import numpy as np
 from mpi4py import MPI
+from datetime import datetime
+import scipy.sparse as sparse
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=20,ndim=1)
+g=nk.Hypercube(L=10,ndim=1)
 
-# Hilbert space of spins from given graph
+#Hilbert space of spins from given graph
 hi=nk.Spin(S=0.5,graph=g)
 
-#Hamiltonian
-ha=nk.Ising(h=1.0,hilbert=hi)
+Z=[[1,0],[0,-1]]
+X=[[0,1],[1,0]]
+Y=[[0,1.0j],[-1.0j,0.0]]
 
-#Machine
-ma=nk.RbmSpin(hilbert=hi,alpha=1)
-ma.InitRandomPars(seed=1234,sigma=0.01)
+#Local Operator
+#here heisenberg term \vec{sigma}_0 \cdot \vec{sigma}_1
+#showcasing automatic simplifications and tensor products
+o1=nk.LocalOperator(hi,X,[0])*(nk.LocalOperator(hi,X,[1]))
+o1+=(nk.LocalOperator(hi,Y,[0])*nk.LocalOperator(hi,Y,[1]))
+o1+=(nk.LocalOperator(hi,Z,[0])*nk.LocalOperator(hi,Z,[1]))
 
-#Sampler
-sa=nk.MetropolisLocal(machine=ma)
-
-#Optimizer
-op=nk.Sgd(learning_rate=0.1)
-
-
-#Variational Monte Carlo
-gs=nk.Vmc(hamiltonian=ha,sampler=sa,
-          optimizer=op,nsamples=1000,
-          niter_opt=3000,output_file='test',
-          diag_shift=0.1,method='Sr')
-gs.Run()
+for m in o1.LocalMatrices():
+    print(m,'\n')

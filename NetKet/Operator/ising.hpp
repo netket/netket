@@ -23,7 +23,7 @@
 #include "Graph/graph.hpp"
 #include "Hilbert/hilbert.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
@@ -31,7 +31,7 @@ namespace netket {
   Transverse field Ising model on an arbitrary graph.
 */
 
-class Ising : public AbstractHamiltonian {
+class Ising : public AbstractOperator {
   /**
     Hilbert space descriptor for this hamiltonian.
   */

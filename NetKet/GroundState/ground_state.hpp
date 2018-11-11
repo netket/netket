@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 
 #include "exact_diagonalization.hpp"

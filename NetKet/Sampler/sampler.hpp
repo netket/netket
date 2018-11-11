@@ -18,7 +18,7 @@
 #include <memory>
 #include <set>
 #include "Graph/graph.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
+#include "Operator/hamiltonian.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "abstract_sampler.hpp"
@@ -56,7 +56,7 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  explicit Sampler(AbstractHamiltonian &hamiltonian, WfType &psi,
+  explicit Sampler(AbstractOperator &hamiltonian, WfType &psi,
                    const Ptype &pars) {
     const auto pconv = ParsConv(pars);
     CheckInput(pconv);
@@ -65,7 +65,7 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  explicit Sampler(const AbstractGraph &graph, AbstractHamiltonian &hamiltonian,
+  explicit Sampler(const AbstractGraph &graph, AbstractOperator &hamiltonian,
                    WfType &psi, const Ptype &pars) {
     const auto pconv = ParsConv(pars);
     CheckInput(pconv);
@@ -110,17 +110,16 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   template <class Ptype>
-  void Init(AbstractHamiltonian &hamiltonian, WfType &psi, const Ptype &pars) {
+  void Init(AbstractOperator &hamiltonian, WfType &psi, const Ptype &pars) {
     if (FieldExists(pars, "Name")) {
       std::string name = FieldVal<std::string>(pars, "Name");
       if (name == "MetropolisHamiltonian") {
         s_ = netket::make_unique<
-            MetropolisHamiltonian<WfType, AbstractHamiltonian>>(psi,
-                                                                hamiltonian);
+            MetropolisHamiltonian<WfType, AbstractOperator>>(psi, hamiltonian);
       } else if (name == "MetropolisHamiltonianPt") {
         s_ = netket::make_unique<
-            MetropolisHamiltonianPt<WfType, AbstractHamiltonian>>(
-            psi, hamiltonian, pars);
+            MetropolisHamiltonianPt<WfType, AbstractOperator>>(psi, hamiltonian,
+                                                               pars);
       }
     }
   }

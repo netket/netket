@@ -4,8 +4,8 @@
 #include <memory>
 
 #include "Graph/graph.hpp"
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/hamiltonian.hpp"
 #include "Utils/all_utils.hpp"
 
 #include "TimeStepper/time_stepper.hpp"
