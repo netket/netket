@@ -139,7 +139,7 @@ PYBIND11_MODULE(netket, m) {
       .def("GetGraph", &CustomHilbert::GetGraph);
 
   py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
-      .def("FindConn", &AbstractOperator::FindConn)
+      .def("GetConn", &AbstractOperator::GetConn)
       .def("GetHilbert", &AbstractOperator::GetHilbert);
 
   py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
@@ -151,7 +151,7 @@ PYBIND11_MODULE(netket, m) {
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
                     LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("FindConn", &LocalOperator::FindConn)
+      .def("GetConn", &LocalOperator::GetConn)
       .def("GetHilbert", &LocalOperator::GetHilbert)
       .def("LocalMatrices", &LocalOperator::LocalMatrices)
       .def(py::self += py::self)
@@ -166,23 +166,24 @@ PYBIND11_MODULE(netket, m) {
   py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(m, "Ising")
       .def(py::init<const AbstractHilbert &, double, double>(),
            py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
-      .def("FindConn", &Ising::FindConn)
+      .def("GetConn", &Ising::GetConn)
       .def("GetHilbert", &Ising::GetHilbert);
 
   py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
       m, "Heisenberg")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-      .def("FindConn", &Heisenberg::FindConn)
+      .def("GetConn", &Heisenberg::GetConn)
       .def("GetHilbert", &Heisenberg::GetHilbert);
 
   py::class_<GraphHamiltonian, AbstractOperator,
              std::shared_ptr<GraphHamiltonian>>(m, "GraphHamiltonian")
-      .def(py::init<const AbstractHilbert &, GraphHamiltonian::VecType,
-                    GraphHamiltonian::VecType, std::vector<int>>(),
-           py::arg("hilbert"), py::arg("siteops") = GraphHamiltonian::VecType(),
-           py::arg("bondops") = GraphHamiltonian::VecType(),
+      .def(py::init<const AbstractHilbert &, GraphHamiltonian::OVecType,
+                    GraphHamiltonian::OVecType, std::vector<int>>(),
+           py::arg("hilbert"),
+           py::arg("siteops") = GraphHamiltonian::OVecType(),
+           py::arg("bondops") = GraphHamiltonian::OVecType(),
            py::arg("bondops_colors") = std::vector<int>())
-      .def("FindConn", &GraphHamiltonian::FindConn)
+      .def("GetConn", &GraphHamiltonian::GetConn)
       .def("GetHilbert", &GraphHamiltonian::GetHilbert);
 
   py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
@@ -190,7 +191,7 @@ PYBIND11_MODULE(netket, m) {
       .def(py::init<const AbstractHilbert &, double, double, double>(),
            py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
            py::arg("mu") = 0.)
-      .def("FindConn", &BoseHubbard::FindConn)
+      .def("GetConn", &BoseHubbard::GetConn)
       .def("GetHilbert", &BoseHubbard::GetHilbert);
 
   py::class_<SparseMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
@@ -204,6 +205,10 @@ PYBIND11_MODULE(netket, m) {
       .def("GetParameters", &AbMachineType::GetParameters)
       .def("SetParameters", &AbMachineType::SetParameters)
       .def("InitRandomPars", &AbMachineType::InitRandomPars)
+      .def("LogVal",
+           (MachineType(AbMachineType::*)(AbMachineType::VisibleConstType)) &
+               AbMachineType::LogVal)
+      .def("DerLog", &AbMachineType::DerLog)
       .def("Nvisible", &AbMachineType::Nvisible)
       .def("GetHilbert", &AbMachineType::GetHilbert);
 
@@ -224,6 +229,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -241,6 +250,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -258,6 +271,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -271,6 +288,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -284,6 +305,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -298,6 +323,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
@@ -312,6 +341,10 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?

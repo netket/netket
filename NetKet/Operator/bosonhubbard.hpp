@@ -46,6 +46,10 @@ class BoseHubbard : public AbstractOperator {
   std::vector<std::vector<int>> bonds_;
 
  public:
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
   explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
                        double mu = 0.)
       : hilbert_(hilbert),
@@ -94,8 +98,7 @@ class BoseHubbard : public AbstractOperator {
     }
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();

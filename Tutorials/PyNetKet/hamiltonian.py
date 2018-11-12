@@ -16,10 +16,11 @@ from __future__ import print_function
 import netket as nk
 from mpi4py import MPI
 from datetime import datetime
+import numpy as np
 import scipy.sparse.linalg as sparsediag
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=10,ndim=1)
+g=nk.Hypercube(L=20,ndim=1)
 
 #Hilbert space of spins from given graph
 hi=nk.Spin(S=0.5,graph=g)

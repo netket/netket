@@ -32,6 +32,9 @@ template <typename T>
 class Jastrow : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   const AbstractHilbert &hilbert_;
 
@@ -104,7 +107,7 @@ class Jastrow : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
@@ -117,7 +120,7 @@ class Jastrow : public AbstractMachine<T> {
     }
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(v.size());
     }
@@ -129,7 +132,7 @@ class Jastrow : public AbstractMachine<T> {
   }
 
   // same as for the RBM
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -140,18 +143,18 @@ class Jastrow : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override { return 0.5 * v.dot(W_ * v); }
+  T LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     return 0.5 * v.dot(lt.V(0));
   }
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -177,7 +180,7 @@ class Jastrow : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -200,7 +203,7 @@ class Jastrow : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
 
     int k = 0;

@@ -44,6 +44,9 @@ class LocalOperator : public AbstractOperator {
   using MapType = std::map<std::vector<double>, int>;
   using StateType = std::vector<std::vector<double>>;
   using ConnType = std::vector<std::vector<int>>;
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
  private:
   const AbstractHilbert &hilbert_;
@@ -104,7 +107,7 @@ class LocalOperator : public AbstractOperator {
 
     connected_.resize(nops_);
     states_.resize(nops_);
-    // invstate_.clear();
+    invstate_.clear();
     invstate_.resize(nops_);
 
     for (std::size_t op = 0; op < nops_; op++) {
@@ -171,8 +174,7 @@ class LocalOperator : public AbstractOperator {
     }
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     assert(v.size() == hilbert_.Size());
@@ -184,7 +186,7 @@ class LocalOperator : public AbstractOperator {
     AddConn(v, mel, connectors, newconfs);
   }
 
-  void AddConn(const Eigen::VectorXd &v, std::vector<std::complex<double>> &mel,
+  void AddConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                std::vector<std::vector<int>> &connectors,
                std::vector<std::vector<double>> &newconfs) const {
     if (mel.size() == 0) {
@@ -214,7 +216,7 @@ class LocalOperator : public AbstractOperator {
     }
   }
 
-  inline int StateNumber(const Eigen::VectorXd &v, int opn) const {
+  inline int StateNumber(VectorConstRefType v, int opn) const {
     // TODO use a mask instead of copies
     std::vector<double> state(sites_[opn].size());
     for (std::size_t i = 0; i < sites_[opn].size(); i++) {

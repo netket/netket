@@ -38,11 +38,15 @@ class GraphHamiltonian : public AbstractOperator {
   const int nvertices_;
 
  public:
-  using MatType = LocalOperator::MatType;
-  using VecType = std::vector<MatType>;
+  using OMatType = LocalOperator::MatType;
+  using OVecType = std::vector<OMatType>;
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
   explicit GraphHamiltonian(
-      const AbstractHilbert &hilbert, VecType siteops = VecType(),
-      VecType bondops = VecType(),
+      const AbstractHilbert &hilbert, OVecType siteops = OVecType(),
+      OVecType bondops = OVecType(),
       std::vector<int> bondops_colors = std::vector<int>())
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
@@ -117,11 +121,11 @@ class GraphHamiltonian : public AbstractOperator {
     // }
 
     // Save operators and bond colors
-    std::vector<MatType> sop =
-        FieldOrDefaultVal(pars, "SiteOps", std::vector<MatType>());
+    std::vector<OMatType> sop =
+        FieldOrDefaultVal(pars, "SiteOps", std::vector<OMatType>());
 
-    std::vector<MatType> bop =
-        FieldOrDefaultVal(pars, "BondOps", std::vector<MatType>());
+    std::vector<OMatType> bop =
+        FieldOrDefaultVal(pars, "BondOps", std::vector<OMatType>());
 
     std::vector<int> op_color = FieldOrDefaultVal(
         pars, "BondOpColors", std::vector<int>(bop.size(), 0));
@@ -158,8 +162,7 @@ class GraphHamiltonian : public AbstractOperator {
     InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
