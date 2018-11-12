@@ -33,8 +33,14 @@ Y=[[0,1.0j],[-1.0j,0.0]]
 #here heisenberg term \vec{sigma}_0 \cdot \vec{sigma}_1
 #showcasing automatic simplifications and tensor products
 o1=nk.LocalOperator(hi,X,[0])*(nk.LocalOperator(hi,X,[1]))
-o1+=(nk.LocalOperator(hi,Y,[0])*nk.LocalOperator(hi,Y,[1]))
-o1+=(nk.LocalOperator(hi,Z,[0])*nk.LocalOperator(hi,Z,[1]))
+# o1+=(nk.LocalOperator(hi,Y,[0])*nk.LocalOperator(hi,Y,[1]))
+# o1+=(nk.LocalOperator(hi,Z,[0])*nk.LocalOperator(hi,Z,[1]))
 
 for m in o1.LocalMatrices():
     print(m,'\n')
+
+
+#Find the connected elements of the operator
+v=np.ones(10)
+(mel,connectors,newconfs)=o1.GetConn(v)
+print(connectors)

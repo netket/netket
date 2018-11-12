@@ -33,6 +33,9 @@ class Observable : public AbstractOperator {
 
  public:
   using MatType = LocalOperator::MatType;
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   Observable(const AbstractHilbert &hilbert, const json &obspars) {
     CheckFieldExists(obspars, "Operators", "Observables");
@@ -67,8 +70,7 @@ class Observable : public AbstractOperator {
     return observables;
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     return o_->FindConn(v, mel, connectors, newconfs);

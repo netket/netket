@@ -49,6 +49,10 @@ class Ising : public AbstractOperator {
   std::vector<std::vector<int>> bonds_;
 
  public:
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
   explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
@@ -115,7 +119,7 @@ class Ising : public AbstractOperator {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  void FindConn(const Eigen::VectorXd &v,
+  void FindConn(VectorConstRefType v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
@@ -142,8 +146,7 @@ class Ising : public AbstractOperator {
     }
   }
 
-  void ForEachConn(const Eigen::VectorXd &v,
-                   ConnCallback callback) const override {
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     assert(v.size() > 0);
 
     // local matrix element

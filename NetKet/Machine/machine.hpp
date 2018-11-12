@@ -42,6 +42,9 @@ class Machine : public AbstractMachine<T> {
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   template <class Partype>
   explicit Machine(const AbstractHilbert &hilbert, const Partype &pars)
@@ -168,38 +171,38 @@ class Machine : public AbstractMachine<T> {
   int Nvisible() const override { return m_->Nvisible(); }
 
   // Initializes Lookup tables
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     return m_->InitLookup(v, lt);
   }
 
   // Updates Lookup tables
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     return m_->UpdateLookup(v, tochange, newconf, lt);
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override { return m_->DerLog(v); }
+  VectorType DerLog(VisibleConstType v) override { return m_->DerLog(v); }
 
   VectorType GetParameters() override { return m_->GetParameters(); }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     return m_->SetParameters(pars);
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) override { return m_->LogVal(v); }
+  T LogVal(VisibleConstType v) override { return m_->LogVal(v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     return m_->LogVal(v, lt);
   }
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &toflip,
+      VisibleConstType v, const std::vector<std::vector<int>> &toflip,
       const std::vector<std::vector<double>> &newconf) override {
     return m_->LogValDiff(v, toflip, newconf);
   }
@@ -207,7 +210,7 @@ class Machine : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     return m_->LogValDiff(v, toflip, newconf, lt);

@@ -18,6 +18,7 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <nonstd/span.hpp>
+#include <tuple>
 #include <vector>
 #include "Hilbert/hilbert.hpp"
 
@@ -46,6 +47,13 @@ struct ConnectorRef {
 */
 class AbstractOperator {
  public:
+  using VectorType = Eigen::VectorXd;
+  using VectorRefType = Eigen::Ref<VectorType>;
+  using VectorConstRefType = Eigen::Ref<const VectorType>;
+  using MelType = std::vector<std::complex<double>>;
+  using ConnectorsType = std::vector<std::vector<int>>;
+  using NewconfsType = std::vector<std::vector<double>>;
+
   /**
   Member function finding the connected elements of the Operator.
   Starting from a given visible state v, it finds all other visible states v'
@@ -61,12 +69,20 @@ class AbstractOperator {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  virtual void FindConn(const Eigen::VectorXd &v,
-                        std::vector<std::complex<double>> &mel,
-                        std::vector<std::vector<int>> &connectors,
-                        std::vector<std::vector<double>> &newconfs) const = 0;
+  virtual void FindConn(VectorConstRefType v, MelType &mel,
+                        ConnectorsType &connectors,
+                        NewconfsType &newconfs) const = 0;
 
   using ConnCallback = std::function<void(ConnectorRef)>;
+
+  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
+      VectorConstRefType v) const {
+    std::vector<std::complex<double>> mel;
+    std::vector<std::vector<int>> connectors;
+    std::vector<std::vector<double>> newconfs;
+    FindConn(v, mel, connectors, newconfs);
+    return std::make_tuple(mel, connectors, newconfs);
+  }
   /**
    * Iterates over all states reachable from a given visible configuration v,
    * i.e., all states v' such that O(v,v') is non-zero.
@@ -78,8 +94,7 @@ class AbstractOperator {
    * savely used inside the callback. They will become invalid once callback
    * returns.
    */
-  virtual void ForEachConn(const Eigen::VectorXd &v,
-                           ConnCallback callback) const;
+  virtual void ForEachConn(VectorConstRefType v, ConnCallback callback) const;
 
   /**
   Member function returning the hilbert space associated with this Hamiltonian.
@@ -90,7 +105,7 @@ class AbstractOperator {
   virtual ~AbstractOperator() {}
 };
 
-void AbstractOperator::ForEachConn(const Eigen::VectorXd &v,
+void AbstractOperator::ForEachConn(VectorConstRefType v,
                                    ConnCallback callback) const {
   std::vector<std::complex<double>> weights;
   std::vector<std::vector<int>> connectors;

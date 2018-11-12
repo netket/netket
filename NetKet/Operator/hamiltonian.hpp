@@ -29,10 +29,15 @@
 
 namespace netket {
 
+// TODO remove
 class Hamiltonian : public AbstractOperator {
   std::unique_ptr<AbstractOperator> h_;
 
  public:
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
   explicit Hamiltonian(const AbstractHilbert &hilbert, const json &pars) {
     Init(hilbert, pars["Hamiltonian"]);
   }
@@ -66,15 +71,13 @@ class Hamiltonian : public AbstractOperator {
     }
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     return h_->FindConn(v, mel, connectors, newconfs);
   }
 
-  void ForEachConn(const Eigen::VectorXd &v,
-                   ConnCallback callback) const override {
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     return h_->ForEachConn(v, callback);
   }
 

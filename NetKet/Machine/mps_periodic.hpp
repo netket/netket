@@ -29,6 +29,9 @@ template <typename T, bool diag>
 class MPSPeriodic : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   const AbstractHilbert &hilbert_;
 
@@ -104,7 +107,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return m.trace();
   }
 
-  inline void setparamsident(MatrixType &m, const VectorType &pars) const {
+  inline void setparamsident(MatrixType &m, VectorConstRefType pars) const {
     if (diag) {
       for (int i = 0; i < D_; i++) {
         m(i, 0) = T(1, 0) + pars(i);
@@ -265,7 +268,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     for (int site = 0; site < symperiod_; site++) {
@@ -282,7 +285,7 @@ class MPSPeriodic : public AbstractMachine<T> {
 
   // Auxiliary function used for setting initial random parameters and adding
   // identities in every matrix
-  void SetParametersIdentity(const VectorType &pars) {
+  void SetParametersIdentity(VectorConstRefType pars) {
     int k = 0;
     for (int site = 0; site < symperiod_; site++) {
       for (int spin = 0; spin < d_; spin++) {
@@ -301,7 +304,7 @@ class MPSPeriodic : public AbstractMachine<T> {
 
   int Nvisible() const override { return N_; }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     for (int k = 0; k < Nleaves_; k++) {
       _InitLookup_check(lt, k);
       if (leaf_contractions_[k][0] < N_) {
@@ -350,7 +353,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return idx;
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     std::size_t nchange = tochange.size();
@@ -396,7 +399,7 @@ class MPSPeriodic : public AbstractMachine<T> {
   }
 
   // Auxiliary function that calculates contractions from site1 to site2
-  inline MatrixType mps_contraction(const Eigen::VectorXd &v, const int &site1,
+  inline MatrixType mps_contraction(VisibleConstType v, const int &site1,
                                     const int &site2) {
     MatrixType c = identity_mat_;
     for (int site = site1; site < site2; site++) {
@@ -405,16 +408,16 @@ class MPSPeriodic : public AbstractMachine<T> {
     return c;
   }
 
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     return std::log(trace(mps_contraction(v, 0, N_)));
   }
 
-  T LogVal(const Eigen::VectorXd & /* v */, const LookupType &lt) override {
+  T LogVal(VisibleConstType /* v */, const LookupType &lt) override {
     return std::log(trace(lt.M(Nleaves_ - 1)));
   }
 
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
 
@@ -455,7 +458,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     // Assumes number of levels > 1 (?)
@@ -524,7 +527,7 @@ class MPSPeriodic : public AbstractMachine<T> {
   }
 
   // Derivative with full calculation
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     MatrixType temp_product(D_, Dsec_);
     std::vector<MatrixType> left_prods, right_prods;
     VectorType der = VectorType::Zero(npar_);

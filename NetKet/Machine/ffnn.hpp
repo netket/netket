@@ -31,6 +31,9 @@ class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using Ptype = std::shared_ptr<AbstractLayer<T>>;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   const AbstractHilbert &hilbert_;
 
@@ -218,7 +221,7 @@ class FFNN : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int start_idx = 0;
     for (auto const &layer : layers_) {
       layer->SetParameters(pars, start_idx);
@@ -232,7 +235,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VVSize() == 0) {
       lt.AddVV(1);                   // contains the output of layer 0
       lt.AddVector(layersizes_[1]);  // contains the lookup of layer 0
@@ -252,7 +255,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
@@ -281,19 +284,19 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     LookupType lt;
     InitLookup(v, lt);
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
 
-  T LogVal(const Eigen::VectorXd & /*v*/, const LookupType &lt) override {
+  T LogVal(VisibleConstType /*v*/, const LookupType &lt) override {
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
     LookupType ltnew;
     InitLookup(v, ltnew);
@@ -301,7 +304,7 @@ class FFNN : public AbstractMachine<T> {
     return der;
   }
 
-  void DerLog(const Eigen::VectorXd &v, VectorType &der, const LookupType &lt) {
+  void DerLog(VisibleConstType v, VectorType &der, const LookupType &lt) {
     int start_idx = npar_;
     // Backpropagation
     if (nlayer_ > 1) {
@@ -325,7 +328,7 @@ class FFNN : public AbstractMachine<T> {
   }
 
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -345,7 +348,7 @@ class FFNN : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     if (tochange.size() != 0) {
