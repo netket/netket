@@ -63,7 +63,7 @@ class AbstractHilbert {
   the random state.
   @param rgen the random number generator to be used
   */
-  virtual void RandomVals(Eigen::VectorXd &state,
+  virtual void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                           netket::default_random_engine &rgen) const = 0;
 
   /**

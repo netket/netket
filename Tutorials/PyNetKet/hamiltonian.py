@@ -23,7 +23,7 @@ import scipy.sparse.linalg as sparsediag
 g=nk.Hypercube(L=20,ndim=1)
 
 #Hilbert space of spins from given graph
-hi=nk.Spin(S=0.5,graph=g)
+hi=nk.Spin(s=0.5,graph=g)
 
 #Hamiltonian
 ha=nk.Ising(h=1.0,hilbert=hi)

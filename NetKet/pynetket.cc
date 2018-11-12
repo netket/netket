@@ -42,8 +42,19 @@ PYBIND11_MODULE(netket, m) {
   // py::bind_vector<std::vector<std::vector<double>>>(m, "VectorVectorDouble");
   // py::bind_vector<std::vector<std::complex<double>>>(m,
   // "VectorComplexDouble");
-
   // TODO move modules in separate files closer to their binding classes
+
+  py::class_<netket::default_random_engine>(m, "RandomEngine")
+      .def(py::init<netket::default_random_engine::result_type>(),
+           py::arg("seed") = netket::default_random_engine::default_seed)
+      .def("Seed", (void (netket::default_random_engine::*)(
+                       netket::default_random_engine::result_type)) &
+                       netket::default_random_engine::seed);
+
+  py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
+  py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
+      .def(py::init<>());
+
   py::class_<AbstractGraph>(m, "Graph")
       .def("Nsites", &AbstractGraph::Nsites)
       .def("AdjacencyList", &AbstractGraph::AdjacencyList)
@@ -92,18 +103,20 @@ PYBIND11_MODULE(netket, m) {
       .def("LocalSize", &AbstractHilbert::LocalSize)
       .def("Size", &AbstractHilbert::Size)
       .def("LocalStates", &AbstractHilbert::LocalStates)
+      .def("RandomVals", &AbstractHilbert ::RandomVals)
       .def("UpdateConf", &AbstractHilbert::UpdateConf)
       .def("GetGraph", &AbstractHilbert::GetGraph);
 
   py::class_<Spin, AbstractHilbert>(m, "Spin")
       .def(py::init<const AbstractGraph &, double>(), py::arg("graph"),
-           py::arg("S"))
+           py::arg("s"))
       .def(py::init<const AbstractGraph &, double, double>(), py::arg("graph"),
-           py::arg("S"), py::arg("total_sz"))
+           py::arg("s"), py::arg("total_sz"))
       .def("IsDiscrete", &Spin::IsDiscrete)
       .def("LocalSize", &Spin::LocalSize)
       .def("Size", &Spin::Size)
       .def("LocalStates", &Spin::LocalStates)
+      .def("RandomVals", &Spin ::RandomVals)
       .def("UpdateConf", &Spin::UpdateConf)
       .def("GetGraph", &Spin::GetGraph);
 
@@ -113,18 +126,20 @@ PYBIND11_MODULE(netket, m) {
       .def("LocalSize", &Qubit::LocalSize)
       .def("Size", &Qubit::Size)
       .def("LocalStates", &Qubit::LocalStates)
+      .def("RandomVals", &Qubit ::RandomVals)
       .def("UpdateConf", &Qubit::UpdateConf)
       .def("GetGraph", &Qubit::GetGraph);
 
   py::class_<Boson, AbstractHilbert>(m, "Boson")
       .def(py::init<const AbstractGraph &, int>(), py::arg("graph"),
-           py::arg("nmax"))
+           py::arg("n_max"))
       .def(py::init<const AbstractGraph &, int, int>(), py::arg("graph"),
-           py::arg("nmax"), py::arg("nbosons"))
+           py::arg("n_max"), py::arg("n_bosons"))
       .def("IsDiscrete", &Boson::IsDiscrete)
       .def("LocalSize", &Boson::LocalSize)
       .def("Size", &Boson::Size)
       .def("LocalStates", &Boson::LocalStates)
+      .def("RandomVals", &Boson ::RandomVals)
       .def("UpdateConf", &Boson::UpdateConf)
       .def("GetGraph", &Boson::GetGraph);
 
@@ -134,6 +149,7 @@ PYBIND11_MODULE(netket, m) {
       .def("IsDiscrete", &CustomHilbert::IsDiscrete)
       .def("LocalSize", &CustomHilbert::LocalSize)
       .def("Size", &CustomHilbert::Size)
+      .def("RandomVals", &CustomHilbert ::RandomVals)
       .def("LocalStates", &CustomHilbert::LocalStates)
       .def("UpdateConf", &CustomHilbert::UpdateConf)
       .def("GetGraph", &CustomHilbert::GetGraph);
@@ -208,6 +224,11 @@ PYBIND11_MODULE(netket, m) {
       .def("LogVal",
            (MachineType(AbMachineType::*)(AbMachineType::VisibleConstType)) &
                AbMachineType::LogVal)
+      .def("LogValDiff", (AbMachineType::VectorType(AbMachineType::*)(
+                             AbMachineType::VisibleConstType,
+                             const std::vector<std::vector<int>> &,
+                             const std::vector<std::vector<double>> &)) &
+                             AbMachineType::LogValDiff)
       .def("DerLog", &AbMachineType::DerLog)
       .def("Nvisible", &AbMachineType::Nvisible)
       .def("GetHilbert", &AbMachineType::GetHilbert);
@@ -232,6 +253,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -253,6 +279,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -274,6 +305,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -291,6 +327,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -308,6 +349,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -326,6 +372,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -344,6 +395,11 @@ PYBIND11_MODULE(netket, m) {
         .def("LogVal",
              (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
                  WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
         .def("DerLog", &WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
@@ -444,6 +500,17 @@ PYBIND11_MODULE(netket, m) {
         .def("SetParameters", &WfType::SetParameters)
         .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
              py::arg("sigma"))
+        .def("LogVal",
+             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
+                 WfType::LogVal)
+        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
+                               AbMachineType::VisibleConstType,
+                               const std::vector<std::vector<int>> &,
+                               const std::vector<std::vector<double>> &)) &
+                               WfType::LogValDiff)
+        .def("DerLog", (AbMachineType::VectorType(WfType::*)(
+                           AbMachineType::VisibleConstType)) &
+                           WfType::DerLog)
         .def("Nvisible", &WfType::Nvisible)
         .def("GetHilbert", &WfType::GetHilbert);
     // TODO add other methods?
