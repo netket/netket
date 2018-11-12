@@ -16,9 +16,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_BOSONS_HPP
@@ -32,6 +33,8 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
+  const AbstractGraph &graph_;
+
   int nsites_;
 
   std::vector<double> local_;
@@ -48,23 +51,39 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
  public:
-  explicit Boson(const json &pars) {
-    if (!FieldExists(pars["Hilbert"], "Nsites")) {
-      std::cerr << "Nsites is not defined" << std::endl;
-    }
-
-    nsites_ = pars["Hilbert"]["Nsites"];
-
-    if (!FieldExists(pars["Hilbert"], "Nmax")) {
-      std::cerr << "Nmax is not defined" << std::endl;
-    }
-
-    nmax_ = pars["Hilbert"]["Nmax"];
+  explicit Boson(const AbstractGraph &graph, int nmax)
+      : graph_(graph), nmax_(nmax) {
+    nsites_ = graph.Size();
 
     Init();
 
-    if (FieldExists(pars["Hilbert"], "Nbosons")) {
-      SetNbosons(pars["Hilbert"]["Nbosons"]);
+    constraintN_ = false;
+  }
+
+  explicit Boson(const AbstractGraph &graph, int nmax, int nbosons)
+      : graph_(graph), nmax_(nmax) {
+    nsites_ = graph.Size();
+
+    Init();
+
+    SetNbosons(nbosons);
+  }
+
+  // TODO remove
+  template <class Ptype>
+  explicit Boson(const AbstractGraph &graph, const Ptype &pars)
+      : graph_(graph) {
+    nsites_ = graph.Size();
+
+    CheckFieldExists(pars, "Nmax", "Hilbert");
+
+    nmax_ = FieldVal<int>(pars, "Nmax");
+
+    Init();
+
+    if (FieldExists(pars, "Nbosons")) {
+      auto nbosons = FieldVal<int>(pars, "Nbosons");
+      SetNbosons(nbosons);
     } else {
       constraintN_ = false;
     }
@@ -131,7 +150,7 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  bool CheckConstraint(Eigen::VectorXd &v) const {
+  bool CheckConstraint(const Eigen::VectorXd &v) const {
     int tot = 0;
     for (int i = 0; i < v.size(); i++) {
       tot += int(v(i));
@@ -140,7 +159,8 @@ class Boson : public AbstractHilbert {
     return tot == nbosons_;
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == nsites_);
 
@@ -155,6 +175,8 @@ class Boson : public AbstractHilbert {
       assert(CheckConstraint(v));
     }
   }
+
+  const AbstractGraph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

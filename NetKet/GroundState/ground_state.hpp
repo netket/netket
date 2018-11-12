@@ -15,13 +15,13 @@
 #ifndef NETKET_GROUND_STATE_HPP
 #define NETKET_GROUND_STATE_HPP
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 
 #include "exact_diagonalization.hpp"
@@ -29,10 +29,10 @@
 #include "variational_montecarlo.hpp"
 
 namespace netket {
-
+// TODO remove
 class GroundState {
  public:
-  explicit GroundState(const json &pars) {
+  explicit GroundState(const json& pars) {
     std::string method_name;
 
     if (FieldExists(pars, "GroundState")) {
@@ -50,13 +50,15 @@ class GroundState {
     }
 
     Graph graph(pars);
-    Hamiltonian hamiltonian(graph, pars);
+    Hilbert hilbert(graph, pars);
+    Hamiltonian hamiltonian(hilbert, pars);
 
     if (method_name == "Gd" || method_name == "Sr") {
       using MachineType = Machine<std::complex<double>>;
-      MachineType machine(graph, hamiltonian, pars);
+      MachineType machine(hilbert.GetGraph(), hamiltonian, pars);
 
-      Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
+      Sampler<AbstractMachine<std::complex<double>>> sampler(
+          hilbert.GetGraph(), hamiltonian, machine, pars);
       Optimizer optimizer(pars);
 
       VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
@@ -91,9 +93,8 @@ class GroundState {
 
       // Compute eigenvalues and groundstate, if needed
       eddetail::result_t edresult;
-      std::string matrix_format =
-        FieldOrDefaultVal<json, std::string>(pars["GroundState"],
-                                             "MatrixFormat", "Sparse");
+      std::string matrix_format = FieldOrDefaultVal<std::string>(
+          pars["GroundState"], "MatrixFormat", "Sparse");
       bool get_groundstate = FieldExists(pars, "Observables");
 
       if (matrix_format == "Sparse") {

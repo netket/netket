@@ -29,7 +29,7 @@ template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   H &hamiltonian_;
 
@@ -66,19 +66,20 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
         hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()),
         nrep_(nrep) {
     Init();
   }
 
-  // Json constructor
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const json &pars)
+  // TODO remove
+  template <class Ptype>
+  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const Ptype &pars)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
+        nrep_(FieldVal<int>(pars, "Nreplicas")) {
     Init();
   }
 

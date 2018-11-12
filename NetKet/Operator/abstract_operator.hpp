@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ABSTRACTHAMILTONIAN_HPP
-#define NETKET_ABSTRACTHAMILTONIAN_HPP
+#ifndef NETKET_ABSTRACT_OPERATOR_HPP
+#define NETKET_ABSTRACT_OPERATOR_HPP
 
 #include <Eigen/Dense>
 #include <complex>
+#include <nonstd/span.hpp>
+#include <tuple>
 #include <vector>
-
 #include "Hilbert/hilbert.hpp"
 
 namespace netket {
-
 /**
  * This struct represents a non-zero matrix-element H(v,v') of an operator for a
  * given visible state v.
@@ -39,22 +39,29 @@ struct ConnectorRef {
 };
 
 /**
-      Abstract class for Hamiltonians.
+      Abstract class for quantum Operators.
       This class prototypes the methods needed
-      by a class satisfying the Hamiltonian concept.
-      Users interested in implementing new hamiltonian should derive they own
-      class from this class.
+      by a class satisfying the Operator concept.
+      Users interested in implementing new quantum Operators should derive they
+   own class from this class.
 */
-class AbstractHamiltonian {
+class AbstractOperator {
  public:
+  using VectorType = Eigen::VectorXd;
+  using VectorRefType = Eigen::Ref<VectorType>;
+  using VectorConstRefType = Eigen::Ref<const VectorType>;
+  using MelType = std::vector<std::complex<double>>;
+  using ConnectorsType = std::vector<std::vector<int>>;
+  using NewconfsType = std::vector<std::vector<double>>;
+
   /**
-  Member function finding the connected elements of the Hamiltonian.
+  Member function finding the connected elements of the Operator.
   Starting from a given visible state v, it finds all other visible states v'
-  such that the hamiltonian matrix element H(v,v') is different from zero.
+  such that the matrix element O(v,v') is different from zero.
   In general there will be several different connected visible units satisfying
   this condition, and they are denoted here v'(k), for k=0,1...N_connected.
   @param v a constant reference to the visible configuration.
-  @param mel(k) is modified to contain matrix elements H(v,v'(k)).
+  @param mel(k) is modified to contain matrix elements O(v,v'(k)).
   @param connector(k) for each k contains a list of sites that should be changed
   to obtain v'(k) starting from v.
   @param newconfs(k) is a vector containing the new values of the visible units
@@ -62,37 +69,44 @@ class AbstractHamiltonian {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  virtual void FindConn(const Eigen::VectorXd &v,
-                        std::vector<std::complex<double>> &mel,
-                        std::vector<std::vector<int>> &connectors,
-                        std::vector<std::vector<double>> &newconfs) const = 0;
+  virtual void FindConn(VectorConstRefType v, MelType &mel,
+                        ConnectorsType &connectors,
+                        NewconfsType &newconfs) const = 0;
 
   using ConnCallback = std::function<void(ConnectorRef)>;
+
+  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
+      VectorConstRefType v) const {
+    std::vector<std::complex<double>> mel;
+    std::vector<std::vector<int>> connectors;
+    std::vector<std::vector<double>> newconfs;
+    FindConn(v, mel, connectors, newconfs);
+    return std::make_tuple(mel, connectors, newconfs);
+  }
   /**
    * Iterates over all states reachable from a given visible configuration v,
-   * i.e., all states v' such that H(v,v') is non-zero.
+   * i.e., all states v' such that O(v,v') is non-zero.
    * @param v The visible configuration.
    * @param callback Function void callback(ConnectorRef conn) which will be
    * called once for each reachable configuration v'. The parameter conn
-   * contains the value H(v,v') and the information to obtain v' from v. Note
+   * contains the value O(v,v') and the information to obtain v' from v. Note
    * that the members conn.positions and conn.values are spans that can only be
    * savely used inside the callback. They will become invalid once callback
    * returns.
    */
-  virtual void ForEachConn(const Eigen::VectorXd &v,
-                           ConnCallback callback) const;
+  virtual void ForEachConn(VectorConstRefType v, ConnCallback callback) const;
 
   /**
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
   */
-  virtual const Hilbert &GetHilbert() const = 0;
+  virtual const AbstractHilbert &GetHilbert() const = 0;
 
-  virtual ~AbstractHamiltonian() {}
+  virtual ~AbstractOperator() {}
 };
 
-void AbstractHamiltonian::ForEachConn(const Eigen::VectorXd &v,
-                                      ConnCallback callback) const {
+void AbstractOperator::ForEachConn(VectorConstRefType v,
+                                   ConnCallback callback) const {
   std::vector<std::complex<double>> weights;
   std::vector<std::vector<int>> connectors;
   std::vector<std::vector<double>> newconfs;

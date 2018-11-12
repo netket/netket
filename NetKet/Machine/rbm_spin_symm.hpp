@@ -30,9 +30,13 @@ template <typename T>
 class RbmSpinSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::vector<std::vector<int>> permtable_;
-  int permsize_;
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
 
   // number of visible units
   int nv_;
@@ -48,6 +52,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   // number of parameters without symmetries
   int nbarepar_;
+
+  std::vector<std::vector<int>> permtable_;
+  int permsize_;
 
   // weights
   MatrixType W_;
@@ -75,22 +82,49 @@ class RbmSpinSymm : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const Hilbert &hilbert_;
-
-  const Graph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nv_(hilbert.Size()),
+        usea_(usea),
+        useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+
+    Init(graph_);
+
+    // // Loading parameters, if defined in the input
+    // if (FieldExists(pars, "asymm")) {
+    //   asymm_ = pars["asymm"].get<T>();
+    // } else {
+    //   asymm_ = 0;
+    // }
+    //
+    // if (FieldExists(pars, "bsymm")) {
+    //   bsymm_ = pars["bsymm"];
+    // } else {
+    //   bsymm_.setZero();
+    // }
+    // if (FieldExists(pars, "Wsymm")) {
+    //   Wsymm_ = pars["Wsymm"];
+    // }
+
+    SetBareParameters();
+  }
+
   // Json constructor
-  explicit RbmSpinSymm(const Graph &graph, const Hilbert &hilbert,
-                       const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
+  // TODO remove
+  explicit RbmSpinSymm(const AbstractGraph &graph,
+                       const AbstractHilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
     from_json(pars);
   }
 
-  void Init(const Graph &graph) {
+  void Init(const AbstractGraph &graph) {
     permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
     nh_ = (alpha_ * permsize_);
@@ -189,7 +223,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     SetParameters(par);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(b_.size());
     }
@@ -199,7 +233,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     lt.V(0) = (W_.transpose() * v + b_);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -210,7 +244,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     }
   }
 
-  VectorType BareDerLog(const Eigen::VectorXd &v) {
+  VectorType BareDerLog(VisibleConstType v) {
     VectorType der(nbarepar_);
 
     int k = 0;
@@ -239,7 +273,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return der;
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     return DerMatSymm_ * BareDerLog(v);
   }
 
@@ -270,7 +304,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     if (usea_) {
@@ -319,7 +353,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     RbmSpin<T>::lncosh(W_.transpose() * v + b_, lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -327,7 +361,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -336,7 +370,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -368,7 +402,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -392,7 +426,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmSpinSymm";
@@ -406,13 +440,13 @@ class RbmSpinSymm : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "RbmSpinSymm") {
+    if (pars.at("Name") != "RbmSpinSymm") {
       throw InvalidInputError(
           "Error while constructing RbmSpinSymm from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -420,27 +454,27 @@ class RbmSpinSymm : public AbstractMachine<T> {
           "Hilbert space");
     }
 
-    alpha_ = FieldVal(pars["Machine"], "Alpha", "Machine");
+    alpha_ = FieldVal(pars, "Alpha", "Machine");
 
-    usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
 
     Init(graph_);
 
     // Loading parameters, if defined in the input
-    if (FieldExists(pars["Machine"], "asymm")) {
-      asymm_ = pars["Machine"]["asymm"].get<T>();
+    if (FieldExists(pars, "asymm")) {
+      asymm_ = pars["asymm"].get<T>();
     } else {
       asymm_ = 0;
     }
 
-    if (FieldExists(pars["Machine"], "bsymm")) {
-      bsymm_ = pars["Machine"]["bsymm"];
+    if (FieldExists(pars, "bsymm")) {
+      bsymm_ = pars["bsymm"];
     } else {
       bsymm_.setZero();
     }
-    if (FieldExists(pars["Machine"], "Wsymm")) {
-      Wsymm_ = pars["Machine"]["Wsymm"];
+    if (FieldExists(pars, "Wsymm")) {
+      Wsymm_ = pars["Wsymm"];
     }
 
     SetBareParameters();

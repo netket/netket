@@ -20,58 +20,67 @@
 #include <complex>
 #include <iostream>
 #include <vector>
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
 /**
   Transverse field Ising model on an arbitrary graph.
 */
-template <class G>
-class Ising : public AbstractHamiltonian {
+
+class Ising : public AbstractOperator {
+  /**
+    Hilbert space descriptor for this hamiltonian.
+  */
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
+
   const int nspins_;
   double h_;
   double J_;
-
-  const G &graph_;
 
   /**
     List of bonds for the interaction part.
   */
   std::vector<std::vector<int>> bonds_;
 
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
-
  public:
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
+  explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nspins_(hilbert.Size()),
+        h_(h),
+        J_(J) {
+    Init();
+  }
+
   /**
-    Json constructor.
-    @param G is a graph from which the number of spins and the bonds are
-    obtained.
-    @param pars is a json list of parameters. The default value of J is 1.0
+    Constructor.
+    @param hilbert is the input hilbert space from which the number of spins and
+    the bonds are obtained.
+    @param pars is a list of parameters. The default value of J is 1.0
   */
-  explicit Ising(const G &graph, const json &pars)
-      : nspins_(graph.Nsites()),
-        h_(FieldVal(pars["Hamiltonian"], "h")),
-        J_(FieldOrDefaultVal(pars["Hamiltonian"], "J", 1.0)),
-        graph_(graph) {
+  // TODO remove
+  template <class Ptype>
+  explicit Ising(const AbstractHilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nspins_(hilbert.Size()),
+        h_(FieldVal<double>(pars, "h")),
+        J_(FieldOrDefaultVal<double>(pars, "J", 1.0)) {
     Init();
   }
 
   void Init() {
     GenerateBonds();
-
-    // Specifying the hilbert space
-    json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
-
-    hilbert_.Init(hil);
-
     InfoMessage() << "Transverse-Field Ising model created " << std::endl;
     InfoMessage() << "h = " << h_ << std::endl;
     InfoMessage() << "J = " << J_ << std::endl;
@@ -110,7 +119,7 @@ class Ising : public AbstractHamiltonian {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  void FindConn(const Eigen::VectorXd &v,
+  void FindConn(VectorConstRefType v,
                 std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
@@ -137,8 +146,7 @@ class Ising : public AbstractHamiltonian {
     }
   }
 
-  void ForEachConn(const Eigen::VectorXd &v,
-                   ConnCallback callback) const override {
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     assert(v.size() > 0);
 
     // local matrix element
@@ -164,7 +172,7 @@ class Ising : public AbstractHamiltonian {
     callback(ConnectorRef{mel_J, {}, {}});
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

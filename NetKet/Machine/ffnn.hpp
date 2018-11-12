@@ -14,6 +14,7 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <vector>
 #include "Lookup/lookup.hpp"
@@ -29,8 +30,14 @@ template <typename T>
 class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using Ptype = std::unique_ptr<AbstractLayer<T>>;
+  using Ptype = std::shared_ptr<AbstractLayer<T>>;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
+  const AbstractHilbert &hilbert_;
+
+  const AbstractGraph &graph_;
   std::vector<Ptype> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
@@ -44,24 +51,87 @@ class FFNN : public AbstractMachine<T> {
   std::vector<VectorType> new_output_;
   typename AbstractMachine<T>::LookupType ltnew_;
 
-  const Hilbert &hilbert_;
-
-  const Graph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  // constructor
-  explicit FFNN(const Graph &graph, const Hilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
-    Init(pars);
+  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> &layers)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        layers_(layers),
+        nv_(hilbert.Size()) {
+    Init();
   }
 
-  void Init(const json &pars) {
+  void Init() {
+    nlayer_ = layers_.size();
+
+    std::string buffer = "";
+    // Initialise Layers
+    layersizes_.push_back(nv_);
+    for (int i = 0; i < nlayer_; ++i) {
+      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
+
+      layersizes_.push_back(layers_[i]->Noutput());
+
+      if (layersizes_[i] != layers_[i]->Ninput()) {
+        throw InvalidInputError("input/output layer sizes do not match");
+      }
+    }
+
+    // Check that final layer has only 1 unit otherwise add pooling layer
+    if (layersizes_.back() != 1) {
+      nlayer_ += 1;
+
+      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
+
+      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
+
+      layersizes_.push_back(1);
+    }
+    depth_ = layersizes_.size();
+
+    din_.resize(depth_);
+    din_.back().resize(1);
+    din_.back()(0) = 1.0;
+
+    npar_ = 0;
+    for (int i = 0; i < nlayer_; ++i) {
+      npar_ += layers_[i]->Npar();
+    }
+
+    for (int i = 0; i < nlayer_; ++i) {
+      ltnew_.AddVector(layersizes_[i + 1]);
+      ltnew_.AddVV(1);
+    }
+
+    changed_nodes_.resize(nlayer_);
+    new_output_.resize(nlayer_);
+
+    InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
+                        << " Layers: ";
+    for (int i = 0; i < depth_ - 1; ++i) {
+      InfoMessage(buffer) << layersizes_[i] << " -> ";
+    }
+    InfoMessage(buffer) << layersizes_[depth_ - 1];
+    InfoMessage(buffer) << std::endl;
+    InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
+                        << std::endl;
+  }
+
+  // TODO remove
+  // constructor
+  explicit FFNN(const AbstractGraph &graph, const AbstractHilbert &hilbert,
+                const json &pars)
+      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
+    InitOld(pars);
+  }
+
+  // TODO remove
+  void InitOld(const json &pars) {
     json layers_par;
-    if (FieldExists(pars["Machine"], "Layers")) {
-      layers_par = pars["Machine"]["Layers"];
+    if (FieldExists(pars, "Layers")) {
+      layers_par = pars["Layers"];
       nlayer_ = layers_par.size();
     } else {
       throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
@@ -73,7 +143,7 @@ class FFNN : public AbstractMachine<T> {
     for (int i = 0; i < nlayer_; ++i) {
       InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
 
-      layers_.push_back(Ptype(new Layer<T>(graph_, layers_par[i])));
+      layers_.push_back(std::make_shared<Layer<T>>(graph_, layers_par[i]));
 
       layersizes_.push_back(layers_.back()->Noutput());
 
@@ -82,14 +152,13 @@ class FFNN : public AbstractMachine<T> {
       }
     }
 
-    // Check that final layer has only 1 unit otherwise add unit identity layer
+    // Check that final layer has only 1 unit otherwise add pooling layer
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
       InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
 
-      layers_.push_back(
-          Ptype(new FullyConnected<Identity, T>(layersizes_.back(), 1)));
+      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
 
       layersizes_.push_back(1);
     }
@@ -125,8 +194,8 @@ class FFNN : public AbstractMachine<T> {
 
   void from_json(const json &pars) override {
     json layers_par;
-    if (FieldExists(pars["Machine"], "Layers")) {
-      layers_par = pars["Machine"]["Layers"];
+    if (FieldExists(pars, "Layers")) {
+      layers_par = pars["Layers"];
       nlayer_ = layers_par.size();
     } else {
       throw InvalidInputError(
@@ -152,7 +221,7 @@ class FFNN : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int start_idx = 0;
     for (auto const &layer : layers_) {
       layer->SetParameters(pars, start_idx);
@@ -166,7 +235,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VVSize() == 0) {
       lt.AddVV(1);                   // contains the output of layer 0
       lt.AddVector(layersizes_[1]);  // contains the lookup of layer 0
@@ -186,7 +255,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
@@ -215,19 +284,19 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     LookupType lt;
     InitLookup(v, lt);
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
 
-  T LogVal(const Eigen::VectorXd & /*v*/, const LookupType &lt) override {
+  T LogVal(VisibleConstType /*v*/, const LookupType &lt) override {
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
     LookupType ltnew;
     InitLookup(v, ltnew);
@@ -235,7 +304,7 @@ class FFNN : public AbstractMachine<T> {
     return der;
   }
 
-  void DerLog(const Eigen::VectorXd &v, VectorType &der, const LookupType &lt) {
+  void DerLog(VisibleConstType v, VectorType &der, const LookupType &lt) {
     int start_idx = npar_;
     // Backpropagation
     if (nlayer_ > 1) {
@@ -259,7 +328,7 @@ class FFNN : public AbstractMachine<T> {
   }
 
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -279,7 +348,7 @@ class FFNN : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -299,6 +368,8 @@ class FFNN : public AbstractMachine<T> {
       layers_[i]->to_json(j);
     }
   }
+
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };  // namespace netket
 
 }  // namespace netket

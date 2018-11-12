@@ -18,8 +18,8 @@
 #include <array>
 #include <cassert>
 #include <queue>
-#include <utility>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "Utils/array_hasher.hpp"
 
@@ -38,6 +38,12 @@ class AbstractGraph {
   @return Number of sites (nodes) in the graph.
   */
   virtual int Nsites() const = 0;
+
+  /**
+  Member function returning the number of sites (nodes) in the graph.
+  @return Number of sites (nodes) in the graph.
+  */
+  virtual int Size() const = 0;
 
   /**
   Member function returning the adjacency list of the graph.
@@ -96,12 +102,14 @@ class AbstractGraph {
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
-   * visitor_func exactly once for each node within the component reachable from start.
+   * visitor_func exactly once for each node within the component reachable from
+   * start.
    * @param start The starting node for the BFS.
-   * @param visitor_func Function void visitor_func(int node, int depth) which is
-   *    called once for each visited node and where depth is the distance of node from start.
+   * @param visitor_func Function void visitor_func(int node, int depth) which
+   * is called once for each visited node and where depth is the distance of
+   * node from start.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, Func visitor_func) const {
     BreadthFirstSearch(start, Nsites(), visitor_func);
   }
@@ -112,10 +120,11 @@ class AbstractGraph {
    * all nodes reachable from start in at most max_depth steps.
    * @param start The starting node for the BFS.
    * @param max_depth The maximum distance from start for nodes to be visited.
-   * @param visitor_func Function void visitor_func(int node, int depth) which is
-   *    called once for each visited node and where depth is the distance of node from start.
+   * @param visitor_func Function void visitor_func(int node, int depth) which
+   * is called once for each visited node and where depth is the distance of
+   * node from start.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const;
 
   /**
@@ -134,14 +143,16 @@ class AbstractGraph {
    *    explored, which allows to distinguish the components. The depth is the
    *    distance from comp to the current node.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(Func visitor_func) const;
 
   /**
-   * Computes the distances of all nodes from a root node (single-source shortest
-   * path problem). The distance of nodes not reachable from root are set to -1.
+   * Computes the distances of all nodes from a root node (single-source
+   * shortest path problem). The distance of nodes not reachable from root are
+   * set to -1.
    * @param root The root node from which the distances are calculated.
-   * @return A vector `dist` of distances where dist[v] is the distance of v to root.
+   * @return A vector `dist` of distances where dist[v] is the distance of v to
+   * root.
    */
   virtual std::vector<int> Distances(int root) const;
 
@@ -164,9 +175,9 @@ class AbstractGraph {
    * seen[v] == true will be ignored even when they are first discovered
    * by the search. seen[start] is required to be false.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch_Impl(int start, int max_depth, Func visitor_func,
-                               std::vector<bool>& seen) const;
+                               std::vector<bool> &seen) const;
 };
 
 }  // namespace netket

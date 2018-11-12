@@ -13,12 +13,20 @@ std::vector<netket::json> GetHamiltonianInputs() {
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.321}}}};
+
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
+
   input_tests.push_back(pars);
 
   // Heisenberg 1d
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", true}}},
-          {"Hamiltonian", {{"Name", "Heisenberg"}, {"TotalSz", 0}}}};
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
+  pars["Hilbert"]["TotalSz"] = 0.;
 
   input_tests.push_back(pars);
 
@@ -26,9 +34,11 @@ std::vector<netket::json> GetHamiltonianInputs() {
   pars = {
       {"Graph",
        {{"Name", "Hypercube"}, {"L", 10}, {"Dimension", 2}, {"Pbc", true}}},
-      {"Hamiltonian",
-       {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 9}, {"Nbosons", 23}}}};
+      {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nbosons", 23}}}};
 
+  pars["Hilbert"]["Name"] = "Boson";
+  pars["Hilbert"]["Nmax"] = 3;
+  pars["Hilbert"]["Nbosons"] = 23;
   input_tests.push_back(pars);
 
   // Graph Hamiltonian
@@ -60,6 +70,8 @@ std::vector<netket::json> GetHamiltonianInputs() {
   std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
 
   pars.clear();
+  pars["Graph"]["Name"] = "Custom";
+  pars["Graph"]["Size"] = 10;
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 10;
   pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx,   sy, sy,

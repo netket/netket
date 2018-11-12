@@ -18,6 +18,12 @@ import json
 
 pars={}
 
+# defining the hilbert space
+pars['Hilbert'] = {
+    'Name': 'Spin',
+    'S': 0.5,
+}
+
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',

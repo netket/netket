@@ -19,76 +19,69 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
-
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/json_helper.hpp"
-
-#include "abstract_hamiltonian.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G>
-class BoseHubbard : public AbstractHamiltonian {
+class BoseHubbard : public AbstractOperator {
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
+
   int nsites_;
+
+  // cutoff in occupation number
+  int nmax_;
+
   double U_;
   double V_;
 
   double mu_;
 
-  const G &graph_;
-
-  // cutoff in occupation number
-  int nmax_;
-
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
-
  public:
-  // Json constructor
-  explicit BoseHubbard(const G &graph, const json &pars)
-      : nsites_(graph.Nsites()), graph_(graph) {
-    nmax_ = FieldVal(pars["Hamiltonian"], "Nmax", "Hamiltonian");
-    U_ = FieldVal(pars["Hamiltonian"], "U", "Hamiltonian");
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-    V_ = FieldOrDefaultVal(pars["Hamiltonian"], "V", .0);
-    mu_ = FieldOrDefaultVal(pars["Hamiltonian"], "Mu", .0);
-
+  explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
+                       double mu = 0.)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        nsites_(hilbert.Size()),
+        U_(U),
+        V_(V),
+        mu_(mu) {
+    nmax_ = hilbert_.LocalSize() - 1;
     Init();
+  }
 
-    if (FieldExists(pars["Hamiltonian"], "Nbosons")) {
-      int nbosons = pars["Hamiltonian"]["Nbosons"];
-      SetNbosons(nbosons);
-    }
+  // TODO remove
+  // Json constructor
+  template <class Ptype>
+  explicit BoseHubbard(const AbstractHilbert &hilbert, const Ptype &pars)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nsites_(hilbert.Size()) {
+    nmax_ = hilbert_.LocalSize() - 1;
+    U_ = FieldVal<double>(pars, "U", "Hamiltonian");
+
+    V_ = FieldOrDefaultVal<double>(pars, "V", .0);
+    mu_ = FieldOrDefaultVal<double>(pars, "Mu", .0);
+    Init();
   }
 
   void Init() {
     GenerateBonds();
-
-    // Specifying the hilbert space
-    json hil;
-    hil["Hilbert"]["Name"] = "Boson";
-    hil["Hilbert"]["Nsites"] = nsites_;
-    hil["Hilbert"]["Nmax"] = nmax_;
-
-    hilbert_.Init(hil);
-
-    InfoMessage() << "Bose Hubbard model created " << std::endl;
-  }
-
-  void SetNbosons(int nbosons) {
-    json hil;
-    hil["Hilbert"]["Name"] = "Boson";
-    hil["Hilbert"]["Nsites"] = nsites_;
-    hil["Hilbert"]["Nmax"] = nmax_;
-    hil["Hilbert"]["Nbosons"] = nbosons;
-
-    hilbert_.Init(hil);
+    InfoMessage() << "Bose Hubbard model created \n";
+    InfoMessage() << "U= " << U_ << std::endl;
+    InfoMessage() << "V= " << V_ << std::endl;
+    InfoMessage() << "mu= " << mu_ << std::endl;
+    InfoMessage() << "Nmax= " << nmax_ << std::endl;
   }
 
   void GenerateBonds() {
@@ -105,8 +98,7 @@ class BoseHubbard : public AbstractHamiltonian {
     }
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
@@ -144,7 +136,7 @@ class BoseHubbard : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

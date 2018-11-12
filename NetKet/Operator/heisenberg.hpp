@@ -19,40 +19,41 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "abstract_hamiltonian.hpp"
+#include "Graph/graph.hpp"
+#include "Hilbert/hilbert.hpp"
+#include "abstract_operator.hpp"
 
 namespace netket {
 
 // Heisenberg model on an arbitrary graph
-template <class G>
-class Heisenberg : public AbstractHamiltonian {
+
+class Heisenberg : public AbstractOperator {
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
+
   const int nspins_;
   double offdiag_;
-
-  const G &graph_;
 
   // list of bonds for the interaction part
   std::vector<std::vector<int>> bonds_;
 
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  Hilbert hilbert_;
-
  public:
-  explicit Heisenberg(const G &graph) : graph_(graph), nspins_(graph.Nsites()) {
+
+   using VectorType = AbstractOperator::VectorType;
+   using VectorRefType = AbstractOperator::VectorRefType;
+   using VectorConstRefType = AbstractOperator::VectorConstRefType;
+
+  explicit Heisenberg(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
 
+  // TODO remove
   // Json constructor
-  explicit Heisenberg(const G &graph, const json &pars)
-      : nspins_(graph.Nsites()), graph_(graph) {
+  template <class Ptype>
+  explicit Heisenberg(const AbstractHilbert &hilbert, const Ptype & /*pars*/)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
-
-    if (FieldExists(pars["Hamiltonian"], "TotalSz")) {
-      double totalsz = pars["Hamiltonian"]["TotalSz"];
-      SetTotalSz(totalsz);
-    }
   }
 
   void Init() {
@@ -64,25 +65,7 @@ class Heisenberg : public AbstractHamiltonian {
 
     GenerateBonds();
 
-    // Specifying the hilbert space
-    json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
-
-    hilbert_.Init(hil);
-
     InfoMessage() << "Heisenberg model created " << std::endl;
-  }
-
-  void SetTotalSz(double totalSz) {
-    json hil;
-    hil["Hilbert"]["Name"] = "Spin";
-    hil["Hilbert"]["Nspins"] = nspins_;
-    hil["Hilbert"]["S"] = 0.5;
-    hil["Hilbert"]["TotalSz"] = totalSz;
-
-    hilbert_.Init(hil);
   }
 
   void GenerateBonds() {
@@ -99,8 +82,7 @@ class Heisenberg : public AbstractHamiltonian {
     }
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
@@ -129,7 +111,7 @@ class Heisenberg : public AbstractHamiltonian {
     }
   }
 
-  const Hilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

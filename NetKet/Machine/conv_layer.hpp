@@ -33,14 +33,18 @@ namespace netket {
  Important: In order for this to work correctly, VectorType and MatrixType must
  be column major.
  */
-template <typename Activation, typename T>
+template <typename T>
 class Convolutional : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
-
   using MatrixType = typename AbstractLayer<T>::MatrixType;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
+
   static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
-  Activation activation_;  // activation function class
+  AbstractActivation &activation_;  // activation function class
+
+  const AbstractGraph &graph_;
 
   bool usebias_;  // boolean to turn or off bias
 
@@ -73,23 +77,26 @@ class Convolutional : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Convolutional(const Graph &graph, const int input_channel,
-                const int output_channel, const int dist = 1,
-                const bool use_bias = true)
-      : activation_(),
+  Convolutional(const AbstractGraph &graph, AbstractActivation &activation,
+                const int input_channels, const int output_channels,
+                const int dist = 1, const bool use_bias = true)
+      : activation_(activation),
+        graph_(graph),
         usebias_(use_bias),
         nv_(graph.Nsites()),
-        in_channels_(input_channel),
-        out_channels_(output_channel),
+        in_channels_(input_channels),
+        out_channels_(output_channels),
         dist_(dist) {
     in_size_ = in_channels_ * nv_;
     out_size_ = out_channels_ * nv_;
 
-    Init(graph);
+    Init();
   }
 
-  explicit Convolutional(const Graph &graph, const json &pars)
-      : activation_(), nv_(graph.Nsites()) {
+  // TODO remove
+  explicit Convolutional(const AbstractGraph &graph,
+                         AbstractActivation &activation, const json &pars)
+      : activation_(activation), graph_(graph), nv_(graph.Nsites()) {
     in_channels_ = FieldVal(pars, "InputChannels");
     in_size_ = in_channels_ * nv_;
 
@@ -100,15 +107,15 @@ class Convolutional : public AbstractLayer<T> {
 
     usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
 
-    Init(graph);
+    Init();
   }
 
-  void Init(const Graph &graph) {
+  void Init() {
     // Construct neighbourhood of all nodes with distance of at most dist_ from
     // each node i kernel(k) will act on neighbours_[i][k]
     for (int i = 0; i < nv_; ++i) {
       std::vector<int> neigh;
-      graph.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
+      graph_.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
         neigh.push_back(node);
       });
       neighbours_.push_back(neigh);
@@ -179,6 +186,7 @@ class Convolutional : public AbstractLayer<T> {
     InfoMessage(buffer) << "# # Filter Distance = " << dist_ << std::endl;
     InfoMessage(buffer) << "# # Filter Size = " << kernel_size_ << std::endl;
     InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
+    InfoMessage(buffer) << "# # Npar = " << Npar() << std::endl;
   }
 
   void InitRandomPars(int seed, double sigma) override {
@@ -195,7 +203,7 @@ class Convolutional : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorType &pars, int start_idx) const override {
+  void GetParameters(VectorRefType pars, int start_idx) const override {
     int k = start_idx;
 
     if (usebias_) {
@@ -213,7 +221,7 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void SetParameters(const VectorType &pars, int start_idx) override {
+  void SetParameters(VectorConstRefType pars, int start_idx) override {
     int k = start_idx;
 
     if (usebias_) {

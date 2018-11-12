@@ -18,23 +18,26 @@
 #include <string>
 #include <vector>
 
-#include "Hamiltonian/local_operator.hpp"
 #include "Hilbert/hilbert.hpp"
+#include "Operator/abstract_operator.hpp"
+#include "Operator/local_operator.hpp"
 #include "Utils/json_helper.hpp"
 
-#include "abstract_observable.hpp"
-#include "custom_observable.hpp"
-
 namespace netket {
-
-class Observable : public AbstractObservable {
-  using Ptype = std::unique_ptr<AbstractObservable>;
+// TODO remove
+class Observable : public AbstractOperator {
+  using Ptype = std::unique_ptr<AbstractOperator>;
   Ptype o_;
+
+  std::string name_;
 
  public:
   using MatType = LocalOperator::MatType;
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  Observable(const Hilbert &hilbert, const json &obspars) {
+  Observable(const AbstractHilbert &hilbert, const json &obspars) {
     CheckFieldExists(obspars, "Operators", "Observables");
     CheckFieldExists(obspars, "ActingOn", "Observables");
     CheckFieldExists(obspars, "Name", "Observables");
@@ -43,10 +46,11 @@ class Observable : public AbstractObservable {
     auto sites = obspars.at("ActingOn").get<std::vector<std::vector<int>>>();
     std::string name = obspars.at("Name");
 
-    o_ = Ptype(new CustomObservable(hilbert, jop, sites, name));
+    o_ = Ptype(new LocalOperator(hilbert, jop, sites));
+    name_ = name;
   }
 
-  static std::vector<Observable> FromJson(const Hilbert &hilbert,
+  static std::vector<Observable> FromJson(const AbstractHilbert &hilbert,
                                           const json &pars) {
     std::vector<Observable> observables;
 
@@ -66,16 +70,17 @@ class Observable : public AbstractObservable {
     return observables;
   }
 
-  void FindConn(const Eigen::VectorXd &v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     return o_->FindConn(v, mel, connectors, newconfs);
   }
 
-  const Hilbert &GetHilbert() const override { return o_->GetHilbert(); }
+  const AbstractHilbert &GetHilbert() const override {
+    return o_->GetHilbert();
+  }
 
-  const std::string Name() const override { return o_->Name(); }
+  const std::string Name() const { return name_; }
 };
 
 }  // namespace netket
