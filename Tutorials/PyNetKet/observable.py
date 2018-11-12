@@ -22,7 +22,7 @@ L=20
 g=nk.Hypercube(L=L,ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.Spin(s=0.5,graph=g)
+hi=nk.hilbert.Spin(s=0.5,graph=g)
 
 #Hamiltonian
 ha=nk.Ising(h=1.0,hilbert=hi)

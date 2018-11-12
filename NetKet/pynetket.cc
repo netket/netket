@@ -23,6 +23,7 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
+#include "Hilbert/pyhilbert.hpp"
 #include "netket.hpp"
 
 namespace py = pybind11;
@@ -98,61 +99,7 @@ PYBIND11_MODULE(netket, m) {
       .def("Distances", &CustomGraph::Distances)
       .def("AllDistances", &CustomGraph::AllDistances);
 
-  py::class_<AbstractHilbert>(m, "Hilbert")
-      .def("IsDiscrete", &AbstractHilbert::IsDiscrete)
-      .def("LocalSize", &AbstractHilbert::LocalSize)
-      .def("Size", &AbstractHilbert::Size)
-      .def("LocalStates", &AbstractHilbert::LocalStates)
-      .def("RandomVals", &AbstractHilbert ::RandomVals)
-      .def("UpdateConf", &AbstractHilbert::UpdateConf)
-      .def("GetGraph", &AbstractHilbert::GetGraph);
-
-  py::class_<Spin, AbstractHilbert>(m, "Spin")
-      .def(py::init<const AbstractGraph &, double>(), py::arg("graph"),
-           py::arg("s"))
-      .def(py::init<const AbstractGraph &, double, double>(), py::arg("graph"),
-           py::arg("s"), py::arg("total_sz"))
-      .def("IsDiscrete", &Spin::IsDiscrete)
-      .def("LocalSize", &Spin::LocalSize)
-      .def("Size", &Spin::Size)
-      .def("LocalStates", &Spin::LocalStates)
-      .def("RandomVals", &Spin ::RandomVals)
-      .def("UpdateConf", &Spin::UpdateConf)
-      .def("GetGraph", &Spin::GetGraph);
-
-  py::class_<Qubit, AbstractHilbert>(m, "Qubit")
-      .def(py::init<const AbstractGraph &>(), py::arg("graph"))
-      .def("IsDiscrete", &Qubit::IsDiscrete)
-      .def("LocalSize", &Qubit::LocalSize)
-      .def("Size", &Qubit::Size)
-      .def("LocalStates", &Qubit::LocalStates)
-      .def("RandomVals", &Qubit ::RandomVals)
-      .def("UpdateConf", &Qubit::UpdateConf)
-      .def("GetGraph", &Qubit::GetGraph);
-
-  py::class_<Boson, AbstractHilbert>(m, "Boson")
-      .def(py::init<const AbstractGraph &, int>(), py::arg("graph"),
-           py::arg("n_max"))
-      .def(py::init<const AbstractGraph &, int, int>(), py::arg("graph"),
-           py::arg("n_max"), py::arg("n_bosons"))
-      .def("IsDiscrete", &Boson::IsDiscrete)
-      .def("LocalSize", &Boson::LocalSize)
-      .def("Size", &Boson::Size)
-      .def("LocalStates", &Boson::LocalStates)
-      .def("RandomVals", &Boson ::RandomVals)
-      .def("UpdateConf", &Boson::UpdateConf)
-      .def("GetGraph", &Boson::GetGraph);
-
-  py::class_<CustomHilbert, AbstractHilbert>(m, "CustomHilbert")
-      .def(py::init<const AbstractGraph &, std::vector<double>>(),
-           py::arg("graph"), py::arg("local_states"))
-      .def("IsDiscrete", &CustomHilbert::IsDiscrete)
-      .def("LocalSize", &CustomHilbert::LocalSize)
-      .def("Size", &CustomHilbert::Size)
-      .def("RandomVals", &CustomHilbert ::RandomVals)
-      .def("LocalStates", &CustomHilbert::LocalStates)
-      .def("UpdateConf", &CustomHilbert::UpdateConf)
-      .def("GetGraph", &CustomHilbert::GetGraph);
+  AddHilbertModule(m);
 
   py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
       .def("GetConn", &AbstractOperator::GetConn)
