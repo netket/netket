@@ -17,51 +17,32 @@ namespace netket {
 class ImaginaryTimePropagation {
  public:
   using State = Eigen::VectorXcd;
-  using Matrix = AbstractMatrixWrapper<Hamiltonian>;
   using Stepper = ode::AbstractTimeStepper<State>;
+  using Matrix = AbstractMatrixWrapper<AbstractOperator>;
 
-  using MatrixObs = AbstractMatrixWrapper<Observable>;
-  using ObsEntry = std::pair<std::string, std::unique_ptr<MatrixObs>>;
+  using ObsEntry = std::pair<std::string, std::unique_ptr<Matrix>>;
   using ObservableVector = std::vector<ObsEntry>;
 
-  static ImaginaryTimePropagation FromJson(
-      const Hamiltonian& hamiltonian,
-      const std::vector<Observable>& observables, const json& pars) {
-    auto matrix = ConstructMatrixWrapper(pars, hamiltonian);
-    auto stepper =
-        ode::ConstructTimeStepper<State>(pars, matrix->GetDimension());
-    auto range = ode::TimeRange::FromJson(pars);
-
-    ObservableVector wrapped_observables;
-    for (const auto& obs : observables) {
-      wrapped_observables.emplace_back(obs.Name(),
-                                       ConstructMatrixWrapper(pars, obs));
-    }
-
-    auto output = JsonOutputWriter::FromJson(pars);
-
-    return ImaginaryTimePropagation(std::move(matrix), std::move(stepper),
-                                    std::move(wrapped_observables),
-                                    std::move(output), range);
-  }
-
-  ImaginaryTimePropagation(std::unique_ptr<Matrix> matrix,
-                           std::unique_ptr<Stepper> stepper,
-                           ObservableVector observables,
-                           JsonOutputWriter output,
-                           const ode::TimeRange& time_range)
-      : matrix_(std::move(matrix)),
-        stepper_(std::move(stepper)),
-        observables_(std::move(observables)),
-        output_(std::move(output)),
-        range_(time_range) {
+  ImaginaryTimePropagation(Matrix& matrix, Stepper& stepper,
+                           JsonOutputWriter& output, double tmin, double tmax,
+                           double dt)
+      : matrix_(matrix),
+        stepper_(stepper),
+        output_(output),
+        range_(ode::TimeRange{tmin, tmax, dt}) {
     ode_system_ = [this](const State& x, State& dxdt, double /*t*/) {
-      dxdt.noalias() = -matrix_->Apply(x);
+      dxdt.noalias() = -matrix_.Apply(x);
     };
   }
 
-  void Run(State& state) {
-    assert(state.size() == GetDimension());
+  void AddObservable(const AbstractOperator& observable,
+                     const std::string& name = "Sparse") {
+    auto wrapper = CreateMatrixWrapper(observable, name);
+    observables_.emplace_back(name, std::move(wrapper));
+  }
+
+  void Run(State& initial_state) {
+    assert(initial_state.size() == Dimension());
 
     int step = 0;
     double t = range_.tmin;
@@ -69,15 +50,15 @@ class ImaginaryTimePropagation {
       double next_dt =
           (t + range_.dt <= range_.tmax) ? range_.dt : range_.tmax - t;
 
-      stepper_->Propagate(ode_system_, state, t, next_dt);
+      stepper_.Propagate(ode_system_, initial_state, t, next_dt);
 
       // renormalize the state to prevent unbounded growth of the norm
-      state.normalize();
+      initial_state.normalize();
 
-      ComputeObservables(state);
+      ComputeObservables(initial_state);
       auto obs_data = json(obsmanager_);
       output_.WriteLog(step, obs_data, t);
-      output_.WriteState(step, state);
+      output_.WriteState(step, initial_state);
 
       step++;
       t = range_.tmin + step * range_.dt;
@@ -85,7 +66,7 @@ class ImaginaryTimePropagation {
   }
 
   void ComputeObservables(const State& state) {
-    const auto mean_variance = matrix_->MeanVariance(state);
+    const auto mean_variance = matrix_.MeanVariance(state);
     obsmanager_.Reset("Energy");
     obsmanager_.Push("Energy", mean_variance[0].real());
     obsmanager_.Reset("EnergyVariance");
@@ -101,17 +82,17 @@ class ImaginaryTimePropagation {
     }
   }
 
-  int GetDimension() const { return matrix_->GetDimension(); }
+  int Dimension() const { return matrix_.Dimension(); }
 
  private:
-  std::unique_ptr<Matrix> matrix_;
-  std::unique_ptr<Stepper> stepper_;
+  Matrix& matrix_;
+  Stepper& stepper_;
   ode::OdeSystemFunction<State> ode_system_;
 
   ObservableVector observables_;
   ObsManager obsmanager_;
 
-  JsonOutputWriter output_;
+  JsonOutputWriter& output_;
 
   ode::TimeRange range_;
 };

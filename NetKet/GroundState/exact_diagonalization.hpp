@@ -23,6 +23,7 @@
 #include <ietl/randomgenerator.h>
 
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/hamiltonian.hpp"
 
 namespace netket {
 
@@ -45,7 +46,7 @@ result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
   using vectorspace_t = ietl::vectorspace<complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
-  size_t dimension = matrix.GetDimension();
+  size_t dimension = matrix.Dimension();
   vectorspace_t ietl_vecspace(dimension);
   lanczos_t lanczos(matrix, ietl_vecspace);
   lanczos.calculate_eigenvalues(iter, random_gen);

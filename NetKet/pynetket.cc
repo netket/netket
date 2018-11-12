@@ -194,9 +194,22 @@ PYBIND11_MODULE(netket, m) {
       .def("GetConn", &BoseHubbard::GetConn)
       .def("GetHilbert", &BoseHubbard::GetHilbert);
 
-  py::class_<SparseMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
+  py::class_<AbstractMatrixWrapper<AbstractOperator>>(m,
+                                                      "AbstractMatrixWrapper")
+      .def("apply", &AbstractMatrixWrapper<AbstractOperator>::Apply,
+           py::arg("state"))
+      .def_property_readonly(
+          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
+
+  py::class_<SparseMatrixWrapper<AbstractOperator>,
+             AbstractMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
       .def(py::init<const AbstractOperator &>(), py::arg("operator"))
-      .def("GetMatrix", &SparseMatrixWrapper<AbstractOperator>::GetMatrix);
+      .def("GetMatrix", &SparseMatrixWrapper<AbstractOperator>::GetMatrix)
+      .def_property_readonly(
+          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
+
+  m.def("wrap_operator", &CreateMatrixWrapper<AbstractOperator>,
+        py::arg("operator"), py::arg("type") = "Sparse");
 
   using MachineType = std::complex<double>;
   using AbMachineType = AbstractMachine<MachineType>;
@@ -653,6 +666,21 @@ PYBIND11_MODULE(netket, m) {
       .def("AddObservable", &VariationalMonteCarlo::AddObservable)
       .def("Run", &VariationalMonteCarlo::Run);
 
+  py::class_<JsonOutputWriter>(m, "JsonOutputWriter")
+      .def(py::init<const std::string &, const std::string &, int>(),
+           py::arg("log_file_name"), py::arg("wavefunc_file_name"),
+           py::arg("save_every") = 50);
+
+  py::class_<ImaginaryTimePropagation>(m, "ImaginaryTimePropagation")
+      .def(py::init<ImaginaryTimePropagation::Matrix &,
+                    ImaginaryTimePropagation::Stepper &, JsonOutputWriter &,
+                    double, double, double>(),
+           py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
+           py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
+      .def("add_observable", &ImaginaryTimePropagation::AddObservable,
+           py::arg("observable"), py::arg("wrapper_type") = "Sparse")
+      .def("run", &ImaginaryTimePropagation::Run, py::arg("initial_state"));
+
   py::class_<eddetail::result_t>(m, "EdResult")
       .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)
       .def_readwrite("eigenvectors", &eddetail::result_t::eigenvectors)
@@ -663,7 +691,18 @@ PYBIND11_MODULE(netket, m) {
         py::arg("matrix_free") = false, py::arg("first_n") = 1,
         py::arg("max_iter") = 1000, py::arg("seed") = 42,
         py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
-}  // namespace netket
+
+  {
+    using State = Eigen::VectorXcd;
+
+    using State = Eigen::VectorXcd;
+    py::class_<ode::AbstractTimeStepper<State>>(m, "AbstractTimeStepper");
+
+    m.def("create_timestepper", &ode::CreateStepper<State>, py::arg("dim"),
+          py::arg("name") = "Dopri54");
+  }
+
+}  // PYBIND11_MODULE
 
 }  // namespace netket
 

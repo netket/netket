@@ -55,7 +55,7 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     return {{mean, var - std::pow(mean, 2)}};
   }
 
-  int GetDimension() const override { return dim_; }
+  int Dimension() const override { return dim_; }
 
   const Matrix& GetMatrix() const { return matrix_; }
 
