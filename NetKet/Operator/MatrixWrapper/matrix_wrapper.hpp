@@ -15,17 +15,17 @@ namespace netket {
 
 template <class Wrapped>
 std::unique_ptr<AbstractMatrixWrapper<Wrapped>> CreateMatrixWrapper(
-    const Wrapped& wrapped, const std::string& name = "Sparse") {
+    const Wrapped& wrapped, const std::string& type = "Sparse") {
   using Ptr = std::unique_ptr<AbstractMatrixWrapper<Wrapped>>;
-  if (name == "Dense") {
+  if (type == "Dense") {
     return Ptr(new DenseMatrixWrapper<Wrapped>(wrapped));
-  } else if (name == "Direct") {
+  } else if (type == "Direct") {
     return Ptr(new DirectMatrixWrapper<Wrapped>(wrapped));
-  } else if (name == "Sparse") {
+  } else if (type == "Sparse") {
     return Ptr(new SparseMatrixWrapper<Wrapped>(wrapped));
   } else {
     std::stringstream str;
-    str << "Unknown matrix wrapper: " << name;
+    str << "Unknown matrix wrapper: " << type;
     throw InvalidInputError(str.str());
   }
 }
