@@ -44,12 +44,17 @@ for i in range(L):
 
 pars = {}
 
+pars['Graph']={
+    'Name' : 'Hypercube',
+    'L' : L,
+    'Dimension' : 1,
+}
+
 # We chose a spin 1/2 hilbert space with total Sigmaz=0
 pars['Hilbert'] = {
     'Name': 'Spin',
     'S': 0.5,
     'TotalSz': 0,
-    'Nspins': L,
 }
 
 # defining our custom hamiltonian

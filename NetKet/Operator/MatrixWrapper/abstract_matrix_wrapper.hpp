@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ABSTRACT_HAMILTONIAN_OPERATOR_HPP
-#define NETKET_ABSTRACT_HAMILTONIAN_OPERATOR_HPP
+#ifndef NETKET_ABSTRACT_MATRIX_WRAPPER_HPP
+#define NETKET_ABSTRACT_MATRIX_WRAPPER_HPP
 
-#include "Hamiltonian/abstract_hamiltonian.hpp"
+#include "Operator/abstract_operator.hpp"
 
 namespace netket {
 
 /**
- * This class wraps an AbstractHamiltonian or AbstractObservable
+ * This class wraps an AbstractOperator
  * and provides a method to apply it to a pure state.
  * @tparam WfType The type of a vector of (complex) coefficients representing
  * the wavefunction. Should be Eigen::VectorXcd or a compatible type.
@@ -62,4 +62,4 @@ class AbstractMatrixWrapper {
 
 }  // namespace netket
 
-#endif  // NETKET_ABSTRACT_HAMILTONIAN_OPERATOR_HPP
+#endif  // NETKET_ABSTRACT_MATRIX_WRAPPER_HPP

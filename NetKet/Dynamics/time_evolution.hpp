@@ -4,8 +4,8 @@
 #include <memory>
 
 #include "Graph/graph.hpp"
-#include "Hamiltonian/MatrixWrapper/matrix_wrapper.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
+#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
+#include "Operator/hamiltonian.hpp"
 #include "Utils/all_utils.hpp"
 
 #include "TimeStepper/time_stepper.hpp"
@@ -23,7 +23,8 @@ class TimeEvolutionDriver {
 
   static TimeEvolutionDriver FromJson(const json& pars) {
     Graph graph(pars);
-    Hamiltonian hamiltonian(graph, pars);
+    Hilbert hilbert(graph, pars);
+    Hamiltonian hamiltonian(hilbert, pars);
 
     auto pars_te = pars["TimeEvolution"];
     auto matrix = ConstructMatrixWrapper(pars_te, hamiltonian);

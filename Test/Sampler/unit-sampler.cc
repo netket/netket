@@ -33,10 +33,10 @@ TEST_CASE("sampler generates states in Hilbert space", "[sampler]") {
       auto pars = input_tests[i];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      auto &hilbert = hamiltonian.GetHilbert();
       auto localstates = hilbert.LocalStates();
 
       using MachineType = netket::Machine<std::complex<double>>;
@@ -81,12 +81,10 @@ TEST_CASE("sampler generates states correctly distributed", "[sampler]") {
       auto pars = input_tests[i];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      REQUIRE(graph.Nsites() > 0);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
-
-      auto &hilbert = hamiltonian.GetHilbert();
       auto localstates = hilbert.LocalStates();
 
       netket::HilbertIndex hilb_index(hilbert);

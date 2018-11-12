@@ -43,7 +43,6 @@ pars['Graph'] = {
 # first we choose a hilbert space for our custom hamiltonian
 pars['Hilbert'] = {
     'QuantumNumbers': [1, -1],
-    'Size': len(list(G.edges)),
 }
 
 # defining a graph hamiltonian

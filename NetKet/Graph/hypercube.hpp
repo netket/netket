@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Utils/json_utils.hpp"
+#include "Utils/next_variation.hpp"
 
 namespace netket {
 
@@ -50,19 +51,54 @@ class Hypercube : public AbstractGraph {
   int nsites_;
 
  public:
-  // Json constructor
-  explicit Hypercube(const json &pars)
-      : L_(FieldVal(pars["Graph"], "L", "Graph")),
-        ndim_(FieldVal(pars["Graph"], "Dimension", "Graph")),
-        pbc_(FieldOrDefaultVal(pars["Graph"], "Pbc", true)) {
+  explicit Hypercube(int L, int ndim, bool pbc = true,
+                     std::vector<std::vector<int>> edgecolors =
+                         std::vector<std::vector<int>>())
+      : L_(L), ndim_(ndim), pbc_(pbc) {
+    Init(edgecolors);
+  }
+
+  void Init(const std::vector<std::vector<int>> &edgecolors) {
+    assert(L_ > 0);
+    assert(ndim_ >= 1);
+    GenerateLatticePoints();
+    GenerateAdjacencyList();
+
+    bool has_edge_colors = edgecolors.size() > 0;
+
+    if (has_edge_colors) {
+      EdgeColorsFromList(edgecolors, eclist_);
+    } else {
+      EdgeColorsFromAdj(adjlist_, eclist_);
+    }
+
+    CheckEdgeColors();
+
+    InfoMessage() << "Hypercube created " << std::endl;
+    InfoMessage() << "Dimension = " << ndim_ << std::endl;
+    InfoMessage() << "L = " << L_ << std::endl;
+    InfoMessage() << "Pbc = " << pbc_ << std::endl;
+    if (!has_edge_colors)
+      InfoMessage() << "No colors specified, edge colors set to 0 "
+                    << std::endl;
+  }
+
+  // TODO REMOVE
+  template <class Ptype>
+  explicit Hypercube(const Ptype &pars)
+      : L_(FieldVal<int>(pars, "L", "Graph")),
+        ndim_(FieldVal<int>(pars, "Dimension", "Graph")),
+        pbc_(FieldOrDefaultVal(pars, "Pbc", true)) {
     if (pbc_ && L_ <= 2) {
       throw InvalidInputError(
           "L<=2 hypercubes cannot have periodic boundary conditions");
     }
-    Init(pars);
+    InitOld(pars);
   }
 
-  void Init(const json &pars) {
+  // TODO REMOVE
+  template <class Ptype>
+  void InitOld(const Ptype &pars) {
     assert(L_ > 0);
     assert(ndim_ >= 1);
     GenerateLatticePoints();
@@ -70,9 +106,9 @@ class Hypercube : public AbstractGraph {
 
     // If edge colors are specificied read them in, otherwise set them all to
     // 0
-    if (FieldExists(pars["Graph"], "EdgeColors")) {
+    if (FieldExists(pars, "EdgeColors")) {
       std::vector<std::vector<int>> colorlist =
-          pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
+          FieldVal<std::vector<std::vector<int>>>(pars, "EdgeColors", "Graph");
       EdgeColorsFromList(colorlist, eclist_);
     } else {
       InfoMessage() << "No colors specified, edge colors set to 0 "
@@ -84,6 +120,10 @@ class Hypercube : public AbstractGraph {
     InfoMessage() << "Dimension = " << ndim_ << std::endl;
     InfoMessage() << "L = " << L_ << std::endl;
     InfoMessage() << "Pbc = " << pbc_ << std::endl;
+  }
+
+  void CheckEdgeColors() {
+    // TODO write a meaningful check of edge colors
   }
 
   void GenerateLatticePoints() {
@@ -156,6 +196,8 @@ class Hypercube : public AbstractGraph {
   }
 
   int Nsites() const override { return nsites_; }
+
+  int Size() const override { return nsites_; }
 
   int Length() const { return L_; }
 

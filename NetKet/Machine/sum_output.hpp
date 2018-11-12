@@ -32,6 +32,8 @@ template <typename T>
 class SumOutput : public AbstractLayer<T> {
   using VectorType = typename AbstractLayer<T>::VectorType;
   using MatrixType = typename AbstractLayer<T>::MatrixType;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
   int in_size_;   // input size: should be multiple of no. of sites
   int out_size_;  // output size: should be multiple of no. of sites
@@ -45,6 +47,14 @@ class SumOutput : public AbstractLayer<T> {
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
 
+  /// Constructor
+  explicit SumOutput(int in_size) : in_size_(in_size) {
+    out_size_ = 1;
+
+    Init();
+  }
+
+  // TODO remove
   /// Constructor
   explicit SumOutput(const json &pars) {
     in_size_ = FieldVal(pars, "Inputs");
@@ -70,9 +80,10 @@ class SumOutput : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorType & /*pars*/, int /*start_idx*/) const override {}
+  void GetParameters(VectorRefType /*pars*/, int /*start_idx*/) const override {
+  }
 
-  void SetParameters(const VectorType & /*pars*/, int /*start_idx*/) override {}
+  void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
 
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {

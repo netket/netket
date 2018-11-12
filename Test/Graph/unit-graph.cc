@@ -12,84 +12,97 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "catch.hpp"
-#include "netket.hpp"
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
 #include <vector>
-
+#include "Graph/abstract_graph.hpp"
+#include "catch.hpp"
 #include "graph_input_tests.hpp"
+#include "netket.hpp"
 
-TEST_CASE("graphs have consistent number of sites", "[graph]") {
-
-  auto input_tests = GetGraphInputs();
-  std::size_t ntests = input_tests.size();
+TEST_CASE("Graph methods", "[graph]") {
+  const auto graphs = GetGraphs();
+  std::size_t ntests = graphs.size();
 
   for (std::size_t i = 0; i < ntests; i++) {
-    std::string name = input_tests[i].dump();
-
-    SECTION("Graph test (" + std::to_string(i) + ") on " + name) {
-
-      netket::Graph graph(input_tests[i]);
-
-      REQUIRE(graph.Nsites() > 0);
+    SECTION("Graphs have a positive number of sites") {
+      REQUIRE(graphs[i]->Nsites() > 0);
+      REQUIRE(graphs[i]->Nsites() == graphs[i]->Size());
     }
   }
 }
 
 TEST_CASE("Breadth-first search", "[graph]") {
-  const auto input_tests = GetGraphInputs();
+  const auto graphs = GetGraphs();
+  std::size_t ntests = graphs.size();
 
-  for(const auto input : input_tests) {
-    netket::Graph graph(input);
-    const auto data = input.dump();
-
-    SECTION("each node is visited at most once (and exactly once if the graph is connected) on " + data) {
-      for(int start = 0; start < graph.Nsites(); ++start) {
+  for (std::size_t i = 0; i < ntests; i++) {
+    SECTION(
+        "each node is visited at most once (and exactly once if the graph is "
+        "connected)") {
+      const auto& graph = graphs[i];
+      for (int start = 0; start < graph->Nsites(); ++start) {
         std::unordered_set<int> visited;
         int ncall = 0;
-        graph.BreadthFirstSearch(start, [&](int v, int depth) {
-          INFO("ncall: " << ncall << ", start: " << start << ", v: " << v << ", depth: " << depth);
+        graph->BreadthFirstSearch(start, [&](int v, int depth) {
+          INFO("ncall: " << ncall << ", start: " << start << ", v: " << v
+                         << ", depth: " << depth);
           REQUIRE(visited.count(v) == 0);
           visited.insert(v);
           ncall++;
         });
 
-        if(graph.IsConnected()) {
-          for(int v = 0; v < graph.Nsites(); ++v) {
+        if (graph->IsConnected()) {
+          for (int v = 0; v < graph->Nsites(); ++v) {
             INFO("v: " << v);
             REQUIRE(visited.count(v) == 1);
           }
         }
       }
     }
+  }
 
-    SECTION("full BFS for " + data) {
-      std::unordered_set<int> visited;
-      std::unordered_set<int> components;
-      graph.BreadthFirstSearch([&](int v, int depth, int component) {
-        INFO("v: " << v << ", depth: " << depth << ", component: " << component);
-        REQUIRE(visited.count(v) == 0);
-        visited.insert(v);
-        components.insert(component);
-      });
+  SECTION("full BFS for connected graphs") {
+    std::unordered_set<int> visited;
+    std::unordered_set<int> components;
+    netket::Hypercube graph(21, 1, false);
 
-      for(int v = 0; v < graph.Nsites(); ++v) {
-        INFO("v: " << v);
-        REQUIRE(visited.count(v) == 1);
-      }
-      REQUIRE(components.size() == input["Test:NumComponents"]);
+    graph.BreadthFirstSearch([&](int v, int depth, int component) {
+      INFO("v: " << v << ", depth: " << depth << ", component: " << component);
+      REQUIRE(visited.count(v) == 0);
+      visited.insert(v);
+      components.insert(component);
+    });
+
+    for (int v = 0; v < graph.Nsites(); ++v) {
+      INFO("v: " << v);
+      REQUIRE(visited.count(v) == 1);
     }
+    REQUIRE(components.size() == 1);
+  }
+  SECTION("full BFS for disconnected graphs") {
+    std::unordered_set<int> visited;
+    std::unordered_set<int> components;
+    netket::CustomGraph graph(10);
+
+    graph.BreadthFirstSearch([&](int v, int depth, int component) {
+      INFO("v: " << v << ", depth: " << depth << ", component: " << component);
+      REQUIRE(visited.count(v) == 0);
+      visited.insert(v);
+      components.insert(component);
+    });
+
+    for (int v = 0; v < graph.Nsites(); ++v) {
+      INFO("v: " << v);
+      REQUIRE(visited.count(v) == 1);
+    }
+    REQUIRE(components.size() == 10);
   }
 }
 
 TEST_CASE("Distances are computed correctly") {
-  netket::json pars;
-  pars["Graph"] = {
-      {"Name", "Hypercube"}, {"L", 20}, {"Dimension", 1}, {"Pbc", false}
-  };
-  netket::Graph graph(pars);
+  netket::Hypercube graph(20, 1, false);
 
   SECTION("Distances for 1d chain") {
     for (int i = 0; i < graph.Nsites(); ++i) {
@@ -113,10 +126,7 @@ TEST_CASE("Distances are computed correctly") {
     }
   }
 
-  pars.clear();
-  pars["Hilbert"]["QuantumNumbers"] = {1, -1};
-  pars["Hilbert"]["Size"] = 10;
-  netket::Graph graph2(pars);
+  netket::CustomGraph graph2(10);
 
   SECTION("Distances for disconnected graph") {
     for (int i = 0; i < graph2.Nsites(); ++i) {
@@ -142,12 +152,12 @@ TEST_CASE("Distances are computed correctly") {
 }
 
 TEST_CASE("Graph::IsConnected is correct", "[graph]") {
-  const auto input_tests = GetGraphInputs();
-  for(const auto input : input_tests) {
-    const auto data = input.dump();
-    SECTION("on " + data) {
-      netket::Graph graph(input);
-      CHECK(graph.IsConnected() == input["Test:IsConnected"]);
-    }
+  SECTION("Connected graphs") {
+    netket::Hypercube graph(20, 2, false);
+    REQUIRE(graph.IsConnected() == true);
+  }
+  SECTION("Disconnected graphs") {
+    netket::CustomGraph graph(11);
+    REQUIRE(graph.IsConnected() == false);
   }
 }

@@ -19,7 +19,7 @@
 #include <memory>
 
 #include "Graph/graph.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
+#include "Operator/hamiltonian.hpp"
 #include "abstract_machine.hpp"
 #include "ffnn.hpp"
 #include "jastrow.hpp"
@@ -30,95 +30,116 @@
 #include "rbm_spin_symm.hpp"
 
 namespace netket {
-
+// TODO remove
 template <class T>
 class Machine : public AbstractMachine<T> {
-  using Ptype = std::unique_ptr<AbstractMachine<T>>;
+  std::unique_ptr<AbstractMachine<T>> m_;
 
-  Ptype m_;
-
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  explicit Machine(const Hilbert &hilbert, const json &pars)
+  template <class Partype>
+  explicit Machine(const AbstractHilbert &hilbert, const Partype &pars)
       : hilbert_(hilbert) {
-    Init(hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  explicit Machine(const Hamiltonian &hamiltonian, const json &pars)
+  template <class Partype>
+  explicit Machine(const Hamiltonian &hamiltonian, const Partype &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    Init(hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  explicit Machine(const Graph &graph, const Hilbert &hilbert, const json &pars)
+  template <class Partype>
+  explicit Machine(const AbstractGraph &graph, const AbstractHilbert &hilbert,
+                   const Partype &pars)
       : hilbert_(hilbert) {
-    Init(hilbert_, pars);
-    Init(graph, hilbert, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    Init(graph, hilbert, pconv);
+    InitParameters(pconv);
   }
 
-  explicit Machine(const Graph &graph, const Hamiltonian &hamiltonian,
-                   const json &pars)
+  template <class Partype>
+  explicit Machine(const AbstractGraph &graph, const Hamiltonian &hamiltonian,
+                   const Partype &pars)
       : hilbert_(hamiltonian.GetHilbert()) {
-    Init(hilbert_, pars);
-    Init(graph, hilbert_, pars);
-    InitParameters(pars);
+    const auto pconv = ParsConv(pars);
+    Init(hilbert_, pconv);
+    Init(graph, hilbert_, pconv);
+    InitParameters(pconv);
   }
 
-  void Init(const Hilbert &hilbert, const json &pars) {
+  template <class Partype>
+  void Init(const AbstractHilbert &hilbert, const Partype &pars) {
     CheckInput(pars);
-    if (pars["Machine"]["Name"] == "RbmSpin") {
-      m_ = Ptype(new RbmSpin<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "RbmMultival") {
-      m_ = Ptype(new RbmMultival<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "Jastrow") {
-      m_ = Ptype(new Jastrow<T>(hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
-      if (FieldExists(pars["Machine"], "Diagonal") and
-          pars["Machine"]["Diagonal"]) {
-        m_ = Ptype(new MPSPeriodic<T, true>(hilbert, pars));
+
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name == "RbmSpin") {
+      m_ = netket::make_unique<RbmSpin<T>>(hilbert, pars);
+    } else if (name == "RbmMultival") {
+      m_ = netket::make_unique<RbmMultival<T>>(hilbert, pars);
+    } else if (name == "Jastrow") {
+      m_ = netket::make_unique<Jastrow<T>>(hilbert, pars);
+    } else if (name == "MPSperiodic") {
+      if (FieldExists(pars, "Diagonal") && pars["Diagonal"]) {
+        m_ = netket::make_unique<MPSPeriodic<T, true>>(hilbert, pars);
       } else {
-        m_ = Ptype(new MPSPeriodic<T, false>(hilbert, pars));
+        m_ = netket::make_unique<MPSPeriodic<T, false>>(hilbert, pars);
       }
     }
   }
-
-  void Init(const Graph &graph, const Hilbert &hilbert, const json &pars) {
+  template <class Partype>
+  void Init(const AbstractGraph &graph, const AbstractHilbert &hilbert,
+            const Partype &pars) {
     CheckInput(pars);
-    if (pars["Machine"]["Name"] == "RbmSpinSymm") {
-      m_ = Ptype(new RbmSpinSymm<T>(graph, hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "FFNN") {
-      m_ = Ptype(new FFNN<T>(graph, hilbert, pars));
-    } else if (pars["Machine"]["Name"] == "JastrowSymm") {
-      m_ = Ptype(new JastrowSymm<T>(graph, hilbert, pars));
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name == "RbmSpinSymm") {
+      m_ = netket::make_unique<RbmSpinSymm<T>>(graph, hilbert, pars);
+    } else if (name == "FFNN") {
+      m_ = netket::make_unique<FFNN<T>>(graph, hilbert, pars);
+    } else if (name == "JastrowSymm") {
+      m_ = netket::make_unique<JastrowSymm<T>>(graph, hilbert, pars);
     }
   }
 
-  void InitParameters(const json &pars) {
-    if (FieldOrDefaultVal(pars["Machine"], "InitRandom", true)) {
-      double sigma_rand = FieldOrDefaultVal(pars["Machine"], "SigmaRand", 0.1);
+  // TODO reove
+  json ParsConv(const json &pars) {
+    CheckFieldExists(pars, "Machine");
+    return pars["Machine"];
+  }
+
+  template <class Partype>
+  void InitParameters(const Partype &pars) {
+    if (FieldOrDefaultVal(pars, "InitRandom", true)) {
+      double sigma_rand = FieldOrDefaultVal(pars, "SigmaRand", 0.1);
       m_->InitRandomPars(1232, sigma_rand);
 
       InfoMessage() << "Machine initialized with random parameters"
                     << std::endl;
     }
 
-    if (FieldExists(pars["Machine"], "InitFile")) {
-      std::string filename = pars["Machine"]["InitFile"];
+    if (FieldExists(pars, "InitFile")) {
+      std::string filename = pars["InitFile"];
 
       std::ifstream ifs(filename);
 
       if (ifs.is_open()) {
         json jmachine;
         ifs >> jmachine;
-        m_->from_json(jmachine);
+        m_->from_json(jmachine["Machine"]);
       } else {
         std::stringstream s;
         s << "Error opening file: " << filename;
@@ -131,8 +152,7 @@ class Machine : public AbstractMachine<T> {
   }
 
   void CheckInput(const json &pars) {
-    CheckFieldExists(pars, "Machine");
-    const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
+    const std::string name = FieldVal<std::string>(pars, "Name", "Machine");
 
     std::set<std::string> machines = {
         "RbmSpin", "RbmSpinSymm", "RbmMultival", "FFNN",
@@ -151,38 +171,38 @@ class Machine : public AbstractMachine<T> {
   int Nvisible() const override { return m_->Nvisible(); }
 
   // Initializes Lookup tables
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     return m_->InitLookup(v, lt);
   }
 
   // Updates Lookup tables
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     return m_->UpdateLookup(v, tochange, newconf, lt);
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override { return m_->DerLog(v); }
+  VectorType DerLog(VisibleConstType v) override { return m_->DerLog(v); }
 
   VectorType GetParameters() override { return m_->GetParameters(); }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     return m_->SetParameters(pars);
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) override { return m_->LogVal(v); }
+  T LogVal(VisibleConstType v) override { return m_->LogVal(v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     return m_->LogVal(v, lt);
   }
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &toflip,
+      VisibleConstType v, const std::vector<std::vector<int>> &toflip,
       const std::vector<std::vector<double>> &newconf) override {
     return m_->LogValDiff(v, toflip, newconf);
   }
@@ -190,7 +210,7 @@ class Machine : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     return m_->LogValDiff(v, toflip, newconf, lt);
@@ -200,7 +220,7 @@ class Machine : public AbstractMachine<T> {
     return m_->InitRandomPars(seed, sigma);
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override { m_->to_json(j); }
 

@@ -17,65 +17,67 @@
 
 #include <memory>
 #include <set>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"
-#include "next_variation.hpp"
 #include "qubits.hpp"
 #include "spins.hpp"
 
 namespace netket {
-
+// TODO remove
 class Hilbert : public AbstractHilbert {
-  std::shared_ptr<AbstractHilbert> h_;
+  std::unique_ptr<AbstractHilbert> h_;
 
  public:
-  explicit Hilbert() {}
-
-  explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
-
-  explicit Hilbert(const json &pars) { Init(pars); }
-
-  void Init(const json &pars) {
-    CheckInput(pars);
-
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      if (pars["Hilbert"]["Name"] == "Spin") {
-        h_ = std::make_shared<Spin>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Boson") {
-        h_ = std::make_shared<Boson>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Qubit") {
-        h_ = std::make_shared<Qubit>(pars);
-      }
-    } else {
-      h_ = std::make_shared<CustomHilbert>(pars);
-    }
+  template <class Ptype>
+  explicit Hilbert(const Ptype &pars) {
+    InitWithoutGraph(ParsConv(pars));
   }
 
-  void CheckInput(const json &pars)
-  {
-    if (!FieldExists(pars, "Hilbert")) {
-      if (!FieldExists(pars, "Hamiltonian")) {
-        throw InvalidInputError("Not enough information to construct Hilbert space");
+  template <class Ptype>
+  explicit Hilbert(const Graph &graph, const Ptype &pars) {
+    InitWithGraph(graph, ParsConv(pars));
+  }
+
+  json ParsConv(const json &pars) {
+    CheckFieldExists(pars, "Hilbert");
+    return pars["Hilbert"];
+  }
+
+  template <class Ptype>
+  void InitWithoutGraph(const Ptype &pars) {
+    int size = FieldVal<int>(pars, "Size");
+
+    json gpars;
+    gpars["Graph"]["Name"] = "Custom";
+    gpars["Graph"]["Size"] = size;
+    Graph graph(gpars);
+
+    InitWithGraph(graph, pars);
+  }
+
+  template <class Ptype>
+  void InitWithGraph(const Graph &graph, const Ptype &pars) {
+    if (FieldExists(pars, "Name")) {
+      std::string name = FieldVal<std::string>(pars, "Name");
+      if (name == "Spin") {
+        h_ = netket::make_unique<Spin>(graph, pars);
+      } else if (name == "Boson") {
+        h_ = netket::make_unique<Boson>(graph, pars);
+      } else if (name == "Qubit") {
+        h_ = netket::make_unique<Qubit>(graph, pars);
+      } else if (name == "Custom") {
+        h_ = netket::make_unique<CustomHilbert>(graph, pars);
       } else {
-        if (!FieldExists(pars["Hamiltonian"], "Name")) {
-          throw InvalidInputError("Not enough information to construct Hilbert space");
-        }
-      }
-    }
-
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      std::set<std::string> hilberts = {"Spin", "Boson", "Qubit"};
-
-      const auto name = pars["Hilbert"]["Name"];
-
-      if (hilberts.count(name) == 0) {
         std::stringstream s;
-        s << "Hilbert space type " << name << " not found.";
+        s << "Unknown Hilbert type: " << name;
         throw InvalidInputError(s.str());
       }
+    } else {
+      h_ = netket::make_unique<CustomHilbert>(graph, pars);
     }
   }
 
@@ -92,10 +94,13 @@ class Hilbert : public AbstractHilbert {
     return h_->RandomVals(state, rgen);
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     return h_->UpdateConf(v, tochange, newconf);
   }
+
+  const AbstractGraph &GetGraph() const override { return h_->GetGraph(); }
 };
 }  // namespace netket
 

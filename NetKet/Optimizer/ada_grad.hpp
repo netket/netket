@@ -15,13 +15,13 @@
 #ifndef NETKET_ADAGRAD_HPP
 #define NETKET_ADAGRAD_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -36,7 +36,14 @@ class AdaGrad : public AbstractOptimizer {
 
   const std::complex<double> I_;
 
-public:
+ public:
+  explicit AdaGrad(double eta = 0.001, double epscut = 1.0e-7)
+      : eta_(eta), epscut_(epscut), I_(0, 1) {
+    npar_ = -1;
+
+    PrintParameters();
+  }
+
   // Json constructor
   explicit AdaGrad(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -86,7 +93,8 @@ public:
 
     for (int i = 0; i < pars.size(); i++) {
       pars(i) -= eta_ * grad(i).real() / std::sqrt(Gt_(2 * i) + epscut_);
-      pars(i) -= eta_ * I_ * grad(i).imag() / std::sqrt(Gt_(2 * i + 1) + epscut_);
+      pars(i) -=
+          eta_ * I_ * grad(i).imag() / std::sqrt(Gt_(2 * i + 1) + epscut_);
     }
   }
 
@@ -103,6 +111,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

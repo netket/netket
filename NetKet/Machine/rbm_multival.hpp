@@ -32,6 +32,11 @@ template <typename T>
 class RbmMultival : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
+
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -41,6 +46,9 @@ class RbmMultival : public AbstractMachine<T> {
 
   // number of parameters
   int npar_;
+
+  // local size of hilbert space
+  int ls_;
 
   // weights
   MatrixType W_;
@@ -59,15 +67,10 @@ class RbmMultival : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const Hilbert &hilbert_;
-
   Eigen::VectorXd localconfs_;
   Eigen::MatrixXd mask_;
 
   Eigen::VectorXd vtilde_;
-
-  // local size of hilbert space
-  int ls_;
 
   std::map<double, int> confindex_;
 
@@ -75,9 +78,21 @@ class RbmMultival : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
+  explicit RbmMultival(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert),
+        nv_(hilbert.Size()),
+        ls_(hilbert.LocalSize()),
+        usea_(usea),
+        useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+    Init();
+  }
+
+  // TODO remove
   // Json constructor
-  explicit RbmMultival(const Hilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), ls_(hilbert.LocalSize()) {
+  explicit RbmMultival(const AbstractHilbert &hilbert, const json &pars)
+      : hilbert_(hilbert), nv_(hilbert.Size()), ls_(hilbert.LocalSize()) {
     from_json(pars);
   }
 
@@ -148,7 +163,7 @@ class RbmMultival : public AbstractMachine<T> {
     SetParameters(par);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(b_.size());
     }
@@ -158,7 +173,7 @@ class RbmMultival : public AbstractMachine<T> {
     ComputeTheta(v, lt.V(0));
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -173,7 +188,7 @@ class RbmMultival : public AbstractMachine<T> {
     }
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
     der.setZero();
 
@@ -233,7 +248,7 @@ class RbmMultival : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     if (usea_) {
@@ -258,7 +273,7 @@ class RbmMultival : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     ComputeTheta(v, thetas_);
     RbmSpin<T>::lncosh(thetas_, lnthetas_);
 
@@ -267,7 +282,7 @@ class RbmMultival : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
 
     ComputeVtilde(v, vtilde_);
@@ -277,7 +292,7 @@ class RbmMultival : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -313,7 +328,7 @@ class RbmMultival : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being changed Version using pre-computed look-up tables for efficiency
   // on a small number of local changes
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -342,17 +357,17 @@ class RbmMultival : public AbstractMachine<T> {
   }
 
   // Computhes the values of the theta pseudo-angles
-  inline void ComputeTheta(const Eigen::VectorXd &v, VectorType &theta) {
+  inline void ComputeTheta(VisibleConstType v, VectorType &theta) {
     ComputeVtilde(v, vtilde_);
     theta = (W_.transpose() * vtilde_ + b_);
   }
 
-  inline void ComputeVtilde(const Eigen::VectorXd &v, Eigen::VectorXd &vtilde) {
+  inline void ComputeVtilde(VisibleConstType v, Eigen::VectorXd &vtilde) {
     auto t = (localconfs_.array() == (mask_ * v).array());
     vtilde = t.template cast<double>();
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmMultival";
@@ -367,13 +382,13 @@ class RbmMultival : public AbstractMachine<T> {
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "RbmMultival") {
+    if (pars.at("Name") != "RbmMultival") {
       throw InvalidInputError(
           "Error while constructing RbmMultival from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
 
     if (nv_ != hilbert_.Size()) {
@@ -381,39 +396,39 @@ class RbmMultival : public AbstractMachine<T> {
           "Loaded wave-function has incompatible Hilbert space");
     }
 
-    if (FieldExists(pars["Machine"], "LocalSize")) {
-      ls_ = pars["Machine"]["LocalSize"];
+    if (FieldExists(pars, "LocalSize")) {
+      ls_ = pars["LocalSize"];
     }
     if (ls_ != hilbert_.LocalSize()) {
       throw InvalidInputError(
           "Loaded wave-function has incompatible Hilbert space");
     }
 
-    if (FieldExists(pars["Machine"], "Nhidden")) {
-      nh_ = FieldVal(pars["Machine"], "Nhidden");
+    if (FieldExists(pars, "Nhidden")) {
+      nh_ = FieldVal(pars, "Nhidden");
     } else {
-      nh_ = nv_ * double(FieldVal(pars["Machine"], "Alpha"));
+      nh_ = nv_ * double(FieldVal(pars, "Alpha"));
     }
 
-    usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
 
     Init();
 
     // Loading parameters, if defined in the input
-    if (FieldExists(pars["Machine"], "a")) {
-      a_ = pars["Machine"]["a"];
+    if (FieldExists(pars, "a")) {
+      a_ = pars["a"];
     } else {
       a_.setZero();
     }
 
-    if (FieldExists(pars["Machine"], "b")) {
-      b_ = pars["Machine"]["b"];
+    if (FieldExists(pars, "b")) {
+      b_ = pars["b"];
     } else {
       b_.setZero();
     }
-    if (FieldExists(pars["Machine"], "W")) {
-      W_ = pars["Machine"]["W"];
+    if (FieldExists(pars, "W")) {
+      W_ = pars["W"];
     }
   }
 };

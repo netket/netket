@@ -19,8 +19,6 @@
 #include <vector>
 #include "Utils/random_utils.hpp"
 
-#include <nonstd/span.hpp>
-
 namespace netket {
 
 /**
@@ -75,8 +73,11 @@ class AbstractHilbert {
   @param tochange contains a list of which quantum numbers are to be modified.
   @param newconf contains the value that those quantum numbers should take
   */
-  virtual void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                          const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
+
+  virtual const AbstractGraph &GetGraph() const = 0;
 
   virtual ~AbstractHilbert() {}
 };

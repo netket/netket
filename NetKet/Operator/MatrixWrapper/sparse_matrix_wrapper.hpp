@@ -24,7 +24,7 @@ namespace netket {
 
 /**
  * This class stores the matrix elements of a given Operator
- * (AbstractHamiltonian or AbstractObservable) as an Eigen dense matrix.
+ *  as an Eigen dense matrix.
  */
 template <class Operator, class WfType = Eigen::VectorXcd>
 class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
@@ -88,10 +88,12 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     for (int i = 0; i < dim_; ++i) {
       const auto v = hilbert_index.NumberToState(i);
       the_operator.ForEachConn(v, [&](ConnectorRef conn) {
-        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions, conn.values);
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions,
+                                                            conn.values);
         tripletList.push_back(Triplet(i, j, conn.weight));
       });
     }
+
     matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
     matrix_.makeCompressed();
   }

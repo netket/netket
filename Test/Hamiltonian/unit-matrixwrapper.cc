@@ -14,12 +14,12 @@
 
 #include "catch.hpp"
 
-#include <Graph/graph.hpp>
-#include <Hamiltonian/MatrixWrapper/dense_matrix_wrapper.hpp>
-#include <Hamiltonian/MatrixWrapper/direct_matrix_wrapper.hpp>
-#include <Hamiltonian/MatrixWrapper/sparse_matrix_wrapper.hpp>
-#include <Hamiltonian/hamiltonian.hpp>
-#include <Observable/observable.hpp>
+#include "Graph/graph.hpp"
+#include "Operator/MatrixWrapper/dense_matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/direct_matrix_wrapper.hpp"
+#include "Operator/MatrixWrapper/sparse_matrix_wrapper.hpp"
+#include "Operator/hamiltonian.hpp"
+#include "Operator/observable.hpp"
 
 #include "../Observable/observable_input_tests.hpp"
 
@@ -32,20 +32,29 @@ std::vector<netket::json> GetHamiltonianInputs() {
            {{"Name", "Hypercube"}, {"L", 5}, {"Dimension", 1}, {"Pbc", false}}},
           {"Machine", {{"Name", "RbmSpin"}, {"Alpha", 1.0}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.321}}}};
+  pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
   input_tests.push_back(pars);
 
   // Heisenberg 1d
+  pars.clear();
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 3}, {"Dimension", 2}, {"Pbc", true}}},
-          {"Hamiltonian", {{"Name", "Heisenberg"}, {"TotalSz", 0}}}};
-
+          {"Hamiltonian", {{"Name", "Heisenberg"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
+  pars["Hilbert"]["TotalSz"] = 0.;
   input_tests.push_back(pars);
 
   // Bose Hubbard
-  pars = {{"Graph",
-           {{"Name", "Hypercube"}, {"L", 2}, {"Dimension", 2}, {"Pbc", false}}},
-          {"Hamiltonian", {{"Name", "BoseHubbard"}, {"U", 4.0}, {"Nmax", 2}}}};
-
+  pars.clear();
+  pars["Graph"]["Name"] = "Hypercube";
+  pars["Graph"]["L"] = 2;
+  pars["Graph"]["Dimension"] = 2;
+  pars["Graph"]["Pbc"] = false;
+  pars["Hilbert"]["Name"] = "Boson";
+  pars["Hilbert"]["Nmax"] = 2;
+  pars["Hamiltonian"]["Name"] = "BoseHubbard";
+  pars["Hamiltonian"]["U"] = 4.0;
   input_tests.push_back(pars);
 
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
@@ -57,7 +66,8 @@ std::vector<netket::json> GetHamiltonianInputs() {
 
   pars.clear();
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
-  pars["Hilbert"]["Size"] = 10;
+  pars["Graph"]["Name"] = "Custom";
+  pars["Graph"]["Size"] = 10;
   pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx,   sy, sy,
                                       sy, szsz, sx,   szsz, sy, szsz};
   pars["Hamiltonian"]["ActingOn"] = {{0}, {0, 1}, {1, 0}, {1},    {2}, {3},
@@ -77,10 +87,11 @@ TEST_CASE("SparseMatrixWrapper for Hamiltonian is Hermitian",
             input_tests[it]["Hamiltonian"].dump()) {
       auto pars = input_tests[it];
       netket::Graph graph(pars);
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::SparseMatrixWrapper<netket::AbstractHamiltonian> hmat(
-          hamiltonian);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
+
+      netket::SparseMatrixWrapper<netket::Hamiltonian> hmat(hamiltonian);
 
       const auto& matrix = hmat.GetMatrix();
       REQUIRE(matrix.isApprox(matrix.adjoint()));
@@ -98,9 +109,11 @@ TEST_CASE("DenseMatrixWrapper for Hamiltonian is Hermitian",
             input_tests[it]["Hamiltonian"].dump()) {
       auto pars = input_tests[it];
       netket::Graph graph(pars);
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::DenseMatrixWrapper<netket::AbstractHamiltonian> hmat(hamiltonian);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
+
+      netket::DenseMatrixWrapper<netket::Hamiltonian> hmat(hamiltonian);
 
       const auto& matrix = hmat.GetMatrix();
       REQUIRE(matrix.isApprox(matrix.adjoint()));
@@ -118,12 +131,12 @@ TEST_CASE("DirectMatrixWrapper gives same results as SparseMatrixWrapper",
             input_tests[it]["Hamiltonian"].dump()) {
       auto pars = input_tests[it];
       netket::Graph graph(pars);
-      netket::Hamiltonian hamiltonian(graph, pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::DirectMatrixWrapper<netket::AbstractHamiltonian> direct(
-          hamiltonian);
-      netket::SparseMatrixWrapper<netket::AbstractHamiltonian> sparse(
-          hamiltonian);
+      netket::Hamiltonian hamiltonian(hilbert, pars);
+
+      netket::DirectMatrixWrapper<netket::Hamiltonian> direct(hamiltonian);
+      netket::SparseMatrixWrapper<netket::Hamiltonian> sparse(hamiltonian);
 
       Eigen::VectorXcd basis(direct.GetDimension());
       Eigen::VectorXcd direct_result(direct.GetDimension());
@@ -146,6 +159,8 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
 
   pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
   pars["Hilbert"]["Size"] = 1;
+  pars["Graph"]["Name"] = "Custom";
+  pars["Graph"]["Size"] = 1;
 
   netket::json observable_pars;
   observable_pars["ActingOn"] = {{0}};
@@ -157,7 +172,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
 
   // check whether the correct eigenvalues are computed
   {
-    netket::DenseMatrixWrapper<netket::AbstractObservable> dense(obs);
+    netket::DenseMatrixWrapper<netket::Observable> dense(obs);
 
     auto ed = dense.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
@@ -168,12 +183,12 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
     CHECK(eigs(1) == Approx(sqrt5));
   }
   {
-    netket::SparseMatrixWrapper<netket::AbstractObservable> sparse(obs);
+    netket::SparseMatrixWrapper<netket::Observable> sparse(obs);
 
     auto ed = sparse.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
     std::sort(eigs.data(), eigs.data() + eigs.size());
-    
+
     const double sqrt5 = std::sqrt(5);
     CHECK(eigs(0) == Approx(-sqrt5));
     CHECK(eigs(1) == Approx(sqrt5));

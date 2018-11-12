@@ -18,6 +18,13 @@ import json
 
 pars = {}
 
+# defining the hilbert space
+pars['Hilbert'] = {
+    'Name': 'Boson',
+    'Nmax': 3,
+    'Nbosons': 12,
+}
+
 # defining the lattice
 pars['Graph'] = {
     'Name': 'Hypercube',
@@ -30,8 +37,6 @@ pars['Graph'] = {
 pars['Hamiltonian'] = {
     'Name': 'BoseHubbard',
     'U': 4.0,
-    'Nmax': 3,
-    'Nbosons': 12,
 }
 
 # defining the wave function

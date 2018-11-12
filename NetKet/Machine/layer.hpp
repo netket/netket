@@ -25,35 +25,30 @@ namespace netket {
 template <class T>
 class Layer : public AbstractLayer<T> {
   using Ptype = std::unique_ptr<AbstractLayer<T>>;
-
   Ptype m_;
+
+  Activation activation_;
 
  public:
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = std::vector<VectorType>;
+  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
-  explicit Layer(const Graph &graph, const json &pars) { Init(graph, pars); }
+  explicit Layer(const AbstractGraph &graph, const json &pars)
+      : activation_(pars) {
+    Init(graph, pars);
+  }
 
-  void Init(const Graph &graph, const json &pars) {
+  void Init(const AbstractGraph &graph, const json &pars) {
     CheckInput(pars);
+
     if (pars["Name"] == "FullyConnected") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new FullyConnected<Lncosh, T>(pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new FullyConnected<Identity, T>(pars));
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new FullyConnected<Tanh, T>(pars));
-      }
+      m_ = Ptype(new FullyConnected<T>(activation_, pars));
     } else if (pars["Name"] == "Convolutional") {
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new Convolutional<Lncosh, T>(graph, pars));
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new Convolutional<Identity, T>(graph, pars));
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new Convolutional<Tanh, T>(graph, pars));
-      }
+      m_ = Ptype(new Convolutional<T>(graph, activation_, pars));
     } else if (pars["Name"] == "Sum") {
       m_ = Ptype(new SumOutput<T>(pars));
     }
@@ -65,8 +60,7 @@ class Layer : public AbstractLayer<T> {
 
     const std::string name = FieldVal(pars, "Name");
 
-    std::set<std::string> layers = {"FullyConnected", "Convolutional",
-                                    "Symmetric", "Sum"};
+    std::set<std::string> layers = {"FullyConnected", "Convolutional", "Sum"};
 
     if (layers.count(name) == 0) {
       std::stringstream s;
@@ -81,11 +75,11 @@ class Layer : public AbstractLayer<T> {
 
   int Noutput() const override { return m_->Noutput(); }
 
-  void GetParameters(VectorType &pars, int start_idx) const override {
+  void GetParameters(VectorRefType pars, int start_idx) const override {
     return m_->GetParameters(pars, start_idx);
   }
 
-  void SetParameters(const VectorType &pars, int start_idx) override {
+  void SetParameters(VectorConstRefType pars, int start_idx) override {
     return m_->SetParameters(pars, start_idx);
   }
 

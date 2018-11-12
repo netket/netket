@@ -29,15 +29,17 @@ namespace netket {
 class AbstractActivation {
  public:
   using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using VectorRefType = Eigen::Ref<VectorType>;
+  using VectorConstRefType = Eigen::Ref<const VectorType>;
 
-  virtual void operator()(const VectorType &Z, VectorType &A) = 0;
+  virtual void operator()(VectorConstRefType Z, VectorRefType A) = 0;
 
   // Z is the layer output before applying nonlinear function
   // A = nonlinearfunction(Z)
   // F = dL/dA is the derivative of A wrt the output L = log(psi(v))
   // G is the place to write the output i.e. G = dL/dZ = dL/dA * dA/dZ
-  virtual void ApplyJacobian(const VectorType &Z, const VectorType &A,
-                                    const VectorType &F, VectorType &G) = 0;
+  virtual void ApplyJacobian(VectorConstRefType Z, VectorConstRefType A,
+                             VectorConstRefType F, VectorRefType G) = 0;
   virtual ~AbstractActivation() {}
 };
 
@@ -71,7 +73,7 @@ class Identity : public AbstractActivation {
 
  public:
   // A = Z
-  inline void operator()(const VectorType &Z, VectorType &A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
     A.noalias() = Z;
   }
 
@@ -79,8 +81,8 @@ class Identity : public AbstractActivation {
   // A = Z
   // J = dA / dZ = I
   // G = J * F = F
-  inline void ApplyJacobian(const VectorType & /*Z*/, const VectorType & /*A*/,
-                            const VectorType &F, VectorType &G) override {
+  inline void ApplyJacobian(VectorConstRefType /*Z*/, VectorConstRefType /*A*/,
+                            VectorConstRefType F, VectorRefType G) override {
     G.noalias() = F;
   }
 };
@@ -91,7 +93,7 @@ class Lncosh : public AbstractActivation {
 
  public:
   // A = Lncosh(Z)
-  inline void operator()(const VectorType &Z, VectorType &A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
     for (int i = 0; i < A.size(); ++i) {
       A(i) = lncosh(Z(i));
     }
@@ -101,8 +103,8 @@ class Lncosh : public AbstractActivation {
   // A = Lncosh(Z)
   // J = dA / dZ
   // G = J * F
-  inline void ApplyJacobian(const VectorType &Z, const VectorType & /*A*/,
-                            const VectorType &F, VectorType &G) override {
+  inline void ApplyJacobian(VectorConstRefType Z, VectorConstRefType /*A*/,
+                            VectorConstRefType F, VectorRefType G) override {
     G.array() = F.array() * Z.array().tanh();
   }
 };
@@ -113,7 +115,7 @@ class Tanh : public AbstractActivation {
 
  public:
   // A = Tanh(Z)
-  inline void operator()(const VectorType &Z, VectorType &A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
     A.array() = Z.array().tanh();
   }
 
@@ -121,12 +123,13 @@ class Tanh : public AbstractActivation {
   // A = Tanh(Z)
   // J = dA / dZ
   // G = J * F
-  inline void ApplyJacobian(const VectorType & /*Z*/, const VectorType &A,
-                            const VectorType &F, VectorType &G) override {
+  inline void ApplyJacobian(VectorConstRefType /*Z*/, VectorConstRefType A,
+                            VectorConstRefType F, VectorRefType G) override {
     G.array() = F.array() * (1 - A.array() * A.array());
   }
 };
 
+// TODO remove
 class Activation : public AbstractActivation {
   using Ptype = std::unique_ptr<AbstractActivation>;
 
@@ -137,23 +140,27 @@ class Activation : public AbstractActivation {
 
   explicit Activation(const json &pars) { Init(pars); }
   void Init(const json &pars) {
-    CheckInput(pars);
+    if (FieldExists(pars, "Activation")) {
+      CheckInput(pars);
 
-    if (pars["Activation"] == "Lncosh") {
-      m_ = Ptype(new Lncosh());
+      if (pars["Activation"] == "Lncosh") {
+        m_ = Ptype(new Lncosh());
 
-      InfoMessage() << "Activation: "
-                    << "Lncosh" << std::endl;
-    } else if (pars["Activation"] == "Identity") {
-      m_ = Ptype(new Identity());
+        InfoMessage() << "Activation: "
+                      << "Lncosh" << std::endl;
+      } else if (pars["Activation"] == "Identity") {
+        m_ = Ptype(new Identity());
 
-      InfoMessage() << "Activation: "
-                    << "Identity" << std::endl;
-    } else if (pars["Activation"] == "Tanh") {
-      m_ = Ptype(new Tanh());
+        InfoMessage() << "Activation: "
+                      << "Identity" << std::endl;
+      } else if (pars["Activation"] == "Tanh") {
+        m_ = Ptype(new Tanh());
 
-      InfoMessage() << "Activation: "
-                    << "Tanh" << std::endl;
+        InfoMessage() << "Activation: "
+                      << "Tanh" << std::endl;
+      }
+    } else {
+      InfoMessage() << "No activation function " << std::endl;
     }
   }
 
@@ -169,12 +176,12 @@ class Activation : public AbstractActivation {
     }
   }
 
-  inline void operator()(const VectorType &Z, VectorType &A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
     return m_->operator()(Z, A);
   }
 
-  inline void ApplyJacobian(const VectorType &Z, const VectorType &A,
-                            const VectorType &F, VectorType &G) override {
+  inline void ApplyJacobian(VectorConstRefType Z, VectorConstRefType A,
+                            VectorConstRefType F, VectorRefType G) override {
     return m_->ApplyJacobian(Z, A, F, G);
   }
 };

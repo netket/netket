@@ -15,12 +15,12 @@
 #ifndef NETKET_SGD_HPP
 #define NETKET_SGD_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -34,7 +34,16 @@ class Sgd : public AbstractOptimizer {
 
   double decay_factor_;
 
-public:
+ public:
+  explicit Sgd(double learning_rate, double l2reg = 0,
+               double decay_factor = 1.0)
+      : eta_(learning_rate), l2reg_(l2reg) {
+    npar_ = -1;
+    SetDecayFactor(decay_factor);
+    PrintParameters();
+  }
+
+  // TODO remove
   // Json constructor
   explicit Sgd(const json &pars) {
     npar_ = -1;
@@ -97,6 +106,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif
