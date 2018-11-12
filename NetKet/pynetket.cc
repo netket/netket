@@ -671,15 +671,15 @@ PYBIND11_MODULE(netket, m) {
            py::arg("log_file_name"), py::arg("wavefunc_file_name"),
            py::arg("save_every") = 50);
 
-  py::class_<ImaginaryTimePropagation>(m, "ImaginaryTimePropagation")
-      .def(py::init<ImaginaryTimePropagation::Matrix &,
-                    ImaginaryTimePropagation::Stepper &, JsonOutputWriter &,
+  py::class_<ImaginaryTimeDriver>(m, "ImaginaryTimeDriver")
+      .def(py::init<ImaginaryTimeDriver::Matrix &,
+                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &,
                     double, double, double>(),
            py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
            py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
-      .def("add_observable", &ImaginaryTimePropagation::AddObservable,
-           py::arg("observable"), py::arg("wrapper_type") = "Sparse")
-      .def("run", &ImaginaryTimePropagation::Run, py::arg("initial_state"));
+      .def("add_observable", &ImaginaryTimeDriver::AddObservable,
+           py::arg("observable"), py::arg("name"), py::arg("matrix_type") = "Sparse")
+      .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
 
   py::class_<eddetail::result_t>(m, "EdResult")
       .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)

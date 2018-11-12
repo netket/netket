@@ -14,7 +14,7 @@
 // Provide a method AddObservable, as in VariationalMonteCarlo
 namespace netket {
 
-class ImaginaryTimePropagation {
+class ImaginaryTimeDriver {
  public:
   using State = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<State>;
@@ -23,9 +23,9 @@ class ImaginaryTimePropagation {
   using ObsEntry = std::pair<std::string, std::unique_ptr<Matrix>>;
   using ObservableVector = std::vector<ObsEntry>;
 
-  ImaginaryTimePropagation(Matrix& matrix, Stepper& stepper,
-                           JsonOutputWriter& output, double tmin, double tmax,
-                           double dt)
+  ImaginaryTimeDriver(Matrix& matrix, Stepper& stepper,
+                      JsonOutputWriter& output, double tmin, double tmax,
+                      double dt)
       : matrix_(matrix),
         stepper_(stepper),
         output_(output),
@@ -36,8 +36,9 @@ class ImaginaryTimePropagation {
   }
 
   void AddObservable(const AbstractOperator& observable,
-                     const std::string& name = "Sparse") {
-    auto wrapper = CreateMatrixWrapper(observable, name);
+                     const std::string& name,
+                     const std::string& matrix_type = "Sparse") {
+    auto wrapper = CreateMatrixWrapper(observable, matrix_type);
     observables_.emplace_back(name, std::move(wrapper));
   }
 
