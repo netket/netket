@@ -89,7 +89,7 @@ class Hilbert : public AbstractHilbert {
 
   std::vector<double> LocalStates() const override { return h_->LocalStates(); }
 
-  void RandomVals(Eigen::VectorXd &state,
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                   netket::default_random_engine &rgen) const override {
     return h_->RandomVals(state, rgen);
   }

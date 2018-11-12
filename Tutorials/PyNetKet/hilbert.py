@@ -22,7 +22,7 @@ from mpi4py import MPI
 g=nk.Hypercube(L=10,ndim=1)
 
 # Hilbert space of spins from given graph
-h=nk.Spin(S=0.5,graph=g)
+h=nk.Spin(s=0.5,graph=g)
 
 print(h.LocalStates())
 print(h.Size())
@@ -35,4 +35,11 @@ print(h.LocalStates())
 #Updating visible configurations
 conf=np.array([-1.,1.,1.])
 h.UpdateConf(conf,[0],[1])
+print(conf)
+
+
+#Random states
+rg=nk.RandomEngine(seed=1234)
+conf=np.zeros(h.Size())
+h.RandomVals(conf,rg)
 print(conf)
