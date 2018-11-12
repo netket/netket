@@ -65,7 +65,7 @@ class GroundState {
       vmc.Run();
 
     } else if (method_name == "ImaginaryTimePropagation") {
-      int size;
+      /*int size;
       MPI_Comm_size(MPI_COMM_WORLD, &size);
       if (size > 1) {
         throw InvalidInputError(
@@ -84,7 +84,7 @@ class GroundState {
           Eigen::VectorXcd::Random(driver.GetDimension());
       initial.normalize();
 
-      driver.Run(initial);
+      driver.Run(initial);*/
 
     } else if (method_name == "ED") {
       double precision;
@@ -115,12 +115,10 @@ class GroundState {
       // Evaluate observables
       std::map<std::string, double> observables_results;
       if (FieldExists(pars, "Observables")) {
-        json j;
-        j["MatrixWrapper"] = matrix_format;
         auto observables = Observable::FromJson(hamiltonian.GetHilbert(), pars);
         const auto& state = edresult.eigenvectors[0];
         for (const auto& entry : observables) {
-          const auto& obs = ConstructMatrixWrapper(j, entry);
+          const auto obs = CreateMatrixWrapper(entry, matrix_format);
           const auto value = obs->Mean(state).real();
           observables_results[entry.Name()] = value;
         }

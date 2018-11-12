@@ -36,19 +36,19 @@ class JsonOutputWriter {
    * expectation values)
    * @param wf The filename for the wavefunction data, which is written every \p
    * freqbackup time steps.
-   * @param Frequency for saving the wavefunction. Must be positive or zero (in
-   * which case no states are save).
+   * @param save_every Frequency for saving the wavefunction. Must be positive
+   * or zero (in which case no states are saved).
    */
   JsonOutputWriter(const std::string& log, const std::string& wf,
-                   int freqbackup)
-      : log_stream_(log), wf_stream_name_(wf), freqbackup_(freqbackup) {
+                   int save_every)
+      : log_stream_(log), wf_stream_name_(wf), save_every_(save_every) {
 #ifndef NDEBUG
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     DebugMessage() << "JsonOutputWriter constructed at MPI rank " << rank
                    << std::endl;
 #endif
-    assert(freqbackup >= 0);
+    assert(save_every >= 0);
     log_stream_ << _s_start;
     log_stream_.flush();
   }
@@ -96,10 +96,10 @@ class JsonOutputWriter {
    */
   template <class State>
   void WriteState(int iteration, const State& state) {
-    if (freqbackup_ == 0) {
+    if (save_every_ == 0) {
       return;
     }
-    if (iteration % freqbackup_ == 0) {
+    if (iteration % save_every_ == 0) {
       std::ofstream wf_stream{wf_stream_name_};
       SaveState_Impl(wf_stream, state);
     }
@@ -127,7 +127,7 @@ class JsonOutputWriter {
   std::ofstream log_stream_;
   std::string wf_stream_name_;
 
-  int freqbackup_;
+  int save_every_;
 };
 
 std::string JsonOutputWriter::_s_start = "{\"Output\": [  ]}";

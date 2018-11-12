@@ -57,7 +57,7 @@ class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     return {{mean, var - std::pow(mean, 2)}};
   }
 
-  int GetDimension() const override { return dim_; }
+  int Dimension() const override { return dim_; }
 
   /**
    * @return An Eigen::MatrixXcd containing the matrix elements of the wrapped

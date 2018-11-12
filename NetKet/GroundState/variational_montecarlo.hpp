@@ -23,8 +23,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Operator/abstract_operator.hpp"
 #include "Machine/machine.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"

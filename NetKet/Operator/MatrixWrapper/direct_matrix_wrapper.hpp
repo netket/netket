@@ -57,7 +57,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
     return result;
   }
 
-  int GetDimension() const override { return dim_; }
+  int Dimension() const override { return dim_; }
 };
 
 }  // namespace netket
