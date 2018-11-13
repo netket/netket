@@ -13,16 +13,16 @@
 
 namespace netket {
 
-template <class Wrapped>
-std::unique_ptr<AbstractMatrixWrapper<Wrapped>> CreateMatrixWrapper(
-    const Wrapped& wrapped, const std::string& type = "Sparse") {
-  using Ptr = std::unique_ptr<AbstractMatrixWrapper<Wrapped>>;
+template <class State = Eigen::VectorXcd>
+std::unique_ptr<AbstractMatrixWrapper<State>> CreateMatrixWrapper(
+    const AbstractOperator& wrapped, const std::string& type = "Sparse") {
+  using Ptr = std::unique_ptr<AbstractMatrixWrapper<State>>;
   if (type == "Dense") {
-    return Ptr(new DenseMatrixWrapper<Wrapped>(wrapped));
+    return Ptr(new DenseMatrixWrapper<State>(wrapped));
   } else if (type == "Direct") {
-    return Ptr(new DirectMatrixWrapper<Wrapped>(wrapped));
+    return Ptr(new DirectMatrixWrapper<State>(wrapped));
   } else if (type == "Sparse") {
-    return Ptr(new SparseMatrixWrapper<Wrapped>(wrapped));
+    return Ptr(new SparseMatrixWrapper<State>(wrapped));
   } else {
     std::stringstream str;
     str << "Unknown matrix wrapper: " << type;

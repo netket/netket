@@ -18,7 +18,7 @@ class ImaginaryTimeDriver {
  public:
   using State = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<State>;
-  using Matrix = AbstractMatrixWrapper<AbstractOperator>;
+  using Matrix = AbstractMatrixWrapper<>;
 
   using ObsEntry = std::pair<std::string, std::unique_ptr<Matrix>>;
   using ObservableVector = std::vector<ObsEntry>;
