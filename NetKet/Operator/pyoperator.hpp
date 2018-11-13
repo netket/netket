@@ -95,30 +95,30 @@ void AddOperatorModule(py::module &m) {
           ADDOPERATORMETHODS(BoseHubbard);
 
   // Matrix wrappers
-  py::class_<AbstractMatrixWrapper<>>(m, "AbstractMatrixWrapper<>")
+  py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")
       .def("apply", &AbstractMatrixWrapper<>::Apply, py::arg("state"))
       .def_property_readonly("dimension", &AbstractMatrixWrapper<>::Dimension);
 
   py::class_<SparseMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      m, "SparseMatrixWrapper")
+      subm, "SparseMatrixWrapper")
       .def(py::init<const AbstractOperator &>(), py::arg("operator"))
       // property name starts with underscore to mark as internal per PEP8
       .def_property_readonly("_matrix", &SparseMatrixWrapper<>::GetMatrix)
       .def_property_readonly("dimension", &SparseMatrixWrapper<>::Dimension);
 
   py::class_<DenseMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      m, "DenseMatrixWrapper")
+      subm, "DenseMatrixWrapper")
       .def(py::init<const AbstractOperator &>(), py::arg("operator"))
       // property name starts with underscore to mark as internal per PEP8
       .def_property_readonly("_matrix", &DenseMatrixWrapper<>::GetMatrix)
       .def_property_readonly("dimension", &DenseMatrixWrapper<>::Dimension);
 
   py::class_<DirectMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      m, "DirectMatrixWrapper")
+      subm, "DirectMatrixWrapper")
       .def(py::init<const AbstractOperator &>(), py::arg("operator"))
       .def_property_readonly("dimension", &DirectMatrixWrapper<>::Dimension);
 
-  m.def("wrap_operator", &CreateMatrixWrapper<>, py::arg("operator"),
+  subm.def("wrap_as_matrix", &CreateMatrixWrapper<>, py::arg("operator"),
         py::arg("type") = "Sparse");
 }
 
