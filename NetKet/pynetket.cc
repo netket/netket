@@ -24,6 +24,8 @@
 #include <complex>
 #include <vector>
 #include "Hilbert/pyhilbert.hpp"
+#include "Graph/pygraph.hpp"
+#include "Operator/pyoperator.hpp"
 #include "netket.hpp"
 
 namespace py = pybind11;
@@ -56,106 +58,9 @@ PYBIND11_MODULE(netket, m) {
   py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
       .def(py::init<>());
 
-  py::class_<AbstractGraph>(m, "Graph")
-      .def("Nsites", &AbstractGraph::Nsites)
-      .def("AdjacencyList", &AbstractGraph::AdjacencyList)
-      .def("SymmetryTable", &AbstractGraph::SymmetryTable)
-      .def("EdgeColors", &AbstractGraph::EdgeColors)
-      .def("IsBipartite", &AbstractGraph::IsBipartite)
-      .def("IsConnected", &AbstractGraph::IsConnected)
-      .def("Distances", &AbstractGraph::Distances)
-      .def("AllDistances", &AbstractGraph::AllDistances);
-
-  py::class_<Hypercube, AbstractGraph>(m, "Hypercube")
-      .def(py::init<int, int, bool, std::vector<std::vector<int>>>(),
-           py::arg("L"), py::arg("ndim"), py::arg("pbc") = true,
-           py::arg("edgecolors") = std::vector<std::vector<int>>())
-      .def("Nsites", &Hypercube::Nsites)
-      .def("AdjacencyList", &Hypercube::AdjacencyList)
-      .def("SymmetryTable", &Hypercube::SymmetryTable)
-      .def("EdgeColors", &Hypercube::EdgeColors)
-      .def("IsBipartite", &Hypercube::IsBipartite)
-      .def("IsConnected", &Hypercube::IsConnected)
-      .def("Distances", &Hypercube::Distances)
-      .def("AllDistances", &Hypercube::AllDistances);
-
-  py::class_<CustomGraph, AbstractGraph>(m, "CustomGraph")
-      .def(
-          py::init<int, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, bool>(),
-          py::arg("size") = 0,
-          py::arg("adjacency_list") = std::vector<std::vector<int>>(),
-          py::arg("edges") = std::vector<std::vector<int>>(),
-          py::arg("automorphisms") = std::vector<std::vector<int>>(),
-          py::arg("edgecolors") = std::vector<std::vector<int>>(),
-          py::arg("is_bipartite") = false)
-      .def("Nsites", &CustomGraph::Nsites)
-      .def("AdjacencyList", &CustomGraph::AdjacencyList)
-      .def("SymmetryTable", &CustomGraph::SymmetryTable)
-      .def("EdgeColors", &CustomGraph::EdgeColors)
-      .def("IsBipartite", &CustomGraph::IsBipartite)
-      .def("IsConnected", &CustomGraph::IsConnected)
-      .def("Distances", &CustomGraph::Distances)
-      .def("AllDistances", &CustomGraph::AllDistances);
-
+  AddGraphModule(m);
   AddHilbertModule(m);
-
-  py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
-      .def("GetConn", &AbstractOperator::GetConn)
-      .def("GetHilbert", &AbstractOperator::GetHilbert);
-
-  py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
-      m, "LocalOperator")
-      .def(
-          py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
-                   std::vector<LocalOperator::SiteType>>(),
-          py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
-      .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
-                    LocalOperator::SiteType>(),
-           py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("GetConn", &LocalOperator::GetConn)
-      .def("GetHilbert", &LocalOperator::GetHilbert)
-      .def("LocalMatrices", &LocalOperator::LocalMatrices)
-      .def(py::self += py::self)
-      .def(py::self *= double())
-      .def(py::self *= std::complex<double>())
-      .def(py::self * py::self);
-  // .def(double() * py::self)
-  // .def(py::self * double())
-  // .def(std::complex<double>() * py::self)
-  // .def(py::self * std::complex<double>());
-
-  py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(m, "Ising")
-      .def(py::init<const AbstractHilbert &, double, double>(),
-           py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
-      .def("GetConn", &Ising::GetConn)
-      .def("GetHilbert", &Ising::GetHilbert);
-
-  py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
-      m, "Heisenberg")
-      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-      .def("GetConn", &Heisenberg::GetConn)
-      .def("GetHilbert", &Heisenberg::GetHilbert);
-
-  py::class_<GraphHamiltonian, AbstractOperator,
-             std::shared_ptr<GraphHamiltonian>>(m, "GraphHamiltonian")
-      .def(py::init<const AbstractHilbert &, GraphHamiltonian::OVecType,
-                    GraphHamiltonian::OVecType, std::vector<int>>(),
-           py::arg("hilbert"),
-           py::arg("siteops") = GraphHamiltonian::OVecType(),
-           py::arg("bondops") = GraphHamiltonian::OVecType(),
-           py::arg("bondops_colors") = std::vector<int>())
-      .def("GetConn", &GraphHamiltonian::GetConn)
-      .def("GetHilbert", &GraphHamiltonian::GetHilbert);
-
-  py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
-      m, "BoseHubbard")
-      .def(py::init<const AbstractHilbert &, double, double, double>(),
-           py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
-           py::arg("mu") = 0.)
-      .def("GetConn", &BoseHubbard::GetConn)
-      .def("GetHilbert", &BoseHubbard::GetHilbert);
+  AddOperatorModule(m);
 
   py::class_<AbstractMatrixWrapper<AbstractOperator>>(m,
                                                       "AbstractMatrixWrapper")

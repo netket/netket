@@ -20,20 +20,20 @@ from mpi4py import MPI
 import scipy.sparse as sparse
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=4,ndim=1)
+g = nk.graph.Hypercube(L=4, ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.hilbert.Spin(s=0.5,graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 #Hamiltonian
-ha=nk.Ising(h=1.0,hilbert=hi)
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 #Machine
-ma=nk.RbmSpin(hilbert=hi,alpha=1)
-ma.InitRandomPars(seed=1234,sigma=0.1)
+ma = nk.RbmSpin(hilbert=hi, alpha=1)
+ma.InitRandomPars(seed=1234, sigma=0.1)
 
 #Sampler
-sa=nk.MetropolisLocal(machine=ma)
+sa = nk.MetropolisLocal(machine=ma)
 sa.Reset(True)
 print(sa.Visible())
 sa.Sweep()
