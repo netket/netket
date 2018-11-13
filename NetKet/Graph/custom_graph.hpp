@@ -25,13 +25,37 @@
 
 namespace netket {
 
+namespace detail {
+/// Constructs the adjacency list given graph edges. No sanity checks are
+/// performed. Use at your own risk!
+std::vector<std::vector<int>> AdjacencyListFromEdges(
+    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
+  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
+  std::vector<std::vector<int>> adjacency_list(
+      static_cast<std::size_t>(number_sites));
+  for (auto const &edge : edges) {
+    adjacency_list[edge[0]].push_back(edge[1]);
+    adjacency_list[edge[1]].push_back(edge[0]);
+  }
+  return adjacency_list;
+}
+}  // namespace detail
+
 /**
     Class for user-defined graphs
     The list of edges and nodes is read from a json input file.
 */
 class CustomGraph : public AbstractGraph {
+ public:
+  using AbstractGraph::Edge;
+  using AbstractGraph::ColorMap;
+
+ private:
   // adjacency list
+  // TODO(twesterhout): To be removed
   std::vector<std::vector<int>> adjlist_;
+  // List of edges
+  std::vector<Edge> edges_;
 
   ColorMap eclist_;
 
@@ -43,6 +67,8 @@ class CustomGraph : public AbstractGraph {
   bool is_connected_;
 
  public:
+
+#if 0 // TODO(twesterhout): To be removed
   explicit CustomGraph(
       int size = 0,
       std::vector<std::vector<int>> adjl = std::vector<std::vector<int>>(),
@@ -55,7 +81,41 @@ class CustomGraph : public AbstractGraph {
       : adjlist_(adjl), isbipartite_(isbipartite) {
     Init(size, edges, automorphisms, edgecolors);
   }
+#endif
 
+  CustomGraph(std::vector<Edge> edges, ColorMap colors = ColorMap(),
+              std::vector<std::vector<int>> automorphisms =
+                  std::vector<std::vector<int>>(),
+              bool isbipartite = false)
+      : edges_{std::move(edges)},
+        eclist_{std::move(colors)},
+        automorphisms_{std::move(automorphisms)},
+        isbipartite_{isbipartite} {
+    nsites_ = CheckEdges();
+    if (nsites_ == 0) {
+      throw std::invalid_argument{"Empty graphs are not supported."};
+    }
+    if (eclist_.empty() && !edges_.empty()) {
+      for (auto const &edge : edges_) {
+        eclist_.emplace(edge, 0);
+      }
+    } else {
+      CheckEdgeColors();
+    }
+    if (!automorphisms_.empty()) {
+      CheckAutomorph();
+    } else {
+      automorphisms_.resize(1);
+      automorphisms_.front().resize(static_cast<std::size_t>(nsites_));
+      std::iota(std::begin(automorphisms_.front()),
+                std::end(automorphisms_.front()), 0);
+    }
+    // NOTE(twesterhout): For backward compatibility
+    adjlist_ = detail::AdjacencyListFromEdges(edges_, nsites_);
+    is_connected_ = ComputeConnected();
+  }
+
+#if 0 // TODO(twesterhout): To be removed
   void Init(int size, const std::vector<std::vector<int>> &edges,
             const std::vector<std::vector<int>> &automorphisms,
             const std::vector<std::vector<int>> &edgecolors) {
@@ -107,6 +167,7 @@ class CustomGraph : public AbstractGraph {
                     << std::endl;
     }
   }
+#endif
 
   // TODO remove
   template <class Ptype>
@@ -223,6 +284,29 @@ class CustomGraph : public AbstractGraph {
         }
       }
     }
+  }
+
+  /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.
+  /// the number of nodes
+  int CheckEdges() const {
+    if (edges_.empty()) {
+      return 0;
+    }
+    int min = 0;
+    int max = -1;
+    for (auto const &edge : edges_) {
+      if (edge[0] > edge[1]) {
+        throw std::invalid_argument{
+            "For each edge i<->j, i must not be greater than j"};
+      }
+      if (edge[0] < min) min = edge[0];
+      if (edge[1] > max) max = edge[1];
+    }
+    if (min < 0) {
+      throw std::invalid_argument{"Nodes act as indices and should be >=0"};
+    }
+    assert(max >= min && "Bug! Postcondition violated");
+    return max + 1;
   }
 
   void CheckAutomorph() {
