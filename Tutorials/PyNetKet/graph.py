@@ -17,14 +17,13 @@ import netket as nk
 import networkx as nx
 from mpi4py import MPI
 
-g=nk.Hypercube(L=10,ndim=1)
+g = nk.graph.Hypercube(L=10, ndim=1)
 print(g.Distances(1))
 print(g.IsBipartite())
 print(g.IsConnected())
 
-
-Gx=nx.star_graph(10)
-g=nk.CustomGraph(edges=list(Gx.edges))
+Gx = nx.star_graph(10)
+g = nk.graph.CustomGraph(edges=list(Gx.edges))
 print(g.Distances(0))
 print(g.IsConnected())
 print(g.AdjacencyList())

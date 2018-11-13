@@ -16,40 +16,42 @@ from __future__ import print_function
 import netket as nk
 from mpi4py import MPI
 
-
-L=20
+L = 20
 #Constructing a 1d lattice
-g=nk.Hypercube(L=L,ndim=1)
+g = nk.graph.Hypercube(L=L, ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.hilbert.Spin(s=0.5,graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 #Hamiltonian
-ha=nk.Ising(h=1.0,hilbert=hi)
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 #Machine
-ma=nk.RbmSpin(hilbert=hi,alpha=1)
-ma.InitRandomPars(seed=1234,sigma=0.01)
+ma = nk.RbmSpin(hilbert=hi, alpha=1)
+ma.InitRandomPars(seed=1234, sigma=0.01)
 
 #Sampler
-sa=nk.MetropolisLocal(machine=ma)
+sa = nk.MetropolisLocal(machine=ma)
 
 #Optimizer
-op=nk.Sgd(learning_rate=0.1)
-
+op = nk.Sgd(learning_rate=0.1)
 
 #Variational Monte Carlo
-gs=nk.Vmc(hamiltonian=ha,sampler=sa,
-          optimizer=op,nsamples=4000,
-          niter_opt=300,output_file='test',
-          diag_shift=0.1,method='Sr')
-
+gs = nk.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    nsamples=4000,
+    niter_opt=300,
+    output_file='test',
+    diag_shift=0.1,
+    method='Sr')
 
 #Adding an observable
 #The sum of sigma_x on all sites
-X=[[0,1],[1,0]]
-sx=nk.LocalOperator(hi,[X]*L,[[i] for i in range(L)])
-gs.AddObservable(sx,"SigmaX")
+X = [[0, 1], [1, 0]]
+sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
+gs.AddObservable(sx, "SigmaX")
 
 #Running the optimization
 gs.Run()

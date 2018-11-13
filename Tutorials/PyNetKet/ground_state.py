@@ -17,28 +17,32 @@ import netket as nk
 from mpi4py import MPI
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=20,ndim=1)
+g = nk.graph.Hypercube(L=20, ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.hilbert.Spin(s=0.5,graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 #Hamiltonian
-ha=nk.Ising(h=1.0,hilbert=hi)
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 #Machine
-ma=nk.RbmSpin(hilbert=hi,alpha=1)
-ma.InitRandomPars(seed=1234,sigma=0.01)
+ma = nk.RbmSpin(hilbert=hi, alpha=1)
+ma.InitRandomPars(seed=1234, sigma=0.01)
 
 #Sampler
-sa=nk.MetropolisLocal(machine=ma)
+sa = nk.MetropolisLocal(machine=ma)
 
 #Optimizer
-op=nk.Sgd(learning_rate=0.1)
-
+op = nk.Sgd(learning_rate=0.1)
 
 #Variational Monte Carlo
-gs=nk.Vmc(hamiltonian=ha,sampler=sa,
-          optimizer=op,nsamples=1000,
-          niter_opt=3000,output_file='test',
-          diag_shift=0.1,method='Sr')
+gs = nk.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    nsamples=1000,
+    niter_opt=3000,
+    output_file='test',
+    diag_shift=0.1,
+    method='Sr')
 gs.Run()

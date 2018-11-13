@@ -16,35 +16,45 @@ from __future__ import print_function
 import netket as nk
 from mpi4py import MPI
 
-L=20
+L = 20
 
 #Constructing a 1d lattice
-g=nk.Hypercube(L=L,ndim=1)
+g = nk.graph.Hypercube(L=L, ndim=1)
 
 # Hilbert space of spins from given graph
-hi=nk.Spin(s=0.5,total_sz=0,graph=g)
+hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 
 #Hamiltonian
-ha=nk.Heisenberg(hilbert=hi)
+ha = nk.operator.Heisenberg(hilbert=hi)
 
 #Layers
-act=nk.Lncosh()
-layers=[nk.Convolutional(graph=g,activation=act,input_channels=1,output_channels=4,distance=4)]
+act = nk.Lncosh()
+layers = [
+    nk.Convolutional(
+        graph=g,
+        activation=act,
+        input_channels=1,
+        output_channels=4,
+        distance=4)
+]
 
 #FFNN Machine
-ma=nk.FFNN(hi,layers)
-ma.InitRandomPars(seed=1234,sigma=0.1)
-
+ma = nk.FFNN(hi, layers)
+ma.InitRandomPars(seed=1234, sigma=0.1)
 
 #Sampler
-sa=nk.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
+sa = nk.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 
 #Optimizer
-op=nk.Sgd(learning_rate=0.01)
+op = nk.Sgd(learning_rate=0.01)
 
 #Variational Monte Carlo
-gs=nk.Vmc(hamiltonian=ha,sampler=sa,
-          optimizer=op,nsamples=1000,
-          niter_opt=300,output_file='test',
-          diag_shift=0.01)
+gs = nk.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    nsamples=1000,
+    niter_opt=300,
+    output_file='test',
+    diag_shift=0.01)
 gs.Run()
