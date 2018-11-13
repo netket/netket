@@ -93,7 +93,7 @@ class CustomGraph : public AbstractGraph {
         isbipartite_{isbipartite} {
     nsites_ = CheckEdges();
     if (nsites_ == 0) {
-      throw std::invalid_argument{"Empty graphs are not supported."};
+      throw InvalidInputError{"Empty graphs are not supported."};
     }
     if (eclist_.empty() && !edges_.empty()) {
       for (auto const &edge : edges_) {
@@ -296,14 +296,14 @@ class CustomGraph : public AbstractGraph {
     int max = -1;
     for (auto const &edge : edges_) {
       if (edge[0] > edge[1]) {
-        throw std::invalid_argument{
+        throw InvalidInputError{
             "For each edge i<->j, i must not be greater than j"};
       }
       if (edge[0] < min) min = edge[0];
       if (edge[1] > max) max = edge[1];
     }
     if (min < 0) {
-      throw std::invalid_argument{"Nodes act as indices and should be >=0"};
+      throw InvalidInputError{"Nodes act as indices and should be >=0"};
     }
     assert(max >= min && "Bug! Postcondition violated");
     return max + 1;
