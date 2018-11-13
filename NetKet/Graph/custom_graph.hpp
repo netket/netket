@@ -25,22 +25,6 @@
 
 namespace netket {
 
-namespace detail {
-/// Constructs the adjacency list given graph edges. No sanity checks are
-/// performed. Use at your own risk!
-std::vector<std::vector<int>> AdjacencyListFromEdges(
-    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
-  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
-  std::vector<std::vector<int>> adjacency_list(
-      static_cast<std::size_t>(number_sites));
-  for (auto const &edge : edges) {
-    adjacency_list[edge[0]].push_back(edge[1]);
-    adjacency_list[edge[1]].push_back(edge[0]);
-  }
-  return adjacency_list;
-}
-}  // namespace detail
-
 /**
     Class for user-defined graphs
     The list of edges and nodes is read from a json input file.
