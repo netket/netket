@@ -41,7 +41,7 @@ TEST_CASE("Full / Lanczos ED give same ground state energy", "[ground state]") {
                        result_lanczos.eigenvalues[0]) < 1e-12);
 
       // Check whether ground state has lowest eigenvalue energy
-      auto mat = netket::SparseMatrixWrapper<netket::Hamiltonian>(hamiltonian);
+      auto mat = netket::SparseMatrixWrapper<>(hamiltonian);
       result_lanczos = lanczos_ed(hamiltonian, false, 1, 1000, 42, 1e-12, true);
       const auto state_lanczos = result_lanczos.eigenvectors[0];
       auto mean_variance_lanczos = mat.MeanVariance(state_lanczos);

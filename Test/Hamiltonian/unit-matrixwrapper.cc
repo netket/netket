@@ -91,7 +91,7 @@ TEST_CASE("SparseMatrixWrapper for Hamiltonian is Hermitian",
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      netket::SparseMatrixWrapper<netket::Hamiltonian> hmat(hamiltonian);
+      netket::SparseMatrixWrapper<> hmat(hamiltonian);
 
       const auto& matrix = hmat.GetMatrix();
       REQUIRE(matrix.isApprox(matrix.adjoint()));
@@ -113,7 +113,7 @@ TEST_CASE("DenseMatrixWrapper for Hamiltonian is Hermitian",
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      netket::DenseMatrixWrapper<netket::Hamiltonian> hmat(hamiltonian);
+      netket::DenseMatrixWrapper<> hmat(hamiltonian);
 
       const auto& matrix = hmat.GetMatrix();
       REQUIRE(matrix.isApprox(matrix.adjoint()));
@@ -135,13 +135,13 @@ TEST_CASE("DirectMatrixWrapper gives same results as SparseMatrixWrapper",
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      netket::DirectMatrixWrapper<netket::Hamiltonian> direct(hamiltonian);
-      netket::SparseMatrixWrapper<netket::Hamiltonian> sparse(hamiltonian);
+      netket::DirectMatrixWrapper<> direct(hamiltonian);
+      netket::SparseMatrixWrapper<> sparse(hamiltonian);
 
-      Eigen::VectorXcd basis(direct.GetDimension());
-      Eigen::VectorXcd direct_result(direct.GetDimension());
-      Eigen::VectorXcd sparse_result(direct.GetDimension());
-      for (int i = 0; i < direct.GetDimension(); i++) {
+      Eigen::VectorXcd basis(direct.Dimension());
+      Eigen::VectorXcd direct_result(direct.Dimension());
+      Eigen::VectorXcd sparse_result(direct.Dimension());
+      for (int i = 0; i < direct.Dimension(); i++) {
         basis.setZero();
         basis(i) = 1.0;
         direct_result = direct.Apply(basis);
@@ -172,7 +172,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
 
   // check whether the correct eigenvalues are computed
   {
-    netket::DenseMatrixWrapper<netket::Observable> dense(obs);
+    netket::DenseMatrixWrapper<> dense(obs);
 
     auto ed = dense.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
@@ -183,7 +183,7 @@ TEST_CASE("MatrixWrappers compute correct eigenvalues", "[matrix-wrapper]") {
     CHECK(eigs(1) == Approx(sqrt5));
   }
   {
-    netket::SparseMatrixWrapper<netket::Observable> sparse(obs);
+    netket::SparseMatrixWrapper<> sparse(obs);
 
     auto ed = sparse.ComputeEigendecomposition();
     auto eigs = ed.eigenvalues();
