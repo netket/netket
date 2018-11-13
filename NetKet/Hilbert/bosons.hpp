@@ -124,7 +124,7 @@ class Boson : public AbstractHilbert {
 
   std::vector<double> LocalStates() const override { return local_; }
 
-  void RandomVals(Eigen::VectorXd &state,
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                   netket::default_random_engine &rgen) const override {
     assert(state.size() == nsites_);
 
