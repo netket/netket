@@ -104,12 +104,13 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
+       export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
   # Get all required Python packages
-  - pip install numpy scipy matplotlib networkx pytest --user	
+  - pip install numpy scipy matplotlib networkx pytest mpi4py --user	
 
   # show OS/compiler version
   - uname -a
