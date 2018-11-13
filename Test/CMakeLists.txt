@@ -102,7 +102,7 @@ foreach(_file ${PY_TEST_SOURCES})
   # Add tests
   add_test(
     NAME ${testcase}
-    COMMAND py.test -s --verbose ${_file}
+    COMMAND pytest -s --verbose ${_file}
     )
 
 endforeach()
