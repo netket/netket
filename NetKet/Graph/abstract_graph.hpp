@@ -180,6 +180,43 @@ class AbstractGraph {
                                std::vector<bool> &seen) const;
 };
 
+namespace detail {
+/// Constructs the adjacency list given graph edges. No sanity checks are
+/// performed. Use at your own risk!
+std::vector<std::vector<int>> AdjacencyListFromEdges(
+    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
+  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
+  std::vector<std::vector<int>> adjacency_list(
+      static_cast<std::size_t>(number_sites));
+  for (auto const &edge : edges) {
+    adjacency_list[edge[0]].push_back(edge[1]);
+    adjacency_list[edge[1]].push_back(edge[0]);
+  }
+  return adjacency_list;
+}
+
+int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
+  if (edges.empty()) {
+    return 0;
+  }
+  int min = 0;
+  int max = -1;
+  for (auto const &edge : edges) {
+    if (edge[0] > edge[1]) {
+      throw InvalidInputError{
+          "For each edge i<->j, i must not be greater than j"};
+    }
+    if (edge[0] < min) min = edge[0];
+    if (edge[1] > max) max = edge[1];
+  }
+  if (min < 0) {
+    throw InvalidInputError{"Nodes act as indices and should be >=0"};
+  }
+  assert(max >= min && "Bug! Postcondition violated");
+  return max + 1;
+}
+}  // namespace detail
+
 }  // namespace netket
 
 #include "graph_functions_impl.hpp"
