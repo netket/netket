@@ -116,7 +116,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
       edges.push_back(edge);
       if (!colours.emplace(edge, std::get<2>(x)).second) {
         // Failed to insert an edge because it already exists
-        throw std::invalid_argument{"Edge list contains duplicates."};
+        throw InvalidInputError{"Edge list contains duplicates."};
       }
     }
     return std::forward<Function>(callback)(std::move(edges),
@@ -132,7 +132,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
   // purposes.
   std::sort(begin(edges), end(edges));
   if (std::unique(begin(edges), end(edges)) != end(edges)) {
-    throw std::invalid_argument{"Edge list contains duplicates."};
+    throw InvalidInputError{"Edge list contains duplicates."};
   }
   return std::forward<Function>(callback)(std::move(edges));
 }
