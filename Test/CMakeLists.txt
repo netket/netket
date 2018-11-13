@@ -69,3 +69,40 @@ foreach(_file ${TEST_SOURCES})
    # )
    # set_tests_properties("${testcase}_all" PROPERTIES LABELS "all")
 endforeach()
+
+# Python Tests
+message(STATUS ${CMAKE_CURRENT_SOURCE_DIR})
+# Single call to pytest means that all tests are lumped together -jamesETsmith
+#add_test(
+#	NAME "Python_Tests"
+#	COMMAND py.test -s --verbose ${CMAKE_CURRENT_SOURCE_DIR}
+#)
+
+file(GLOB PY_TEST_SOURCES
+    Dynamics/*.py
+    Graph/*.py
+    GroundState/*.py
+    Operator/*.py
+    Hilbert/*.py
+    Machine/*.py
+    Observable/*.py
+    Sampler/*.py
+    Stats/*.py
+    Utils/*.py
+    Optimizer/*.py
+    )
+
+
+# Make tests for all python files
+foreach(_file ${PY_TEST_SOURCES})
+  # Strip filename
+  get_filename_component(_file_basename ${_file} NAME_WE)
+  string(REGEX REPLACE "unit-(.+)" "python-test-\\1" testcase ${_file_basename})
+
+  # Add tests
+  add_test(
+    NAME ${testcase}
+    COMMAND py.test -s --verbose ${_file}
+    )
+
+endforeach()

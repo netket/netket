@@ -108,6 +108,9 @@ script:
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
+  # Get all required Python packages
+  - pip install numpy scipy matplotlib networkx pytest --user	
+
   # show OS/compiler version
   - uname -a
   - $CXX --version
