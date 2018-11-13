@@ -90,13 +90,11 @@ eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
   int which_eigenvector = get_groundstate ? 0 : -1;
 
   if (matrix_free) {
-    using matrix_t = DirectMatrixWrapper<AbstractOperator>;
-    matrix_t matrix(hamiltonian);
+    DirectMatrixWrapper<> matrix(hamiltonian);
     results =
         eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);
   } else {  // computation using Sparse matrix
-    using matrix_t = SparseMatrixWrapper<AbstractOperator>;
-    matrix_t matrix(hamiltonian);
+    SparseMatrixWrapper<> matrix(hamiltonian);
     results =
         eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);
   }
@@ -109,7 +107,7 @@ eddetail::result_t full_ed(const Hamiltonian& hamiltonian, int first_n = 1,
   using eigen_solver_t =
       Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<std::complex<double>>>;
 
-  SparseMatrixWrapper<Hamiltonian> matrix(hamiltonian);
+  SparseMatrixWrapper<> matrix(hamiltonian);
 
   eddetail::result_t results;
   results.which_eigenvector = get_groundstate ? 0 : -1;

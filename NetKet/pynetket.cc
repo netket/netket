@@ -64,23 +64,6 @@ PYBIND11_MODULE(netket, m) {
   AddOperatorModule(m);
   ode::AddDynamicsModule(m);
 
-  py::class_<AbstractMatrixWrapper<AbstractOperator>>(m,
-                                                      "AbstractMatrixWrapper")
-      .def("apply", &AbstractMatrixWrapper<AbstractOperator>::Apply,
-           py::arg("state"))
-      .def_property_readonly(
-          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
-
-  py::class_<SparseMatrixWrapper<AbstractOperator>,
-             AbstractMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
-      .def("GetMatrix", &SparseMatrixWrapper<AbstractOperator>::GetMatrix)
-      .def_property_readonly(
-          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
-
-  m.def("wrap_operator", &CreateMatrixWrapper<AbstractOperator>,
-        py::arg("operator"), py::arg("type") = "Sparse");
-
   using MachineType = std::complex<double>;
   using AbMachineType = AbstractMachine<MachineType>;
   py::class_<AbMachineType>(m, "Machine")
