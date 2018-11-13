@@ -23,8 +23,9 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "Hilbert/pyhilbert.hpp"
+#include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
+#include "Hilbert/pyhilbert.hpp"
 #include "Operator/pyoperator.hpp"
 #include "netket.hpp"
 
@@ -61,6 +62,7 @@ PYBIND11_MODULE(netket, m) {
   AddGraphModule(m);
   AddHilbertModule(m);
   AddOperatorModule(m);
+  ode::AddDynamicsModule(m);
 
   py::class_<AbstractMatrixWrapper<AbstractOperator>>(m,
                                                       "AbstractMatrixWrapper")
@@ -592,12 +594,13 @@ PYBIND11_MODULE(netket, m) {
 
   py::class_<ImaginaryTimeDriver>(m, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,
-                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &,
-                    double, double, double>(),
+                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &, double,
+                    double, double>(),
            py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
            py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
       .def("add_observable", &ImaginaryTimeDriver::AddObservable,
-           py::arg("observable"), py::arg("name"), py::arg("matrix_type") = "Sparse")
+           py::arg("observable"), py::arg("name"),
+           py::arg("matrix_type") = "Sparse")
       .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
 
   py::class_<eddetail::result_t>(m, "EdResult")
@@ -610,16 +613,6 @@ PYBIND11_MODULE(netket, m) {
         py::arg("matrix_free") = false, py::arg("first_n") = 1,
         py::arg("max_iter") = 1000, py::arg("seed") = 42,
         py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
-
-  {
-    using State = Eigen::VectorXcd;
-
-    using State = Eigen::VectorXcd;
-    py::class_<ode::AbstractTimeStepper<State>>(m, "AbstractTimeStepper");
-
-    m.def("create_timestepper", &ode::CreateStepper<State>, py::arg("dim"),
-          py::arg("name") = "Dopri54");
-  }
 
 }  // PYBIND11_MODULE
 

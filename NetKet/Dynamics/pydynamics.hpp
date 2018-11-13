@@ -1,11 +1,13 @@
-#ifndef TIME_STEPPER_HPP
-#define TIME_STEPPER_HPP
-
 #include <pybind11/pybind11.h>
-#include <memory>
+#include <Eigen/Dense>
+
 #include "Utils/pybind_helpers.hpp"
-#include "controlled_time_steppers.hpp"
-#include "explicit_time_steppers.hpp"
+
+#include "TimeStepper/abstract_time_stepper.hpp"
+#include "TimeStepper/controlled_time_steppers.hpp"
+#include "TimeStepper/explicit_time_steppers.hpp"
+
+namespace py = pybind11;
 
 namespace netket {
 namespace ode {
@@ -51,7 +53,16 @@ std::unique_ptr<AbstractTimeStepper<State>> CreateStepper(
   }
 }
 
+void AddDynamicsModule(py::module& m) {
+  auto subm = m.def_submodule("dynamics");
+
+  using State = Eigen::VectorXcd;
+
+  py::class_<ode::AbstractTimeStepper<State>>(subm, "AbstractTimeStepper");
+
+  subm.def("create_timestepper", &ode::CreateStepper<State>, py::arg("dim"),
+           py::arg("name") = "Dopri54");
+}
+
 }  // namespace ode
 }  // namespace netket
-
-#endif  // TIME_STEPPER_HPP
