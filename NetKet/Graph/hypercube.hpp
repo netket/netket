@@ -17,6 +17,7 @@
 
 #include <mpi.h>
 #include <array>
+#include <algorithm>
 #include <cassert>
 #include <map>
 #include <unordered_map>
@@ -27,15 +28,17 @@
 namespace netket {
 
 class Hypercube : public AbstractGraph {
-  // edge of the hypercube
-  const int L_;
+  int L_;                    //< Side length of the hypercube
+  int ndim_;                 //< Number of dimensions
+  int nsites_;               //< Total number of nodes in the graph
+  bool pbc_;                 //< Whether to use periodic boundary conditions
+  std::vector<Edge> edges_;  //< List of graph edges
+  std::vector<std::vector<int>>
+      symm_table_;   //< Vector of permutations (translations actually) under
+                     //  which the graph is invariant
+  ColorMap colors_;  //< Edge to color mapping
 
-  // number of dimensions
-  const int ndim_;
-
-  // whether to use periodic boundary conditions
-  const bool pbc_;
-
+#if 1 // TODO(twesterhout): This is to be removed
   // contains sites coordinates
   std::vector<std::vector<int>> sites_;
 
@@ -47,16 +50,216 @@ class Hypercube : public AbstractGraph {
 
   // Edge colors
   ColorMap eclist_;
-
-  int nsites_;
+#endif
 
  public:
+  Hypercube(int const L, int const ndim = 1, bool pbc = true)
+      : L_{L}, ndim_{ndim}, pbc_{pbc}, edges_{}, symm_table_{} {
+    if (L < 1) {
+      throw InvalidInputError{
+          "Side length of the hypercube must be at least 1"};
+    } else if (L <= 2 && pbc) {
+      throw InvalidInputError{
+          "L<=2 hypercubes cannot have periodic boundary conditions"};
+    }
+    if (ndim < 1) {
+      throw InvalidInputError{"Hypercube dimension must be at least 1"};
+    }
+
+    std::tie(nsites_, edges_) = BuildEdges(L, ndim, pbc);
+    symm_table_ = BuildSymmTable(L, ndim, pbc, nsites_);
+
+    colors_.reserve(nsites_);
+    for (auto const &edge : edges_) {
+      colors_.emplace(edge, 0);
+    }
+  }
+
+  // TODO(twesterhout): L is strictly speaking not needed, but then the logic
+  // becomes too complicated for my taste :)
+  // Also, the performance of this function will probably be pretty bad, by I
+  // don't think it matters much.
+  Hypercube(int const L, ColorMap colors)
+      : L_{L},
+        ndim_{},
+        pbc_{},
+        edges_{},
+        symm_table_{},
+        colors_{std::move(colors)} {
+    using std::begin;
+    using std::end;
+    if (colors_.empty()) {
+      throw InvalidInputError{
+          "Side length of the hypercube must be at least 1"};
+    }
+    // First of all, we extract the list of edges
+    edges_.reserve(colors_.size());
+    std::transform(
+        begin(colors_), end(colors_), std::back_inserter(edges_),
+        [](std::pair<AbstractGraph::Edge, int> const &x) { return x.first; });
+    // Verifies the edges and computes the number of sites
+    nsites_ = detail::CheckEdges(edges_);
+
+    // We know that L_^ndim_ == nsites_, so we can solve it for ndim_
+    auto count = L_;
+    ndim_ = 1;
+    while (count < nsites_) {
+      ++ndim_;
+      count *= L_;
+    }
+    if (count != nsites_) {
+      throw InvalidInputError{"Specified L and color map are incompatible"};
+    }
+
+    // For periodic boundary conditions, there are exactly ndim_ * nsites_ edges
+    // and for open bounrary conditions -- ndim_ * (nsites_ - nsites_/L).
+    if (static_cast<std::size_t>(ndim_ * nsites_) == edges_.size()) {
+      pbc_ = true;
+    } else if (static_cast<std::size_t>(ndim_ * (nsites_ - nsites_ / L)) ==
+               edges_.size()) {
+      pbc_ = false;
+    } else {
+      throw InvalidInputError{"Invalid color map"};
+    }
+
+    // Finally, we can check whether the edges we extracted from the color map
+    // make any sense.
+    auto const correct_edges = std::get<1>(BuildEdges(L_, ndim_, pbc_));
+    if (edges_.size() != correct_edges.size()) {
+      throw InvalidInputError{"Invalid color map"};
+    }
+    for (auto const &edge : correct_edges) {
+      // There is no anbiguity related to ordering: (i, j) vs (j, i), because
+      // CheckEdges asserts that i <= j for each (i, j).
+      if (!colors_.count(edge)) {
+        throw InvalidInputError{"Invalid color map"};
+      }
+    }
+
+    symm_table_ = BuildSymmTable(L_, ndim_, pbc_, nsites_);
+  }
+
+  int Nsites() const override { return nsites_; }
+
+  int Size() const override { return nsites_; }
+
+  int Length() const { return L_; }
+
+  int Ndim() const { return ndim_; }
+
+  const std::vector<Edge> &Edges() const noexcept { return edges_; }
+
+  std::vector<std::vector<int>> AdjacencyList() const override {
+    return detail::AdjacencyListFromEdges(Edges(), Nsites());
+  }
+
+  bool IsBipartite() const override { return L_ % 2 == 0; }
+
+  bool IsConnected() const override { return true; }
+
+  // Returns map of the edge and its respective color
+  const ColorMap &EdgeColors() const override { return colors_; }
+
+  std::vector<std::vector<int>> SymmetryTable() const override {
+    return symm_table_;
+  }
+
+ private:
+  // Given the L, ndim, and pbc, returns (nsites, edges).
+  static std::tuple<int, std::vector<Edge>> BuildEdges(int const L,
+                                                       int const ndim,
+                                                       bool pbc) {
+    assert(L >= (1 + static_cast<int>(pbc)) && ndim >= 1 &&
+           "Bug! Must hold by construction");
+    // NOTE: a double has 53 bits matissa, while an int only 32, so the
+    // following should work fine if we assume that nsites_ fits into an int
+    auto const _n_sites = std::pow(L, ndim);
+    assert(_n_sites == std::trunc(_n_sites) && "Bug! Inexact arithmetic");
+    auto const n_sites = static_cast<int>(_n_sites);
+
+    std::vector<Edge> edges;
+    edges.reserve(static_cast<std::size_t>(n_sites));
+    std::vector<int> coord(ndim, 0);
+    auto const max_pos = L - 1;
+    auto site = 0;
+    do {
+      for (auto i = 1, dim = 0; dim < ndim; ++dim, i *= L) {
+        // NOTE(twesterhout): Hoping that any normal optimising compiler will
+        // move the if (pbc_) dispath to outside the while loop...
+        if (pbc) {
+          if (coord[dim] == max_pos) {
+            edges.push_back({site - i * (L - 1), site});
+          } else {
+            edges.push_back({site, site + i});
+          }
+        } else {
+          if (coord[dim] != max_pos) {
+            edges.push_back({site, site + i});
+          }
+        }
+      }
+      ++site;
+    } while (next_variation(coord.rbegin(), coord.rend(), max_pos));
+    assert(site == n_sites && "Bug! Postcondition violated");
+    return std::tuple<int, std::vector<Edge>>{n_sites, std::move(edges)};
+  }
+
+  static int Coord2Site(std::vector<int> const &coord, int const L) noexcept {
+    assert(L >= 0);
+    auto site = 0;
+    auto scale = 1;
+    for (auto const i : coord) {
+      site += scale * i;
+      scale *= L;
+    }
+    return site;
+  }
+
+  static std::vector<std::vector<int>> BuildSymmTable(int const L,
+                                                      int const n_dim, bool pbc,
+                                                      int const n_sites) {
+    if (!pbc) return {};
+    assert(L >= 2 && n_dim >= 1 &&
+           "Bug! This should be the case by construction.");
+    std::vector<std::vector<int>> symm_table;
+    symm_table.reserve(static_cast<std::size_t>(n_dim * (L - 1)));
+    std::vector<int> coord(static_cast<std::size_t>(n_dim));
+    for (auto dim = 0; dim < n_dim; ++dim) {
+      for (auto rotate_by = 1; rotate_by < L; ++rotate_by) {
+        std::vector<int> permutation;
+        permutation.reserve(n_sites);
+
+        std::fill(std::begin(coord), std::end(coord), 0);
+        do {
+          auto &i = coord[dim];
+          auto const old_i = i;
+          i = (i + rotate_by) % L;
+          permutation.push_back(Coord2Site(coord, L));
+          i = old_i;
+        } while (next_variation(coord.rbegin(), coord.rend(), L - 1));
+
+        symm_table.emplace_back(std::move(permutation));
+      }
+    }
+    return symm_table;
+  }
+
+  void CheckEdgeColors() {
+    // TODO write a meaningful check of edge colors
+  }
+
+ public:
+  // Everything below this point is to be removed and is left here for now for
+  // json stuff to compile.
+
+#if 0
   explicit Hypercube(int L, int ndim, bool pbc = true,
                      std::vector<std::vector<int>> edgecolors =
                          std::vector<std::vector<int>>())
       : L_(L), ndim_(ndim), pbc_(pbc) {
     Init(edgecolors);
   }
+#endif
 
   void Init(const std::vector<std::vector<int>> &edgecolors) {
     assert(L_ > 0);
@@ -122,10 +325,6 @@ class Hypercube : public AbstractGraph {
     InfoMessage() << "Pbc = " << pbc_ << std::endl;
   }
 
-  void CheckEdgeColors() {
-    // TODO write a meaningful check of edge colors
-  }
-
   void GenerateLatticePoints() {
     std::vector<int> coord(ndim_, 0);
 
@@ -169,6 +368,7 @@ class Hypercube : public AbstractGraph {
     }
   }
 
+#if 0
   // Returns a list of permuted sites equivalent with respect to
   // translation symmetry
   std::vector<std::vector<int>> SymmetryTable() const override {
@@ -195,6 +395,7 @@ class Hypercube : public AbstractGraph {
     return permtable;
   }
 
+ public:
   int Nsites() const override { return nsites_; }
 
   int Size() const override { return nsites_; }
@@ -206,6 +407,8 @@ class Hypercube : public AbstractGraph {
   std::vector<std::vector<int>> Sites() const { return sites_; }
 
   std::vector<int> SiteCoord(int i) const { return sites_[i]; }
+
+  const std::vector<Edge> &Edges() const noexcept { return edges_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return adjlist_;
@@ -222,7 +425,8 @@ class Hypercube : public AbstractGraph {
   bool IsConnected() const override { return true; }
 
   // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const override { return eclist_; }
+  const ColorMap &EdgeColors() const override { return colors_; }
+#endif
 };
 
 }  // namespace netket
