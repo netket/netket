@@ -24,7 +24,7 @@ L = 20
 graph = nk.Hypercube(L, ndim=1, pbc=True)
 
 # defining the hilbert space
-hilbert = nk.Spin(graph, 0.5)
+hilbert = nk.hilbert.Spin(graph, 0.5)
 
 # defining the hamiltonian and wrap it as matrix
 hamiltonian = nk.Ising(hilbert, h=1.0)
