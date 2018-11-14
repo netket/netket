@@ -153,7 +153,7 @@ class Hypercube : public AbstractGraph {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const override { return L_ % 2 == 0; }
+  bool IsBipartite() const override { return !pbc_ || L_ % 2 == 0; }
 
   bool IsConnected() const override { return true; }
 
