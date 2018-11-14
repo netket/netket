@@ -40,6 +40,8 @@ namespace py = pybind11;
 
 namespace netket {
 
+using ode::AddDynamicsModule;
+
 PYBIND11_MODULE(netket, m) {
   // py::bind_vector<std::vector<int>>(m, "VectorInt");
   // py::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorInt");
@@ -60,12 +62,12 @@ PYBIND11_MODULE(netket, m) {
   py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
       .def(py::init<>());
 
+  AddDynamicsModule(m);
   AddGraphModule(m);
   AddHilbertModule(m);
-  AddOperatorModule(m);
-  ode::AddDynamicsModule(m);
-
   AddMachineModule(m);
+  AddOperatorModule(m);
+  AddOutputModule(m);
 
   // Samplers
   using MachineType = std::complex<double>;
@@ -272,11 +274,6 @@ PYBIND11_MODULE(netket, m) {
            py::arg("save_every") = 50)
       .def("AddObservable", &VariationalMonteCarlo::AddObservable)
       .def("Run", &VariationalMonteCarlo::Run);
-
-  py::class_<JsonOutputWriter>(m, "JsonOutputWriter")
-      .def(py::init<const std::string &, const std::string &, int>(),
-           py::arg("log_file_name"), py::arg("wavefunc_file_name"),
-           py::arg("save_every") = 50);
 
   py::class_<ImaginaryTimeDriver>(m, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,
