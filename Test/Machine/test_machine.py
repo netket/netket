@@ -53,30 +53,47 @@ machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(hilbert=hi)
 machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=5)
 
 
-import numpy as np
+def log_val(par, machine, v):
+    machine.set_parameters(par)
+    return machine.log_val(v)
+
+
+# import numdifftools as nd
 
 
 def test_set_get_parameters():
     for name, ma in machines.items():
         print("Machine test: %s" % name)
-        assert(ma.Npar() > 0)
-        npar = ma.Npar()
+        assert(ma.n_par() > 0)
+        npar = ma.n_par()
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        ma.SetParameters(randpars)
-        assert(np.array_equal(ma.GetParameters(), randpars))
+        ma.set_parameters(randpars)
+        assert(np.array_equal(ma.get_parameters(), randpars))
 
 
 def test_log_derivative():
     for name, ma in machines.items():
         print("Machine test: %s" % name)
-        ma.InitRandomPars(seed=12, sigma=0.1)
-        # TODO maybe use numdifftools for numerical derivatives
-        assert(True)
+        npar = ma.n_par()
+        randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
+
+        # random visibile state
+        # TODO GetHilbert is broken because we return a reference and not a pointer
+        # hi = ma.get_hilbert()
+        # rg = nk.RandomEngine(seed=1234)
+        # v = np.zeros(hi.size())
+        # hi.random_vals(v, rg)
+        #
+        # grad = (nd.Gradient(log_val))
+        #
+        # ma.SetParameters(randpars)
+        # assert(np.linalg.norm(ma.DerLog(v) -
+        #                       grad(randpars, ma, v), ord=np.inf) < 1.0e-6)
 
 
 def test_nvisible():
     for name, ma in machines.items():
         print("Machine test: %s" % name)
         # TODO GetHilbert is broken because we return a reference and not a pointer
-        # hh=ma.GetHilbert()
+        # hh=ma.get_hilbert()
         # assert(ma.Nvisible()==ma.GetHilbert().Size())
