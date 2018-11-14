@@ -153,6 +153,24 @@ auto WithEdges(py::iterable xs, Function&& callback)
 }
 } // namespace
 
+
+// Work around the lack of C++11 support for defaulted arguments in lambdas.
+namespace {
+struct CustomGraphInit {
+  using Edge = AbstractGraph::Edge;
+  using ColorMap = AbstractGraph::ColorMap;
+
+  std::vector<std::vector<int>> automorphisms;
+  bool is_bipartite;
+
+  auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
+      -> std::unique_ptr<CustomGraph> {
+    return make_unique<CustomGraph>(std::move(edges), std::move(colors),
+                                    std::move(automorphisms), is_bipartite);
+  }
+};
+}  // namespace
+
 void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
@@ -166,17 +184,7 @@ void AddGraphModule(py::module& m) {
                                            detail::Iterable2ColorMap(xs));
            }),
            py::arg("length"), py::arg("colors"))
-      .def_property_readonly("number_sites", &Hypercube::Nsites)
-      .def("__len__", &Hypercube::Nsites)
-      .def("__iter__",
-           [](Hypercube const& x) {
-             using std::begin;
-             using std::end;
-             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
-           },
-           py::keep_alive<0, 1>())
-      // NOTE(twesterhout): This is redundant, but I'm not yet sure treating
-      // graph as an iterable over edges is a good idea...
+      .def_property_readonly("n_sites", &Hypercube::Nsites)
       .def("edges",
            [](Hypercube const& x) {
              using std::begin;
@@ -202,18 +210,10 @@ void AddGraphModule(py::module& m) {
           py::arg("is_bipartite") = false)
 #endif
       .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms =
-                           std::vector<std::vector<int>>(),
-                       bool const is_bipartite = false) {
-             using Edge = AbstractGraph::Edge;
-             using ColorMap = AbstractGraph::ColorMap;
-             return WithEdges(xs, [&automorphisms, is_bipartite](
-                                      std::vector<Edge> edges,
-                                      ColorMap colors = ColorMap{}) {
-               return make_unique<CustomGraph>(
-                   std::move(edges), std::move(colors),
-                   std::move(automorphisms), is_bipartite);
-             });
+                       std::vector<std::vector<int>> automorphisms,
+                       bool const is_bipartite) {
+             return WithEdges(
+                 xs, CustomGraphInit{std::move(automorphisms), is_bipartite});
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
