@@ -20,9 +20,10 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <nonstd/span.hpp>
 #include <vector>
 
-#include <nonstd/span.hpp>
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/next_variation.hpp"
 
 namespace netket {
