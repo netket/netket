@@ -16,8 +16,8 @@
 #define NETKET_HYPERCUBE_HPP
 
 #include <mpi.h>
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <map>
 #include <unordered_map>
@@ -38,7 +38,7 @@ class Hypercube : public AbstractGraph {
                      //  which the graph is invariant
   ColorMap colors_;  //< Edge to color mapping
 
-#if 1 // TODO(twesterhout): This is to be removed
+#if 1  // TODO(twesterhout): This is to be removed
   // contains sites coordinates
   std::vector<std::vector<int>> sites_;
 
@@ -218,30 +218,43 @@ class Hypercube : public AbstractGraph {
   static std::vector<std::vector<int>> BuildSymmTable(int const L,
                                                       int const n_dim, bool pbc,
                                                       int const n_sites) {
-    if (!pbc) return {};
-    assert(L >= 2 && n_dim >= 1 &&
-           "Bug! This should be the case by construction.");
-    std::vector<std::vector<int>> symm_table;
-    symm_table.reserve(static_cast<std::size_t>(n_dim * (L - 1)));
-    std::vector<int> coord(static_cast<std::size_t>(n_dim));
-    for (auto dim = 0; dim < n_dim; ++dim) {
-      for (auto rotate_by = 1; rotate_by < L; ++rotate_by) {
-        std::vector<int> permutation;
-        permutation.reserve(n_sites);
+    if (!pbc) {
+      // Identity automorphism
+      std::vector<int> v(n_sites);
+      std::iota(std::begin(v), std::end(v), 0);
+      return std::vector<std::vector<int>>(1, v);
+    };
 
-        std::fill(std::begin(coord), std::end(coord), 0);
-        do {
-          auto &i = coord[dim];
-          auto const old_i = i;
-          i = (i + rotate_by) % L;
-          permutation.push_back(Coord2Site(coord, L));
-          i = old_i;
-        } while (next_variation(coord.rbegin(), coord.rend(), L - 1));
+    // maps coordinates to site number
+    std::map<std::vector<int>, int> coord2sites;
 
-        symm_table.emplace_back(std::move(permutation));
+    // contains sites coordinates
+    std::vector<std::vector<int>> sites;
+
+    int ns = 0;
+    std::vector<int> coord(n_dim, 0);
+    do {
+      sites.push_back(coord);
+      coord2sites[coord] = ns;
+      ns++;
+    } while (netket::next_variation(coord.begin(), coord.end(), L - 1));
+
+    std::vector<std::vector<int>> permtable;
+    permtable.reserve(n_sites * n_sites);
+
+    std::vector<int> transl_sites(n_sites);
+    std::vector<int> ts(n_dim);
+
+    for (int i = 0; i < n_sites; i++) {
+      for (int p = 0; p < n_sites; p++) {
+        for (int d = 0; d < n_dim; d++) {
+          ts[d] = (sites[i][d] + sites[p][d]) % L;
+        }
+        transl_sites[p] = coord2sites.at(ts);
       }
+      permtable.push_back(transl_sites);
     }
-    return symm_table;
+    return permtable;
   }
 
   void CheckEdgeColors() {
@@ -419,10 +432,6 @@ class Hypercube : public AbstractGraph {
   int Coord2Site(const std::vector<int> &coord) const {
     return coord2sites_.at(coord);
   }
-
-  bool IsBipartite() const override { return true; }
-
-  bool IsConnected() const override { return true; }
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const override { return colors_; }
