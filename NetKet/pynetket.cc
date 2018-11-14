@@ -23,9 +23,14 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "Hilbert/pyhilbert.hpp"
+
+#include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
+#include "Hilbert/pyhilbert.hpp"
+#include "Machine/pymachine.hpp"
 #include "Operator/pyoperator.hpp"
+#include "Output/pyoutput.hpp"
+#include "Stats/binning.hpp"
 #include "netket.hpp"
 
 namespace py = pybind11;
@@ -37,6 +42,8 @@ namespace py = pybind11;
 // PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
 
 namespace netket {
+
+using ode::AddDynamicsModule;
 
 PYBIND11_MODULE(netket, m) {
   // py::bind_vector<std::vector<int>>(m, "VectorInt");
@@ -58,330 +65,16 @@ PYBIND11_MODULE(netket, m) {
   py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
       .def(py::init<>());
 
+  AddDynamicsModule(m);
   AddGraphModule(m);
   AddHilbertModule(m);
+  AddMachineModule(m);
   AddOperatorModule(m);
-
-  py::class_<AbstractMatrixWrapper<AbstractOperator>>(m,
-                                                      "AbstractMatrixWrapper")
-      .def("apply", &AbstractMatrixWrapper<AbstractOperator>::Apply,
-           py::arg("state"))
-      .def_property_readonly(
-          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
-
-  py::class_<SparseMatrixWrapper<AbstractOperator>,
-             AbstractMatrixWrapper<AbstractOperator>>(m, "SparseMatrixWrapper")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
-      .def("GetMatrix", &SparseMatrixWrapper<AbstractOperator>::GetMatrix)
-      .def_property_readonly(
-          "dimension", &AbstractMatrixWrapper<AbstractOperator>::Dimension);
-
-  m.def("wrap_operator", &CreateMatrixWrapper<AbstractOperator>,
-        py::arg("operator"), py::arg("type") = "Sparse");
-
-  using MachineType = std::complex<double>;
-  using AbMachineType = AbstractMachine<MachineType>;
-  py::class_<AbMachineType>(m, "Machine")
-      .def("Npar", &AbMachineType::Npar)
-      .def("GetParameters", &AbMachineType::GetParameters)
-      .def("SetParameters", &AbMachineType::SetParameters)
-      .def("InitRandomPars", &AbMachineType::InitRandomPars)
-      .def("LogVal",
-           (MachineType(AbMachineType::*)(AbMachineType::VisibleConstType)) &
-               AbMachineType::LogVal)
-      .def("LogValDiff", (AbMachineType::VectorType(AbMachineType::*)(
-                             AbMachineType::VisibleConstType,
-                             const std::vector<std::vector<int>> &,
-                             const std::vector<std::vector<double>> &)) &
-                             AbMachineType::LogValDiff)
-      .def("DerLog", &AbMachineType::DerLog)
-      .def("Nvisible", &AbMachineType::Nvisible)
-      .def("GetHilbert", &AbMachineType::GetHilbert);
-
-  using AbActivationType = AbstractActivation;
-  py::class_<AbActivationType>(m, "Activation")
-      .def("__call__", &AbActivationType::operator())
-      .def("ApplyJacobian", &AbActivationType::ApplyJacobian);
-
-  {
-    using WfType = RbmSpin<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "RbmSpin")
-        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
-             py::arg("use_visible_bias") = true,
-             py::arg("use_hidden_bias") = true)
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-
-  {
-    using WfType = RbmSpinSymm<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "RbmSpinSymm")
-        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
-             py::arg("use_visible_bias") = true,
-             py::arg("use_hidden_bias") = true)
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-
-  {
-    using WfType = RbmMultival<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "RbmMultival")
-        .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-             py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
-             py::arg("use_visible_bias") = true,
-             py::arg("use_hidden_bias") = true)
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-  {
-    using WfType = Jastrow<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "Jastrow")
-        .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-  {
-    using WfType = JastrowSymm<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "JastrowSymm")
-        .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-  {
-    using WfType = MPSPeriodic<MachineType, true>;
-    py::class_<WfType, AbMachineType>(m, "MPSPeriodicDiagonal")
-        .def(py::init<const AbstractHilbert &, double, int>(),
-             py::arg("hilbert"), py::arg("bond_dim"), py::arg("symperiod") = -1)
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-  {
-    using WfType = MPSPeriodic<MachineType, false>;
-    py::class_<WfType, AbMachineType>(m, "MPSPeriodic")
-        .def(py::init<const AbstractHilbert &, double, int>(),
-             py::arg("hilbert"), py::arg("bond_dim"), py::arg("symperiod") = -1)
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", &WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
-
-  // FEED-FORWARD NETWORK RELATED BINDINGS
-  // ACTIVATION FUNCTIONS
-  // TODO maybe move these into a separate python modules
-  {
-    using ActivationType = Tanh;
-    py::class_<ActivationType, AbActivationType>(m, "Tanh")
-        .def(py::init<>())
-        .def("__call__", &ActivationType::operator())
-        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
-  }
-  {
-    using ActivationType = Identity;
-    py::class_<ActivationType, AbActivationType>(m, "Identity")
-        .def(py::init<>())
-        .def("__call__", &ActivationType::operator())
-        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
-  }
-  {
-    using ActivationType = Lncosh;
-    py::class_<ActivationType, AbActivationType>(m, "Lncosh")
-        .def(py::init<>())
-        .def("__call__", &ActivationType::operator())
-        .def("ApplyJacobian", &ActivationType::ApplyJacobian);
-  }
-
-  // LAYERS
-  // TODO maybe move these into a separate python modules
-  using AbLayerType = AbstractLayer<MachineType>;
-  {
-    py::class_<AbLayerType, std::shared_ptr<AbLayerType>>(m, "Layer")
-        .def("Ninput", &AbLayerType::Ninput)
-        .def("Noutput", &AbLayerType::Noutput)
-        .def("Npar", &AbLayerType::Npar)
-        .def("GetParameters", &AbLayerType::GetParameters)
-        .def("SetParameters", &AbLayerType::SetParameters)
-        .def("InitRandomPars", &AbLayerType::InitRandomPars);
-    // TODO add more methods
-  }
-  {
-    using LayerType = FullyConnected<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        m, "FullyConnected")
-        .def(py::init<AbActivationType &, int, int, bool>(),
-             py::arg("activation"), py::arg("input_size"),
-             py::arg("output_size"), py::arg("use_bias") = false)
-        .def("Ninput", &LayerType::Ninput)
-        .def("Noutput", &LayerType::Noutput)
-        .def("Npar", &LayerType::Npar)
-        .def("GetParameters", &LayerType::GetParameters)
-        .def("SetParameters", &LayerType::SetParameters)
-        .def("InitRandomPars", &LayerType::InitRandomPars);
-    // TODO add other methods?
-  }
-  {
-    using LayerType = Convolutional<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        m, "Convolutional")
-        .def(py::init<const AbstractGraph &, AbActivationType &, int, int, int,
-                      bool>(),
-             py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
-             py::arg("output_channels"), py::arg("distance") = 1,
-             py::arg("use_bias") = false)
-        .def("Ninput", &LayerType::Ninput)
-        .def("Noutput", &LayerType::Noutput)
-        .def("Npar", &LayerType::Npar)
-        .def("GetParameters", &LayerType::GetParameters)
-        .def("SetParameters", &LayerType::SetParameters)
-        .def("InitRandomPars", &LayerType::InitRandomPars);
-    // TODO add other methods?
-  }
-  {
-    using LayerType = SumOutput<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(m,
-                                                                   "SumOutput")
-        .def(py::init<int>(), py::arg("input_size"))
-        .def("Ninput", &LayerType::Ninput)
-        .def("Noutput", &LayerType::Noutput)
-        .def("Npar", &LayerType::Npar)
-        .def("GetParameters", &LayerType::GetParameters)
-        .def("SetParameters", &LayerType::SetParameters)
-        .def("InitRandomPars", &LayerType::InitRandomPars);
-    // TODO add other methods?
-  }
-  {
-    using WfType = FFNN<MachineType>;
-    py::class_<WfType, AbMachineType>(m, "FFNN")
-        .def(py::init<const AbstractHilbert &,
-                      std::vector<std::shared_ptr<AbLayerType>> &>(),
-             py::arg("hilbert"), py::arg("layers"))
-        .def("Npar", &WfType::Npar)
-        .def("GetParameters", &WfType::GetParameters)
-        .def("SetParameters", &WfType::SetParameters)
-        .def("InitRandomPars", &WfType::InitRandomPars, py::arg("seed"),
-             py::arg("sigma"))
-        .def("LogVal",
-             (MachineType(WfType::*)(AbMachineType::VisibleConstType)) &
-                 WfType::LogVal)
-        .def("LogValDiff", (AbMachineType::VectorType(WfType::*)(
-                               AbMachineType::VisibleConstType,
-                               const std::vector<std::vector<int>> &,
-                               const std::vector<std::vector<double>> &)) &
-                               WfType::LogValDiff)
-        .def("DerLog", (AbMachineType::VectorType(WfType::*)(
-                           AbMachineType::VisibleConstType)) &
-                           WfType::DerLog)
-        .def("Nvisible", &WfType::Nvisible)
-        .def("GetHilbert", &WfType::GetHilbert);
-    // TODO add other methods?
-  }
+  AddOutputModule(m);
 
   // Samplers
+  using MachineType = std::complex<double>;
+  using AbMachineType = AbstractMachine<MachineType>;
   using SamplerType = AbstractSampler<AbMachineType>;
   py::class_<AbstractSampler<AbMachineType>>(m, "Sampler")
       .def("Reset", &SamplerType::Reset)
@@ -585,19 +278,15 @@ PYBIND11_MODULE(netket, m) {
       .def("AddObservable", &VariationalMonteCarlo::AddObservable)
       .def("Run", &VariationalMonteCarlo::Run);
 
-  py::class_<JsonOutputWriter>(m, "JsonOutputWriter")
-      .def(py::init<const std::string &, const std::string &, int>(),
-           py::arg("log_file_name"), py::arg("wavefunc_file_name"),
-           py::arg("save_every") = 50);
-
   py::class_<ImaginaryTimeDriver>(m, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,
-                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &,
-                    double, double, double>(),
+                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &, double,
+                    double, double>(),
            py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
            py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
       .def("add_observable", &ImaginaryTimeDriver::AddObservable,
-           py::arg("observable"), py::arg("name"), py::arg("matrix_type") = "Sparse")
+           py::arg("observable"), py::arg("name"),
+           py::arg("matrix_type") = "Sparse")
       .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
 
   py::class_<eddetail::result_t>(m, "EdResult")
@@ -610,16 +299,6 @@ PYBIND11_MODULE(netket, m) {
         py::arg("matrix_free") = false, py::arg("first_n") = 1,
         py::arg("max_iter") = 1000, py::arg("seed") = 42,
         py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
-
-  {
-    using State = Eigen::VectorXcd;
-
-    using State = Eigen::VectorXcd;
-    py::class_<ode::AbstractTimeStepper<State>>(m, "AbstractTimeStepper");
-
-    m.def("create_timestepper", &ode::CreateStepper<State>, py::arg("dim"),
-          py::arg("name") = "Dopri54");
-  }
 
 }  // PYBIND11_MODULE
 

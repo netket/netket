@@ -3,12 +3,11 @@
 
 #include <Eigen/Dense>
 
-#include "Dynamics/TimeStepper/time_stepper.hpp"
+#include "Dynamics/TimeStepper/abstract_time_stepper.hpp"
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/observable.hpp"
+#include "Output/json_output_writer.hpp"
 #include "Stats/stats.hpp"
-
-#include "json_output_writer.hpp"
 
 // TODO remove Observable and replace with AbstractOperator+name
 // Provide a method AddObservable, as in VariationalMonteCarlo
@@ -18,7 +17,7 @@ class ImaginaryTimeDriver {
  public:
   using State = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<State>;
-  using Matrix = AbstractMatrixWrapper<AbstractOperator>;
+  using Matrix = AbstractMatrixWrapper<>;
 
   using ObsEntry = std::pair<std::string, std::unique_ptr<Matrix>>;
   using ObservableVector = std::vector<ObsEntry>;

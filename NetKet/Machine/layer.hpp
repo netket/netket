@@ -20,7 +20,7 @@
 
 #ifndef NETKET_LAYER_HPP
 #define NETKET_LAYER_HPP
-
+// TODO remove
 namespace netket {
 template <class T>
 class Layer : public AbstractLayer<T> {

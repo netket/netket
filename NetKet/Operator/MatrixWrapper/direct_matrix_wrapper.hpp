@@ -21,6 +21,7 @@
 #include <Eigen/Dense>
 
 #include "Hilbert/hilbert_index.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "abstract_matrix_wrapper.hpp"
 
 namespace netket {
@@ -30,20 +31,20 @@ namespace netket {
  * separately but are computed from Operator::FindConn every time Apply is
  * called.
  */
-template <class Operator, class WfType = Eigen::VectorXcd>
-class DirectMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
-  const Operator& operator_;
+template <class State = Eigen::VectorXcd>
+class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
+  const AbstractOperator& operator_;
   HilbertIndex hilbert_index_;
   size_t dim_;
 
  public:
-  explicit DirectMatrixWrapper(const Operator& the_operator)
+  explicit DirectMatrixWrapper(const AbstractOperator& the_operator)
       : operator_(the_operator),
         hilbert_index_(the_operator.GetHilbert()),
         dim_(hilbert_index_.NStates()) {}
 
-  WfType Apply(const WfType& state) const override {
-    WfType result(dim_);
+  State Apply(const State& state) const override {
+    State result(dim_);
     result.setZero();
 
     for (size_t i = 0; i < dim_; ++i) {
