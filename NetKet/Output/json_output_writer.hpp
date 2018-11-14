@@ -23,6 +23,7 @@ namespace netket {
  */
 class JsonOutputWriter {
  public:
+  // TODO (2.0): remove
   static JsonOutputWriter FromJson(const json& pars) {
     const std::string filebase = FieldVal(pars, "OutputFile");
     const int freqbackup = FieldOrDefaultVal(pars, "SaveEvery", 50);
