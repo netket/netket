@@ -18,13 +18,13 @@ def tonx(graph):
         for el in els:
             edges.append([i, el])
         i += 1
-    if (len(edges)):
+    if edges:
         return nx.from_edgelist(edges)
-    else:
-        gx = nx.Graph()
-        for i in range(graph.Nsites()):
-            gx.add_node(i)
-        return gx
+
+    gx = nx.Graph()
+    for i in range(graph.Nsites()):
+        gx.add_node(i)
+    return gx
 
 
 def test_size_is_positive():
@@ -43,8 +43,8 @@ def test_computes_distances():
             nxg = tonx(graph)
             d = graph.Distances(0)
             d1 = nx.shortest_path_length(nxg, source=0)
-            for j in range(len(d1)):
-                assert d1[j] == d[j]
+            for dist, dist1 in zip(d, d1):
+                assert dist == dist1
 
             d = graph.AllDistances()
             d1 = dict(nx.shortest_path_length(nxg))
