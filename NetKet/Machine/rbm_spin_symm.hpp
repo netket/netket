@@ -86,32 +86,15 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int nhidden = 0,
-                       int alpha = 0, bool usea = true, bool useb = true)
+  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int alpha = 0,
+                       bool usea = true, bool useb = true)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
         nv_(hilbert.Size()),
+        alpha_(alpha),
         usea_(usea),
         useb_(useb) {
-    nh_ = std::max(nhidden, alpha * nv_);
-
     Init(graph_);
-
-    // // Loading parameters, if defined in the input
-    // if (FieldExists(pars, "asymm")) {
-    //   asymm_ = pars["asymm"].get<T>();
-    // } else {
-    //   asymm_ = 0;
-    // }
-    //
-    // if (FieldExists(pars, "bsymm")) {
-    //   bsymm_ = pars["bsymm"];
-    // } else {
-    //   bsymm_.setZero();
-    // }
-    // if (FieldExists(pars, "Wsymm")) {
-    //   Wsymm_ = pars["Wsymm"];
-    // }
 
     SetBareParameters();
   }
