@@ -32,12 +32,12 @@ namespace netket {
 #define ADDGRAPHMETHODS(name)                              \
                                                            \
   .def("Nsites", &AbstractGraph::Nsites)                   \
-  .def("AdjacencyList", &AbstractGraph::AdjacencyList)		       \
-  .def("SymmetryTable", &AbstractGraph::SymmetryTable)		       \
-  .def("EdgeColors", &AbstractGraph::EdgeColors)		       \
-  .def("IsBipartite", &AbstractGraph::IsBipartite)		       \
-  .def("IsConnected", &AbstractGraph::IsConnected)		       \
-  .def("Distances", &AbstractGraph::Distances);
+      .def("AdjacencyList", &AbstractGraph::AdjacencyList) \
+      .def("SymmetryTable", &AbstractGraph::SymmetryTable) \
+      .def("EdgeColors", &AbstractGraph::EdgeColors)       \
+      .def("IsBipartite", &AbstractGraph::IsBipartite)     \
+      .def("IsConnected", &AbstractGraph::IsConnected)     \
+      .def("Distances", &AbstractGraph::Distances);
 
 /// Given a Python iterable object constructs the edge list and (optionally)
 /// the colour map for the soon to be graph. `callback` is then called in one of
@@ -67,8 +67,8 @@ auto WithEdges(py::iterable xs, Function&& callback)
   // Correctly orders site indices and constructs an edge.
   // TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
   // itself is a questionable concept.
-  auto const make_edge =
-      [](int const x, int const y) noexcept->AbstractGraph::Edge {
+  auto const make_edge = [](int const x,
+                            int const y) noexcept->AbstractGraph::Edge {
     using Edge = AbstractGraph::Edge;
     return (x < y) ? Edge{x, y} : Edge{y, x};
   };
@@ -143,7 +143,6 @@ void AddGraphModule(py::module& m) {
   py::class_<AbstractGraph>(subm, "Graph") ADDGRAPHMETHODS(AbstractGraph);
 
   py::class_<Hypercube, AbstractGraph>(subm, "Hypercube")
-
       .def(py::init<int, int, bool, std::vector<std::vector<int>>>(),
            py::arg("L"), py::arg("ndim"), py::arg("pbc") = true,
            py::arg("edgecolors") = std::vector<std::vector<int>>())
