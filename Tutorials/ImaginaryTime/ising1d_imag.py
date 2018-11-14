@@ -28,13 +28,13 @@ hilbert = nk.hilbert.Spin(graph, 0.5)
 
 # defining the hamiltonian and wrap it as matrix
 hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-mat = nk.wrap_operator(hamiltonian)
+mat = nk.operator.wrap_as_matrix(hamiltonian)
 
 # create time stepper
 stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
 
 # prepare output
-output = nk.JsonOutputWriter('test.log', 'test.wf')
+output = nk.output.JsonOutputWriter('test.log', 'test.wf')
 
 # create ground state driver
 driver = nk.ImaginaryTimeDriver(mat, stepper, output, tmin=0, tmax=20, dt=0.1)
