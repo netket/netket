@@ -28,9 +28,9 @@ hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 #Layers
-act = nk.Lncosh()
+act = nk.activation.Lncosh()
 layers = [
-    nk.Convolutional(
+    nk.layer.Convolutional(
         graph=g,
         activation=act,
         input_channels=1,
@@ -39,7 +39,7 @@ layers = [
 ]
 
 #FFNN Machine
-ma = nk.FFNN(hi, layers)
+ma = nk.machine.FFNN(hi, layers)
 ma.InitRandomPars(seed=1234, sigma=0.1)
 
 #Sampler
