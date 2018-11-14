@@ -39,6 +39,64 @@ namespace netket {
       .def("IsConnected", &AbstractGraph::IsConnected)     \
       .def("Distances", &AbstractGraph::Distances);
 
+namespace detail {
+inline std::size_t LengthHint(py::iterable xs) {
+  auto iterator = xs.attr("__iter__")();
+  if (py::hasattr(iterator, "__length_hint__")) {
+    auto const n = iterator.attr("__length_hint__")().cast<long>();
+    assert(n >= 0 && "Bug in Python/pybind11??");
+    return static_cast<std::size_t>(n);
+  }
+  return 0;
+}
+
+// Correctly orders site indices and constructs an edge.
+// TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
+// itself is a questionable concept.
+inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
+  using Edge = AbstractGraph::Edge;
+  return (x < y) ? Edge{x, y} : Edge{y, x};
+}
+
+inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
+  using std::begin;
+  using std::end;
+  std::vector<AbstractGraph::Edge> edges;
+  edges.reserve(LengthHint(xs));
+
+  for (auto const& py_obj : xs) {
+    int i, j;
+    std::tie(i, j) = py_obj.template cast<std::tuple<int, int>>();
+    edges.push_back(MakeEdge(i, j));
+  }
+
+  // NOTE(twesterhout): Yes, I know that this screws up the algorithmic
+  // complexity, but it's fast enough to be unnoticeable for all practical
+  // purposes.
+  std::sort(begin(edges), end(edges));
+  if (std::unique(begin(edges), end(edges)) != end(edges)) {
+    throw InvalidInputError{"Edge list contains duplicates."};
+  }
+  return edges;
+}
+
+inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterable xs) {
+  AbstractGraph::ColorMap colors;
+  colors.reserve(LengthHint(xs));
+
+  for (auto const& py_obj : xs) {
+    int i, j, color;
+    std::tie(i, j, color) = py_obj.template cast<std::tuple<int, int, int>>();
+    if (!colors.emplace(MakeEdge(i, j), color).second) {
+      // Failed to insert an edge because it already exists
+      throw InvalidInputError{"Edge list contains duplicates."};
+    }
+  }
+  return colors;
+}
+}  // namespace detail
+
+namespace {
 /// Given a Python iterable object constructs the edge list and (optionally)
 /// the colour map for the soon to be graph. `callback` is then called in one of
 /// the following ways:
@@ -53,31 +111,12 @@ auto WithEdges(py::iterable xs, Function&& callback)
         std::declval<std::vector<AbstractGraph::Edge>>())) {
   using std::begin;
   using std::end;
-  // Length of some iterables is known in advance, without going through all
-  // the elements. We can use this hint to preallocate the edge vector.
-  auto const length_hint = [](py::iterable ys) -> std::size_t {
-    auto iterator = ys.attr("__iter__")();
-    if (py::hasattr(iterator, "__length_hint__")) {
-      auto const n = iterator.attr("__length_hint__")().cast<long>();
-      assert(n >= 0 && "Bug in Python/pybind11??");
-      return static_cast<std::size_t>(n);
-    }
-    return 0;
-  };
-  // Correctly orders site indices and constructs an edge.
-  // TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
-  // itself is a questionable concept.
-  auto const make_edge = [](int const x,
-                            int const y) noexcept->AbstractGraph::Edge {
-    using Edge = AbstractGraph::Edge;
-    return (x < y) ? Edge{x, y} : Edge{y, x};
-  };
 
   auto first = begin(xs);
   auto const last = end(xs);
   bool has_colours = false;
   if (first != last) {
-    // We have at least one element, let's determine whether it's an intance
+    // We have at least one element, let's determine whether it's an instance
     // of `(int, int)` or `(int, int, int)`.
     try {
       // If the following line succeeds, we have a sequence of `(int, int)`.
@@ -99,43 +138,38 @@ auto WithEdges(py::iterable xs, Function&& callback)
     }
   }
 
-  auto const hint = length_hint(xs);
-  std::vector<AbstractGraph::Edge> edges;
-  if (hint != 0) {
-    edges.reserve(hint);
-  }
-
   if (has_colours) {
-    AbstractGraph::ColorMap colours;
-    if (hint != 0) {
-      colours.reserve(hint);
-    }
-    for (; first != last; ++first) {
-      auto const x = first->template cast<std::tuple<int, int, int>>();
-      auto const edge = make_edge(std::get<0>(x), std::get<1>(x));
-      edges.push_back(edge);
-      if (!colours.emplace(edge, std::get<2>(x)).second) {
-        // Failed to insert an edge because it already exists
-        throw InvalidInputError{"Edge list contains duplicates."};
-      }
-    }
+    auto colors = detail::Iterable2ColorMap(xs);
+    std::vector<AbstractGraph::Edge> edges;
+    edges.reserve(colors.size());
+    std::transform(
+        begin(colors), end(colors), std::back_inserter(edges),
+        [](std::pair<AbstractGraph::Edge, int> const& x) { return x.first; });
     return std::forward<Function>(callback)(std::move(edges),
-                                            std::move(colours));
+                                            std::move(colors));
+  } else {
+    return std::forward<Function>(callback)(detail::Iterable2Edges(xs));
   }
-  // No colours
-  for (; first != last; ++first) {
-    auto const x = first->template cast<std::tuple<int, int>>();
-    edges.push_back(make_edge(std::get<0>(x), std::get<1>(x)));
-  }
-  // NOTE(twesterhout): Yes, I know that this screws up the algorithmic
-  // complexity, but it's fast enough to be unnoticeable for all practical
-  // purposes.
-  std::sort(begin(edges), end(edges));
-  if (std::unique(begin(edges), end(edges)) != end(edges)) {
-    throw InvalidInputError{"Edge list contains duplicates."};
-  }
-  return std::forward<Function>(callback)(std::move(edges));
 }
+} // namespace
+
+
+// Work around the lack of C++11 support for defaulted arguments in lambdas.
+namespace {
+struct CustomGraphInit {
+  using Edge = AbstractGraph::Edge;
+  using ColorMap = AbstractGraph::ColorMap;
+
+  std::vector<std::vector<int>> automorphisms;
+  bool is_bipartite;
+
+  auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
+      -> std::unique_ptr<CustomGraph> {
+    return make_unique<CustomGraph>(std::move(edges), std::move(colors),
+                                    std::move(automorphisms), is_bipartite);
+  }
+};
+}  // namespace
 
 void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
@@ -143,17 +177,24 @@ void AddGraphModule(py::module& m) {
   py::class_<AbstractGraph>(subm, "Graph") ADDGRAPHMETHODS(AbstractGraph);
 
   py::class_<Hypercube, AbstractGraph>(subm, "Hypercube")
-      .def(py::init<int, int, bool, std::vector<std::vector<int>>>(),
-           py::arg("L"), py::arg("ndim"), py::arg("pbc") = true,
-           py::arg("edgecolors") = std::vector<std::vector<int>>())
-      .def("Nsites", &Hypercube::Nsites)
-      .def("AdjacencyList", &Hypercube::AdjacencyList)
-      .def("SymmetryTable", &Hypercube::SymmetryTable)
-      .def("EdgeColors", &Hypercube::EdgeColors)
-      .def("IsBipartite", &Hypercube::IsBipartite)
-      .def("IsConnected", &Hypercube::IsConnected)
-      .def("Distances", &Hypercube::Distances)
-      .def("AllDistances", &Hypercube::AllDistances) ADDGRAPHMETHODS(Hypercube);
+      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("ndim") = 1,
+           py::arg("pbc") = true)
+      .def(py::init([](int const length, py::iterable xs) {
+             return make_unique<Hypercube>(length,
+                                           detail::Iterable2ColorMap(xs));
+           }),
+           py::arg("length"), py::arg("colors"))
+      .def_property_readonly("n_sites", &Hypercube::Nsites)
+      .def("edges",
+           [](Hypercube const& x) {
+             using std::begin;
+             using std::end;
+             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
+           },
+           py::keep_alive<0, 1>())
+      .def("adjacency_list", &Hypercube::AdjacencyList)
+      .def_property_readonly("is_bipartite", &Hypercube::IsBipartite)
+      .def_property_readonly("is_connected", &Hypercube::IsConnected);
 
   py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph")
 #if 0  // TODO(twesterhout): Remove completely
@@ -169,18 +210,10 @@ void AddGraphModule(py::module& m) {
           py::arg("is_bipartite") = false)
 #endif
       .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms =
-                           std::vector<std::vector<int>>(),
-                       bool const is_bipartite = false) {
-             using Edge = AbstractGraph::Edge;
-             using ColorMap = AbstractGraph::ColorMap;
-             return WithEdges(xs, [&automorphisms, is_bipartite](
-                                      std::vector<Edge> edges,
-                                      ColorMap colors = ColorMap{}) {
-               return make_unique<CustomGraph>(
-                   std::move(edges), std::move(colors),
-                   std::move(automorphisms), is_bipartite);
-             });
+                       std::vector<std::vector<int>> automorphisms,
+                       bool const is_bipartite) {
+             return WithEdges(
+                 xs, CustomGraphInit{std::move(automorphisms), is_bipartite});
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
