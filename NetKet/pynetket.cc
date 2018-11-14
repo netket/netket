@@ -23,11 +23,14 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
+
 #include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
 #include "Hilbert/pyhilbert.hpp"
 #include "Machine/pymachine.hpp"
 #include "Operator/pyoperator.hpp"
+#include "Output/pyoutput.hpp"
+#include "Stats/binning.hpp"
 #include "netket.hpp"
 
 namespace py = pybind11;
