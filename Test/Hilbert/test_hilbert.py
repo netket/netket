@@ -126,8 +126,9 @@ def test_mapping():
         assert (hi.size() > 0)
         assert (hi.local_size() > 0)
 
-        if hi.size() * np.log(hi.local_size()) < np.log(nk.max_states):
-            hilb_index = nk.HilbertIndex(hi)
+        log_max_states=np.log(nk.hilbert.HilbertIndex.max_states)
+        if hi.size() * np.log(hi.local_size()) < log_max_states:
+            hilb_index = nk.hilbert.HilbertIndex(hi)
 
             for k in range(hilb_index.n_states()):
                 state = hilb_index.number_to_state(k)

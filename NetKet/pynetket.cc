@@ -300,16 +300,6 @@ PYBIND11_MODULE(netket, m) {
         py::arg("max_iter") = 1000, py::arg("seed") = 42,
         py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
 
-  // Misc
-  py::class_<HilbertIndex>(m, "HilbertIndex")
-    .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-    .def("n_states", &HilbertIndex::NStates)              \
-    .def("number_to_state", &HilbertIndex::NumberToState)	\
-    .def("state_to_number", &HilbertIndex::StateToNumber);
-  
-  m.attr("max_states") = &HilbertIndex::MaxStates;
-  
-
 }  // PYBIND11_MODULE
 
 }  // namespace netket
