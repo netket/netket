@@ -43,8 +43,8 @@ def test_computes_distances():
             nxg = tonx(graph)
             d = graph.Distances(0)
             d1 = nx.shortest_path_length(nxg, source=0)
-            for dist, dist1 in zip(d, d1):
-                assert dist == dist1
+            for j, dist in enumerate(d):
+                assert dist == d1[j]
 
             d = graph.AllDistances()
             d1 = dict(nx.shortest_path_length(nxg))
