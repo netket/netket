@@ -22,10 +22,10 @@ namespace netket {
 /**
  * This class wraps an AbstractOperator
  * and provides a method to apply it to a pure state.
- * @tparam WfType The type of a vector of (complex) coefficients representing
- * the wavefunction. Should be Eigen::VectorXcd or a compatible type.
+ * @tparam State The type of a vector of (complex) coefficients representing
+ * the quantum state. Should be Eigen::VectorXcd or a compatible type.
  */
-template <class Operator, class WfType = Eigen::VectorXcd>
+template <class State = Eigen::VectorXcd>
 class AbstractMatrixWrapper {
  public:
   /**
@@ -35,14 +35,14 @@ class AbstractMatrixWrapper {
    * for the original Hamiltonian. The state should satisfy state.size() ==
    * GetDimension().
    */
-  virtual WfType Apply(const WfType& state) const = 0;
+  virtual State Apply(const State& state) const = 0;
 
-  virtual std::complex<double> Mean(const WfType& state) const {
+  virtual std::complex<double> Mean(const State& state) const {
     return state.adjoint() * Apply(state);
   }
 
   virtual std::array<std::complex<double>, 2> MeanVariance(
-      const WfType& state) const {
+      const State& state) const {
     auto state1 = Apply(state);
     auto state2 = Apply(state1);
 

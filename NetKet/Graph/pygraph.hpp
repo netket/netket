@@ -32,12 +32,12 @@ namespace netket {
 #define ADDGRAPHMETHODS(name)                              \
                                                            \
   .def("Nsites", &AbstractGraph::Nsites)                   \
-  .def("AdjacencyList", &AbstractGraph::AdjacencyList)		       \
-  .def("SymmetryTable", &AbstractGraph::SymmetryTable)		       \
-  .def("EdgeColors", &AbstractGraph::EdgeColors)		       \
-  .def("IsBipartite", &AbstractGraph::IsBipartite)		       \
-  .def("IsConnected", &AbstractGraph::IsConnected)		       \
-  .def("Distances", &AbstractGraph::Distances);
+      .def("AdjacencyList", &AbstractGraph::AdjacencyList) \
+      .def("SymmetryTable", &AbstractGraph::SymmetryTable) \
+      .def("EdgeColors", &AbstractGraph::EdgeColors)       \
+      .def("IsBipartite", &AbstractGraph::IsBipartite)     \
+      .def("IsConnected", &AbstractGraph::IsConnected)     \
+      .def("Distances", &AbstractGraph::Distances);
 
 namespace detail {
 inline std::size_t LengthHint(py::iterable xs) {

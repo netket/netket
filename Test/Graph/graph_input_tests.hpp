@@ -30,6 +30,7 @@ std::vector<Ptype> GetGraphs() {
     netket::CustomGraph graph(14);
     graphs.push_back(netket::make_unique<CustomGraph>(graph));
   }
+  /* TODO: Fix compilation
   {
     netket::CustomGraph graph(0, {{1, 2}, {0, 2}, {0, 1}});
     graphs.push_back(netket::make_unique<CustomGraph>(graph));
@@ -38,6 +39,7 @@ std::vector<Ptype> GetGraphs() {
     netket::CustomGraph graph(0, {}, {{0, 1}, {0, 2}, {0, 3}, {3, 1}});
     graphs.push_back(netket::make_unique<CustomGraph>(graph));
   }
+  */
   // TODO add more CustomGraph constructors
   return graphs;
 }

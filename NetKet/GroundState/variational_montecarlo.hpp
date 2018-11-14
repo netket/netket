@@ -26,11 +26,11 @@
 #include "Machine/machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
+#include "Output/json_output_writer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include "json_output_writer.hpp"
 #include "matrix_replacement.hpp"
 
 namespace netket {

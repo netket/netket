@@ -23,11 +23,17 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
+#include "custom_hilbert.hpp"
+#include "hilbert_index.hpp"
 #include "netket.hpp"
+#include "qubits.hpp"
+#include "spins.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
+
+constexpr int HilbertIndex::MaxStates;
 
 #define ADDHILBERTMETHODS(name)                \
                                                \
@@ -65,6 +71,13 @@ void AddHilbertModule(py::module &m) {
       .def(py::init<const AbstractGraph &, std::vector<double>>(),
            py::arg("graph"), py::arg("local_states"))
           ADDHILBERTMETHODS(CustomHilbert);
+
+  py::class_<HilbertIndex>(subm, "HilbertIndex")
+      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def("n_states", &HilbertIndex::NStates)
+      .def("number_to_state", &HilbertIndex::NumberToState)
+      .def("state_to_number", &HilbertIndex::StateToNumber)
+      .def_readonly_static("max_states", &HilbertIndex::MaxStates);
 
 }  // namespace netket
 

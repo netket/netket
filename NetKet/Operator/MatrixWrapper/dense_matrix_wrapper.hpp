@@ -18,6 +18,7 @@
 #include <Eigen/Dense>
 
 #include "Hilbert/hilbert_index.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "abstract_matrix_wrapper.hpp"
 
 namespace netket {
@@ -26,8 +27,8 @@ namespace netket {
  * This class stores the matrix elements of a given Operator
  * as an Eigen dense matrix.
  */
-template <class Operator, class WfType = Eigen::VectorXcd>
-class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
+template <class State = Eigen::VectorXcd>
+class DenseMatrixWrapper : public AbstractMatrixWrapper<State> {
  public:
   using Matrix = Eigen::MatrixXcd;
 
@@ -36,18 +37,18 @@ class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
   int dim_;
 
  public:
-  explicit DenseMatrixWrapper(const Operator& the_operator) {
+  explicit DenseMatrixWrapper(const AbstractOperator& the_operator) {
     InitializeMatrix(the_operator);
   }
 
-  WfType Apply(const WfType& state) const override { return matrix_ * state; }
+  State Apply(const State& state) const override { return matrix_ * state; }
 
-  std::complex<double> Mean(const WfType& state) const override {
+  std::complex<double> Mean(const State& state) const override {
     return state.adjoint() * matrix_ * state;
   }
 
   std::array<std::complex<double>, 2> MeanVariance(
-      const WfType& state) const override {
+      const State& state) const override {
     auto state1 = matrix_ * state;
     auto state2 = matrix_ * state1;
 
@@ -78,7 +79,7 @@ class DenseMatrixWrapper : public AbstractMatrixWrapper<Operator, WfType> {
   }
 
  private:
-  void InitializeMatrix(const Operator& the_operator) {
+  void InitializeMatrix(const AbstractOperator& the_operator) {
     const auto& hilbert = the_operator.GetHilbert();
     const HilbertIndex hilbert_index(hilbert);
     dim_ = hilbert_index.NStates();

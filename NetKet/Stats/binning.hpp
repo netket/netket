@@ -19,6 +19,8 @@
 #include <valarray>
 #include <vector>
 
+#include "onlinestat.hpp"
+
 namespace netket {
 
 template <class T>
