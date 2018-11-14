@@ -6,17 +6,17 @@ from mpi4py import MPI
 operators = {}
 
 # Ising 1D
-g_1 = nk.graph.Hypercube(L=20, ndim=1, pbc=True)
+g_1 = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi_1 = nk.hilbert.Spin(s=0.5, graph=g_1)
 operators["Ising 1D"] = nk.operator.Ising(h=1.321, hilbert=hi_1)
 
 # Heisenberg 1D
-g_2 = nk.graph.Hypercube(L=20, ndim=1, pbc=True)
+g_2 = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi_2 = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g_1)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi_2)
 
 # Bose Hubbard
-g_3 = nk.graph.Hypercube(L=10, ndim=2, pbc=True)
+g_3 = nk.graph.Hypercube(length=10, ndim=2, pbc=True)
 hi_3 = nk.hilbert.Boson(n_max=3, n_bosons=23, graph=g_3)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi_3)
 
