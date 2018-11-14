@@ -21,38 +21,38 @@ hilberts = {}
 
 # Spin 1/2
 hilberts["Spin 1/2"] = nk.hilbert.Spin(
-    s=0.5, graph=nk.graph.Hypercube(L=20, ndim=1))
+    s=0.5, graph=nk.graph.Hypercube(length=20, ndim=1))
 
 #Spin 1/2 with total Sz
 hilberts["Spin 1/2 with total Sz"] = nk.hilbert.Spin(
-    s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(L=20, ndim=1))
+    s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(length=20, ndim=1))
 
 # Spin 3
 hilberts["Spin 3"] = nk.hilbert.Spin(
-    s=3, graph=nk.graph.Hypercube(L=25, ndim=1))
+    s=3, graph=nk.graph.Hypercube(length=25, ndim=1))
 
 # Boson
 hilberts["Boson"] = nk.hilbert.Boson(
-    n_max=5, graph=nk.graph.Hypercube(L=21, ndim=1))
+    n_max=5, graph=nk.graph.Hypercube(length=21, ndim=1))
 
 # Boson with total number
 hilberts["Bosons with total number"] = nk.hilbert.Boson(
-    n_max=5, n_bosons=11, graph=nk.graph.Hypercube(L=21, ndim=1))
+    n_max=5, n_bosons=11, graph=nk.graph.Hypercube(length=21, ndim=1))
 
 # Qubit
-hilberts["Qubit"] = nk.hilbert.Qubit(graph=nk.graph.Hypercube(L=32, ndim=1))
+hilberts["Qubit"] = nk.hilbert.Qubit(graph=nk.graph.Hypercube(length=32, ndim=1))
 
 # Custom Hilbert
 hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(L=34, ndim=1))
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=34, ndim=1))
 
 # Heisenberg 1d
-g = nk.graph.Hypercube(L=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
 hilberts["Heisenberg 1d"] = nk.operator.Heisenberg(hilbert=hi).GetHilbert()
 
 # Bose Hubbard
-g = nk.graph.Hypercube(L=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Boson(n_max=4, n_bosons=20, graph=g)
 hilberts["Bose Hubbard"] = nk.operator.BoseHubbard(
     U=4.0, hilbert=hi).GetHilbert()
@@ -63,23 +63,23 @@ hilberts["Bose Hubbard"] = nk.operator.BoseHubbard(
 
 # Spin 1/2
 hilberts["Spin 1/2 Small"] = nk.hilbert.Spin(
-    s=0.5, graph=nk.graph.Hypercube(L=10, ndim=1))
+    s=0.5, graph=nk.graph.Hypercube(length=10, ndim=1))
 
 # Spin 3
 hilberts["Spin 1/2 with total Sz Small"] = nk.hilbert.Spin(
-    s=3, total_sz=1.0, graph=nk.graph.Hypercube(L=4, ndim=1))
+    s=3, total_sz=1.0, graph=nk.graph.Hypercube(length=4, ndim=1))
 
 # Boson
 hilberts["Boson Small"] = nk.hilbert.Boson(
-    n_max=3, graph=nk.graph.Hypercube(L=5, ndim=1))
+    n_max=3, graph=nk.graph.Hypercube(length=5, ndim=1))
 
 # Qubit
 hilberts["Qubit Small"] = nk.hilbert.Qubit(
-    graph=nk.graph.Hypercube(L=1, ndim=1))
+    graph=nk.graph.Hypercube(length=1, ndim=1, pbc=False))
 
 # Custom Hilbert
 hilberts["Custom Hilbert Small"] = nk.hilbert.CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(L=5, ndim=1))
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, ndim=1))
 
 #
 # Tests
