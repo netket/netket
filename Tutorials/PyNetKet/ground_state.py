@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 #Machine
-ma = nk.RbmSpin(hilbert=hi, alpha=1)
+ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.InitRandomPars(seed=1234, sigma=0.01)
 
 #Sampler
