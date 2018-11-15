@@ -18,16 +18,16 @@ from mpi4py import MPI
 
 L = 20
 
-#Constructing a 1d lattice
+# Constructing a 1d lattice
 g = nk.graph.Hypercube(L=L, ndim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 
-#Hamiltonian
+# Hamiltonian
 ha = nk.operator.Heisenberg(hilbert=hi)
 
-#Layers
+# Layers
 act = nk.activation.Lncosh()
 layers = [
     nk.layer.Convolutional(
@@ -38,17 +38,17 @@ layers = [
         distance=4)
 ]
 
-#FFNN Machine
+# FFNN Machine
 ma = nk.machine.FFNN(hi, layers)
 ma.InitRandomPars(seed=1234, sigma=0.1)
 
-#Sampler
+# Sampler
 sa = nk.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 
-#Optimizer
+# Optimizer
 op = nk.Sgd(learning_rate=0.01)
 
-#Variational Monte Carlo
+# Variational Monte Carlo
 gs = nk.Vmc(
     hamiltonian=ha,
     sampler=sa,
