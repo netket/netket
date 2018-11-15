@@ -20,17 +20,35 @@ cmdclass = {}
 
 # Patches a few pre-installed commands to accept `--cmake-args` command line
 # argument.
-for _Command in [build_orig, install_orig]:
-    class _CMakeCommand(_Command):
-        user_options = _Command.user_options + [
-            ("cmake-args=", None, "Arguments passed directly to CMake"),
-        ]
+# NOTE(twesterhout): I'd like to do it in a loop, but Python 2's super() is too
+# buggy for that...
+class _CMakeBuild(build_orig, object):
+    user_options = build_orig.user_options + [
+        ("cmake-args=", None, "Arguments passed directly to CMake"),
+    ]
 
-        def initialize_options(self):
-            self.cmake_args = None
+    def initialize_options(self):
+        self.cmake_args = None
+        if sys.version_info >= (3, 0):
             super().initialize_options()
+        else:
+            super(_CMakeBuild, self).initialize_options()
 
-    cmdclass[_Command.__name__] = _CMakeCommand
+cmdclass['build'] = _CMakeBuild
+
+class _CMakeInstall(install_orig, object):
+    user_options = install_orig.user_options + [
+        ("cmake-args=", None, "Arguments passed directly to CMake"),
+    ]
+
+    def initialize_options(self):
+        self.cmake_args = None
+        if sys.version_info >= (3, 0):
+            super().initialize_options()
+        else:
+            super(_CMakeInstall, self).initialize_options()
+
+cmdclass['install'] = _CMakeInstall
 
 # Our custom version of build_ext command that uses CMake
 class CMakeBuildExt(Command):
@@ -182,7 +200,7 @@ class CMakeExtension(Extension):
                       for building the extension `name` can be found.
     """
     def __init__(self, name, sourcedir='.'):
-        super().__init__(name, sources=[])
+        Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.join(os.path.realpath('.'), sourcedir)
 
 cmdclass['build_ext'] = CMakeBuildExt
