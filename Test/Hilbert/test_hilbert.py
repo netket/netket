@@ -23,7 +23,7 @@ hilberts = {}
 hilberts["Spin 1/2"] = nk.hilbert.Spin(
     s=0.5, graph=nk.graph.Hypercube(length=20, ndim=1))
 
-#Spin 1/2 with total Sz
+# Spin 1/2 with total Sz
 hilberts["Spin 1/2 with total Sz"] = nk.hilbert.Spin(
     s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(length=20, ndim=1))
 
@@ -40,7 +40,8 @@ hilberts["Bosons with total number"] = nk.hilbert.Boson(
     n_max=5, n_bosons=11, graph=nk.graph.Hypercube(length=21, ndim=1))
 
 # Qubit
-hilberts["Qubit"] = nk.hilbert.Qubit(graph=nk.graph.Hypercube(length=32, ndim=1))
+hilberts["Qubit"] = nk.hilbert.Qubit(
+    graph=nk.graph.Hypercube(length=32, ndim=1))
 
 # Custom Hilbert
 hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
@@ -49,13 +50,13 @@ hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
 # Heisenberg 1d
 g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
-hilberts["Heisenberg 1d"] = nk.operator.Heisenberg(hilbert=hi).GetHilbert()
+hilberts["Heisenberg 1d"] = nk.operator.Heisenberg(hilbert=hi).get_hilbert()
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Boson(n_max=4, n_bosons=20, graph=g)
 hilberts["Bose Hubbard"] = nk.operator.BoseHubbard(
-    U=4.0, hilbert=hi).GetHilbert()
+    U=4.0, hilbert=hi).get_hilbert()
 
 #
 # Small hilbert space tests
@@ -126,7 +127,7 @@ def test_mapping():
         assert (hi.size() > 0)
         assert (hi.local_size() > 0)
 
-        log_max_states=np.log(nk.hilbert.HilbertIndex.max_states)
+        log_max_states = np.log(nk.hilbert.HilbertIndex.max_states)
         if hi.size() * np.log(hi.local_size()) < log_max_states:
             hilb_index = nk.hilbert.HilbertIndex(hi)
 
