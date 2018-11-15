@@ -29,15 +29,14 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name)              \
-  .def("GetConn", &AbstractOperator::GetConn) \
-      .def("GetHilbert", &AbstractOperator::GetHilbert)
+#define ADDOPERATORMETHODS(name) \
+  .def("get_conn", &name::GetConn).def("get_hilbert", &name::GetHilbert)
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
 
   py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
-      ADDOPERATORMETHODS(name);
+      ADDOPERATORMETHODS(AbstractOperator);
 
   py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
       subm, "LocalOperator")
@@ -48,9 +47,7 @@ void AddOperatorModule(py::module &m) {
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
                     LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("GetConn", &LocalOperator::GetConn)
-      .def("GetHilbert", &LocalOperator::GetHilbert)
-      .def("LocalMatrices", &LocalOperator::LocalMatrices)
+      .def("local_matrices", &LocalOperator::LocalMatrices)
       .def(py::self += py::self)
       .def(py::self *= double())
       .def(py::self *= std::complex<double>())
@@ -63,14 +60,11 @@ void AddOperatorModule(py::module &m) {
   py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(subm, "Ising")
       .def(py::init<const AbstractHilbert &, double, double>(),
            py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
-      .def("GetConn", &Ising::GetConn)
-      .def("GetHilbert", &Ising::GetHilbert) ADDOPERATORMETHODS(Ising);
+          ADDOPERATORMETHODS(Ising);
 
   py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
       subm, "Heisenberg")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-      .def("GetConn", &Heisenberg::GetConn)
-      .def("GetHilbert", &Heisenberg::GetHilbert)
           ADDOPERATORMETHODS(Heisenberg);
 
   py::class_<GraphHamiltonian, AbstractOperator,
@@ -81,18 +75,13 @@ void AddOperatorModule(py::module &m) {
            py::arg("siteops") = GraphHamiltonian::OVecType(),
            py::arg("bondops") = GraphHamiltonian::OVecType(),
            py::arg("bondops_colors") = std::vector<int>())
-      .def("GetConn", &GraphHamiltonian::GetConn)
-      .def("GetHilbert", &GraphHamiltonian::GetHilbert)
           ADDOPERATORMETHODS(GraphHamiltonian);
 
   py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
       subm, "BoseHubbard")
       .def(py::init<const AbstractHilbert &, double, double, double>(),
            py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
-           py::arg("mu") = 0.)
-      .def("GetConn", &BoseHubbard::GetConn)
-      .def("GetHilbert", &BoseHubbard::GetHilbert)
-          ADDOPERATORMETHODS(BoseHubbard);
+           py::arg("mu") = 0.) ADDOPERATORMETHODS(BoseHubbard);
 
   // Matrix wrappers
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")
@@ -119,7 +108,7 @@ void AddOperatorModule(py::module &m) {
       .def_property_readonly("dimension", &DirectMatrixWrapper<>::Dimension);
 
   subm.def("wrap_as_matrix", &CreateMatrixWrapper<>, py::arg("operator"),
-        py::arg("type") = "Sparse");
+           py::arg("type") = "Sparse");
 }
 
 }  // namespace netket

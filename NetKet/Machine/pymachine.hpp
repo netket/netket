@@ -57,17 +57,18 @@ namespace netket {
                           AbMachineType::VisibleConstType)) &               \
                           name::DerLog)                                     \
       .def("n_visible", &name::Nvisible)                                    \
-      .def("get_hilbert", &name::GetHilbert,                                \
-           py::return_value_policy::reference)
+      .def("get_hilbert", &name::GetHilbert)
 
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
   using MachineType = std::complex<double>;
   using AbMachineType = AbstractMachine<MachineType>;
 
-  py::class_<AbMachineType>(subm, "Machine") ADDMACHINEMETHODS(AbMachineType);
+  py::class_<AbMachineType, std::shared_ptr<AbMachineType>>(subm, "Machine")
+      ADDMACHINEMETHODS(AbMachineType);
 
-  py::class_<RbmSpin<MachineType>, AbMachineType>(subm, "RbmSpin")
+  py::class_<RbmSpin<MachineType>, AbMachineType,
+             std::shared_ptr<RbmSpin<MachineType>>>(subm, "RbmSpin")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_"
@@ -75,7 +76,8 @@ void AddMachineModule(py::module &m) {
            py::arg("use_hidden_"
                    "bias") = true) ADDMACHINEMETHODS(RbmSpin<MachineType>);
 
-  py::class_<RbmSpinSymm<MachineType>, AbMachineType>(subm, "RbmSpinSymm")
+  py::class_<RbmSpinSymm<MachineType>, AbMachineType,
+             std::shared_ptr<RbmSpinSymm<MachineType>>>(subm, "RbmSpinSymm")
       .def(py::init<const AbstractHilbert &, int, bool, bool>(),
            py::arg("hilbert"), py::arg("alpha") = 0,
            py::arg("use_visible_"
@@ -83,7 +85,8 @@ void AddMachineModule(py::module &m) {
            py::arg("use_hidden_"
                    "bias") = true) ADDMACHINEMETHODS(RbmSpinSymm<MachineType>);
 
-  py::class_<RbmMultival<MachineType>, AbMachineType>(subm, "RbmMultival")
+  py::class_<RbmMultival<MachineType>, AbMachineType,
+             std::shared_ptr<RbmMultival<MachineType>>>(subm, "RbmMultival")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_"
@@ -91,25 +94,29 @@ void AddMachineModule(py::module &m) {
            py::arg("use_hidden_"
                    "bias") = true) ADDMACHINEMETHODS(RbmMultival<MachineType>);
 
-  py::class_<Jastrow<MachineType>, AbMachineType>(subm, "Jastrow")
+  py::class_<Jastrow<MachineType>, AbMachineType,
+             std::shared_ptr<Jastrow<MachineType>>>(subm, "Jastrow")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
           ADDMACHINEMETHODS(Jastrow<MachineType>);
 
-  py::class_<JastrowSymm<MachineType>, AbMachineType>(subm, "JastrowSymm")
+  py::class_<JastrowSymm<MachineType>, AbMachineType,
+             std::shared_ptr<JastrowSymm<MachineType>>>(subm, "JastrowSymm")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
           ADDMACHINEMETHODS(JastrowSymm<MachineType>);
 
 #ifndef COMMA
 #define COMMA ,
 #endif
-  py::class_<MPSPeriodic<MachineType, true>, AbMachineType>(
+  py::class_<MPSPeriodic<MachineType, true>, AbMachineType,
+             std::shared_ptr<MPSPeriodic<MachineType, true>>>(
       subm, "MPSPeriodicDiagonal")
       .def(py::init<const AbstractHilbert &, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
           ADDMACHINEMETHODS(MPSPeriodic<MachineType COMMA true>);
 
-  py::class_<MPSPeriodic<MachineType, false>, AbMachineType>(subm,
-                                                             "MPSPeriodic")
+  py::class_<MPSPeriodic<MachineType, false>, AbMachineType,
+             std::shared_ptr<MPSPeriodic<MachineType, false>>>(subm,
+                                                               "MPSPeriodic")
       .def(py::init<const AbstractHilbert &, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
           ADDMACHINEMETHODS(MPSPeriodic<MachineType COMMA false>);
@@ -117,7 +124,8 @@ void AddMachineModule(py::module &m) {
   AddActivationModule(m);
   AddLayerModule(m);
 
-  py::class_<FFNN<MachineType>, AbMachineType>(subm, "FFNN")
+  py::class_<FFNN<MachineType>, AbMachineType,
+             std::shared_ptr<FFNN<MachineType>>>(subm, "FFNN")
       .def(py::init<
                const AbstractHilbert &,
                std::vector<std::shared_ptr<AbstractLayer<MachineType>>> &>(),
