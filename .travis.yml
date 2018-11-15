@@ -115,8 +115,11 @@ script:
   # show OS/compiler version
   - uname -a
   - $CXX --version
+  - python --version
 
   # compile and execute Python unit tests
-  - python$PYTHON setup.py install . --user --defines="${CMAKE_OPTIONS},CMAKE_CXX_COMPILER=${COMPILER},CMAKE_CXX_FLAGS=${CXXFLAGS}"
+  - CMAKE_OPTIONS="'${CMAKE_OPTIONS} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_CXX_FLAGS=${CXXFLAGS}'"
+  - echo "$CMAKE_OPTIONS"
+  - pip install -v . --user --install-option=--cmake-args=${CMAKE_OPTIONS}
   - pytest --verbose Test
   - cd ..

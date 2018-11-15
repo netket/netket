@@ -5,33 +5,62 @@ import sys
 import subprocess
 from subprocess import CalledProcessError
 
+import shlex
+import pathlib
+
+from distutils import log
+from distutils.command.build import build as build_orig
 from distutils.core import Command
 from distutils.errors import DistutilsError
 
 from setuptools import setup, Extension
+from setuptools.command.install import install as install_orig
 
-class CMakeBuild(Command):
-    description = "build C/C++ extensions using CMake"
+# Command class we'll use in `setup()`
+cmdclass = {}
+
+# Patches a few pre-installed commands to accept `--cmake-args` command line
+# argument.
+for _Command in [build_orig, install_orig]:
+    class _CMakeCommand(_Command):
+        user_options = _Command.user_options + [
+            ("cmake-args=", None, "Arguments passed directly to CMake"),
+        ]
+
+        def initialize_options(self):
+            self.cmake_args = None
+            super().initialize_options()
+
+    cmdclass[_Command.__name__] = _CMakeCommand
+
+# Our custom version of build_ext command that uses CMake
+class CMakeBuildExt(Command):
+    description = "Build C/C++ extensions using CMake"
 
     user_options = [
-        ("defines=", "D", "Create or update cmake cache entries"),
-        ("undef=", "U", "Remove matching entries from CMake cache"),
-        ("generator=", "G", "Specify the build system generator"),
-        ("build-temp=", 't', "Directory for temporary files (build by-products)"),
+        ("cmake-args=", "o", "Arguments passed directly to CMake"),
+        ("build-temp=", "t", "Directory for temporary files (build by-products)"),
     ]
 
     def initialize_options(self):
         self.extensions = None
         self.package = None
-        self.defines = None
-        self.undef = None
-        self.generator = None
+        self.cmake_args = None
         self.build_temp = None
-        self.build_lib = "build"
-        self.cmake_args = []
         self.build_args = []
+        self.build_lib = None
 
     def finalize_options(self):
+        # We steal cmake_args from both install and build commands. Also we
+        # need to know in which directory to build the project -- build_temp
+        # and where to save the compiled modules -- build_lib
+        self.set_undefined_options('install', ('cmake_args', 'cmake_args'))
+        self.set_undefined_options('build', ('cmake_args', 'cmake_args'),
+                                            ('build_lib', 'build_lib'),
+                                            ('build_temp', 'build_temp'))
+        if self.cmake_args:
+            self.warn("cmake_args changed in build_ext: {}".format(self.cmake_args))
+
         if self.package is None:
             self.package = self.distribution.ext_package
 
@@ -40,14 +69,25 @@ class CMakeBuild(Command):
         if self.build_temp is None:
             self.build_temp = "build"
 
-        if self.generator:
-            self.cmake_args.append('-G{}'.format(self.generator))
+        # The standard usage of --cmake-args will be with --install-option
+        # which means that cmake_args will be quoted and for some reason CMake
+        # doesn't play well with it.
+        def unquote(x):
+            m = re.match(r"'(.*)'", x)
+            if m:
+                return m.group(1)
+            m = re.match(r'"(.*)"', x)
+            if m:
+                return m.group(1)
+            return x
 
-        if self.defines:
-            self.cmake_args += ['-D{}'.format(x.strip()) for x in self.defines.split(',')]
-
-        if self.undef:
-            self.cmake_args.append('-U "{}"'.format(self.undef))
+        if self.cmake_args is None:
+            self.warn("No CMake options specified")
+            self.cmake_args = []
+        else:
+            # shlex.split splits the string into words correctly handling
+            # quoted strings
+            self.cmake_args = shlex.split(unquote(self.cmake_args))
 
         # Use the exact same Python version in CMake as the current process
         self.cmake_args.append(
@@ -63,31 +103,47 @@ class CMakeBuild(Command):
         try:
             yield
         except (DistutilsError, CalledProcessError) as e:
+            self.warn('Failed: \n{}'.format(e.output.decode()))
             if not ext.optional:
                 raise
             self.warn('building extension "{}" failed: {}'.format(ext.name, e))
 
     def build_extension(self, ext):
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
+        cwd = pathlib.Path().absolute()
 
-        subprocess.check_call(['cmake', ext.sourcedir] + self.cmake_args,
-                              cwd=self.build_temp, stderr=subprocess.PIPE)
-        subprocess.check_call(['cmake', '--build', '.'] + self.build_args,
-                              cwd=self.build_temp, stderr=subprocess.PIPE)
+        build_temp = pathlib.Path(self.build_temp)
+        build_temp.mkdir(parents=True, exist_ok=True)
 
-        fullname = self.get_ext_fullname(ext.name)
-        modpath = fullname.split('.')
-        filename = self.get_ext_filename(modpath[-1])
-        install_dir = os.path.join(self.build_lib, *modpath[:-1])
-        if not os.path.exists(self.build_lib):
-            os.makedirs(install_dir)
+        lib_dir = pathlib.Path(self.build_lib).absolute()
+        lib_dir.mkdir(parents=True, exist_ok=True)
 
-        self.copy_file(self.get_ext_fullpath(ext.name),
-                       os.path.join(install_dir, filename))
+        cmake_args = self.cmake_args
+        cmake_args.append(
+            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(str(lib_dir)))
+
+        os.chdir(str(build_temp))
+        output = subprocess.check_output(
+            ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
+        if self.distribution.verbose:
+            log.info(output.decode())
+        if not self.distribution.dry_run:
+            output = subprocess.check_output(
+                ['cmake', '--build', '.'] + self.build_args, stderr=subprocess.STDOUT)
+            if self.distribution.verbose:
+                log.info(output.decode())
+        os.chdir(str(cwd))
+
+    def get_outputs(self):
+        outputs = []
+        for ext in self.extensions:
+            outputs.append(self.get_ext_fullpath(ext.name))
+        log.info(outputs)
+        return outputs
 
     def get_source_files(self):
         return []
+
+    # The rest is taken from CPython's implementation of build_ext
 
     # -- Name generators -----------------------------------------------
     # (extension names, filenames, whatever)
@@ -130,7 +186,9 @@ class CMakeExtension(Extension):
     """
     def __init__(self, name, sourcedir='.'):
         super().__init__(name, sources=[])
-        self.sourcedir = os.path.abspath(sourcedir)
+        self.sourcedir = os.path.join(os.path.realpath('.'), sourcedir)
+
+cmdclass['build_ext'] = CMakeBuildExt
 
 setup(
     name='netket',
@@ -141,6 +199,6 @@ setup(
     author_email='netket@netket.org',
     license='Apache',
     ext_modules=[CMakeExtension('netket')],
-    cmdclass={'build_ext': CMakeBuild},
+    cmdclass=cmdclass,
     zip_safe=False,
 )
