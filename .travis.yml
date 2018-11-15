@@ -117,6 +117,6 @@ script:
   - $CXX --version
 
   # compile and execute Python unit tests
-  - $PYTHON setup.py install . --user --defines="${CMAKE_OPTIONS},CMAKE_CXX_COMPILER=${COMPILER},CMAKE_CXX_FLAGS=${CXXFLAGS}"
+  - python$PYTHON setup.py install . --user --defines="${CMAKE_OPTIONS},CMAKE_CXX_COMPILER=${COMPILER},CMAKE_CXX_FLAGS=${CXXFLAGS}"
   - pytest --verbose Test
   - cd ..
