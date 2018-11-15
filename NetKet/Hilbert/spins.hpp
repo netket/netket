@@ -89,15 +89,15 @@ class Spin : public AbstractHilbert {
       throw InvalidInputError("Invalid spin value");
     }
 
-    if (std::floor(2. * S) != 2. * S) {
+    if (std::round(2. * S) != 2. * S) {
       throw InvalidInputError("Spin value is neither integer nor half integer");
     }
 
-    nstates_ = std::floor(2. * S) + 1;
+    nstates_ = std::round(2. * S) + 1;
 
     local_.resize(nstates_);
 
-    int sp = -std::floor(2. * S);
+    int sp = -std::round(2. * S);
     for (int i = 0; i < nstates_; i++) {
       local_[i] = sp;
       sp += 2;
@@ -107,6 +107,17 @@ class Spin : public AbstractHilbert {
   void SetConstraint(double totalS) {
     constraintSz_ = true;
     totalS_ = totalS;
+    int m = std::round(2 * totalS);
+    if (std::abs(m) > nspins_) {
+      throw InvalidInputError(
+          "Cannot fix the total magnetization: 2|M| cannot "
+          "exceed Nspins.");
+    }
+    if ((nspins_ + m) % 2 != 0) {
+      throw InvalidInputError(
+          "Cannot fix the total magnetization: Nspins + "
+          "totalSz must be even.");
+    }
   }
 
   bool IsDiscrete() const override { return true; }
@@ -132,7 +143,7 @@ class Spin : public AbstractHilbert {
       using std::begin;
       using std::end;
       // Magnetisation as a count
-      auto const m = static_cast<int>(2 * totalS_);
+      int m = std::round(2 * totalS_);
       if (std::abs(m) > nspins_) {
         throw InvalidInputError(
             "Cannot fix the total magnetization: 2|M| cannot "
@@ -143,8 +154,8 @@ class Spin : public AbstractHilbert {
             "Cannot fix the total magnetization: Nspins + "
             "totalSz must be even.");
       }
-      auto const nup = (nspins_ + m) / 2;
-      auto const ndown = (nspins_ - m) / 2;
+      int nup = (nspins_ + m) / 2;
+      int ndown = (nspins_ - m) / 2;
       std::fill_n(state.data(), nup, 1.0);
       std::fill_n(state.data() + nup, ndown, -1.0);
       std::shuffle(state.data(), state.data() + nspins_, rgen);
@@ -153,14 +164,14 @@ class Spin : public AbstractHilbert {
       std::vector<int> sites;
       for (int i = 0; i < nspins_; ++i) sites.push_back(i);
 
-      state.setConstant(-2 * S_);
+      state.setConstant(-std::round(2 * S_));
       int ss = nspins_;
 
       for (int i = 0; i < S_ * nspins_ + totalS_; ++i) {
         std::uniform_int_distribution<int> distribution_ss(0, ss - 1);
         int s = distribution_ss(rgen);
         state(sites[s]) += 2;
-        if (state(sites[s]) > 2 * S_ - 1) {
+        if (state(sites[s]) > std::round(2 * S_ - 1)) {
           sites.erase(sites.begin() + s);
           ss -= 1;
         }
