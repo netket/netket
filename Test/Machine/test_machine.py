@@ -14,18 +14,17 @@ def input_machines():
     g = nk.graph.Hypercube(length=20, ndim=1)
 
     # Hilbert space of spins from given graph
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi1 = nk.hilbert.Spin(s=0.5, graph=g)
 
-    machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
-        hilbert=hi, alpha=1)
+    machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi1, alpha=1)
 
     machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
-        hilbert=hi, alpha=2)
+             hilbert=hi1, alpha=2)
 
-    machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+    machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi1)
 
-    hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-    machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+    hi2 = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+    machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi2)
 
     # Layers
     layers = [
@@ -35,30 +34,29 @@ def input_machines():
             activation=nk.activation.Lncosh())
     ]
 
+ 
     # FFNN Machine
-    machines["FFFN 1d Hypercube spin"] = nk.machine.FFNN(
-        hilbert=hi, layers=layers)
+    machines["FFFN 1d Hypercube spin"] = nk.machine.FFNN(hi2, layers)
 
     machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
-        hilbert=hi, bond_dim=8)
-    machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hilbert=hi, bond_dim=8)
-
+         hi2, bond_dim=8)
+    machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi2, bond_dim=8)
+ 
     # BOSONS
-    hi = nk.hilbert.Boson(graph=g, n_max=4)
+    hi3 = nk.hilbert.Boson(graph=g, n_max=4)
     machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
-        hilbert=hi, alpha=1)
+         hilbert=hi3, alpha=1)
 
     machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
-        hilbert=hi, alpha=2)
+         hilbert=hi3, alpha=2)
     machines["RbmMultival 1d Hypercube boson"] = nk.machine.RbmMultival(
-        hilbert=hi, n_hidden=10)
-    machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
+         hilbert=hi3, n_hidden=10)
+    machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi3)
 
-    machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
-        hilbert=hi)
-    machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hilbert=hi, bond_dim=5)
+    machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(hilbert=hi3)
+    machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi3, bond_dim=5)
 
-    return machines
+return machines 
 
 
 def log_val(par, machine, v):
@@ -66,7 +64,7 @@ def log_val(par, machine, v):
     return machine.log_val(v)
 
 
-# import numdifftools as nd
+import numdifftools as nd
 
 
 def test_set_get_parameters(input_machines):
@@ -86,23 +84,21 @@ def test_log_derivative(input_machines):
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
 
         # random visibile state
-        # TODO GetHilbert is broken because we return a reference and not a pointer
-        # ga = ma.get_hilbert()
-        # assert(ma.get_hilbert().size() > 0)
-        # rg = nk.RandomEngine(seed=1234)
-        # v = np.zeros(hi.size())
-        # hi.random_vals(v, rg)
-        #
-        # grad = (nd.Gradient(log_val))
-        #
-        # ma.SetParameters(randpars)
-        # assert(np.linalg.norm(ma.DerLog(v) -
-        #                       grad(randpars, ma, v), ord=np.inf) < 1.0e-6)
+        ga = ma.get_hilbert()
+        assert(ma.get_hilbert().size() > 0)
+        rg = nk.RandomEngine(seed=1234)
+        v = np.zeros(hi.size())
+        hi.random_vals(v, rg)
+        
+        grad = (nd.Gradient(log_val))
+        
+        ma.SetParameters(randpars)
+        assert(np.linalg.norm(ma.DerLog(v) -
+                               grad(randpars, ma, v), ord=np.inf) < 1.0e-6)
 
 
 def test_nvisible(input_machines):
     for name, ma in input_machines.items():
         print("Machine test: %s" % name)
-        # TODO GetHilbert is broken because we return a reference and not a pointer
-        # hh=ma.get_hilbert()
-        # assert(ma.Nvisible()==ma.GetHilbert().Size())
+        hh=ma.get_hilbert()
+        assert(ma.n_visible()==ma.get_hilbert().size())
