@@ -37,11 +37,18 @@ class RbmSpin : public AbstractMachine<T> {
   // number of hidden units
   int nh_;
 
+  // number of wavelets
+  int nw_;
+
   // number of parameters
   int npar_;
 
   // weights
   MatrixType W_;
+
+  // predefined wavelet and wavelet weights
+  MatrixType Wavelets_;
+  VectorType W_wavelets_;
 
   // visible units bias
   VectorType a_;
@@ -57,6 +64,9 @@ class RbmSpin : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
+  // flag to know wether wavelets are used or not
+  bool usewavelets_;
+
   const Hilbert &hilbert_;
 
  public:
@@ -70,7 +80,22 @@ class RbmSpin : public AbstractMachine<T> {
   }
 
   void Init() {
-    W_.resize(nv_, nh_);
+    if (usewavelets_) {
+      W_wavelets_.resize(nw_)
+
+      Wavelets_.resize(nv_, nw_)
+      // initialize wavelets using gabor wavelets
+      for (int i = 0; i < nv_; i++) {
+        for (int j = 0; j < nw_; j++) {
+            // NOTE: there I need to know if I'm in 1D or 2D
+            Wavelets_(i, j) = 0.;
+            k++;
+        }
+      }
+    } else {
+      W_.resize(nv_, nh_);
+    }
+
     a_.resize(nv_);
     b_.resize(nh_);
 
@@ -79,7 +104,11 @@ class RbmSpin : public AbstractMachine<T> {
     thetasnew_.resize(nh_);
     lnthetasnew_.resize(nh_);
 
-    npar_ = nv_ * nh_;
+    if (usewavelets_) {
+      npar_ = nw_;
+    } else {
+      npar_ = nv_ * nh_;
+    }
 
     if (usea_) {
       npar_ += nv_;
@@ -93,8 +122,13 @@ class RbmSpin : public AbstractMachine<T> {
       b_.setZero();
     }
 
-    InfoMessage() << "RBM Initizialized with nvisible = " << nv_
-                  << " and nhidden = " << nh_ << std::endl;
+    if (usewavelets_) {
+      InfoMessage() << "RBM Initizialized with nvisible = " << nv_
+                    << " using wavelets with nwavelets = " << nw_ << std::endl;
+    } else {
+      InfoMessage() << "RBM Initizialized with nvisible = " << nv_
+                    << " and nhidden = " << nh_ << std::endl;
+    }
     InfoMessage() << "Using visible bias = " << usea_ << std::endl;
     InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
   }
@@ -102,6 +136,8 @@ class RbmSpin : public AbstractMachine<T> {
   int Nvisible() const override { return nv_; }
 
   int Nhidden() const { return nh_; }
+
+  int Nwavelets() const { return nw_; }
 
   int Npar() const override { return npar_; }
 
@@ -121,16 +157,29 @@ class RbmSpin : public AbstractMachine<T> {
       lt.V(0).resize(b_.size());
     }
 
-    lt.V(0) = (W_.transpose() * v + b_);
+    if (usewavelets_) {
+      // NOTE: I don't know if the Vector matrix mul is corrrect and if I understood correctly the convolution
+      lt.V(0) = (W_wavelets_ * Wavelets_.transpose() * v + b_);
+    } else {
+      lt.V(0) = (W_.transpose() * v + b_);
+    }
   }
 
   void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-        lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
+      if (usewavelets_) {
+        // From my understanding, it's the case where a flip is done, but I'm not sure..
+        for (std::size_t s = 0; s < tochange.size(); s++) {
+          const int sf = tochange[s];
+          lt.V(0) += W_wavelets_ * Wavelets_.row(sf) * (newconf[s] - v(sf));
+        }
+      } else {
+        for (std::size_t s = 0; s < tochange.size(); s++) {
+          const int sf = tochange[s];
+          lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
+        }
       }
     }
   }
@@ -146,7 +195,12 @@ class RbmSpin : public AbstractMachine<T> {
       }
     }
 
-    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    if (usewavelets_) {
+      // I'm not sure either
+      RbmSpin::tanh(W_wavelets_ * Wavelets_.transpose() * v + b_, lnthetas_);
+    } else {
+      RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    }
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
@@ -182,10 +236,17 @@ class RbmSpin : public AbstractMachine<T> {
       }
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        pars(k) = W_(i, j);
+    if (usewavelets_) {
+      for (int i = 0; i < nw_; i++) {
+        pars(k) = W_wavelets_(i);
         k++;
+      }
+    } else {
+      for (int i = 0; i < nv_; i++) {
+        for (int j = 0; j < nh_; j++) {
+          pars(k) = W_(i, j);
+          k++;
+        }
       }
     }
 
@@ -208,17 +269,29 @@ class RbmSpin : public AbstractMachine<T> {
       }
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        W_(i, j) = pars(k);
+    if (usewavelets_) {
+      for (int i = 0; i < nw_; i++) {
+        W_wavelets_(i) = pars(k);
         k++;
+      }
+    } else {
+      for (int i = 0; i < nv_; i++) {
+        for (int j = 0; j < nh_; j++) {
+          W_(i, j) = pars(k);
+          k++;
+        }
       }
     }
   }
 
   // Value of the logarithm of the wave-function
   T LogVal(const Eigen::VectorXd &v) override {
-    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    if (usewavelets_) {
+      // I'm not sure either
+      RbmSpin::lncosh(W_wavelets_ * Wavelets_.transpose() * v + b_, lnthetas_);
+    } else {
+      RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    }
 
     return (v.dot(a_) + lnthetas_.sum());
   }
@@ -239,7 +312,12 @@ class RbmSpin : public AbstractMachine<T> {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
-    thetas_ = (W_.transpose() * v + b_);
+    if (usewavelets_) {
+      // I'm not sure either
+      thetas_ = (W_wavelets_ * Wavelets_.transpose() * v + b_);
+    } else {
+      thetas_ = (W_.transpose() * v + b_);
+    }
     RbmSpin::lncosh(thetas_, lnthetas_);
 
     T logtsum = lnthetas_.sum();
@@ -253,7 +331,7 @@ class RbmSpin : public AbstractMachine<T> {
 
           logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
 
-          thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
+          thetasnew_ += (W_wavelets_ * W_).row(sf) * (newconf[k][s] - v(sf));
         }
 
         RbmSpin::lncosh(thetasnew_, lnthetasnew_);
@@ -281,7 +359,12 @@ class RbmSpin : public AbstractMachine<T> {
 
         logvaldiff += a_(sf) * (newconf[s] - v(sf));
 
-        thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
+        if (usewavelets_) {
+          // I'm not sure either
+          thetasnew_ += (W_wavelets_ * W_).row(sf) * (newconf[s] - v(sf));
+        } else {
+          thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
+        }
       }
 
       RbmSpin::lncosh(thetasnew_, lnthetasnew_);
@@ -332,11 +415,15 @@ class RbmSpin : public AbstractMachine<T> {
     j["Machine"]["Name"] = "RbmSpin";
     j["Machine"]["Nvisible"] = nv_;
     j["Machine"]["Nhidden"] = nh_;
+    j["Machine"]["Nwavelets"] = nw_;
     j["Machine"]["UseVisibleBias"] = usea_;
     j["Machine"]["UseHiddenBias"] = useb_;
+    j["Machine"]["UseWavelets"] = usewavelets_;
     j["Machine"]["a"] = a_;
     j["Machine"]["b"] = b_;
     j["Machine"]["W"] = W_;
+    j["Machine"]["W_wavelets"] = W_wavelets_;
+    // Wavelets do not need to be stored since they are predefined
   }
 
   void from_json(const json &pars) override {
@@ -360,8 +447,13 @@ class RbmSpin : public AbstractMachine<T> {
       nh_ = nv_ * double(FieldVal(pars["Machine"], "Alpha"));
     }
 
+    if (FieldExists(pars["Machine"], "Nwavelets")) {
+      nw_ = pars["Machine"]["Nvisible"];
+    }
+
     usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
     useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
+    usewavelets_ = FieldOrDefaultVal(pars["Machine"], "UseWavelets", false);
 
     Init();
 
@@ -379,6 +471,9 @@ class RbmSpin : public AbstractMachine<T> {
     }
     if (FieldExists(pars["Machine"], "W")) {
       W_ = pars["Machine"]["W"];
+    }
+    if (FieldExists(pars["Machine"], "W_wavelets")) {
+      W_wavelets_ = pars["Machine"]["W_wavelets"];
     }
   }
 };
