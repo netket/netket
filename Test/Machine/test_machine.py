@@ -1,56 +1,64 @@
 import netket as nk
 import networkx as nx
 import numpy as np
+import pytest
 from mpi4py import MPI
 
-machines = {}
 
-# TESTS FOR SPIN HILBERT
-# Constructing a 1d lattice
-g = nk.graph.Hypercube(length=20, ndim=1)
+@pytest.fixture
+def input_machines():
+    machines = {}
 
-# Hilbert space of spins from given graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+    # TESTS FOR SPIN HILBERT
+    # Constructing a 1d lattice
+    g = nk.graph.Hypercube(length=20, ndim=1)
 
-machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+    # Hilbert space of spins from given graph
+    hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
+    machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
+        hilbert=hi, alpha=1)
 
-machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+    machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
+        hilbert=hi, alpha=2)
 
-hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+    machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
-# Layers
-layers = [
-    nk.layer.FullyConnected(
-        input_size=g.n_sites,
-        output_size=40,
-        activation=nk.activation.Lncosh())
-]
+    hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+    machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
-# FFNN Machine
-machines["FFFN 1d Hypercube spin"] = nk.machine.FFNN(hi, layers)
+    # Layers
+    layers = [
+        nk.layer.FullyConnected(
+            input_size=g.n_sites,
+            output_size=40,
+            activation=nk.activation.Lncosh())
+    ]
 
-machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
-    hi, bond_dim=8)
-machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=8)
+    # FFNN Machine
+    machines["FFFN 1d Hypercube spin"] = nk.machine.FFNN(
+        hilbert=hi, layers=layers)
 
+    machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
+        hilbert=hi, bond_dim=8)
+    machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hilbert=hi, bond_dim=8)
 
-# BOSONS
-hi = nk.hilbert.Boson(graph=g, n_max=4)
-machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
-    hilbert=hi, alpha=1)
+    # BOSONS
+    hi = nk.hilbert.Boson(graph=g, n_max=4)
+    machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
+        hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
-machines["RbmMultival 1d Hypercube boson"] = nk.machine.RbmMultival(
-    hilbert=hi, n_hidden=10)
-machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
+    machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
+        hilbert=hi, alpha=2)
+    machines["RbmMultival 1d Hypercube boson"] = nk.machine.RbmMultival(
+        hilbert=hi, n_hidden=10)
+    machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 
-machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(hilbert=hi)
-machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=5)
+    machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
+        hilbert=hi)
+    machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hilbert=hi, bond_dim=5)
+
+    return machines
 
 
 def log_val(par, machine, v):
@@ -61,8 +69,8 @@ def log_val(par, machine, v):
 # import numdifftools as nd
 
 
-def test_set_get_parameters():
-    for name, ma in machines.items():
+def test_set_get_parameters(input_machines):
+    for name, ma in input_machines.items():
         print("Machine test: %s" % name)
         assert(ma.n_par() > 0)
         npar = ma.n_par()
@@ -71,15 +79,16 @@ def test_set_get_parameters():
         assert(np.array_equal(ma.get_parameters(), randpars))
 
 
-def test_log_derivative():
-    for name, ma in machines.items():
+def test_log_derivative(input_machines):
+    for name, ma in input_machines.items():
         print("Machine test: %s" % name)
         npar = ma.n_par()
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
 
         # random visibile state
         # TODO GetHilbert is broken because we return a reference and not a pointer
-        # hi = ma.get_hilbert()
+        # ga = ma.get_hilbert()
+        # assert(ma.get_hilbert().size() > 0)
         # rg = nk.RandomEngine(seed=1234)
         # v = np.zeros(hi.size())
         # hi.random_vals(v, rg)
@@ -91,8 +100,8 @@ def test_log_derivative():
         #                       grad(randpars, ma, v), ord=np.inf) < 1.0e-6)
 
 
-def test_nvisible():
-    for name, ma in machines.items():
+def test_nvisible(input_machines):
+    for name, ma in input_machines.items():
         print("Machine test: %s" % name)
         # TODO GetHilbert is broken because we return a reference and not a pointer
         # hh=ma.get_hilbert()

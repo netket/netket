@@ -34,7 +34,7 @@ operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi_3)
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
-        hi = ha.GetHilbert()
+        hi = ha.get_hilbert()
         print(name, hi)
         assert (len(hi.local_states()) == hi.local_size())
 
@@ -43,6 +43,10 @@ def test_produce_elements_in_hilbert():
         local_states = hi.local_states()
 
         for i in range(1000):
-
             hi.random_vals(rstate, rg)
-            ha.GetConn(rstate)  #, mel, connectors, newconfs)
+            conns=ha.get_conn(rstate)
+
+            for connector,newconf in zip(conns[1],conns[2]):
+                hi.update_conf(rstate,connector,newconf)
+                for rs in rstate:
+                    assert(rs in local_states)
