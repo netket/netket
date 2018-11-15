@@ -169,15 +169,11 @@ class RbmSpin : public AbstractMachine<T> {
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
-      if (usewavelets_) {
-        // From my understanding, it's the case where a flip is done, but I'm not sure..
-        for (std::size_t s = 0; s < tochange.size(); s++) {
-          const int sf = tochange[s];
-          lt.V(0) += W_wavelets_ * Wavelets_.row(sf) * (newconf[s] - v(sf));
-        }
-      } else {
-        for (std::size_t s = 0; s < tochange.size(); s++) {
-          const int sf = tochange[s];
+      for (std::size_t s = 0; s < tochange.size(); s++) {
+        const int sf = tochange[s];
+        if (usewavelets_) {
+          lt.V(0) += (Wavelets_ * W_wavelets_).row(sf) * (newconf[s] - v(sf));
+        } else {
           lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
         }
       }
@@ -331,7 +327,11 @@ class RbmSpin : public AbstractMachine<T> {
 
           logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
 
-          thetasnew_ += (W_wavelets_ * W_).row(sf) * (newconf[k][s] - v(sf));
+        if (usewavelets_) {
+          // I'm not sure either
+          thetasnew_ += (Wavelets_ * W_wavelets_).row(sf) * (newconf[k][s] - v(sf));
+        } else {
+          thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
         }
 
         RbmSpin::lncosh(thetasnew_, lnthetasnew_);
@@ -361,7 +361,7 @@ class RbmSpin : public AbstractMachine<T> {
 
         if (usewavelets_) {
           // I'm not sure either
-          thetasnew_ += (W_wavelets_ * W_).row(sf) * (newconf[s] - v(sf));
+          thetasnew_ += (Wavelets_ * W_wavelets_).row(sf) * (newconf[s] - v(sf));
         } else {
           thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
         }
