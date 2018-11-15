@@ -6,7 +6,6 @@ import subprocess
 from subprocess import CalledProcessError
 
 import shlex
-import pathlib
 
 from distutils import log
 from distutils.command.build import build as build_orig
@@ -107,19 +106,20 @@ class CMakeBuildExt(Command):
             self.warn('building extension "{}" failed: {}'.format(ext.name, e))
 
     def build_extension(self, ext):
-        cwd = pathlib.Path().absolute()
+        cwd = os.getcwd()
 
-        build_temp = pathlib.Path(self.build_temp)
-        build_temp.mkdir(parents=True, exist_ok=True)
+        if not os.path.exists(self.build_temp):
+            os.makedirs(self.build_temp)
 
-        lib_dir = pathlib.Path(self.build_lib).absolute()
-        lib_dir.mkdir(parents=True, exist_ok=True)
+        lib_dir = os.path.abspath(self.build_lib)
+        if not os.path.exists(lib_dir):
+            os.makedirs(lib_dir)
 
         cmake_args = self.cmake_args
         cmake_args.append(
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(str(lib_dir)))
+            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
 
-        os.chdir(str(build_temp))
+        os.chdir(self.build_temp)
         output = subprocess.check_output(
             ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
         if self.distribution.verbose:
@@ -129,7 +129,7 @@ class CMakeBuildExt(Command):
                 ['cmake', '--build', '.'] + self.build_args, stderr=subprocess.STDOUT)
             if self.distribution.verbose:
                 log.info(output.decode())
-        os.chdir(str(cwd))
+        os.chdir(cwd)
 
     def get_outputs(self):
         outputs = []
