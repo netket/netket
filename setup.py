@@ -86,6 +86,9 @@ class CMakeBuild(Command):
         self.copy_file(self.get_ext_fullpath(ext.name),
                        os.path.join(install_dir, filename))
 
+    def get_source_files(self):
+        return []
+
     # -- Name generators -----------------------------------------------
     # (extension names, filenames, whatever)
     def get_ext_fullpath(self, ext_name):
