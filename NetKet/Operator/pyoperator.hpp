@@ -29,8 +29,7 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name) \
-  .def("get_conn", &name::GetConn).def("get_hilbert", &name::GetHilbert)
+#define ADDOPERATORMETHODS(name) .def("get_conn", &name::GetConn)
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");

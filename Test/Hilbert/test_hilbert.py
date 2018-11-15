@@ -50,13 +50,12 @@ hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
 # Heisenberg 1d
 g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
-hilberts["Heisenberg 1d"] = nk.operator.Heisenberg(hilbert=hi).get_hilbert()
+hilberts["Heisenberg 1d"] = hi
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
 hi = nk.hilbert.Boson(n_max=4, n_bosons=20, graph=g)
-hilberts["Bose Hubbard"] = nk.operator.BoseHubbard(
-    U=4.0, hilbert=hi).get_hilbert()
+hilberts["Bose Hubbard"] = hi
 
 #
 # Small hilbert space tests

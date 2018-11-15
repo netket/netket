@@ -42,8 +42,7 @@ constexpr int HilbertIndex::MaxStates;
       .def("size", &name::Size)                \
       .def("local_states", &name::LocalStates) \
       .def("random_vals", &name ::RandomVals)  \
-      .def("update_conf", &name::UpdateConf)   \
-      .def("get_graph", &name::GetGraph)
+      .def("update_conf", &name::UpdateConf)
 
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
