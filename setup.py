@@ -58,8 +58,6 @@ class CMakeBuildExt(Command):
         self.set_undefined_options('build', ('cmake_args', 'cmake_args'),
                                             ('build_lib', 'build_lib'),
                                             ('build_temp', 'build_temp'))
-        if self.cmake_args:
-            self.warn("cmake_args changed in build_ext: {}".format(self.cmake_args))
 
         if self.package is None:
             self.package = self.distribution.ext_package
@@ -137,7 +135,6 @@ class CMakeBuildExt(Command):
         outputs = []
         for ext in self.extensions:
             outputs.append(self.get_ext_fullpath(ext.name))
-        log.info(outputs)
         return outputs
 
     def get_source_files(self):
