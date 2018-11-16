@@ -37,6 +37,7 @@ layers = [
 ]
 
 # this would give a segmentation fault
+# BUG
 # layers = [
 #    nk.layer.FullyConnected(
 # input_size = g.n_sites,
@@ -112,6 +113,50 @@ def test_log_derivative():
             assert(np.max(np.real(der_log - num_der_log)) < 1.0e-6)
             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
             assert(np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) < 1.0e-6)
+
+
+def test_log_val_diff():
+    for name, ma in machines.items():
+        print("Machine test: %s" % name)
+        machine = ma[0]
+        npar = machine.n_par()
+        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        machine.set_parameters(randpars)
+
+        hi = ma[1]
+
+        rg = nk.RandomEngine(seed=1234)
+
+        # loop over different random states
+        for i in range(100):
+
+            # generate a random state
+            rstate = np.zeros(hi.size())
+            local_states = hi.local_states()
+            hi.random_vals(rstate, rg)
+
+            tochange = []
+            newconfs = []
+
+            # random number of changes
+            for i in range(100):
+                n_change = np.random.randint(hi.size())
+                # generate n_change unique sites to be changed
+                tochange.append(np.random.choice(
+                    hi.size(), n_change, replace=False))
+                newconfs.append(np.random.choice(local_states, n_change))
+
+            ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
+            valzero = machine.log_val(rstate)
+
+            for toc, newco, ldiff in zip(tochange, newconfs, ldiffs):
+                rstatet = np.array(rstate)
+                hi.update_conf(rstatet, toc, newco)
+                ldiff_num = machine.log_val(rstatet) - valzero
+                assert(np.max(np.real(ldiff_num - ldiff)) < 1.0e-6)
+                # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+                assert(
+                    np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j) - 1.0) < 1.0e-6)
 
 
 def test_nvisible():
