@@ -228,7 +228,7 @@ setup(
     ext_modules=[CMakeExtension('netket')],
     cmdclass=cmdclass,
     zip_safe=False,
-    test_requires=[
+    tests_require=[
         'pytest',
         'numpy',
         'networkx',
