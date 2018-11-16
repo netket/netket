@@ -124,7 +124,8 @@ script:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
   # Get all required Python packages
-  - pip install numpy scipy matplotlib networkx pytest mpi4py --user	
+  # NOTE(twesterhout): This should happen through setup.py
+  # - pip install numpy scipy matplotlib networkx pytest mpi4py --user	
 
   # show OS/compiler version
   - uname -a
