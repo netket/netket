@@ -135,6 +135,6 @@ script:
   # compile and execute Python unit tests
   - CMAKE_OPTIONS="'${CMAKE_OPTIONS} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_CXX_FLAGS=${CXXFLAGS}'"
   - echo "$CMAKE_OPTIONS"
-  - pip install -v . --user --install-option="--cmake-args=${CMAKE_OPTIONS}"
+  - NETKET_CMAKE_FLAGS=${CMAKE_OPTIONS} pip install -v . --user
   - pytest --verbose Test
   - cd ..
