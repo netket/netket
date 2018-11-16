@@ -69,12 +69,12 @@ machines["JastrowSymm 1d Hypercube boson"] = [nk.machine.JastrowSymm(
 machines["MPS 1d boson"] = [nk.machine.MPSPeriodic(hi, bond_dim=4), hi]
 
 
-def log_val(par, machine, v):
+def log_val_f(par, machine, v):
     machine.set_parameters(par)
     return machine.log_val(v)
 
 
-def der_log(par, machine, v):
+def der_log_f(par, machine, v):
     machine.set_parameters(par)
     return machine.der_log(v)
 
@@ -111,10 +111,14 @@ def test_log_derivative():
 
         for i in range(10):
             hi.random_vals(v, rg)
-            grad = (nd.Gradient(log_val, step=1.0e-8))
+            grad = (nd.Gradient(log_val_f, step=1.0e-8))
 
             machine.set_parameters(randpars)
             der_log = machine.der_log(v)
+
+            if("Jastrow" in name):
+                assert(np.max(np.imag(der_log)) == approx(0.))
+
             num_der_log = grad(randpars, machine, v)
             assert(np.max(np.real(der_log - num_der_log))
                    == approx(0., rel=1e-4, abs=1e-4))
