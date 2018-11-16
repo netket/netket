@@ -1,56 +1,100 @@
 import contextlib
 import os
 import re
-import sys
-import subprocess
-from subprocess import CalledProcessError
-
 import shlex
+import subprocess
+import sys
 
-from distutils import log
-from distutils.command.build import build as build_orig
-from distutils.core import Command
-from distutils.errors import DistutilsError
-
-import setuptools
 from setuptools import setup, Extension
-from setuptools.command.install import install as install_orig
 from setuptools.command.build_ext import build_ext as build_ext_orig
 
-# Command class we'll use in `setup()`
-cmdclass = {}
+# NOTE(twesterhout): distutils and setuptools use a pretty strange way of
+# handling command line arguments, where some arguments are propagated to
+# sub-commands, some are not... All in all, believe me, it's really hacky :)
+# The simplest way I found to reliably pass some cmake arguments to build_ext
+# command is to use a hack of our own. We hijack the sys.argv and manually
+# extract all the cmake-related options. We then store them in a module-local
+# variable and use for building of extensions based on CMake.
 
-# Patches a few pre-installed commands to accept `--cmake-args` command line
-# argument.
-# NOTE(twesterhout): I'd like to do it in a loop, but Python 2's super() is too
-# buggy for that...
-class _CMakeBuild(build_orig, object):
-    user_options = build_orig.user_options + [
-        ("cmake-args=", None, "Arguments passed directly to CMake"),
-    ]
+# Poor man's command-line options parsing
+def steal_cmake_args(args):
+    _ARG_PREFIX = '--cmake-args='
+    def _unquote(x):
+        m = re.match(r"'(.*)'", x)
+        if m:
+            return m.group(1)
+        m = re.match(r'"(.*)"', x)
+        if m:
+            return m.group(1)
+        return x
+    stolen_args = [x for x in args if x.startswith(_ARG_PREFIX)]
+    for x in stolen_args:
+        args.remove(x)
 
-    def initialize_options(self):
-        self.cmake_args = None
-        if sys.version_info >= (3, 0):
-            super().initialize_options()
+    if len(stolen_args) > 0:
+        cmake_args = sum((shlex.split(_unquote(x[len(_ARG_PREFIX):])) for x in stolen_args), [])
+    else:
+        try:
+            cmake_args = shlex.split(os.environ['NETKET_CMAKE_FLAGS'])
+        except KeyError:
+            cmake_args = []
+    print(cmake_args)
+    return cmake_args
+
+_CMAKE_ARGS = steal_cmake_args(sys.argv)
+
+print(sys.argv)
+print(_CMAKE_ARGS)
+
+class CMakeExtension(Extension):
+    """
+    :param sourcedir: Specifies the directory (if a relative path is used, it's
+                      relative to this "setup.py" file) where the "CMakeLists.txt"
+                      for building the extension `name` can be found.
+    """
+    def __init__(self, name, sourcedir='.'):
+        Extension.__init__(self, name, sources=[])
+        self.sourcedir = os.path.join(os.path.realpath('.'), sourcedir)
+
+class build_ext(build_ext_orig, object):
+    # The only function we override. We use custom logic for building
+    # CMakeExtensions, but leave everything else as is.
+    def build_extension(self, ext):
+        if isinstance(ext, CMakeExtension):
+            cwd = os.getcwd()
+            if not os.path.exists(self.build_temp):
+                os.makedirs(self.build_temp)
+            lib_dir = os.path.abspath(self.build_lib)
+            if not os.path.exists(lib_dir):
+                os.makedirs(lib_dir)
+
+            cmake_args = _CMAKE_ARGS
+            cmake_args.append(
+                '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
+
+            os.chdir(self.build_temp)
+            try:
+                output = subprocess.check_output(
+                    ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
+                if self.distribution.verbose:
+                    log.info(output.decode())
+                if not self.distribution.dry_run:
+                    output = subprocess.check_output(
+                        ['cmake', '--build', '.'], stderr=subprocess.STDOUT)
+                    if self.distribution.verbose:
+                        log.info(output.decode())
+            except subprocess.SubprocessError as e:
+                if not ext.optional:
+                    self.warn(e.output.decode())
+                    raise
+                self.warn('building extension "{}" failed:\n{}'.format(ext.name, e.output.decode()))
+            os.chdir(cwd)
         else:
-            super(_CMakeBuild, self).initialize_options()
+            if sys.version_info >= (3, 0):
+                super().initialize_options()
+            else:
+                super(build_ext_orig, self).initialize_options()
 
-cmdclass['build'] = _CMakeBuild
-
-class _CMakeInstall(install_orig, object):
-    user_options = install_orig.user_options + [
-        ("cmake-args=", None, "Arguments passed directly to CMake"),
-    ]
-
-    def initialize_options(self):
-        self.cmake_args = None
-        if sys.version_info >= (3, 0):
-            super().initialize_options()
-        else:
-            super(_CMakeInstall, self).initialize_options()
-
-cmdclass['install'] = _CMakeInstall
 
 # Our custom version of build_ext command that uses CMake
 class CMakeBuildExt(build_ext_orig, object):
@@ -203,19 +247,7 @@ class CMakeBuildExt(build_ext_orig, object):
     #     ext_suffix = get_config_var('EXT_SUFFIX')
     #     return os.path.join(*ext_path) + ext_suffix
 
-class CMakeExtension(Extension):
-    """
-    :param sourcedir: Specifies the directory (if a relative path is used, it's
-                      relative to this "setup.py" file) where the "CMakeLists.txt"
-                      for building the extension `name` can be found.
-    """
-    def __init__(self, name, sourcedir='.'):
-        Extension.__init__(self, name, sources=[])
-        self.sourcedir = os.path.join(os.path.realpath('.'), sourcedir)
-
-cmdclass['build_ext'] = CMakeBuildExt
-
-print(setuptools.__version__)
+# cmdclass['build_ext'] = _CMakeBuildExt
 
 setup(
     name='netket',
@@ -226,7 +258,7 @@ setup(
     author_email='netket@netket.org',
     license='Apache',
     ext_modules=[CMakeExtension('netket')],
-    cmdclass=cmdclass,
+    cmdclass={'build_ext': build_ext},
     zip_safe=False,
     tests_require=[
         'pytest',
@@ -235,6 +267,6 @@ setup(
         'matplotlib', # TODO: Do we need it?
     ],
     install_requires=[
-        'mpi4py' # TODO: remove me!
+        'mpi4py'
     ]
 )
