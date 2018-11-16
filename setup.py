@@ -85,10 +85,14 @@ class build_ext(build_ext_orig, object):
                     if self.distribution.verbose:
                         log.info(output.decode())
             except subprocess.CalledProcessError as e:
-                if not ext.optional:
+                if hasattr(ext, 'optional'):
+                    if not ext.optional:
+                        self.warn(e.output.decode())
+                        raise
+                    self.warn('building extension "{}" failed:\n{}'.format(ext.name, e.output.decode()))
+                else:
                     self.warn(e.output.decode())
                     raise
-                self.warn('building extension "{}" failed:\n{}'.format(ext.name, e.output.decode()))
             os.chdir(cwd)
         else:
             if sys.version_info >= (3, 0):
