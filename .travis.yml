@@ -39,7 +39,7 @@ matrix:
     env:
       - PYTHON=3.6
       - COMPILER=g++-5
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-5"
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -56,7 +56,7 @@ matrix:
     env:
       - PYTHON=3.6
       - COMPILER=g++-6
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-6"
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -74,7 +74,7 @@ matrix:
       - PYTHON=3.6
       - COMPILER=clang++-5.0
       - CXXFLAGS=-std=c++1z
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
@@ -88,7 +88,7 @@ matrix:
       - PYTHON=2.7
       - COMPILER=clang++-5.0
       - CXXFLAGS=-std=c++1z
-      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DNETKET_Sanitizer=ON"
+      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DNETKET_Sanitizer=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
@@ -133,7 +133,6 @@ script:
   - python --version
 
   # compile and execute Python unit tests
-  - CMAKE_OPTIONS="'${CMAKE_OPTIONS} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_CXX_FLAGS=${CXXFLAGS}'"
   - echo "$CMAKE_OPTIONS"
   - NETKET_CMAKE_FLAGS=${CMAKE_OPTIONS} pip install -v . --user
   - pytest --verbose Test

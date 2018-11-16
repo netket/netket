@@ -91,8 +91,13 @@ ExternalProject_Add(
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-set(Python_ADDITIONAL_VERSIONS 3.7 3.6.3 3.6 3.5 3.4)
+if (NETKET_PYTHON_VERSION)
+# set(Python_ADDITIONAL_VERSIONS 3.7 3.6.3 3.6 3.5 3.4)
 find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
+else()
+set(Python_ADDITIONAL_VERSIONS 3.7 3.6.3 3.6 3.5 3.4 2.7)
+find_package(PythonLibsNew REQUIRED)
+endif()
 add_library(pybind11 INTERFACE)
 ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
 target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR}/include)
