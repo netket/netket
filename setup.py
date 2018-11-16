@@ -12,6 +12,7 @@ from distutils.command.build import build as build_orig
 from distutils.core import Command
 from distutils.errors import DistutilsError
 
+import setuptools
 from setuptools import setup, Extension
 from setuptools.command.install import install as install_orig
 
@@ -57,6 +58,8 @@ class CMakeBuildExt(Command):
     user_options = [
         ("cmake-args=", "o", "Arguments passed directly to CMake"),
         ("build-temp=", "t", "Directory for temporary files (build by-products)"),
+        # Making Python 2 happy
+        ("library-dirs=", "L", "Unused"),
     ]
 
     def initialize_options(self):
@@ -66,6 +69,8 @@ class CMakeBuildExt(Command):
         self.build_temp = None
         self.build_args = []
         self.build_lib = None
+        # Making Python 2 happy
+        self.library_dirs = []
 
     def finalize_options(self):
         # We steal cmake_args from both install and build commands. Also we
@@ -218,7 +223,4 @@ setup(
     ext_modules=[CMakeExtension('netket')],
     cmdclass=cmdclass,
     zip_safe=False,
-    install_requires=[
-        'setuptools >= 39.1',
-    ]
 )
