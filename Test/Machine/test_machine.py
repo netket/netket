@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from mpi4py import MPI
+from pytest import approx
 
 machines = {}
 
@@ -73,6 +74,11 @@ def log_val(par, machine, v):
     return machine.log_val(v)
 
 
+def der_log(par, machine, v):
+    machine.set_parameters(par)
+    return machine.der_log(v)
+
+
 def test_set_get_parameters():
     for name, ma in machines.items():
         print("Machine test: %s" % name)
@@ -105,14 +111,16 @@ def test_log_derivative():
 
         for i in range(10):
             hi.random_vals(v, rg)
-            grad = (nd.Gradient(log_val))
+            grad = (nd.Gradient(log_val, step=1.0e-8))
 
             machine.set_parameters(randpars)
             der_log = machine.der_log(v)
             num_der_log = grad(randpars, machine, v)
-            assert(np.max(np.real(der_log - num_der_log)) < 1.0e-6)
+            assert(np.max(np.real(der_log - num_der_log))
+                   == approx(0., rel=1e-4, abs=1e-4))
             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-            assert(np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) < 1.0e-6)
+            assert(
+                np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(0., rel=4e-4, abs=4e-4))
 
 
 def test_log_val_diff():
@@ -153,10 +161,10 @@ def test_log_val_diff():
                 rstatet = np.array(rstate)
                 hi.update_conf(rstatet, toc, newco)
                 ldiff_num = machine.log_val(rstatet) - valzero
-                assert(np.max(np.real(ldiff_num - ldiff)) < 1.0e-6)
+                assert(np.max(np.real(ldiff_num - ldiff)) == approx(0.0))
                 # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
                 assert(
-                    np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j) - 1.0) < 1.0e-6)
+                    np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j) - 1.0) == approx(0.0))
 
 
 def test_nvisible():
