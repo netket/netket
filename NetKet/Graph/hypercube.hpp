@@ -240,7 +240,7 @@ class Hypercube : public AbstractGraph {
     } while (netket::next_variation(coord.begin(), coord.end(), L - 1));
 
     std::vector<std::vector<int>> permtable;
-    permtable.reserve(n_sites * n_sites);
+    permtable.reserve(n_sites);
 
     std::vector<int> transl_sites(n_sites);
     std::vector<int> ts(n_dim);
