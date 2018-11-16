@@ -82,6 +82,20 @@ matrix:
                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
                    'python-tk']
 
+  - os: linux
+    compiler: clang
+    env:
+      - PYTHON=2.7
+      - COMPILER=clang++-5.0
+      - CXXFLAGS=-std=c++1z
+      - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DNETKET_Sanitizer=ON"
+    addons:
+      apt:
+        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
+                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
+
 
 cache:
   apt: true

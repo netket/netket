@@ -205,6 +205,8 @@ class CMakeExtension(Extension):
 
 cmdclass['build_ext'] = CMakeBuildExt
 
+print(setuptools.__version__)
+
 setup(
     name='netket',
     version='0.1',
@@ -216,4 +218,7 @@ setup(
     ext_modules=[CMakeExtension('netket')],
     cmdclass=cmdclass,
     zip_safe=False,
+    install_requires=[
+        'setuptools >= 39.1',
+    ]
 )
