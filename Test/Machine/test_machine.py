@@ -27,17 +27,25 @@ machines["Jastrow 1d Hypercube spin"] = [
     nk.machine.JastrowSymm(hilbert=hi), hi]
 
 
-# TODO FFNN give a seg fault here for some still obscure reason
-# # Layers
+# Layers
+act = nk.activation.Lncosh()
+layers = [
+    nk.layer.FullyConnected(
+        input_size=g.n_sites,
+        output_size=40,
+        activation=act)
+]
+
+# this would give a segmentation fault
 # layers = [
-#     nk.layer.FullyConnected(
-#         input_size=g.n_sites,
-#         output_size=40,
-#         activation=nk.activation.Lncosh())
+#    nk.layer.FullyConnected(
+# input_size = g.n_sites,
+# output_size = 40,
+# activation = act)
 # ]
-#
-# # FFNN Machine
-# machines["FFFN 1d Hypercube spin"] = [nk.machine.FFNN(hi, layers), hi]
+
+# FFNN Machine
+machines["FFFN 1d Hypercube spin"] = [nk.machine.FFNN(hi, layers), hi]
 
 machines["MPS Diagonal 1d spin"] = [nk.machine.MPSPeriodicDiagonal(
     hi, bond_dim=3), hi]
