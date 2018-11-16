@@ -125,7 +125,7 @@ script:
 
   # Get all required Python packages
   # NOTE(twesterhout): This should happen through setup.py
-  # - pip install numpy scipy matplotlib networkx pytest mpi4py --user	
+  - pip install --user numpy scipy matplotlib networkx pytest
 
   # show OS/compiler version
   - uname -a

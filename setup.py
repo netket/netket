@@ -261,12 +261,6 @@ setup(
     ext_modules=[CMakeExtension('netket')],
     cmdclass={'build_ext': build_ext},
     zip_safe=False,
-    tests_require=[
-        'pytest',
-        'numpy',
-        'networkx',
-        'matplotlib', # TODO: Do we need it?
-    ],
     install_requires=[
         'mpi4py'
     ]
