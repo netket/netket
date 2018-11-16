@@ -233,7 +233,7 @@ setup(
         'numpy',
         'networkx',
         'matplotlib', # TODO: Do we need it?
-    ]
+    ],
     install_requires=[
         'mpi4py' # TODO: remove me!
     ]
