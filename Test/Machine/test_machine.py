@@ -107,8 +107,11 @@ def test_log_derivative():
             grad = (nd.Gradient(log_val))
 
             machine.set_parameters(randpars)
-            assert(np.linalg.norm(machine.der_log(v) -
-                                  grad(randpars, machine, v), ord=np.inf) < 1.0e-6)
+            der_log = machine.der_log(v)
+            num_der_log = grad(randpars, machine, v)
+            assert(np.max(np.real(der_log - num_der_log)) < 1.0e-6)
+            # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+            assert(np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) < 1.0e-6)
 
 
 def test_nvisible():
