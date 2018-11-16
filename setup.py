@@ -84,7 +84,7 @@ class build_ext(build_ext_orig, object):
                         ['cmake', '--build', '.'], stderr=subprocess.STDOUT)
                     if self.distribution.verbose:
                         log.info(output.decode())
-            except subprocess.SubprocessError as e:
+            except subprocess.CalledProcessError as e:
                 if not ext.optional:
                     self.warn(e.output.decode())
                     raise
