@@ -15,6 +15,7 @@ from distutils.errors import DistutilsError
 import setuptools
 from setuptools import setup, Extension
 from setuptools.command.install import install as install_orig
+from setuptools.command.build_ext import build_ext as build_ext_orig
 
 # Command class we'll use in `setup()`
 cmdclass = {}
@@ -52,7 +53,7 @@ class _CMakeInstall(install_orig, object):
 cmdclass['install'] = _CMakeInstall
 
 # Our custom version of build_ext command that uses CMake
-class CMakeBuildExt(Command):
+class CMakeBuildExt(build_ext_orig, object):
     description = "Build C/C++ extensions using CMake"
 
     user_options = [
@@ -66,28 +67,30 @@ class CMakeBuildExt(Command):
         self.extensions = None
         self.package = None
         self.cmake_args = None
-        self.build_temp = None
-        self.build_args = []
-        self.build_lib = None
+        # self.build_temp = None
+        self.build_args = None
+        # self.build_lib = None
         # Making Python 2 happy
-        self.library_dirs = []
+        # self.library_dirs = []
+        if sys.version_info >= (3, 0):
+            super().initialize_options()
+        else:
+            super(CMakeBuildExt, self).initialize_options()
+        
 
     def finalize_options(self):
+        if sys.version_info >= (3, 0):
+            super().finalize_options()
+        else:
+            super(CMakeBuildExt, self).finalize_options()
         # We steal cmake_args from both install and build commands. Also we
         # need to know in which directory to build the project -- build_temp
         # and where to save the compiled modules -- build_lib
         self.set_undefined_options('install', ('cmake_args', 'cmake_args'))
         self.set_undefined_options('build', ('cmake_args', 'cmake_args'),
-                                            ('build_lib', 'build_lib'),
-                                            ('build_temp', 'build_temp'))
-
-        if self.package is None:
-            self.package = self.distribution.ext_package
-
-        self.extensions = self.distribution.ext_modules
-
-        if self.build_temp is None:
-            self.build_temp = "build"
+        #                                    ('build_lib', 'build_lib'),
+        #                                    ('build_temp', 'build_temp')
+                                  )
 
         # The standard usage of --cmake-args will be with --install-option
         # which means that cmake_args will be quoted and for some reason CMake
@@ -112,6 +115,8 @@ class CMakeBuildExt(Command):
         # Use the exact same Python version in CMake as the current process
         self.cmake_args.append(
             '-DNETKET_PYTHON_VERSION={}.{}.{}'.format(*sys.version_info[:3]))
+
+        self.build_args = []
 
     def run(self):
         for ext in self.extensions:
@@ -154,49 +159,49 @@ class CMakeBuildExt(Command):
                 log.info(output.decode())
         os.chdir(cwd)
 
-    def get_outputs(self):
-        outputs = []
-        for ext in self.extensions:
-            outputs.append(self.get_ext_fullpath(ext.name))
-        return outputs
+    # def get_outputs(self):
+    #     outputs = []
+    #     for ext in self.extensions:
+    #         outputs.append(self.get_ext_fullpath(ext.name))
+    #     return outputs
 
-    def get_source_files(self):
-        return []
+    # def get_source_files(self):
+    #     return []
 
     # The rest is taken from CPython's implementation of build_ext
 
     # -- Name generators -----------------------------------------------
     # (extension names, filenames, whatever)
-    def get_ext_fullpath(self, ext_name):
-        """Returns the path of the filename for a given extension.
+    # def get_ext_fullpath(self, ext_name):
+    #     """Returns the path of the filename for a given extension.
 
-        The file is located in `build_lib`.
-        """
-        fullname = self.get_ext_fullname(ext_name)
-        modpath = fullname.split('.')
-        filename = self.get_ext_filename(modpath[-1])
+    #     The file is located in `build_lib`.
+    #     """
+    #     fullname = self.get_ext_fullname(ext_name)
+    #     modpath = fullname.split('.')
+    #     filename = self.get_ext_filename(modpath[-1])
 
-        filename = os.path.join(*modpath[:-1]+[filename])
-        return os.path.join(self.build_lib, filename)
+    #     filename = os.path.join(*modpath[:-1]+[filename])
+    #     return os.path.join(self.build_lib, filename)
 
-    def get_ext_fullname(self, ext_name):
-        """Returns the fullname of a given extension name.
+    # def get_ext_fullname(self, ext_name):
+    #     """Returns the fullname of a given extension name.
 
-        Adds the `package.` prefix"""
-        if self.package is None:
-            return ext_name
-        else:
-            return self.package + '.' + ext_name
+    #     Adds the `package.` prefix"""
+    #     if self.package is None:
+    #         return ext_name
+    #     else:
+    #         return self.package + '.' + ext_name
 
-    def get_ext_filename(self, ext_name):
-        r"""Convert the name of an extension (eg. "foo.bar") into the name
-        of the file from which it will be loaded (eg. "foo/bar.so", or
-        "foo\bar.pyd").
-        """
-        from distutils.sysconfig import get_config_var
-        ext_path = ext_name.split('.')
-        ext_suffix = get_config_var('EXT_SUFFIX')
-        return os.path.join(*ext_path) + ext_suffix
+    # def get_ext_filename(self, ext_name):
+    #     r"""Convert the name of an extension (eg. "foo.bar") into the name
+    #     of the file from which it will be loaded (eg. "foo/bar.so", or
+    #     "foo\bar.pyd").
+    #     """
+    #     from distutils.sysconfig import get_config_var
+    #     ext_path = ext_name.split('.')
+    #     ext_suffix = get_config_var('EXT_SUFFIX')
+    #     return os.path.join(*ext_path) + ext_suffix
 
 class CMakeExtension(Extension):
     """
