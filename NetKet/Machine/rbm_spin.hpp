@@ -15,7 +15,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
 
 #ifndef NETKET_RBM_SPIN_HPP

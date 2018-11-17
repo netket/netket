@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
 #include "abstract_machine.hpp"
 

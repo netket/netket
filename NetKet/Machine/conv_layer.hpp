@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "Graph/graph.hpp"
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
 #include "abstract_layer.hpp"
 

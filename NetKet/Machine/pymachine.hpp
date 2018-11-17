@@ -23,16 +23,9 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "abstract_machine.hpp"
-#include "ffnn.hpp"
-#include "jastrow.hpp"
-#include "jastrow_symm.hpp"
-#include "mps_periodic.hpp"
+#include "machine.hpp"
 #include "pyactivation.hpp"
 #include "pylayer.hpp"
-#include "rbm_multival.hpp"
-#include "rbm_spin.hpp"
-#include "rbm_spin_symm.hpp"
 
 namespace py = pybind11;
 
@@ -60,8 +53,6 @@ namespace netket {
 
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
-  using MachineType = std::complex<double>;
-  using AbMachineType = AbstractMachine<MachineType>;
 
   py::class_<AbMachineType>(subm, "Machine") ADDMACHINEMETHODS(AbMachineType);
 

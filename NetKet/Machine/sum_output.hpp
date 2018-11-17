@@ -22,7 +22,7 @@
 #include <fstream>
 #include <random>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
 #include "abstract_layer.hpp"
 
