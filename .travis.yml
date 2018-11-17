@@ -4,6 +4,14 @@
 
 language: python
 
+os: linux
+
+python:
+  - '2.7'
+  - '3.5'
+  - '3.6'
+  - '3.7'
+
 ################
 # build matrix #
 ################
@@ -24,20 +32,31 @@ addons:
       - 'python3-all-dev'
   brew:
     packages:
-      - 'python'
+      # Stuff we need for C++
       - 'cmake'
-      - 'openmpi --with-openmp'
+      - 'openblas --with-openmp'
+      - 'open-mpi'
+        # From https://github.com/yyuu/pyenv/wiki#suggested-build-environment
+        # Optional, but recommended packages
+      - 'openssl'
+      - 'readline'
+      - 'sqlite3'
+      - 'xz'
+      - 'zlib'
+      - 'pyenv'
     update: true
 
 matrix:
   include:
     - os: osx
       osx_image: xcode8.3
-      language: python
+      language: generic
+      env: PYTHON=2.7
 
     - os: osx
       osx_image: xcode9.4
       language: generic
+      env: PYTHON=3.6
 
     - os: linux
       dist: trusty
@@ -48,6 +67,14 @@ matrix:
       dist: trusty
       sudo: required
       python: 3.6
+
+before_install:
+  - |
+     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+       pyenv install $PYTHON
+       pyenv globel $PYTHON
+       TRAVIS_PYTHON_VERSION=$(python -c 'print(".".join(map(str, sys.version_info[:2])))')
+     fi
 
 script:
   - echo $TRAVIS_PYTHON_VERSION
