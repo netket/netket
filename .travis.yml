@@ -37,12 +37,12 @@ addons:
 matrix:
   include:
     - os: osx
-      osx_image: xcode8.3
+      osx_image: xcode9.4
       language: generic
       env: PYTHON=2.7 CXX=clang++
 
     - os: osx
-      osx_image: xcode9.4
+      osx_image: xcode10.1
       language: generic
       env: PYTHON=3.6.0 CXX=clang++
 
@@ -54,7 +54,9 @@ matrix:
       addons:
         apt:
           sources:
+            - 'ubuntu-toolchain-r-test'
             - 'llvm-toolchain-trusty'
+            - 'llvm-toolchain-trusty-4.0'
           packages:
             - 'clang-4.0'
             - 'libmpich-dev'
@@ -137,7 +139,7 @@ install:
   - python -m pip install -U pip
   - pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy networkx pytest
+  - python -m pip install numpy networkx pytest numdifftools
   - NETKET_CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=$CXX -DCMAKE_CXX_FLAGS=$CXXFLAGS"
   - python -m pip install -v .
 
