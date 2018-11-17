@@ -59,6 +59,7 @@ matrix:
             - 'llvm-toolchain-trusty-4.0'
           packages:
             - 'clang-4.0'
+            - 'libc++-dev'
             - 'libmpich-dev'
 
     - os: linux
@@ -121,9 +122,12 @@ before_install:
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
        pyenv global $PYTHON
-       sudo python -m easy_install pip
        TRAVIS_PYTHON_VERSION=$PYTHON
-       brew upgrade openmpi
+     fi
+  - [[ "$TRAVIS_OS_NAME" == "osx" ]] && brew upgrade openmpi
+  - |
+     if ! which pip; then
+       python -m easy_install pip
      fi
   # Check that `python` is actually the version we want
   - |
