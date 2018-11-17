@@ -107,8 +107,13 @@ class JastrowSymm : public AbstractMachine<T> {
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         for (int l = 0; l < permsize_; l++) {
-          int isymm = permtable_[l % permsize_][i];
-          int jsymm = permtable_[l % permsize_][j];
+          int isymm = permtable_[l][i];
+          int jsymm = permtable_[l][j];
+
+          if (isymm < 0 || isymm >= nv_ || jsymm < 0 || jsymm >= nv_) {
+            std::cerr << "Error in JastrowSymm" << std::endl;
+            std::abort();
+          }
           Wtemp_(isymm, jsymm) = k;
           Wtemp_(jsymm, isymm) = k;
         }  // l
@@ -132,7 +137,12 @@ class JastrowSymm : public AbstractMachine<T> {
 
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
-        Wtemp_(i, j) = params.find(Wtemp_(i, j))->second;
+        if (params.count(Wtemp_(i, j))) {
+          Wtemp_(i, j) = params.find(Wtemp_(i, j))->second;
+        } else {
+          std::cerr << "Error in JastrowSymm" << std::endl;
+          std::abort();
+        }
         Wtemp_(j, i) = Wtemp_(i, j);
       }
     }
@@ -144,7 +154,10 @@ class JastrowSymm : public AbstractMachine<T> {
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         int ksymm = Wtemp_(i, j);
-
+        if (ksymm < 1 || ksymm - 1 >= npar_) {
+          std::cerr << "Error in JastrowSymm" << std::endl;
+          std::abort();
+        }
         DerMatSymm_(ksymm - 1, kbare) = 1;
         kbare++;
       }
