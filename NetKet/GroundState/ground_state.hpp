@@ -53,18 +53,7 @@ class GroundState {
     Hilbert hilbert(graph, pars);
     Hamiltonian hamiltonian(hilbert, pars);
 
-    if (method_name == "Gd" || method_name == "Sr") {
-      using MachineType = Machine<std::complex<double>>;
-      MachineType machine(hilbert.GetGraph(), hamiltonian, pars);
-
-      Sampler<AbstractMachine<std::complex<double>>> sampler(
-          hilbert.GetGraph(), hamiltonian, machine, pars);
-      Optimizer optimizer(pars);
-
-      VariationalMonteCarlo vmc(hamiltonian, sampler, optimizer, pars);
-      vmc.Run();
-
-    } else if (method_name == "ImaginaryTimePropagation") {
+    if (method_name == "ImaginaryTimePropagation") {
       /*int size;
       MPI_Comm_size(MPI_COMM_WORLD, &size);
       if (size > 1) {
