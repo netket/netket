@@ -25,14 +25,14 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDLAYERMETHODS(name)                            \
-                                                         \
-  .def("Ninput", &AbLayerType::Ninput)                   \
-      .def("Noutput", &AbLayerType::Noutput)             \
-      .def("Npar", &AbLayerType::Npar)                   \
-      .def("GetParameters", &AbLayerType::GetParameters) \
-      .def("SetParameters", &AbLayerType::SetParameters) \
-      .def("InitRandomPars", &AbLayerType::InitRandomPars);
+#define ADDLAYERMETHODS(name)                     \
+                                                  \
+  .def("Ninput", &name::Ninput)                   \
+      .def("Noutput", &name::Noutput)             \
+      .def("Npar", &name::Npar)                   \
+      .def("GetParameters", &name::GetParameters) \
+      .def("SetParameters", &name::SetParameters) \
+      .def("InitRandomPars", &name::InitRandomPars);
 // TODO add more methods
 
 void AddLayerModule(py::module &m) {

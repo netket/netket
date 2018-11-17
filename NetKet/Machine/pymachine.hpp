@@ -38,26 +38,25 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDMACHINEMETHODS(name)                                                \
-                                                                               \
-  .def("Npar", &name::Npar)                                                    \
-      .def("GetParameters", &name::GetParameters)                              \
-      .def("SetParameters", &name::SetParameters)                              \
-      .def("InitRandomPars", &name::InitRandomPars, py::arg("seed") = 1234,    \
-           py::arg("sigma") = 0.1)                                             \
-      .def("LogVal", (MachineType(name::*)(AbMachineType::VisibleConstType)) & \
-                         name::LogVal)                                         \
-      .def("LogValDiff", (AbMachineType::VectorType(name::*)(                  \
-                             AbMachineType::VisibleConstType,                  \
-                             const std::vector<std::vector<int>> &,            \
-                             const std::vector<std::vector<double>> &)) &      \
-                             name::LogValDiff)                                 \
-      .def("DerLog", (AbMachineType::VectorType(name::*)(                      \
-                         AbMachineType::VisibleConstType)) &                   \
-                         name::DerLog)                                         \
-      .def("Nvisible", &name::Nvisible)                                        \
-      .def("GetHilbert", &name::GetHilbert,                                    \
-           py::return_value_policy::reference)
+#define ADDMACHINEMETHODS(name)                                             \
+                                                                            \
+  .def("n_par", &name::Npar)                                                \
+      .def("get_parameters", &name::GetParameters)                          \
+      .def("set_parameters", &name::SetParameters)                          \
+      .def("init_random_parameters", &name::InitRandomPars,                 \
+           py::arg("seed") = 1234, py::arg("sigma") = 0.1)                  \
+      .def("log_val",                                                       \
+           (MachineType(name::*)(AbMachineType::VisibleConstType)) &        \
+               name::LogVal)                                                \
+      .def("log_val_diff", (AbMachineType::VectorType(name::*)(             \
+                               AbMachineType::VisibleConstType,             \
+                               const std::vector<std::vector<int>> &,       \
+                               const std::vector<std::vector<double>> &)) & \
+                               name::LogValDiff)                            \
+      .def("der_log", (AbMachineType::VectorType(name::*)(                  \
+                          AbMachineType::VisibleConstType)) &               \
+                          name::DerLog)                                     \
+      .def("n_visible", &name::Nvisible)
 
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
@@ -68,15 +67,15 @@ void AddMachineModule(py::module &m) {
 
   py::class_<RbmSpin<MachineType>, AbMachineType>(subm, "RbmSpin")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_"
                    "bias") = true,
            py::arg("use_hidden_"
                    "bias") = true) ADDMACHINEMETHODS(RbmSpin<MachineType>);
 
   py::class_<RbmSpinSymm<MachineType>, AbMachineType>(subm, "RbmSpinSymm")
-      .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+      .def(py::init<const AbstractHilbert &, int, bool, bool>(),
+           py::arg("hilbert"), py::arg("alpha") = 0,
            py::arg("use_visible_"
                    "bias") = true,
            py::arg("use_hidden_"
@@ -84,7 +83,7 @@ void AddMachineModule(py::module &m) {
 
   py::class_<RbmMultival<MachineType>, AbMachineType>(subm, "RbmMultival")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("nhidden") = 0, py::arg("alpha") = 0,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_"
                    "bias") = true,
            py::arg("use_hidden_"

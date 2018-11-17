@@ -56,8 +56,7 @@ script:
   - ls -l $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())')
   - find $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())') -name 'Python.h'
 
-
-  # clang sanitizer
+# clang sanitizer
 #   - os: osx
 #     osx_image: xcode9.4
 #     compiler: clang
