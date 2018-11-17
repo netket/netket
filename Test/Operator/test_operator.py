@@ -39,7 +39,7 @@ def test_produce_elements_in_hilbert():
         assert (len(hi.local_states()) == hi.local_size())
 
         rstate = np.zeros(hi.size())
-        rg = nk.RandomEngine(seed=1234)
+        rg = nk.utils.RandomEngine(seed=1234)
         local_states = hi.local_states()
 
         for i in range(1000):
