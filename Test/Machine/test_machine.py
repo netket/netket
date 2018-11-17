@@ -74,11 +74,6 @@ def log_val_f(par, machine, v):
     return machine.log_val(v)
 
 
-def der_log_f(par, machine, v):
-    machine.set_parameters(par)
-    return machine.der_log(v)
-
-
 def test_set_get_parameters():
     for name, ma in machines.items():
         print("Machine test: %s" % name)
@@ -152,7 +147,7 @@ def test_log_val_diff():
 
             # random number of changes
             for i in range(100):
-                n_change = np.random.randint(hi.size())
+                n_change = np.random.randint(low=0, high=hi.size())
                 # generate n_change unique sites to be changed
                 tochange.append(np.random.choice(
                     hi.size(), n_change, replace=False))
@@ -163,12 +158,27 @@ def test_log_val_diff():
 
             for toc, newco, ldiff in zip(tochange, newconfs, ldiffs):
                 rstatet = np.array(rstate)
+
+                for newc in newco:
+                    assert(newc in local_states)
+
+                for t in toc:
+                    assert(t >= 0 and t < hi.size())
+
+                assert(len(toc) == len(newco))
+
+                if(len(toc) == 0):
+                    assert(ldiff == approx(0.0))
+
                 hi.update_conf(rstatet, toc, newco)
                 ldiff_num = machine.log_val(rstatet) - valzero
+
                 assert(np.max(np.real(ldiff_num - ldiff)) == approx(0.0))
                 # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
                 assert(
-                    np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j) - 1.0) == approx(0.0))
+                    np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0))
+                assert(
+                    np.min(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0))
 
 
 def test_nvisible():
