@@ -16,10 +16,7 @@
 #define NETKET_PYLAYER_HPP
 
 #include <mpi.h>
-#include "abstract_layer.hpp"
-#include "conv_layer.hpp"
-#include "fullconn_layer.hpp"
-#include "sum_output.hpp"
+#include "layer.hpp"
 
 namespace py = pybind11;
 
@@ -36,8 +33,6 @@ namespace netket {
 // TODO add more methods
 
 void AddLayerModule(py::module &m) {
-  using MachineType = std::complex<double>;
-  using AbLayerType = AbstractLayer<MachineType>;
   auto subm = m.def_submodule("layer");
 
   py::class_<AbLayerType, std::shared_ptr<AbLayerType>>(subm, "Layer")
