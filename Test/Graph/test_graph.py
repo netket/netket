@@ -6,6 +6,7 @@ nxg = nx.star_graph(10)
 graphs = [
     nk.graph.Hypercube(length=10, ndim=1, pbc=True),
     nk.graph.Hypercube(length=4, ndim=2, pbc=True),
+    nk.graph.Hypercube(length=5, ndim=1, pbc=False),
     nk.graph.CustomGraph(nxg.edges())
 ]
 
@@ -45,7 +46,7 @@ def test_is_connected():
 #             d1 = nx.shortest_path_length(nxg, source=0)
 #             for j, dist in enumerate(d):
 #                 assert dist == d1[j]
-# 
+#
 #             d = graph.AllDistances()
 #             d1 = dict(nx.shortest_path_length(nxg))
 #             for i in range(graph.Nsites()):

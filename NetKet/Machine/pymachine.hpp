@@ -56,9 +56,7 @@ namespace netket {
       .def("der_log", (AbMachineType::VectorType(name::*)(                  \
                           AbMachineType::VisibleConstType)) &               \
                           name::DerLog)                                     \
-      .def("n_visible", &name::Nvisible)                                    \
-      .def("get_hilbert", &name::GetHilbert,                                \
-           py::return_value_policy::reference)
+      .def("n_visible", &name::Nvisible)
 
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
