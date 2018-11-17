@@ -62,11 +62,13 @@ machines["RbmSpinSymm 1d Hypercube boson"] = [nk.machine.RbmSpinSymm(
     hilbert=hi, alpha=2), hi]
 machines["RbmMultival 1d Hypercube boson"] = [nk.machine.RbmMultival(
     hilbert=hi, n_hidden=10), hi]
-machines["Jastrow 1d Hypercube boson"] = [nk.machine.Jastrow(hilbert=hi), hi]
+# machines["Jastrow 1d Hypercube boson"] = [nk.machine.Jastrow(hilbert=hi), hi]
 
-machines["JastrowSymm 1d Hypercube boson"] = [nk.machine.JastrowSymm(
-    hilbert=hi), hi]
+# machines["JastrowSymm 1d Hypercube boson"] = [nk.machine.JastrowSymm(
+# hilbert=hi), hi]
 machines["MPS 1d boson"] = [nk.machine.MPSPeriodic(hi, bond_dim=4), hi]
+
+np.random.seed(12346)
 
 
 def log_val_f(par, machine, v):
@@ -104,7 +106,7 @@ def test_log_derivative():
         rg = nk.RandomEngine(seed=1234)
         v = np.zeros(hi.size())
 
-        for i in range(10):
+        for i in range(100):
             hi.random_vals(v, rg)
             grad = (nd.Gradient(log_val_f, step=1.0e-8))
 
