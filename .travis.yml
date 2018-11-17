@@ -67,7 +67,7 @@ before_install:
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
        pyenv global $PYTHON
-       TRAVIS_PYTHON_VERSION=$(python -c 'print(".".join(map(str, sys.version_info[:2])))')
+       TRAVIS_PYTHON_VERSION=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
      fi
 
 script:
