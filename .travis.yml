@@ -10,7 +10,6 @@ python:
   - '2.7'
   - '3.5'
   - '3.6'
-  - '3.7'
 
 ################
 # build matrix #
@@ -56,23 +55,18 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       language: generic
-      env: PYTHON=3.6
+      env: PYTHON=3.6.0
 
     - os: linux
-      dist: trusty
+      dist: xenial
       sudo: required
-      python: 2.7
-
-    - os: linux
-      dist: trusty
-      sudo: required
-      python: 3.6
+      python: 3.7
 
 before_install:
   - |
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
-       pyenv globel $PYTHON
+       pyenv global $PYTHON
        TRAVIS_PYTHON_VERSION=$(python -c 'print(".".join(map(str, sys.version_info[:2])))')
      fi
 
