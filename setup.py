@@ -71,6 +71,8 @@ class build_ext(build_ext_orig, object):
 
             cmake_args = _CMAKE_ARGS
             cmake_args.append(
+                '-DNETKET_PYTHON_VERSION={}.{}.{}'.format(*sys.version_info[:3]))
+            cmake_args.append(
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
 
             os.chdir(self.build_temp)
