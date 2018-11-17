@@ -16,11 +16,12 @@ os:
   - trusty
 
 python:
-  - "2.7-dev"
-  - "3.6-dev"
-  - "3.7-dev"
+  - "2.7"
+  - "3.6"
+  - "3.7"
 
 script:
+  - echo $TRAVIS_PYTHON_VERSION
   - python --version
   - python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())'
   - ls -l $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())')
