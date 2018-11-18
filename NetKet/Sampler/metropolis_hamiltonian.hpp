@@ -175,6 +175,10 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
+
   WfType &Psi() override { return psi_; }
 
   Eigen::VectorXd Acceptance() const override {
