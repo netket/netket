@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
-#include "Operator/observable.hpp"
+#include "Operator/operator.hpp"
 #include "Optimizer/optimizer.hpp"
 
 #include "exact_diagonalization.hpp"

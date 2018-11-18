@@ -32,7 +32,7 @@ class GraphHamiltonian : public AbstractOperator {
   const AbstractHilbert &hilbert_;
 
   // Arbitrary graph
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   std::vector<LocalOperator> operators_;
   const int nvertices_;
@@ -82,78 +82,11 @@ class GraphHamiltonian : public AbstractOperator {
 
     if (bondops.size() > 0) {
       // Use EdgeColors to populate operators
-      for (auto const &kv : graph_.EdgeColors()) {
+      for (auto const &kv : graph_->EdgeColors()) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
             operators_.push_back(LocalOperator(hilbert_, bondops[c], edge));
-          }
-        }
-      }
-    }
-
-    InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
-  }
-
-  // TODO remove
-  template <class Ptype>
-  explicit GraphHamiltonian(const AbstractHilbert &hilbert, const Ptype &pars)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nvertices_(hilbert.Size()) {
-    // Ensure that at least one of SiteOps and BondOps was initialized
-    if (!FieldExists(pars, "BondOps") && !FieldExists(pars, "SiteOps")) {
-      throw InvalidInputError("Must input at least SiteOps or BondOps");
-    }
-
-    // // Ensure that parameters are arrays
-    // if (!pars_hamiltonian["SiteOps"].is_array()) {
-    //   throw InvalidInputError(
-    //       "Hamiltonian: Bond operators object is not an array!");
-    // }
-    // if (!pars_hamiltonian["BondOps"].is_array()) {
-    //   throw InvalidInputError(
-    //       "Hamiltonian: Bond operators object is not an array!");
-    // }
-
-    // if (!pars_hamiltonian["BondOpColors"].is_array()) {
-    //   throw InvalidInputError("Hamiltonian.BondOpColors is not an array");
-    // }
-
-    // Save operators and bond colors
-    std::vector<OMatType> sop =
-        FieldOrDefaultVal(pars, "SiteOps", std::vector<OMatType>());
-
-    std::vector<OMatType> bop =
-        FieldOrDefaultVal(pars, "BondOps", std::vector<OMatType>());
-
-    std::vector<int> op_color = FieldOrDefaultVal(
-        pars, "BondOpColors", std::vector<int>(bop.size(), 0));
-
-    // Site operators
-    if (sop.size() > 0) {
-      for (int i = 0; i < nvertices_; i++) {
-        for (std::size_t j = 0; j < sop.size(); j++) {
-          operators_.push_back(
-              LocalOperator(hilbert_, sop[j], std::vector<int>{i}));
-        }
-      }
-    }
-
-    // Bond operators
-    if (bop.size() != op_color.size()) {
-      throw InvalidInputError(
-          "The bond Hamiltonian definition is inconsistent."
-          "The sizes of BondOps and BondOpColors do not match.");
-    }
-
-    if (bop.size() > 0) {
-      // Use EdgeColors to populate operators
-      for (auto const &kv : graph_.EdgeColors()) {
-        for (std::size_t c = 0; c < op_color.size(); c++) {
-          if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
-            std::vector<int> edge = {kv.first[0], kv.first[1]};
-            operators_.push_back(LocalOperator(hilbert_, bop[c], edge));
           }
         }
       }
