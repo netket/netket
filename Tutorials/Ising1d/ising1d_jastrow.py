@@ -28,13 +28,13 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 ma = nk.machine.Jastrow(hilbert=hi)
 
 # Metropolis Local Sampling
-sa = nk.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic reconfiguration
-gs = nk.Vmc(
+gs = nk.gs.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
