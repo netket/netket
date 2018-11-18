@@ -36,7 +36,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   // number of visible units
   int nv_;
@@ -99,8 +99,8 @@ class RbmSpinSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  void Init(const AbstractGraph &graph) {
-    permtable_ = graph.SymmetryTable();
+  void Init(std::shared_ptr<const AbstractGraph> graph) {
+    permtable_ = graph->SymmetryTable();
     permsize_ = permtable_.size();
     nh_ = (alpha_ * permsize_);
 

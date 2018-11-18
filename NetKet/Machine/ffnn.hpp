@@ -37,7 +37,6 @@ class FFNN : public AbstractMachine<T> {
 
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
-  const AbstractGraph &graph_;
   std::vector<Ptype> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
@@ -57,10 +56,7 @@ class FFNN : public AbstractMachine<T> {
 
   explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
                 std::vector<Ptype> &layers)
-      : hilbert_(hilbert),
-        graph_(hilbert->GetGraph()),
-        layers_(layers),
-        nv_(hilbert->Size()) {
+      : hilbert_(hilbert), layers_(layers), nv_(hilbert->Size()) {
     Init();
   }
 

@@ -36,7 +36,7 @@ class JastrowSymm : public AbstractMachine<T> {
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   const std::shared_ptr<const AbstractHilbert> hilbert_;
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   std::vector<std::vector<int>> permtable_;
   int permsize_;
@@ -74,8 +74,8 @@ class JastrowSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  void Init(const AbstractGraph &graph) {
-    permtable_ = graph.SymmetryTable();
+  void Init(std::shared_ptr<const AbstractGraph> graph) {
+    permtable_ = graph->SymmetryTable();
     permsize_ = permtable_.size();
 
     for (int i = 0; i < permsize_; i++) {

@@ -37,7 +37,7 @@ class Ising : public AbstractOperator {
   */
   const AbstractHilbert &hilbert_;
 
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   const int nspins_;
   double h_;
@@ -62,23 +62,6 @@ class Ising : public AbstractOperator {
     Init();
   }
 
-  /**
-    Constructor.
-    @param hilbert is the input hilbert space from which the number of spins and
-    the bonds are obtained.
-    @param pars is a list of parameters. The default value of J is 1.0
-  */
-  // TODO remove
-  template <class Ptype>
-  explicit Ising(const AbstractHilbert &hilbert, const Ptype &pars)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nspins_(hilbert.Size()),
-        h_(FieldVal<double>(pars, "h")),
-        J_(FieldOrDefaultVal<double>(pars, "J", 1.0)) {
-    Init();
-  }
-
   void Init() {
     GenerateBonds();
     InfoMessage() << "Transverse-Field Ising model created " << std::endl;
@@ -91,7 +74,7 @@ class Ising : public AbstractOperator {
     bonds[i][k] contains the k-th bond for site i.
   */
   void GenerateBonds() {
-    auto adj = graph_.AdjacencyList();
+    auto adj = graph_->AdjacencyList();
 
     bonds_.resize(nspins_);
 
@@ -119,8 +102,7 @@ class Ising : public AbstractOperator {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  void FindConn(VectorConstRefType v,
-                std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();

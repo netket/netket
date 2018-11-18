@@ -19,7 +19,7 @@
 #include <memory>
 
 #include "Graph/graph.hpp"
-#include "Operator/hamiltonian.hpp"
+#include "Operator/operator.hpp"
 #include "abstract_machine.hpp"
 #include "ffnn.hpp"
 #include "jastrow.hpp"
