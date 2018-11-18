@@ -69,7 +69,8 @@ void AddHilbertModule(py::module &m) {
           ADDHILBERTMETHODS(CustomHilbert);
 
   py::class_<HilbertIndex, std::shared_ptr<HilbertIndex>>(subm, "HilbertIndex")
-      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+           py::arg("hilbert"))
       .def("n_states", &HilbertIndex::NStates)
       .def("number_to_state", &HilbertIndex::NumberToState)
       .def("state_to_number", &HilbertIndex::StateToNumber)

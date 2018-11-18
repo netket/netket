@@ -20,6 +20,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <memory>
 #include <nonstd/span.hpp>
 #include <vector>
 
@@ -46,6 +47,13 @@ class HilbertIndex {
       : localstates_(hilbert.LocalStates()),
         localsize_(hilbert.LocalSize()),
         size_(hilbert.Size()) {
+    Init();
+  }
+
+  explicit HilbertIndex(std::shared_ptr<const AbstractHilbert> hilbert)
+      : localstates_(hilbert->LocalStates()),
+        localsize_(hilbert->LocalSize()),
+        size_(hilbert->Size()) {
     Init();
   }
 
