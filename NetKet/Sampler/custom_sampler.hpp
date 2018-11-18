@@ -70,7 +70,7 @@ class CustomSampler : public AbstractSampler<WfType> {
         nv_(hilbert_->Size()) {
     CheckMoveOperators(move_operators_);
 
-    if (hilbert_->Size() != move_operators.GetHilbert().Size()) {
+    if (hilbert_->Size() != move_operators.GetHilbert()->Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -262,7 +262,7 @@ class CustomSampler : public AbstractSampler<WfType> {
     }
 
     if (static_cast<int>(touched_sites.size()) !=
-        move_operators.GetHilbert().Size()) {
+        move_operators.GetHilbert()->Size()) {
       InfoMessage() << "Warning: MoveOperators appear not to act on "
                        "all sites of the space:"
                     << std::endl;

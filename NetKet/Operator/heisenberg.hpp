@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "abstract_operator.hpp"
 
 namespace netket {
@@ -28,7 +28,7 @@ namespace netket {
 // Heisenberg model on an arbitrary graph
 
 class Heisenberg : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
   std::shared_ptr<const AbstractGraph> graph_;
 
   const int nspins_;
@@ -42,8 +42,10 @@ class Heisenberg : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit Heisenberg(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
+  explicit Heisenberg(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(hilbert),
+        graph_(hilbert->GetGraph()),
+        nspins_(hilbert->Size()) {
     Init();
   }
 
@@ -102,7 +104,9 @@ class Heisenberg : public AbstractOperator {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };
 
 }  // namespace netket

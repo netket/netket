@@ -21,7 +21,7 @@
 #include <iostream>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_operator.hpp"
 
@@ -35,7 +35,7 @@ class Ising : public AbstractOperator {
   /**
     Hilbert space descriptor for this hamiltonian.
   */
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   std::shared_ptr<const AbstractGraph> graph_;
 
@@ -53,10 +53,11 @@ class Ising : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
+  explicit Ising(std::shared_ptr<const AbstractHilbert> hilbert, double h,
+                 double J = 1)
       : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nspins_(hilbert.Size()),
+        graph_(hilbert->GetGraph()),
+        nspins_(hilbert->Size()),
         h_(h),
         J_(J) {
     Init();
@@ -154,7 +155,9 @@ class Ising : public AbstractOperator {
     callback(ConnectorRef{mel_J, {}, {}});
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };
 
 }  // namespace netket

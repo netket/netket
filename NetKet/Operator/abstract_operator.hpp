@@ -100,7 +100,7 @@ class AbstractOperator {
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
   */
-  virtual const AbstractHilbert &GetHilbert() const = 0;
+  virtual std::shared_ptr<const AbstractHilbert> GetHilbert() const = 0;
 
   virtual ~AbstractOperator() {}
 };

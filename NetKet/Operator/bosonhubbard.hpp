@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/json_helper.hpp"
 #include "abstract_operator.hpp"
@@ -29,7 +29,7 @@ namespace netket {
 
 // Heisenberg model on an arbitrary graph
 class BoseHubbard : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
   std::shared_ptr<const AbstractGraph> graph_;
 
   int nsites_;
@@ -50,15 +50,15 @@ class BoseHubbard : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
-                       double mu = 0.)
+  explicit BoseHubbard(std::shared_ptr<const AbstractHilbert> hilbert, double U,
+                       double V = 0., double mu = 0.)
       : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nsites_(hilbert.Size()),
+        graph_(hilbert->GetGraph()),
+        nsites_(hilbert->Size()),
         U_(U),
         V_(V),
         mu_(mu) {
-    nmax_ = hilbert_.LocalSize() - 1;
+    nmax_ = hilbert_->LocalSize() - 1;
     Init();
   }
 
@@ -123,7 +123,9 @@ class BoseHubbard : public AbstractOperator {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };
 
 }  // namespace netket

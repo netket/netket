@@ -43,13 +43,6 @@ class HilbertIndex {
   int nstates_;
 
  public:
-  explicit HilbertIndex(const AbstractHilbert &hilbert)
-      : localstates_(hilbert.LocalStates()),
-        localsize_(hilbert.LocalSize()),
-        size_(hilbert.Size()) {
-    Init();
-  }
-
   explicit HilbertIndex(std::shared_ptr<const AbstractHilbert> hilbert)
       : localstates_(hilbert->LocalStates()),
         localsize_(hilbert->LocalSize()),

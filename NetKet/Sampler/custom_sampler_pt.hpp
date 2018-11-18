@@ -75,7 +75,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
         nrep_(nreplicas) {
     CustomSampler<WfType>::CheckMoveOperators(move_operators_);
 
-    if (hilbert_->Size() != move_operators.GetHilbert().Size()) {
+    if (hilbert_->Size() != move_operators.GetHilbert()->Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");

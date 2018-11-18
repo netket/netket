@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/json_helper.hpp"
 #include "abstract_operator.hpp"
 #include "local_operator.hpp"
@@ -29,7 +29,7 @@ namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
 class GraphHamiltonian : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // Arbitrary graph
   std::shared_ptr<const AbstractGraph> graph_;
@@ -45,12 +45,12 @@ class GraphHamiltonian : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit GraphHamiltonian(
-      const AbstractHilbert &hilbert, OVecType siteops = OVecType(),
-      OVecType bondops = OVecType(),
+      std::shared_ptr<const AbstractHilbert> hilbert,
+      OVecType siteops = OVecType(), OVecType bondops = OVecType(),
       std::vector<int> bondops_colors = std::vector<int>())
       : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nvertices_(hilbert.Size()) {
+        graph_(hilbert->GetGraph()),
+        nvertices_(hilbert->Size()) {
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
       throw InvalidInputError("Must input at least SiteOps or BondOps");
@@ -107,7 +107,9 @@ class GraphHamiltonian : public AbstractOperator {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };  // namespace netket
 }  // namespace netket
 #endif
