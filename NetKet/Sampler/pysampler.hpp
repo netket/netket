@@ -54,7 +54,8 @@ namespace netket {
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  py::class_<AbSamplerType>(subm, "Sampler") ADDSAMPLERMETHODS(AbSamplerType);
+  py::class_<AbSamplerType, std::shared_ptr<AbSamplerType>>(subm, "Sampler")
+      ADDSAMPLERMETHODS(AbSamplerType);
 
   {
     using DerSampler = MetropolisLocal<AbMachineType>;

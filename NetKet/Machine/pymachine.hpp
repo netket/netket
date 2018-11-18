@@ -54,7 +54,8 @@ namespace netket {
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
 
-  py::class_<AbMachineType>(subm, "Machine") ADDMACHINEMETHODS(AbMachineType);
+  py::class_<AbMachineType, std::shared_ptr<AbMachineType>>(subm, "Machine")
+      ADDMACHINEMETHODS(AbMachineType);
 
   {
     using DerMachine = RbmSpin<MachineType>;
@@ -93,7 +94,7 @@ void AddMachineModule(py::module &m) {
   }
 
   {
-    using DerMachine = RbmSpinSymm<MachineType>;
+    using DerMachine = Jastrow<MachineType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "Jastrow")
         .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
