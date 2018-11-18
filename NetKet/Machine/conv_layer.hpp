@@ -96,25 +96,6 @@ class Convolutional : public AbstractLayer<T> {
     Init();
   }
 
-#if 0
-  // TODO remove
-  explicit Convolutional(const AbstractGraph &graph,
-                         AbstractActivation &activation, const json &pars)
-      : activation_(activation), graph_(graph), nv_(graph.Nsites()) {
-    in_channels_ = FieldVal(pars, "InputChannels");
-    in_size_ = in_channels_ * nv_;
-
-    out_channels_ = FieldVal(pars, "OutputChannels");
-    out_size_ = out_channels_ * nv_;
-
-    dist_ = FieldVal(pars, "Distance");
-
-    usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
-
-    Init();
-  }
-#endif
-
   void Init() {
     // Construct neighbourhood of all nodes with distance of at most dist_ from
     // each node i kernel(k) will act on neighbours_[i][k]
