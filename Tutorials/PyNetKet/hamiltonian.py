@@ -19,29 +19,29 @@ from datetime import datetime
 import numpy as np
 import scipy.sparse.linalg as sparsediag
 
-#Constructing a 1d lattice
-g = nk.graph.Hypercube(L=20, ndim=1)
+# Constructing a 1d lattice
+g = nk.graph.Hypercube(length=20, ndim=1)
 
-#Hilbert space of spins from given graph
+# Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-#Hamiltonian
+# Hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 print("\n")
 print("Diagonalizing the Hamiltonian with the internal NetKet solver...")
 
 t1 = datetime.now()
-ed_result = nk.LanczosEd(operator=ha, first_n=1, get_groundstate=False)
+ed_result = nk.gs.LanczosEd(operator=ha, first_n=1, get_groundstate=False)
 t2 = datetime.now()
 
 print("Elapsed time =", (t2 - t1).total_seconds(), " s\n")
 
-#Scipy sparse diagonalization
+# Scipy sparse diagonalization
 print("Diagonalizing the Hamiltonian with scipy...")
 
 t1 = datetime.now()
-sm = nk.SparseMatrixWrapper(operator=ha).GetMatrix()
+sm = nk.operator.SparseMatrixWrapper(operator=ha)._matrix
 vals = sparsediag.eigs(sm, k=1, return_eigenvectors=False, which='SR')
 t2 = datetime.now()
 

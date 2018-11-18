@@ -109,7 +109,7 @@ def test_random_states():
 
         if hi.is_discrete():
             rstate = np.zeros(hi.size())
-            rg = nk.RandomEngine(seed=1234)
+            rg = nk.utils.RandomEngine(seed=1234)
             local_states = hi.local_states()
 
             for i in range(100):

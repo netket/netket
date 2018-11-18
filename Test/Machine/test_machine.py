@@ -103,7 +103,7 @@ def test_log_derivative():
         # random visibile state
         hi = ma[1]
         assert(hi.size() > 0)
-        rg = nk.RandomEngine(seed=1234)
+        rg = nk.utils.RandomEngine(seed=1234)
         v = np.zeros(hi.size())
 
         for i in range(100):
@@ -134,7 +134,7 @@ def test_log_val_diff():
 
         hi = ma[1]
 
-        rg = nk.RandomEngine(seed=1234)
+        rg = nk.utils.RandomEngine(seed=1234)
 
         # loop over different random states
         for i in range(100):

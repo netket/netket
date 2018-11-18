@@ -23,11 +23,7 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "custom_hilbert.hpp"
-#include "hilbert_index.hpp"
-#include "netket.hpp"
-#include "qubits.hpp"
-#include "spins.hpp"
+#include "hilbert.hpp"
 
 namespace py = pybind11;
 
