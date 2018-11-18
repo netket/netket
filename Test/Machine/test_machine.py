@@ -47,7 +47,7 @@ layers = [
 ]
 
 # FFNN Machine
-machines["FFFN 1d Hypercube spin Convolutional"] = nk.machine.FFNN(hi, layers)
+# machines["FFFN 1d Hypercube spin Convolutional"] = nk.machine.FFNN(hi, layers)
 
 machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
     hi, bond_dim=3)
