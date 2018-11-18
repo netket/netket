@@ -30,8 +30,8 @@ namespace netket {
 void AddActivationModule(py::module &m) {
   auto subm = m.def_submodule("activation");
 
-  py::class_<AbstractActivation>(subm, "Activation")
-      ADDACTIVATIONMETHODS(AbstractActivation);
+  py::class_<AbstractActivation, std::shared_ptr<AbstractActivation>>(
+      subm, "Activation") ADDACTIVATIONMETHODS(AbstractActivation);
   py::class_<Tanh, AbstractActivation, std::shared_ptr<Tanh>>(subm, "Tanh")
       .def(py::init<>()) ADDACTIVATIONMETHODS(Tanh);
   py::class_<Lncosh, AbstractActivation, std::shared_ptr<Lncosh>>(subm,

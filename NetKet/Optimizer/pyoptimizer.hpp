@@ -34,12 +34,13 @@ namespace netket {
 void AddOptimizerModule(py::module &m) {
   auto subm = m.def_submodule("optimizer");
 
-  py::class_<AbstractOptimizer>(subm, "Optimizer")
-      ADDOPTIMIZERMETHODS(AbstractOptimizer);
+  py::class_<AbstractOptimizer, std::shared_ptr<AbstractOptimizer>>(
+      subm, "Optimizer") ADDOPTIMIZERMETHODS(AbstractOptimizer);
 
   {
     using OptType = Sgd;
-    py::class_<OptType, AbstractOptimizer>(subm, "Sgd")
+    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
+                                                                     "Sgd")
         .def(py::init<double, double, double>(), py::arg("learning_rate"),
              py::arg("l2_reg") = 0, py::arg("decay_factor") = 1.0)
             ADDOPTIMIZERMETHODS(OptType);
