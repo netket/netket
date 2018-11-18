@@ -52,7 +52,7 @@ void AddLayerModule(py::module &m) {
     using LayerType = Convolutional<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
         subm, "Convolutional")
-        .def(py::init<const AbstractGraph &,
+        .def(py::init<std::shared_ptr<const AbstractGraph>,
                       std::shared_ptr<const AbstractActivation>, int, int, int,
                       bool>(),
              py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
