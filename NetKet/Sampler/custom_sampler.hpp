@@ -61,8 +61,6 @@ class CustomSampler : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  using MatType = std::vector<std::vector<double>>;
-
   explicit CustomSampler(
       WfType &psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>())
