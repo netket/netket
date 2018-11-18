@@ -64,8 +64,6 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  using MatType = std::vector<std::vector<double>>;
-
   explicit CustomSamplerPt(
       WfType &psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>(),
