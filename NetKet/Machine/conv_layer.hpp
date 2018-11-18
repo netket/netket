@@ -20,12 +20,13 @@
 #include <algorithm>
 #include <complex>
 #include <fstream>
+#include <memory>
 #include <random>
 #include <vector>
 
 #include "Graph/graph.hpp"
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {
@@ -42,7 +43,8 @@ class Convolutional : public AbstractLayer<T> {
 
   static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
-  AbstractActivation &activation_;  // activation function class
+  std::shared_ptr<const AbstractActivation>
+      activation_;  // activation function class
 
   const AbstractGraph &graph_;
 
@@ -77,7 +79,8 @@ class Convolutional : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Convolutional(const AbstractGraph &graph, AbstractActivation &activation,
+  Convolutional(const AbstractGraph &graph,
+                std::shared_ptr<const AbstractActivation> activation,
                 const int input_channels, const int output_channels,
                 const int dist = 1, const bool use_bias = true)
       : activation_(activation),
@@ -93,6 +96,7 @@ class Convolutional : public AbstractLayer<T> {
     Init();
   }
 
+#if 0
   // TODO remove
   explicit Convolutional(const AbstractGraph &graph,
                          AbstractActivation &activation, const json &pars)
@@ -109,6 +113,7 @@ class Convolutional : public AbstractLayer<T> {
 
     Init();
   }
+#endif
 
   void Init() {
     // Construct neighbourhood of all nodes with distance of at most dist_ from
@@ -337,7 +342,7 @@ class Convolutional : public AbstractLayer<T> {
   // Performs the nonlinear transformation for the layer.
   inline void NonLinearTransformation(const LookupType &theta,
                                       VectorType &output) {
-    activation_(theta[0], output);
+    activation_->operator()(theta[0], output);
   }
 
   inline void UpdateTheta(const VectorType &v,
@@ -381,8 +386,8 @@ class Convolutional : public AbstractLayer<T> {
                 VectorType &din, VectorType &der, int start_idx) override {
     // Compute dL/dz
     VectorType dLz(out_size_);
-    activation_.ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
-                              dLz);
+    activation_->ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
+                               dLz);
 
     int kd = start_idx;
 
