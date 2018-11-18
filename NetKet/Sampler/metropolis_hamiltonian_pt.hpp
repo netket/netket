@@ -29,7 +29,7 @@ template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   H &hamiltonian_;
 
@@ -67,19 +67,8 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
+        nv_(hilbert_->Size()),
         nrep_(nrep) {
-    Init();
-  }
-
-  // TODO remove
-  template <class Ptype>
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const Ptype &pars)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
-        nrep_(FieldVal<int>(pars, "Nreplicas")) {
     Init();
   }
 
@@ -87,7 +76,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -135,7 +124,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_);
+        hilbert_->RandomVals(v_[i], rgen_);
       }
     }
 
@@ -161,7 +150,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
       // Inverse transition
       v1_ = v_[rep];
-      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      hilbert_->UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 

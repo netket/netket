@@ -30,7 +30,7 @@ template <class WfType>
 class MetropolisLocal : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   const int nv_;
@@ -54,7 +54,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
  public:
   explicit MetropolisLocal(WfType &psi)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_->Size()) {
     Init();
   }
 
@@ -64,7 +64,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -73,8 +73,8 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     Seed();
 
@@ -100,7 +100,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_->RandomVals(v_, rgen_);
     }
 
     psi_.InitLookup(v_, lt_);
@@ -151,7 +151,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_.UpdateConf(v_, tochange, newconf);
+        hilbert_->UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_.LogVal(v_);
