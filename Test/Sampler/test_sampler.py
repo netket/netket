@@ -17,38 +17,36 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 
+sa = nk.sampler.MetropolisLocal(machine=ma)
+samplers["MetropolisLocal RbmSpin"] = [sa, ma]
 
-samplers["MetropolisLocal RbmSpin"] = nk.sampler.MetropolisLocal(
-    machine=ma)
-
-
-samplers["MetropolisLocalPt RbmSpin"] = nk.sampler.MetropolisLocalPt(
-    machine=ma, n_replicas=4)
+sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
+samplers["MetropolisLocalPt RbmSpin"] = [sa, ma]
 
 ha = nk.operator.Ising(hilbert=hi, h=1.0)
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
-samplers["MetropolisHamiltonian RbmSpin"] = sa
+samplers["MetropolisHamiltonian RbmSpin"] = [sa, ma]
 
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 sa = nk.sampler.MetropolisHamiltonianPt(
     machine=ma, hamiltonian=ha, n_replicas=4)
-samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
+samplers["MetropolisHamiltonianPt RbmSpinSymm"] = [sa, ma]
 
 hi = nk.hilbert.Boson(graph=g, n_max=4)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 g = nk.graph.Hypercube(length=4, ndim=1)
-samplers["MetropolisLocal Boson"] = sa
+samplers["MetropolisLocal Boson"] = [sa, ma]
 
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
-samplers["MetropolisLocalPt Boson"] = sa
+samplers["MetropolisLocalPt Boson"] = [sa, ma]
 
 ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 sa = nk.sampler.MetropolisLocal(machine=ma)
-samplers["MetropolisLocal Boson MultiVal"] = sa
+samplers["MetropolisLocal Boson MultiVal"] = [sa, ma]
 
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 g = nk.graph.Hypercube(length=6, ndim=1)
@@ -63,12 +61,12 @@ move_op = nk.operator.LocalOperator(hilbert=hi,
                                     acting_on=[[i] for i in range(l)])
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
-samplers["CustomSampler Spin"] = sa
+samplers["CustomSampler Spin"] = [sa, ma]
 
 
 sa = nk.sampler.CustomSamplerPt(
     machine=ma, move_operators=move_op, n_replicas=4)
-samplers["CustomSamplerPt Spin"] = sa
+samplers["CustomSamplerPt Spin"] = [sa, ma]
 
 # Two types of custom moves
 # single spin flips and nearest-neighbours exchanges
@@ -88,11 +86,11 @@ move_op = nk.operator.LocalOperator(hilbert=hi,
                                     acting_on=acting_on)
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
-samplers["CustomSampler Spin 2 moves"] = sa
+samplers["CustomSampler Spin 2 moves"] = [sa, ma]
 
 
 def test_states_in_hilbert():
-    for name, sa in samplers.items():
+    for name, (sa, ma) in samplers.items():
         print("Sampler test: %s" % name)
 
         hi = sa.get_hilbert()
@@ -115,11 +113,10 @@ def test_states_in_hilbert():
 
 
 def test_correct_sampling():
-    for name, sa in samplers.items():
+    for name, (sa, ma) in samplers.items():
         print("Sampler test: %s" % name)
 
         hi = sa.get_hilbert()
-        ma = sa.get_machine()
 
         hilb_index = nk.hilbert.HilbertIndex(hi)
         n_states = hilb_index.n_states()
