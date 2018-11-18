@@ -28,7 +28,7 @@ namespace netket {
 // Exact sampling using heat bath, mostly for testing purposes on small systems
 template <class WfType>
 class ExactSampler : public AbstractSampler<WfType> {
-  WfType &psi_;
+  std::shared_ptr<WfType> psi_;
 
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
@@ -56,9 +56,9 @@ class ExactSampler : public AbstractSampler<WfType> {
   std::vector<double> psivals_;
 
  public:
-  explicit ExactSampler(WfType &psi)
+  explicit ExactSampler(std::shared_ptr<WfType> psi)
       : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+        hilbert_(psi->GetHilbert()),
         nv_(hilbert_->Size()),
         hilbert_index_(hilbert_),
         dim_(hilbert_index_.NStates()) {
@@ -114,7 +114,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index_.NumberToState(i);
-      logpsivals_[i] = psi_.LogVal(v);
+      logpsivals_[i] = psi_->LogVal(v);
       logmax = std::max(logmax, std::real(logpsivals_[i]));
     }
 
@@ -140,7 +140,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
   std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
     return hilbert_;
