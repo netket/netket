@@ -32,14 +32,14 @@ class AbstractActivation {
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
 
-  virtual void operator()(VectorConstRefType Z, VectorRefType A) = 0;
+  virtual void operator()(VectorConstRefType Z, VectorRefType A) const = 0;
 
   // Z is the layer output before applying nonlinear function
   // A = nonlinearfunction(Z)
   // F = dL/dA is the derivative of A wrt the output L = log(psi(v))
   // G is the place to write the output i.e. G = dL/dZ = dL/dA * dA/dZ
   virtual void ApplyJacobian(VectorConstRefType Z, VectorConstRefType A,
-                             VectorConstRefType F, VectorRefType G) = 0;
+                             VectorConstRefType F, VectorRefType G) const = 0;
   virtual ~AbstractActivation() {}
 };
 
@@ -73,7 +73,7 @@ class Identity : public AbstractActivation {
 
  public:
   // A = Z
-  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
     A.noalias() = Z;
   }
 
@@ -82,7 +82,8 @@ class Identity : public AbstractActivation {
   // J = dA / dZ = I
   // G = J * F = F
   inline void ApplyJacobian(VectorConstRefType /*Z*/, VectorConstRefType /*A*/,
-                            VectorConstRefType F, VectorRefType G) override {
+                            VectorConstRefType F,
+                            VectorRefType G) const override {
     G.noalias() = F;
   }
 };
@@ -93,7 +94,7 @@ class Lncosh : public AbstractActivation {
 
  public:
   // A = Lncosh(Z)
-  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
     for (int i = 0; i < A.size(); ++i) {
       A(i) = lncosh(Z(i));
     }
@@ -104,7 +105,8 @@ class Lncosh : public AbstractActivation {
   // J = dA / dZ
   // G = J * F
   inline void ApplyJacobian(VectorConstRefType Z, VectorConstRefType /*A*/,
-                            VectorConstRefType F, VectorRefType G) override {
+                            VectorConstRefType F,
+                            VectorRefType G) const override {
     G.array() = F.array() * Z.array().tanh();
   }
 };
@@ -115,7 +117,7 @@ class Tanh : public AbstractActivation {
 
  public:
   // A = Tanh(Z)
-  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
+  inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
     A.array() = Z.array().tanh();
   }
 
@@ -124,11 +126,12 @@ class Tanh : public AbstractActivation {
   // J = dA / dZ
   // G = J * F
   inline void ApplyJacobian(VectorConstRefType /*Z*/, VectorConstRefType A,
-                            VectorConstRefType F, VectorRefType G) override {
+                            VectorConstRefType F,
+                            VectorRefType G) const override {
     G.array() = F.array() * (1 - A.array() * A.array());
   }
 };
-
+#if 0
 // TODO remove
 class Activation : public AbstractActivation {
   using Ptype = std::unique_ptr<AbstractActivation>;
@@ -185,7 +188,7 @@ class Activation : public AbstractActivation {
     return m_->ApplyJacobian(Z, A, F, G);
   }
 };
-
+#endif
 }  // namespace netket
 
 #endif
