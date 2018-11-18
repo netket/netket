@@ -35,7 +35,7 @@ class FFNN : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   const AbstractGraph &graph_;
   std::vector<Ptype> layers_;  // Pointers to hidden layers
@@ -55,11 +55,12 @@ class FFNN : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> &layers)
+  explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
+                std::vector<Ptype> &layers)
       : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
+        graph_(hilbert->GetGraph()),
         layers_(layers),
-        nv_(hilbert.Size()) {
+        nv_(hilbert->Size()) {
     Init();
   }
 
@@ -296,7 +297,9 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };  // namespace netket
 
 }  // namespace netket

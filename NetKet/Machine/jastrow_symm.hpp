@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 
 #ifndef NETKET_JAS_SYMM_HPP
@@ -35,7 +35,7 @@ class JastrowSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  const std::shared_ptr<const AbstractHilbert> hilbert_;
   const AbstractGraph &graph_;
 
   std::vector<std::vector<int>> permtable_;
@@ -67,19 +67,11 @@ class JastrowSymm : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit JastrowSymm(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
+  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(hilbert), graph_(hilbert->GetGraph()), nv_(hilbert->Size()) {
     Init(graph_);
 
     SetBareParameters();
-  }
-
-  // TODO remove
-  // Json constructor
-  explicit JastrowSymm(const AbstractGraph &graph,
-                       const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    from_json(pars);
   }
 
   void Init(const AbstractGraph &graph) {
@@ -318,7 +310,9 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "JastrowSymm";
@@ -335,7 +329,7 @@ class JastrowSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

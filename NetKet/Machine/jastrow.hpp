@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_JASTROW_HPP
 #define NETKET_JASTROW_HPP
@@ -36,7 +36,7 @@ class Jastrow : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   int nv_;
@@ -56,16 +56,9 @@ class Jastrow : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
+  explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(hilbert), nv_(hilbert->Size()) {
     Init();
-  }
-
-  // TODO remove
-  // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
-    from_json(pars);
   }
 
   void Init() {
@@ -218,7 +211,9 @@ class Jastrow : public AbstractMachine<T> {
     return der;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "Jastrow";
@@ -235,7 +230,7 @@ class Jastrow : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");
