@@ -55,7 +55,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
  public:
   MetropolisHop(const AbstractGraph &graph, WfType &psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_->Size()) {
     Init(graph, dmax);
   }
 

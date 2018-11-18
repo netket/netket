@@ -53,7 +53,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
  public:
   MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_->Size()) {
     Init(graph, dmax);
   }
 
