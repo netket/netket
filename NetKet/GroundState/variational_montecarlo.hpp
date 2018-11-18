@@ -398,7 +398,7 @@ class VariationalMonteCarlo {
     if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once
       output_->WriteLog(i, obs_data);
-      output_->WriteState(i, psi_);
+      output_->WriteState(i, *psi_);
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
