@@ -96,7 +96,7 @@ class JsonOutputWriter {
    * frequency.
    */
   template <class State>
-  void WriteState(int iteration, State state) {
+  void WriteState(int iteration, const State& state) {
     if (save_every_ == 0) {
       return;
     }
@@ -111,14 +111,13 @@ class JsonOutputWriter {
   // The first overload works for classes inheriting from AbstractMachine, the
   // second one for Eigen matrices.
   template <typename T>
-  void SaveState_Impl(std::ofstream& stream,
-                      std::shared_ptr<AbstractMachine<T>> state) {
-    state->Save(stream);
+  void SaveState_Impl(std::ofstream& stream, const AbstractMachine<T>& state) {
+    state.Save(stream);
   }
 
   template <typename T, int S1, int S2>
   void SaveState_Impl(std::ofstream& stream,
-                      Eigen::Ref<Eigen::Matrix<T, S1, S2>> state) {
+                      const Eigen::Matrix<T, S1, S2>& state) {
     json j;
     j["StateVector"] = state;
     stream << j << std::endl;
