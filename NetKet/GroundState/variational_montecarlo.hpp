@@ -43,9 +43,9 @@ namespace netket {
 class VariationalMonteCarlo {
   using GsType = std::complex<double>;
 
-  using VectorT =
-      Eigen::Matrix<typename Machine<GsType>::StateType, Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<typename Machine<GsType>::StateType,
+  using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
+                                Eigen::Dynamic, 1>;
+  using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
   AbstractOperator &ham_;
