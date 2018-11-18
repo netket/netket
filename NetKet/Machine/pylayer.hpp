@@ -42,7 +42,8 @@ void AddLayerModule(py::module &m) {
     using LayerType = FullyConnected<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
         subm, "FullyConnected")
-        .def(py::init<AbstractActivation &, int, int, bool>(),
+        .def(py::init<std::shared_ptr<const AbstractActivation>, int, int,
+                      bool>(),
              py::arg("activation"), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
             ADDLAYERMETHODS(LayerType);

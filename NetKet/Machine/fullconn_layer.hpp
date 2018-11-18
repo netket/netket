@@ -20,8 +20,8 @@
 #include <fstream>
 #include <random>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {
@@ -33,7 +33,8 @@ class FullyConnected : public AbstractLayer<T> {
   using VectorRefType = typename AbstractLayer<T>::VectorRefType;
   using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
-  AbstractActivation &activation_;  // activation function class
+  std::shared_ptr<const AbstractActivation>
+      activation_;  // activation function class
 
   bool usebias_;
 
@@ -52,28 +53,13 @@ class FullyConnected : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  FullyConnected(AbstractActivation &activation, const int input_size,
-                 const int output_size, const bool use_bias = false)
+  FullyConnected(std::shared_ptr<const AbstractActivation> activation,
+                 const int input_size, const int output_size,
+                 const bool use_bias = false)
       : activation_(activation),
         usebias_(use_bias),
         in_size_(input_size),
         out_size_(output_size) {
-    Init();
-  }
-
-  // TODO remove
-  explicit FullyConnected(AbstractActivation &activation, const json &pars)
-      : activation_(activation) {
-    Init(pars);
-  }
-
-  // TODO remove
-  void Init(const json &pars) {
-    in_size_ = FieldVal(pars, "Inputs");
-    out_size_ = FieldVal(pars, "Outputs");
-
-    usebias_ = FieldOrDefaultVal(pars, "UseBias", true);
-
     Init();
   }
 
@@ -232,7 +218,7 @@ class FullyConnected : public AbstractLayer<T> {
   // Applies the nonlinear transformation
   inline void NonLinearTransformation(const LookupType &theta,
                                       VectorType &output) {
-    activation_(theta[0], output);
+    activation_->operator()(theta[0], output);
   }
 
   // Updates theta given the input v, the change in the input (input_changes and
@@ -271,8 +257,8 @@ class FullyConnected : public AbstractLayer<T> {
     // The Jacobian matrix J = d(a) / d(z) is determined by the activation
     // function
     VectorType dLz(out_size_);
-    activation_.ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
-                              dLz);
+    activation_->ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
+                               dLz);
 
     // Now dLz contains d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
