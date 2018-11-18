@@ -19,7 +19,7 @@
 #include <complex>
 #include <fstream>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
