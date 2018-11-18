@@ -72,7 +72,7 @@ void AddMachineModule(py::module &m) {
            py::arg("use_hidden_"
                    "bias") = true) ADDMACHINEMETHODS(RbmSpinSymm<MachineType>);
 
-  py::class_<RbmMultival<MachineType>, AbMachineType>(subm, "RbmMultival")
+  py::class_<RbmMultival<MachineType>, AbMachineType>(subm, "RbmMultiVal")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_"

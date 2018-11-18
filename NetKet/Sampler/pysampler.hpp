@@ -119,28 +119,22 @@ void AddSamplerModule(py::module &m) {
 
   {
     using DerSampler = CustomSampler<AbMachineType>;
-    using MatType = DerSampler::MatType;
     py::class_<DerSampler, AbSamplerType>(subm, "CustomSampler")
-        .def(py::init<AbMachineType &, const std::vector<MatType> &,
-                      const std::vector<std::vector<int>> &,
+        .def(py::init<AbMachineType &, const LocalOperator &,
                       std::vector<double>>(),
              py::arg("machine"), py::arg("move_operators"),
-             py::arg("acting_on"),
              py::arg("move_weights") = std::vector<double>())
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = CustomSamplerPt<AbMachineType>;
-    using MatType = DerSampler::MatType;
     py::class_<DerSampler, AbSamplerType>(subm, "CustomSamplerPt")
-        .def(py::init<AbMachineType &, const std::vector<MatType> &,
-                      const std::vector<std::vector<int>> &,
+        .def(py::init<AbMachineType &, const LocalOperator &,
                       std::vector<double>, int>(),
              py::arg("machine"), py::arg("move_operators"),
-             py::arg("acting_on"),
              py::arg("move_weights") = std::vector<double>(),
-             py::arg("nreplicas")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("n_replicas")) ADDSAMPLERMETHODS(DerSampler);
   }
 }
 
