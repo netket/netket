@@ -17,8 +17,8 @@
 #include <memory>
 #include <sstream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "layer.hpp"
 
 #ifndef NETKET_FFNN_HPP
@@ -119,6 +119,7 @@ class FFNN : public AbstractMachine<T> {
                         << std::endl;
   }
 
+#if 0
   // TODO remove
   // constructor
   explicit FFNN(const AbstractGraph &graph, const AbstractHilbert &hilbert,
@@ -126,6 +127,7 @@ class FFNN : public AbstractMachine<T> {
       : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
     InitOld(pars);
   }
+
 
   // TODO remove
   void InitOld(const json &pars) {
@@ -191,7 +193,7 @@ class FFNN : public AbstractMachine<T> {
     InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
                         << std::endl;
   }
-
+#endif
   void from_json(const json &pars) override {
     json layers_par;
     if (FieldExists(pars, "Layers")) {
