@@ -24,7 +24,7 @@
 #include <random>
 #include <vector>
 
-#include "Graph/graph.hpp"
+#include "Graph/abstract_graph.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
@@ -46,7 +46,7 @@ class Convolutional : public AbstractLayer<T> {
   std::shared_ptr<const AbstractActivation>
       activation_;  // activation function class
 
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   bool usebias_;  // boolean to turn or off bias
 
@@ -79,14 +79,14 @@ class Convolutional : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  Convolutional(const AbstractGraph &graph,
+  Convolutional(std::shared_ptr<const AbstractGraph> graph,
                 std::shared_ptr<const AbstractActivation> activation,
                 const int input_channels, const int output_channels,
                 const int dist = 1, const bool use_bias = true)
       : activation_(activation),
         graph_(graph),
         usebias_(use_bias),
-        nv_(graph.Nsites()),
+        nv_(graph->Nsites()),
         in_channels_(input_channels),
         out_channels_(output_channels),
         dist_(dist) {
@@ -101,7 +101,7 @@ class Convolutional : public AbstractLayer<T> {
     // each node i kernel(k) will act on neighbours_[i][k]
     for (int i = 0; i < nv_; ++i) {
       std::vector<int> neigh;
-      graph_.BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
+      graph_->BreadthFirstSearch(i, dist_, [&neigh](int node, int /*depth*/) {
         neigh.push_back(node);
       });
       neighbours_.push_back(neigh);
