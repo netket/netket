@@ -31,7 +31,7 @@ namespace netket {
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
 class CustomSampler : public AbstractSampler<WfType> {
-  WfType &psi_;
+  std::shared_ptr<WfType> psi_;
   std::shared_ptr<const AbstractHilbert> hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
@@ -62,10 +62,10 @@ class CustomSampler : public AbstractSampler<WfType> {
 
  public:
   explicit CustomSampler(
-      WfType &psi, const LocalOperator &move_operators,
+      std::shared_ptr<WfType> psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>())
       : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+        hilbert_(psi->GetHilbert()),
         move_operators_(move_operators),
         nv_(hilbert_->Size()) {
     CheckMoveOperators(move_operators_);
@@ -135,7 +135,7 @@ class CustomSampler : public AbstractSampler<WfType> {
       hilbert_->RandomVals(v_, rgen_);
     }
 
-    psi_.InitLookup(v_, lt_);
+    psi_->InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -161,14 +161,14 @@ class CustomSampler : public AbstractSampler<WfType> {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      double ratio = std::norm(std::exp(psi_.LogValDiff(
+      double ratio = std::norm(std::exp(psi_->LogValDiff(
           v_, tochange_[exit_state], newconfs_[exit_state], lt_)));
 
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;
-        psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
-                          lt_);
+        psi_->UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
+                           lt_);
         hilbert_->UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
       }
       moves_[0] += 1;
@@ -179,7 +179,7 @@ class CustomSampler : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
   std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
     return hilbert_;

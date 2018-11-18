@@ -58,7 +58,8 @@ class ImaginaryTimeDriver {
       ComputeObservables(initial_state);
       auto obs_data = json(obsmanager_);
       output_.WriteLog(step, obs_data, t);
-      output_.WriteState(step, initial_state);
+      // TODO enable this again
+      // output_.WriteState(step, initial_state);
 
       step++;
       t = range_.tmin + step * range_.dt;

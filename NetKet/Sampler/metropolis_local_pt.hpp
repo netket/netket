@@ -28,7 +28,7 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
-  WfType &psi_;
+  std::shared_ptr<WfType> psi_;
 
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
@@ -62,9 +62,9 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
  public:
   // Constructor with one replica by default
-  explicit MetropolisLocalPt(WfType &psi, int nreplicas = 1)
+  explicit MetropolisLocalPt(std::shared_ptr<WfType> psi, int nreplicas = 1)
       : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+        hilbert_(psi->GetHilbert()),
         nv_(hilbert_->Size()),
         nrep_(nreplicas) {
     Init();
@@ -128,7 +128,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_.InitLookup(v_[i], lt_[i]);
+      psi_->InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -161,16 +161,16 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
+      const auto lvd = psi_->LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
       double ratio = std::norm(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_[rep]);
-      if (std::abs(
-              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
-              1.) > 1.0e-8) {
-        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+      const auto psival1 = psi_->LogVal(v_[rep]);
+      if (std::abs(std::exp(psi_->LogVal(v_[rep]) -
+                            psi_->LogVal(v_[rep], lt_[rep])) -
+                   1.) > 1.0e-8) {
+        std::cerr << psi_->LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << psi_->LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -178,16 +178,16 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
       if (ratio > distu(rgen_)) {
         accept_(rep) += 1;
 
-        psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
+        psi_->UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
         hilbert_->UpdateConf(v_[rep], tochange, newconf);
 
 #ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_[rep]);
+        const auto psival2 = psi_->LogVal(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << psi_->LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
 #endif
@@ -228,8 +228,8 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(psi_->LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_->LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -243,7 +243,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &Psi() override { return psi_; }
+  std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
   std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
     return hilbert_;
