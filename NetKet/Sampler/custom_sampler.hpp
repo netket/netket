@@ -181,6 +181,10 @@ class CustomSampler : public AbstractSampler<WfType> {
 
   WfType &Psi() override { return psi_; }
 
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
+
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
     for (int i = 0; i < 1; i++) {

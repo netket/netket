@@ -49,7 +49,8 @@ namespace netket {
       .def("sweep", &name::Sweep)            \
       .def("get_visible", &name::Visible)    \
       .def("set_visible", &name::SetVisible) \
-      .def("acceptance", &name::Acceptance);
+      .def("acceptance", &name::Acceptance)  \
+      .def("get_hilbert", &name::GetHilbert)
 
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");

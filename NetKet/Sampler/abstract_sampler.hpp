@@ -15,7 +15,9 @@
 #ifndef NETKET_ABSTRACTSAMPLER_HPP
 #define NETKET_ABSTRACTSAMPLER_HPP
 
+#include <memory>
 #include <vector>
+#include "Hilbert/abstract_hilbert.hpp"
 
 namespace netket {
 
@@ -33,6 +35,8 @@ class AbstractSampler {
   virtual WfType &Psi() = 0;
 
   virtual Eigen::VectorXd Acceptance() const = 0;
+
+  virtual std::shared_ptr<const AbstractHilbert> GetHilbert() const = 0;
 
   virtual ~AbstractSampler() {}
 };
