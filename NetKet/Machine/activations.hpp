@@ -131,64 +131,7 @@ class Tanh : public AbstractActivation {
     G.array() = F.array() * (1 - A.array() * A.array());
   }
 };
-#if 0
-// TODO remove
-class Activation : public AbstractActivation {
-  using Ptype = std::unique_ptr<AbstractActivation>;
 
-  Ptype m_;
-
- public:
-  using VectorType = typename AbstractActivation::VectorType;
-
-  explicit Activation(const json &pars) { Init(pars); }
-  void Init(const json &pars) {
-    if (FieldExists(pars, "Activation")) {
-      CheckInput(pars);
-
-      if (pars["Activation"] == "Lncosh") {
-        m_ = Ptype(new Lncosh());
-
-        InfoMessage() << "Activation: "
-                      << "Lncosh" << std::endl;
-      } else if (pars["Activation"] == "Identity") {
-        m_ = Ptype(new Identity());
-
-        InfoMessage() << "Activation: "
-                      << "Identity" << std::endl;
-      } else if (pars["Activation"] == "Tanh") {
-        m_ = Ptype(new Tanh());
-
-        InfoMessage() << "Activation: "
-                      << "Tanh" << std::endl;
-      }
-    } else {
-      InfoMessage() << "No activation function " << std::endl;
-    }
-  }
-
-  void CheckInput(const json &pars) {
-    const std::string name = FieldVal(pars, "Activation");
-
-    std::set<std::string> layers = {"Lncosh", "Identity", "Tanh"};
-
-    if (layers.count(name) == 0) {
-      std::stringstream s;
-      s << "Unknown Activation: " << name;
-      throw InvalidInputError(s.str());
-    }
-  }
-
-  inline void operator()(VectorConstRefType Z, VectorRefType A) override {
-    return m_->operator()(Z, A);
-  }
-
-  inline void ApplyJacobian(VectorConstRefType Z, VectorConstRefType A,
-                            VectorConstRefType F, VectorRefType G) override {
-    return m_->ApplyJacobian(Z, A, F, G);
-  }
-};
-#endif
 }  // namespace netket
 
 #endif
