@@ -32,11 +32,13 @@ void AddActivationModule(py::module &m) {
 
   py::class_<AbstractActivation>(subm, "Activation")
       ADDACTIVATIONMETHODS(AbstractActivation);
-  py::class_<Tanh, AbstractActivation>(subm, "Tanh")
+  py::class_<Tanh, AbstractActivation, std::shared_ptr<Tanh>>(subm, "Tanh")
       .def(py::init<>()) ADDACTIVATIONMETHODS(Tanh);
-  py::class_<Lncosh, AbstractActivation>(subm, "Lncosh")
+  py::class_<Lncosh, AbstractActivation, std::shared_ptr<Lncosh>>(subm,
+                                                                  "Lncosh")
       .def(py::init<>()) ADDACTIVATIONMETHODS(Lncosh);
-  py::class_<Identity, AbstractActivation>(subm, "Identity")
+  py::class_<Identity, AbstractActivation, std::shared_ptr<Identity>>(
+      subm, "Identity")
       .def(py::init<>()) ADDACTIVATIONMETHODS(Identity);
 }
 
