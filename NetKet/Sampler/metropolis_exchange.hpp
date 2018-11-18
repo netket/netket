@@ -29,7 +29,7 @@ template <class WfType>
 class MetropolisExchange : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   const int nv_;
@@ -54,13 +54,6 @@ class MetropolisExchange : public AbstractSampler<WfType> {
  public:
   MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
-  }
-
-  // TODO remove
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
     Init(graph, dmax);
   }
 
@@ -118,7 +111,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, rgen_);
+        hilbert_->RandomVals(v_, rgen_);
       }
     }
 
@@ -154,7 +147,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
         if (ratio > distu(rgen_)) {
           accept_[0] += 1;
           psi_.UpdateLookup(v_, tochange, newconf, lt_);
-          hilbert_.UpdateConf(v_, tochange, newconf);
+          hilbert_->UpdateConf(v_, tochange, newconf);
         }
       }
       moves_[0] += 1;

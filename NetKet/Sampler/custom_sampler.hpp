@@ -32,7 +32,7 @@ namespace netket {
 template <class WfType>
 class CustomSampler : public AbstractSampler<WfType> {
   WfType &psi_;
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
 
@@ -67,10 +67,10 @@ class CustomSampler : public AbstractSampler<WfType> {
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
-        nv_(hilbert_.Size()) {
+        nv_(hilbert_->Size()) {
     CheckMoveOperators(move_operators_);
 
-    if (hilbert_.Size() != move_operators.GetHilbert().Size()) {
+    if (hilbert_->Size() != move_operators.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -97,7 +97,7 @@ class CustomSampler : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
@@ -105,8 +105,8 @@ class CustomSampler : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     Seed();
 
@@ -132,7 +132,7 @@ class CustomSampler : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_->RandomVals(v_, rgen_);
     }
 
     psi_.InitLookup(v_, lt_);
@@ -169,7 +169,7 @@ class CustomSampler : public AbstractSampler<WfType> {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
                           lt_);
-        hilbert_.UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
+        hilbert_->UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
       }
       moves_[0] += 1;
     }

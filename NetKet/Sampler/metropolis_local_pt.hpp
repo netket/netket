@@ -30,7 +30,7 @@ template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   const int nv_;
@@ -65,19 +65,8 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   explicit MetropolisLocalPt(WfType &psi, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
+        nv_(hilbert_->Size()),
         nrep_(nreplicas) {
-    Init();
-  }
-
-  // TODO remove
-  // Json constructor
-  template <class Ptype>
-  explicit MetropolisLocalPt(WfType &psi, const Ptype &pars)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        nrep_(FieldVal<int>(pars, "Nreplicas")) {
     Init();
   }
 
@@ -85,8 +74,8 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     SetNreplicas(nrep_);
 
@@ -134,7 +123,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_);
+        hilbert_->RandomVals(v_[i], rgen_);
       }
     }
 
@@ -190,7 +179,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
         accept_(rep) += 1;
 
         psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-        hilbert_.UpdateConf(v_[rep], tochange, newconf);
+        hilbert_->UpdateConf(v_[rep], tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_.LogVal(v_[rep]);
