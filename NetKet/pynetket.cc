@@ -37,6 +37,48 @@ using AbSamplerType = AbstractSampler<AbMachineType>;
 
 namespace netket {
 
+namespace detail {
+// TODO(twesterhout): Strictly speaking, this is unsafe, I'm afraid, because one
+// can load the shared library from two processes which could result in MPI not
+// being initialized or not finalized twice, but come on... let's hope (for now)
+// noone is their sane mind is goind to do that.
+struct MPIInitializer {
+  MPIInitializer() {
+    int already_initialized;
+    MPI_Initialized(&already_initialized);
+    if (!already_initialized) {
+      // We don't have access to command-line arguments
+      if (MPI_Init(nullptr, nullptr) != MPI_SUCCESS) {
+        std::ostringstream msg;
+        msg << "This should never have happened. How did you manage to "
+               "call MPI_Init() in between two C function calls?! "
+               "Terminating now.";
+        std::cerr << msg.str() << std::endl;
+        std::terminate();
+      }
+      have_initialized_ = true;
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully initialized by NetKet." << std::endl;
+#endif
+    }
+  }
+
+  ~MPIInitializer() {
+    if (have_initialized_) {
+      // We have initialized MPI so it's only right we finalize it.
+      MPI_Finalize();
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully finalized by NetKet." << std::endl;
+#endif
+    }
+  }
+
+ private:
+  bool have_initialized_;
+};
+static MPIInitializer _do_not_use_me_dummy_{};
+} // namespace detail
+
 using ode::AddDynamicsModule;
 
 PYBIND11_MODULE(netket, m) {
