@@ -62,7 +62,13 @@ class Jastrow : public AbstractMachine<T> {
   }
 
   void Init() {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
+
     W_.resize(nv_, nv_);
+    W_.setZero();
 
     npar_ = (nv_ * (nv_ - 1)) / 2;
 
@@ -104,10 +110,10 @@ class Jastrow : public AbstractMachine<T> {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
+      W_(i, i) = T(0.);
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
         W_(j, i) = W_(i, j);  // create the lower triangle
-        W_(i, i) = T(0);
         k++;
       }
     }
