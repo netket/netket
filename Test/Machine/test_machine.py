@@ -10,7 +10,7 @@ machines = {}
 
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=4, ndim=1)
+g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -30,7 +30,7 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 # Layers
 layers = [
     nk.layer.FullyConnected(
-        input_size=g.n_sites,
+        input_size=g.n_sites(),
         output_size=40,
         activation=nk.activation.Lncosh())
 ]
