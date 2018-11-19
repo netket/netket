@@ -68,7 +68,6 @@ inline std::complex<double> lncosh(std::complex<double> x) {
 }
 
 class Identity : public AbstractActivation {
- private:
   using VectorType = typename AbstractActivation::VectorType;
 
  public:
@@ -89,7 +88,6 @@ class Identity : public AbstractActivation {
 };
 
 class Lncosh : public AbstractActivation {
- private:
   using VectorType = typename AbstractActivation::VectorType;
 
  public:
@@ -113,7 +111,6 @@ class Lncosh : public AbstractActivation {
 };
 
 class Tanh : public AbstractActivation {
- private:
   using VectorType = typename AbstractActivation::VectorType;
 
  public:
@@ -135,7 +132,6 @@ class Tanh : public AbstractActivation {
 };
 
 class Relu : public AbstractActivation {
- private:
   using VectorType = typename AbstractActivation::VectorType;
 
   double theta1_ = std::atan(1) * 3;
