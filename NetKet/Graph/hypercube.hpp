@@ -16,13 +16,11 @@
 #define NETKET_HYPERCUBE_HPP
 
 #include <algorithm>
-#include <array>
 #include <cassert>
-#include <map>
+#include <map>  // TODO: Remove this when BuildSymmTable is optimised
 #include <unordered_map>
 #include <vector>
-#include "Utils/json_utils.hpp"
-#include "Utils/next_variation.hpp"
+#include "abstract_graph.hpp"
 
 namespace netket {
 
@@ -38,6 +36,11 @@ class Hypercube : public AbstractGraph {
   ColorMap colors_;  ///< Edge to color mapping
 
  public:
+  Hypercube(Hypercube const &) = delete;
+  Hypercube(Hypercube &&) noexcept = default;
+  Hypercube &operator=(Hypercube const &) noexcept = delete;
+  Hypercube &operator=(Hypercube &&) noexcept = default;
+
   Hypercube(int const length, int const n_dim = 1, bool pbc = true)
       : length_{length}, n_dim_{n_dim}, pbc_{pbc}, edges_{}, symm_table_{} {
     if (length < 1) {
@@ -62,10 +65,9 @@ class Hypercube : public AbstractGraph {
     }
   }
 
-  // TODO(twesterhout): L is strictly speaking not needed, but then the logic
-  // becomes too complicated for my taste :)
-  // Also, the performance of this function will probably be pretty bad, by I
-  // don't think it matters much.
+  // TODO(twesterhout): length is strictly speaking not needed, but then the
+  // logic becomes too complicated for my taste :) Also, the performance of this
+  // function will probably be pretty bad, by I don't think it matters much.
   Hypercube(int const length, ColorMap colors)
       : length_{length},
         n_dim_{},
@@ -149,6 +151,38 @@ class Hypercube : public AbstractGraph {
 
   std::vector<std::vector<int>> SymmetryTable() const override {
     return symm_table_;
+  }
+
+  /// Given a site's coordinate as a `Ndim()`-dimensional vector, returns the
+  /// site's index. The mapping is unique, but unspecified. I.e. the fact that
+  /// sometimes `Coord2Site({1, 2, 0, 0, 1}) == X` and `Coord2Site({1, 2, 0, 0,
+  /// 2}) == X+1` should not be relied on.
+  int Coord2Site(std::vector<int> const &coord) const {
+    auto const print_coord = [&coord](std::ostream &os) -> std::ostream & {
+      os << "[";
+      if (coord.size() >= 1) {
+        os << coord.front();
+      }
+      for (auto i = std::size_t{0}; i < coord.size(); ++i) {
+        os << ", " << coord[i];
+      }
+      return os << "]";
+    };
+
+    // We need this loop, because Coord2Site is exposed to Python and it's
+    // unacceptable to have Python interpreter terminating with a seg fault just
+    // because of an invalid input.
+    for (auto const x : coord) {
+      if (x < 0 || x >= length_) {
+        std::ostringstream msg;
+        msg << "Invalid coordinate ";
+        print_coord(msg);
+        msg << " for a " << n_dim_ << "-dimensional hypercube of side length "
+            << length_;
+        throw InvalidInputError{msg.str()};
+      }
+    }
+    return Coord2Site(coord, length_);
   }
 
  private:
@@ -245,13 +279,13 @@ class Hypercube : public AbstractGraph {
   }
 
  public:
-    template <class Parameters>
-    Hypercube(Parameters const& parameters)
-    {
-      throw InvalidInputError{
-          "netket::Hypercube(Parameters const&): JSON input is no longer "
-          "supported."};
-    }
+  // NOTE(twesterhout): For backward compatibility only
+  template <class Parameters>
+  Hypercube(Parameters const &parameters) {
+    throw InvalidInputError{
+        "netket::Hypercube(Parameters const&): JSON input is no longer "
+        "supported."};
+  }
 
 #if 0
   explicit Hypercube(int L, int ndim, bool pbc = true,

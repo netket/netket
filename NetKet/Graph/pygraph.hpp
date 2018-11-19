@@ -40,6 +40,9 @@ namespace netket {
       .def("Distances", &AbstractGraph::Distances);
 
 namespace detail {
+/// Given a Python iterable, returns its length if it is known or 0 otherwise.
+/// This can safely be used to preallocate storage on the C++ side as calls to
+/// `std::vector<T>::reserve(0)` are basically noops.
 inline std::size_t LengthHint(py::iterable xs) {
   auto iterator = xs.attr("__iter__")();
   if (py::hasattr(iterator, "__length_hint__")) {
@@ -50,7 +53,7 @@ inline std::size_t LengthHint(py::iterable xs) {
   return 0;
 }
 
-// Correctly orders site indices and constructs an edge.
+/// Correctly orders site indices and constructs an edge.
 // TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
 // itself is a questionable concept.
 inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
@@ -58,6 +61,11 @@ inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
   return (x < y) ? Edge{x, y} : Edge{y, x};
 }
 
+/// Converts a Python iterable to a list of edges. An exception is thrown if the
+/// input iterable contains duplicate edges.
+///
+/// \postcondition For each edge (i, j) we have i <= j.
+/// \postcondition The returned list contains no duplicates.
 inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
   using std::begin;
   using std::end;
@@ -80,6 +88,10 @@ inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
   return edges;
 }
 
+/// Converts a Python iterable to a `ColorMap`. An exception is thrown if the
+/// input iterable contains duplicate edges.
+///
+/// \postcondition For each edge (i, j) we have i <= j.
 inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterable xs) {
   AbstractGraph::ColorMap colors;
   colors.reserve(LengthHint(xs));
@@ -103,8 +115,6 @@ namespace {
 /// * `callback(edges, colour_map)` if the iterable contained elements of type
 /// `(int, int, int)`.
 /// * `callback(edges)` if the iterable contained elements of type `(int, int)`.
-///
-// TODO(twesterhout): We should probably split this into smaller functions...
 template <class Function>
 auto WithEdges(py::iterable xs, Function&& callback)
     -> decltype(std::forward<Function>(callback)(
@@ -178,23 +188,65 @@ void AddGraphModule(py::module& m) {
 
   py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
                                                                    "Hypercube")
-      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("ndim") = 1,
-           py::arg("pbc") = true)
+      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
+           py::arg("pbc") = true,
+           R"EOF(
+               Constructs a new ``Hypercube`` given its side length and dimension.
+
+               :param length:
+                   side length of the hypercube. It must be always be >=1,
+                   but if ``pbc==True`` then the minimal valid length is 3.
+               :param n_dim:
+                   dimension of the hypercube. It must be at least 1.
+               :param pbc:
+                   if ``True`` then the constructed hypercube will have periodic
+                   boundary conditions, otherwise open boundary conditions are
+                   emposed.
+           )EOF")
       .def(py::init([](int length, py::iterable xs) {
              return Hypercube{length, detail::Iterable2ColorMap(xs)};
            }),
-           py::arg("length"), py::arg("colors"))
-      .def_property_readonly("n_sites", &Hypercube::Nsites)
+           py::arg("length"), py::arg("colors"),
+           R"EOF(
+               Constructs a new `Hypercube` given its side length and edge coloring.
+
+               ``colors`` must be an iterable of ``Tuple[int, int, int]`` where each
+               element ``(i, j, c)`` represents an edge ``i <-> j`` of color ``c``.
+               Colors must be assigned to __all__ edges.
+
+               :param length:
+                   side length of the hypercube. It must be always be >=3 if the
+                   hypercube has periodic boundary conditions and >=1 otherwise.
+               :param colors:
+                   edge colors.
+           )EOF")
+      .def_property_readonly("n_sites", &Hypercube::Nsites,
+                             R"EOF(
+               Returns the number of vertices in the graph.
+           )EOF")
       .def("edges",
            [](Hypercube const& x) {
              using std::begin;
              using std::end;
              return py::make_iterator(begin(x.Edges()), end(x.Edges()));
            },
-           py::keep_alive<0, 1>())
-      .def("adjacency_list", &Hypercube::AdjacencyList)
-      .def_property_readonly("is_bipartite", &Hypercube::IsBipartite)
-      .def_property_readonly("is_connected", &Hypercube::IsConnected);
+           py::keep_alive<0, 1>(),
+           R"EOF(
+               Returns the graph edges.
+           )EOF")
+      .def("adjacency_list", &Hypercube::AdjacencyList,
+           R"EOF(
+               Returns the adjacency list of the graph where each node is
+               represented by an integer in ``[0, n_sites())``
+           )EOF")
+      .def_property_readonly("is_bipartite", &Hypercube::IsBipartite,
+                             R"EOF(
+               Whether the graph is bipartite.
+           )EOF")
+      .def_property_readonly("is_connected", &Hypercube::IsConnected,
+                             R"EOF(
+               Whether the graph is connected.
+           )EOF");
 
   py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
       subm, "CustomGraph")
