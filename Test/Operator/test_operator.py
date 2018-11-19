@@ -6,19 +6,19 @@ from mpi4py import MPI
 operators = {}
 
 # Ising 1D
-g_1 = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
-hi = nk.hilbert.Spin(s=0.5, graph=g_1)
-operators["Ising 1D"] = [nk.operator.Ising(h=1.321, hilbert=hi), hi]
+g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
+operators["Ising 1D"] = nk.operator.Ising(h=1.321, hilbert=hi)
 
 # Heisenberg 1D
-g_2 = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
-hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g_1)
-operators["Heisenberg 1D"] = [nk.operator.Heisenberg(hilbert=hi), hi]
+g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
+operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi)
 
 # Bose Hubbard
-g_3 = nk.graph.Hypercube(length=10, ndim=2, pbc=True)
-hi = nk.hilbert.Boson(n_max=3, n_bosons=23, graph=g_3)
-operators["Bose Hubbard"] = [nk.operator.BoseHubbard(U=4.0, hilbert=hi), hi]
+g = nk.graph.Hypercube(length=3, ndim=2, pbc=True)
+hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
+operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Graph Hamiltonian
 # TODO (jamesETsmith)
@@ -30,23 +30,26 @@ operators["Bose Hubbard"] = [nk.operator.BoseHubbard(U=4.0, hilbert=hi), hi]
 #sy = np.array([[0,1j],[-1j,0]])
 #
 # operators["Custom"] =
+rg = nk.utils.RandomEngine(seed=1234)
 
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
-        hi = ha[1]
+        hi = ha.get_hilbert()
         print(name, hi)
         assert (len(hi.local_states()) == hi.local_size())
 
         rstate = np.zeros(hi.size())
-        rg = nk.utils.RandomEngine(seed=1234)
+
         local_states = hi.local_states()
 
         for i in range(1000):
             hi.random_vals(rstate, rg)
-            conns = ha[0].get_conn(rstate)
+            conns = ha.get_conn(rstate)
 
             for connector, newconf in zip(conns[1], conns[2]):
-                hi.update_conf(rstate, connector, newconf)
-                for rs in rstate:
+                rstatet = np.array(rstate)
+                hi.update_conf(rstatet, connector, newconf)
+
+                for rs in rstatet:
                     assert(rs in local_states)
