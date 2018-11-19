@@ -128,13 +128,13 @@ class Hypercube : public AbstractGraph {
     symm_table_ = BuildSymmTable(length_, n_dim_, pbc_, n_sites_);
   }
 
-  int Nsites() const override { return n_sites_; }
+  int Nsites() const noexcept override { return n_sites_; }
 
-  int Size() const override { return n_sites_; }
+  int Size() const noexcept override { return n_sites_; }
 
-  int Length() const { return length_; }
+  int Length() const noexcept { return length_; }
 
-  int Ndim() const { return n_dim_; }
+  int Ndim() const noexcept { return n_dim_; }
 
   const std::vector<Edge> &Edges() const noexcept { return edges_; }
 
@@ -142,12 +142,14 @@ class Hypercube : public AbstractGraph {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const override { return !pbc_ || length_ % 2 == 0; }
+  bool IsBipartite() const noexcept override {
+    return !pbc_ || length_ % 2 == 0;
+  }
 
-  bool IsConnected() const override { return true; }
+  bool IsConnected() const noexcept override { return true; }
 
   // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const override { return colors_; }
+  const ColorMap &EdgeColors() const noexcept override { return colors_; }
 
   std::vector<std::vector<int>> SymmetryTable() const override {
     return symm_table_;

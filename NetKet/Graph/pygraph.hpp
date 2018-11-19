@@ -15,29 +15,14 @@
 #ifndef NETKET_PYGRAPH_HPP
 #define NETKET_PYGRAPH_HPP
 
-#include <mpi.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
 #include <vector>
 #include "netket.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
-
-#define ADDGRAPHMETHODS(name)                              \
-                                                           \
-  .def("Nsites", &AbstractGraph::Nsites)                   \
-      .def("AdjacencyList", &AbstractGraph::AdjacencyList) \
-      .def("SymmetryTable", &AbstractGraph::SymmetryTable) \
-      .def("EdgeColors", &AbstractGraph::EdgeColors)       \
-      .def("IsBipartite", &AbstractGraph::IsBipartite)     \
-      .def("IsConnected", &AbstractGraph::IsConnected)     \
-      .def("Distances", &AbstractGraph::Distances);
 
 namespace detail {
 /// Given a Python iterable, returns its length if it is known or 0 otherwise.
@@ -184,7 +169,38 @@ void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
   py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
-      ADDGRAPHMETHODS(AbstractGraph);
+      .def("n_sites", &AbstractGraph::Nsites,
+           R"EOF(
+              Returns the number of vertices in the graph.
+           )EOF")
+      .def("edges",
+           [](AbstractGraph const& x) {
+             using std::begin;
+             using std::end;
+             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
+           },
+           py::keep_alive<0, 1>(),
+           R"EOF(
+               Returns the graph edges.
+           )EOF")
+      .def("adjacency_list", &AbstractGraph::AdjacencyList,
+           R"EOF(
+               Returns the adjacency list of the graph where each node is
+               represented by an integer in ``[0, n_sites())``
+           )EOF")
+      .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
+                             R"EOF(
+               Whether the graph is bipartite.
+           )EOF")
+      .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
+                             R"EOF(
+               Whether the graph is connected.
+           )EOF")
+      .def("distances", &AbstractGraph::AllDistances,
+           R"EOF(
+               Returns distances between the nodes. The fact that some node
+               may not be reachable from another is represented by -1.
+           )EOF");
 
   py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
                                                                    "Hypercube")
@@ -219,49 +235,10 @@ void AddGraphModule(py::module& m) {
                    hypercube has periodic boundary conditions and >=1 otherwise.
                :param colors:
                    edge colors.
-           )EOF")
-      .def_property_readonly("n_sites", &Hypercube::Nsites,
-                             R"EOF(
-               Returns the number of vertices in the graph.
-           )EOF")
-      .def("edges",
-           [](Hypercube const& x) {
-             using std::begin;
-             using std::end;
-             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
-           },
-           py::keep_alive<0, 1>(),
-           R"EOF(
-               Returns the graph edges.
-           )EOF")
-      .def("adjacency_list", &Hypercube::AdjacencyList,
-           R"EOF(
-               Returns the adjacency list of the graph where each node is
-               represented by an integer in ``[0, n_sites())``
-           )EOF")
-      .def_property_readonly("is_bipartite", &Hypercube::IsBipartite,
-                             R"EOF(
-               Whether the graph is bipartite.
-           )EOF")
-      .def_property_readonly("is_connected", &Hypercube::IsConnected,
-                             R"EOF(
-               Whether the graph is connected.
            )EOF");
 
   py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
       subm, "CustomGraph")
-#if 0  // TODO(twesterhout): Remove completely
-      .def(
-          py::init<int, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, bool>(),
-          py::arg("size") = 0,
-          py::arg("adjacency_list") = std::vector<std::vector<int>>(),
-          py::arg("edges") = std::vector<std::vector<int>>(),
-          py::arg("automorphisms") = std::vector<std::vector<int>>(),
-          py::arg("edgecolors") = std::vector<std::vector<int>>(),
-          py::arg("is_bipartite") = false)
-#endif
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
@@ -271,7 +248,7 @@ void AddGraphModule(py::module& m) {
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
            py::arg("is_bipartite") = false,
-           R"mydelimiter(
+           R"EOF(
                Constructs a new graph given a list of edges.
 
                    * If `edges` has elements of type `Tuple[int, int]` it is treated
@@ -283,16 +260,7 @@ void AddGraphModule(py::module& m) {
                      element `(i, j, c)` represents an edge between sites `i` and `j`
                      colored into `c`. It is again assumed that `0 <= i <= j` and that
                      there are no duplicate elements in `edges`.
-          )mydelimiter")
-      .def("Nsites", &CustomGraph::Nsites)
-      .def("AdjacencyList", &CustomGraph::AdjacencyList)
-      .def("SymmetryTable", &CustomGraph::SymmetryTable)
-      .def("EdgeColors", &CustomGraph::EdgeColors)
-      .def("IsBipartite", &CustomGraph::IsBipartite)
-      .def("IsConnected", &CustomGraph::IsConnected)
-      .def("Distances", &CustomGraph::Distances)
-      .def("AllDistances", &CustomGraph::AllDistances)
-          ADDGRAPHMETHODS(CustomGraph);
+          )EOF");
 }
 
 }  // namespace netket
