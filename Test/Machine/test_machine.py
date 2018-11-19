@@ -21,10 +21,10 @@ machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
     hilbert=hi, alpha=2)
 
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 
 # Layers
@@ -64,10 +64,10 @@ machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
     hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
     hilbert=hi, n_hidden=10)
-# machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
-#
-# machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
-#     hilbert=hi)
+machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
+
+machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
+    hilbert=hi)
 machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
