@@ -20,12 +20,15 @@ matrix:
     osx_image: xcode9.4
     compiler: clang
     env:
-      - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
+      - SANITIZER=ON
+      - DEBUG=ON
 
   - os: osx
     osx_image: xcode8.3
     install:
       - brew upgrade python
+    env:
+      - DEBUG=ON
 
   - os: osx
     osx_image: xcode9.4
@@ -40,6 +43,7 @@ matrix:
       - PYTHON=3.6
       - COMPILER=g++-5
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -57,6 +61,7 @@ matrix:
       - PYTHON=3.6
       - COMPILER=g++-6
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -75,6 +80,7 @@ matrix:
       - COMPILER=clang++-5.0
       - CXXFLAGS=-std=c++1z
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
+      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
@@ -110,7 +116,7 @@ script:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
   # Get all required Python packages
-  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user	
+  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user
 
   # show OS/compiler version
   - uname -a
