@@ -117,23 +117,28 @@ matrix:
             - 'libmpich-dev'
 
 before_install:
-  # Force OS X to use the correct python version
   - |
+     # Force OS X to use the correct python version
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
        pyenv global $PYTHON
        TRAVIS_PYTHON_VERSION=$PYTHON
      fi
-  - [[ "$TRAVIS_OS_NAME" == "osx" ]] && brew upgrade openmpi
+
+  - |
+     [[ "$TRAVIS_OS_NAME" == "osx" ]] && brew upgrade openmpi
+
   - |
      if ! which pip; then
        python -m easy_install pip
      fi
-  # Check that `python` is actually the version we want
+
   - |
+     # Check that `python` is actually the version we want
      if [[ "$TRAVIS_PYTHON_VERSION" != $(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') ]]; then
        echo "Something went wrong during python installation"
      fi
+
   # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files
   - find $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())') -name 'Python.h'
 
@@ -150,125 +155,125 @@ install:
 script:
   - pytest
 
-# clang sanitizer
-#   - os: osx
-#     osx_image: xcode9.4
-#     compiler: clang
-#     env:
-#       - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
-# 
-#   - os: osx
-#     osx_image: xcode8.3
-#     install:
-#       - brew upgrade python
-# 
-#   - os: osx
-#     osx_image: xcode9.4
-# 
-#   - os: linux
-#     before_install:
-#       - pyenv global $(pyenv whence 2to3)  # activate all python versions
-#       - PY_CMD=python3
-#       - $PY_CMD -m pip install --user --upgrade pip wheel
-#     compiler: gcc
-#     env:
-#       - PYTHON=3.6
-#       - COMPILER=g++-5
-#       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-5"
-#     addons:
-#       apt:
-#         sources: ['ubuntu-toolchain-r-test']
-#         packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev',
-#                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
-#                    'python-tk']
-# 
-#   - os: linux
-#     before_install:
-#       - pyenv global $(pyenv whence 2to3)  # activate all python versions
-#       - PY_CMD=python3
-#       - $PY_CMD -m pip install --user --upgrade pip wheel
-#     compiler: gcc
-#     env:
-#       - PYTHON=3.6
-#       - COMPILER=g++-6
-#       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-6"
-#     addons:
-#       apt:
-#         sources: ['ubuntu-toolchain-r-test']
-#         packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev','liblapack3',
-#                    'libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
-#                    'python-tk']
-# 
-#   - os: linux
-#     before_install:
-#       - pyenv global $(pyenv whence 2to3)  # activate all python versions
-#       - PY_CMD=python3
-#       - $PY_CMD -m pip install --user --upgrade pip wheel
-#     compiler: clang
-#     env:
-#       - PYTHON=3.6
-#       - COMPILER=clang++-5.0
-#       - CXXFLAGS=-std=c++1z
-#       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
-#     addons:
-#       apt:
-#         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-#         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
-#                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
-#                    'python-tk']
-# 
-#   - os: linux
-#     compiler: clang
-#     env:
-#       - PYTHON=2.7
-#       - COMPILER=clang++-5.0
-#       - CXXFLAGS=-std=c++1z
-#       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DNETKET_Sanitizer=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
-#     addons:
-#       apt:
-#         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-#         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
-#                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
-#                    'python-tk']
-# 
-# 
-# cache:
-#   apt: true
-#   directories:
-#     - $HOME/Library/Caches/Homebrew
-# 
-# 
-# ################
-# # build script #
-# ################
-# 
-# script:
-#   # get CMake and Mpi (only for systems with brew - macOS)
-#   - |
-#      if [[ (-x $(which brew)) ]]; then
-#        brew install cmake
-#        brew install openmpi
-#        brew install --without-python boost
-#        brew install lapack
-#        brew upgrade cmake
-#        brew upgrade openmpi
-#        cmake --version
-#        export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
-#      fi
-#   # make sure CXX is correctly set
-#   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
-# 
-#   # Get all required Python packages
-#   # NOTE(twesterhout): This should happen through setup.py
-#   - pip install --user numpy scipy matplotlib networkx pytest
-# 
-#   # show OS/compiler version
-#   - uname -a
-#   - $CXX --version
-#   - python --version
-# 
-#   # compile and execute Python unit tests
-#   - echo "$CMAKE_OPTIONS"
-#   - NETKET_CMAKE_FLAGS=${CMAKE_OPTIONS} pip install -v . --user
-#   - pytest --verbose Test
-#   - cd ..
+    # clang sanitizer
+    #   - os: osx
+    #     osx_image: xcode9.4
+    #     compiler: clang
+    #     env:
+    #       - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
+    # 
+    #   - os: osx
+    #     osx_image: xcode8.3
+    #     install:
+    #       - brew upgrade python
+    # 
+    #   - os: osx
+    #     osx_image: xcode9.4
+    # 
+    #   - os: linux
+    #     before_install:
+    #       - pyenv global $(pyenv whence 2to3)  # activate all python versions
+    #       - PY_CMD=python3
+    #       - $PY_CMD -m pip install --user --upgrade pip wheel
+    #     compiler: gcc
+    #     env:
+    #       - PYTHON=3.6
+    #       - COMPILER=g++-5
+    #       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-5"
+    #     addons:
+    #       apt:
+    #         sources: ['ubuntu-toolchain-r-test']
+    #         packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev',
+    #                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+    #                    'python-tk']
+    # 
+    #   - os: linux
+    #     before_install:
+    #       - pyenv global $(pyenv whence 2to3)  # activate all python versions
+    #       - PY_CMD=python3
+    #       - $PY_CMD -m pip install --user --upgrade pip wheel
+    #     compiler: gcc
+    #     env:
+    #       - PYTHON=3.6
+    #       - COMPILER=g++-6
+    #       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=g++-6"
+    #     addons:
+    #       apt:
+    #         sources: ['ubuntu-toolchain-r-test']
+    #         packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev','liblapack3',
+    #                    'libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+    #                    'python-tk']
+    # 
+    #   - os: linux
+    #     before_install:
+    #       - pyenv global $(pyenv whence 2to3)  # activate all python versions
+    #       - PY_CMD=python3
+    #       - $PY_CMD -m pip install --user --upgrade pip wheel
+    #     compiler: clang
+    #     env:
+    #       - PYTHON=3.6
+    #       - COMPILER=clang++-5.0
+    #       - CXXFLAGS=-std=c++1z
+    #       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
+    #     addons:
+    #       apt:
+    #         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+    #         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
+    #                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+    #                    'python-tk']
+    # 
+    #   - os: linux
+    #     compiler: clang
+    #     env:
+    #       - PYTHON=2.7
+    #       - COMPILER=clang++-5.0
+    #       - CXXFLAGS=-std=c++1z
+    #       - CMAKE_OPTIONS="-DUSE_LAPACK=ON -DNETKET_Sanitizer=ON -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-std=c++1z"
+    #     addons:
+    #       apt:
+    #         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+    #         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
+    #                    'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+    #                    'python-tk']
+    # 
+    # 
+    # cache:
+    #   apt: true
+    #   directories:
+    #     - $HOME/Library/Caches/Homebrew
+    # 
+    # 
+    # ################
+    # # build script #
+    # ################
+    # 
+    # script:
+    #   # get CMake and Mpi (only for systems with brew - macOS)
+    #   - |
+    #      if [[ (-x $(which brew)) ]]; then
+    #        brew install cmake
+    #        brew install openmpi
+    #        brew install --without-python boost
+    #        brew install lapack
+    #        brew upgrade cmake
+    #        brew upgrade openmpi
+    #        cmake --version
+    #        export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
+    #      fi
+    #   # make sure CXX is correctly set
+    #   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+    # 
+    #   # Get all required Python packages
+    #   # NOTE(twesterhout): This should happen through setup.py
+    #   - pip install --user numpy scipy matplotlib networkx pytest
+    # 
+    #   # show OS/compiler version
+    #   - uname -a
+    #   - $CXX --version
+    #   - python --version
+    # 
+    #   # compile and execute Python unit tests
+    #   - echo "$CMAKE_OPTIONS"
+    #   - NETKET_CMAKE_FLAGS=${CMAKE_OPTIONS} pip install -v . --user
+    #   - pytest --verbose Test
+    #   - cd ..
