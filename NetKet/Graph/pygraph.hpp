@@ -151,8 +151,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
     return std::forward<Function>(callback)(detail::Iterable2Edges(xs));
   }
 }
-} // namespace
-
+}  // namespace
 
 // Work around the lack of C++11 support for defaulted arguments in lambdas.
 namespace {
@@ -174,9 +173,11 @@ struct CustomGraphInit {
 void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
-  py::class_<AbstractGraph>(subm, "Graph") ADDGRAPHMETHODS(AbstractGraph);
+  py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
+      ADDGRAPHMETHODS(AbstractGraph);
 
-  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube")
+  py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
+                                                                   "Hypercube")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("ndim") = 1,
            py::arg("pbc") = true)
       .def(py::init([](int const length, py::iterable xs) {
@@ -196,7 +197,8 @@ void AddGraphModule(py::module& m) {
       .def_property_readonly("is_bipartite", &Hypercube::IsBipartite)
       .def_property_readonly("is_connected", &Hypercube::IsConnected);
 
-  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph")
+  py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
+      subm, "CustomGraph")
 #if 0  // TODO(twesterhout): Remove completely
       .def(
           py::init<int, std::vector<std::vector<int>>,

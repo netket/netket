@@ -16,6 +16,7 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <memory>
 #include <vector>
 #include "Utils/random_utils.hpp"
 
@@ -77,7 +78,7 @@ class AbstractHilbert {
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
 
-  virtual const AbstractGraph &GetGraph() const = 0;
+  virtual std::shared_ptr<const AbstractGraph> GetGraph() const = 0;
 
   virtual ~AbstractHilbert() {}
 };

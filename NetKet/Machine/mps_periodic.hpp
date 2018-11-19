@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_MPS_PERIODIC_HPP
 #define NETKET_MPS_PERIODIC_HPP
@@ -33,7 +33,7 @@ class MPSPeriodic : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  const std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // Number of sites
   int N_;
@@ -71,11 +71,11 @@ class MPSPeriodic : public AbstractMachine<T> {
   using StateType = T;
   using LookupType = Lookup<T>;
 
-  explicit MPSPeriodic(const AbstractHilbert &hilbert, double bond_dim,
-                       int symperiod = -1)
+  explicit MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert,
+                       double bond_dim, int symperiod = -1)
       : hilbert_(hilbert),
-        N_(hilbert.Size()),
-        d_(hilbert.LocalSize()),
+        N_(hilbert->Size()),
+        d_(hilbert->LocalSize()),
         D_(bond_dim),
         symperiod_(symperiod) {
     if (symperiod_ == -1) {
@@ -83,13 +83,6 @@ class MPSPeriodic : public AbstractMachine<T> {
     }
 
     Init();
-  }
-
-  // TODO remove
-  // constructor as a machine
-  explicit MPSPeriodic(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), N_(hilbert.Size()), d_(hilbert.LocalSize()) {
-    from_json(pars);
   }
 
   inline MatrixType prod(const MatrixType &m1, const MatrixType &m2) const {
@@ -169,7 +162,7 @@ class MPSPeriodic : public AbstractMachine<T> {
                     << std::endl;
     }
     // Initialize map from Hilbert space states to MPS indices
-    auto localstates = hilbert_.LocalStates();
+    auto localstates = hilbert_->LocalStates();
     for (int i = 0; i < d_; i++) {
       confindex_[localstates[i]] = i;
     }
@@ -561,7 +554,9 @@ class MPSPeriodic : public AbstractMachine<T> {
     return der / trace(left_prods[N_ - 1]);
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   // Json functions
   void to_json(json &j) const override {
@@ -586,7 +581,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     if (FieldExists(pars, "Length")) {
       N_ = pars["Length"];
     }
-    if (N_ != hilbert_.Size()) {
+    if (N_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of spins is incompatible with given Hilbert space");
     }
@@ -594,7 +589,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     if (FieldExists(pars, "PhysDim")) {
       d_ = pars["PhysDim"];
     }
-    if (d_ != hilbert_.LocalSize()) {
+    if (d_ != hilbert_->LocalSize()) {
       throw InvalidInputError(
           "Number of spins is incompatible with given Hilbert space");
     }

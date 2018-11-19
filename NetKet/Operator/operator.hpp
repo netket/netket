@@ -12,25 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_SAMPLER_HPP
-#define NETKET_SAMPLER_HPP
+#ifndef NETKET_OPERATOR_HPP
+#define NETKET_OPERATOR_HPP
 
 #include <memory>
-#include <set>
-#include "Graph/graph.hpp"
-#include "Operator/operator.hpp"
+
+#include "Hilbert/abstract_hilbert.hpp"
+#include "Utils/json_utils.hpp"
 #include "Utils/memory_utils.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "abstract_sampler.hpp"
-#include "custom_sampler.hpp"
-#include "custom_sampler_pt.hpp"
-#include "exact_sampler.hpp"
-#include "metropolis_exchange.hpp"
-#include "metropolis_exchange_pt.hpp"
-#include "metropolis_hamiltonian.hpp"
-#include "metropolis_hamiltonian_pt.hpp"
-#include "metropolis_hop.hpp"
-#include "metropolis_local.hpp"
-#include "metropolis_local_pt.hpp"
+#include "abstract_operator.hpp"
+#include "bosonhubbard.hpp"
+#include "graph_hamiltonian.hpp"
+#include "heisenberg.hpp"
+#include "ising.hpp"
+#include "local_operator.hpp"
 
 #endif
