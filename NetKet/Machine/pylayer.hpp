@@ -65,6 +65,22 @@ void AddLayerModule(py::module &m) {
                                                                    "SumOutput")
         .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
   }
+  {
+    using LayerType = Activation<MachineType, Lncosh>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
+                                                                   "Lncosh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
+  {
+    using LayerType = Activation<MachineType, Tanh>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Tanh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
+  {
+    using LayerType = Activation<MachineType, Relu>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Relu")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
 }
 
 }  // namespace netket
