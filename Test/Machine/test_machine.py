@@ -15,59 +15,60 @@ g = nk.graph.Hypercube(length=4, ndim=1)
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-machines["RbmSpin 1d Hypercube spin"] = [nk.machine.RbmSpin(
-    hilbert=hi, alpha=1), hi]
+machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
+    hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = [nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2), hi]
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2)
 
-# machines["Jastrow 1d Hypercube spin"] = [nk.machine.Jastrow(hilbert=hi), hi, g]
-#
-# hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-# machines["Jastrow 1d Hypercube spin"] = [
-#     nk.machine.JastrowSymm(hilbert=hi), hi, g]
+machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+
+hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 
 # Layers
-act = nk.activation.Lncosh()
 layers = [
     nk.layer.FullyConnected(
         input_size=g.n_sites,
         output_size=40,
-        activation=act)
+        activation=nk.activation.Lncosh())
 ]
 
-# this would give a segmentation fault
-# BUG
-# layers = [
-#    nk.layer.FullyConnected(
-# input_size = g.n_sites,
-# output_size = 40,
-# activation = act)
-# ]
+# FFNN Machine
+machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
+
+layers = [
+    nk.layer.Convolutional(
+        graph=g,
+        input_channels=1,
+        output_channels=2,
+        distance=2,
+        activation=nk.activation.Tanh())
+]
 
 # FFNN Machine
-machines["FFFN 1d Hypercube spin"] = [nk.machine.FFNN(hi, layers), hi, g]
+# BUG
+# machines["FFFN 1d Hypercube spin Convolutional"] = nk.machine.FFNN(hi, layers)
 
-machines["MPS Diagonal 1d spin"] = [nk.machine.MPSPeriodicDiagonal(
-    hi, bond_dim=3), hi, g]
-machines["MPS 1d spin"] = [nk.machine.MPSPeriodic(hi, bond_dim=3), hi, g]
+machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
+    hi, bond_dim=3)
+machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
-machines["RbmSpin 1d Hypercube boson"] = [nk.machine.RbmSpin(
-    hilbert=hi, alpha=1), hi, g]
+machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
+    hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = [nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2), hi, g]
-machines["RbmMultiVal 1d Hypercube boson"] = [nk.machine.RbmMultiVal(
-    hilbert=hi, n_hidden=10), hi, g]
-# machines["Jastrow 1d Hypercube boson"] = [
-#     nk.machine.Jastrow(hilbert=hi), hi, g]
-#
-# machines["JastrowSymm 1d Hypercube boson"] = [nk.machine.JastrowSymm(
-#     hilbert=hi), hi, g]
-machines["MPS 1d boson"] = [nk.machine.MPSPeriodic(hi, bond_dim=4), hi, g]
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2)
+machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
+    hilbert=hi, n_hidden=10)
+machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
+
+machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
+    hilbert=hi)
+machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
 
@@ -78,9 +79,8 @@ def log_val_f(par, machine, v):
 
 
 def test_set_get_parameters():
-    for name, ma in machines.items():
+    for name, machine in machines.items():
         print("Machine test: %s" % name)
-        machine = ma[0]
         assert(machine.n_par() > 0)
         npar = machine.n_par()
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
@@ -95,14 +95,14 @@ import numdifftools as nd
 @pytest.mark.filterwarnings("ignore:`factorial` is deprecated:DeprecationWarning")
 @pytest.mark.filterwarnings("ignore:internal gelsd driver lwork query error:RuntimeWarning")
 def test_log_derivative():
-    for name, ma in machines.items():
+    for name, machine in machines.items():
         print("Machine test: %s" % name)
-        machine = ma[0]
+
         npar = machine.n_par()
         randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
 
         # random visibile state
-        hi = ma[1]
+        hi = machine.get_hilbert()
         assert(hi.size() > 0)
         rg = nk.utils.RandomEngine(seed=1234)
         v = np.zeros(hi.size())
@@ -126,14 +126,14 @@ def test_log_derivative():
 
 
 def test_log_val_diff():
-    for name, ma in machines.items():
+    for name, machine in machines.items():
         print("Machine test: %s" % name)
-        machine = ma[0]
+
         npar = machine.n_par()
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
         machine.set_parameters(randpars)
 
-        hi = ma[1]
+        hi = machine.get_hilbert()
 
         rg = nk.utils.RandomEngine(seed=1234)
 
@@ -185,8 +185,8 @@ def test_log_val_diff():
 
 
 def test_nvisible():
-    for name, ma in machines.items():
+    for name, machine in machines.items():
         print("Machine test: %s" % name)
-        hh = ma[1]
-        machine = ma[0]
-        assert(machine.n_visible() == hh.size())
+        hi = machine.get_hilbert()
+
+        assert(machine.n_visible() == hi.size())

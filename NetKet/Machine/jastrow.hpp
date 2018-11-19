@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_JASTROW_HPP
 #define NETKET_JASTROW_HPP
@@ -36,7 +36,7 @@ class Jastrow : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   int nv_;
@@ -56,22 +56,15 @@ class Jastrow : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
+  explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(hilbert), nv_(hilbert->Size()) {
     Init();
-  }
-
-  // TODO remove
-  // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
-    from_json(pars);
   }
 
   void Init() {
     W_.resize(nv_, nv_);
 
-    npar_ = nv_ * (nv_ - 1) / 2;
+    npar_ = (nv_ * (nv_ - 1)) / 2;
 
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
@@ -113,7 +106,7 @@ class Jastrow : public AbstractMachine<T> {
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
-        W_(j, i) = W_(i, j);  // create the lover triangle
+        W_(j, i) = W_(i, j);  // create the lower triangle
         W_(i, i) = T(0);
         k++;
       }
@@ -165,13 +158,13 @@ class Jastrow : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -188,13 +181,13 @@ class Jastrow : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -218,7 +211,9 @@ class Jastrow : public AbstractMachine<T> {
     return der;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "Jastrow";
@@ -235,7 +230,7 @@ class Jastrow : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

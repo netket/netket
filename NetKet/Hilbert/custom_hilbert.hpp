@@ -32,7 +32,7 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
   std::vector<double> local_;
 
   int nstates_;
@@ -40,28 +40,10 @@ class CustomHilbert : public AbstractHilbert {
   int size_;
 
  public:
-  explicit CustomHilbert(const AbstractGraph &graph,
+  explicit CustomHilbert(std::shared_ptr<const AbstractGraph> graph,
                          const std::vector<double> &localstates)
       : graph_(graph), local_(localstates) {
-    size_ = graph.Size();
-    nstates_ = local_.size();
-  }
-
-  // TODO remove
-  template <class Ptype>
-  explicit CustomHilbert(const AbstractGraph &graph, const Ptype &pars)
-      : graph_(graph) {
-    CheckFieldExists(pars, "QuantumNumbers", "Hilbert");
-    // if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
-    //   throw InvalidInputError("QuantumNumbers is not an array");
-    // }
-
-    std::vector<double> qn =
-        FieldVal<std::vector<double>>(pars, "QuantumNumbers");
-
-    local_ = qn;
-
-    size_ = graph.Size();
+    size_ = graph->Size();
     nstates_ = local_.size();
   }
 
@@ -97,7 +79,9 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  std::shared_ptr<const AbstractGraph> GetGraph() const override {
+    return graph_;
+  }
 };  // namespace netket
 
 }  // namespace netket

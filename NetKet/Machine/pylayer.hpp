@@ -42,7 +42,8 @@ void AddLayerModule(py::module &m) {
     using LayerType = FullyConnected<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
         subm, "FullyConnected")
-        .def(py::init<AbstractActivation &, int, int, bool>(),
+        .def(py::init<std::shared_ptr<const AbstractActivation>, int, int,
+                      bool>(),
              py::arg("activation"), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
             ADDLAYERMETHODS(LayerType);
@@ -51,8 +52,9 @@ void AddLayerModule(py::module &m) {
     using LayerType = Convolutional<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
         subm, "Convolutional")
-        .def(py::init<const AbstractGraph &, AbstractActivation &, int, int,
-                      int, bool>(),
+        .def(py::init<std::shared_ptr<const AbstractGraph>,
+                      std::shared_ptr<const AbstractActivation>, int, int, int,
+                      bool>(),
              py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
              py::arg("output_channels"), py::arg("distance") = 1,
              py::arg("use_bias") = false) ADDLAYERMETHODS(LayerType);

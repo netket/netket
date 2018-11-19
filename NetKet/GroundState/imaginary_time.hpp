@@ -5,7 +5,7 @@
 
 #include "Dynamics/TimeStepper/abstract_time_stepper.hpp"
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
-#include "Operator/observable.hpp"
+#include "Operator/operator.hpp"
 #include "Output/json_output_writer.hpp"
 #include "Stats/stats.hpp"
 
@@ -58,6 +58,7 @@ class ImaginaryTimeDriver {
       ComputeObservables(initial_state);
       auto obs_data = json(obsmanager_);
       output_.WriteLog(step, obs_data, t);
+
       output_.WriteState(step, initial_state);
 
       step++;

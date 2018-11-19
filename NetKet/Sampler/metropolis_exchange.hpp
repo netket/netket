@@ -27,9 +27,9 @@ namespace netket {
 // Metropolis sampling generating local exchanges
 template <class WfType>
 class MetropolisExchange : public AbstractSampler<WfType> {
-  WfType &psi_;
+  std::shared_ptr<WfType> psi_;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   const int nv_;
@@ -52,15 +52,9 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   typename WfType::LookupType lt_;
 
  public:
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
-  }
-
-  // TODO remove
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
+  MetropolisExchange(const AbstractGraph &graph, std::shared_ptr<WfType> psi,
+                     int dmax = 1)
+      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
     Init(graph, dmax);
   }
 
@@ -118,11 +112,11 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, rgen_);
+        hilbert_->RandomVals(v_, rgen_);
       }
     }
 
-    psi_.InitLookup(v_, lt_);
+    psi_->InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -149,12 +143,12 @@ class MetropolisExchange : public AbstractSampler<WfType> {
         newconf[1] = v_(si);
 
         double ratio =
-            std::norm(std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_)));
+            std::norm(std::exp(psi_->LogValDiff(v_, tochange, newconf, lt_)));
 
         if (ratio > distu(rgen_)) {
           accept_[0] += 1;
-          psi_.UpdateLookup(v_, tochange, newconf, lt_);
-          hilbert_.UpdateConf(v_, tochange, newconf);
+          psi_->UpdateLookup(v_, tochange, newconf, lt_);
+          hilbert_->UpdateConf(v_, tochange, newconf);
         }
       }
       moves_[0] += 1;
@@ -165,7 +159,11 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
