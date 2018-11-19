@@ -93,6 +93,7 @@ class Lncosh : public AbstractActivation {
   using VectorType = typename AbstractActivation::VectorType;
 
  public:
+  std::string name = "Lncosh";
   // A = Lncosh(Z)
   inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
     for (int i = 0; i < A.size(); ++i) {
@@ -116,6 +117,7 @@ class Tanh : public AbstractActivation {
   using VectorType = typename AbstractActivation::VectorType;
 
  public:
+  std::string name = "Tanh";
   // A = Tanh(Z)
   inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
     A.array() = Z.array().tanh();
@@ -129,6 +131,37 @@ class Tanh : public AbstractActivation {
                             VectorConstRefType F,
                             VectorRefType G) const override {
     G.array() = F.array() * (1 - A.array() * A.array());
+  }
+};
+
+class Relu : public AbstractActivation {
+ private:
+  using VectorType = typename AbstractActivation::VectorType;
+
+  double theta1_ = std::atan(1) * 3;
+  double theta2_ = -std::atan(1);
+
+ public:
+  std::string name = "Relu";
+  // A = Z
+  inline void operator()(VectorConstRefType Z, VectorRefType A) const override {
+    for (int i = 0; i < Z.size(); ++i) {
+      A(i) =
+          (std::arg(Z(i)) < theta1_) && (std::arg(Z(i)) > theta2_) ? Z(i) : 0.0;
+    }
+  }
+
+  // Apply the (derivative of activation function) matrix J to a vector F
+  // A = Z
+  // J = dA / dZ = I
+  // G = J * F = F
+  inline void ApplyJacobian(VectorConstRefType Z, VectorConstRefType /*A*/,
+                            VectorConstRefType F,
+                            VectorRefType G) const override {
+    for (int i = 0; i < Z.size(); ++i) {
+      G(i) =
+          (std::arg(Z(i)) < theta1_) && (std::arg(Z(i)) > theta2_) ? F(i) : 0.0;
+    }
   }
 };
 
