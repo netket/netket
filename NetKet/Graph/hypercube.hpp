@@ -15,7 +15,6 @@
 #ifndef NETKET_HYPERCUBE_HPP
 #define NETKET_HYPERCUBE_HPP
 
-#include <mpi.h>
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -28,50 +27,38 @@
 namespace netket {
 
 class Hypercube : public AbstractGraph {
-  int L_;                    //< Side length of the hypercube
-  int ndim_;                 //< Number of dimensions
-  int nsites_;               //< Total number of nodes in the graph
-  bool pbc_;                 //< Whether to use periodic boundary conditions
-  std::vector<Edge> edges_;  //< List of graph edges
+  int length_;               ///< Side length of the hypercube
+  int n_dim_;                ///< Number of dimensions
+  int n_sites_;              ///< Total number of nodes in the graph
+  bool pbc_;                 ///< Whether to use periodic boundary conditions
+  std::vector<Edge> edges_;  ///< List of graph edges
   std::vector<std::vector<int>>
-      symm_table_;   //< Vector of permutations (translations actually) under
-                     //  which the graph is invariant
-  ColorMap colors_;  //< Edge to color mapping
-
-#if 1  // TODO(twesterhout): This is to be removed
-  // contains sites coordinates
-  std::vector<std::vector<int>> sites_;
-
-  // maps coordinates to site number
-  std::map<std::vector<int>, int> coord2sites_;
-
-  // adjacency list
-  std::vector<std::vector<int>> adjlist_;
-
-  // Edge colors
-  ColorMap eclist_;
-#endif
+      symm_table_;   ///< Vector of permutations (translations actually) under
+                     ///  which the graph is invariant
+  ColorMap colors_;  ///< Edge to color mapping
 
  public:
-  Hypercube(int const L, int const ndim = 1, bool pbc = true)
-      : L_{L}, ndim_{ndim}, pbc_{pbc}, edges_{}, symm_table_{} {
-    if (L < 1) {
+  Hypercube(int const length, int const n_dim = 1, bool pbc = true)
+      : length_{length}, n_dim_{n_dim}, pbc_{pbc}, edges_{}, symm_table_{} {
+    if (length < 1) {
       throw InvalidInputError{
           "Side length of the hypercube must be at least 1"};
-    } else if (L <= 2 && pbc) {
+    } else if (length <= 2 && pbc) {
       throw InvalidInputError{
-          "L<=2 hypercubes cannot have periodic boundary conditions"};
+          "length<=2 hypercubes cannot have periodic boundary conditions"};
     }
-    if (ndim < 1) {
+    if (n_dim < 1) {
       throw InvalidInputError{"Hypercube dimension must be at least 1"};
     }
 
-    std::tie(nsites_, edges_) = BuildEdges(L, ndim, pbc);
-    symm_table_ = BuildSymmTable(L, ndim, pbc, nsites_);
+    std::tie(n_sites_, edges_) = BuildEdges(length, n_dim, pbc);
+    symm_table_ = BuildSymmTable(length, n_dim, pbc, n_sites_);
 
-    colors_.reserve(nsites_);
+    colors_.reserve(n_sites_);
     for (auto const &edge : edges_) {
-      colors_.emplace(edge, 0);
+      auto success = colors_.emplace(edge, 0).second;
+      static_cast<void>(success);  // Make everyone happy in the NDEBUG case
+      assert(success && "There should be no duplicate edges");
     }
   }
 
@@ -79,9 +66,9 @@ class Hypercube : public AbstractGraph {
   // becomes too complicated for my taste :)
   // Also, the performance of this function will probably be pretty bad, by I
   // don't think it matters much.
-  Hypercube(int const L, ColorMap colors)
-      : L_{L},
-        ndim_{},
+  Hypercube(int const length, ColorMap colors)
+      : length_{length},
+        n_dim_{},
         pbc_{},
         edges_{},
         symm_table_{},
@@ -98,24 +85,24 @@ class Hypercube : public AbstractGraph {
         begin(colors_), end(colors_), std::back_inserter(edges_),
         [](std::pair<AbstractGraph::Edge, int> const &x) { return x.first; });
     // Verifies the edges and computes the number of sites
-    nsites_ = detail::CheckEdges(edges_);
+    n_sites_ = detail::CheckEdges(edges_);
 
-    // We know that L_^ndim_ == nsites_, so we can solve it for ndim_
-    auto count = L_;
-    ndim_ = 1;
-    while (count < nsites_) {
-      ++ndim_;
-      count *= L_;
+    // We know that length_^ndim_ == nsites_, so we can solve it for ndim_
+    auto count = length_;
+    n_dim_ = 1;
+    while (count < n_sites_) {
+      ++n_dim_;
+      count *= length_;
     }
-    if (count != nsites_) {
-      throw InvalidInputError{"Specified L and color map are incompatible"};
+    if (count != n_sites_) {
+      throw InvalidInputError{"Specified length and color map are incompatible"};
     }
 
     // For periodic boundary conditions, there are exactly ndim_ * nsites_ edges
-    // and for open bounrary conditions -- ndim_ * (nsites_ - nsites_/L).
-    if (static_cast<std::size_t>(ndim_ * nsites_) == edges_.size()) {
+    // and for open bounrary conditions -- ndim_ * (nsites_ - nsites_/length).
+    if (static_cast<std::size_t>(n_dim_ * n_sites_) == edges_.size()) {
       pbc_ = true;
-    } else if (static_cast<std::size_t>(ndim_ * (nsites_ - nsites_ / L)) ==
+    } else if (static_cast<std::size_t>(n_dim_ * (n_sites_ - n_sites_ / length)) ==
                edges_.size()) {
       pbc_ = false;
     } else {
@@ -124,7 +111,7 @@ class Hypercube : public AbstractGraph {
 
     // Finally, we can check whether the edges we extracted from the color map
     // make any sense.
-    auto const correct_edges = std::get<1>(BuildEdges(L_, ndim_, pbc_));
+    auto const correct_edges = std::get<1>(BuildEdges(length_, n_dim_, pbc_));
     if (edges_.size() != correct_edges.size()) {
       throw InvalidInputError{"Invalid color map"};
     }
@@ -136,16 +123,16 @@ class Hypercube : public AbstractGraph {
       }
     }
 
-    symm_table_ = BuildSymmTable(L_, ndim_, pbc_, nsites_);
+    symm_table_ = BuildSymmTable(length_, n_dim_, pbc_, n_sites_);
   }
 
-  int Nsites() const override { return nsites_; }
+  int Nsites() const override { return n_sites_; }
 
-  int Size() const override { return nsites_; }
+  int Size() const override { return n_sites_; }
 
-  int Length() const { return L_; }
+  int Length() const { return length_; }
 
-  int Ndim() const { return ndim_; }
+  int Ndim() const { return n_dim_; }
 
   const std::vector<Edge> &Edges() const noexcept { return edges_; }
 
@@ -153,7 +140,7 @@ class Hypercube : public AbstractGraph {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const override { return !pbc_ || L_ % 2 == 0; }
+  bool IsBipartite() const override { return !pbc_ || length_ % 2 == 0; }
 
   bool IsConnected() const override { return true; }
 
@@ -165,30 +152,30 @@ class Hypercube : public AbstractGraph {
   }
 
  private:
-  // Given the L, ndim, and pbc, returns (nsites, edges).
-  static std::tuple<int, std::vector<Edge>> BuildEdges(int const L,
+  // Given the length, ndim, and pbc, returns (nsites, edges).
+  static std::tuple<int, std::vector<Edge>> BuildEdges(int const length,
                                                        int const ndim,
                                                        bool pbc) {
-    assert(L >= (1 + static_cast<int>(pbc)) && ndim >= 1 &&
+    assert(length >= (1 + static_cast<int>(pbc)) && ndim >= 1 &&
            "Bug! Must hold by construction");
     // NOTE: a double has 53 bits matissa, while an int only 32, so the
     // following should work fine if we assume that nsites_ fits into an int
-    auto const _n_sites = std::pow(L, ndim);
+    auto const _n_sites = std::pow(length, ndim);
     assert(_n_sites == std::trunc(_n_sites) && "Bug! Inexact arithmetic");
     auto const n_sites = static_cast<int>(_n_sites);
 
     std::vector<Edge> edges;
     edges.reserve(static_cast<std::size_t>(n_sites));
     std::vector<int> coord(ndim, 0);
-    auto const max_pos = L - 1;
+    auto const max_pos = length - 1;
     auto site = 0;
     do {
-      for (auto i = 1, dim = 0; dim < ndim; ++dim, i *= L) {
+      for (auto i = 1, dim = 0; dim < ndim; ++dim, i *= length) {
         // NOTE(twesterhout): Hoping that any normal optimising compiler will
         // move the if (pbc_) dispath to outside the while loop...
         if (pbc) {
           if (coord[dim] == max_pos) {
-            edges.push_back({site - i * (L - 1), site});
+            edges.push_back({site - i * (length - 1), site});
           } else {
             edges.push_back({site, site + i});
           }
@@ -204,18 +191,18 @@ class Hypercube : public AbstractGraph {
     return std::tuple<int, std::vector<Edge>>{n_sites, std::move(edges)};
   }
 
-  static int Coord2Site(std::vector<int> const &coord, int const L) noexcept {
-    assert(L >= 0);
+  static int Coord2Site(std::vector<int> const &coord, int const length) noexcept {
+    assert(length >= 0);
     auto site = 0;
     auto scale = 1;
     for (auto const i : coord) {
       site += scale * i;
-      scale *= L;
+      scale *= length;
     }
     return site;
   }
 
-  static std::vector<std::vector<int>> BuildSymmTable(int const L,
+  static std::vector<std::vector<int>> BuildSymmTable(int const length,
                                                       int const n_dim, bool pbc,
                                                       int const n_sites) {
     if (!pbc) {
@@ -237,7 +224,7 @@ class Hypercube : public AbstractGraph {
       sites.push_back(coord);
       coord2sites[coord] = ns;
       ns++;
-    } while (netket::next_variation(coord.begin(), coord.end(), L - 1));
+    } while (netket::next_variation(coord.begin(), coord.end(), length - 1));
 
     std::vector<std::vector<int>> permtable;
     permtable.reserve(n_sites);
@@ -248,7 +235,7 @@ class Hypercube : public AbstractGraph {
     for (int i = 0; i < n_sites; i++) {
       for (int p = 0; p < n_sites; p++) {
         for (int d = 0; d < n_dim; d++) {
-          ts[d] = (sites[i][d] + sites[p][d]) % L;
+          ts[d] = (sites[i][d] + sites[p][d]) % length;
         }
         transl_sites[p] = coord2sites.at(ts);
       }
@@ -257,13 +244,14 @@ class Hypercube : public AbstractGraph {
     return permtable;
   }
 
-  void CheckEdgeColors() {
-    // TODO write a meaningful check of edge colors
-  }
-
  public:
-  // Everything below this point is to be removed and is left here for now for
-  // json stuff to compile.
+    template <class Parameters>
+    Hypercube(Parameters const& parameters)
+    {
+      throw InvalidInputError{
+          "netket::Hypercube(Parameters const&): JSON input is no longer "
+          "supported."};
+    }
 
 #if 0
   explicit Hypercube(int L, int ndim, bool pbc = true,
@@ -272,7 +260,6 @@ class Hypercube : public AbstractGraph {
       : L_(L), ndim_(ndim), pbc_(pbc) {
     Init(edgecolors);
   }
-#endif
 
   void Init(const std::vector<std::vector<int>> &edgecolors) {
     assert(L_ > 0);
@@ -292,7 +279,7 @@ class Hypercube : public AbstractGraph {
 
     InfoMessage() << "Hypercube created " << std::endl;
     InfoMessage() << "Dimension = " << ndim_ << std::endl;
-    InfoMessage() << "L = " << L_ << std::endl;
+    InfoMessage() << "L = " << length_ << std::endl;
     InfoMessage() << "Pbc = " << pbc_ << std::endl;
     if (!has_edge_colors)
       InfoMessage() << "No colors specified, edge colors set to 0 "
@@ -302,12 +289,12 @@ class Hypercube : public AbstractGraph {
   // TODO REMOVE
   template <class Ptype>
   explicit Hypercube(const Ptype &pars)
-      : L_(FieldVal<int>(pars, "L", "Graph")),
+      : length_(FieldVal<int>(pars, "length", "Graph")),
         ndim_(FieldVal<int>(pars, "Dimension", "Graph")),
         pbc_(FieldOrDefaultVal(pars, "Pbc", true)) {
-    if (pbc_ && L_ <= 2) {
+    if (pbc_ && length_ <= 2) {
       throw InvalidInputError(
-          "L<=2 hypercubes cannot have periodic boundary conditions");
+          "length<=2 hypercubes cannot have periodic boundary conditions");
     }
     InitOld(pars);
   }
@@ -315,9 +302,9 @@ class Hypercube : public AbstractGraph {
   // TODO REMOVE
   template <class Ptype>
   void InitOld(const Ptype &pars) {
-    assert(L_ > 0);
+    assert(length_ > 0);
     assert(ndim_ >= 1);
-    GenerateLatticePoints();
+    GeneratelengthatticePoints();
     GenerateAdjacencyList();
 
     // If edge colors are specificied read them in, otherwise set them all to
@@ -435,6 +422,7 @@ class Hypercube : public AbstractGraph {
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const override { return colors_; }
+#endif
 #endif
 };
 

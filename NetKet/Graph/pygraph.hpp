@@ -180,9 +180,8 @@ void AddGraphModule(py::module& m) {
                                                                    "Hypercube")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("ndim") = 1,
            py::arg("pbc") = true)
-      .def(py::init([](int const length, py::iterable xs) {
-             return make_unique<Hypercube>(length,
-                                           detail::Iterable2ColorMap(xs));
+      .def(py::init([](int length, py::iterable xs) {
+             return Hypercube{length, detail::Iterable2ColorMap(xs)};
            }),
            py::arg("length"), py::arg("colors"))
       .def_property_readonly("n_sites", &Hypercube::Nsites)
