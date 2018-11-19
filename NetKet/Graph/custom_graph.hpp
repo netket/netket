@@ -310,20 +310,22 @@ class CustomGraph : public AbstractGraph {
     return automorphisms_;
   }
 
-  int Nsites() const override { return nsites_; }
+  int Nsites() const noexcept override { return nsites_; }
 
-  int Size() const override { return nsites_; }
+  int Size() const noexcept override { return nsites_; }
+
+  std::vector<Edge> const &Edges() const noexcept override { return edges_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return adjlist_;
   }
 
-  bool IsBipartite() const override { return isbipartite_; }
+  bool IsBipartite() const noexcept override { return isbipartite_; }
 
-  bool IsConnected() const override { return is_connected_; }
+  bool IsConnected() const noexcept override { return is_connected_; }
 
   // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const override { return eclist_; }
+  const ColorMap &EdgeColors() const noexcept override { return eclist_; }
 
  private:
   bool ComputeConnected() const {
