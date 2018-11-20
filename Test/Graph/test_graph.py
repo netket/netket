@@ -1,7 +1,7 @@
 import netket as nk
 import networkx as nx
 import numpy as np
-from mpi4py import MPI
+# from mpi4py import MPI
 nxg = nx.star_graph(10)
 graphs = [
     nk.graph.Hypercube(length=10, ndim=1, pbc=True),
