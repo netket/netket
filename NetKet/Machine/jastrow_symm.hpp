@@ -75,6 +75,11 @@ class JastrowSymm : public AbstractMachine<T> {
   }
 
   void Init(std::shared_ptr<const AbstractGraph> graph) {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
+
     permtable_ = graph->SymmetryTable();
     permsize_ = permtable_.size();
 
@@ -83,6 +88,7 @@ class JastrowSymm : public AbstractMachine<T> {
     }
 
     W_.resize(nv_, nv_);
+    W_.setZero();
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
 
