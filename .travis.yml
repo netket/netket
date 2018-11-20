@@ -146,7 +146,7 @@ install:
   - python -m pip install -v .
 
 script:
-  - python -m pytest
+  - python -m pytest --verbose
 
     # clang sanitizer
     #   - os: osx
