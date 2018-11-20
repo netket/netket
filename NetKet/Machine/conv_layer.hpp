@@ -214,12 +214,12 @@ class Convolutional : public AbstractLayer<T> {
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {
     lt.resize(0);
-    Forward(v, lt, output);
+    Forward(v, output);
   }
 
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType &theta,
+                    const VectorType &new_input, LookupType & /*theta*/,
                     const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     // At the moment the light cone structure of the convolution is not
@@ -229,7 +229,7 @@ class Convolutional : public AbstractLayer<T> {
     if (num_of_changes == in_size_) {
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(new_input, theta, new_output);
+      Forward(new_input, new_output);
     } else if (num_of_changes > 0) {
       output_changes.resize(out_size_);
       new_output = output;
@@ -257,9 +257,18 @@ class Convolutional : public AbstractLayer<T> {
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
-               VectorType &output) override {
-    LinearTransformation(prev_layer_output, output);
+  void Forward(const VectorType &input, VectorType &output) override {
+    Convolve(input, output);
+
+    if (usebias_) {
+      int k = 0;
+      for (int out = 0; out < out_channels_; ++out) {
+        for (int i = 0; i < nv_; ++i) {
+          output(k) += bias_(out);
+          ++k;
+        }
+      }
+    };
   }
 
   // performs the convolution of the kernel onto the image and writes into z
@@ -276,22 +285,6 @@ class Convolutional : public AbstractLayer<T> {
     }
     Eigen::Map<MatrixType> output_image(z.data(), nv_, out_channels_);
     output_image.noalias() = lowered_image_.transpose() * kernels_;
-  }
-
-  // Performs the linear transformation for the layer.
-  inline void LinearTransformation(const VectorType &input,
-                                   VectorType &output) {
-    Convolve(input, output);
-
-    if (usebias_) {
-      int k = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int i = 0; i < nv_; ++i) {
-          output(k) += bias_(out);
-          ++k;
-        }
-      }
-    }
   }
 
   inline void UpdateOutput(const VectorType &v,

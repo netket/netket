@@ -87,19 +87,19 @@ class SumOutput : public AbstractLayer<T> {
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {
     lt.resize(0);
-    Forward(v, lt, output);
+    Forward(v, output);
   }
 
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType &theta,
+                    const VectorType &new_input, LookupType & /*theta*/,
                     const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes == in_size_) {
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(new_input, theta, new_output);
+      Forward(new_input, new_output);
     } else if (num_of_changes > 0) {
       output_changes.resize(out_size_);
       new_output = output;
@@ -126,13 +126,7 @@ class SumOutput : public AbstractLayer<T> {
     }
   }
 
-  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
-               VectorType &output) override {
-    LinearTransformation(prev_layer_output, output);
-  }
-
-  inline void LinearTransformation(const VectorType &input,
-                                   VectorType &output) {
+  void Forward(const VectorType &input, VectorType &output) override {
     output(0) = input.sum();
   }
 
