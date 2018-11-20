@@ -141,11 +141,12 @@ install:
   - pip --version
   - python -m easy_install -U setuptools
   - python -m pip install numpy networkx pytest numdifftools
+  - python -m pytest --version
   - NETKET_CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=$CXX -DCMAKE_CXX_FLAGS=$CXXFLAGS"
   - python -m pip install -v .
 
 script:
-  - pytest
+  - python -m pytest
 
     # clang sanitizer
     #   - os: osx
