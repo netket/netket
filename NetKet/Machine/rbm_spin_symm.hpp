@@ -15,8 +15,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -34,9 +34,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   // number of visible units
   int nv_;
@@ -86,11 +86,11 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int alpha = 0,
-                       bool usea = true, bool useb = true)
+  explicit RbmSpinSymm(std::shared_ptr<const AbstractHilbert> hilbert,
+                       int alpha = 0, bool usea = true, bool useb = true)
       : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nv_(hilbert.Size()),
+        graph_(hilbert->GetGraph()),
+        nv_(hilbert->Size()),
         alpha_(alpha),
         usea_(usea),
         useb_(useb) {
@@ -99,16 +99,8 @@ class RbmSpinSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  // Json constructor
-  // TODO remove
-  explicit RbmSpinSymm(const AbstractGraph &graph,
-                       const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    from_json(pars);
-  }
-
-  void Init(const AbstractGraph &graph) {
-    permtable_ = graph.SymmetryTable();
+  void Init(std::shared_ptr<const AbstractGraph> graph) {
+    permtable_ = graph->SymmetryTable();
     permsize_ = permtable_.size();
     nh_ = (alpha_ * permsize_);
 
@@ -409,7 +401,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmSpinSymm";
@@ -431,7 +425,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

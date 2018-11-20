@@ -16,7 +16,7 @@
 #define NETKET_ABSTRACTLAYER_HH
 
 #include <Eigen/Dense>
-#include <Lookup/lookup.hpp>
+#include <Utils/lookup.hpp>
 #include <complex>
 #include <fstream>
 #include <random>
@@ -36,6 +36,11 @@ class AbstractLayer {
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
 
+  /**
+  Member function returning the name of the layer.
+  @return Name of Layer.
+  */
+  virtual std::string Name() const = 0;
   /**
   Member function returning the number of inputs a layer takes.
   @return Number of Inputs into the Layer.

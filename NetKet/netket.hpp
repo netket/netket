@@ -17,12 +17,10 @@
 
 #include "Graph/graph.hpp"
 #include "GroundState/ground_state.hpp"
-#include "Operator/hamiltonian.hpp"
 #include "Headers/welcome.hpp"
 #include "Hilbert/hilbert.hpp"
-#include "Lookup/lookup.hpp"
 #include "Machine/machine.hpp"
-#include "Operator/observable.hpp"
+#include "Operator/operator.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"

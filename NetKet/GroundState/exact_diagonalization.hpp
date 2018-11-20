@@ -23,7 +23,7 @@
 #include <ietl/randomgenerator.h>
 
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
-#include "Operator/hamiltonian.hpp"
+#include "Operator/operator.hpp"
 
 namespace netket {
 
@@ -102,7 +102,7 @@ eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
   return results;
 }
 
-eddetail::result_t full_ed(const Hamiltonian& hamiltonian, int first_n = 1,
+eddetail::result_t full_ed(const AbstractOperator& hamiltonian, int first_n = 1,
                            bool get_groundstate = false) {
   using eigen_solver_t =
       Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<std::complex<double>>>;

@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 
 #ifndef NETKET_JAS_SYMM_HPP
@@ -35,8 +35,8 @@ class JastrowSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
-  const AbstractGraph &graph_;
+  const std::shared_ptr<const AbstractHilbert> hilbert_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   std::vector<std::vector<int>> permtable_;
   int permsize_;
@@ -67,23 +67,20 @@ class JastrowSymm : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit JastrowSymm(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
+  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(hilbert), graph_(hilbert->GetGraph()), nv_(hilbert->Size()) {
     Init(graph_);
 
     SetBareParameters();
   }
 
-  // TODO remove
-  // Json constructor
-  explicit JastrowSymm(const AbstractGraph &graph,
-                       const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    from_json(pars);
-  }
+  void Init(std::shared_ptr<const AbstractGraph> graph) {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
 
-  void Init(const AbstractGraph &graph) {
-    permtable_ = graph.SymmetryTable();
+    permtable_ = graph->SymmetryTable();
     permsize_ = permtable_.size();
 
     for (int i = 0; i < permsize_; i++) {
@@ -91,10 +88,11 @@ class JastrowSymm : public AbstractMachine<T> {
     }
 
     W_.resize(nv_, nv_);
+    W_.setZero();
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
 
-    nbarepar_ = nv_ * (nv_ - 1) / 2;
+    nbarepar_ = (nv_ * (nv_ - 1)) / 2;
 
     // Constructing the matrix that maps the bare derivatives to the symmetric
     // ones
@@ -279,13 +277,13 @@ class JastrowSymm : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -303,13 +301,13 @@ class JastrowSymm : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -318,7 +316,9 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "JastrowSymm";
@@ -335,7 +335,7 @@ class JastrowSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

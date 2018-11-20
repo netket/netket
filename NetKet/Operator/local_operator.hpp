@@ -25,6 +25,7 @@
 #include <limits>
 #include <map>
 #include <vector>
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/kronecker_product.hpp"
 #include "Utils/next_variation.hpp"
 #include "abstract_operator.hpp"
@@ -49,7 +50,7 @@ class LocalOperator : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
  private:
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
   std::vector<MatType> mat_;
   std::vector<SiteType> sites_;
 
@@ -60,7 +61,7 @@ class LocalOperator : public AbstractOperator {
   std::size_t nops_;
 
  public:
-  explicit LocalOperator(const AbstractHilbert &hilbert,
+  explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites)
       : hilbert_(hilbert) {
@@ -70,8 +71,8 @@ class LocalOperator : public AbstractOperator {
     Init();
   }
 
-  explicit LocalOperator(const AbstractHilbert &hilbert, const MatType &mat,
-                         const SiteType &sites)
+  explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
+                         const MatType &mat, const SiteType &sites)
       : hilbert_(hilbert) {
     Push(mat, sites);
     // TODO sort sites and swap columns of mat accordingly
@@ -94,7 +95,7 @@ class LocalOperator : public AbstractOperator {
   }
 
   void Init() {
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Cannot construct operators on infinite local hilbert spaces");
     }
@@ -117,12 +118,12 @@ class LocalOperator : public AbstractOperator {
       auto &states = states_[op];
       auto &invstate = invstate_[op];
 
-      if (*std::max_element(sites.begin(), sites.end()) >= hilbert_.Size() ||
+      if (*std::max_element(sites.begin(), sites.end()) >= hilbert_->Size() ||
           *std::min_element(sites.begin(), sites.end()) < 0) {
         throw InvalidInputError("Operator acts on an invalid set of sites");
       }
 
-      auto localstates = hilbert_.LocalStates();
+      auto localstates = hilbert_->LocalStates();
       const auto localsize = localstates.size();
 
       // Finding the non-zero matrix elements
@@ -177,7 +178,7 @@ class LocalOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
-    assert(v.size() == hilbert_.Size());
+    assert(v.size() == hilbert_->Size());
 
     connectors.clear();
     newconfs.clear();
@@ -216,6 +217,32 @@ class LocalOperator : public AbstractOperator {
     }
   }
 
+  // FindConn for a specific operator
+  void FindConn(std::size_t opn, VectorConstRefType v,
+                std::vector<std::complex<double>> &mel,
+                std::vector<std::vector<int>> &connectors,
+                std::vector<std::vector<double>> &newconfs) const {
+    assert(opn < mat_.size() && opn >= 0);
+
+    mel.resize(1, 0.);
+    connectors.resize(1);
+    newconfs.resize(1);
+
+    int st1 = StateNumber(v, opn);
+    assert(st1 < int(mat_[opn].size()));
+    assert(st1 < int(connected_[opn].size()));
+
+    mel[0] = (mat_[opn][st1][st1]);
+
+    // off-diagonal part
+    for (auto st2 : connected_[opn][st1]) {
+      connectors.push_back(sites_[opn]);
+      assert(st2 < int(states_[opn].size()));
+      newconfs.push_back(states_[opn][st2]);
+      mel.push_back(mat_[opn][st1][st2]);
+    }
+  }
+
   inline int StateNumber(VectorConstRefType v, int opn) const {
     // TODO use a mask instead of copies
     std::vector<double> state(sites_[opn].size());
@@ -226,7 +253,8 @@ class LocalOperator : public AbstractOperator {
   }
 
   LocalOperator &operator+=(const LocalOperator &rhs) {
-    assert(hilbert_.LocalStates().size() == rhs.hilbert_.LocalStates().size());
+    assert(hilbert_->LocalStates().size() ==
+           rhs.hilbert_->LocalStates().size());
 
     for (std::size_t opn = 0; opn < rhs.mat_.size(); opn++) {
       Push(rhs.mat_[opn], rhs.sites_[opn]);
@@ -300,8 +328,13 @@ class LocalOperator : public AbstractOperator {
   }
 
   std::vector<MatType> LocalMatrices() const { return mat_; }
+  std::vector<SiteType> ActingOn() const { return sites_; }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
+
+  std::size_t Size() const { return mat_.size(); }
 };  // namespace netket
 
 }  // namespace netket

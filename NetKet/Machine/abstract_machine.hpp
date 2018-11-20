@@ -19,7 +19,7 @@
 #include <complex>
 #include <fstream>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
@@ -181,7 +181,7 @@ class AbstractMachine {
     stream << j << std::endl;
   }
 
-  virtual const AbstractHilbert &GetHilbert() const = 0;
+  virtual std::shared_ptr<const AbstractHilbert> GetHilbert() const = 0;
 
   virtual ~AbstractMachine() {}
 };

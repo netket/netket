@@ -23,11 +23,7 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "custom_hilbert.hpp"
-#include "hilbert_index.hpp"
-#include "netket.hpp"
-#include "qubits.hpp"
-#include "spins.hpp"
+#include "hilbert.hpp"
 
 namespace py = pybind11;
 
@@ -51,29 +47,33 @@ void AddHilbertModule(py::module &m) {
       ADDHILBERTMETHODS(AbstractHilbert);
 
   py::class_<Spin, AbstractHilbert, std::shared_ptr<Spin>>(subm, "Spin")
-      .def(py::init<const AbstractGraph &, double>(), py::arg("graph"),
-           py::arg("s"))
-      .def(py::init<const AbstractGraph &, double, double>(), py::arg("graph"),
-           py::arg("s"), py::arg("total_sz")) ADDHILBERTMETHODS(Spin);
+      .def(py::init<std::shared_ptr<const AbstractGraph>, double>(),
+           py::arg("graph"), py::arg("s"))
+      .def(py::init<std::shared_ptr<const AbstractGraph>, double, double>(),
+           py::arg("graph"), py::arg("s"), py::arg("total_sz"))
+          ADDHILBERTMETHODS(Spin);
 
   py::class_<Qubit, AbstractHilbert, std::shared_ptr<Qubit>>(subm, "Qubit")
-      .def(py::init<const AbstractGraph &>(), py::arg("graph"))
+      .def(py::init<std::shared_ptr<const AbstractGraph>>(), py::arg("graph"))
           ADDHILBERTMETHODS(Qubit);
 
   py::class_<Boson, AbstractHilbert, std::shared_ptr<Boson>>(subm, "Boson")
-      .def(py::init<const AbstractGraph &, int>(), py::arg("graph"),
-           py::arg("n_max"))
-      .def(py::init<const AbstractGraph &, int, int>(), py::arg("graph"),
-           py::arg("n_max"), py::arg("n_bosons")) ADDHILBERTMETHODS(Boson);
+      .def(py::init<std::shared_ptr<const AbstractGraph>, int>(),
+           py::arg("graph"), py::arg("n_max"))
+      .def(py::init<std::shared_ptr<const AbstractGraph>, int, int>(),
+           py::arg("graph"), py::arg("n_max"), py::arg("n_bosons"))
+          ADDHILBERTMETHODS(Boson);
 
   py::class_<CustomHilbert, AbstractHilbert, std::shared_ptr<CustomHilbert>>(
       subm, "CustomHilbert")
-      .def(py::init<const AbstractGraph &, std::vector<double>>(),
-           py::arg("graph"), py::arg("local_states"))
+      .def(
+          py::init<std::shared_ptr<const AbstractGraph>, std::vector<double>>(),
+          py::arg("graph"), py::arg("local_states"))
           ADDHILBERTMETHODS(CustomHilbert);
 
   py::class_<HilbertIndex, std::shared_ptr<HilbertIndex>>(subm, "HilbertIndex")
-      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+           py::arg("hilbert"))
       .def("n_states", &HilbertIndex::NStates)
       .def("number_to_state", &HilbertIndex::NumberToState)
       .def("state_to_number", &HilbertIndex::StateToNumber)

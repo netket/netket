@@ -17,8 +17,8 @@
 #include <memory>
 #include <sstream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "layer.hpp"
 
 #ifndef NETKET_FFNN_HPP
@@ -35,9 +35,8 @@ class FFNN : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
-  const AbstractGraph &graph_;
   std::vector<Ptype> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
@@ -55,11 +54,9 @@ class FFNN : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit FFNN(const AbstractHilbert &hilbert, std::vector<Ptype> &layers)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        layers_(layers),
-        nv_(hilbert.Size()) {
+  explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
+                std::vector<Ptype> &layers)
+      : hilbert_(hilbert), layers_(layers), nv_(hilbert->Size()) {
     Init();
   }
 
@@ -67,11 +64,9 @@ class FFNN : public AbstractMachine<T> {
     nlayer_ = layers_.size();
 
     std::string buffer = "";
-    // Initialise Layers
+    // Check that layer sizes are consistent
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
-
       layersizes_.push_back(layers_[i]->Noutput());
 
       if (layersizes_[i] != layers_[i]->Ninput()) {
@@ -83,8 +78,6 @@ class FFNN : public AbstractMachine<T> {
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
-      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
-
       layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
 
       layersizes_.push_back(1);
@@ -115,79 +108,10 @@ class FFNN : public AbstractMachine<T> {
     }
     InfoMessage(buffer) << layersizes_[depth_ - 1];
     InfoMessage(buffer) << std::endl;
-    InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
-                        << std::endl;
-  }
-
-  // TODO remove
-  // constructor
-  explicit FFNN(const AbstractGraph &graph, const AbstractHilbert &hilbert,
-                const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    InitOld(pars);
-  }
-
-  // TODO remove
-  void InitOld(const json &pars) {
-    json layers_par;
-    if (FieldExists(pars, "Layers")) {
-      layers_par = pars["Layers"];
-      nlayer_ = layers_par.size();
-    } else {
-      throw InvalidInputError("Field (Layers) not defined for Machine (FFNN)");
-    }
-
-    std::string buffer = "";
-    // Initialise Layers
-    layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
-
-      layers_.push_back(std::make_shared<Layer<T>>(graph_, layers_par[i]));
-
-      layersizes_.push_back(layers_.back()->Noutput());
-
-      if (layersizes_[i] != layers_.back()->Ninput()) {
-        throw InvalidInputError("input/output layer sizes do not match");
-      }
+      InfoMessage(buffer) << "# Layer " << i + 1 << " : " << layers_[i]->Name()
+                          << std::endl;
     }
-
-    // Check that final layer has only 1 unit otherwise add pooling layer
-    if (layersizes_.back() != 1) {
-      nlayer_ += 1;
-
-      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
-
-      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
-
-      layersizes_.push_back(1);
-    }
-    depth_ = layersizes_.size();
-
-    din_.resize(depth_);
-    din_.back().resize(1);
-    din_.back()(0) = 1.0;
-
-    npar_ = 0;
-    for (int i = 0; i < nlayer_; ++i) {
-      npar_ += layers_[i]->Npar();
-    }
-
-    for (int i = 0; i < nlayer_; ++i) {
-      ltnew_.AddVector(layersizes_[i + 1]);
-      ltnew_.AddVV(1);
-    }
-
-    changed_nodes_.resize(nlayer_);
-    new_output_.resize(nlayer_);
-
-    InfoMessage(buffer) << "# FFNN Initizialized with " << nlayer_
-                        << " Layers: ";
-    for (int i = 0; i < depth_ - 1; ++i) {
-      InfoMessage(buffer) << layersizes_[i] << " -> ";
-    }
-    InfoMessage(buffer) << layersizes_[depth_ - 1];
-    InfoMessage(buffer) << std::endl;
     InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
                         << std::endl;
   }
@@ -237,12 +161,12 @@ class FFNN : public AbstractMachine<T> {
 
   void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VVSize() == 0) {
-      lt.AddVV(1);                   // contains the output of layer 0
-      lt.AddVector(layersizes_[1]);  // contains the lookup of layer 0
+      lt.AddVV(1);                   // contains the lookup of layer 0
+      lt.AddVector(layersizes_[1]);  // contains the output of layer 0
       layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
       for (int i = 1; i < nlayer_; ++i) {
-        lt.AddVV(1);                       // contains the output of layer i
-        lt.AddVector(layersizes_[i + 1]);  // contains the lookup of layer i
+        lt.AddVV(1);                       // contains the lookup of layer i
+        lt.AddVector(layersizes_[i + 1]);  // contains the output of layer i
         layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
       }
     } else {
@@ -369,7 +293,9 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 };  // namespace netket
 
 }  // namespace netket

@@ -15,8 +15,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_RBM_SPIN_HPP
 #define NETKET_RBM_SPIN_HPP
@@ -34,7 +34,7 @@ class RbmSpin : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const AbstractHilbert &hilbert_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // number of visible units
   int nv_;
@@ -66,20 +66,13 @@ class RbmSpin : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
-                   int alpha = 0, bool usea = true, bool useb = true)
-      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
+  explicit RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert,
+                   int nhidden = 0, int alpha = 0, bool usea = true,
+                   bool useb = true)
+      : hilbert_(hilbert), nv_(hilbert->Size()), usea_(usea), useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
 
     Init();
-  }
-
-  // TODO remove
-  // constructor
-  template <class Ptype>
-  explicit RbmSpin(const AbstractHilbert &hilbert, const Ptype &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
-    FromParameters(pars);
   }
 
   template <class Ptype>
@@ -93,7 +86,7 @@ class RbmSpin : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = FieldVal<int>(pars, "Nvisible");
     }
-    if (nv_ != hilbert_.Size()) {
+    if (nv_ != hilbert_->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");
@@ -384,7 +377,9 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Machine"]["Name"] = "RbmSpin";

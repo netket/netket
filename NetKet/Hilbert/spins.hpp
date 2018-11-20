@@ -36,7 +36,7 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
-  const AbstractGraph &graph_;
+  std::shared_ptr<const AbstractGraph> graph_;
 
   double S_;
   double totalS_;
@@ -49,36 +49,22 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
  public:
-  explicit Spin(const AbstractGraph &graph, double S) : graph_(graph) {
-    const int nspins = graph.Size();
+  explicit Spin(std::shared_ptr<const AbstractGraph> graph, double S)
+      : graph_(graph) {
+    const int nspins = graph->Size();
 
     Init(nspins, S);
 
     constraintSz_ = false;
   }
-  explicit Spin(const AbstractGraph &graph, double S, double totalSz)
+  explicit Spin(std::shared_ptr<const AbstractGraph> graph, double S,
+                double totalSz)
       : graph_(graph) {
-    const int nspins = graph.Size();
+    const int nspins = graph->Size();
 
     Init(nspins, S);
 
     SetConstraint(totalSz);
-  }
-
-  // TODO Remove
-  template <class Ptype>
-  explicit Spin(const Graph &graph, const Ptype &pars) : graph_(graph) {
-    const int nspins = graph.Size();
-    const double S = FieldVal<double>(pars, "S", "Hilbert");
-
-    Init(nspins, S);
-
-    if (FieldExists(pars, "TotalSz")) {
-      auto totalSz = FieldVal<double>(pars, "TotalSz");
-      SetConstraint(totalSz);
-    } else {
-      constraintSz_ = false;
-    }
   }
 
   void Init(int nspins, double S) {
@@ -191,7 +177,9 @@ class Spin : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  std::shared_ptr<const AbstractGraph> GetGraph() const override {
+    return graph_;
+  }
 };
 
 }  // namespace netket

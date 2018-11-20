@@ -22,8 +22,8 @@
 #include <fstream>
 #include <random>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {
@@ -40,8 +40,7 @@ class SumOutput : public AbstractLayer<T> {
 
   VectorType z_;  // Linear term, z = W' * in + b
 
-  // Note that input of this layer is also the output of
-  // previous layer
+  std::string name_;
 
  public:
   using StateType = typename AbstractLayer<T>::StateType;
@@ -67,10 +66,10 @@ class SumOutput : public AbstractLayer<T> {
   void Init() {
     z_.resize(out_size_);
 
-    std::string buffer = "";
-    InfoMessage(buffer) << "Sum Output Layer: " << in_size_ << " --> "
-                        << out_size_ << std::endl;
+    name_ = "Sum Output Layer";
   }
+
+  std::string Name() const override { return name_; }
 
   void InitRandomPars(int /*seed*/, double /*sigma*/) override {}
 
