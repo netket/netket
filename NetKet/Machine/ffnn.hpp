@@ -160,21 +160,18 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void InitLookup(VisibleConstType v, LookupType &lt) override {
-    if (lt.VVSize() == 0) {
-      lt.AddVV(1);                   // contains the lookup of layer 0
+    if (lt.VectorSize() == 0) {
       lt.AddVector(layersizes_[1]);  // contains the output of layer 0
-      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      layers_[0]->Forward(v, lt.V(0));
       for (int i = 1; i < nlayer_; ++i) {
-        lt.AddVV(1);                       // contains the lookup of layer i
         lt.AddVector(layersizes_[i + 1]);  // contains the output of layer i
-        layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
+        layers_[i]->Forward(lt.V(i - 1), lt.V(i));
       }
     } else {
-      assert((int(lt.VectorSize()) == nlayer_) &&
-             (int(lt.VVSize()) == nlayer_));
-      layers_[0]->InitLookup(v, lt.VV(0), lt.V(0));
+      assert((int(lt.VectorSize()) == nlayer_));
+      layers_[0]->Forward(v, lt.V(0));
       for (int i = 1; i < nlayer_; ++i) {
-        layers_[i]->InitLookup(lt.V(i - 1), lt.VV(i), lt.V(i));
+        layers_[i]->Forward(lt.V(i - 1), lt.V(i));
       }
     }
   }
