@@ -4,6 +4,7 @@ set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 option(ENABLE_TESTS "Enable unit tests." OFF)
 option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
+option(NETKET_USE_LAPACK "Enable Lapack Support." OFF)
 
 project(NetKet)
 
@@ -23,8 +24,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
 
-# Hard-code Debug mode
-set(CMAKE_BUILD_TYPE "Debug")
 #
 # Dependencies
 #
@@ -39,6 +38,7 @@ endif()
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json
     INTERFACE "${CMAKE_BINARY_DIR}/External/json")
+
 
 # optional-lite
 ################################################################################
@@ -80,11 +80,11 @@ add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
 
-
 # IETL
 ################################################################################
 add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
+
 
 # PYBIND11
 ###############################################################################
@@ -100,8 +100,6 @@ ExternalProject_Add(
 if (NOT NETKET_PYTHON_VERSION)
     set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 2.7)
 endif()
-message(STATUS "Python version: ${NETKET_PYTHON_VERSION}")
-message(STATUS "Python versions: ${Python_ADDITIONAL_VERSIONS}")
 find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
 
 add_library(pybind11 INTERFACE)
@@ -114,9 +112,11 @@ if(NOT MSVC)
     target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 endif()
 
+
 # MPI
 ################################################################################
 find_package(MPI REQUIRED)
+
 
 # Catch2
 ################################################################################
@@ -142,21 +142,10 @@ endif()
 
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+    message(STATUS "[NetKet] CMAKE_BUILD_TYPE not specified, setting it to "
+                   "Release. Use `-DCMAKE_BUILD_TYPE=...` to overwrite.")
+    set(CMAKE_BUILD_TYPE Release)
 endif()
-
-if(MSVC)
-  # Force to always compile with W4
-  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-  endif()
-elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX  OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  # Update if necessary
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wextra -Wshadow")
-endif()
-
 
 if("Ninja" STREQUAL ${CMAKE_GENERATOR})
     include(CheckCXXCompilerFlag)
@@ -171,7 +160,7 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
-target_include_directories(netket_lib INTERFACE NetKet)
+target_include_directories(netket_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/NetKet)
 target_include_directories(netket_lib SYSTEM INTERFACE ${MPI_CXX_INCLUDE_PATH})
 target_link_libraries(netket_lib
     INTERFACE
@@ -184,49 +173,35 @@ target_link_libraries(netket_lib
 )
 
 # Check if we should use native Lapack with Eigen
-option(USE_LAPACK "Enable Lapack Support." OFF)
-if(USE_LAPACK)
+if(NETKET_USE_LAPACK)
     find_package(LAPACK REQUIRED)
-    add_definitions(-DEIGEN_USE_BLAS)
+    target_compile_definitions(netket_lib INTERFACE EIGEN_USE_BLAS)
     target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
     find_package(LAPACKE)
     if(LAPACKE_FOUND)
-    add_definitions(-DEIGEN_USE_LAPACKE)
-    target_link_libraries(netket_lib INTERFACE ${LAPACKE_LIBRARIES})
+        target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACKE)
+        target_link_libraries(netket_lib INTERFACE ${LAPACKE_LIBRARIES})
     endif()
-
 endif()
-
-
-
-#target_link_libraries(netket PUBLIC netket_lib)
-# Yes, this is ugly, but until CMake 3.5, we can't add an external project
-# dependency to an interface library
-#add_dependencies(netket eigen_project)
-
-
-
-add_library(netket MODULE NetKet/pynetket.cc)
-target_link_libraries(netket  PRIVATE pybind11)
-target_link_libraries(netket PUBLIC netket_lib)
-set_target_properties(netket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(netket eigen_project pybind11_project)
 
 if(NETKET_Sanitizer)
-    message(STATUS "Building python library with Clang sanitizer")
-    if(NOT MSVC)
-        target_compile_options(netket
-            INTERFACE
-                -O2 -g -fno-omit-frame-pointer
-                -fsanitize=address -fsanitize=undefined
-        )
-        target_link_libraries(netket
-            INTERFACE
-                -fsanitize=address -fsanitize=undefined
-        )
-    endif()
+    message(STATUS "[NetKet] Building python library with address sanitizer")
+    target_compile_options(netket_lib
+        INTERFACE
+            -g -fno-omit-frame-pointer
+            -fsanitize=address -fsanitize=undefined
+    )
+    target_link_libraries(netket_lib
+        INTERFACE
+            -fsanitize=address -fsanitize=undefined
+    )
 endif()
+
+add_library(netket MODULE ${CMAKE_CURRENT_SOURCE_DIR}/NetKet/pynetket.cc)
+target_link_libraries(netket PUBLIC netket_lib pybind11)
+set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                        SUFFIX "${PYTHON_MODULE_EXTENSION}")
+add_dependencies(netket eigen_project pybind11_project)
 
 #
 # Testing
@@ -241,4 +216,4 @@ endif()
 # Installing
 #
 
-install (TARGETS netket DESTINATION bin)
+# install (TARGETS netket DESTINATION bin)
