@@ -173,8 +173,6 @@ class AbstractLayer {
   layer.
   @param this_layer_output a constant reference to the output from the current
   layer.
-  @param this_layer_theta a constant reference to the theta from the current
-  layer.
   @param next_layer_data a constant reference to the derivative dL/dA where A is
   the activations of the current layer and L is the the final output of the
   Machine: L = log(psi(v))
@@ -185,7 +183,6 @@ class AbstractLayer {
   */
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
-                        const LookupType &this_layer_theta,
                         const VectorType &dout, VectorType &din,
                         VectorType &der, int start_idx) = 0;
 

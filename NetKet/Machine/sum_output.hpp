@@ -176,8 +176,7 @@ class SumOutput : public AbstractLayer<T> {
 
   void Backprop(const VectorType & /*prev_layer_output*/,
                 const VectorType & /*this_layer_output*/,
-                const LookupType & /*this_layer_theta*/, const VectorType &dout,
-                VectorType &din, VectorType & /*der*/,
+                const VectorType &dout, VectorType &din, VectorType & /*der*/,
                 int /*start_idx*/) override {
     din.resize(in_size_);
     din.setConstant(dout(0));

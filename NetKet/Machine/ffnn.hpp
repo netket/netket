@@ -235,19 +235,19 @@ class FFNN : public AbstractMachine<T> {
       start_idx -= layers_[nlayer_ - 1]->Npar();
       // Last Layer
       layers_[nlayer_ - 1]->Backprop(lt.V(nlayer_ - 2), lt.V(nlayer_ - 1),
-                                     lt.VV(nlayer_ - 1), din_.back(),
-                                     din_[nlayer_ - 1], der, start_idx);
+                                     din_.back(), din_[nlayer_ - 1], der,
+                                     start_idx);
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         start_idx -= layers_[i]->Npar();
-        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), lt.VV(i), din_[i + 1],
-                             din_[i], der, start_idx);
+        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), din_[i + 1], din_[i], der,
+                             start_idx);
       }
       // First Layer
-      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_[1], din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), din_[1], din_[0], der, 0);
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, lt.V(0), lt.VV(0), din_.back(), din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), din_.back(), din_[0], der, 0);
     }
   }
 
