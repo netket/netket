@@ -17,22 +17,6 @@ sudo: required
 #        brew upgrade cmake
 #        brew upgrade openmpi
 #        cmake --version
-addons:
-  brew:
-    packages:
-      # Stuff we need for C++
-      - 'cmake'
-      - 'openblas --with-openmp'
-      - 'openmpi'
-        # From https://github.com/yyuu/pyenv/wiki#suggested-build-environment
-        # Optional, but recommended packages
-      - 'openssl'
-      - 'readline'
-      - 'sqlite3'
-      - 'xz'
-      - 'zlib'
-      - 'pyenv'
-    update: true
 
 matrix:
   include:
@@ -40,6 +24,21 @@ matrix:
       osx_image: xcode9.4
       language: generic
       env: PYTHON=2.7 CXX=clang++
+      addons:
+        brew:
+          packages:
+            - 'cmake'
+            - 'openblas'
+            - 'openmpi'
+              # From https://github.com/yyuu/pyenv/wiki#suggested-build-environment
+              # Optional, but recommended packages
+            - 'openssl'
+            - 'readline'
+            - 'sqlite3'
+            - 'xz'
+            - 'zlib'
+            - 'pyenv'
+          update: true
 
     - os: osx
       osx_image: xcode10.1
