@@ -20,15 +20,12 @@ matrix:
     osx_image: xcode9.4
     compiler: clang
     env:
-      - SANITIZER=ON
-      - DEBUG=ON
+      - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
 
   - os: osx
     osx_image: xcode8.3
     install:
       - brew upgrade python
-    env:
-      - DEBUG=ON
 
   - os: osx
     osx_image: xcode9.4
@@ -43,7 +40,6 @@ matrix:
       - PYTHON=3.6
       - COMPILER=g++-5
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -61,7 +57,6 @@ matrix:
       - PYTHON=3.6
       - COMPILER=g++-6
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
@@ -80,7 +75,6 @@ matrix:
       - COMPILER=clang++-5.0
       - CXXFLAGS=-std=c++1z
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-      - DEBUG=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
@@ -110,19 +104,16 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
-       export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
-
-  # Get all required Python packages
-  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user
 
   # show OS/compiler version
   - uname -a
   - $CXX --version
 
-  # compile and execute Python unit tests
-  - pip install . --user
-  - pytest --verbose Test
+  # compile and execute unit tests
+  - mkdir -p build && cd build
+  - cmake .. ${CMAKE_OPTIONS} -DENABLE_TESTS=ON -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
+  - ctest -C Release -V -j
   - cd ..
