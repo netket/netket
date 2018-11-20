@@ -78,7 +78,7 @@ class Activation : public AbstractLayer<T> {
                   VectorType &output) override {
     lt.resize(0);
 
-    Forward(v, lt, output);
+    Forward(v, output);
   }
 
   void UpdateLookup(const VectorType & /*input*/,
@@ -124,9 +124,8 @@ class Activation : public AbstractLayer<T> {
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
-               VectorType &output) override {
-    activation_.operator()(prev_layer_output, output);
+  void Forward(const VectorType &input, VectorType &output) override {
+    activation_.operator()(input, output);
   }
 
   // Computes derivative.

@@ -146,17 +146,12 @@ class AbstractLayer {
                             VectorType &new_output) = 0;
 
   /**
-  Member function to feedforward through the layer. Writes the output in to
-  output, and the intermediate value after the linear transformation but before
-  a nonliner transformation into theta
-  @param prev_layer_output a constant reference to the output from previous
-  layer.
-  @param theta reference to the intermediate before the nonlinear transformation
-  is applied.
+  Member function to feedforward through the layer. Writes the output into
+  output
+  @param input a constant reference to the input to the layer
   @param output reference to the output vector.
   */
-  virtual void Forward(const VectorType &prev_layer_output, LookupType &theta,
-                       VectorType &output) = 0;
+  virtual void Forward(const VectorType &input, VectorType &output) = 0;
 
   /**
   Member function to perform backpropagation to compute derivates.
