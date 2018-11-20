@@ -145,5 +145,6 @@ install:
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
 
 script:
+  - python -c 'import netket'
   - python -m pytest --verbose
 
