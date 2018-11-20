@@ -233,8 +233,8 @@ class FullyConnected : public AbstractLayer<T> {
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType & /*this_layer_output*/,
-                const LookupType & /*this_layer_theta*/, const VectorType &dout,
-                VectorType &din, VectorType &der, int start_idx) override {
+                const VectorType &dout, VectorType &din, VectorType &der,
+                int start_idx) override {
     // dout = d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
     int k = start_idx;
