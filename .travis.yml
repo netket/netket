@@ -104,16 +104,19 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
+       export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # Get all required Python packages
+  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user	
 
   # show OS/compiler version
   - uname -a
   - $CXX --version
 
-  # compile and execute unit tests
-  - mkdir -p build && cd build
-  - cmake .. ${CMAKE_OPTIONS} -DENABLE_TESTS=ON -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
-  - ctest -C Release -V -j
+  # compile and execute Python unit tests
+  - pip install . --user
+  - pytest --verbose Test
   - cd ..
