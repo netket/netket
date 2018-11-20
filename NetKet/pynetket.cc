@@ -38,6 +38,7 @@ using AbSamplerType = AbstractSampler<AbMachineType>;
 namespace netket {
 
 namespace detail {
+namespace {
 // TODO(twesterhout): Strictly speaking, this is unsafe, I'm afraid, because one
 // can load the shared library from two processes which could result in MPI not
 // being initialized or not finalized twice, but come on... let's hope (for now)
@@ -77,7 +78,8 @@ struct MPIInitializer {
   bool have_initialized_;
 };
 static MPIInitializer _do_not_use_me_dummy_{};
-} // namespace detail
+}  // namespace
+}  // namespace detail
 
 using ode::AddDynamicsModule;
 
