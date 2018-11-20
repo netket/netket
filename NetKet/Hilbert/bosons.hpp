@@ -131,10 +131,10 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  bool CheckConstraint(const Eigen::VectorXd &v) const {
+  bool CheckConstraint(Eigen::Ref<const Eigen::VectorXd> v) const {
     int tot = 0;
     for (int i = 0; i < v.size(); i++) {
-      tot += int(v(i));
+      tot += std::round(v(i));
     }
 
     return tot == nbosons_;
@@ -150,6 +150,7 @@ class Boson : public AbstractHilbert {
       v(sf) = newconf[i];
       i++;
       assert(v(sf) <= nmax_);
+      assert(v(sf) >= 0);
     }
 
     if (constraintN_) {
