@@ -104,16 +104,9 @@ before_install:
   - |
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        brew update
-       brew install cmake
-       brew install openblas --with-openmp
-       brew install openmpi
-       brew install openssl
-       brew install sqlite3
-       brew install xz
-       brew install zlib
-       brew install pyenv
-       brew upgrade cmake
-       brew upgrade openmpi
+       brew ls --versions cmake && brew upgrade cmake || brew install cmake
+       brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
+       brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
      fi
   - |
      # Force OS X to use the correct python version
