@@ -35,6 +35,9 @@ class Activation : public AbstractLayer<T> {
 
   A activation_;  // activation
   int size_;      // size_ = input size = output size
+
+  std::string name_;
+
  public:
   using StateType = typename AbstractLayer<T>::StateType;
   using LookupType = typename AbstractLayer<T>::LookupType;
@@ -44,11 +47,9 @@ class Activation : public AbstractLayer<T> {
     Init();
   }
 
-  void Init() {
-    std::string buffer = "";
-    InfoMessage(buffer) << activation_.name << " Activation Layer " << size_
-                        << " --> " << size_ << std::endl;
-  }
+  void Init() { name_ = activation_.name + " Activation Layer"; }
+
+  std::string Name() const override { return name_; }
 
   void to_json(json &pars) const override {
     json layerpar;
@@ -75,15 +76,14 @@ class Activation : public AbstractLayer<T> {
 
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {
-    lt.resize(1);
-    lt[0].resize(size_);
+    lt.resize(0);
 
     Forward(v, lt, output);
   }
 
   void UpdateLookup(const VectorType & /*input*/,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType &theta,
+                    const VectorType &new_input, LookupType & /*theta*/,
                     const VectorType & /*output*/,
                     std::vector<int> &output_changes,
                     VectorType &new_output) override {
@@ -91,14 +91,10 @@ class Activation : public AbstractLayer<T> {
     if (num_of_changes == size_) {
       output_changes.resize(size_);
       new_output.resize(size_);
-      theta[0] = new_input;
       activation_.operator()(new_input, new_output);
     } else if (num_of_changes > 0) {
       output_changes = input_changes;
       new_output.resize(num_of_changes);
-      for (int i = 0; i < num_of_changes; ++i) {
-        theta[0](input_changes[i]) = new_input(i);
-      }
       activation_.operator()(new_input, new_output);
     } else {
       output_changes.resize(0);
@@ -108,7 +104,7 @@ class Activation : public AbstractLayer<T> {
 
   void UpdateLookup(const Eigen::VectorXd & /*input*/,
                     const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType &theta,
+                    const std::vector<double> &newconf, LookupType & /*theta*/,
                     const VectorType & /*output*/,
                     std::vector<int> &output_changes,
                     VectorType &new_output) override {
@@ -116,9 +112,6 @@ class Activation : public AbstractLayer<T> {
     if (num_of_changes > 0) {
       output_changes = tochange;
       new_output.resize(num_of_changes);
-      for (int i = 0; i < num_of_changes; ++i) {
-        theta[0](tochange[i]) = newconf[i];
-      }
       Eigen::VectorXcd new_input(num_of_changes);
       for (int j = 0; j < num_of_changes; ++j) {
         new_input(j) = newconf[j];
@@ -131,27 +124,23 @@ class Activation : public AbstractLayer<T> {
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType &theta,
+  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
                VectorType &output) override {
-    theta[0] = prev_layer_output;
-    activation_.operator()(theta[0], output);
+    activation_.operator()(prev_layer_output, output);
   }
 
   // Feedforward Using lookup
-  void Forward(const LookupType &theta, VectorType &output) override {
-    // Apply activation function
-    activation_.operator()(theta[0], output);
+  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
   }
 
   // Computes derivative.
-  void Backprop(const VectorType & /*prev_layer_output*/,
+  void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output,
-                const LookupType &this_layer_theta, const VectorType &dout,
+                const LookupType & /*this_layer_theta*/, const VectorType &dout,
                 VectorType &din, VectorType & /*der*/,
                 int /*start_idx*/) override {
     din.resize(size_);
-    activation_.ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
-                              din);
+    activation_.ApplyJacobian(prev_layer_output, this_layer_output, dout, din);
   }
 };
 }  // namespace netket
