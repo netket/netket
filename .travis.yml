@@ -24,21 +24,6 @@ matrix:
       osx_image: xcode9.4
       language: generic
       env: PYTHON=2.7 CXX=clang++
-      addons:
-        brew:
-          packages:
-            - 'cmake'
-            - 'openblas'
-            - 'openmpi'
-              # From https://github.com/yyuu/pyenv/wiki#suggested-build-environment
-              # Optional, but recommended packages
-            - 'openssl'
-            - 'readline'
-            - 'sqlite3'
-            - 'xz'
-            - 'zlib'
-            - 'pyenv'
-          update: true
 
     - os: osx
       osx_image: xcode10.1
@@ -117,15 +102,25 @@ matrix:
 
 before_install:
   - |
+     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+       brew update
+       brew install cmake
+       brew install openblas --with-openmp
+       brew install openmpi
+       brew install openssl
+       brew install sqlite3
+       brew install xz
+       brew install zlib
+       brew install pyenv
+       brew upgrade cmake
+       brew upgrade openmpi
+     fi
+  - |
      # Force OS X to use the correct python version
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
        pyenv global $PYTHON
        TRAVIS_PYTHON_VERSION=$PYTHON
-     fi
-  - |
-     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-       brew upgrade openmpi
      fi
   - |
      if ! which pip; then
