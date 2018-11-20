@@ -191,10 +191,6 @@ class FullyConnected : public AbstractLayer<T> {
     LinearTransformation(prev_layer_output, output);
   }
 
-  // Feedforward Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
-  }
-
   // Applies the linear transformation
   inline void LinearTransformation(const VectorType &input,
                                    VectorType &output) {
