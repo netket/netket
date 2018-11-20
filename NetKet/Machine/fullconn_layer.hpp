@@ -34,9 +34,6 @@ class FullyConnected : public AbstractLayer<T> {
   using VectorRefType = typename AbstractLayer<T>::VectorRefType;
   using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
 
-  std::shared_ptr<const AbstractActivation>
-      activation_;  // activation function class
-
   bool usebias_;
 
   int in_size_;        // input size
@@ -56,13 +53,9 @@ class FullyConnected : public AbstractLayer<T> {
   using LookupType = typename AbstractLayer<T>::LookupType;
 
   /// Constructor
-  FullyConnected(std::shared_ptr<const AbstractActivation> activation,
-                 const int input_size, const int output_size,
+  FullyConnected(const int input_size, const int output_size,
                  const bool use_bias = false)
-      : activation_(activation),
-        usebias_(use_bias),
-        in_size_(input_size),
-        out_size_(output_size) {
+      : usebias_(use_bias), in_size_(input_size), out_size_(output_size) {
     Init();
   }
 
@@ -201,25 +194,18 @@ class FullyConnected : public AbstractLayer<T> {
   void Forward(const VectorType &prev_layer_output, LookupType &theta,
                VectorType &output) override {
     LinearTransformation(prev_layer_output, theta);
-    NonLinearTransformation(theta, output);
+    output = theta[0];
   }
 
   // Feedforward Using lookup
   void Forward(const LookupType &theta, VectorType &output) override {
-    // Apply activation function
-    NonLinearTransformation(theta, output);
+    output = theta[0];
   }
 
   // Applies the linear transformation
   inline void LinearTransformation(const VectorType &input, LookupType &theta) {
     theta[0] = bias_;
     theta[0].noalias() += weight_.transpose() * input;
-  }
-
-  // Applies the nonlinear transformation
-  inline void NonLinearTransformation(const LookupType &theta,
-                                      VectorType &output) {
-    activation_->operator()(theta[0], output);
   }
 
   // Updates theta given the input v, the change in the input (input_changes and
@@ -252,33 +238,24 @@ class FullyConnected : public AbstractLayer<T> {
                 const VectorType &this_layer_output,
                 const LookupType &this_layer_theta, const VectorType &dout,
                 VectorType &din, VectorType &der, int start_idx) override {
-    // After forward stage, m_z contains z = W' * in + b
-    // Now we need to calculate d(L) / d(z) = [d(a) / d(z)] * [d(L) / d(a)]
-    // d(L) / d(a) is computed in the next layer, contained in next_layer_data
-    // The Jacobian matrix J = d(a) / d(z) is determined by the activation
-    // function
-    VectorType dLz(out_size_);
-    activation_->ApplyJacobian(this_layer_theta[0], this_layer_output, dout,
-                               dLz);
-
-    // Now dLz contains d(L) / d(z)
+    // dout = d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
     int k = start_idx;
 
     if (usebias_) {
       Eigen::Map<VectorType> der_b{der.data() + k, out_size_};
 
-      der_b.noalias() = dLz;
+      der_b.noalias() = dout;
       k += out_size_;
     }
 
     // Derivative for weights, d(L) / d(W) = [d(L) / d(z)] * in'
     Eigen::Map<MatrixType> der_w{der.data() + k, in_size_, out_size_};
 
-    der_w.noalias() = prev_layer_output * dLz.transpose();
+    der_w.noalias() = prev_layer_output * dout.transpose();
 
     // Compute d(L) / d_in = W * [d(L) / d(z)]
-    din.noalias() = weight_ * dLz;
+    din.noalias() = weight_ * dout;
   }
 };
 }  // namespace netket
