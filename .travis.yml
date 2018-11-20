@@ -113,6 +113,7 @@ before_install:
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
        pyenv global $PYTHON
+       export PATH="$(pyenv root)/shims:$PATH"
        TRAVIS_PYTHON_VERSION=$PYTHON
      fi
   - |
@@ -122,7 +123,7 @@ before_install:
   - |
      # Check that `python` is actually the version we want
      if [[ "$TRAVIS_PYTHON_VERSION" != $(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') ]]; then
-       echo "Something went wrong during python installation"
+       echo "Something went wrong during python installation" && false
      fi
 
   # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files
