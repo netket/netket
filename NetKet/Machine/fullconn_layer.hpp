@@ -144,8 +144,7 @@ class FullyConnected : public AbstractLayer<T> {
 
   void InitLookup(const VectorType &v, LookupType &lt,
                   VectorType &output) override {
-    lt.resize(1);
-    lt[0].resize(out_size_);
+    lt.resize(0);
 
     Forward(v, lt, output);
   }
@@ -153,8 +152,7 @@ class FullyConnected : public AbstractLayer<T> {
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
                     const VectorType &new_input, LookupType &theta,
-                    const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
+                    const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes == in_size_) {
@@ -162,10 +160,9 @@ class FullyConnected : public AbstractLayer<T> {
       new_output.resize(out_size_);
       Forward(new_input, theta, new_output);
     } else if (num_of_changes > 0) {
-      UpdateTheta(input, input_changes, new_input, theta);
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(theta, new_output);
+      UpdateOutput(input, input_changes, new_input, output, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -174,16 +171,14 @@ class FullyConnected : public AbstractLayer<T> {
 
   void UpdateLookup(const Eigen::VectorXd &input,
                     const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType &theta,
-                    const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
+                    const std::vector<double> &newconf, LookupType & /*theta*/,
+                    const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = tochange.size();
     if (num_of_changes > 0) {
-      UpdateTheta(input, tochange, newconf, theta);
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(theta, new_output);
+      UpdateOutput(input, tochange, newconf, output, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -191,52 +186,54 @@ class FullyConnected : public AbstractLayer<T> {
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType &theta,
+  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
                VectorType &output) override {
-    LinearTransformation(prev_layer_output, theta);
-    output = theta[0];
+    LinearTransformation(prev_layer_output, output);
   }
 
   // Feedforward Using lookup
-  void Forward(const LookupType &theta, VectorType &output) override {
-    output = theta[0];
+  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
   }
 
   // Applies the linear transformation
-  inline void LinearTransformation(const VectorType &input, LookupType &theta) {
-    theta[0] = bias_;
-    theta[0].noalias() += weight_.transpose() * input;
+  inline void LinearTransformation(const VectorType &input,
+                                   VectorType &output) {
+    output = bias_;
+    output.noalias() += weight_.transpose() * input;
   }
 
   // Updates theta given the input v, the change in the input (input_changes and
   // prev_input)
-  inline void UpdateTheta(const VectorType &v,
-                          const std::vector<int> &input_changes,
-                          const VectorType &new_input, LookupType &theta) {
+  inline void UpdateOutput(const VectorType &v,
+                           const std::vector<int> &input_changes,
+                           const VectorType &new_input,
+                           const VectorType &output, VectorType &new_output) {
     const int num_of_changes = input_changes.size();
+    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = input_changes[s];
-      theta[0] += weight_.row(sf) * (new_input(s) - v(sf));
+      new_output += weight_.row(sf) * (new_input(s) - v(sf));
     }
   }
 
   // Updates theta given the previous input prev_input and the change in the
   // input (tochange and  newconf)
-  inline void UpdateTheta(const VectorType &prev_input,
-                          const std::vector<int> &tochange,
-                          const std::vector<double> &newconf,
-                          LookupType &theta) {
+  inline void UpdateOutput(const VectorType &prev_input,
+                           const std::vector<int> &tochange,
+                           const std::vector<double> &newconf,
+                           const VectorType &output, VectorType &new_output) {
     const int num_of_changes = tochange.size();
+    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = tochange[s];
-      theta[0] += weight_.row(sf) * (newconf[s] - prev_input(sf));
+      new_output += weight_.row(sf) * (newconf[s] - prev_input(sf));
     }
   }
 
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
-                const VectorType &this_layer_output,
-                const LookupType &this_layer_theta, const VectorType &dout,
+                const VectorType & /*this_layer_output*/,
+                const LookupType & /*this_layer_theta*/, const VectorType &dout,
                 VectorType &din, VectorType &der, int start_idx) override {
     // dout = d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
