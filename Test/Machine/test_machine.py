@@ -31,8 +31,7 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 layers = [
     nk.layer.FullyConnected(
         input_size=g.n_sites,
-        output_size=40,
-        activation=nk.activation.Lncosh())
+        output_size=40)
 ]
 
 # FFNN Machine

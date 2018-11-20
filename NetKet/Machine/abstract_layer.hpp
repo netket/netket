@@ -37,6 +37,11 @@ class AbstractLayer {
   using VectorConstRefType = Eigen::Ref<const VectorType>;
 
   /**
+  Member function returning the name of the layer.
+  @return Name of Layer.
+  */
+  virtual std::string Name() const = 0;
+  /**
   Member function returning the number of inputs a layer takes.
   @return Number of Inputs into the Layer.
   */
