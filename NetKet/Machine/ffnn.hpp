@@ -64,11 +64,9 @@ class FFNN : public AbstractMachine<T> {
     nlayer_ = layers_.size();
 
     std::string buffer = "";
-    // Initialise Layers
+    // Check that layer sizes are consistent
     layersizes_.push_back(nv_);
     for (int i = 0; i < nlayer_; ++i) {
-      InfoMessage(buffer) << "# Layer " << i + 1 << " : ";
-
       layersizes_.push_back(layers_[i]->Noutput());
 
       if (layersizes_[i] != layers_[i]->Ninput()) {
@@ -79,8 +77,6 @@ class FFNN : public AbstractMachine<T> {
     // Check that final layer has only 1 unit otherwise add pooling layer
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
-
-      InfoMessage(buffer) << "# Layer " << nlayer_ << " : ";
 
       layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
 
@@ -112,6 +108,10 @@ class FFNN : public AbstractMachine<T> {
     }
     InfoMessage(buffer) << layersizes_[depth_ - 1];
     InfoMessage(buffer) << std::endl;
+    for (int i = 0; i < nlayer_; ++i) {
+      InfoMessage(buffer) << "# Layer " << i + 1 << " : " << layers_[i]->Name()
+                          << std::endl;
+    }
     InfoMessage(buffer) << "# Total Number of Parameters = " << npar_
                         << std::endl;
   }
