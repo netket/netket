@@ -125,8 +125,10 @@ before_install:
      fi
   - |
      # Check that `python` is actually the version we want
-     if [[ "$TRAVIS_PYTHON_VERSION" != $(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))') ]]; then
-       echo "Something went wrong during python installation" && false
+     _WE_WANTED=$(echo "$TRAVIS_PYTHON_VERSION" | sed -E 's/([0-9]+\.[0-9]+)($|\.[0-9]+)/\1/')
+     _WE_GOT=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+     if [[ $_WE_WANTED != $_WE_GOT ]]; then
+       echo "Something went wrong during python installation: $_WE_WANTED != $_WE_GOT" && false
      fi
 
   # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files
