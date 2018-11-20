@@ -118,5 +118,6 @@ script:
 
   # compile and execute Python unit tests
   - pip install . --user
+  - python Test/Machine/test_machine.py
   - pytest --verbose Test
   - cd ..
