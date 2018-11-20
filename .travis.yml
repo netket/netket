@@ -13,6 +13,11 @@ matrix:
       language: generic
       env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
 
+    - os: osx
+      osx_image: xcode10.1
+      language: generic
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_Sanitizer=ON"
+
     # The oldest supported configurations
     - os: linux
       dist: trusty
@@ -72,7 +77,7 @@ matrix:
     - os: linux
       dist: xenial
       python: 3.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS=-std=c++17 -DNETKET_Sanitizer=ON"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS=-std=c++17"
       addons:
         apt:
           sources:
