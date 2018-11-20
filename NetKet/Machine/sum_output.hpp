@@ -131,10 +131,6 @@ class SumOutput : public AbstractLayer<T> {
     LinearTransformation(prev_layer_output, output);
   }
 
-  // Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
-  }
-
   inline void LinearTransformation(const VectorType &input,
                                    VectorType &output) {
     output(0) = input.sum();

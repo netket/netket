@@ -262,10 +262,6 @@ class Convolutional : public AbstractLayer<T> {
     LinearTransformation(prev_layer_output, output);
   }
 
-  // Feedforward Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
-  }
-
   // performs the convolution of the kernel onto the image and writes into z
   inline void Convolve(const VectorType &image, VectorType &z) {
     // im2col method

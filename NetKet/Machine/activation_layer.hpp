@@ -129,10 +129,6 @@ class Activation : public AbstractLayer<T> {
     activation_.operator()(prev_layer_output, output);
   }
 
-  // Feedforward Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
-  }
-
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output, const VectorType &dout,
