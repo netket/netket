@@ -112,7 +112,10 @@ before_install:
      # Force OS X to use the correct python version
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        pyenv install $PYTHON
+       pyenv rehash
+       pyenv global
        pyenv global $PYTHON
+       pyenv global
        export PATH="$(pyenv root)/shims:$PATH"
        TRAVIS_PYTHON_VERSION=$PYTHON
      fi
