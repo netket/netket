@@ -19,6 +19,7 @@
 #include <complex>
 #include <fstream>
 #include <random>
+#include <string>
 #include <vector>
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
@@ -45,6 +46,8 @@ class FullyConnected : public AbstractLayer<T> {
   VectorType bias_;    // Bias parameters, b(out_size x 1)
                        // Note that input of this layer is also the output of
                        // previous layer
+
+  std::string name_;
 
   std::size_t scalar_bytesize_;
 
@@ -77,12 +80,10 @@ class FullyConnected : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    std::string buffer = "";
-
-    InfoMessage(buffer) << "Fully Connected Layer " << in_size_ << " --> "
-                        << out_size_ << std::endl;
-    InfoMessage(buffer) << "# # UseBias = " << usebias_ << std::endl;
+    name_ = "Fully Connected Layer";
   }
+
+  std::string Name() const override { return name_; }
 
   void to_json(json &pars) const override {
     json layerpar;
