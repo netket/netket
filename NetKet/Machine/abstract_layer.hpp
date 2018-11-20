@@ -40,6 +40,11 @@ class AbstractLayer {
   Member function returning the number of inputs a layer takes.
   @return Number of Inputs into the Layer.
   */
+  virtual std::string Name() const = 0;
+  /**
+  Member function returning the number of inputs a layer takes.
+  @return Number of Inputs into the Layer.
+  */
   virtual int Ninput() const = 0;
 
   /**
