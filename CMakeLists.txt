@@ -3,8 +3,12 @@ cmake_minimum_required(VERSION 3.1)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 option(ENABLE_TESTS "Enable unit tests." OFF)
+option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
 
 project(NetKet)
+
+add_library(netket_test INTERFACE)
+target_link_libraries(netket_test INTERFACE netket_lib Catch2)
 
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
@@ -201,6 +205,21 @@ target_link_libraries(netket PUBLIC netket_lib)
 set_target_properties(netket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                          SUFFIX "${PYTHON_MODULE_EXTENSION}")
 add_dependencies(netket eigen_project pybind11_project)
+
+if(NETKET_Sanitizer)
+    message(STATUS "Building python library with Clang sanitizer")
+    if(NOT MSVC)
+        target_compile_options(netket
+            INTERFACE
+                -O2 -g -fno-omit-frame-pointer
+                -fsanitize=address -fsanitize=undefined
+        )
+        target_link_libraries(netket
+            INTERFACE
+                -fsanitize=address -fsanitize=undefined
+        )
+    endif()
+endif()
 
 #
 # Testing
