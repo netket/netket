@@ -144,8 +144,8 @@ class FullyConnected : public AbstractLayer<T> {
 
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType & /*theta*/,
-                    const VectorType &output, std::vector<int> &output_changes,
+                    const VectorType &new_input, const VectorType &output,
+                    std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes == in_size_) {
@@ -164,7 +164,7 @@ class FullyConnected : public AbstractLayer<T> {
 
   void UpdateLookup(const Eigen::VectorXd &input,
                     const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType & /*theta*/,
+                    const std::vector<double> &newconf,
                     const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = tochange.size();

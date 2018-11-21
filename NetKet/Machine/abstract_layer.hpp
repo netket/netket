@@ -102,7 +102,7 @@ class AbstractLayer {
   */
   virtual void UpdateLookup(const VectorType &input,
                             const std::vector<int> &input_changes,
-                            const VectorType &new_input, LookupType &theta,
+                            const VectorType &new_input,
                             const VectorType &output,
                             std::vector<int> &output_changes,
                             VectorType &new_output) = 0;
@@ -129,7 +129,7 @@ class AbstractLayer {
   virtual void UpdateLookup(const Eigen::VectorXd &input,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
-                            LookupType &theta, const VectorType &output,
+                            const VectorType &output,
                             std::vector<int> &output_changes,
                             VectorType &new_output) = 0;
 
