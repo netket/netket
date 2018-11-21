@@ -179,12 +179,12 @@ class FFNN : public AbstractMachine<T> {
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-    layers_[0]->UpdateLookup(v, tochange, newconf, lt.VV(0), lt.V(0),
-                             changed_nodes_[0], new_output_[0]);
+    layers_[0]->UpdateLookup(v, tochange, newconf, lt.V(0), changed_nodes_[0],
+                             new_output_[0]);
     for (int i = 1; i < nlayer_; ++i) {
       layers_[i]->UpdateLookup(lt.V(i - 1), changed_nodes_[i - 1],
-                               new_output_[i - 1], lt.VV(i), lt.V(i),
-                               changed_nodes_[i], new_output_[i]);
+                               new_output_[i - 1], lt.V(i), changed_nodes_[i],
+                               new_output_[i]);
       UpdateOutput(lt.V(i - 1), changed_nodes_[i - 1], new_output_[i - 1]);
     }
     UpdateOutput(lt.V(nlayer_ - 1), changed_nodes_[nlayer_ - 1],
