@@ -64,7 +64,7 @@ class AbstractLayer {
   @param pars is where the layer parameters are written into.
   @param start_idx is the index of the vector pars to start writing from.
   */
-  virtual void GetParameters(VectorRefType pars, int start_idx) const = 0;
+  virtual void GetParameters(VectorRefType pars) const = 0;
 
   /**
   Member function setting the current set of parameters in the layer.

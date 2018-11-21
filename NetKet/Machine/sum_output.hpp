@@ -79,8 +79,7 @@ class SumOutput : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorRefType /*pars*/, int /*start_idx*/) const override {
-  }
+  void GetParameters(VectorRefType /*pars*/) const override {}
 
   void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
 

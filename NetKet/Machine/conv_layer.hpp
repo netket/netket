@@ -175,9 +175,8 @@ class Convolutional : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorRefType pars, int start_idx) const override {
-    int k = start_idx;
-
+  void GetParameters(VectorRefType pars) const override {
+    int k = 0;
     if (usebias_) {
       for (int i = 0; i < out_channels_; ++i) {
         pars(k) = bias_(i);
