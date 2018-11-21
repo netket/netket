@@ -166,7 +166,7 @@ class Convolutional : public AbstractLayer<T> {
 
     netket::RandomGaussian(par, seed, sigma);
 
-    SetParameters(par, 0);
+    SetParameters(par);
   }
 
   int Npar() const override { return npar_; }
@@ -192,8 +192,8 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void SetParameters(VectorConstRefType pars, int start_idx) override {
-    int k = start_idx;
+  void SetParameters(VectorConstRefType pars) override {
+    int k = 0;
 
     if (usebias_) {
       for (int i = 0; i < out_channels_; ++i) {

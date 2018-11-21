@@ -71,7 +71,7 @@ class AbstractLayer {
   @param pars is where the layer parameters are to be read from.
   @param start_idx is the index of the vector pars to start reading from.
   */
-  virtual void SetParameters(VectorConstRefType pars, int start_idx) = 0;
+  virtual void SetParameters(VectorConstRefType pars) = 0;
 
   /**
   Member function providing a random initialization of the parameters.

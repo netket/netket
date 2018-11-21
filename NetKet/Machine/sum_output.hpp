@@ -81,7 +81,7 @@ class SumOutput : public AbstractLayer<T> {
 
   void GetParameters(VectorRefType /*pars*/) const override {}
 
-  void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
+  void SetParameters(VectorConstRefType /*pars*/) override {}
 
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,

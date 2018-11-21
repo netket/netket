@@ -149,8 +149,9 @@ class FFNN : public AbstractMachine<T> {
   void SetParameters(VectorConstRefType pars) override {
     int start_idx = 0;
     for (auto const &layer : layers_) {
-      layer->SetParameters(pars, start_idx);
-      start_idx += layer->Npar();
+      int num_of_pars = layer->Npar();
+      layer->SetParameters(pars.segment(start_idx, num_of_pars));
+      start_idx += num_of_pars;
     }
   }
 
