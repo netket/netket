@@ -122,8 +122,7 @@ class Activation : public AbstractLayer<T> {
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType &this_layer_output, const VectorType &dout,
-                VectorType &din, VectorType & /*der*/,
-                int /*start_idx*/) override {
+                VectorType &din, VectorRefType /*der*/) override {
     din.resize(size_);
     activation_.ApplyJacobian(prev_layer_output, this_layer_output, dout, din);
   }

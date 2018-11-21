@@ -318,10 +318,10 @@ class Convolutional : public AbstractLayer<T> {
 
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType & /*this_layer_output*/,
-                const VectorType &dout, VectorType &din, VectorType &der,
-                int start_idx) override {
+                const VectorType &dout, VectorType &din,
+                VectorRefType der) override {
     // VectorType dLz = dout;
-    int kd = start_idx;
+    int kd = 0;
 
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
     if (usebias_) {

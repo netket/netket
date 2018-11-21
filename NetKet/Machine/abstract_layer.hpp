@@ -158,7 +158,7 @@ class AbstractLayer {
   virtual void Backprop(const VectorType &prev_layer_output,
                         const VectorType &this_layer_output,
                         const VectorType &dout, VectorType &din,
-                        VectorType &der, int start_idx) = 0;
+                        VectorRefType der) = 0;
 
   virtual void to_json(json &j) const = 0;
 

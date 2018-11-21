@@ -118,11 +118,13 @@ class FullyConnected : public AbstractLayer<T> {
   int Noutput() const override { return out_size_; }
 
   void GetParameters(VectorRefType pars) const override {
+    int k = 0;
     if (usebias_) {
       std::memcpy(pars.data(), bias_.data(), out_size_ * scalar_bytesize_);
+      k += out_size_;
     }
 
-    std::memcpy(pars.data() + out_size_, weight_.data(),
+    std::memcpy(pars.data() + k, weight_.data(),
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
@@ -210,11 +212,11 @@ class FullyConnected : public AbstractLayer<T> {
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType & /*this_layer_output*/,
-                const VectorType &dout, VectorType &din, VectorType &der,
-                int start_idx) override {
+                const VectorType &dout, VectorType &din,
+                VectorRefType der) override {
     // dout = d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
-    int k = start_idx;
+    int k = 0;
 
     if (usebias_) {
       Eigen::Map<VectorType> der_b{der.data() + k, out_size_};
