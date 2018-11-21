@@ -117,15 +117,12 @@ class FullyConnected : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorRefType pars, int start_idx) const override {
-    int k = start_idx;
-
+  void GetParameters(VectorRefType pars) const override {
     if (usebias_) {
-      std::memcpy(pars.data() + k, bias_.data(), out_size_ * scalar_bytesize_);
-      k += out_size_;
+      std::memcpy(pars.data(), bias_.data(), out_size_ * scalar_bytesize_);
     }
 
-    std::memcpy(pars.data() + k, weight_.data(),
+    std::memcpy(pars.data() + out_size_, weight_.data(),
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 

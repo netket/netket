@@ -139,8 +139,9 @@ class FFNN : public AbstractMachine<T> {
     VectorType pars(npar_);
     int start_idx = 0;
     for (auto const &layer : layers_) {
-      layer->GetParameters(pars, start_idx);
-      start_idx += layer->Npar();
+      int num_of_pars = layer->Npar();
+      layer->GetParameters(pars.segment(start_idx, num_of_pars));
+      start_idx += num_of_pars;
     }
     return pars;
   }

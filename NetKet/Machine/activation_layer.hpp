@@ -69,8 +69,7 @@ class Activation : public AbstractLayer<T> {
 
   int Noutput() const override { return size_; }
 
-  void GetParameters(VectorRefType /*pars*/, int /*start_idx*/) const override {
-  }
+  void GetParameters(VectorRefType /*pars*/) const override {}
 
   void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
 
