@@ -33,7 +33,7 @@ template <class WfType>
 class CustomSamplerPt : public AbstractSampler<WfType> {
   WfType &psi_;
   const AbstractHilbert &hilbert_;
-  std::vector<LocalOperator> move_operators_;
+  LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
   // number of visible units
   const int nv_;
@@ -64,225 +64,34 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  using MatType = std::vector<std::vector<std::complex<double>>>;
-
   explicit CustomSamplerPt(
-      WfType &psi, const std::vector<MatType> &move_operators,
-      const std::vector<std::vector<int>> &acting_on,
+      WfType &psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>(),
       int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
+        move_operators_(move_operators),
         nv_(hilbert_.Size()),
         nrep_(nreplicas) {
-    if (acting_on.size() != move_operators.size()) {
+    CustomSampler<WfType>::CheckMoveOperators(move_operators_);
+
+    if (hilbert_.Size() != move_operators.GetHilbert().Size()) {
       throw InvalidInputError(
-          "The custom sampler definition is inconsistent (between "
-          "MoveOperators and ActingOn sizes); Check that ActingOn is defined");
-    }
-
-    std::set<int> touched_sites;
-    for (std::size_t c = 0; c < move_operators.size(); c++) {
-      // check if matrix of this operator is stochastic
-      bool is_stochastic = true;
-      bool is_complex = false;
-      bool is_definite_positive = true;
-      bool is_symmetric = true;
-      const double epsilon = 1.0e-6;
-      for (std::size_t i = 0; i < move_operators[c].size(); i++) {
-        double sum_column = 0.;
-        for (std::size_t j = 0; j < move_operators[c].size(); j++) {
-          if (std::abs(move_operators[c][i][j].imag()) > epsilon) {
-            is_complex = true;
-            is_stochastic = false;
-            break;
-          }
-          if (move_operators[c][i][j].real() < 0) {
-            is_definite_positive = false;
-            is_stochastic = false;
-            break;
-          }
-          if (std::abs(move_operators[c][i][j].real() -
-                       move_operators[c][j][i].real()) > epsilon) {
-            is_symmetric = false;
-            is_stochastic = false;
-            break;
-          }
-          sum_column += move_operators[c][i][j].real();
-        }
-        if (std::abs(sum_column - 1.) > epsilon) {
-          is_stochastic = false;
-        }
-      }
-      if (is_complex == true) {
-        InfoMessage() << "Warning: MoveOperators " << c
-                      << " has complex matrix elements" << std::endl;
-      }
-      if (is_definite_positive == false) {
-        InfoMessage() << "Warning: MoveOperators " << c
-                      << " has negative matrix elements" << std::endl;
-      }
-      if (is_symmetric == false) {
-        InfoMessage() << "Warning: MoveOperators " << c << " is not symmetric"
-                      << std::endl;
-      }
-      if (is_stochastic == false) {
-        InfoMessage() << "Warning: MoveOperators " << c << " is not stochastic"
-                      << std::endl;
-        InfoMessage() << "MoveOperators " << c << " is discarded" << std::endl;
-      }
-
-      else {
-        move_operators_.push_back(
-            LocalOperator(hilbert_, move_operators[c], acting_on[c]));
-        for (std::size_t i = 0; i < acting_on[c].size(); i++) {
-          touched_sites.insert(acting_on[c][i]);
-        }
-      }
-    }
-
-    if (move_operators_.size() == 0) {
-      throw InvalidInputError("No valid MoveOperators provided");
-    }
-
-    if (static_cast<int>(touched_sites.size()) != hilbert_.Size()) {
-      InfoMessage() << "Warning: MoveOperators appear not to act on "
-                       "all sites of the sample:"
-                    << std::endl;
-      InfoMessage() << "Check ergodicity" << std::endl;
+          "Move operators in CustomSampler act on a different hilbert space "
+          "than the Machine");
     }
 
     if (move_weights.size()) {
       operatorsweights_ = move_weights;
 
-      if (operatorsweights_.size() != move_operators.size()) {
+      if (operatorsweights_.size() != move_operators.Size()) {
         throw InvalidInputError(
             "The custom sampler definition is inconsistent (between "
             "MoveWeights and MoveOperators sizes)");
       }
 
     } else {  // By default the stochastic operators are drawn uniformly
-      operatorsweights_.resize(move_operators_.size(), 1.0);
-    }
-
-    Init();
-  }
-
-  // TODO remove
-  template <class Ptype>
-  explicit CustomSamplerPt(WfType &psi, const Ptype &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    CheckFieldExists(pars, "Nreplicas");
-    nrep_ = FieldVal<int>(pars, "Nreplicas");
-
-    CheckFieldExists(pars, "MoveOperators");
-
-    // TODO
-    // if (!pars["MoveOperators"].is_array()) {
-    //   throw InvalidInputError("MoveOperators is not an array");
-    // }
-    CheckFieldExists(pars, "ActingOn");
-
-    // if (!pars["ActingOn"].is_array()) {
-    //   throw InvalidInputError("ActingOn is not an array");
-    // }
-
-    std::vector<MatType> jop =
-        FieldVal<std::vector<MatType>>(pars, "MoveOperators");
-    std::vector<std::vector<int>> sites =
-        FieldVal<std::vector<std::vector<int>>>(pars, "ActingOn");
-
-    if (sites.size() != jop.size()) {
-      throw InvalidInputError(
-          "The custom sampler definition is inconsistent (between "
-          "MoveOperators and ActingOn sizes); Check that ActingOn is defined");
-    }
-
-    std::set<int> touched_sites;
-    for (std::size_t c = 0; c < jop.size(); c++) {
-      // check if matrix of this operator is stochastic
-      bool is_stochastic = true;
-      bool is_complex = false;
-      bool is_definite_positive = true;
-      bool is_symmetric = true;
-      const double epsilon = 1.0e-6;
-      for (std::size_t i = 0; i < jop[c].size(); i++) {
-        double sum_column = 0.;
-        for (std::size_t j = 0; j < jop[c].size(); j++) {
-          if (std::abs(jop[c][i][j].imag()) > epsilon) {
-            is_complex = true;
-            is_stochastic = false;
-            break;
-          }
-          if (jop[c][i][j].real() < 0) {
-            is_definite_positive = false;
-            is_stochastic = false;
-            break;
-          }
-          if (std::abs(jop[c][i][j].real() - jop[c][j][i].real()) > epsilon) {
-            is_symmetric = false;
-            is_stochastic = false;
-            break;
-          }
-          sum_column += jop[c][i][j].real();
-        }
-        if (std::abs(sum_column - 1.) > epsilon) {
-          is_stochastic = false;
-        }
-      }
-      if (is_complex == true) {
-        InfoMessage() << "Warning: MoveOperators " << c
-                      << " has complex matrix elements" << std::endl;
-      }
-      if (is_definite_positive == false) {
-        InfoMessage() << "Warning: MoveOperators " << c
-                      << " has negative matrix elements" << std::endl;
-      }
-      if (is_symmetric == false) {
-        InfoMessage() << "Warning: MoveOperators " << c << " is not symmetric"
-                      << std::endl;
-      }
-      if (is_stochastic == false) {
-        InfoMessage() << "Warning: MoveOperators " << c << " is not stochastic"
-                      << std::endl;
-        InfoMessage() << "MoveOperators " << c << " is discarded" << std::endl;
-      }
-
-      else {
-        move_operators_.push_back(LocalOperator(hilbert_, jop[c], sites[c]));
-        for (std::size_t i = 0; i < sites[c].size(); i++) {
-          touched_sites.insert(sites[c][i]);
-        }
-      }
-    }
-
-    if (move_operators_.size() == 0) {
-      throw InvalidInputError("No valid MoveOperators provided");
-    }
-
-    if (static_cast<int>(touched_sites.size()) != hilbert_.Size()) {
-      InfoMessage() << "Warning: MoveOperators appear not to act on "
-                       "all sites of the sample:"
-                    << std::endl;
-      InfoMessage() << "Check ergodicity" << std::endl;
-    }
-
-    if (FieldExists(pars, "MoveWeights")) {
-      // if (!pars["MoveWeights"].is_array()) {
-      //   throw InvalidInputError("MoveWeights is not an array");
-      // }
-      const std::vector<double> opw =
-          FieldVal<std::vector<double>>(pars, "MoveWeights");
-      operatorsweights_ = opw;
-
-      if (operatorsweights_.size() != jop.size()) {
-        throw InvalidInputError(
-            "The custom sampler definition is inconsistent (between "
-            "MoveWeights and MoveOperators sizes)");
-      }
-
-    } else {  // By default the stochastic operators are drawn uniformly
-      operatorsweights_.resize(move_operators_.size(), 1.0);
+      operatorsweights_.resize(move_operators_.Size(), 1.0);
     }
 
     Init();
@@ -362,14 +171,14 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
       // pick a random operator in possible ones according to the provided
       // weights
       int op = disc_dist(rgen_);
-      move_operators_[op].FindConn(v_[rep], mel_, tochange_, newconfs_);
+      move_operators_.FindConn(op, v_[rep], mel_, tochange_, newconfs_);
 
       double p = distu(rgen_);
       std::size_t exit_state = 0;
-      double cumulative_prob = mel_[0].real();
+      double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
         exit_state++;
-        cumulative_prob += mel_[exit_state].real();
+        cumulative_prob += std::real(mel_[exit_state]);
       }
 
       double ratio = std::norm(std::exp(
