@@ -228,26 +228,30 @@ class FFNN : public AbstractMachine<T> {
     return der;
   }
 
-  void DerLog(VisibleConstType v, VectorType &der, const LookupType &lt) {
+  void DerLog(VisibleConstType v, VectorRefType der, const LookupType &lt) {
     int start_idx = npar_;
+    int num_of_pars;
     // Backpropagation
     if (nlayer_ > 1) {
-      start_idx -= layers_[nlayer_ - 1]->Npar();
+      num_of_pars = layers_[nlayer_ - 1]->Npar();
+      start_idx -= num_of_pars;
       // Last Layer
       layers_[nlayer_ - 1]->Backprop(lt.V(nlayer_ - 2), lt.V(nlayer_ - 1),
-                                     din_.back(), din_[nlayer_ - 1], der,
-                                     start_idx);
+                                     din_.back(), din_[nlayer_ - 1],
+                                     der.segment(start_idx, num_of_pars));
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
-        start_idx -= layers_[i]->Npar();
-        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), din_[i + 1], din_[i], der,
-                             start_idx);
+        num_of_pars = layers_[i]->Npar();
+        start_idx -= num_of_pars;
+        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), din_[i + 1], din_[i],
+                             der.segment(start_idx, num_of_pars));
       }
       // First Layer
-      layers_[0]->Backprop(v, lt.V(0), din_[1], din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), din_[1], din_[0],
+                           der.segment(0, layers_[0]->Npar()));
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, lt.V(0), din_.back(), din_[0], der, 0);
+      layers_[0]->Backprop(v, lt.V(0), din_.back(), din_[0], der);
     }
   }
 
