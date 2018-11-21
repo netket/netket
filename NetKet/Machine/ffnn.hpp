@@ -160,6 +160,7 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void InitLookup(VisibleConstType v, LookupType &lt) override {
+    // Do a forward pass to get the outputs of each layer.
     if (lt.VectorSize() == 0) {
       lt.AddVector(layersizes_[1]);  // contains the output of layer 0
       layers_[0]->Forward(v, lt.V(0));
