@@ -108,7 +108,7 @@ class FullyConnected : public AbstractLayer<T> {
 
     netket::RandomGaussian(par, seed, sigma);
 
-    SetParameters(par, 0);
+    SetParameters(par);
   }
 
   int Npar() const override { return npar_; }
@@ -126,8 +126,8 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void SetParameters(VectorConstRefType pars, int start_idx) override {
-    int k = start_idx;
+  void SetParameters(VectorConstRefType pars) override {
+    int k = 0;
 
     if (usebias_) {
       std::memcpy(bias_.data(), pars.data() + k, out_size_ * scalar_bytesize_);
