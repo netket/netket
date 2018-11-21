@@ -79,18 +79,6 @@ class AbstractLayer {
   @param sigma is the variance of the gaussian.
   */
   virtual void InitRandomPars(int seed, double sigma) = 0;
-  /**
-  Member function to initialise the lookup for the later. "Summary: This
-  function uses the input vector v to compute the lookup lt and the output. This
-  function also resizes the lookup elements to the correct size."
-  @param v is the input vector.
-  @param theta is a vector in the lookuptable storing the output of the
-  layer before the nonlinear function is applied.
-  @param output is a vector in the lookuptable storing the previous output of
-  the current layer.
-  */
-  virtual void InitLookup(const VectorType &v, LookupType &lt,
-                          VectorType &output) = 0;
 
   /**
   Member function to update the lookuptable which stores the theta of

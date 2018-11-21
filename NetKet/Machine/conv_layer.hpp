@@ -211,12 +211,6 @@ class Convolutional : public AbstractLayer<T> {
     }
   }
 
-  void InitLookup(const VectorType &v, LookupType &lt,
-                  VectorType &output) override {
-    lt.resize(0);
-    Forward(v, output);
-  }
-
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
                     const VectorType &new_input, LookupType & /*theta*/,
