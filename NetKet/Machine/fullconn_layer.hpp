@@ -154,8 +154,8 @@ class FullyConnected : public AbstractLayer<T> {
       Forward(new_input, new_output);
     } else if (num_of_changes > 0) {
       output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      UpdateOutput(input, input_changes, new_input, output, new_output);
+      new_output = output;
+      UpdateOutput(input, input_changes, new_input, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -170,8 +170,8 @@ class FullyConnected : public AbstractLayer<T> {
     const int num_of_changes = tochange.size();
     if (num_of_changes > 0) {
       output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      UpdateOutput(input, tochange, newconf, output, new_output);
+      new_output = output;
+      UpdateOutput(input, tochange, newconf, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -189,9 +189,8 @@ class FullyConnected : public AbstractLayer<T> {
   inline void UpdateOutput(const VectorType &v,
                            const std::vector<int> &input_changes,
                            const VectorType &new_input,
-                           const VectorType &output, VectorType &new_output) {
+                           VectorType &new_output) {
     const int num_of_changes = input_changes.size();
-    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = input_changes[s];
       new_output += weight_.row(sf) * (new_input(s) - v(sf));
@@ -203,9 +202,8 @@ class FullyConnected : public AbstractLayer<T> {
   inline void UpdateOutput(const VectorType &prev_input,
                            const std::vector<int> &tochange,
                            const std::vector<double> &newconf,
-                           const VectorType &output, VectorType &new_output) {
+                           VectorType &new_output) {
     const int num_of_changes = tochange.size();
-    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = tochange[s];
       new_output += weight_.row(sf) * (newconf[s] - prev_input(sf));
