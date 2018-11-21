@@ -31,19 +31,24 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 layers = [
     nk.layer.FullyConnected(
         input_size=g.n_sites,
-        output_size=40)
+        output_size=40),
+    nk.layer.Lncosh(input_size=40),
 ]
 
 # FFNN Machine
 machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
 
 layers = [
+    nk.layer.FullyConnected(
+        input_size=g.n_sites,
+        output_size=4),
+    nk.layer.Lncosh(input_size=4),
     nk.layer.Convolutional(
         graph=g,
         input_channels=1,
         output_channels=2,
-        distance=2,
-        activation=nk.activation.Tanh())
+        distance=1),
+    nk.layer.Lncosh(input_size=8),
 ]
 
 # FFNN Machine

@@ -108,7 +108,7 @@ class FullyConnected : public AbstractLayer<T> {
 
     netket::RandomGaussian(par, seed, sigma);
 
-    SetParameters(par, 0);
+    SetParameters(par);
   }
 
   int Npar() const override { return npar_; }
@@ -117,11 +117,10 @@ class FullyConnected : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorRefType pars, int start_idx) const override {
-    int k = start_idx;
-
+  void GetParameters(VectorRefType pars) const override {
+    int k = 0;
     if (usebias_) {
-      std::memcpy(pars.data() + k, bias_.data(), out_size_ * scalar_bytesize_);
+      std::memcpy(pars.data(), bias_.data(), out_size_ * scalar_bytesize_);
       k += out_size_;
     }
 
@@ -129,8 +128,8 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void SetParameters(VectorConstRefType pars, int start_idx) override {
-    int k = start_idx;
+  void SetParameters(VectorConstRefType pars) override {
+    int k = 0;
 
     if (usebias_) {
       std::memcpy(bias_.data(), pars.data() + k, out_size_ * scalar_bytesize_);
@@ -142,27 +141,20 @@ class FullyConnected : public AbstractLayer<T> {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void InitLookup(const VectorType &v, LookupType &lt,
-                  VectorType &output) override {
-    lt.resize(0);
-
-    Forward(v, lt, output);
-  }
-
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType &theta,
-                    const VectorType &output, std::vector<int> &output_changes,
+                    const VectorType &new_input, const VectorType &output,
+                    std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes == in_size_) {
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(new_input, theta, new_output);
+      Forward(new_input, new_output);
     } else if (num_of_changes > 0) {
       output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      UpdateOutput(input, input_changes, new_input, output, new_output);
+      new_output = output;
+      UpdateOutput(input, input_changes, new_input, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -171,14 +163,14 @@ class FullyConnected : public AbstractLayer<T> {
 
   void UpdateLookup(const Eigen::VectorXd &input,
                     const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType & /*theta*/,
+                    const std::vector<double> &newconf,
                     const VectorType &output, std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = tochange.size();
     if (num_of_changes > 0) {
       output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      UpdateOutput(input, tochange, newconf, output, new_output);
+      new_output = output;
+      UpdateOutput(input, tochange, newconf, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
@@ -186,18 +178,7 @@ class FullyConnected : public AbstractLayer<T> {
   }
 
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
-               VectorType &output) override {
-    LinearTransformation(prev_layer_output, output);
-  }
-
-  // Feedforward Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
-  }
-
-  // Applies the linear transformation
-  inline void LinearTransformation(const VectorType &input,
-                                   VectorType &output) {
+  void Forward(const VectorType &input, VectorType &output) override {
     output = bias_;
     output.noalias() += weight_.transpose() * input;
   }
@@ -207,9 +188,8 @@ class FullyConnected : public AbstractLayer<T> {
   inline void UpdateOutput(const VectorType &v,
                            const std::vector<int> &input_changes,
                            const VectorType &new_input,
-                           const VectorType &output, VectorType &new_output) {
+                           VectorType &new_output) {
     const int num_of_changes = input_changes.size();
-    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = input_changes[s];
       new_output += weight_.row(sf) * (new_input(s) - v(sf));
@@ -221,9 +201,8 @@ class FullyConnected : public AbstractLayer<T> {
   inline void UpdateOutput(const VectorType &prev_input,
                            const std::vector<int> &tochange,
                            const std::vector<double> &newconf,
-                           const VectorType &output, VectorType &new_output) {
+                           VectorType &new_output) {
     const int num_of_changes = tochange.size();
-    new_output = output;
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = tochange[s];
       new_output += weight_.row(sf) * (newconf[s] - prev_input(sf));
@@ -233,11 +212,11 @@ class FullyConnected : public AbstractLayer<T> {
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType & /*this_layer_output*/,
-                const LookupType & /*this_layer_theta*/, const VectorType &dout,
-                VectorType &din, VectorType &der, int start_idx) override {
+                const VectorType &dout, VectorType &din,
+                VectorRefType der) override {
     // dout = d(L) / d(z)
     // Derivative for bias, d(L) / d(b) = d(L) / d(z)
-    int k = start_idx;
+    int k = 0;
 
     if (usebias_) {
       Eigen::Map<VectorType> der_b{der.data() + k, out_size_};
