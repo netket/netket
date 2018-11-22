@@ -167,7 +167,7 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
       bias_.setZero();
     }
 
-    name_ = "Convolutional Layer";
+    name_ = "Convolutional Hypercube Layer";
   }
 
   std::string Name() const override { return name_; }
