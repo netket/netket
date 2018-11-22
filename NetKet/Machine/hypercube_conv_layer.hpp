@@ -97,9 +97,9 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
           "commensurate");
     }
     // Check that kernel_length_ is smaller than or equal input image length_
-    if (kernel_length_ <= lin_) {
+    if (kernel_length_ > lin_) {
       throw InvalidInputError(
-          "kernel_length must be at least as large as input image length, "
+          "kernel_length must be at most as large as input image length, "
           "length");
     }
 
@@ -379,14 +379,12 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
     der_w.noalias() = lowered_image2_.transpose() * dLz_reshaped;
 
     // Compute d(L) / d_in = W * [d(L) / d(z)]
-    int kout = 0;
+    // int kout = 0;
     for (int out = 0; out < out_channels_; ++out) {
       for (int in = 0; in < in_channels_; ++in) {
-        for (int k = 0; k < kernel_size_; ++k) {
-          flipped_kernels_(k + kout, in) = kernels_(k + in * kernel_size_, out);
-        }
+        flipped_kernels_.block(out * kernel_size_, in, kernel_size_, 1) =
+            kernels_.block(in * kernel_size_, out, kernel_size_, 1);
       }
-      kout += kernel_size_;
     }
 
     for (int i = 0; i < nv_; i++) {
