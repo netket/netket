@@ -89,12 +89,21 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
         out_channels_(output_channels),
         stride_(stride),
         kernel_length_(kernel_length) {
-    // Check that stride_ is compatible with lin_
+    // Compatibility checks
+    // Check that stride_ is compatible with input image length lin_
     if (lin_ % stride_ != 0) {
       throw InvalidInputError(
           "Stride size is incompatiple with input image size: they should be "
           "commensurate");
     }
+    // Check that kernel_length_ is smaller than or equal input image length_
+    if (kernel_length_ <= lin_) {
+      throw InvalidInputError(
+          "kernel_length must be at least as large as input image length, "
+          "length");
+    }
+
+    // Compute the image sizes
     lout_ = lin_ / stride_;
     nv_ = 1;
     nout_ = 1;
@@ -111,8 +120,8 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
   }
 
   void Init() {
-    // Construct neighbourhood of all nodes with distance of at most dist_ from
-    // each node i, kernel(k) will act on the node neighbours_[i][k] of the
+    // Construct neighbourhood of all nodes to be acted on by a kernel, i.e.
+    // kernel(k) will act on the node neighbours_[i][k] of the
     // input image to give a value at node i in the output image.
     std::vector<Eigen::VectorXi> trans;
     for (int i = 0; i < kernel_size_; ++i) {
