@@ -106,32 +106,6 @@ class AbstractLayer {
                             const VectorType &output,
                             std::vector<int> &output_changes,
                             VectorType &new_output) = 0;
-  /**
-  Member function to update the lookuptable which stores the theta of
-  each layer. "Summary: This function uses input, tochange and newconf
-  to generate theta which in turn gives output on application of the nonlinear
-  transformation. output_changes and new_output keeps track of how the
-  output of the layer has changed due to changes in the input."
-  @param input is a vector in the lookuptable storing the output from the
-  previous layer. This would be the old input to the current layer.
-  @param tochange is a std::vector containing the nodes of the input
-  which has changed.
-  @param newconf is a vector containing the new values at the changed
-  input nodes.
-  @param theta is a vector in the lookuptable storing the output of the
-  layer before the nonlinear function is applied.
-  @param output is a vector in the lookuptable storing the previous output of
-  the current layer.
-  @param output_changes is a vector containing the nodes of the output which has
-  changed.
-  @param new_output is a vector storing the new output of the layer.
-  */
-  virtual void UpdateLookup(const Eigen::VectorXd &input,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            const VectorType &output,
-                            std::vector<int> &output_changes,
-                            VectorType &new_output) = 0;
 
   /**
   Member function to feedforward through the layer. Writes the output into
