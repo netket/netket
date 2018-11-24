@@ -93,27 +93,6 @@ class Activation : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd & /*input*/,
-                    const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = tochange.size();
-    if (num_of_changes > 0) {
-      output_changes = tochange;
-      new_output.resize(num_of_changes);
-      Eigen::VectorXcd new_input(num_of_changes);
-      for (int j = 0; j < num_of_changes; ++j) {
-        new_input(j) = newconf[j];
-      }
-      activation_.operator()(new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     activation_.operator()(input, output);

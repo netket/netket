@@ -161,22 +161,6 @@ class FullyConnected : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd &input,
-                    const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    const VectorType &output, std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = tochange.size();
-    if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output = output;
-      UpdateOutput(input, tochange, newconf, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     output = bias_;
