@@ -304,26 +304,6 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
     }
   }
 
-  inline void UpdateOutput(const VectorType &prev_input,
-                           const std::vector<int> &tochange,
-                           const std::vector<double> &newconf,
-                           VectorType &new_output) {
-    const int num_of_changes = tochange.size();
-    for (int s = 0; s < num_of_changes; ++s) {
-      const int sf = tochange[s];
-      int kout = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int k = 0; k < kernel_size_; ++k) {
-          if (flipped_nodes_[sf][k] >= 0) {
-            new_output(flipped_nodes_[sf][k] + kout) +=
-                kernels_(k, out) * (newconf[s] - prev_input(sf));
-          }
-        }
-        kout += nout_;
-      }
-    }
-  }
-
   void Backprop(const VectorType &prev_layer_output,
                 const VectorType & /*this_layer_output*/,
                 const VectorType &dout, VectorType &din,
