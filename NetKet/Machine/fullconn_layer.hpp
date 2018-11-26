@@ -161,22 +161,6 @@ class FullyConnected : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd &input,
-                    const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    const VectorType &output, std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = tochange.size();
-    if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output = output;
-      UpdateOutput(input, tochange, newconf, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     output = bias_;
@@ -193,19 +177,6 @@ class FullyConnected : public AbstractLayer<T> {
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = input_changes[s];
       new_output += weight_.row(sf) * (new_input(s) - v(sf));
-    }
-  }
-
-  // Updates theta given the previous input prev_input and the change in the
-  // input (tochange and  newconf)
-  inline void UpdateOutput(const VectorType &prev_input,
-                           const std::vector<int> &tochange,
-                           const std::vector<double> &newconf,
-                           VectorType &new_output) {
-    const int num_of_changes = tochange.size();
-    for (int s = 0; s < num_of_changes; s++) {
-      const int sf = tochange[s];
-      new_output += weight_.row(sf) * (newconf[s] - prev_input(sf));
     }
   }
 
