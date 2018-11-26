@@ -314,8 +314,16 @@ class LocalOperator : public AbstractOperator {
   }
 
   friend LocalOperator operator+(LocalOperator lhs, const LocalOperator &rhs) {
-    lhs += rhs;
-    return lhs;  // return the result by value (uses move constructor)
+    assert(lhs.hilbert_->LocalStates().size() ==
+           rhs.hilbert_->LocalStates().size());
+
+    LocalOperator result(lhs);
+
+    for (std::size_t opn = 0; opn < rhs.mat_.size(); opn++) {
+      result.Push(rhs.mat_[opn], rhs.sites_[opn]);
+    }
+    result.Init();
+    return result;  // return the result by value (uses move constructor)
   }
 
   friend LocalOperator operator*(double lhs, const LocalOperator &rhs) {
