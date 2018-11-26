@@ -29,7 +29,29 @@ operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 #szsz = [[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]]
 #sy = np.array([[0,1j],[-1j,0]])
 #
-# operators["Custom"] =
+
+sx = [[0, 1], [1, 0]]
+sy = [[0, 1.0j], [-1.0j, 0]]
+sz = [[1, 0], [0, -1]]
+g = nk.graph.CustomGraph(edges=[[i, i + 1] for i in range(20)])
+hi = nk.hilbert.CustomHilbert(local_states=[1, -1], graph=g)
+
+sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
+sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[2], [3], [4], [9]])
+szsz_hat = nk.operator.LocalOperator(hi, sz, [0]) * nk.operator.LocalOperator(
+    hi, sz, [1])
+szsz_hat += nk.operator.LocalOperator(hi, sz, [4]) * nk.operator.LocalOperator(
+    hi, sz, [5])
+szsz_hat += nk.operator.LocalOperator(hi, sz, [6]) * nk.operator.LocalOperator(
+    hi, sz, [8])
+szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
+    hi, sz, [0])
+
+operators["Custom Hamiltonian"] = sx_hat + sy_hat
+
+
+operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
+
 rg = nk.utils.RandomEngine(seed=1234)
 
 
@@ -53,26 +75,3 @@ def test_produce_elements_in_hilbert():
 
                 for rs in rstatet:
                     assert(rs in local_states)
-
-
-def test_local_operator_ops():
-    sx = [[0, 1], [1, 0]]
-
-    sy = np.array([[0, 1j], [-1j, 0]]).tolist()
-    sz = [[1, 0], [0, -1]]
-
-    g = nk.graph.CustomGraph(edges=[[i, i + 1] for i in range(20)])
-    hi = nk.hilbert.CustomHilbert(local_states=[1, -1], graph=g)
-
-    sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
-    sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[2], [3], [4], [9]])
-    szsz_hat = nk.operator.LocalOperator(
-        hi, sz, [0]) * nk.operator.LocalOperator(hi, sz, [1])
-    szsz_hat += nk.operator.LocalOperator(hi, sz,
-                                          [4]) * nk.operator.LocalOperator(hi, sz, [5])
-    szsz_hat += nk.operator.LocalOperator(hi, sz,
-                                          [6]) * nk.operator.LocalOperator(hi, sz, [8])
-    szsz_hat += nk.operator.LocalOperator(hi, sz,
-                                          [7]) * nk.operator.LocalOperator(hi, sz, [0])
-
-    operators["Custom Hamiltonian"] = sx_hat + sy_hat
