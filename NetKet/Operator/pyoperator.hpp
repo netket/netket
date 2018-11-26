@@ -48,7 +48,7 @@ void AddOperatorModule(py::module &m) {
                     LocalOperator::MatType, LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
       .def("local_matrices", &LocalOperator::LocalMatrices)
-      .def(py::self += py::self)
+      .def(py::self + py::self)
       .def(py::self *= double())
       .def(py::self *= std::complex<double>())
       .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
