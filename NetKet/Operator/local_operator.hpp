@@ -252,40 +252,6 @@ class LocalOperator : public AbstractOperator {
     return invstate_[opn].at(state);
   }
 
-  LocalOperator &operator+=(const LocalOperator &rhs) {
-    assert(hilbert_->LocalStates().size() ==
-           rhs.hilbert_->LocalStates().size());
-
-    for (std::size_t opn = 0; opn < rhs.mat_.size(); opn++) {
-      Push(rhs.mat_[opn], rhs.sites_[opn]);
-    }
-    Init();
-    return *this;
-  }
-
-  LocalOperator &operator*=(const double &val) {
-    for (std::size_t opn = 0; opn < mat_.size(); opn++) {
-      for (std::size_t i = 0; i < mat_[opn].size(); i++) {
-        for (std::size_t j = 0; j < mat_[opn][i].size(); j++) {
-          mat_[opn][i][j] *= val;
-        }
-      }
-    }
-
-    return *this;
-  }
-
-  LocalOperator &operator*=(const std::complex<double> &val) {
-    for (std::size_t opn = 0; opn < mat_.size(); opn++) {
-      for (std::size_t i = 0; i < mat_[opn].size(); i++) {
-        for (std::size_t j = 0; j < mat_[opn][i].size(); j++) {
-          mat_[opn][i][j] *= val;
-        }
-      }
-    }
-    return *this;
-  }
-
   // Product of two local operators, performing KroneckerProducts as necessary
   friend LocalOperator operator*(const LocalOperator &lhs,
                                  const LocalOperator &rhs) {
@@ -313,26 +279,33 @@ class LocalOperator : public AbstractOperator {
     return LocalOperator(lhs.GetHilbert(), mat, sites);
   }
 
-  friend LocalOperator operator+(LocalOperator lhs, const LocalOperator &rhs) {
-    assert(lhs.hilbert_->LocalStates().size() ==
-           rhs.hilbert_->LocalStates().size());
-
-    LocalOperator result(lhs);
-
-    for (std::size_t opn = 0; opn < rhs.mat_.size(); opn++) {
-      result.Push(rhs.mat_[opn], rhs.sites_[opn]);
-    }
-    result.Init();
-    return result;  // return the result by value (uses move constructor)
-  }
-
-  friend LocalOperator operator*(double lhs, const LocalOperator &rhs) {
-    return LocalOperator(rhs) *= lhs;
-  }
-
-  friend LocalOperator operator*(std::complex<double> lhs,
+  friend LocalOperator operator+(const LocalOperator &lhs,
                                  const LocalOperator &rhs) {
-    return LocalOperator(rhs) *= lhs;
+    assert(rhs.hilbert_->LocalStates().size() ==
+           lhs.hilbert_->LocalStates().size());
+
+    auto sites = lhs.sites_;
+    auto mat = lhs.mat_;
+
+    sites.insert(sites.end(), rhs.sites_.begin(), rhs.sites_.end());
+    mat.insert(mat.end(), rhs.mat_.begin(), rhs.mat_.end());
+
+    return LocalOperator(lhs.GetHilbert(), mat, sites);
+  }
+
+  template <class T>
+  friend LocalOperator operator*(T lhs, const LocalOperator &rhs) {
+    auto mat = rhs.mat_;
+    auto sites = rhs.sites_;
+
+    for (std::size_t opn = 0; opn < mat.size(); opn++) {
+      for (std::size_t i = 0; i < mat[opn].size(); i++) {
+        for (std::size_t j = 0; j < mat[opn][i].size(); j++)
+          mat[opn][i][j] *= lhs;
+      }
+    }
+
+    return LocalOperator(rhs.GetHilbert(), mat, sites);
   }
 
   std::vector<MatType> LocalMatrices() const { return mat_; }
