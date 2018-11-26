@@ -75,3 +75,32 @@ def test_produce_elements_in_hilbert():
 
                 for rs in rstatet:
                     assert(rs in local_states)
+
+
+def test_operator_is_hermitean():
+    for name, ha in operators.items():
+        hi = ha.get_hilbert()
+        print(name, hi)
+        assert (len(hi.local_states()) == hi.local_size())
+
+        rstate = np.zeros(hi.size())
+
+        local_states = hi.local_states()
+
+        for i in range(100):
+            hi.random_vals(rstate, rg)
+            conns = ha.get_conn(rstate)
+
+            for mel, connector, newconf in zip(conns[0], conns[1], conns[2]):
+                rstatet = np.array(rstate)
+                hi.update_conf(rstatet, connector, newconf)
+
+                conns1 = ha.get_conn(rstatet)
+                foundinv = False
+                for meli, connectori, newconfi in zip(conns1[0], conns1[1], conns1[2]):
+                    rstatei = np.array(rstatet)
+                    hi.update_conf(rstatei, connectori, newconfi)
+                    if(np.array_equal(rstatei, rstate)):
+                        foundinv = True
+                        assert(meli == np.conj(mel))
+                assert(foundinv)
