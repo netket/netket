@@ -97,15 +97,16 @@ class Hypercube : public AbstractGraph {
       count *= length_;
     }
     if (count != n_sites_) {
-      throw InvalidInputError{"Specified length and color map are incompatible"};
+      throw InvalidInputError{
+          "Specified length and color map are incompatible"};
     }
 
     // For periodic boundary conditions, there are exactly ndim_ * nsites_ edges
     // and for open bounrary conditions -- ndim_ * (nsites_ - nsites_/length).
     if (static_cast<std::size_t>(n_dim_ * n_sites_) == edges_.size()) {
       pbc_ = true;
-    } else if (static_cast<std::size_t>(n_dim_ * (n_sites_ - n_sites_ / length)) ==
-               edges_.size()) {
+    } else if (static_cast<std::size_t>(
+                   n_dim_ * (n_sites_ - n_sites_ / length)) == edges_.size()) {
       pbc_ = false;
     } else {
       throw InvalidInputError{"Invalid color map"};
@@ -227,7 +228,8 @@ class Hypercube : public AbstractGraph {
     return std::tuple<int, std::vector<Edge>>{n_sites, std::move(edges)};
   }
 
-  static int Coord2Site(std::vector<int> const &coord, int const length) noexcept {
+  static int Coord2Site(std::vector<int> const &coord,
+                        int const length) noexcept {
     assert(length >= 0);
     auto site = 0;
     auto scale = 1;

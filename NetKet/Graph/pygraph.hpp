@@ -169,8 +169,8 @@ void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
   py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
-      .def("n_sites", &AbstractGraph::Nsites,
-           R"EOF(
+      .def_property_readonly("n_sites", &AbstractGraph::Nsites,
+                             R"EOF(
               Returns the number of vertices in the graph.
            )EOF")
       .def("edges",
