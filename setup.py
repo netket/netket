@@ -58,7 +58,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='netket',
-    version='0.1',
+    version='2.0',
     author='Giuseppe Carleo et al.',
     description='NetKet',
     url='http://github.com/netket/netket',

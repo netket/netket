@@ -30,26 +30,30 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 # Layers
 layers = [
     nk.layer.FullyConnected(
-        input_size=g.n_sites(),
-        output_size=40,
-        activation=nk.activation.Lncosh())
+        input_size=g.n_sites,
+        output_size=40),
+    nk.layer.Lncosh(input_size=40),
 ]
 
 # FFNN Machine
 machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
 
 layers = [
-    nk.layer.Convolutional(
-        graph=g,
+    nk.layer.ConvolutionalHypercube(
+        length=4,
+        dim=1,
         input_channels=1,
         output_channels=2,
-        distance=2,
-        activation=nk.activation.Tanh())
+        stride=1,
+        kernel_length=2,
+        use_bias=True),
+    nk.layer.Lncosh(
+        input_size=8),
 ]
 
 # FFNN Machine
 # BUG
-# machines["FFFN 1d Hypercube spin Convolutional"] = nk.machine.FFNN(hi, layers)
+machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
 
 machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
     hi, bond_dim=3)
@@ -99,7 +103,6 @@ def test_log_derivative():
         print("Machine test: %s" % name)
 
         npar = machine.n_par()
-        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
 
         # random visibile state
         hi = machine.get_hilbert()
@@ -109,15 +112,18 @@ def test_log_derivative():
 
         for i in range(100):
             hi.random_vals(v, rg)
-            grad = (nd.Gradient(log_val_f, step=1.0e-8))
 
+            randpars = 0.1 * (np.random.randn(npar) +
+                              1.0j * np.random.randn(npar))
             machine.set_parameters(randpars)
             der_log = machine.der_log(v)
 
             if("Jastrow" in name):
                 assert(np.max(np.imag(der_log)) == approx(0.))
 
+            grad = (nd.Gradient(log_val_f, step=1.0e-8))
             num_der_log = grad(randpars, machine, v)
+
             assert(np.max(np.real(der_log - num_der_log))
                    == approx(0., rel=1e-4, abs=1e-4))
             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift

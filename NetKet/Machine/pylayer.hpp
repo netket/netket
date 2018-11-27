@@ -42,27 +42,40 @@ void AddLayerModule(py::module &m) {
     using LayerType = FullyConnected<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
         subm, "FullyConnected")
-        .def(py::init<std::shared_ptr<const AbstractActivation>, int, int,
-                      bool>(),
-             py::arg("activation"), py::arg("input_size"),
+        .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
             ADDLAYERMETHODS(LayerType);
   }
   {
-    using LayerType = Convolutional<MachineType>;
+    using LayerType = ConvolutionalHypercube<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        subm, "Convolutional")
-        .def(py::init<std::shared_ptr<const AbstractGraph>,
-                      std::shared_ptr<const AbstractActivation>, int, int, int,
-                      bool>(),
-             py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
-             py::arg("output_channels"), py::arg("distance") = 1,
-             py::arg("use_bias") = false) ADDLAYERMETHODS(LayerType);
+        subm, "ConvolutionalHypercube")
+        .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
+             py::arg("dim"), py::arg("input_channels"),
+             py::arg("output_channels"), py::arg("stride") = 1,
+             py::arg("kernel_length") = 2, py::arg("use_bias") = false)
+            ADDLAYERMETHODS(LayerType);
   }
   {
     using LayerType = SumOutput<MachineType>;
     py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
                                                                    "SumOutput")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
+  {
+    using LayerType = Activation<MachineType, Lncosh>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
+                                                                   "Lncosh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
+  {
+    using LayerType = Activation<MachineType, Tanh>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Tanh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+  }
+  {
+    using LayerType = Activation<MachineType, Relu>;
+    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Relu")
         .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
   }
 }

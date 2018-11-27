@@ -22,8 +22,8 @@
 #include <fstream>
 #include <random>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {
@@ -40,8 +40,7 @@ class SumOutput : public AbstractLayer<T> {
 
   VectorType z_;  // Linear term, z = W' * in + b
 
-  // Note that input of this layer is also the output of
-  // previous layer
+  std::string name_;
 
  public:
   using StateType = typename AbstractLayer<T>::StateType;
@@ -67,10 +66,10 @@ class SumOutput : public AbstractLayer<T> {
   void Init() {
     z_.resize(out_size_);
 
-    std::string buffer = "";
-    InfoMessage(buffer) << "Sum Output Layer: " << in_size_ << " --> "
-                        << out_size_ << std::endl;
+    name_ = "Sum Output Layer";
   }
+
+  std::string Name() const override { return name_; }
 
   void InitRandomPars(int /*seed*/, double /*sigma*/) override {}
 
@@ -80,106 +79,49 @@ class SumOutput : public AbstractLayer<T> {
 
   int Noutput() const override { return out_size_; }
 
-  void GetParameters(VectorRefType /*pars*/, int /*start_idx*/) const override {
-  }
+  void GetParameters(VectorRefType /*pars*/) const override {}
 
-  void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
-
-  void InitLookup(const VectorType &v, LookupType &lt,
-                  VectorType &output) override {
-    lt.resize(1);
-    lt[0].resize(out_size_);
-
-    Forward(v, lt, output);
-  }
+  void SetParameters(VectorConstRefType /*pars*/) override {}
 
   void UpdateLookup(const VectorType &input,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType &theta,
-                    const VectorType & /*output*/,
+                    const VectorType &new_input, const VectorType &output,
                     std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
     if (num_of_changes == in_size_) {
       output_changes.resize(out_size_);
       new_output.resize(out_size_);
-      Forward(new_input, theta, new_output);
+      Forward(new_input, new_output);
     } else if (num_of_changes > 0) {
-      UpdateTheta(input, input_changes, new_input, theta);
       output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      Forward(theta, new_output);
+      new_output = output;
+      UpdateOutput(input, input_changes, new_input, new_output);
     } else {
       output_changes.resize(0);
       new_output.resize(0);
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd &input,
-                    const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType &theta,
-                    const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = tochange.size();
-    if (num_of_changes > 0) {
-      UpdateTheta(input, tochange, newconf, theta);
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      Forward(theta, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
+  void Forward(const VectorType &input, VectorType &output) override {
+    output(0) = input.sum();
   }
 
-  void Forward(const VectorType &prev_layer_output, LookupType &theta,
-               VectorType &output) override {
-    LinearTransformation(prev_layer_output, theta);
-    NonLinearTransformation(theta, output);
-  }
-
-  // Using lookup
-  void Forward(const LookupType &theta, VectorType &output) override {
-    // Apply activation function
-    NonLinearTransformation(theta, output);
-  }
-
-  inline void LinearTransformation(const VectorType &input, LookupType &theta) {
-    theta[0](0) = input.sum();
-  }
-
-  inline void NonLinearTransformation(const LookupType &theta,
-                                      VectorType &output) {
-    output(0) = theta[0](0);
-  }
-
-  inline void UpdateTheta(const VectorType &v,
-                          const std::vector<int> &input_changes,
-                          const VectorType &new_input, LookupType &theta) {
+  inline void UpdateOutput(const VectorType &v,
+                           const std::vector<int> &input_changes,
+                           const VectorType &new_input,
+                           VectorType &new_output) {
     const int num_of_changes = input_changes.size();
     for (int s = 0; s < num_of_changes; s++) {
       const int sf = input_changes[s];
-      theta[0](0) += (new_input(s) - v(sf));
-    }
-  }
-
-  inline void UpdateTheta(const VectorType &prev_input,
-                          const std::vector<int> &tochange,
-                          const std::vector<double> &newconf,
-                          LookupType &theta) {
-    const int num_of_changes = tochange.size();
-    for (int s = 0; s < num_of_changes; s++) {
-      const int sf = tochange[s];
-      theta[0](0) += (newconf[s] - prev_input(sf));
+      new_output(0) += (new_input(s) - v(sf));
     }
   }
 
   void Backprop(const VectorType & /*prev_layer_output*/,
                 const VectorType & /*this_layer_output*/,
-                const LookupType & /*this_layer_theta*/, const VectorType &dout,
-                VectorType &din, VectorType & /*der*/,
-                int /*start_idx*/) override {
+                const VectorType &dout, VectorType &din,
+                VectorRefType /*der*/) override {
     din.resize(in_size_);
     din.setConstant(dout(0));
   }
