@@ -10,6 +10,7 @@ graphs = [
     nk.graph.CustomGraph(nxg.edges())
 ]
 
+
 def coord2index(xs, length):
     if isinstance(xs, int):
         return xs
@@ -20,12 +21,16 @@ def coord2index(xs, length):
         scale *= length
     return i
 
+
 def check_edges(length, n_dim, pbc):
-    x = nx.grid_graph(dim=[length]*n_dim, periodic=pbc)
-    x_edges = sorted([[coord2index(i, length) for i in edge] for edge in x.edges])
+    x = nx.grid_graph(dim=[length] * n_dim, periodic=pbc)
+    x_edges = [[coord2index(i, length) for i in edge]
+               for edge in x.edges]
+    x_edges = sorted([sorted(ed) for ed in x_edges])
     y = nk.graph.Hypercube(length=length, n_dim=n_dim, pbc=pbc)
-    y_edges = sorted(list(y.edges()))
+    y_edges = sorted([sorted(ed) for ed in list(y.edges())])
     assert x_edges == y_edges
+
 
 def test_edges_are_correct():
     check_edges(1, 1, False)
@@ -36,6 +41,7 @@ def test_edges_are_correct():
                 check_edges(length, dim, pbc)
     for pbc in [True, False]:
         check_edges(3, 7, pbc)
+
 
 def tonx(graph):
     adl = graph.adjacency_list()
@@ -53,9 +59,11 @@ def tonx(graph):
         gx.add_node(i)
     return gx
 
+
 def test_size_is_positive():
     for graph in graphs:
         assert graph.n_sites > 0
+
 
 def test_is_connected():
     for i in range(5, 10):
@@ -63,6 +71,7 @@ def test_is_connected():
             x = nx.dense_gnm_random_graph(i, j)
             y = nk.graph.CustomGraph(x.edges())
             assert y.is_connected == nx.is_connected(x)
+
 
 def test_computes_distances():
     for graph in graphs:
@@ -73,3 +82,6 @@ def test_computes_distances():
             for i in range(graph.n_sites):
                 for j in range(graph.n_sites):
                     assert d1[i][j] == d[i][j]
+
+
+test_edges_are_correct()
