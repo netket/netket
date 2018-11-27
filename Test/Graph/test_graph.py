@@ -49,13 +49,13 @@ def tonx(graph):
         return nx.from_edgelist(edges)
 
     gx = nx.Graph()
-    for i in range(graph.n_sites()):
+    for i in range(graph.n_sites):
         gx.add_node(i)
     return gx
 
 def test_size_is_positive():
     for graph in graphs:
-        assert graph.n_sites() > 0
+        assert graph.n_sites > 0
 
 def test_is_connected():
     for i in range(5, 10):
@@ -70,6 +70,6 @@ def test_computes_distances():
             nxg = tonx(graph)
             d = graph.distances()
             d1 = dict(nx.shortest_path_length(nxg))
-            for i in range(graph.n_sites()):
-                for j in range(graph.n_sites()):
+            for i in range(graph.n_sites):
+                for j in range(graph.n_sites):
                     assert d1[i][j] == d[i][j]
