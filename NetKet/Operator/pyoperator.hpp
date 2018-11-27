@@ -53,11 +53,9 @@ void AddOperatorModule(py::module &m) {
            py::is_operator())
       .def("__rmul__", [](const LocalOperator &a, double b) { return b * a; },
            py::is_operator())
-      .def("__mul__",
-           [](const LocalOperator &a, std::complex<double> b) { return b * a; },
+      .def("__mul__", [](const LocalOperator &a, int b) { return b * a; },
            py::is_operator())
-      .def("__rmul__",
-           [](const LocalOperator &a, std::complex<double> b) { return b * a; },
+      .def("__rmul__", [](const LocalOperator &a, int b) { return b * a; },
            py::is_operator())
       .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
 
