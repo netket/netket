@@ -574,6 +574,69 @@ class QuantumStateReconstruction {
   }
   
   // Test the derivatives of the KL divergence
+  void TestDerNLLsampling(double eps=0.0000001){
+    
+    std::cout<<"-- Testing derivates of Negative Log-Likelihood with sampling--"<<std::endl;
+    auto pars = psi_.GetParameters();
+    ExactPartitionFunction();
+    Eigen::VectorXcd derNLL(npar_);
+    Eigen::VectorXcd alg_ders;
+    Eigen::VectorXcd num_ders_real;
+    Eigen::VectorXcd num_ders_imag;
+    alg_ders.setZero(npar_);
+    num_ders_real.setZero(npar_);
+    num_ders_imag.setZero(npar_);
+     
+    //-- ALGORITHMIC DERIVATIVES --//
+    for(std::size_t i=0; i<trainingSamples_.size(); i++){
+      RotateGradient(trainingBases_[i],trainingSamples_[i],derNLL);
+      alg_ders -= 2.0*derNLL.conjugate()/double(trainingSamples_.size()); 
+    }
+    
+    nsamples_node_ = 10000;
+    Sample();
+    int nsamp = vsamp_.rows();
+    for(int i=0; i<nsamp; i++){
+      alg_ders += 2.0 * psi_.DerLog(vsamp_.row(i)).conjugate() / double(nsamp);
+    }
+
+    //-- NUMERICAL DERIVATIVES --//
+    for(int p=0;p<npar_;p++){
+      pars(p)+=eps;
+      psi_.SetParameters(pars);
+      double valp=0.0;
+      ExactPartitionFunction();
+      NLL(trainingSamples_,trainingBases_);
+      valp = NLL_;
+      pars(p)-=2.0*eps;
+      psi_.SetParameters(pars);
+      double valm=0.0;
+      ExactPartitionFunction();
+      NLL(trainingSamples_,trainingBases_);
+      valm = NLL_;
+      pars(p)+=eps;
+      num_ders_real(p)=(-valm+valp)/(eps*2.0);
+
+      pars(p)+=I_*eps;
+      psi_.SetParameters(pars);
+      ExactPartitionFunction();
+      NLL(trainingSamples_,trainingBases_);
+      valp = NLL_;
+      pars(p)-=I_*2.0*eps;
+      psi_.SetParameters(pars);
+      ExactPartitionFunction();
+      NLL(trainingSamples_,trainingBases_);
+      valm = NLL_;
+      pars(p)+=eps;
+      num_ders_imag(p)=-(-valm+valp)/(I_*eps*2.0);
+      std::cout<<"Numerical Gradient = (";
+      std::cout<<num_ders_real(p).real()<<" , "<<num_ders_imag(p).imag()<<")\t-->";
+      std::cout<<"(";
+      std::cout<<alg_ders(p).real()<<" , "<<alg_ders(p).imag()<<")     ";
+      std::cout<<std::endl; 
+    }
+  }
+  // Test the derivatives of the KL divergence
   void TestDerNLL(double eps=0.0000001){
     
     std::cout<<"-- Testing derivates of Negative Log-Likelihood --"<<std::endl;
@@ -595,7 +658,6 @@ class QuantumStateReconstruction {
     for(int j=0;j<basis_states_.rows();j++){
       alg_ders += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))-0.5*logZ_))) * psi_.DerLog(basis_states_.row(j)).conjugate();
     }
-    
     //-- NUMERICAL DERIVATIVES --//
     for(int p=0;p<npar_;p++){
       pars(p)+=eps;
