@@ -21,8 +21,6 @@
 #include "Observable/observable.hpp"
 #include "Optimizer/optimizer.hpp"
 
-#include "unsupervised_learning.hpp"
-#include "test.hpp"
 #include "quantum_state_reconstruction.hpp"
 namespace netket {
 
@@ -56,15 +54,11 @@ class Unsupervised {
       Sampler<MachineType> sampler(graph, machine, pars);
       Optimizer optimizer(pars);
 
-      //UnsupervisedLearning unsupervised(sampler,optimizer,pars);
-      //unsupervised.TestDerKL();
-      //unsupervised.Run();
       QuantumStateReconstruction QSR(sampler,optimizer,pars);
       QSR.TestDerKL();
       QSR.TestDerNLL();
+      QSR.TestDerNLLsampling();
       //QSR.Run();
-      //Test t(sampler,pars);
-      //t.TestDerKL();
 
     } else {
       std::stringstream s;
