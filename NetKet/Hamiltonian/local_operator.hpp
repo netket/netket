@@ -60,24 +60,32 @@ class LocalOperator {
       throw InvalidInputError(
           "Cannot construct operators on infinite local hilbert spaces");
     }
-
-    if (*std::max_element(sites_.begin(), sites_.end()) >= hilbert_.Size() ||
-        *std::min_element(sites_.begin(), sites_.end()) < 0) {
-      throw InvalidInputError("Operator acts on an invalid set of sites");
+    
+    if (sites_.size() != 0){
+      if (*std::max_element(sites_.begin(), sites_.end()) >= hilbert_.Size() ||
+          *std::min_element(sites_.begin(), sites_.end()) < 0) {
+        throw InvalidInputError("Operator acts on an invalid set of sites");
+      }
     }
-
     auto localstates = hilbert_.LocalStates();
     localsize_ = localstates.size();
 
-    // Finding the non-zero matrix elements
-    const double epsilon = 1.0e-6;
-
     connected_.resize(mat_.size());
+    
+    // Special case for identity operator
+    if (sites_.size() == 0){
+      mat_.resize(1);
+      mat_[0].resize(1);
+      mat_[0][0] = 1.0;
+    }
 
     if (mat_.size() != std::pow(localsize_, sites_.size())) {
       throw InvalidInputError(
           "Matrix size in operator is inconsistent with Hilbert space");
     }
+
+    // Finding the non-zero matrix elements
+    const double epsilon = 1.0e-6;
 
     for (std::size_t i = 0; i < mat_.size(); i++) {
       for (std::size_t j = 0; j < mat_[i].size(); j++) {
@@ -156,6 +164,17 @@ class LocalOperator {
       newconfs.push_back(states_[st2]);
       mel.push_back(mat_[st1][st2]);
     }
+  }
+  
+  void Print() {
+    
+    for (std::size_t i=0;i<mat_.size();i++){
+      for (std::size_t j=0;j<mat_[i].size();j++){
+        std::cout<<mat_[i][j]<<" ";
+      }
+      std::cout<<std::endl;
+    }
+    //std::cout<<mat_<<std::endl;
   }
 
   inline int StateNumber(const Eigen::VectorXd &v) const {
