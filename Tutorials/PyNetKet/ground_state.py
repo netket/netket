@@ -17,7 +17,7 @@ import netket as nk
 from mpi4py import MPI
 
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=20, ndim=1)
+g = nk.graph.Hypercube(length=20, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)

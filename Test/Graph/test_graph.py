@@ -28,7 +28,7 @@ def check_edges(length, n_dim, pbc):
                for edge in x.edges]
     x_edges = sorted([sorted(ed) for ed in x_edges])
     y = nk.graph.Hypercube(length=length, n_dim=n_dim, pbc=pbc)
-    y_edges = sorted([sorted(ed) for ed in list(y.edges())])
+    y_edges = sorted([sorted(ed) for ed in list(y.edges)])
     assert x_edges == y_edges
 
 
@@ -44,7 +44,7 @@ def test_edges_are_correct():
 
 
 def tonx(graph):
-    adl = graph.adjacency_list()
+    adl = graph.adjacency_list
     i = 0
     edges = []
     for els in adl:
@@ -70,7 +70,7 @@ def test_is_connected():
         for j in range(5, 30, 5):
             # NOTE changing the seed here (say to 123) reveals a bug in Networkx
             x = nx.dense_gnm_random_graph(i, j, seed=1234)
-            y = nk.graph.CustomGraph(x.edges())
+            y = nk.graph.CustomGraph(x.edges)
             assert y.is_connected == nx.is_connected(x)
 
 
@@ -78,7 +78,7 @@ def test_computes_distances():
     for graph in graphs:
         if (graph.is_connected):
             nxg = tonx(graph)
-            d = graph.distances()
+            d = graph.distances
             d1 = dict(nx.shortest_path_length(nxg))
             for i in range(graph.n_sites):
                 for j in range(graph.n_sites):
