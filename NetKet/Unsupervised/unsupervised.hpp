@@ -23,7 +23,7 @@
 
 #include "unsupervised_learning.hpp"
 #include "test.hpp"
-
+#include "quantum_state_reconstruction.hpp"
 namespace netket {
 
 class Unsupervised {
@@ -46,20 +46,25 @@ class Unsupervised {
     }
 
     Graph graph(pars);
-    Hamiltonian hamiltonian(graph, pars);
+    //Hamiltonian hamiltonian(graph, pars);
 
     if (method_name == "Gd" || method_name == "Sr") {
       using MachineType = Machine<std::complex<double>>;
-      MachineType machine(graph, hamiltonian, pars);
+      Hilbert hilbert(pars);
+      MachineType machine(graph, hilbert, pars);
 
-      Sampler<MachineType> sampler(graph, hamiltonian, machine, pars);
+      Sampler<MachineType> sampler(graph, machine, pars);
       Optimizer optimizer(pars);
 
-      //UnsupervisedLearning unsupervised(hamiltonian,sampler,optimizer,pars);
+      //UnsupervisedLearning unsupervised(sampler,optimizer,pars);
       //unsupervised.TestDerKL();
       //unsupervised.Run();
-      Test t(sampler,pars);
-      t.TestDerKL();
+      QuantumStateReconstruction QSR(sampler,optimizer,pars);
+      QSR.TestDerKL();
+      QSR.TestDerNLL();
+      //QSR.Run();
+      //Test t(sampler,pars);
+      //t.TestDerKL();
 
     } else {
       std::stringstream s;
