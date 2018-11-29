@@ -182,19 +182,20 @@ void AddGraphModule(py::module& m) {
               Returns the number of vertices in the graph.
            )EOF")
       .def_property_readonly("edges",
-           [](AbstractGraph const& x) {
-             using std::begin;
-             using std::end;
-             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
-           },
-           py::keep_alive<0, 1>(),
-           R"EOF(
+                             [](AbstractGraph const& x) {
+                               using std::begin;
+                               using std::end;
+                               return py::make_iterator(begin(x.Edges()),
+                                                        end(x.Edges()));
+                             },
+                             py::keep_alive<0, 1>(),
+                             R"EOF(
                Returns the graph edges.
            )EOF")
-      .def("adjacency_list", &AbstractGraph::AdjacencyList,
-           R"EOF(
+      .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
+                             R"EOF(
                Returns the adjacency list of the graph where each node is
-               represented by an integer in ``[0, n_sites())``
+               represented by an integer in ``[0, n_sites)``
            )EOF")
       .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
                              R"EOF(
@@ -204,12 +205,12 @@ void AddGraphModule(py::module& m) {
                              R"EOF(
                Whether the graph is connected.
            )EOF")
-      .def("distances", &AbstractGraph::AllDistances,
-           R"EOF(
+      .def_property_readonly("distances", &AbstractGraph::AllDistances,
+                             R"EOF(
                Returns distances between the nodes. The fact that some node
                may not be reachable from another is represented by -1.
            )EOF")
-      .def("symmetry_table", &AbstractGraph::SymmetryTable);
+      .def_property_readonly("symmetry_table", &AbstractGraph::SymmetryTable);
 
   py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
                                                                    "Hypercube")

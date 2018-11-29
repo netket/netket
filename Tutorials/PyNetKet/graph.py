@@ -18,12 +18,12 @@ import networkx as nx
 from mpi4py import MPI
 
 g = nk.graph.Hypercube(length=10, n_dim=1)
-print(g.distances())
+print(g.distances)
 print(g.is_bipartite)
 print(g.is_connected)
 
 Gx = nx.star_graph(10)
 g = nk.graph.CustomGraph(Gx.edges)
-print(g.distances())
+print(g.distances)
 print(g.is_bipartite)
 print(g.is_connected)
