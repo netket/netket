@@ -6,19 +6,20 @@ from mpi4py import MPI
 operators = {}
 
 # Ising 1D
-g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 operators["Ising 1D"] = nk.operator.Ising(h=1.321, hilbert=hi)
 
 # Heisenberg 1D
-g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi)
 
 # Bose Hubbard
-g = nk.graph.Hypercube(length=3, ndim=2, pbc=True)
+g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
 hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+
 
 # Graph Hamiltonian
 # TODO (jamesETsmith)

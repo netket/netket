@@ -7,10 +7,9 @@ from pytest import approx
 
 samplers = {}
 
-
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=6, ndim=1)
+g = nk.graph.Hypercube(length=6, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -37,7 +36,7 @@ hi = nk.hilbert.Boson(graph=g, n_max=4)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 sa = nk.sampler.MetropolisLocal(machine=ma)
-g = nk.graph.Hypercube(length=4, ndim=1)
+g = nk.graph.Hypercube(length=4, n_dim=1)
 samplers["MetropolisLocal Boson"] = sa
 
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
@@ -49,7 +48,7 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 samplers["MetropolisLocal Boson MultiVal"] = sa
 
 hi = nk.hilbert.Spin(s=0.5, graph=g)
-g = nk.graph.Hypercube(length=6, ndim=1)
+g = nk.graph.Hypercube(length=6, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 l = hi.size()
