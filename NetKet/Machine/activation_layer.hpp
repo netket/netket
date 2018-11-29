@@ -53,7 +53,7 @@ class Activation : public AbstractLayer<T> {
 
   void to_json(json &pars) const override {
     json layerpar;
-    layerpar["Name"] = "Activation";
+    layerpar["Name"] = activation_.name;
     layerpar["Size"] = size_;
 
     pars["Machine"]["Layers"].push_back(layerpar);
@@ -69,22 +69,13 @@ class Activation : public AbstractLayer<T> {
 
   int Noutput() const override { return size_; }
 
-  void GetParameters(VectorRefType /*pars*/, int /*start_idx*/) const override {
-  }
+  void GetParameters(VectorRefType /*pars*/) const override {}
 
-  void SetParameters(VectorConstRefType /*pars*/, int /*start_idx*/) override {}
-
-  void InitLookup(const VectorType &v, LookupType &lt,
-                  VectorType &output) override {
-    lt.resize(0);
-
-    Forward(v, lt, output);
-  }
+  void SetParameters(VectorConstRefType /*pars*/) override {}
 
   void UpdateLookup(const VectorType & /*input*/,
                     const std::vector<int> &input_changes,
-                    const VectorType &new_input, LookupType & /*theta*/,
-                    const VectorType & /*output*/,
+                    const VectorType &new_input, const VectorType & /*output*/,
                     std::vector<int> &output_changes,
                     VectorType &new_output) override {
     const int num_of_changes = input_changes.size();
@@ -102,43 +93,15 @@ class Activation : public AbstractLayer<T> {
     }
   }
 
-  void UpdateLookup(const Eigen::VectorXd & /*input*/,
-                    const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, LookupType & /*theta*/,
-                    const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = tochange.size();
-    if (num_of_changes > 0) {
-      output_changes = tochange;
-      new_output.resize(num_of_changes);
-      Eigen::VectorXcd new_input(num_of_changes);
-      for (int j = 0; j < num_of_changes; ++j) {
-        new_input(j) = newconf[j];
-      }
-      activation_.operator()(new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
-  void Forward(const VectorType &prev_layer_output, LookupType & /*theta*/,
-               VectorType &output) override {
-    activation_.operator()(prev_layer_output, output);
-  }
-
-  // Feedforward Using lookup
-  void Forward(const LookupType & /*theta*/, VectorType & /*output*/) override {
+  void Forward(const VectorType &input, VectorType &output) override {
+    activation_.operator()(input, output);
   }
 
   // Computes derivative.
   void Backprop(const VectorType &prev_layer_output,
-                const VectorType &this_layer_output,
-                const LookupType & /*this_layer_theta*/, const VectorType &dout,
-                VectorType &din, VectorType & /*der*/,
-                int /*start_idx*/) override {
+                const VectorType &this_layer_output, const VectorType &dout,
+                VectorType &din, VectorRefType /*der*/) override {
     din.resize(size_);
     activation_.ApplyJacobian(prev_layer_output, this_layer_output, dout, din);
   }
