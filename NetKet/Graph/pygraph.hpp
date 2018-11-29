@@ -15,13 +15,8 @@
 #ifndef NETKET_PYGRAPH_HPP
 #define NETKET_PYGRAPH_HPP
 
-#include <mpi.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
 #include <vector>
 #include "netket.hpp"
 
@@ -29,17 +24,10 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDGRAPHMETHODS(name)                              \
-                                                           \
-  .def("Nsites", &AbstractGraph::Nsites)                   \
-      .def("AdjacencyList", &AbstractGraph::AdjacencyList) \
-      .def("SymmetryTable", &AbstractGraph::SymmetryTable) \
-      .def("EdgeColors", &AbstractGraph::EdgeColors)       \
-      .def("IsBipartite", &AbstractGraph::IsBipartite)     \
-      .def("IsConnected", &AbstractGraph::IsConnected)     \
-      .def("Distances", &AbstractGraph::Distances);
-
 namespace detail {
+/// Given a Python iterable, returns its length if it is known or 0 otherwise.
+/// This can safely be used to preallocate storage on the C++ side as calls to
+/// `std::vector<T>::reserve(0)` are basically noops.
 inline std::size_t LengthHint(py::iterable xs) {
   auto iterator = xs.attr("__iter__")();
   if (py::hasattr(iterator, "__length_hint__")) {
@@ -49,8 +37,16 @@ inline std::size_t LengthHint(py::iterable xs) {
   }
   return 0;
 }
+inline std::size_t LengthHint(py::iterator x) {
+  if (py::hasattr(x, "__length_hint__")) {
+    auto const n = x.attr("__length_hint__")().cast<long>();
+    assert(n >= 0 && "Bug in Python/pybind11??");
+    return static_cast<std::size_t>(n);
+  }
+  return 0;
+}
 
-// Correctly orders site indices and constructs an edge.
+/// Correctly orders site indices and constructs an edge.
 // TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
 // itself is a questionable concept.
 inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
@@ -58,16 +54,22 @@ inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
   return (x < y) ? Edge{x, y} : Edge{y, x};
 }
 
-inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
+/// Converts a Python iterable to a list of edges. An exception is thrown if the
+/// input iterable contains duplicate edges.
+///
+/// \postcondition For each edge (i, j) we have i <= j.
+/// \postcondition The returned list contains no duplicates.
+inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterator x) {
   using std::begin;
   using std::end;
   std::vector<AbstractGraph::Edge> edges;
-  edges.reserve(LengthHint(xs));
+  edges.reserve(LengthHint(x));
 
-  for (auto const& py_obj : xs) {
+  while (x != py::iterator::sentinel()) {
     int i, j;
-    std::tie(i, j) = py_obj.template cast<std::tuple<int, int>>();
+    std::tie(i, j) = x->template cast<std::tuple<int, int>>();
     edges.push_back(MakeEdge(i, j));
+    ++x;
   }
 
   // NOTE(twesterhout): Yes, I know that this screws up the algorithmic
@@ -80,17 +82,22 @@ inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
   return edges;
 }
 
-inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterable xs) {
+/// Converts a Python iterable to a `ColorMap`. An exception is thrown if the
+/// input iterable contains duplicate edges.
+///
+/// \postcondition For each edge (i, j) we have i <= j.
+inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterator x) {
   AbstractGraph::ColorMap colors;
-  colors.reserve(LengthHint(xs));
+  colors.reserve(LengthHint(x));
 
-  for (auto const& py_obj : xs) {
+  while (x != py::iterator::sentinel()) {
     int i, j, color;
-    std::tie(i, j, color) = py_obj.template cast<std::tuple<int, int, int>>();
+    std::tie(i, j, color) = x->template cast<std::tuple<int, int, int>>();
     if (!colors.emplace(MakeEdge(i, j), color).second) {
       // Failed to insert an edge because it already exists
       throw InvalidInputError{"Edge list contains duplicates."};
     }
+    ++x;
   }
   return colors;
 }
@@ -103,19 +110,15 @@ namespace {
 /// * `callback(edges, colour_map)` if the iterable contained elements of type
 /// `(int, int, int)`.
 /// * `callback(edges)` if the iterable contained elements of type `(int, int)`.
-///
-// TODO(twesterhout): We should probably split this into smaller functions...
 template <class Function>
-auto WithEdges(py::iterable xs, Function&& callback)
+auto WithEdges(py::iterator first, Function&& callback)
     -> decltype(std::forward<Function>(callback)(
         std::declval<std::vector<AbstractGraph::Edge>>())) {
   using std::begin;
   using std::end;
 
-  auto first = begin(xs);
-  auto const last = end(xs);
   bool has_colours = false;
-  if (first != last) {
+  if (first != py::iterator::sentinel()) {
     // We have at least one element, let's determine whether it's an instance
     // of `(int, int)` or `(int, int, int)`.
     try {
@@ -139,7 +142,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
   }
 
   if (has_colours) {
-    auto colors = detail::Iterable2ColorMap(xs);
+    auto colors = detail::Iterable2ColorMap(first);
     std::vector<AbstractGraph::Edge> edges;
     edges.reserve(colors.size());
     std::transform(
@@ -148,7 +151,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
     return std::forward<Function>(callback)(std::move(edges),
                                             std::move(colors));
   } else {
-    return std::forward<Function>(callback)(detail::Iterable2Edges(xs));
+    return std::forward<Function>(callback)(detail::Iterable2Edges(first));
   }
 }
 }  // namespace
@@ -174,53 +177,90 @@ void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
   py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
-      ADDGRAPHMETHODS(AbstractGraph);
+      .def_property_readonly("n_sites", &AbstractGraph::Nsites,
+                             R"EOF(
+              Returns the number of vertices in the graph.
+           )EOF")
+      .def_property_readonly(
+          "edges",
+          [](AbstractGraph const& x) {
+            using vector_type =
+                std::remove_reference<decltype(x.Edges())>::type;
+            return vector_type{x.Edges()};
+          },
+          R"EOF(
+               Returns the graph edges.
+           )EOF")
+      .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
+                             R"EOF(
+               Returns the adjacency list of the graph where each node is
+               represented by an integer in ``[0, n_sites)``
+           )EOF")
+      .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
+                             R"EOF(
+               Whether the graph is bipartite.
+           )EOF")
+      .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
+                             R"EOF(
+               Whether the graph is connected.
+           )EOF")
+      .def_property_readonly("distances", &AbstractGraph::AllDistances,
+                             R"EOF(
+               Returns distances between the nodes. The fact that some node
+               may not be reachable from another is represented by -1.
+           )EOF")
+      .def_property_readonly("symmetry_table", &AbstractGraph::SymmetryTable);
 
   py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
                                                                    "Hypercube")
-      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("ndim") = 1,
-           py::arg("pbc") = true)
-      .def(py::init([](int const length, py::iterable xs) {
-             return make_unique<Hypercube>(length,
-                                           detail::Iterable2ColorMap(xs));
+      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
+           py::arg("pbc") = true,
+           R"EOF(
+               Constructs a new ``Hypercube`` given its side length and dimension.
+
+               :param length:
+                   side length of the hypercube. It must be always be >=1,
+                   but if ``pbc==True`` then the minimal valid length is 3.
+               :param n_dim:
+                   dimension of the hypercube. It must be at least 1.
+               :param pbc:
+                   if ``True`` then the constructed hypercube will have periodic
+                   boundary conditions, otherwise open boundary conditions are
+                   emposed.
+           )EOF")
+      .def(py::init([](int length, py::iterable xs) {
+             auto iterator = xs.attr("__iter__")();
+             return Hypercube{length, detail::Iterable2ColorMap(iterator)};
            }),
-           py::arg("length"), py::arg("colors"))
-      .def_property_readonly("n_sites", &Hypercube::Nsites)
-      .def("edges",
-           [](Hypercube const& x) {
-             using std::begin;
-             using std::end;
-             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
-           },
-           py::keep_alive<0, 1>())
-      .def("adjacency_list", &Hypercube::AdjacencyList)
-      .def_property_readonly("is_bipartite", &Hypercube::IsBipartite)
-      .def_property_readonly("is_connected", &Hypercube::IsConnected);
+           py::arg("length"), py::arg("colors"),
+           R"EOF(
+               Constructs a new `Hypercube` given its side length and edge coloring.
+
+               ``colors`` must be an iterable of ``Tuple[int, int, int]`` where each
+               element ``(i, j, c)`` represents an edge ``i <-> j`` of color ``c``.
+               Colors must be assigned to __all__ edges.
+
+               :param length:
+                   side length of the hypercube. It must be always be >=3 if the
+                   hypercube has periodic boundary conditions and >=1 otherwise.
+               :param colors:
+                   edge colors.
+           )EOF");
 
   py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
       subm, "CustomGraph")
-#if 0  // TODO(twesterhout): Remove completely
-      .def(
-          py::init<int, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, std::vector<std::vector<int>>,
-                   std::vector<std::vector<int>>, bool>(),
-          py::arg("size") = 0,
-          py::arg("adjacency_list") = std::vector<std::vector<int>>(),
-          py::arg("edges") = std::vector<std::vector<int>>(),
-          py::arg("automorphisms") = std::vector<std::vector<int>>(),
-          py::arg("edgecolors") = std::vector<std::vector<int>>(),
-          py::arg("is_bipartite") = false)
-#endif
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
+             auto iterator = xs.attr("__iter__")();
              return WithEdges(
-                 xs, CustomGraphInit{std::move(automorphisms), is_bipartite});
+                 iterator,
+                 CustomGraphInit{std::move(automorphisms), is_bipartite});
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
            py::arg("is_bipartite") = false,
-           R"mydelimiter(
+           R"EOF(
                Constructs a new graph given a list of edges.
 
                    * If `edges` has elements of type `Tuple[int, int]` it is treated
@@ -232,16 +272,7 @@ void AddGraphModule(py::module& m) {
                      element `(i, j, c)` represents an edge between sites `i` and `j`
                      colored into `c`. It is again assumed that `0 <= i <= j` and that
                      there are no duplicate elements in `edges`.
-          )mydelimiter")
-      .def("Nsites", &CustomGraph::Nsites)
-      .def("AdjacencyList", &CustomGraph::AdjacencyList)
-      .def("SymmetryTable", &CustomGraph::SymmetryTable)
-      .def("EdgeColors", &CustomGraph::EdgeColors)
-      .def("IsBipartite", &CustomGraph::IsBipartite)
-      .def("IsConnected", &CustomGraph::IsConnected)
-      .def("Distances", &CustomGraph::Distances)
-      .def("AllDistances", &CustomGraph::AllDistances)
-          ADDGRAPHMETHODS(CustomGraph);
+          )EOF");
 }
 
 }  // namespace netket

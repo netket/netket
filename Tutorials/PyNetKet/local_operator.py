@@ -20,7 +20,7 @@ from datetime import datetime
 import scipy.sparse as sparse
 
 #Constructing a 1d lattice
-g = nk.graph.Hypercube(L=10, ndim=1)
+g = nk.graph.Hypercube(length=10, n_dim=1)
 
 #Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
