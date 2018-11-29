@@ -292,8 +292,8 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "FFNN";
-    j["Machine"]["Layers"] = {};
+    j["Name"] = "FFNN";
+    j["Layers"] = {};
     for (int i = 0; i < nlayer_; ++i) {
       layers_[i]->to_json(j);
     }

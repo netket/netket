@@ -560,15 +560,15 @@ class MPSPeriodic : public AbstractMachine<T> {
 
   // Json functions
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "MPSperiodic";
-    j["Machine"]["Length"] = N_;
-    j["Machine"]["BondDim"] = D_;
-    j["Machine"]["PhysDim"] = d_;
-    j["Machine"]["Diagonal"] = diag;
-    j["Machine"]["SymmetryPeriod"] = symperiod_;
+    j["Name"] = "MPSperiodic";
+    j["Length"] = N_;
+    j["BondDim"] = D_;
+    j["PhysDim"] = d_;
+    j["Diagonal"] = diag;
+    j["SymmetryPeriod"] = symperiod_;
     for (int i = 0; i < symperiod_; i++) {
       for (int k = 0; k < d_; k++) {
-        j["Machine"]["W" + std::to_string(d_ * i + k)] = W_[i][k];
+        j["W" + std::to_string(d_ * i + k)] = W_[i][k];
       }
     }
   }

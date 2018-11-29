@@ -366,15 +366,15 @@ class RbmMultival : public AbstractMachine<T> {
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmMultival";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Nhidden"] = nh_;
-    j["Machine"]["LocalSize"] = ls_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["a"] = a_;
-    j["Machine"]["b"] = b_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "RbmMultival";
+    j["Nvisible"] = nv_;
+    j["Nhidden"] = nh_;
+    j["LocalSize"] = ls_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["a"] = a_;
+    j["b"] = b_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {

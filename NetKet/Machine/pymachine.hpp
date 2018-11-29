@@ -31,31 +31,48 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDMACHINEMETHODS(name)                                             \
-                                                                            \
-  .def("n_par", &name::Npar)                                                \
-      .def("get_parameters", &name::GetParameters)                          \
-      .def("set_parameters", &name::SetParameters)                          \
-      .def("init_random_parameters", &name::InitRandomPars,                 \
-           py::arg("seed") = 1234, py::arg("sigma") = 0.1)                  \
-      .def("log_val",                                                       \
-           (MachineType(name::*)(AbMachineType::VisibleConstType)) &        \
-               name::LogVal)                                                \
-      .def("log_val_diff", (AbMachineType::VectorType(name::*)(             \
-                               AbMachineType::VisibleConstType,             \
-                               const std::vector<std::vector<int>> &,       \
-                               const std::vector<std::vector<double>> &)) & \
-                               name::LogValDiff)                            \
-      .def("der_log", (AbMachineType::VectorType(name::*)(                  \
-                          AbMachineType::VisibleConstType)) &               \
-                          name::DerLog)                                     \
-      .def("n_visible", &name::Nvisible)                                    \
-      .def("get_hilbert", &name ::GetHilbert)
+#define ADDMACHINEMETHODS(name)                                               \
+                                                                              \
+  .def_property_readonly("n_par", &name::Npar)                                \
+      .def_property("parameters", &name::GetParameters, &name::SetParameters) \
+      .def("init_random_parameters", &name::InitRandomPars,                   \
+           py::arg("seed") = 1234, py::arg("sigma") = 0.1)                    \
+      .def("log_val",                                                         \
+           (MachineType(name::*)(AbMachineType::VisibleConstType)) &          \
+               name::LogVal)                                                  \
+      .def("log_val_diff", (AbMachineType::VectorType(name::*)(               \
+                               AbMachineType::VisibleConstType,               \
+                               const std::vector<std::vector<int>> &,         \
+                               const std::vector<std::vector<double>> &)) &   \
+                               name::LogValDiff)                              \
+      .def("der_log", (AbMachineType::VectorType(name::*)(                    \
+                          AbMachineType::VisibleConstType)) &                 \
+                          name::DerLog)                                       \
+      .def_property_readonly("n_visible", &name::Nvisible)                    \
+      .def("get_hilbert", &name ::GetHilbert)                                 \
+      .def("save",                                                            \
+           [](const name &a, std::string filename) {                          \
+             json j;                                                          \
+             a.to_json(j);                                                    \
+             std::ofstream filewf(filename);                                  \
+             filewf << j << std::endl;                                        \
+             filewf.close();                                                  \
+           })                                                                 \
+      .def("load", [](name &a, std::string filename) {                        \
+        std::ifstream filewf(filename);                                       \
+        if (filewf.is_open()) {                                               \
+          json j;                                                             \
+          filewf >> j;                                                        \
+          filewf.close();                                                     \
+          a.from_json(j);                                                     \
+        }                                                                     \
+      });
 
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
 
   py::class_<AbMachineType, std::shared_ptr<AbMachineType>>(subm, "Machine")
+
       ADDMACHINEMETHODS(AbMachineType);
 
   {

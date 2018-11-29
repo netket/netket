@@ -378,7 +378,7 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
     layerpar["Bias"] = bias_;
     layerpar["Kernels"] = kernels_;
 
-    pars["Machine"]["Layers"].push_back(layerpar);
+    pars["Layers"].push_back(layerpar);
   }
 
   void from_json(const json &pars) override {

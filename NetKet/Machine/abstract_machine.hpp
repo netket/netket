@@ -169,7 +169,7 @@ class AbstractMachine {
   virtual void to_json(json &j) const = 0;
   virtual void from_json(const json &j) = 0;
 
-  void Save(std::string filename) const {
+  void Save(const std::string &filename) const {
     std::ofstream filewf(filename);
     Save(filewf);
     filewf.close();
