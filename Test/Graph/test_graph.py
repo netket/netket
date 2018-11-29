@@ -82,6 +82,3 @@ def test_computes_distances():
             for i in range(graph.n_sites):
                 for j in range(graph.n_sites):
                     assert d1[i][j] == d[i][j]
-
-
-test_edges_are_correct()
