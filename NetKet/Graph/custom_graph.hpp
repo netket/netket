@@ -31,8 +31,8 @@ namespace netket {
 */
 class CustomGraph : public AbstractGraph {
  public:
-  using AbstractGraph::Edge;
   using AbstractGraph::ColorMap;
+  using AbstractGraph::Edge;
 
  private:
   // adjacency list
@@ -51,8 +51,7 @@ class CustomGraph : public AbstractGraph {
   bool is_connected_;
 
  public:
-
-#if 0 // TODO(twesterhout): To be removed
+#if 0  // TODO(twesterhout): To be removed
   explicit CustomGraph(
       int size = 0,
       std::vector<std::vector<int>> adjl = std::vector<std::vector<int>>(),
@@ -99,7 +98,7 @@ class CustomGraph : public AbstractGraph {
     is_connected_ = ComputeConnected();
   }
 
-#if 0 // TODO(twesterhout): To be removed
+#if 0  // TODO(twesterhout): To be removed
   void Init(int size, const std::vector<std::vector<int>> &edges,
             const std::vector<std::vector<int>> &automorphisms,
             const std::vector<std::vector<int>> &edgecolors) {
