@@ -155,11 +155,12 @@ struct CustomGraphInit {
   using ColorMap = AbstractGraph::ColorMap;
 
   std::vector<std::vector<int>> automorphisms;
+  bool is_bipartite;
 
   auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
       -> std::unique_ptr<CustomGraph> {
     return make_unique<CustomGraph>(std::move(edges), std::move(colors),
-                                    std::move(automorphisms));
+                                    std::move(automorphisms), is_bipartite);
   }
 };
 }  // namespace
@@ -172,7 +173,13 @@ void AddGraphModule(py::module& m) {
                              R"EOF(
               Returns the number of vertices in the graph.
            )EOF")
-      .def("edges", &AbstractGraph::Edges,
+      .def("edges",
+           [](AbstractGraph const& x) {
+             using std::begin;
+             using std::end;
+             return py::make_iterator(begin(x.Edges()), end(x.Edges()));
+           },
+           py::keep_alive<0, 1>(),
            R"EOF(
                Returns the graph edges.
            )EOF")
@@ -233,11 +240,14 @@ void AddGraphModule(py::module& m) {
   py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
       subm, "CustomGraph")
       .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms) {
-             return WithEdges(xs, CustomGraphInit{std::move(automorphisms)});
+                       std::vector<std::vector<int>> automorphisms,
+                       bool const is_bipartite) {
+             return WithEdges(
+                 xs, CustomGraphInit{std::move(automorphisms), is_bipartite});
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
+           py::arg("is_bipartite") = false,
            R"EOF(
                Constructs a new graph given a list of edges.
 

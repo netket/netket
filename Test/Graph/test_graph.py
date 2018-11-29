@@ -68,8 +68,7 @@ def test_size_is_positive():
 def test_is_connected():
     for i in range(5, 10):
         for j in range(5, 30, 5):
-            # NOTE changing the seed here (say to 123) reveals a bug in Networkx
-            x = nx.dense_gnm_random_graph(i, j, seed=1234)
+            x = nx.dense_gnm_random_graph(i, j)
             y = nk.graph.CustomGraph(x.edges())
             assert y.is_connected == nx.is_connected(x)
 
@@ -83,3 +82,6 @@ def test_computes_distances():
             for i in range(graph.n_sites):
                 for j in range(graph.n_sites):
                     assert d1[i][j] == d[i][j]
+
+
+test_edges_are_correct()
