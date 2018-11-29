@@ -68,6 +68,7 @@ class CustomGraph : public AbstractGraph {
       std::iota(std::begin(automorphisms_.front()),
                 std::end(automorphisms_.front()), 0);
     }
+    is_connected_ = ComputeConnected();
   }
 
   /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.
