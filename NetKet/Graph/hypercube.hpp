@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <vector>
 #include "abstract_graph.hpp"
+#include "Utils/next_variation.hpp"
 
 namespace netket {
 
@@ -171,7 +172,7 @@ class Hypercube : public AbstractGraph {
       }
       return os << "]";
     };
-    auto const fail = [&coord]() {
+    auto const fail = [print_coord, this]() {
       std::ostringstream msg;
       msg << "Invalid coordinate ";
       print_coord(msg);
