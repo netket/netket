@@ -28,7 +28,7 @@ def check_edges(length, n_dim, pbc):
                for edge in x.edges]
     x_edges = sorted([sorted(ed) for ed in x_edges])
     y = nk.graph.Hypercube(length=length, n_dim=n_dim, pbc=pbc)
-    y_edges = sorted([sorted(ed) for ed in list(y.edges())])
+    y_edges = sorted([sorted(ed) for ed in y.edges])
     assert x_edges == y_edges
 
 
@@ -67,10 +67,13 @@ def test_size_is_positive():
 
 def test_is_connected():
     for i in range(5, 10):
-        for j in range(5, 30, 5):
+        for j in range(i + 1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
-            y = nk.graph.CustomGraph(x.edges())
-            assert y.is_connected == nx.is_connected(x)
+            y = nk.graph.CustomGraph(x.edges)
+            if len(x) == len(set((i for (i, j) in x.edges)) | set((j for (i, j) in x.edges))):
+                assert y.is_connected == nx.is_connected(x)
+            else:
+                assert not nx.is_connected(x)
 
 
 def test_computes_distances():

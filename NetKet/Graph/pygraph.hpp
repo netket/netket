@@ -181,7 +181,7 @@ void AddGraphModule(py::module& m) {
                              R"EOF(
               Returns the number of vertices in the graph.
            )EOF")
-      .def("edges",
+      .def_property_readonly("edges",
            [](AbstractGraph const& x) {
              using std::begin;
              using std::end;
