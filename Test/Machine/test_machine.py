@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from mpi4py import MPI
 from pytest import approx
+import os
 
 machines = {}
 
@@ -52,8 +53,8 @@ layers = [
 ]
 
 # FFNN Machine
-# BUG
-machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
+machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(
+    hi, layers)
 
 machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
     hi, bond_dim=3)
@@ -78,18 +79,38 @@ np.random.seed(12346)
 
 
 def log_val_f(par, machine, v):
-    machine.set_parameters(par)
+    machine.parameters = np.copy(par)
     return machine.log_val(v)
 
 
 def test_set_get_parameters():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
-        assert(machine.n_par() > 0)
-        npar = machine.n_par()
+        assert(machine.n_par > 0)
+        npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.set_parameters(randpars)
-        assert(np.array_equal(machine.get_parameters(), randpars))
+        machine.parameters = randpars
+        assert(np.array_equal(machine.parameters, randpars))
+
+
+def test_save_load_parameters(tmpdir):
+    for name, machine in machines.items():
+        print("Machine test: %s" % name)
+        assert(machine.n_par > 0)
+        n_par = machine.n_par
+        randpars = np.random.randn(n_par) + 1.0j * np.random.randn(n_par)
+
+        machine.parameters = np.copy(randpars)
+        fn = tmpdir.mkdir('datawf').join('test.wf')
+
+        filename = os.path.join(fn.dirname, fn.basename)
+
+        machine.save(filename)
+        machine.parameters = np.zeros(n_par, dtype=complex)
+        machine.load(filename)
+        os.remove(filename)
+        os.rmdir(fn.dirname)
+        assert(np.array_equal(machine.parameters, randpars))
 
 
 import numdifftools as nd
@@ -102,7 +123,7 @@ def test_log_derivative():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
 
-        npar = machine.n_par()
+        npar = machine.n_par
 
         # random visibile state
         hi = machine.get_hilbert()
@@ -115,7 +136,7 @@ def test_log_derivative():
 
             randpars = 0.1 * (np.random.randn(npar) +
                               1.0j * np.random.randn(npar))
-            machine.set_parameters(randpars)
+            machine.parameters = randpars
             der_log = machine.der_log(v)
 
             if("Jastrow" in name):
@@ -135,9 +156,9 @@ def test_log_val_diff():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
 
-        npar = machine.n_par()
+        npar = machine.n_par
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.set_parameters(randpars)
+        machine.parameters = randpars
 
         hi = machine.get_hilbert()
 
@@ -195,4 +216,4 @@ def test_nvisible():
         print("Machine test: %s" % name)
         hi = machine.get_hilbert()
 
-        assert(machine.n_visible() == hi.size())
+        assert(machine.n_visible == hi.size())
