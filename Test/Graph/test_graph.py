@@ -44,7 +44,7 @@ def test_edges_are_correct():
 
 
 def tonx(graph):
-    adl = graph.adjacency_list()
+    adl = graph.adjacency_list
     i = 0
     edges = []
     for els in adl:
@@ -79,8 +79,8 @@ def test_is_connected():
 def test_computes_distances():
     for graph in graphs:
         if (graph.is_connected):
-            nxg = tonx(graph)
-            d = graph.distances()
+            nxg = nx.from_edgelist(graph.edges)
+            d = graph.distances
             d1 = dict(nx.shortest_path_length(nxg))
             for i in range(graph.n_sites):
                 for j in range(graph.n_sites):
