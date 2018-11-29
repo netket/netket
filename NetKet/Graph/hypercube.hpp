@@ -171,21 +171,39 @@ class Hypercube : public AbstractGraph {
       }
       return os << "]";
     };
+    auto const fail = [&coord]() {
+      std::ostringstream msg;
+      msg << "Invalid coordinate ";
+      print_coord(msg);
+      msg << " for a " << n_dim_ << "-dimensional hypercube of side length "
+          << length_;
+      throw InvalidInputError{msg.str()};
+    };
 
+    if (coord.size() != static_cast<std::size_t>(n_dim_)) {
+      fail();
+    }
     // We need this loop, because Coord2Site is exposed to Python and it's
     // unacceptable to have Python interpreter terminating with a seg fault just
     // because of an invalid input.
     for (auto const x : coord) {
       if (x < 0 || x >= length_) {
-        std::ostringstream msg;
-        msg << "Invalid coordinate ";
-        print_coord(msg);
-        msg << " for a " << n_dim_ << "-dimensional hypercube of side length "
-            << length_;
-        throw InvalidInputError{msg.str()};
+        fail();
       }
     }
     return Coord2Site(coord, length_);
+  }
+
+  /// Given a site's index, returns its coordinates as a `Ndim()`-dimensional
+  /// vector.
+  std::vector<int> Site2Coord(int site) const {
+    if (site < 0 || site >= Nsites()) {
+      std::ostringstream msg;
+      msg << "Invalid site index: `site` must be in [0, " << Nsites()
+          << "), but got " << site;
+      throw InvalidInputError{msg.str()};
+    }
+    return Site2Coord(site, length_, n_dim_);
   }
 
  private:
@@ -230,7 +248,10 @@ class Hypercube : public AbstractGraph {
 
   static int Coord2Site(std::vector<int> const &coord,
                         int const length) noexcept {
-    assert(length >= 0);
+    // NOTE(twesterhout): This is unsafe w.r.t. signed integer overflow. It's
+    // highly unlikely that such big graphs will ever be used with NetKet, but
+    // still.
+    assert(length > 0);
     auto site = 0;
     auto scale = 1;
     for (auto const i : coord) {
@@ -238,6 +259,18 @@ class Hypercube : public AbstractGraph {
       scale *= length;
     }
     return site;
+  }
+
+  static std::vector<int> Site2Coord(int const site, int const length,
+                                     int const n_dim) {
+    assert(length > 0 && n_dim > 0 && site >= 0);
+    std::vector<int> coord(n_dim);
+    auto s = site;
+    for (int i = 0; i < n_dim; ++i) {
+      coord[i] = s % length;
+      s /= length;
+    }
+    return coord;
   }
 
   static std::vector<std::vector<int>> BuildSymmTable(int const length,
