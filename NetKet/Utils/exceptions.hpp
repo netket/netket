@@ -20,6 +20,7 @@
 namespace netket {
 
 using InvalidInputError = std::invalid_argument;
+using RuntimeError = std::runtime_error;
 
 }  // namespace netket
 
