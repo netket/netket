@@ -17,8 +17,9 @@
 
 namespace netket {
 
-template <typename Func>
-void AbstractGraph::BreadthFirstSearch_Impl(int start, int max_depth,
+template<typename Func>
+void AbstractGraph::BreadthFirstSearch_Impl(int start,
+                                            int max_depth,
                                             Func visitor_func,
                                             std::vector<bool> &seen) const {
   assert(start >= 0 && start < Nsites());
@@ -55,7 +56,7 @@ void AbstractGraph::BreadthFirstSearch_Impl(int start, int max_depth,
   }
 }
 
-template <typename Func>
+template<typename Func>
 void AbstractGraph::BreadthFirstSearch(Func visitor_func) const {
   std::vector<bool> seen(Nsites(), false);
   for (int v = 0; v < Nsites(); ++v) {
@@ -69,9 +70,8 @@ void AbstractGraph::BreadthFirstSearch(Func visitor_func) const {
   }
 }
 
-template <typename Func>
-void AbstractGraph::BreadthFirstSearch(int start, int max_depth,
-                                       Func visitor_func) const {
+template<typename Func>
+void AbstractGraph::BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
   std::vector<bool> seen(Nsites(), false);
   BreadthFirstSearch_Impl(start, max_depth, visitor_func, seen);
 }
@@ -80,8 +80,9 @@ std::vector<int> AbstractGraph::Distances(int root) const {
   std::vector<int> dists(Nsites(), -1);
 
   // Dijkstra's algorithm
-  BreadthFirstSearch(root,
-                     [&dists](int node, int depth) { dists[node] = depth; });
+  BreadthFirstSearch(root, [&dists](int node, int depth) {
+    dists[node] = depth;
+  });
 
   return dists;
 }

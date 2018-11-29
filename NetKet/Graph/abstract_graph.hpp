@@ -54,7 +54,7 @@ class AbstractGraph {
   /**
   Returns the graph edges.
   */
-  virtual std::vector<Edge> Edges() const noexcept = 0;
+  virtual std::vector<Edge> const &Edges() const noexcept = 0;
 
   /**
   Member function returning the adjacency list of the graph.
