@@ -181,15 +181,14 @@ void AddGraphModule(py::module& m) {
                              R"EOF(
               Returns the number of vertices in the graph.
            )EOF")
-      .def_property_readonly("edges",
-                             [](AbstractGraph const& x) {
-                               using std::begin;
-                               using std::end;
-                               return py::make_iterator(begin(x.Edges()),
-                                                        end(x.Edges()));
-                             },
-                             py::keep_alive<0, 1>(),
-                             R"EOF(
+      .def_property_readonly(
+          "edges",
+          [](AbstractGraph const& x) {
+            using vector_type =
+                std::remove_reference<decltype(x.Edges())>::type;
+            return vector_type{x.Edges()};
+          },
+          R"EOF(
                Returns the graph edges.
            )EOF")
       .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
