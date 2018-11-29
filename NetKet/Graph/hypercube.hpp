@@ -17,6 +17,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>  // TODO: Remove this when BuildSymmTable is optimised
+#include <unordered_map>
 #include <vector>
 #include "abstract_graph.hpp"
 
@@ -270,12 +272,19 @@ class Hypercube : public AbstractGraph {
       return std::vector<std::vector<int>>(1, v);
     };
 
+    // maps coordinates to site number
+    std::map<std::vector<int>, int> coord2sites;
+
     // contains sites coordinates
     std::vector<std::vector<int>> sites;
 
-    for (int i = 0; i < n_sites; i++) {
-      sites.push_back(Site2Coord(i, length, n_dim));
-    }
+    int ns = 0;
+    std::vector<int> coord(n_dim, 0);
+    do {
+      sites.push_back(coord);
+      coord2sites[coord] = ns;
+      ns++;
+    } while (netket::next_variation(coord.begin(), coord.end(), length - 1));
 
     std::vector<std::vector<int>> permtable;
     permtable.reserve(n_sites);
@@ -288,7 +297,7 @@ class Hypercube : public AbstractGraph {
         for (int d = 0; d < n_dim; d++) {
           ts[d] = (sites[i][d] + sites[p][d]) % length;
         }
-        transl_sites[p] = Coord2Site(ts, length);
+        transl_sites[p] = coord2sites.at(ts);
       }
       permtable.push_back(transl_sites);
     }
