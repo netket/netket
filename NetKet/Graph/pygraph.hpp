@@ -37,6 +37,14 @@ inline std::size_t LengthHint(py::iterable xs) {
   }
   return 0;
 }
+inline std::size_t LengthHint(py::iterator x) {
+  if (py::hasattr(x, "__length_hint__")) {
+    auto const n = x.attr("__length_hint__")().cast<long>();
+    assert(n >= 0 && "Bug in Python/pybind11??");
+    return static_cast<std::size_t>(n);
+  }
+  return 0;
+}
 
 /// Correctly orders site indices and constructs an edge.
 // TODO(twesterhout): Should we throw when `x == y`? I.e. edge from a node to
@@ -51,16 +59,17 @@ inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
 ///
 /// \postcondition For each edge (i, j) we have i <= j.
 /// \postcondition The returned list contains no duplicates.
-inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
+inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterator x) {
   using std::begin;
   using std::end;
   std::vector<AbstractGraph::Edge> edges;
-  edges.reserve(LengthHint(xs));
+  edges.reserve(LengthHint(x));
 
-  for (auto const& py_obj : xs) {
+  while (x != py::iterator::sentinel()) {
     int i, j;
-    std::tie(i, j) = py_obj.template cast<std::tuple<int, int>>();
+    std::tie(i, j) = x->template cast<std::tuple<int, int>>();
     edges.push_back(MakeEdge(i, j));
+    ++x;
   }
 
   // NOTE(twesterhout): Yes, I know that this screws up the algorithmic
@@ -77,17 +86,18 @@ inline std::vector<AbstractGraph::Edge> Iterable2Edges(py::iterable xs) {
 /// input iterable contains duplicate edges.
 ///
 /// \postcondition For each edge (i, j) we have i <= j.
-inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterable xs) {
+inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterator x) {
   AbstractGraph::ColorMap colors;
-  colors.reserve(LengthHint(xs));
+  colors.reserve(LengthHint(x));
 
-  for (auto const& py_obj : xs) {
+  while (x != py::iterator::sentinel()) {
     int i, j, color;
-    std::tie(i, j, color) = py_obj.template cast<std::tuple<int, int, int>>();
+    std::tie(i, j, color) = x->template cast<std::tuple<int, int, int>>();
     if (!colors.emplace(MakeEdge(i, j), color).second) {
       // Failed to insert an edge because it already exists
       throw InvalidInputError{"Edge list contains duplicates."};
     }
+    ++x;
   }
   return colors;
 }
@@ -101,16 +111,14 @@ namespace {
 /// `(int, int, int)`.
 /// * `callback(edges)` if the iterable contained elements of type `(int, int)`.
 template <class Function>
-auto WithEdges(py::iterable xs, Function&& callback)
+auto WithEdges(py::iterator first, Function&& callback)
     -> decltype(std::forward<Function>(callback)(
         std::declval<std::vector<AbstractGraph::Edge>>())) {
   using std::begin;
   using std::end;
 
-  auto first = begin(xs);
-  auto const last = end(xs);
   bool has_colours = false;
-  if (first != last) {
+  if (first != py::iterator::sentinel()) {
     // We have at least one element, let's determine whether it's an instance
     // of `(int, int)` or `(int, int, int)`.
     try {
@@ -134,7 +142,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
   }
 
   if (has_colours) {
-    auto colors = detail::Iterable2ColorMap(xs);
+    auto colors = detail::Iterable2ColorMap(first);
     std::vector<AbstractGraph::Edge> edges;
     edges.reserve(colors.size());
     std::transform(
@@ -143,7 +151,7 @@ auto WithEdges(py::iterable xs, Function&& callback)
     return std::forward<Function>(callback)(std::move(edges),
                                             std::move(colors));
   } else {
-    return std::forward<Function>(callback)(detail::Iterable2Edges(xs));
+    return std::forward<Function>(callback)(detail::Iterable2Edges(first));
   }
 }
 }  // namespace
@@ -200,7 +208,8 @@ void AddGraphModule(py::module& m) {
            R"EOF(
                Returns distances between the nodes. The fact that some node
                may not be reachable from another is represented by -1.
-           )EOF");
+           )EOF")
+      .def("symmetry_table", &AbstractGraph::SymmetryTable);
 
   py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
                                                                    "Hypercube")
@@ -220,7 +229,8 @@ void AddGraphModule(py::module& m) {
                    emposed.
            )EOF")
       .def(py::init([](int length, py::iterable xs) {
-             return Hypercube{length, detail::Iterable2ColorMap(xs)};
+             auto iterator = xs.attr("__iter__")();
+             return Hypercube{length, detail::Iterable2ColorMap(iterator)};
            }),
            py::arg("length"), py::arg("colors"),
            R"EOF(
@@ -242,8 +252,10 @@ void AddGraphModule(py::module& m) {
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
+             auto iterator = xs.attr("__iter__")();
              return WithEdges(
-                 xs, CustomGraphInit{std::move(automorphisms), is_bipartite});
+                 iterator,
+                 CustomGraphInit{std::move(automorphisms), is_bipartite});
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
