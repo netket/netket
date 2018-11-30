@@ -52,7 +52,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   typename WfType::LookupType lt_;
 
  public:
-  MetropolisExchange(const AbstractGraph &graph, std::shared_ptr<WfType> psi,
+  MetropolisExchange(const Graph &graph, std::shared_ptr<WfType> psi,
                      int dmax = 1)
       : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
     Init(graph, dmax);

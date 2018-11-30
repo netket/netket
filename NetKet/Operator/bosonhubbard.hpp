@@ -31,7 +31,7 @@ namespace netket {
 // Heisenberg model on an arbitrary graph
 class BoseHubbard : public AbstractOperator {
   std::shared_ptr<const AbstractHilbert> hilbert_;
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   int nsites_;
 
@@ -73,7 +73,7 @@ class BoseHubbard : public AbstractOperator {
   }
 
   void GenerateBonds() {
-    auto adj = graph_->AdjacencyList();
+    auto adj = graph_.AdjacencyList();
 
     bonds_.resize(nsites_);
 

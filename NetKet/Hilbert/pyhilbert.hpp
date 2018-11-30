@@ -47,29 +47,22 @@ void AddHilbertModule(py::module &m) {
       ADDHILBERTMETHODS(AbstractHilbert);
 
   py::class_<Spin, AbstractHilbert, std::shared_ptr<Spin>>(subm, "Spin")
-      .def(py::init<std::shared_ptr<const AbstractGraph>, double>(),
-           py::arg("graph"), py::arg("s"))
-      .def(py::init<std::shared_ptr<const AbstractGraph>, double, double>(),
-           py::arg("graph"), py::arg("s"), py::arg("total_sz"))
-          ADDHILBERTMETHODS(Spin);
+      .def(py::init<Graph, double>(), py::arg("graph"), py::arg("s"))
+      .def(py::init<Graph, double, double>(), py::arg("graph"), py::arg("s"),
+           py::arg("total_sz")) ADDHILBERTMETHODS(Spin);
 
   py::class_<Qubit, AbstractHilbert, std::shared_ptr<Qubit>>(subm, "Qubit")
-      .def(py::init<std::shared_ptr<const AbstractGraph>>(), py::arg("graph"))
-          ADDHILBERTMETHODS(Qubit);
+      .def(py::init<Graph>(), py::arg("graph")) ADDHILBERTMETHODS(Qubit);
 
   py::class_<Boson, AbstractHilbert, std::shared_ptr<Boson>>(subm, "Boson")
-      .def(py::init<std::shared_ptr<const AbstractGraph>, int>(),
-           py::arg("graph"), py::arg("n_max"))
-      .def(py::init<std::shared_ptr<const AbstractGraph>, int, int>(),
-           py::arg("graph"), py::arg("n_max"), py::arg("n_bosons"))
-          ADDHILBERTMETHODS(Boson);
+      .def(py::init<Graph, int>(), py::arg("graph"), py::arg("n_max"))
+      .def(py::init<Graph, int, int>(), py::arg("graph"), py::arg("n_max"),
+           py::arg("n_bosons")) ADDHILBERTMETHODS(Boson);
 
   py::class_<CustomHilbert, AbstractHilbert, std::shared_ptr<CustomHilbert>>(
       subm, "CustomHilbert")
-      .def(
-          py::init<std::shared_ptr<const AbstractGraph>, std::vector<double>>(),
-          py::arg("graph"), py::arg("local_states"))
-          ADDHILBERTMETHODS(CustomHilbert);
+      .def(py::init<Graph, std::vector<double>>(), py::arg("graph"),
+           py::arg("local_states")) ADDHILBERTMETHODS(CustomHilbert);
 
   py::class_<HilbertIndex, std::shared_ptr<HilbertIndex>>(subm, "HilbertIndex")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),

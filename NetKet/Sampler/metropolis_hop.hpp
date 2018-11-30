@@ -54,13 +54,12 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  MetropolisHop(const AbstractGraph &graph, std::shared_ptr<WfType> psi,
-                int dmax = 1)
+  MetropolisHop(const Graph &graph, std::shared_ptr<WfType> psi, int dmax = 1)
       : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
     Init(graph, dmax);
   }
 
-  void Init(const AbstractGraph &graph, int dmax) {
+  void Init(const Graph &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -84,7 +83,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
                   << std::endl;
   }
 
-  void GenerateClusters(const AbstractGraph &graph, int dmax) {
+  void GenerateClusters(const Graph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);

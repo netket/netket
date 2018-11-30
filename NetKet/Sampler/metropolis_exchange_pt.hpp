@@ -57,9 +57,8 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  explicit MetropolisExchangePt(const AbstractGraph &graph,
-                                std::shared_ptr<WfType> psi, int dmax = 1,
-                                int nreplicas = 1)
+  explicit MetropolisExchangePt(const Graph &graph, std::shared_ptr<WfType> psi,
+                                int dmax = 1, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
         nv_(hilbert_->Size()),
@@ -67,7 +66,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     Init(graph, dmax);
   }
 
-  void Init(const AbstractGraph &graph, int dmax) {
+  void Init(const Graph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 

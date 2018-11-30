@@ -37,7 +37,7 @@ class Ising : public AbstractOperator {
   */
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   const int nspins_;
   double h_;
@@ -75,7 +75,7 @@ class Ising : public AbstractOperator {
     bonds[i][k] contains the k-th bond for site i.
   */
   void GenerateBonds() {
-    auto adj = graph_->AdjacencyList();
+    auto adj = graph_.AdjacencyList();
 
     bonds_.resize(nspins_);
 

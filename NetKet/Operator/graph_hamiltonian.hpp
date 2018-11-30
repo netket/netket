@@ -32,7 +32,7 @@ class GraphHamiltonian : public AbstractOperator {
   std::shared_ptr<const AbstractHilbert> hilbert_;
 
   // Arbitrary graph
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   std::vector<LocalOperator> operators_;
   const int nvertices_;
@@ -82,7 +82,7 @@ class GraphHamiltonian : public AbstractOperator {
 
     if (bondops.size() > 0) {
       // Use EdgeColors to populate operators
-      for (auto const &kv : graph_->EdgeColors()) {
+      for (auto const &kv : graph_.EdgeColors()) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};

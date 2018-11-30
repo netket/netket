@@ -33,7 +33,7 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   int nsites_;
 
@@ -51,19 +51,17 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
  public:
-  explicit Boson(std::shared_ptr<const AbstractGraph> graph, int nmax)
-      : graph_(graph), nmax_(nmax) {
-    nsites_ = graph->Size();
+  explicit Boson(Graph graph, int nmax) : graph_(graph), nmax_(nmax) {
+    nsites_ = graph.Size();
 
     Init();
 
     constraintN_ = false;
   }
 
-  explicit Boson(std::shared_ptr<const AbstractGraph> graph, int nmax,
-                 int nbosons)
+  explicit Boson(Graph graph, int nmax, int nbosons)
       : graph_(graph), nmax_(nmax) {
-    nsites_ = graph->Size();
+    nsites_ = graph.Size();
 
     Init();
 
@@ -158,9 +156,7 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  std::shared_ptr<const AbstractGraph> GetGraph() const override {
-    return graph_;
-  }
+  Graph GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

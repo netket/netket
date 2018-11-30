@@ -36,7 +36,7 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   double S_;
   double totalS_;
@@ -49,18 +49,15 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
  public:
-  explicit Spin(std::shared_ptr<const AbstractGraph> graph, double S)
-      : graph_(graph) {
-    const int nspins = graph->Size();
+  explicit Spin(Graph graph, double S) : graph_(graph) {
+    const int nspins = graph.Size();
 
     Init(nspins, S);
 
     constraintSz_ = false;
   }
-  explicit Spin(std::shared_ptr<const AbstractGraph> graph, double S,
-                double totalSz)
-      : graph_(graph) {
-    const int nspins = graph->Size();
+  explicit Spin(Graph graph, double S, double totalSz) : graph_(graph) {
+    const int nspins = graph.Size();
 
     Init(nspins, S);
 
@@ -177,9 +174,7 @@ class Spin : public AbstractHilbert {
     }
   }
 
-  std::shared_ptr<const AbstractGraph> GetGraph() const override {
-    return graph_;
-  }
+  Graph GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket

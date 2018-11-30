@@ -17,6 +17,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <variant>
 #include <vector>
 #include "netket.hpp"
 
@@ -165,58 +166,52 @@ struct CustomGraphInit {
   std::vector<std::vector<int>> automorphisms;
   bool is_bipartite;
 
-  auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
-      -> std::unique_ptr<CustomGraph> {
-    return make_unique<CustomGraph>(std::move(edges), std::move(colors),
-                                    std::move(automorphisms), is_bipartite);
+  CustomGraph operator()(std::vector<Edge> edges,
+                         ColorMap colors = ColorMap{}) {
+    return CustomGraph(std::move(edges), std::move(colors),
+                       std::move(automorphisms), is_bipartite);
   }
 };
 }  // namespace
 
+#define ADDGRAPHMETHODS(name)                                                                                                              \
+                                                                                                                                           \
+  .def_property_readonly(                                                                                                                  \
+      "n_sites", &name::Nsites,                                                                                                            \
+      R"EOF(Returns the number of vertices in the graph. )EOF")                                                                            \
+      .def_property_readonly(                                                                                                              \
+          "edges",                                                                                                                         \
+          [](name const& x) {                                                                                                              \
+            using vector_type =                                                                                                            \
+                std::remove_reference<decltype(x.Edges())>::type;                                                                          \
+            return vector_type{x.Edges()};                                                                                                 \
+          },                                                                                                                               \
+          R"EOF(Returns the graph edges.)EOF")                                                                                             \
+      .def_property_readonly(                                                                                                              \
+          "adjacency_list", &name::AdjacencyList,                                                                                          \
+          R"EOF(Returns the adjacency list of the graph where each node is represented by an integer in ``[0, n_sites)``)EOF")             \
+      .def_property_readonly("is_bipartite", &name::IsBipartite,                                                                           \
+                             R"EOF( Whether the graph is bipartite.)EOF")                                                                  \
+      .def_property_readonly("is_connected", &name::IsConnected,                                                                           \
+                             R"EOF(Whether the graph is connected.)EOF")                                                                   \
+      .def_property_readonly(                                                                                                              \
+          "distances", &name::AllDistances,                                                                                                \
+          R"EOF(Returns distances between the nodes. The fact that some node may not be reachable from another is represented by -1.)EOF") \
+      .def_property_readonly("symmetry_table", &name::SymmetryTable);
+
 void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
-  py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
-      .def_property_readonly("n_sites", &AbstractGraph::Nsites,
-                             R"EOF(
-              Returns the number of vertices in the graph.
-           )EOF")
-      .def_property_readonly(
-          "edges",
-          [](AbstractGraph const& x) {
-            using vector_type =
-                std::remove_reference<decltype(x.Edges())>::type;
-            return vector_type{x.Edges()};
-          },
-          R"EOF(
-               Returns the graph edges.
-           )EOF")
-      .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
-                             R"EOF(
-               Returns the adjacency list of the graph where each node is
-               represented by an integer in ``[0, n_sites)``
-           )EOF")
-      .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
-                             R"EOF(
-               Whether the graph is bipartite.
-           )EOF")
-      .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
-                             R"EOF(
-               Whether the graph is connected.
-           )EOF")
-      .def_property_readonly("distances", &AbstractGraph::AllDistances,
-                             R"EOF(
-               Returns distances between the nodes. The fact that some node
-               may not be reachable from another is represented by -1.
-           )EOF")
-      .def_property_readonly("symmetry_table", &AbstractGraph::SymmetryTable);
+  py::class_<Graph>(subm, "Graph")
+      .def(py::init<Hypercube>())
+      .def(py::init<CustomGraph>()) ADDGRAPHMETHODS(Graph);
 
-  py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
-                                                                   "Hypercube")
+  py::class_<Hypercube>(subm, "Hypercube")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
            py::arg("pbc") = true,
            R"EOF(
-               Constructs a new ``Hypercube`` given its side length and dimension.
+               Constructs a new ``Hypercube`` given its side length and
+               dimension.
 
                :param length:
                    side length of the hypercube. It must be always be >=1,
@@ -224,9 +219,9 @@ void AddGraphModule(py::module& m) {
                :param n_dim:
                    dimension of the hypercube. It must be at least 1.
                :param pbc:
-                   if ``True`` then the constructed hypercube will have periodic
-                   boundary conditions, otherwise open boundary conditions are
-                   emposed.
+                   if ``True`` then the constructed hypercube will have
+                   periodic boundary conditions, otherwise open boundary
+                   conditions are emposed.
            )EOF")
       .def(py::init([](int length, py::iterable xs) {
              auto iterator = xs.attr("__iter__")();
@@ -234,21 +229,22 @@ void AddGraphModule(py::module& m) {
            }),
            py::arg("length"), py::arg("colors"),
            R"EOF(
-               Constructs a new `Hypercube` given its side length and edge coloring.
+               Constructs a new `Hypercube` given its side length and edge
+               coloring.
 
-               ``colors`` must be an iterable of ``Tuple[int, int, int]`` where each
-               element ``(i, j, c)`` represents an edge ``i <-> j`` of color ``c``.
-               Colors must be assigned to __all__ edges.
+               ``colors`` must be an iterable of ``Tuple[int, int, int]``
+               where each element ``(i, j, c)`` represents an edge ``i <->
+               j`` of color ``c``. Colors must be assigned to __all__ edges.
 
                :param length:
-                   side length of the hypercube. It must be always be >=3 if the
-                   hypercube has periodic boundary conditions and >=1 otherwise.
+                   side length of the hypercube. It must be always be >=3 if
+                   the hypercube has periodic boundary conditions and >=1
+                   otherwise.
                :param colors:
                    edge colors.
-           )EOF");
+           )EOF") ADDGRAPHMETHODS(Hypercube);
 
-  py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
-      subm, "CustomGraph")
+  py::class_<CustomGraph>(subm, "CustomGraph")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
@@ -263,16 +259,20 @@ void AddGraphModule(py::module& m) {
            R"EOF(
                Constructs a new graph given a list of edges.
 
-                   * If `edges` has elements of type `Tuple[int, int]` it is treated
-                     as a list of edges. Then each element `(i, j)` means a connection
-                     between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also,
-                     `edges` should contain no duplicates.
+                   * If `edges` has elements of type `Tuple[int, int]` it is
+                   treated
+                     as a list of edges. Then each element `(i, j)` means a
+                     connection between sites `i` and `j`. It is assumed that
+                     `0 <= i <= j`. Also, `edges` should contain no
+                     duplicates.
 
-                   * If `edges` has elements of type `Tuple[int, int, int]` each
-                     element `(i, j, c)` represents an edge between sites `i` and `j`
-                     colored into `c`. It is again assumed that `0 <= i <= j` and that
-                     there are no duplicate elements in `edges`.
-          )EOF");
+                   * If `edges` has elements of type `Tuple[int, int, int]`
+                   each
+                     element `(i, j, c)` represents an edge between sites `i`
+                     and `j` colored into `c`. It is again assumed that `0 <=
+                     i <= j` and that there are no duplicate elements in
+                     `edges`.
+          )EOF") ADDGRAPHMETHODS(CustomGraph);
 }
 
 }  // namespace netket

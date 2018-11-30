@@ -29,7 +29,7 @@ namespace netket {
 
 class Heisenberg : public AbstractOperator {
   std::shared_ptr<const AbstractHilbert> hilbert_;
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   const int nspins_;
   double offdiag_;
@@ -50,7 +50,7 @@ class Heisenberg : public AbstractOperator {
   }
 
   void Init() {
-    if (graph_->IsBipartite()) {
+    if (graph_.IsBipartite()) {
       offdiag_ = -2;
     } else {
       offdiag_ = 2;
@@ -62,7 +62,7 @@ class Heisenberg : public AbstractOperator {
   }
 
   void GenerateBonds() {
-    auto adj = graph_->AdjacencyList();
+    auto adj = graph_.AdjacencyList();
 
     bonds_.resize(nspins_);
 

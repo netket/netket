@@ -78,7 +78,7 @@ class AbstractHilbert {
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
 
-  virtual std::shared_ptr<const AbstractGraph> GetGraph() const = 0;
+  virtual Graph GetGraph() const = 0;
 
   virtual ~AbstractHilbert() {}
 };

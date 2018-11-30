@@ -35,10 +35,10 @@ class Hypercube : public AbstractGraph {
   ColorMap colors_;  ///< Edge to color mapping
 
  public:
-  Hypercube(Hypercube const &) = delete;
-  Hypercube(Hypercube &&) noexcept = default;
-  Hypercube &operator=(Hypercube const &) noexcept = delete;
-  Hypercube &operator=(Hypercube &&) noexcept = default;
+  // Hypercube(Hypercube const &) = delete;
+  // Hypercube(Hypercube &&) noexcept = default;
+  // Hypercube &operator=(Hypercube const &) noexcept = delete;
+  // Hypercube &operator=(Hypercube &&) noexcept = default;
 
   Hypercube(int const length, int const n_dim = 1, bool pbc = true)
       : length_{length}, n_dim_{n_dim}, pbc_{pbc}, edges_{}, symm_table_{} {

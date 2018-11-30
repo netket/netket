@@ -36,7 +36,7 @@ class JastrowSymm : public AbstractMachine<T> {
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
   const std::shared_ptr<const AbstractHilbert> hilbert_;
-  std::shared_ptr<const AbstractGraph> graph_;
+  Graph graph_;
 
   std::vector<std::vector<int>> permtable_;
   int permsize_;
@@ -74,13 +74,13 @@ class JastrowSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  void Init(std::shared_ptr<const AbstractGraph> graph) {
+  void Init(Graph graph) {
     if (nv_ < 2) {
       throw InvalidInputError(
           "Cannot construct Jastrow states with less than two visible units");
     }
 
-    permtable_ = graph->SymmetryTable();
+    permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
 
     for (int i = 0; i < permsize_; i++) {

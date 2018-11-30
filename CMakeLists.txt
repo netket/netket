@@ -18,7 +18,7 @@ endif()
 
 include(ExternalProject)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
@@ -60,6 +60,18 @@ endif()
 add_library(span_lite INTERFACE)
 target_include_directories(span_lite
     INTERFACE "${CMAKE_BINARY_DIR}/External/span-lite")
+
+
+# variant
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/variant/mpark/variant.hpp")
+file(DOWNLOAD
+"https://raw.githubusercontent.com/mpark/variant/single-header/v1.3.0/variant.hpp"
+"External/variant/mpark/variant.hpp")
+endif()
+add_library(variant INTERFACE)
+target_include_directories(variant
+INTERFACE "${CMAKE_BINARY_DIR}/External/variant")
 
 
 # Eigen3
@@ -173,6 +185,7 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
+        variant
         IETL
 )
 
