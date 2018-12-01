@@ -244,6 +244,8 @@ void AddGraphModule(py::module& m) {
                    edge colors.
            )EOF") ADDGRAPHMETHODS(Hypercube);
 
+  py::implicitly_convertible<Hypercube, Graph>();
+
   py::class_<CustomGraph>(subm, "CustomGraph")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
@@ -273,6 +275,7 @@ void AddGraphModule(py::module& m) {
                      i <= j` and that there are no duplicate elements in
                      `edges`.
           )EOF") ADDGRAPHMETHODS(CustomGraph);
+  py::implicitly_convertible<CustomGraph, Graph>();
 }
 
 }  // namespace netket
