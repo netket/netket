@@ -30,7 +30,7 @@ template <class WfType>
 class ExactSampler : public AbstractSampler<WfType> {
   std::shared_ptr<WfType> psi_;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  Hilbert hilbert_;
 
   // number of visible units
   const int nv_;
@@ -59,7 +59,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   explicit ExactSampler(std::shared_ptr<WfType> psi)
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
-        nv_(hilbert_->Size()),
+        nv_(hilbert_.Size()),
         hilbert_index_(hilbert_),
         dim_(hilbert_index_.NStates()) {
     Init();
@@ -71,7 +71,7 @@ class ExactSampler : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
           "Exact sampler works only for discrete "
           "Hilbert spaces");
@@ -104,7 +104,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_);
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -142,9 +142,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
   std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  Hilbert GetHilbert() const override { return hilbert_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

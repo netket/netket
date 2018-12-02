@@ -28,7 +28,7 @@ template <class WfType>
 class MetropolisHop : public AbstractSampler<WfType> {
   std::shared_ptr<WfType> psi_;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  Hilbert hilbert_;
 
   // number of visible units
   const int nv_;
@@ -55,7 +55,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
  public:
   MetropolisHop(const Graph &graph, std::shared_ptr<WfType> psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
+      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
@@ -68,8 +68,8 @@ class MetropolisHop : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = hilbert_.LocalSize();
+    localstates_ = hilbert_.LocalStates();
 
     GenerateClusters(graph, dmax);
 
@@ -115,7 +115,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_);
     }
 
     psi_->InitLookup(v_, lt_);
@@ -176,7 +176,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;
         psi_->UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_->UpdateConf(v_, tochange, newconf);
+        hilbert_.UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_->LogVal(v_);
@@ -199,9 +199,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  Hilbert GetHilbert() const override { return hilbert_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

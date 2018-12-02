@@ -32,7 +32,7 @@ namespace netket {
 template <class WfType>
 class CustomSamplerPt : public AbstractSampler<WfType> {
   std::shared_ptr<WfType> psi_;
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  Hilbert hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
   // number of visible units
@@ -71,11 +71,11 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
         move_operators_(move_operators),
-        nv_(hilbert_->Size()),
+        nv_(hilbert_.Size()),
         nrep_(nreplicas) {
     CustomSampler<WfType>::CheckMoveOperators(move_operators_);
 
-    if (hilbert_->Size() != move_operators.GetHilbert()->Size()) {
+    if (hilbert_.Size() != move_operators.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -101,13 +101,13 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = hilbert_.LocalSize();
+    localstates_ = hilbert_.LocalStates();
 
     v_.resize(nrep_);
     for (int i = 0; i < nrep_; i++) {
@@ -151,7 +151,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_->RandomVals(v_[i], rgen_);
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
@@ -190,8 +190,8 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
         accept_(rep) += 1;
         psi_->UpdateLookup(v_[rep], tochange_[exit_state],
                            newconfs_[exit_state], lt_[rep]);
-        hilbert_->UpdateConf(v_[rep], tochange_[exit_state],
-                             newconfs_[exit_state]);
+        hilbert_.UpdateConf(v_[rep], tochange_[exit_state],
+                            newconfs_[exit_state]);
       }
       moves_(rep) += 1;
     }
@@ -246,9 +246,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
   std::shared_ptr<WfType> GetMachine() override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  Hilbert GetHilbert() const override { return hilbert_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

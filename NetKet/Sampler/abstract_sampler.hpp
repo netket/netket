@@ -36,7 +36,7 @@ class AbstractSampler {
 
   virtual Eigen::VectorXd Acceptance() const = 0;
 
-  virtual std::shared_ptr<const AbstractHilbert> GetHilbert() const = 0;
+  virtual Hilbert GetHilbert() const = 0;
 
   virtual ~AbstractSampler() {}
 };

@@ -40,12 +40,10 @@ void AddOperatorModule(py::module &m) {
 
   py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
       subm, "LocalOperator")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    std::vector<LocalOperator::MatType>,
+      .def(py::init<Hilbert, std::vector<LocalOperator::MatType>,
                     std::vector<LocalOperator::SiteType>>(),
            py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    LocalOperator::MatType, LocalOperator::SiteType>(),
+      .def(py::init<Hilbert, LocalOperator::MatType, LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
       .def("local_matrices", &LocalOperator::LocalMatrices)
       .def(py::self + py::self)
@@ -63,20 +61,18 @@ void AddOperatorModule(py::module &m) {
   // .def(py::self * std::complex<double>());
 
   py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(subm, "Ising")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double>(),
-           py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
-          ADDOPERATORMETHODS(Ising);
+      .def(py::init<Hilbert, double, double>(), py::arg("hilbert"),
+           py::arg("h"), py::arg("J") = 1.0) ADDOPERATORMETHODS(Ising);
 
   py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
       subm, "Heisenberg")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert")) ADDOPERATORMETHODS(Heisenberg);
+      .def(py::init<Hilbert>(), py::arg("hilbert"))
+          ADDOPERATORMETHODS(Heisenberg);
 
   py::class_<GraphHamiltonian, AbstractOperator,
              std::shared_ptr<GraphHamiltonian>>(subm, "GraphHamiltonian")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    GraphHamiltonian::OVecType, GraphHamiltonian::OVecType,
-                    std::vector<int>>(),
+      .def(py::init<Hilbert, GraphHamiltonian::OVecType,
+                    GraphHamiltonian::OVecType, std::vector<int>>(),
            py::arg("hilbert"),
            py::arg("siteops") = GraphHamiltonian::OVecType(),
            py::arg("bondops") = GraphHamiltonian::OVecType(),
@@ -85,10 +81,9 @@ void AddOperatorModule(py::module &m) {
 
   py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
       subm, "BoseHubbard")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double,
-                    double>(),
-           py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
-           py::arg("mu") = 0.) ADDOPERATORMETHODS(BoseHubbard);
+      .def(py::init<Hilbert, double, double, double>(), py::arg("hilbert"),
+           py::arg("U"), py::arg("V") = 0., py::arg("mu") = 0.)
+          ADDOPERATORMETHODS(BoseHubbard);
 
   // Matrix wrappers
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")

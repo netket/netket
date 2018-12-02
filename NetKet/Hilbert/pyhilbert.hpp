@@ -43,30 +43,35 @@ constexpr int HilbertIndex::MaxStates;
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
 
-  py::class_<AbstractHilbert, std::shared_ptr<AbstractHilbert>>(subm, "Hilbert")
-      ADDHILBERTMETHODS(AbstractHilbert);
+  py::class_<Hilbert>(subm, "Hilbert")
+      .def(py::init<Spin>())
+      .def(py::init<Qubit>())
+      .def(py::init<Boson>())
+      .def(py::init<CustomHilbert>()) ADDHILBERTMETHODS(Hilbert);
 
-  py::class_<Spin, AbstractHilbert, std::shared_ptr<Spin>>(subm, "Spin")
+  py::class_<Spin>(subm, "Spin")
       .def(py::init<Graph, double>(), py::arg("graph"), py::arg("s"))
       .def(py::init<Graph, double, double>(), py::arg("graph"), py::arg("s"),
            py::arg("total_sz")) ADDHILBERTMETHODS(Spin);
+  py::implicitly_convertible<Spin, Hilbert>();
 
-  py::class_<Qubit, AbstractHilbert, std::shared_ptr<Qubit>>(subm, "Qubit")
+  py::class_<Qubit>(subm, "Qubit")
       .def(py::init<Graph>(), py::arg("graph")) ADDHILBERTMETHODS(Qubit);
+  py::implicitly_convertible<Qubit, Hilbert>();
 
-  py::class_<Boson, AbstractHilbert, std::shared_ptr<Boson>>(subm, "Boson")
+  py::class_<Boson>(subm, "Boson")
       .def(py::init<Graph, int>(), py::arg("graph"), py::arg("n_max"))
       .def(py::init<Graph, int, int>(), py::arg("graph"), py::arg("n_max"),
            py::arg("n_bosons")) ADDHILBERTMETHODS(Boson);
+  py::implicitly_convertible<Boson, Hilbert>();
 
-  py::class_<CustomHilbert, AbstractHilbert, std::shared_ptr<CustomHilbert>>(
-      subm, "CustomHilbert")
+  py::class_<CustomHilbert>(subm, "CustomHilbert")
       .def(py::init<Graph, std::vector<double>>(), py::arg("graph"),
            py::arg("local_states")) ADDHILBERTMETHODS(CustomHilbert);
+  py::implicitly_convertible<CustomHilbert, Hilbert>();
 
-  py::class_<HilbertIndex, std::shared_ptr<HilbertIndex>>(subm, "HilbertIndex")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"))
+  py::class_<HilbertIndex>(subm, "HilbertIndex")
+      .def(py::init<const Hilbert &>(), py::arg("hilbert"))
       .def("n_states", &HilbertIndex::NStates)
       .def("number_to_state", &HilbertIndex::NumberToState)
       .def("state_to_number", &HilbertIndex::StateToNumber)

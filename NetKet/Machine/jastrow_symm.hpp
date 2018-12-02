@@ -35,7 +35,7 @@ class JastrowSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const std::shared_ptr<const AbstractHilbert> hilbert_;
+  const Hilbert hilbert_;
   Graph graph_;
 
   std::vector<std::vector<int>> permtable_;
@@ -67,8 +67,10 @@ class JastrowSymm : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(hilbert), graph_(hilbert->GetGraph()), nv_(hilbert->Size()) {
+  explicit JastrowSymm(Hilbert hilbert)
+      : hilbert_(std::move(hilbert)),
+        graph_(hilbert.GetGraph()),
+        nv_(hilbert.Size()) {
     Init(graph_);
 
     SetBareParameters();
@@ -316,9 +318,7 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  Hilbert GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Name"] = "JastrowSymm";
@@ -335,7 +335,7 @@ class JastrowSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");
