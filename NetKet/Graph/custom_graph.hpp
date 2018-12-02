@@ -163,7 +163,9 @@ class CustomGraph : public AbstractGraph {
 
   int Size() const noexcept override { return n_sites_; }
 
-  std::vector<Edge> const &Edges() const noexcept override { return edges_; }
+  std::vector<Edge> const Edges() const noexcept override {
+    return std::move(edges_);
+  }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
@@ -174,7 +176,9 @@ class CustomGraph : public AbstractGraph {
   bool IsConnected() const noexcept override { return is_connected_; }
 
   // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const noexcept override { return eclist_; }
+  const ColorMap EdgeColors() const noexcept override {
+    return std::move(eclist_);
+  }
 
  private:
   bool ComputeConnected() const {

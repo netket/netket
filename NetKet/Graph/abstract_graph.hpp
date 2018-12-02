@@ -54,7 +54,7 @@ class AbstractGraph {
   /**
   Returns the graph edges.
   */
-  virtual std::vector<Edge> const &Edges() const noexcept = 0;
+  virtual std::vector<Edge> const Edges() const noexcept = 0;
 
   /**
   Member function returning the adjacency list of the graph.
@@ -72,7 +72,7 @@ class AbstractGraph {
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  virtual const ColorMap &EdgeColors() const noexcept = 0;
+  virtual const ColorMap EdgeColors() const noexcept = 0;
 
   // Edge Colors from users specified map
   void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,

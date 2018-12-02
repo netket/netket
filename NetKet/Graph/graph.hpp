@@ -26,8 +26,9 @@
 #include "mpark/variant.hpp"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+
 namespace netket {
-class Graph {
+class Graph : public AbstractGraph {
  public:
   using VariantType = mpark::variant<Hypercube, CustomGraph>;
 
@@ -38,16 +39,10 @@ class Graph {
   Graph(VariantType obj) : obj_(std::move(obj)) {}
 
   /**
-  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
-  */
-  using Edge = std::array<int, 2>;
-  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
-
-  /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
   */
-  int Nsites() const noexcept {
+  int Nsites() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.Nsites(); }, obj_);
   }
 
@@ -55,14 +50,14 @@ class Graph {
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
   */
-  int Size() const noexcept {
+  int Size() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.Size(); }, obj_);
   }
 
   /**
   Returns the graph edges.
   */
-  std::vector<Edge> const &Edges() const noexcept {
+  std::vector<Edge> const Edges() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.Edges(); }, obj_);
   }
 
@@ -70,7 +65,7 @@ class Graph {
   Member function returning the adjacency list of the graph.
   @return adl[i][k] is the k-th neighbour of site i.
   */
-  std::vector<std::vector<int>> AdjacencyList() const {
+  std::vector<std::vector<int>> AdjacencyList() const override {
     return mpark::visit([](auto &&obj) { return obj.AdjacencyList(); }, obj_);
   }
 
@@ -78,7 +73,7 @@ class Graph {
   Member function returning the symmetry table of the graph.
   @return st[i][k] contains the i-th equivalent permutation of the sites.
   */
-  std::vector<std::vector<int>> SymmetryTable() const {
+  std::vector<std::vector<int>> SymmetryTable() const override {
     return mpark::visit([](auto &&obj) { return obj.SymmetryTable(); }, obj_);
   }
 
@@ -86,7 +81,7 @@ class Graph {
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  const ColorMap &EdgeColors() const noexcept {
+  const ColorMap EdgeColors() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.EdgeColors(); }, obj_);
   }
 
@@ -94,7 +89,7 @@ class Graph {
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
-  bool IsBipartite() const noexcept {
+  bool IsBipartite() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.IsBipartite(); }, obj_);
   }
 
@@ -103,7 +98,7 @@ class Graph {
    * every pair of nodes.
    * @return true, if the graph is connected
    */
-  bool IsConnected() const noexcept {
+  bool IsConnected() const noexcept override {
     return mpark::visit([](auto &&obj) { return obj.IsConnected(); }, obj_);
   }
 
@@ -117,7 +112,7 @@ class Graph {
    to
    * root.
    */
-  std::vector<int> Distances(int root) const {
+  std::vector<int> Distances(int root) const override {
     return mpark::visit([root](auto &&obj) { return obj.Distances(root); },
                         obj_);
   }
@@ -129,7 +124,7 @@ class Graph {
    between
    *    nodes v and w.
    */
-  std::vector<std::vector<int>> AllDistances() const {
+  std::vector<std::vector<int>> AllDistances() const override {
     return mpark::visit([](auto &&obj) { return obj.AllDistances(); }, obj_);
   }
 };
