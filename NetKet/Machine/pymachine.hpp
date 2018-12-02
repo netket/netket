@@ -37,9 +37,8 @@ namespace netket {
       .def_property("parameters", &name::GetParameters, &name::SetParameters) \
       .def("init_random_parameters", &name::InitRandomPars,                   \
            py::arg("seed") = 1234, py::arg("sigma") = 0.1)                    \
-      .def("log_val",                                                         \
-           (MachineType(name::*)(AbMachineType::VisibleConstType)) &          \
-               name::LogVal)                                                  \
+      .def("log_val", (StateType(name::*)(AbMachineType::VisibleConstType)) & \
+                          name::LogVal)                                       \
       .def("log_val_diff", (AbMachineType::VectorType(name::*)(               \
                                AbMachineType::VisibleConstType,               \
                                const std::vector<std::vector<int>> &,         \
@@ -76,7 +75,7 @@ void AddMachineModule(py::module &m) {
       ADDMACHINEMETHODS(AbMachineType);
 
   {
-    using DerMachine = RbmSpin<MachineType>;
+    using DerMachine = RbmSpin<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "RbmSpin")
         .def(py::init<Hilbert, int, int, bool, bool>(), py::arg("hilbert"),
@@ -88,7 +87,7 @@ void AddMachineModule(py::module &m) {
   }
 
   {
-    using DerMachine = RbmSpinSymm<MachineType>;
+    using DerMachine = RbmSpinSymm<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "RbmSpinSymm")
         .def(py::init<Hilbert, int, bool, bool>(), py::arg("hilbert"),
@@ -100,7 +99,7 @@ void AddMachineModule(py::module &m) {
   }
 
   {
-    using DerMachine = RbmMultival<MachineType>;
+    using DerMachine = RbmMultival<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "RbmMultiVal")
         .def(py::init<Hilbert, int, int, bool, bool>(), py::arg("hilbert"),
@@ -112,7 +111,7 @@ void AddMachineModule(py::module &m) {
   }
 
   {
-    using DerMachine = Jastrow<MachineType>;
+    using DerMachine = Jastrow<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "Jastrow")
         .def(py::init<Hilbert>(), py::arg("hilbert"))
@@ -120,7 +119,7 @@ void AddMachineModule(py::module &m) {
   }
 
   {
-    using DerMachine = JastrowSymm<MachineType>;
+    using DerMachine = JastrowSymm<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
         subm, "JastrowSymm")
         .def(py::init<Hilbert>(), py::arg("hilbert"))
@@ -130,30 +129,30 @@ void AddMachineModule(py::module &m) {
 #ifndef COMMA
 #define COMMA ,
 #endif
-  py::class_<MPSPeriodic<MachineType, true>, AbMachineType,
-             std::shared_ptr<MPSPeriodic<MachineType, true>>>(
+  py::class_<MPSPeriodic<StateType, true>, AbMachineType,
+             std::shared_ptr<MPSPeriodic<StateType, true>>>(
       subm, "MPSPeriodicDiagonal")
       .def(py::init<Hilbert, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
-          ADDMACHINEMETHODS(MPSPeriodic<MachineType COMMA true>);
+          ADDMACHINEMETHODS(MPSPeriodic<StateType COMMA true>);
 
-  py::class_<MPSPeriodic<MachineType, false>, AbMachineType,
-             std::shared_ptr<MPSPeriodic<MachineType, false>>>(subm,
-                                                               "MPSPeriodic")
+  py::class_<MPSPeriodic<StateType, false>, AbMachineType,
+             std::shared_ptr<MPSPeriodic<StateType, false>>>(subm,
+                                                             "MPSPeriodic")
       .def(py::init<Hilbert, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
-          ADDMACHINEMETHODS(MPSPeriodic<MachineType COMMA false>);
+          ADDMACHINEMETHODS(MPSPeriodic<StateType COMMA false>);
 
   AddActivationModule(m);
   AddLayerModule(m);
 
   {
-    using DerMachine = FFNN<MachineType>;
+    using DerMachine = FFNN<StateType>;
     py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(subm,
                                                                        "FFNN")
         .def(py::init<
                  Hilbert,
-                 std::vector<std::shared_ptr<AbstractLayer<MachineType>>> &>(),
+                 std::vector<std::shared_ptr<AbstractLayer<StateType>>> &>(),
              py::arg("hilbert"), py::arg("layers"))
             ADDMACHINEMETHODS(DerMachine);
   }

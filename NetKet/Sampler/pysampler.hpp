@@ -52,13 +52,11 @@ namespace netket {
       .def("acceptance", &name::Acceptance)  \
       .def("get_hilbert", &name::GetHilbert) \
       .def("get_machine", &name::GetMachine)
-//
+
 void AddSamplerModule(py::module &m) {
-  //   auto subm = m.def_submodule("sampler");
-  //
-  //   py::class_<AbSamplerType, std::shared_ptr<AbSamplerType>>(subm,
-  //   "Sampler")
-  //       ADDSAMPLERMETHODS(AbSamplerType);
+  auto subm = m.def_submodule("sampler");
+
+  py::class_<AbSamplerType>(subm, "Sampler") ADDSAMPLERMETHODS(AbSamplerType);
   //
   //   {
   //     using DerSampler = MetropolisLocal<AbMachineType>;

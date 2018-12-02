@@ -17,10 +17,11 @@
 
 #include <netket.hpp>
 namespace netket {
-using MachineType = std::complex<double>;
-using AbMachineType = AbstractMachine<MachineType>;
-using AbLayerType = AbstractLayer<MachineType>;
-using AbSamplerType = AbstractSampler<Machine<std::complex<double>>>;
+using StateType = std::complex<double>;
+using MachineType = Machine<StateType>;
+using AbMachineType = AbstractMachine<StateType>;
+using AbLayerType = AbstractLayer<StateType>;
+using AbSamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
 
 #include "Dynamics/pydynamics.hpp"
