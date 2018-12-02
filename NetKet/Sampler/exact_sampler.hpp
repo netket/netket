@@ -58,7 +58,7 @@ class ExactSampler : public AbstractSampler<WfType> {
  public:
   explicit ExactSampler(WfType psi)
       : psi_(psi),
-        hilbert_(psi->GetHilbert()),
+        hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
         hilbert_index_(hilbert_),
         dim_(hilbert_index_.NStates()) {
@@ -114,7 +114,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index_.NumberToState(i);
-      logpsivals_[i] = psi_->LogVal(v);
+      logpsivals_[i] = psi_.LogVal(v);
       logmax = std::max(logmax, std::real(logpsivals_[i]));
     }
 

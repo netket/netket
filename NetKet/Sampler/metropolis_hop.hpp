@@ -55,7 +55,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
  public:
   MetropolisHop(const Graph &graph, WfType psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_.Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
@@ -118,7 +118,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
       hilbert_.RandomVals(v_, rgen_);
     }
 
-    psi_->InitLookup(v_, lt_);
+    psi_.InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -160,31 +160,31 @@ class MetropolisHop : public AbstractSampler<WfType> {
         }
       }
 
-      const auto lvd = psi_->LogValDiff(v_, tochange, newconf, lt_);
+      const auto lvd = psi_.LogValDiff(v_, tochange, newconf, lt_);
       double ratio = std::norm(std::exp(lvd));
 
 #ifndef NDEBUG
-      const auto psival1 = psi_->LogVal(v_);
-      if (std::abs(std::exp(psi_->LogVal(v_) - psi_->LogVal(v_, lt_)) - 1.) >
+      const auto psival1 = psi_.LogVal(v_);
+      if (std::abs(std::exp(psi_.LogVal(v_) - psi_.LogVal(v_, lt_)) - 1.) >
           1.0e-8) {
-        std::cerr << psi_->LogVal(v_) << "  and LogVal with Lt is "
-                  << psi_->LogVal(v_, lt_) << std::endl;
+        std::cerr << psi_.LogVal(v_) << "  and LogVal with Lt is "
+                  << psi_.LogVal(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
 
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;
-        psi_->UpdateLookup(v_, tochange, newconf, lt_);
+        psi_.UpdateLookup(v_, tochange, newconf, lt_);
         hilbert_.UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
-        const auto psival2 = psi_->LogVal(v_);
+        const auto psival2 = psi_.LogVal(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_->LogVal(v_, lt_) << std::endl;
+                    << psi_.LogVal(v_, lt_) << std::endl;
           std::abort();
         }
 #endif

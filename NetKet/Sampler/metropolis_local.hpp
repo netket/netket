@@ -54,7 +54,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
  public:
   explicit MetropolisLocal(WfType psi)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_.Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init();
   }
 

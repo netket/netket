@@ -53,7 +53,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
  public:
   MetropolisExchange(const Graph &graph, WfType psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_.Size()) {
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
 
@@ -115,7 +115,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
       }
     }
 
-    psi_->InitLookup(v_, lt_);
+    psi_.InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -142,11 +142,11 @@ class MetropolisExchange : public AbstractSampler<WfType> {
         newconf[1] = v_(si);
 
         double ratio =
-            std::norm(std::exp(psi_->LogValDiff(v_, tochange, newconf, lt_)));
+            std::norm(std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_)));
 
         if (ratio > distu(rgen_)) {
           accept_[0] += 1;
-          psi_->UpdateLookup(v_, tochange, newconf, lt_);
+          psi_.UpdateLookup(v_, tochange, newconf, lt_);
           hilbert_.UpdateConf(v_, tochange, newconf);
         }
       }
