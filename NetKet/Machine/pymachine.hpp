@@ -70,91 +70,96 @@ namespace netket {
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
 
-  py::class_<AbMachineType, std::shared_ptr<AbMachineType>>(subm, "Machine")
-
-      ADDMACHINEMETHODS(AbMachineType);
+  py::class_<MachineType>(subm, "Machine")
+      .def(py::init<RbmSpin<StateType>>())
+      .def(py::init<RbmSpinSymm<StateType>>())
+      .def(py::init<RbmMultival<StateType>>())
+      .def(py::init<Jastrow<StateType>>())
+      .def(py::init<JastrowSymm<StateType>>())
+      .def(py::init<FFNN<StateType>>())
+      .def(py::init<MPSPeriodic<StateType, true>>())
+      .def(py::init<MPSPeriodic<StateType, false>>())
+          ADDMACHINEMETHODS(MachineType);
 
   {
     using DerMachine = RbmSpin<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
-        subm, "RbmSpin")
+    py::class_<DerMachine>(subm, "RbmSpin")
         .def(py::init<Hilbert, int, int, bool, bool>(), py::arg("hilbert"),
              py::arg("n_hidden") = 0, py::arg("alpha") = 0,
              py::arg("use_visible_"
                      "bias") = true,
              py::arg("use_hidden_"
                      "bias") = true) ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 
   {
     using DerMachine = RbmSpinSymm<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
-        subm, "RbmSpinSymm")
+    py::class_<DerMachine>(subm, "RbmSpinSymm")
         .def(py::init<Hilbert, int, bool, bool>(), py::arg("hilbert"),
              py::arg("alpha") = 0,
              py::arg("use_visible_"
                      "bias") = true,
              py::arg("use_hidden_"
                      "bias") = true) ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 
   {
     using DerMachine = RbmMultival<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
-        subm, "RbmMultiVal")
+    py::class_<DerMachine>(subm, "RbmMultiVal")
         .def(py::init<Hilbert, int, int, bool, bool>(), py::arg("hilbert"),
              py::arg("n_hidden") = 0, py::arg("alpha") = 0,
              py::arg("use_visible_"
                      "bias") = true,
              py::arg("use_hidden_"
                      "bias") = true) ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 
   {
     using DerMachine = Jastrow<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
-        subm, "Jastrow")
+    py::class_<DerMachine>(subm, "Jastrow")
         .def(py::init<Hilbert>(), py::arg("hilbert"))
             ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 
   {
     using DerMachine = JastrowSymm<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(
-        subm, "JastrowSymm")
+    py::class_<DerMachine>(subm, "JastrowSymm")
         .def(py::init<Hilbert>(), py::arg("hilbert"))
             ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 
 #ifndef COMMA
 #define COMMA ,
 #endif
-  py::class_<MPSPeriodic<StateType, true>, AbMachineType,
-             std::shared_ptr<MPSPeriodic<StateType, true>>>(
-      subm, "MPSPeriodicDiagonal")
+  py::class_<MPSPeriodic<StateType, true>>(subm, "MPSPeriodicDiagonal")
       .def(py::init<Hilbert, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
           ADDMACHINEMETHODS(MPSPeriodic<StateType COMMA true>);
+  py::implicitly_convertible<MPSPeriodic<StateType, true>, MachineType>();
 
-  py::class_<MPSPeriodic<StateType, false>, AbMachineType,
-             std::shared_ptr<MPSPeriodic<StateType, false>>>(subm,
-                                                             "MPSPeriodic")
+  py::class_<MPSPeriodic<StateType, false>>(subm, "MPSPeriodic")
       .def(py::init<Hilbert, double, int>(), py::arg("hilbert"),
            py::arg("bond_dim"), py::arg("symperiod") = -1)
           ADDMACHINEMETHODS(MPSPeriodic<StateType COMMA false>);
+  py::implicitly_convertible<MPSPeriodic<StateType, false>, MachineType>();
 
   AddActivationModule(m);
   AddLayerModule(m);
 
   {
     using DerMachine = FFNN<StateType>;
-    py::class_<DerMachine, AbMachineType, std::shared_ptr<DerMachine>>(subm,
-                                                                       "FFNN")
+    py::class_<DerMachine>(subm, "FFNN")
         .def(py::init<
                  Hilbert,
                  std::vector<std::shared_ptr<AbstractLayer<StateType>>> &>(),
              py::arg("hilbert"), py::arg("layers"))
             ADDMACHINEMETHODS(DerMachine);
+    py::implicitly_convertible<DerMachine, MachineType>();
   }
 }
 
