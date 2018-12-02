@@ -28,7 +28,7 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType psi_;
 
   Hilbert hilbert_;
 
@@ -62,7 +62,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
  public:
   // Constructor with one replica by default
-  explicit MetropolisLocalPt(std::shared_ptr<WfType> psi, int nreplicas = 1)
+  explicit MetropolisLocalPt(WfType psi, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
         nv_(hilbert_.Size()),
@@ -243,7 +243,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType GetMachine() override { return psi_; }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

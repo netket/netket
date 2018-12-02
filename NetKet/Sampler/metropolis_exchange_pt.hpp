@@ -28,7 +28,7 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisExchangePt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType psi_;
   Hilbert hilbert_;
 
   // number of visible units
@@ -57,8 +57,8 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  explicit MetropolisExchangePt(const Graph &graph, std::shared_ptr<WfType> psi,
-                                int dmax = 1, int nreplicas = 1)
+  explicit MetropolisExchangePt(const Graph &graph, WfType psi, int dmax = 1,
+                                int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
         nv_(hilbert_.Size()),
@@ -226,7 +226,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType GetMachine() override { return psi_; }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

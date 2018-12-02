@@ -27,7 +27,7 @@ namespace netket {
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
 class MetropolisHamiltonian : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType psi_;
 
   Hilbert hilbert_;
 
@@ -61,7 +61,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   Eigen::VectorXd v1_;
 
  public:
-  MetropolisHamiltonian(std::shared_ptr<WfType> psi, H &hamiltonian)
+  MetropolisHamiltonian(WfType psi, H &hamiltonian)
       : psi_(psi),
         hilbert_(psi->GetHilbert()),
         hamiltonian_(hamiltonian),
@@ -177,7 +177,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
   Hilbert GetHilbert() const override { return hilbert_; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType GetMachine() override { return psi_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

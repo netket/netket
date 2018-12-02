@@ -27,7 +27,7 @@ namespace netket {
 // Metropolis sampling generating local exchanges
 template <class WfType>
 class MetropolisExchange : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType psi_;
 
   Hilbert hilbert_;
 
@@ -52,8 +52,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   typename WfType::LookupType lt_;
 
  public:
-  MetropolisExchange(const Graph &graph, std::shared_ptr<WfType> psi,
-                     int dmax = 1)
+  MetropolisExchange(const Graph &graph, WfType psi, int dmax = 1)
       : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
@@ -159,7 +158,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType GetMachine() override { return psi_; }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

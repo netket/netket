@@ -31,7 +31,7 @@ namespace netket {
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
 class CustomSamplerPt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType psi_;
   Hilbert hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
@@ -65,7 +65,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
  public:
   explicit CustomSamplerPt(
-      std::shared_ptr<WfType> psi, const LocalOperator &move_operators,
+      WfType psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>(),
       int nreplicas = 1)
       : psi_(psi),
@@ -244,7 +244,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType GetMachine() override { return psi_; }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

@@ -49,8 +49,8 @@ class VariationalMonteCarlo {
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
   std::shared_ptr<const AbstractOperator> ham_;
-  std::shared_ptr<AbstractSampler<AbstractMachine<GsType>>> sampler_;
-  std::shared_ptr<AbstractMachine<GsType>> psi_;
+  std::shared_ptr<AbstractSampler<Machine<GsType>>> sampler_;
+  Machine<GsType> psi_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -98,7 +98,7 @@ class VariationalMonteCarlo {
  public:
   VariationalMonteCarlo(
       std::shared_ptr<const AbstractOperator> ham,
-      std::shared_ptr<AbstractSampler<AbstractMachine<GsType>>> sampler,
+      std::shared_ptr<AbstractSampler<Machine<GsType>>> sampler,
       std::shared_ptr<AbstractOptimizer> opt, int nsamples, int niter_opt,
       std::string output_file, int discarded_samples = -1,
       int discarded_samples_on_init = 0, std::string method = "Sr",
@@ -119,9 +119,9 @@ class VariationalMonteCarlo {
             int discarded_samples_on_init, const std::string &method,
             double diagshift, bool rescale_shift, bool use_iterative,
             bool use_cholesky) {
-    npar_ = psi_->Npar();
+    npar_ = psi_.Npar();
 
-    opt_->Init(psi_->GetParameters());
+    opt_->Init(psi_.GetParameters());
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
@@ -200,7 +200,7 @@ class VariationalMonteCarlo {
       sampler_->Sweep();
     }
 
-    vsamp_.resize(nsamples_node_, psi_->Nvisible());
+    vsamp_.resize(nsamples_node_, psi_.Nvisible());
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_->Sweep();
@@ -218,11 +218,11 @@ class VariationalMonteCarlo {
 
     const int nsamp = vsamp_.rows();
     elocs_.resize(nsamp);
-    Ok_.resize(nsamp, psi_->Npar());
+    Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
       elocs_(i) = Eloc(vsamp_.row(i));
-      Ok_.row(i) = psi_->DerLog(vsamp_.row(i));
+      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
       for (std::size_t on = 0; on < obs_.size(); on++) {
@@ -258,7 +258,7 @@ class VariationalMonteCarlo {
 
     assert(connectors_.size() == mel_.size());
 
-    auto logvaldiffs = (psi_->LogValDiff(v, connectors_, newconfs_));
+    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
@@ -277,7 +277,7 @@ class VariationalMonteCarlo {
 
     assert(connectors_.size() == mel_.size());
 
-    auto logvaldiffs = (psi_->LogValDiff(v, connectors_, newconfs_));
+    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
@@ -311,7 +311,7 @@ class VariationalMonteCarlo {
   }
 
   void UpdateParameters() {
-    auto pars = psi_->GetParameters();
+    auto pars = psi_.GetParameters();
 
     if (dosr_) {
       const int nsamp = vsamp_.rows();
@@ -385,7 +385,7 @@ class VariationalMonteCarlo {
 
     SendToAll(pars);
 
-    psi_->SetParameters(pars);
+    psi_.SetParameters(pars);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -398,7 +398,7 @@ class VariationalMonteCarlo {
     if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once
       output_->WriteLog(i, obs_data);
-      output_->WriteState(i, *psi_);
+      output_->WriteState(i, psi_);
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
