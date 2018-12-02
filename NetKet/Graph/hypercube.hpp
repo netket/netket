@@ -136,7 +136,7 @@ class Hypercube : public AbstractGraph {
 
   int Ndim() const noexcept { return n_dim_; }
 
-  const std::vector<Edge> &Edges() const noexcept { return edges_; }
+  const std::vector<Edge> &Edges() const noexcept override { return edges_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
@@ -147,6 +147,8 @@ class Hypercube : public AbstractGraph {
   }
 
   bool IsConnected() const noexcept override { return true; }
+
+  bool Pbc() const noexcept { return pbc_; }
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const noexcept override { return colors_; }

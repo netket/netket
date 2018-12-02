@@ -242,7 +242,21 @@ void AddGraphModule(py::module& m) {
                    otherwise.
                :param colors:
                    edge colors.
-           )EOF") ADDGRAPHMETHODS(Hypercube);
+           )EOF")
+      .def(py::pickle(
+          [](const Hypercube& p) {  // __getstate__
+            /* Return a tuple that fully encodes the state of the object */
+            return py::make_tuple(p.Length(), p.Ndim(), p.Pbc());
+          },
+          [](py::tuple t) {  // __setstate__
+            if (t.size() != 3)
+              throw std::runtime_error("Invalid Hypercube state!");
+
+            /* Create a new C++ instance */
+            Hypercube p(t[0].cast<int>(), t[1].cast<int>(), t[2].cast<bool>());
+
+            return p;
+          })) ADDGRAPHMETHODS(Hypercube);
 
   py::implicitly_convertible<Hypercube, Graph>();
 
