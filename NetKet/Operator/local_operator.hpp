@@ -63,7 +63,7 @@ class LocalOperator : public AbstractOperator {
  public:
   explicit LocalOperator(Hilbert hilbert, const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites)
-      : hilbert_(std::move(hilbert)) {
+      : hilbert_(hilbert) {
     for (std::size_t i = 0; i < mat.size(); i++) {
       Push(mat[i], sites[i]);
     }
@@ -72,7 +72,7 @@ class LocalOperator : public AbstractOperator {
 
   explicit LocalOperator(Hilbert hilbert, const MatType &mat,
                          const SiteType &sites)
-      : hilbert_(std::move(hilbert)) {
+      : hilbert_(hilbert) {
     Push(mat, sites);
     // TODO sort sites and swap columns of mat accordingly
     Init();

@@ -199,6 +199,10 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   WfType GetMachine() override { return psi_; }
 
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    psi_.SetParameters(pars);
+  }
+
   Hilbert GetHilbert() const override { return hilbert_; }
 
   Eigen::VectorXd Acceptance() const override {

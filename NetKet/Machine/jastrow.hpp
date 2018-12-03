@@ -56,8 +56,7 @@ class Jastrow : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(Hilbert hilbert)
-      : hilbert_(std::move(hilbert)), nv_(hilbert.Size()) {
+  explicit Jastrow(Hilbert hilbert) : hilbert_(hilbert), nv_(hilbert_.Size()) {
     Init();
   }
 

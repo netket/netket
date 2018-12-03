@@ -24,7 +24,6 @@
 #include <complex>
 #include <vector>
 #include "machine.hpp"
-#include "pyactivation.hpp"
 #include "pylayer.hpp"
 
 namespace py = pybind11;
@@ -148,7 +147,6 @@ void AddMachineModule(py::module &m) {
           ADDMACHINEMETHODS(MPSPeriodic<StateType COMMA false>);
   py::implicitly_convertible<MPSPeriodic<StateType, false>, MachineType>();
 
-  AddActivationModule(m);
   AddLayerModule(m);
 
   {

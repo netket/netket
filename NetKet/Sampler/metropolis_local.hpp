@@ -81,6 +81,8 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     Reset(true);
 
     InfoMessage() << "Local Metropolis sampler is ready " << std::endl;
+    InfoMessage() << "Visible units sampled : " << nv_ << std::endl;
+    InfoMessage() << "LocalStates : " << localstates_.size() << std::endl;
   }
 
   void Seed(int baseseed = 0) {
@@ -170,9 +172,13 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Visible() override { return v_; }
 
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
+  void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
   WfType GetMachine() override { return psi_; }
+
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    psi_.SetParameters(pars);
+  }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

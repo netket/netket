@@ -65,7 +65,7 @@ class CustomSampler : public AbstractSampler<WfType> {
       WfType psi, const LocalOperator &move_operators,
       std::vector<double> move_weights = std::vector<double>())
       : psi_(psi),
-        hilbert_(std::move(psi.GetHilbert())),
+        hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
         nv_(hilbert_.Size()) {
     CheckMoveOperators(move_operators_);
@@ -180,6 +180,10 @@ class CustomSampler : public AbstractSampler<WfType> {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   WfType GetMachine() override { return psi_; }
+
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    psi_.SetParameters(pars);
+  }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

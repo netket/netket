@@ -45,12 +45,14 @@ class Operator : public AbstractOperator {
   VariantType obj_;
 
  public:
-  Operator(VariantType obj) : obj_(std::move(obj)) {}
+  Operator(VariantType obj) : obj_(obj) {}
 
   void FindConn(VectorConstRefType v, MelType &mel, ConnectorsType &connectors,
                 NewconfsType &newconfs) const override {
     mpark::visit(
-        [&, v](auto &&obj) { obj.FindConn(v, mel, connectors, newconfs); },
+        [v, &mel, &connectors, &newconfs](auto &&obj) {
+          obj.FindConn(v, mel, connectors, newconfs);
+        },
         obj_);
   }
 

@@ -30,9 +30,11 @@ class AbstractSampler {
 
   virtual Eigen::VectorXd Visible() = 0;
 
-  virtual void SetVisible(const Eigen::VectorXd &v) = 0;
+  virtual void SetVisible(const Eigen::VectorXd& v) = 0;
 
   virtual WfType GetMachine() = 0;
+
+  virtual void SetMachineParameters(typename WfType::VectorConstRefType) = 0;
 
   virtual Eigen::VectorXd Acceptance() const = 0;
 

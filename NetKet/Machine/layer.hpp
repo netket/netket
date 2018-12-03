@@ -42,7 +42,7 @@ class Layer : public AbstractLayer<T> {
   VariantType obj_;
 
  public:
-  Layer(VariantType obj) : obj_(std::move(obj)) {}
+  Layer(VariantType obj) : obj_(obj) {}
 
   std::string Name() const override {
     return mpark::visit([](auto &&obj) { return obj.Name(); }, obj_);

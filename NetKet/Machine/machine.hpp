@@ -51,7 +51,7 @@ class Machine : public AbstractMachine<T> {
   VariantType obj_;
 
  public:
-  Machine(VariantType obj) : obj_(std::move(obj)) {}
+  Machine(VariantType obj) : obj_(obj) {}
 
   int Npar() const override {
     return mpark::visit([](auto &&obj) { return obj.Npar(); }, obj_);
@@ -63,13 +63,14 @@ class Machine : public AbstractMachine<T> {
     mpark::visit([pars](auto &&obj) { obj.SetParameters(pars); }, obj_);
   }
   void InitRandomPars(int seed, double sigma) override {
-    mpark::visit([=](auto &&obj) { obj.InitRandomPars(seed, sigma); }, obj_);
+    mpark::visit([seed, sigma](auto &&obj) { obj.InitRandomPars(seed, sigma); },
+                 obj_);
   }
   int Nvisible() const override {
     return mpark::visit([](auto &&obj) { return obj.Nvisible(); }, obj_);
   }
   T LogVal(VisibleConstType v) override {
-    return mpark::visit([=](auto &&obj) { return obj.LogVal(v); }, obj_);
+    return mpark::visit([v](auto &&obj) { return obj.LogVal(v); }, obj_);
   }
   T LogVal(VisibleConstType v, const LookupType &lt) override {
     return mpark::visit([v, &lt](auto &&obj) { return obj.LogVal(v, lt); },
@@ -106,7 +107,7 @@ class Machine : public AbstractMachine<T> {
         obj_);
   }
   VectorType DerLog(VisibleConstType v) override {
-    return mpark::visit([=](auto &&obj) { return obj.DerLog(v); }, obj_);
+    return mpark::visit([v](auto &&obj) { return obj.DerLog(v); }, obj_);
   }
 
   void to_json(json &j) const override {

@@ -110,9 +110,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      if (initrandom) {
-        hilbert_.RandomVals(v_, rgen_);
-      }
+      hilbert_.RandomVals(v_, rgen_);
     }
 
     psi_.InitLookup(v_, lt_);
@@ -159,6 +157,10 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   WfType GetMachine() override { return psi_; }
+
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    psi_.SetParameters(pars);
+  }
 
   Hilbert GetHilbert() const override { return hilbert_; }
 

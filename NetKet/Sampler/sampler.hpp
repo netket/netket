@@ -49,10 +49,10 @@ class Sampler : public AbstractSampler<WfType> {
   VariantType obj_;
 
  public:
-  Sampler(VariantType obj) : obj_(std::move(obj)) {}
+  Sampler(VariantType obj) : obj_(obj) {}
 
   void Reset(bool initrandom = false) override {
-    mpark::visit([=](auto &&obj) { obj.Reset(initrandom); }, obj_);
+    mpark::visit([initrandom](auto &&obj) { obj.Reset(initrandom); }, obj_);
   }
 
   void Sweep() override {
@@ -64,11 +64,16 @@ class Sampler : public AbstractSampler<WfType> {
   }
 
   void SetVisible(const Eigen::VectorXd &v) override {
-    mpark::visit([&](auto &&obj) { obj.SetVisible(v); }, obj_);
+    mpark::visit([v](auto &&obj) { obj.SetVisible(v); }, obj_);
   }
 
   WfType GetMachine() override {
     return mpark::visit([](auto &&obj) { return obj.GetMachine(); }, obj_);
+  }
+
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    return mpark::visit(
+        [pars](auto &&obj) { return obj.SetMachineParameters(pars); }, obj_);
   }
 
   Eigen::VectorXd Acceptance() const override {

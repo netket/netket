@@ -43,9 +43,9 @@ class Heisenberg : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit Heisenberg(Hilbert hilbert)
-      : hilbert_(std::move(hilbert)),
-        graph_(hilbert.GetGraph()),
-        nspins_(hilbert.Size()) {
+      : hilbert_(hilbert),
+        graph_(hilbert_.GetGraph()),
+        nspins_(hilbert_.Size()) {
     Init();
   }
 

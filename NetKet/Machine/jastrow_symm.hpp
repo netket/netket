@@ -68,9 +68,7 @@ class JastrowSymm : public AbstractMachine<T> {
 
   // constructor
   explicit JastrowSymm(Hilbert hilbert)
-      : hilbert_(std::move(hilbert)),
-        graph_(hilbert.GetGraph()),
-        nv_(hilbert.Size()) {
+      : hilbert_(hilbert), graph_(hilbert_.GetGraph()), nv_(hilbert_.Size()) {
     Init(graph_);
 
     SetBareParameters();

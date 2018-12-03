@@ -68,10 +68,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   explicit RbmSpin(Hilbert hilbert, int nhidden = 0, int alpha = 0,
                    bool usea = true, bool useb = true)
-      : hilbert_(std::move(hilbert)),
-        nv_(hilbert.Size()),
-        usea_(usea),
-        useb_(useb) {
+      : hilbert_(hilbert), nv_(hilbert_.Size()), usea_(usea), useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
 
     Init();

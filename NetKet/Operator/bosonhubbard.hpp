@@ -52,9 +52,9 @@ class BoseHubbard : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit BoseHubbard(Hilbert hilbert, double U, double V = 0., double mu = 0.)
-      : hilbert_(std::move(hilbert)),
-        graph_(hilbert.GetGraph()),
-        nsites_(hilbert.Size()),
+      : hilbert_(hilbert),
+        graph_(hilbert_.GetGraph()),
+        nsites_(hilbert_.Size()),
         U_(U),
         V_(V),
         mu_(mu) {

@@ -30,7 +30,7 @@
 #include "spins.hpp"
 
 namespace netket {
-class Hilbert {
+class Hilbert : public AbstractHilbert {
  public:
   using VariantType = mpark::variant<Spin, Boson, Qubit, CustomHilbert>;
 
@@ -38,73 +38,39 @@ class Hilbert {
   VariantType obj_;
 
  public:
-  Hilbert(VariantType obj) : obj_(std::move(obj)) {}
+  Hilbert(VariantType obj) : obj_(obj) {}
 
-  /**
-  Member function returning true if the hilbert space has discrete quantum
-  numbers.
-  @return true if the local hilbert space is discrete
-  */
-  bool IsDiscrete() const {
+  bool IsDiscrete() const override {
     return mpark::visit([](auto &&obj) { return obj.IsDiscrete(); }, obj_);
   }
 
-  /**
-  Member function returning the size of the local hilbert space.
-  @return Size of the discrete local hilbert space. For continous spaces an
-  error message is returned.
-  */
-  int LocalSize() const {
+  int LocalSize() const override {
     return mpark::visit([](auto &&obj) { return obj.LocalSize(); }, obj_);
   }
-  /**
-  Member function returning the number of visible units needed to describe the
-  system.
-  @return Number of visible units needed to described the system.
-  */
-  int Size() const {
+
+  int Size() const override {
     return mpark::visit([](auto &&obj) { return obj.Size(); }, obj_);
   }
 
-  /**
-  Member function returning the local states.
-  @return Vector containing the value of the discrete local quantum numbers. If
-  the local quantum numbers are continous, the vector contains lower and higher
-  bounds for the local quantum numbers.
-  */
-  std::vector<double> LocalStates() const {
+  std::vector<double> LocalStates() const override {
     return mpark::visit([](auto &&obj) { return obj.LocalStates(); }, obj_);
   }
 
-  /**
-  Member function generating uniformely distributed local random states
-  @param state a reference to a visible configuration, in output this contains
-  the random state.
-  @param rgen the random number generator to be used
-  */
   void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                  netket::default_random_engine &rgen) const {
+                  netket::default_random_engine &rgen) const override {
     mpark::visit([state, &rgen](auto &&obj) { obj.RandomVals(state, rgen); },
                  obj_);
   }
 
-  /**
-  Member function updating a visible configuration using the information on
-  where the local changes have been done.
-  @param v is the vector visible units to be modified.
-  @param tochange contains a list of which quantum numbers are to be
-  modified.
-  @param newconf contains the value that those quantum numbers should take
-  */
   void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
                   const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const {
+                  const std::vector<double> &newconf) const override {
     mpark::visit([v, &tochange, &newconf](
                      auto &&obj) { obj.UpdateConf(v, tochange, newconf); },
                  obj_);
   }
 
-  Graph GetGraph() const {
+  Graph GetGraph() const override {
     return mpark::visit([](auto &&obj) { return obj.GetGraph(); }, obj_);
   }
 };

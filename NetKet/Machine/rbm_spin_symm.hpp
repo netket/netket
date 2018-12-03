@@ -88,9 +88,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
   explicit RbmSpinSymm(Hilbert hilbert, int alpha = 0, bool usea = true,
                        bool useb = true)
-      : hilbert_(std::move(hilbert)),
-        graph_(hilbert.GetGraph()),
-        nv_(hilbert.Size()),
+      : hilbert_(hilbert),
+        graph_(hilbert_.GetGraph()),
+        nv_(hilbert_.Size()),
         alpha_(alpha),
         usea_(usea),
         useb_(useb) {

@@ -80,9 +80,9 @@ class RbmMultival : public AbstractMachine<T> {
 
   explicit RbmMultival(Hilbert hilbert, int nhidden = 0, int alpha = 0,
                        bool usea = true, bool useb = true)
-      : hilbert_(std::move(hilbert)),
-        nv_(hilbert.Size()),
-        ls_(hilbert.LocalSize()),
+      : hilbert_(hilbert),
+        nv_(hilbert_.Size()),
+        ls_(hilbert_.LocalSize()),
         usea_(usea),
         useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);

@@ -35,22 +35,22 @@ class Optimizer : public AbstractOptimizer {
   VariantType obj_;
 
  public:
-  explicit Optimizer(VariantType obj) : obj_(std::move(obj)) {}
+  explicit Optimizer(VariantType obj) : obj_(obj) {}
 
   void Init(const Eigen::VectorXd &pars) override {
-    mpark::visit([&](auto &&obj) { obj.Init(pars); }, obj_);
+    mpark::visit([&pars](auto &&obj) { obj.Init(pars); }, obj_);
   }
   void Init(const Eigen::VectorXcd &pars) override {
-    mpark::visit([&](auto &&obj) { obj.Init(pars); }, obj_);
+    mpark::visit([&pars](auto &&obj) { obj.Init(pars); }, obj_);
   }
   void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
-    mpark::visit([&](auto &&obj) { obj.Update(grad, pars); }, obj_);
+    mpark::visit([&grad, &pars](auto &&obj) { obj.Update(grad, pars); }, obj_);
   }
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    mpark::visit([&](auto &&obj) { obj.Update(grad, pars); }, obj_);
+    mpark::visit([&grad, &pars](auto &&obj) { obj.Update(grad, pars); }, obj_);
   }
   void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    mpark::visit([&](auto &&obj) { obj.Update(grad, pars); }, obj_);
+    mpark::visit([&grad, &pars](auto &&obj) { obj.Update(grad, pars); }, obj_);
   }
   void Reset() override {
     mpark::visit([](auto &&obj) { obj.Reset(); }, obj_);

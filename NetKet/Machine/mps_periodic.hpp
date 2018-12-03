@@ -72,9 +72,9 @@ class MPSPeriodic : public AbstractMachine<T> {
   using LookupType = Lookup<T>;
 
   explicit MPSPeriodic(Hilbert hilbert, double bond_dim, int symperiod = -1)
-      : hilbert_(std::move(hilbert)),
-        N_(hilbert.Size()),
-        d_(hilbert.LocalSize()),
+      : hilbert_(hilbert),
+        N_(hilbert_.Size()),
+        d_(hilbert_.LocalSize()),
         D_(bond_dim),
         symperiod_(symperiod) {
     if (symperiod_ == -1) {

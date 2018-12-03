@@ -103,10 +103,10 @@ class VariationalMonteCarlo {
                         std::string method = "Sr", double diagshift = 0.01,
                         bool rescale_shift = false, bool use_iterative = false,
                         bool use_cholesky = true, int save_every = 50)
-      : ham_(std::move(ham)),
-        sampler_(std::move(sampler)),
+      : ham_(ham),
+        sampler_(sampler),
         psi_(sampler_.GetMachine()),
-        opt_(std::move(opt)),
+        opt_(opt),
         elocvar_(0.) {
     Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
          method, diagshift, rescale_shift, use_iterative, use_cholesky);
@@ -184,6 +184,7 @@ class VariationalMonteCarlo {
   }
 
   void InitSweeps() {
+    sampler_.SetMachineParameters(psi_.GetParameters());
     sampler_.Reset();
 
     for (int i = 0; i < ninitsamples_; i++) {
@@ -192,6 +193,7 @@ class VariationalMonteCarlo {
   }
 
   void Sample() {
+    sampler_.SetMachineParameters(psi_.GetParameters());
     sampler_.Reset();
 
     for (int i = 0; i < ndiscardedsamples_; i++) {

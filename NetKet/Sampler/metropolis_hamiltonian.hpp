@@ -63,9 +63,9 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
  public:
   MetropolisHamiltonian(WfType psi, Operator hamiltonian)
-      : psi_(std::move(psi)),
+      : psi_(psi),
         hilbert_(psi_.GetHilbert()),
-        hamiltonian_(std::move(hamiltonian)),
+        hamiltonian_(hamiltonian),
         nv_(hilbert_.Size()) {
     Init();
   }
@@ -179,6 +179,10 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   Hilbert GetHilbert() const override { return hilbert_; }
 
   WfType GetMachine() override { return psi_; }
+
+  void SetMachineParameters(typename WfType::VectorConstRefType pars) override {
+    psi_.SetParameters(pars);
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

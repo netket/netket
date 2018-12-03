@@ -48,9 +48,9 @@ class GraphHamiltonian : public AbstractOperator {
       Hilbert hilbert, OVecType siteops = OVecType(),
       OVecType bondops = OVecType(),
       std::vector<int> bondops_colors = std::vector<int>())
-      : hilbert_(std::move(hilbert)),
-        graph_(hilbert.GetGraph()),
-        nvertices_(hilbert.Size()) {
+      : hilbert_(hilbert),
+        graph_(hilbert_.GetGraph()),
+        nvertices_(hilbert_.Size()) {
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
       throw InvalidInputError("Must input at least SiteOps or BondOps");
