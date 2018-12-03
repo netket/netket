@@ -75,9 +75,9 @@ class VariationalMonteCarlo {
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
 
-  std::shared_ptr<AbstractOptimizer> opt_;
+  Optimizer opt_;
 
-  std::vector<std::shared_ptr<AbstractOperator>> obs_;
+  std::vector<Operator> obs_;
   std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
@@ -97,9 +97,8 @@ class VariationalMonteCarlo {
 
  public:
   VariationalMonteCarlo(Operator ham, Sampler<Machine<GsType>> sampler,
-                        std::shared_ptr<AbstractOptimizer> opt, int nsamples,
-                        int niter_opt, std::string output_file,
-                        int discarded_samples = -1,
+                        Optimizer opt, int nsamples, int niter_opt,
+                        std::string output_file, int discarded_samples = -1,
                         int discarded_samples_on_init = 0,
                         std::string method = "Sr", double diagshift = 0.01,
                         bool rescale_shift = false, bool use_iterative = false,
@@ -107,7 +106,7 @@ class VariationalMonteCarlo {
       : ham_(std::move(ham)),
         sampler_(std::move(sampler)),
         psi_(sampler_.GetMachine()),
-        opt_(opt),
+        opt_(std::move(opt)),
         elocvar_(0.) {
     Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
          method, diagshift, rescale_shift, use_iterative, use_cholesky);
@@ -121,7 +120,7 @@ class VariationalMonteCarlo {
             bool use_cholesky) {
     npar_ = psi_.Npar();
 
-    opt_->Init(psi_.GetParameters());
+    opt_.Init(psi_.GetParameters());
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
@@ -179,8 +178,7 @@ class VariationalMonteCarlo {
     }
   }
 
-  void AddObservable(std::shared_ptr<AbstractOperator> ob,
-                     const std::string &obname) {
+  void AddObservable(Operator ob, const std::string &obname) {
     obs_.push_back(ob);
     obsnames_.push_back(obname);
   }
@@ -271,9 +269,8 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(std::shared_ptr<AbstractOperator> ob,
-                const Eigen::VectorXd &v) {
-    ob->FindConn(v, mel_, connectors_, newconfs_);
+  double ObSamp(const Operator &ob, const Eigen::VectorXd &v) {
+    ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
 
@@ -295,7 +292,7 @@ class VariationalMonteCarlo {
   double Elocvar() { return elocvar_; }
 
   void Run() {
-    opt_->Reset();
+    opt_.Reset();
 
     InitSweeps();
 
@@ -381,7 +378,7 @@ class VariationalMonteCarlo {
       }
     }
 
-    opt_->Update(grad_, pars);
+    opt_.Update(grad_, pars);
 
     SendToAll(pars);
 

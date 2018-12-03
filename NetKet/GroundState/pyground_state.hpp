@@ -33,9 +33,8 @@ void AddGroundStateModule(py::module &m) {
   auto subm = m.def_submodule("gs");
 
   py::class_<VariationalMonteCarlo>(subm, "Vmc")
-      .def(py::init<Operator, SamplerType, std::shared_ptr<AbstractOptimizer>,
-                    int, int, std::string, int, int, std::string, double, bool,
-                    bool, bool, int>(),
+      .def(py::init<Operator, SamplerType, Optimizer, int, int, std::string,
+                    int, int, std::string, double, bool, bool, bool, int>(),
            py::arg("hamiltonian"), py::arg("sampler"), py::arg("optimizer"),
            py::arg("nsamples"), py::arg("niter_opt"), py::arg("output_file"),
            py::arg("discarded_samples") = -1,
@@ -43,8 +42,8 @@ void AddGroundStateModule(py::module &m) {
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
            py::arg("save_every") = 50)
-      .def("AddObservable", &VariationalMonteCarlo::AddObservable)
-      .def("Run", &VariationalMonteCarlo::Run);
+      .def("add_observable", &VariationalMonteCarlo::AddObservable)
+      .def("run", &VariationalMonteCarlo::Run);
 
   py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,

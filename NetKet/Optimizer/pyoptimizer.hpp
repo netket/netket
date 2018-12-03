@@ -34,64 +34,70 @@ namespace netket {
 void AddOptimizerModule(py::module &m) {
   auto subm = m.def_submodule("optimizer");
 
-  py::class_<AbstractOptimizer, std::shared_ptr<AbstractOptimizer>>(
-      subm, "Optimizer") ADDOPTIMIZERMETHODS(AbstractOptimizer);
+  py::class_<Optimizer>(subm, "Optimizer")
+      .def(py::init<AdaDelta>())
+      .def(py::init<AdaGrad>())
+      .def(py::init<AdaMax>())
+      .def(py::init<AMSGrad>())
+      .def(py::init<Momentum>())
+      .def(py::init<RMSProp>())
+      .def(py::init<Sgd>()) ADDOPTIMIZERMETHODS(Optimizer);
 
   {
     using OptType = Sgd;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "Sgd")
+    py::class_<OptType>(subm, "Sgd")
         .def(py::init<double, double, double>(), py::arg("learning_rate"),
              py::arg("l2_reg") = 0, py::arg("decay_factor") = 1.0)
             ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
 
   {
     using OptType = RMSProp;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "RMSProp")
+    py::class_<OptType>(subm, "RMSProp")
         .def(py::init<double, double, double>(),
              py::arg("learning_rate") = 0.001, py::arg("beta") = 0.9,
              py::arg("epscut") = 1.0e-7) ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
   {
     using OptType = Momentum;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "Momentum")
+    py::class_<OptType>(subm, "Momentum")
         .def(py::init<double, double>(), py::arg("learning_rate") = 0.001,
              py::arg("beta") = 0.9) ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
   {
     using OptType = AMSGrad;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "AMSGrad")
+    py::class_<OptType>(subm, "AMSGrad")
         .def(py::init<double, double, double, double>(),
              py::arg("learning_rate") = 0.001, py::arg("beta1") = 0.9,
              py::arg("beta2") = 0.999, py::arg("epscut") = 1.0e-7)
             ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
   {
     using OptType = AdaMax;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "AdaMax")
+    py::class_<OptType>(subm, "AdaMax")
         .def(py::init<double, double, double, double>(),
              py::arg("alpha") = 0.001, py::arg("beta1") = 0.9,
              py::arg("beta2") = 0.999, py::arg("epscut") = 1.0e-7)
             ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
   {
     using OptType = AdaGrad;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "AdaGrad")
+    py::class_<OptType>(subm, "AdaGrad")
         .def(py::init<double, double>(), py::arg("learning_rate") = 0.001,
              py::arg("epscut") = 1.0e-7) ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
   {
     using OptType = AdaDelta;
-    py::class_<OptType, AbstractOptimizer, std::shared_ptr<OptType>>(subm,
-                                                                     "AdaDelta")
+    py::class_<OptType>(subm, "AdaDelta")
         .def(py::init<double, double>(), py::arg("rho") = 0.95,
              py::arg("epscut") = 1.0e-7) ADDOPTIMIZERMETHODS(OptType);
+    py::implicitly_convertible<OptType, Optimizer>();
   }
 }
 
