@@ -33,10 +33,9 @@ void AddGroundStateModule(py::module &m) {
   auto subm = m.def_submodule("gs");
 
   py::class_<VariationalMonteCarlo>(subm, "Vmc")
-      .def(py::init<std::shared_ptr<const AbstractOperator>,
-                    std::shared_ptr<AbSamplerType>,
-                    std::shared_ptr<AbstractOptimizer>, int, int, std::string,
-                    int, int, std::string, double, bool, bool, bool, int>(),
+      .def(py::init<Operator, SamplerType, std::shared_ptr<AbstractOptimizer>,
+                    int, int, std::string, int, int, std::string, double, bool,
+                    bool, bool, int>(),
            py::arg("hamiltonian"), py::arg("sampler"), py::arg("optimizer"),
            py::arg("nsamples"), py::arg("niter_opt"), py::arg("output_file"),
            py::arg("discarded_samples") = -1,

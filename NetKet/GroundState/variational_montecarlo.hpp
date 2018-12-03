@@ -24,10 +24,10 @@
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
-#include "Operator/abstract_operator.hpp"
+#include "Operator/operator.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Output/json_output_writer.hpp"
-#include "Sampler/abstract_sampler.hpp"
+#include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
@@ -48,8 +48,8 @@ class VariationalMonteCarlo {
   using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
-  std::shared_ptr<const AbstractOperator> ham_;
-  std::shared_ptr<AbstractSampler<Machine<GsType>>> sampler_;
+  const Operator ham_;
+  Sampler<Machine<GsType>> sampler_;
   Machine<GsType> psi_;
 
   std::vector<std::vector<int>> connectors_;
@@ -96,17 +96,17 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
-  VariationalMonteCarlo(
-      std::shared_ptr<const AbstractOperator> ham,
-      std::shared_ptr<AbstractSampler<Machine<GsType>>> sampler,
-      std::shared_ptr<AbstractOptimizer> opt, int nsamples, int niter_opt,
-      std::string output_file, int discarded_samples = -1,
-      int discarded_samples_on_init = 0, std::string method = "Sr",
-      double diagshift = 0.01, bool rescale_shift = false,
-      bool use_iterative = false, bool use_cholesky = true, int save_every = 50)
-      : ham_(ham),
-        sampler_(sampler),
-        psi_(sampler->GetMachine()),
+  VariationalMonteCarlo(Operator ham, Sampler<Machine<GsType>> sampler,
+                        std::shared_ptr<AbstractOptimizer> opt, int nsamples,
+                        int niter_opt, std::string output_file,
+                        int discarded_samples = -1,
+                        int discarded_samples_on_init = 0,
+                        std::string method = "Sr", double diagshift = 0.01,
+                        bool rescale_shift = false, bool use_iterative = false,
+                        bool use_cholesky = true, int save_every = 50)
+      : ham_(std::move(ham)),
+        sampler_(std::move(sampler)),
+        psi_(sampler_.GetMachine()),
         opt_(opt),
         elocvar_(0.) {
     Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
@@ -186,25 +186,25 @@ class VariationalMonteCarlo {
   }
 
   void InitSweeps() {
-    sampler_->Reset();
+    sampler_.Reset();
 
     for (int i = 0; i < ninitsamples_; i++) {
-      sampler_->Sweep();
+      sampler_.Sweep();
     }
   }
 
   void Sample() {
-    sampler_->Reset();
+    sampler_.Reset();
 
     for (int i = 0; i < ndiscardedsamples_; i++) {
-      sampler_->Sweep();
+      sampler_.Sweep();
     }
 
     vsamp_.resize(nsamples_node_, psi_.Nvisible());
 
     for (int i = 0; i < nsamples_node_; i++) {
-      sampler_->Sweep();
-      vsamp_.row(i) = sampler_->Visible();
+      sampler_.Sweep();
+      vsamp_.row(i) = sampler_.Visible();
     }
   }
 
@@ -254,7 +254,7 @@ class VariationalMonteCarlo {
   }
 
   std::complex<double> Eloc(const Eigen::VectorXd &v) {
-    ham_->FindConn(v, mel_, connectors_, newconfs_);
+    ham_.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
 
@@ -393,7 +393,7 @@ class VariationalMonteCarlo {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
-    obs_data["Acceptance"] = sampler_->Acceptance();
+    obs_data["Acceptance"] = sampler_.Acceptance();
 
     if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once

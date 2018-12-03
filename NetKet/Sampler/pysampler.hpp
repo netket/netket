@@ -56,13 +56,25 @@ namespace netket {
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  py::class_<AbSamplerType>(subm, "Sampler") ADDSAMPLERMETHODS(AbSamplerType);
+  py::class_<SamplerType>(subm, "Sampler")
+      .def(py::init<MetropolisLocal<MachineType>>())
+      .def(py::init<MetropolisLocalPt<MachineType>>())
+      .def(py::init<MetropolisHop<MachineType>>())
+      .def(py::init<MetropolisHamiltonian<MachineType>>())
+      .def(py::init<MetropolisHamiltonianPt<MachineType>>())
+      .def(py::init<MetropolisExchange<MachineType>>())
+      .def(py::init<MetropolisExchangePt<MachineType>>())
+      .def(py::init<ExactSampler<MachineType>>())
+      .def(py::init<CustomSampler<MachineType>>())
+      .def(py::init<CustomSamplerPt<MachineType>>())
+          ADDSAMPLERMETHODS(SamplerType);
 
   {
     using DerSampler = MetropolisLocal<MachineType>;
     py::class_<DerSampler>(subm, "MetropolisLocal")
         .def(py::init<MachineType>(), py::arg("machine"))
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -70,6 +82,7 @@ void AddSamplerModule(py::module &m) {
     py::class_<DerSampler>(subm, "MetropolisLocalPt")
         .def(py::init<MachineType, int>(), py::arg("machine"),
              py::arg("n_replicas")) ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -78,21 +91,24 @@ void AddSamplerModule(py::module &m) {
         .def(py::init<Graph &, MachineType, int>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max"))
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
-    using DerSampler = MetropolisHamiltonian<MachineType, Operator>;
+    using DerSampler = MetropolisHamiltonian<MachineType>;
     py::class_<DerSampler>(subm, "MetropolisHamiltonian")
         .def(py::init<MachineType, Operator>(), py::arg("machine"),
              py::arg("hamiltonian")) ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
-    using DerSampler = MetropolisHamiltonianPt<MachineType, Operator>;
+    using DerSampler = MetropolisHamiltonianPt<MachineType>;
     py::class_<DerSampler>(subm, "MetropolisHamiltonianPt")
         .def(py::init<MachineType, Operator, int>(), py::arg("machine"),
              py::arg("hamiltonian"), py::arg("n_replicas"))
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -101,6 +117,7 @@ void AddSamplerModule(py::module &m) {
         .def(py::init<const Graph &, MachineType, int>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max") = 1)
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -109,6 +126,7 @@ void AddSamplerModule(py::module &m) {
         .def(py::init<const Graph &, MachineType, int, int>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max") = 1,
              py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -116,6 +134,7 @@ void AddSamplerModule(py::module &m) {
     py::class_<DerSampler>(subm, "ExactSampler")
         .def(py::init<MachineType>(), py::arg("machine"))
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -126,6 +145,7 @@ void AddSamplerModule(py::module &m) {
             py::arg("machine"), py::arg("move_operators"),
             py::arg("move_weights") = std::vector<double>())
             ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 
   {
@@ -136,6 +156,7 @@ void AddSamplerModule(py::module &m) {
              py::arg("machine"), py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>(),
              py::arg("n_replicas")) ADDSAMPLERMETHODS(DerSampler);
+    py::implicitly_convertible<DerSampler, SamplerType>();
   }
 }
 

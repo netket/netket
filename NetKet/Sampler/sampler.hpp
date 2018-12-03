@@ -32,5 +32,53 @@
 #include "metropolis_hop.hpp"
 #include "metropolis_local.hpp"
 #include "metropolis_local_pt.hpp"
+#include "mpark/variant.hpp"
+
+namespace netket {
+template <class WfType>
+class Sampler : public AbstractSampler<WfType> {
+  using VariantType =
+      mpark::variant<CustomSampler<WfType>, CustomSamplerPt<WfType>,
+                     MetropolisLocal<WfType>, MetropolisLocalPt<WfType>,
+                     MetropolisExchange<WfType>, MetropolisExchangePt<WfType>,
+                     MetropolisHamiltonian<WfType>,
+                     MetropolisHamiltonianPt<WfType>, MetropolisHop<WfType>,
+                     ExactSampler<WfType>>;
+
+ private:
+  VariantType obj_;
+
+ public:
+  Sampler(VariantType obj) : obj_(std::move(obj)) {}
+
+  void Reset(bool initrandom = false) override {
+    mpark::visit([=](auto &&obj) { obj.Reset(initrandom); }, obj_);
+  }
+
+  void Sweep() override {
+    mpark::visit([](auto &&obj) { obj.Sweep(); }, obj_);
+  }
+
+  Eigen::VectorXd Visible() override {
+    return mpark::visit([](auto &&obj) { return obj.Visible(); }, obj_);
+  }
+
+  void SetVisible(const Eigen::VectorXd &v) override {
+    mpark::visit([&](auto &&obj) { obj.SetVisible(v); }, obj_);
+  }
+
+  WfType GetMachine() override {
+    return mpark::visit([](auto &&obj) { return obj.GetMachine(); }, obj_);
+  }
+
+  Eigen::VectorXd Acceptance() const override {
+    return mpark::visit([](auto &&obj) { return obj.Acceptance(); }, obj_);
+  }
+
+  Hilbert GetHilbert() const override {
+    return mpark::visit([](auto &&obj) { return obj.GetHilbert(); }, obj_);
+  }
+};
+}  // namespace netket
 
 #endif

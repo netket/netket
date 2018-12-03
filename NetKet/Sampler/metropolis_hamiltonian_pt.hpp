@@ -25,13 +25,13 @@
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
-template <class WfType, class H>
+template <class WfType>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType psi_;
 
   Hilbert hilbert_;
 
-  H hamiltonian_;
+  Operator hamiltonian_;
 
   // number of visible units
   const int nv_;
@@ -63,7 +63,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  MetropolisHamiltonianPt(WfType psi, H hamiltonian, int nrep)
+  MetropolisHamiltonianPt(WfType psi, Operator hamiltonian, int nrep)
       : psi_(std::move(psi)),
         hilbert_(psi_.GetHilbert()),
         hamiltonian_(std::move(hamiltonian)),

@@ -19,19 +19,20 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
+#include "Operator/operator.hpp"
 #include "Utils/random_utils.hpp"
 #include "abstract_sampler.hpp"
 
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
-template <class WfType, class H>
+template <class WfType>
 class MetropolisHamiltonian : public AbstractSampler<WfType> {
   WfType psi_;
 
   Hilbert hilbert_;
 
-  H hamiltonian_;
+  Operator hamiltonian_;
 
   // number of visible units
   const int nv_;
@@ -61,7 +62,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   Eigen::VectorXd v1_;
 
  public:
-  MetropolisHamiltonian(WfType psi, H hamiltonian)
+  MetropolisHamiltonian(WfType psi, Operator hamiltonian)
       : psi_(std::move(psi)),
         hilbert_(psi_.GetHilbert()),
         hamiltonian_(std::move(hamiltonian)),
