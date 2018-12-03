@@ -17,7 +17,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <variant>
+#include "mpark/variant.hpp"
 #include <vector>
 #include "netket.hpp"
 
