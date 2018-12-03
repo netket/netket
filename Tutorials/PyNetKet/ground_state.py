@@ -33,7 +33,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.01)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational Monte Carlo
 vmc = nk.gs.Vmc(
@@ -41,7 +41,7 @@ vmc = nk.gs.Vmc(
     sampler=sa,
     optimizer=op,
     nsamples=1000,
-    niter_opt=3000,
+    niter_opt=300,
     output_file='test',
     diag_shift=0.1,
     method='Sg')
