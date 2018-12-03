@@ -81,17 +81,17 @@ void AddSamplerModule(py::module &m) {
   }
 
   {
-    using DerSampler = MetropolisHamiltonian<MachineType, AbstractOperator>;
+    using DerSampler = MetropolisHamiltonian<MachineType, Operator>;
     py::class_<DerSampler>(subm, "MetropolisHamiltonian")
-        .def(py::init<MachineType, AbstractOperator &>(), py::arg("machine"),
+        .def(py::init<MachineType, Operator>(), py::arg("machine"),
              py::arg("hamiltonian")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisHamiltonianPt<MachineType, AbstractOperator>;
+    using DerSampler = MetropolisHamiltonianPt<MachineType, Operator>;
     py::class_<DerSampler>(subm, "MetropolisHamiltonianPt")
-        .def(py::init<MachineType, AbstractOperator &, int>(),
-             py::arg("machine"), py::arg("hamiltonian"), py::arg("n_replicas"))
+        .def(py::init<MachineType, Operator, int>(), py::arg("machine"),
+             py::arg("hamiltonian"), py::arg("n_replicas"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 

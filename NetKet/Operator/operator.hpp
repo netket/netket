@@ -26,5 +26,43 @@
 #include "heisenberg.hpp"
 #include "ising.hpp"
 #include "local_operator.hpp"
+#include "mpark/variant.hpp"
 
+namespace netket {
+
+class Operator : public AbstractOperator {
+ public:
+  using VariantType = mpark::variant<Ising, BoseHubbard, Heisenberg,
+                                     GraphHamiltonian, LocalOperator>;
+  using VectorType = typename AbstractOperator::VectorType;
+  using VectorRefType = typename AbstractOperator::VectorRefType;
+  using VectorConstRefType = typename AbstractOperator::VectorConstRefType;
+  using MelType = typename AbstractOperator::MelType;
+  using ConnectorsType = typename AbstractOperator::ConnectorsType;
+  using NewconfsType = typename AbstractOperator::NewconfsType;
+
+ private:
+  VariantType obj_;
+
+ public:
+  Operator(VariantType obj) : obj_(std::move(obj)) {}
+
+  void FindConn(VectorConstRefType v, MelType &mel, ConnectorsType &connectors,
+                NewconfsType &newconfs) const override {
+    mpark::visit(
+        [&, v](auto &&obj) { obj.FindConn(v, mel, connectors, newconfs); },
+        obj_);
+  }
+
+  std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
+      VectorConstRefType v) const override {
+    return mpark::visit([v](auto &&obj) { return obj.GetConn(v); }, obj_);
+  }
+
+  Hilbert GetHilbert() const override {
+    return mpark::visit([](auto &&obj) { return obj.GetHilbert(); }, obj_);
+  }
+};
+
+}  // namespace netket
 #endif

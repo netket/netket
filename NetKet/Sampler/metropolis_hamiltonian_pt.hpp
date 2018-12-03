@@ -31,7 +31,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   Hilbert hilbert_;
 
-  H &hamiltonian_;
+  H hamiltonian_;
 
   // number of visible units
   const int nv_;
@@ -63,10 +63,10 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  MetropolisHamiltonianPt(WfType psi, H &hamiltonian, int nrep)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        hamiltonian_(hamiltonian),
+  MetropolisHamiltonianPt(WfType psi, H hamiltonian, int nrep)
+      : psi_(std::move(psi)),
+        hilbert_(psi_.GetHilbert()),
+        hamiltonian_(std::move(hamiltonian)),
         nv_(hilbert_.Size()),
         nrep_(nrep) {
     Init();

@@ -35,55 +35,73 @@ namespace netket {
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
 
-  py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
-      ADDOPERATORMETHODS(AbstractOperator);
+  py::class_<Operator>(m, "Operator")
+      .def(py::init<Ising>())
+      .def(py::init<Heisenberg>())
+      .def(py::init<BoseHubbard>())
+      .def(py::init<GraphHamiltonian>())
+      .def(py::init<LocalOperator>()) ADDOPERATORMETHODS(AbstractOperator);
 
-  py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
-      subm, "LocalOperator")
-      .def(py::init<Hilbert, std::vector<LocalOperator::MatType>,
-                    std::vector<LocalOperator::SiteType>>(),
-           py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
-      .def(py::init<Hilbert, LocalOperator::MatType, LocalOperator::SiteType>(),
-           py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("local_matrices", &LocalOperator::LocalMatrices)
-      .def(py::self + py::self)
-      .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
-           py::is_operator())
-      .def("__rmul__", [](const LocalOperator &a, double b) { return b * a; },
-           py::is_operator())
-      .def("__mul__", [](const LocalOperator &a, int b) { return b * a; },
-           py::is_operator())
-      .def("__rmul__", [](const LocalOperator &a, int b) { return b * a; },
-           py::is_operator())
-      .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
+  {
+    using DerType = LocalOperator;
+    py::class_<DerType>(subm, "LocalOperator")
+        .def(py::init<Hilbert, std::vector<DerType::MatType>,
+                      std::vector<DerType::SiteType>>(),
+             py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
+        .def(py::init<Hilbert, LocalOperator::MatType,
+                      LocalOperator::SiteType>(),
+             py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
+        .def("local_matrices", &LocalOperator::LocalMatrices)
+        .def(py::self + py::self)
+        .def("__mul__", [](const DerType &a, double b) { return b * a; },
+             py::is_operator())
+        .def("__rmul__", [](const DerType &a, double b) { return b * a; },
+             py::is_operator())
+        .def("__mul__", [](const DerType &a, int b) { return b * a; },
+             py::is_operator())
+        .def("__rmul__", [](const DerType &a, int b) { return b * a; },
+             py::is_operator())
+        .def(py::self * py::self) ADDOPERATORMETHODS(DerType);
+    py::implicitly_convertible<DerType, Operator>();
+  }
 
-  // .def(std::complex<double>() * py::self)
-  // .def(py::self * std::complex<double>());
+  {
+    using DerType = Ising;
+    py::class_<DerType>(subm, "Ising")
+        .def(py::init<Hilbert, double, double>(), py::arg("hilbert"),
+             py::arg("h"), py::arg("J") = 1.0) ADDOPERATORMETHODS(DerType);
+    py::implicitly_convertible<DerType, Operator>();
+  }
 
-  py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(subm, "Ising")
-      .def(py::init<Hilbert, double, double>(), py::arg("hilbert"),
-           py::arg("h"), py::arg("J") = 1.0) ADDOPERATORMETHODS(Ising);
+  {
+    using DerType = Heisenberg;
+    py::class_<Heisenberg>(subm, "Heisenberg")
+        .def(py::init<Hilbert>(), py::arg("hilbert"))
+            ADDOPERATORMETHODS(DerType);
+    py::implicitly_convertible<DerType, Operator>();
+  }
 
-  py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
-      subm, "Heisenberg")
-      .def(py::init<Hilbert>(), py::arg("hilbert"))
-          ADDOPERATORMETHODS(Heisenberg);
+  {
+    using DerType = GraphHamiltonian;
+    py::class_<DerType>(subm, "GraphHamiltonian")
+        .def(py::init<Hilbert, GraphHamiltonian::OVecType,
+                      GraphHamiltonian::OVecType, std::vector<int>>(),
+             py::arg("hilbert"),
+             py::arg("siteops") = GraphHamiltonian::OVecType(),
+             py::arg("bondops") = GraphHamiltonian::OVecType(),
+             py::arg("bondops_colors") = std::vector<int>())
+            ADDOPERATORMETHODS(DerType);
+    py::implicitly_convertible<DerType, Operator>();
+  }
 
-  py::class_<GraphHamiltonian, AbstractOperator,
-             std::shared_ptr<GraphHamiltonian>>(subm, "GraphHamiltonian")
-      .def(py::init<Hilbert, GraphHamiltonian::OVecType,
-                    GraphHamiltonian::OVecType, std::vector<int>>(),
-           py::arg("hilbert"),
-           py::arg("siteops") = GraphHamiltonian::OVecType(),
-           py::arg("bondops") = GraphHamiltonian::OVecType(),
-           py::arg("bondops_colors") = std::vector<int>())
-          ADDOPERATORMETHODS(GraphHamiltonian);
-
-  py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
-      subm, "BoseHubbard")
-      .def(py::init<Hilbert, double, double, double>(), py::arg("hilbert"),
-           py::arg("U"), py::arg("V") = 0., py::arg("mu") = 0.)
-          ADDOPERATORMETHODS(BoseHubbard);
+  {
+    using DerType = BoseHubbard;
+    py::class_<DerType>(subm, "BoseHubbard")
+        .def(py::init<Hilbert, double, double, double>(), py::arg("hilbert"),
+             py::arg("U"), py::arg("V") = 0., py::arg("mu") = 0.)
+            ADDOPERATORMETHODS(DerType);
+    py::implicitly_convertible<DerType, Operator>();
+  }
 
   // Matrix wrappers
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")
