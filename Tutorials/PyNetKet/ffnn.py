@@ -19,7 +19,7 @@ from mpi4py import MPI
 L = 20
 
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(L=L, ndim=1)
+g = nk.graph.Hypercube(length=L, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
@@ -28,20 +28,18 @@ hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Layers
-act = nk.activation.Lncosh()
+# act = nk.layer.Lncosh()
 layers = [
-    nk.layer.Convolutional(
-        graph=g,
-        activation=act,
+    nk.layer.ConvolutionalHypercube(
+        length=L, dim=1,
         input_channels=1,
-        output_channels=4,
-        distance=4)
+        output_channels=4)
 ]
 
 # FFNN Machine
 ma = nk.machine.FFNN(hi, layers)
-ma.InitRandomPars(seed=1234, sigma=0.1)
-
+ma.init_random_parameters(seed=1234, sigma=0.1)
+exit()
 # Sampler
 sa = nk.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 

@@ -89,7 +89,7 @@ def test_set_get_parameters():
         assert(machine.n_par > 0)
         npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.parameters = randpars
+        machine.parameters = np.copy(randpars)
         assert(np.array_equal(machine.parameters, randpars))
 
 

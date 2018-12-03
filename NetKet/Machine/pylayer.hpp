@@ -22,61 +22,68 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDLAYERMETHODS(name)                     \
-                                                  \
-  .def("Ninput", &name::Ninput)                   \
-      .def("Noutput", &name::Noutput)             \
-      .def("Npar", &name::Npar)                   \
-      .def("GetParameters", &name::GetParameters) \
-      .def("SetParameters", &name::SetParameters) \
-      .def("InitRandomPars", &name::InitRandomPars);
+#define ADDLAYERMETHODS(name)                      \
+                                                   \
+  .def("n_input", &name::Ninput)                   \
+      .def("n_output", &name::Noutput)             \
+      .def("n_par", &name::Npar)                   \
+      .def("get_parameters", &name::GetParameters) \
+      .def("set_parameters", &name::SetParameters) \
+      .def("init_random_parameters", &name::InitRandomPars);
 // TODO add more methods
 
 void AddLayerModule(py::module &m) {
   auto subm = m.def_submodule("layer");
 
-  py::class_<AbLayerType, std::shared_ptr<AbLayerType>>(subm, "Layer")
-      ADDLAYERMETHODS(AbLayerType);
+  py::class_<LayerType>(subm, "Layer")
+      .def(py::init<FullyConnected<StateType>>())
+      .def(py::init<ConvolutionalHypercube<StateType>>())
+      .def(py::init<SumOutput<StateType>>())
+      .def(py::init<Activation<StateType, Lncosh>>())
+      .def(py::init<Activation<StateType, Tanh>>())
+      .def(py::init<Activation<StateType, Relu>>()) ADDLAYERMETHODS(LayerType);
 
   {
-    using LayerType = FullyConnected<StateType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        subm, "FullyConnected")
+    using DerType = FullyConnected<StateType>;
+    py::class_<DerType>(subm, "FullyConnected")
         .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
-            ADDLAYERMETHODS(LayerType);
+            ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
   {
-    using LayerType = ConvolutionalHypercube<StateType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        subm, "ConvolutionalHypercube")
+    using DerType = ConvolutionalHypercube<StateType>;
+    py::class_<DerType>(subm, "ConvolutionalHypercube")
         .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
              py::arg("dim"), py::arg("input_channels"),
              py::arg("output_channels"), py::arg("stride") = 1,
              py::arg("kernel_length") = 2, py::arg("use_bias") = false)
-            ADDLAYERMETHODS(LayerType);
+            ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
   {
-    using LayerType = SumOutput<StateType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
-                                                                   "SumOutput")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = SumOutput<StateType>;
+    py::class_<DerType>(subm, "SumOutput")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
   {
-    using LayerType = Activation<StateType, Lncosh>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
-                                                                   "Lncosh")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Lncosh>;
+    py::class_<DerType>(subm, "Lncosh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
   {
-    using LayerType = Activation<StateType, Tanh>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Tanh")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Tanh>;
+    py::class_<DerType>(subm, "Tanh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
   {
-    using LayerType = Activation<StateType, Relu>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm, "Relu")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Relu>;
+    py::class_<DerType>(subm, "Relu")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+    py::implicitly_convertible<DerType, LayerType>();
   }
 }
 

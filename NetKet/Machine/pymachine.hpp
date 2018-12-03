@@ -154,11 +154,8 @@ void AddMachineModule(py::module &m) {
   {
     using DerMachine = FFNN<StateType>;
     py::class_<DerMachine>(subm, "FFNN")
-        .def(py::init<
-                 Hilbert,
-                 std::vector<std::shared_ptr<AbstractLayer<StateType>>> &>(),
-             py::arg("hilbert"), py::arg("layers"))
-            ADDMACHINEMETHODS(DerMachine);
+        .def(py::init<Hilbert, std::vector<LayerType>>(), py::arg("hilbert"),
+             py::arg("layers")) ADDMACHINEMETHODS(DerMachine);
     py::implicitly_convertible<DerMachine, MachineType>();
   }
 }

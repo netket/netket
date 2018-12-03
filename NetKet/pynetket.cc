@@ -20,7 +20,7 @@ namespace netket {
 using StateType = std::complex<double>;
 using MachineType = Machine<StateType>;
 using AbMachineType = AbstractMachine<StateType>;
-using AbLayerType = AbstractLayer<StateType>;
+using LayerType = Layer<StateType>;
 using AbSamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
 
