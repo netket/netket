@@ -30,12 +30,12 @@ namespace netket {
 struct ConnectorRef {
   /// The matrix element H(v,v')
   std::complex<double> weight;
-  /// The positions at which v needs to be changes to obtain v'
-  nonstd::span<const int> positions;
+  /// The indices at which v needs to be changed to obtain v'
+  nonstd::span<const int> tochange;
   /// The new values such that
-  ///    v'(positions[k]) = values[k]
-  /// and v'(i) = v(i) for i ∉ positions.
-  nonstd::span<const double> values;
+  ///    v'(tochange[k]) = newconf[k]
+  /// and v'(i) = v(i) for i ∉ tochange.
+  nonstd::span<const double> newconf;
 };
 
 /**

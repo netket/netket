@@ -50,8 +50,8 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
     for (size_t i = 0; i < dim_; ++i) {
       const auto v = hilbert_index_.NumberToState(i);
       operator_.ForEachConn(v, [&](ConnectorRef conn) {
-        const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.positions,
-                                                             conn.values);
+        const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.tochange,
+                                                             conn.newconf);
         result(i) += conn.weight * state(j);
       });
     }
