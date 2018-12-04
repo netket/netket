@@ -29,8 +29,9 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name) \
-  .def("get_conn", &name::GetConn).def("get_hilbert", &name::GetHilbert)
+#define ADDOPERATORMETHODS(name)   \
+  .def("get_conn", &name::GetConn) \
+      .def_property_readonly("hilbert", &name::GetHilbert)
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
@@ -47,7 +48,8 @@ void AddOperatorModule(py::module &m) {
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
                     LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("local_matrices", &LocalOperator::LocalMatrices)
+      .def_property_readonly("local_matrices", &LocalOperator::LocalMatrices)
+      .def_property_readonly("acting_on", &LocalOperator::ActingOn)
       .def(py::self + py::self)
       .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
            py::is_operator())

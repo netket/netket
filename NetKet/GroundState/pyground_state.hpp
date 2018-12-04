@@ -44,9 +44,9 @@ void AddGroundStateModule(py::module &m) {
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
            py::arg("save_every") = 50)
-      .def("AddObservable", &VariationalMonteCarlo::AddObservable,
+      .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
-      .def("Run", &VariationalMonteCarlo::Run);
+      .def("run", &VariationalMonteCarlo::Run);
 
   py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,

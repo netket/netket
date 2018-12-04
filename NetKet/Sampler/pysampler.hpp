@@ -43,15 +43,14 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDSAMPLERMETHODS(name)              \
-                                             \
-  .def("reset", &name::Reset)                \
-      .def("sweep", &name::Sweep)            \
-      .def("get_visible", &name::Visible)    \
-      .def("set_visible", &name::SetVisible) \
-      .def("acceptance", &name::Acceptance)  \
-      .def("get_hilbert", &name::GetHilbert) \
-      .def("get_machine", &name::GetMachine)
+#define ADDSAMPLERMETHODS(name)                                   \
+                                                                  \
+  .def("reset", &name::Reset)                                     \
+      .def("sweep", &name::Sweep)                                 \
+      .def_property("visible", &name::Visible, &name::SetVisible) \
+      .def_property_readonly("acceptance", &name::Acceptance)     \
+      .def_property_readonly("hilbert", &name::GetHilbert)        \
+      .def_property_readonly("machine", &name::GetMachine)
 
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");

@@ -49,7 +49,7 @@ namespace netket {
                           AbMachineType::VisibleConstType)) &                 \
                           name::DerLog)                                       \
       .def_property_readonly("n_visible", &name::Nvisible)                    \
-      .def("get_hilbert", &name ::GetHilbert)                                 \
+      .def_property_readonly("hilbert", &name ::GetHilbert)                   \
       .def("save",                                                            \
            [](const name &a, std::string filename) {                          \
              json j;                                                          \

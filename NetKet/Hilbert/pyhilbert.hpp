@@ -31,13 +31,13 @@ namespace netket {
 
 constexpr int HilbertIndex::MaxStates;
 
-#define ADDHILBERTMETHODS(name)                \
-                                               \
-  .def("is_discrete", &name::IsDiscrete)       \
-      .def("local_size", &name::LocalSize)     \
-      .def("size", &name::Size)                \
-      .def("local_states", &name::LocalStates) \
-      .def("random_vals", &name ::RandomVals)  \
+#define ADDHILBERTMETHODS(name)                                  \
+                                                                 \
+  .def_property_readonly("is_discrete", &name::IsDiscrete)       \
+      .def_property_readonly("local_size", &name::LocalSize)     \
+      .def_property_readonly("size", &name::Size)                \
+      .def_property_readonly("local_states", &name::LocalStates) \
+      .def("random_vals", &name ::RandomVals)                    \
       .def("update_conf", &name::UpdateConf)
 
 void AddHilbertModule(py::module &m) {
@@ -71,7 +71,7 @@ void AddHilbertModule(py::module &m) {
 
   py::class_<HilbertIndex>(subm, "HilbertIndex")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-      .def("n_states", &HilbertIndex::NStates)
+      .def_property_readonly("n_states", &HilbertIndex::NStates)
       .def("number_to_state", &HilbertIndex::NumberToState)
       .def("state_to_number", &HilbertIndex::StateToNumber)
       .def_readonly_static("max_states", &HilbertIndex::MaxStates);

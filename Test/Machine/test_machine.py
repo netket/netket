@@ -42,7 +42,7 @@ machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
 layers = [
     nk.layer.ConvolutionalHypercube(
         length=4,
-        dim=1,
+        n_dim=1,
         input_channels=1,
         output_channels=2,
         stride=1,
@@ -126,10 +126,10 @@ def test_log_derivative():
         npar = machine.n_par
 
         # random visibile state
-        hi = machine.get_hilbert()
-        assert(hi.size() > 0)
+        hi = machine.hilbert
+        assert(hi.size > 0)
         rg = nk.utils.RandomEngine(seed=1234)
-        v = np.zeros(hi.size())
+        v = np.zeros(hi.size)
 
         for i in range(100):
             hi.random_vals(v, rg)
@@ -160,7 +160,7 @@ def test_log_val_diff():
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
         machine.parameters = randpars
 
-        hi = machine.get_hilbert()
+        hi = machine.hilbert
 
         rg = nk.utils.RandomEngine(seed=1234)
 
@@ -168,8 +168,8 @@ def test_log_val_diff():
         for i in range(100):
 
             # generate a random state
-            rstate = np.zeros(hi.size())
-            local_states = hi.local_states()
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
             hi.random_vals(rstate, rg)
 
             tochange = []
@@ -177,10 +177,10 @@ def test_log_val_diff():
 
             # random number of changes
             for i in range(100):
-                n_change = np.random.randint(low=0, high=hi.size())
+                n_change = np.random.randint(low=0, high=hi.size)
                 # generate n_change unique sites to be changed
                 tochange.append(np.random.choice(
-                    hi.size(), n_change, replace=False))
+                    hi.size, n_change, replace=False))
                 newconfs.append(np.random.choice(local_states, n_change))
 
             ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
@@ -193,7 +193,7 @@ def test_log_val_diff():
                     assert(newc in local_states)
 
                 for t in toc:
-                    assert(t >= 0 and t < hi.size())
+                    assert(t >= 0 and t < hi.size)
 
                 assert(len(toc) == len(newco))
 
@@ -214,6 +214,6 @@ def test_log_val_diff():
 def test_nvisible():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
-        hi = machine.get_hilbert()
+        hi = machine.hilbert
 
-        assert(machine.n_visible == hi.size())
+        assert(machine.n_visible == hi.size)

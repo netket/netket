@@ -309,8 +309,8 @@ class LocalOperator : public AbstractOperator {
     return LocalOperator(rhs.GetHilbert(), mat, sites);
   }
 
-  std::vector<MatType> LocalMatrices() const { return mat_; }
-  std::vector<SiteType> ActingOn() const { return sites_; }
+  const std::vector<MatType> &LocalMatrices() const { return mat_; }
+  const std::vector<SiteType> &ActingOn() const { return sites_; }
 
   const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
