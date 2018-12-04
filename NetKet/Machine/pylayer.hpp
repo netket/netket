@@ -22,14 +22,13 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDLAYERMETHODS(name)                     \
-                                                  \
-  .def("Ninput", &name::Ninput)                   \
-      .def("Noutput", &name::Noutput)             \
-      .def("Npar", &name::Npar)                   \
-      .def("GetParameters", &name::GetParameters) \
-      .def("SetParameters", &name::SetParameters) \
-      .def("InitRandomPars", &name::InitRandomPars);
+#define ADDLAYERMETHODS(name)                                                 \
+                                                                              \
+  .def_property_readonly("n_input", &name::Ninput)                            \
+      .def_property_readonly("n_output", &name::Noutput)                      \
+      .def_property_readonly("n_par", &name::Npar)                            \
+      .def_property("parameters", &name::GetParameters, &name::SetParameters) \
+      .def("init_random_parameters", &name::InitRandomPars);
 // TODO add more methods
 
 void AddLayerModule(py::module &m) {
@@ -48,7 +47,7 @@ void AddLayerModule(py::module &m) {
     using LayerType = ConvolutionalHypercube<MachineType>;
     py::class_<LayerType, AbLayerType>(subm, "ConvolutionalHypercube")
         .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
-             py::arg("dim"), py::arg("input_channels"),
+             py::arg("n_dim"), py::arg("input_channels"),
              py::arg("output_channels"), py::arg("stride") = 1,
              py::arg("kernel_length") = 2, py::arg("use_bias") = false)
             ADDLAYERMETHODS(LayerType);
