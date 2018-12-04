@@ -34,7 +34,7 @@ class RbmSpin : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -66,10 +66,9 @@ class RbmSpin : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert,
-                   int nhidden = 0, int alpha = 0, bool usea = true,
-                   bool useb = true)
-      : hilbert_(hilbert), nv_(hilbert->Size()), usea_(usea), useb_(useb) {
+  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
+                   int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
 
     Init();
@@ -332,9 +331,7 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Name"] = "RbmSpin";
@@ -357,7 +354,7 @@ class RbmSpin : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = FieldVal<int>(pars, "Nvisible");
     }
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

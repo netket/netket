@@ -30,14 +30,13 @@ template <typename T>
 class FFNN : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using Ptype = std::shared_ptr<AbstractLayer<T>>;
   using VectorRefType = typename AbstractMachine<T>::VectorRefType;
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
-  std::vector<Ptype> layers_;  // Pointers to hidden layers
+  std::vector<AbstractLayer<T> *> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
   int depth_;
@@ -50,13 +49,15 @@ class FFNN : public AbstractMachine<T> {
   std::vector<VectorType> new_output_;
   typename AbstractMachine<T>::LookupType ltnew_;
 
+  std::unique_ptr<SumOutput<T>> sum_output_layer_;
+
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
-                std::vector<Ptype> &layers)
-      : hilbert_(hilbert), layers_(layers), nv_(hilbert->Size()) {
+  explicit FFNN(const AbstractHilbert &hilbert,
+                const std::vector<AbstractLayer<T> *> &layers)
+      : hilbert_(hilbert), layers_(layers), nv_(hilbert.Size()) {
     Init();
   }
 
@@ -78,8 +79,8 @@ class FFNN : public AbstractMachine<T> {
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
-      layers_.push_back(std::make_shared<SumOutput<T>>(layersizes_.back()));
-
+      sum_output_layer_ = netket::make_unique<SumOutput<T>>(layersizes_.back());
+      layers_.push_back(sum_output_layer_.get());
       layersizes_.push_back(1);
     }
     depth_ = layersizes_.size();
@@ -138,7 +139,7 @@ class FFNN : public AbstractMachine<T> {
   VectorType GetParameters() override {
     VectorType pars(npar_);
     int start_idx = 0;
-    for (auto const &layer : layers_) {
+    for (auto const layer : layers_) {
       int num_of_pars = layer->Npar();
       layer->GetParameters(pars.segment(start_idx, num_of_pars));
       start_idx += num_of_pars;
@@ -148,7 +149,7 @@ class FFNN : public AbstractMachine<T> {
 
   void SetParameters(VectorConstRefType pars) override {
     int start_idx = 0;
-    for (auto const &layer : layers_) {
+    for (auto const layer : layers_) {
       int num_of_pars = layer->Npar();
       layer->SetParameters(pars.segment(start_idx, num_of_pars));
       start_idx += num_of_pars;
@@ -156,7 +157,7 @@ class FFNN : public AbstractMachine<T> {
   }
 
   void InitRandomPars(int seed, double sigma) override {
-    for (auto const &layer : layers_) {
+    for (auto const layer : layers_) {
       layer->InitRandomPars(seed, sigma);
     }
   }
@@ -299,9 +300,7 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };  // namespace netket
 
 }  // namespace netket

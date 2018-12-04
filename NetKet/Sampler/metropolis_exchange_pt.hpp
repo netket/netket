@@ -28,8 +28,8 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisExchangePt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  WfType &psi_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -57,12 +57,11 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  explicit MetropolisExchangePt(const AbstractGraph &graph,
-                                std::shared_ptr<WfType> psi, int dmax = 1,
-                                int nreplicas = 1)
+  explicit MetropolisExchangePt(const AbstractGraph &graph, WfType &psi,
+                                int dmax = 1, int nreplicas = 1)
       : psi_(psi),
-        hilbert_(psi->GetHilbert()),
-        nv_(hilbert_->Size()),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
         nrep_(nreplicas) {
     Init(graph, dmax);
   }
@@ -131,12 +130,12 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_->RandomVals(v_[i], rgen_);
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_->InitLookup(v_[i], lt_[i]);
+      psi_.InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -167,12 +166,12 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
         double ratio = std::norm(
             std::exp(beta_[rep] *
-                     psi_->LogValDiff(v_[rep], tochange, newconf, lt_[rep])));
+                     psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep])));
 
         if (ratio > distu(rgen_)) {
           accept_(rep) += 1;
-          psi_->UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-          hilbert_->UpdateConf(v_[rep], tochange, newconf);
+          psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
+          hilbert_.UpdateConf(v_[rep], tochange, newconf);
         }
       }
 
@@ -212,8 +211,8 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_->LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_->LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -227,11 +226,9 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType &GetMachine() override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

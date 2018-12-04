@@ -176,7 +176,7 @@ struct CustomGraphInit {
 void AddGraphModule(py::module& m) {
   auto subm = m.def_submodule("graph");
 
-  py::class_<AbstractGraph, std::shared_ptr<AbstractGraph>>(subm, "Graph")
+  py::class_<AbstractGraph>(subm, "Graph")
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
                              R"EOF(
               Returns the number of vertices in the graph.
@@ -211,8 +211,7 @@ void AddGraphModule(py::module& m) {
            )EOF")
       .def_property_readonly("symmetry_table", &AbstractGraph::SymmetryTable);
 
-  py::class_<Hypercube, AbstractGraph, std::shared_ptr<Hypercube>>(subm,
-                                                                   "Hypercube")
+  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
            py::arg("pbc") = true,
            R"EOF(
@@ -247,8 +246,7 @@ void AddGraphModule(py::module& m) {
                    edge colors.
            )EOF");
 
-  py::class_<CustomGraph, AbstractGraph, std::shared_ptr<CustomGraph>>(
-      subm, "CustomGraph")
+  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {

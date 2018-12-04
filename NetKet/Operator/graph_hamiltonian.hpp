@@ -29,10 +29,10 @@ namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
 class GraphHamiltonian : public AbstractOperator {
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // Arbitrary graph
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractGraph &graph_;
 
   std::vector<LocalOperator> operators_;
   const int nvertices_;
@@ -45,12 +45,12 @@ class GraphHamiltonian : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit GraphHamiltonian(
-      std::shared_ptr<const AbstractHilbert> hilbert,
-      OVecType siteops = OVecType(), OVecType bondops = OVecType(),
+      const AbstractHilbert &hilbert, OVecType siteops = OVecType(),
+      OVecType bondops = OVecType(),
       std::vector<int> bondops_colors = std::vector<int>())
       : hilbert_(hilbert),
-        graph_(hilbert->GetGraph()),
-        nvertices_(hilbert->Size()) {
+        graph_(hilbert.GetGraph()),
+        nvertices_(hilbert.Size()) {
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
       throw InvalidInputError("Must input at least SiteOps or BondOps");
@@ -82,7 +82,7 @@ class GraphHamiltonian : public AbstractOperator {
 
     if (bondops.size() > 0) {
       // Use EdgeColors to populate operators
-      for (auto const &kv : graph_->EdgeColors()) {
+      for (auto const &kv : graph_.EdgeColors()) {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
@@ -107,9 +107,7 @@ class GraphHamiltonian : public AbstractOperator {
     }
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };  // namespace netket
 }  // namespace netket
 #endif

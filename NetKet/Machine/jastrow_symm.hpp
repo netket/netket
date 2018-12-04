@@ -35,8 +35,8 @@ class JastrowSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  const std::shared_ptr<const AbstractHilbert> hilbert_;
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   std::vector<std::vector<int>> permtable_;
   int permsize_;
@@ -67,20 +67,20 @@ class JastrowSymm : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(hilbert), graph_(hilbert->GetGraph()), nv_(hilbert->Size()) {
+  explicit JastrowSymm(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
     Init(graph_);
 
     SetBareParameters();
   }
 
-  void Init(std::shared_ptr<const AbstractGraph> graph) {
+  void Init(const AbstractGraph &graph) {
     if (nv_ < 2) {
       throw InvalidInputError(
           "Cannot construct Jastrow states with less than two visible units");
     }
 
-    permtable_ = graph->SymmetryTable();
+    permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
 
     for (int i = 0; i < permsize_; i++) {
@@ -316,9 +316,7 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 
   void to_json(json &j) const override {
     j["Name"] = "JastrowSymm";
@@ -335,7 +333,7 @@ class JastrowSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");
