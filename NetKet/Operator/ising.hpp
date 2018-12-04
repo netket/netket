@@ -35,9 +35,8 @@ class Ising : public AbstractOperator {
   /**
     Hilbert space descriptor for this hamiltonian.
   */
-  std::shared_ptr<const AbstractHilbert> hilbert_;
-
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   const int nspins_;
   double h_;
@@ -53,11 +52,10 @@ class Ising : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit Ising(std::shared_ptr<const AbstractHilbert> hilbert, double h,
-                 double J = 1)
+  explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
       : hilbert_(hilbert),
-        graph_(hilbert->GetGraph()),
-        nspins_(hilbert->Size()),
+        graph_(hilbert.GetGraph()),
+        nspins_(hilbert.Size()),
         h_(h),
         J_(J) {
     Init();
@@ -75,7 +73,7 @@ class Ising : public AbstractOperator {
     bonds[i][k] contains the k-th bond for site i.
   */
   void GenerateBonds() {
-    auto adj = graph_->AdjacencyList();
+    auto adj = graph_.AdjacencyList();
 
     bonds_.resize(nspins_);
 
@@ -155,9 +153,7 @@ class Ising : public AbstractOperator {
     callback(ConnectorRef{mel_J, {}, {}});
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
-    return hilbert_;
-  }
+  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
 };
 
 }  // namespace netket

@@ -136,7 +136,7 @@ class Hypercube : public AbstractGraph {
 
   int Ndim() const noexcept { return n_dim_; }
 
-  const std::vector<Edge> &Edges() const noexcept { return edges_; }
+  const std::vector<Edge> &Edges() const noexcept override { return edges_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());

@@ -32,15 +32,15 @@ namespace netket {
 */
 
 class Qubit : public AbstractHilbert {
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractGraph &graph_;
 
   std::vector<double> local_;
 
   int nqubits_;
 
  public:
-  explicit Qubit(std::shared_ptr<const AbstractGraph> graph) : graph_(graph) {
-    const int nqubits = graph->Size();
+  explicit Qubit(const AbstractGraph &graph) : graph_(graph) {
+    const int nqubits = graph.Size();
     Init(nqubits);
   }
 
@@ -85,9 +85,7 @@ class Qubit : public AbstractHilbert {
     }
   }
 
-  std::shared_ptr<const AbstractGraph> GetGraph() const override {
-    return graph_;
-  }
+  const AbstractGraph &GetGraph() const override { return graph_; }
 };
 
 }  // namespace netket
