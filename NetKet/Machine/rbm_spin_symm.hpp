@@ -406,14 +406,14 @@ class RbmSpinSymm : public AbstractMachine<T> {
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmSpinSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Alpha"] = alpha_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["asymm"] = asymm_;
-    j["Machine"]["bsymm"] = bsymm_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "RbmSpinSymm";
+    j["Nvisible"] = nv_;
+    j["Alpha"] = alpha_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["asymm"] = asymm_;
+    j["bsymm"] = bsymm_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {

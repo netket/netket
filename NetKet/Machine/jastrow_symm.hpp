@@ -321,9 +321,9 @@ class JastrowSymm : public AbstractMachine<T> {
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "JastrowSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "JastrowSymm";
+    j["Nvisible"] = nv_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {
