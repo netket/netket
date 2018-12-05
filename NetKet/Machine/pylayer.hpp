@@ -34,43 +34,43 @@ namespace netket {
 void AddLayerModule(py::module &m) {
   auto subm = m.def_submodule("layer");
 
-  py::class_<AbLayerType>(subm, "Layer") ADDLAYERMETHODS(AbLayerType);
+  py::class_<LayerType>(subm, "Layer") ADDLAYERMETHODS(LayerType);
 
   {
-    using LayerType = FullyConnected<MachineType>;
-    py::class_<LayerType, AbLayerType>(subm, "FullyConnected")
+    using DerType = FullyConnected<StateType>;
+    py::class_<DerType, LayerType>(subm, "FullyConnected")
         .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
-            ADDLAYERMETHODS(LayerType);
+            ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = ConvolutionalHypercube<MachineType>;
-    py::class_<LayerType, AbLayerType>(subm, "ConvolutionalHypercube")
+    using DerType = ConvolutionalHypercube<StateType>;
+    py::class_<DerType, LayerType>(subm, "ConvolutionalHypercube")
         .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
              py::arg("n_dim"), py::arg("input_channels"),
              py::arg("output_channels"), py::arg("stride") = 1,
              py::arg("kernel_length") = 2, py::arg("use_bias") = false)
-            ADDLAYERMETHODS(LayerType);
+            ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = SumOutput<MachineType>;
-    py::class_<LayerType, AbLayerType>(subm, "SumOutput")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = SumOutput<StateType>;
+    py::class_<DerType, LayerType>(subm, "SumOutput")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = Activation<MachineType, Lncosh>;
-    py::class_<LayerType, AbLayerType>(subm, "Lncosh")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Lncosh>;
+    py::class_<DerType, LayerType>(subm, "Lncosh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = Activation<MachineType, Tanh>;
-    py::class_<LayerType, AbLayerType>(subm, "Tanh")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Tanh>;
+    py::class_<DerType, LayerType>(subm, "Tanh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = Activation<MachineType, Relu>;
-    py::class_<LayerType, AbLayerType>(subm, "Relu")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = Activation<StateType, Relu>;
+    py::class_<DerType, LayerType>(subm, "Relu")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
   }
 }
 
