@@ -54,9 +54,9 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  MetropolisHop(const AbstractGraph &graph, WfType &psi, int dmax = 1)
+  MetropolisHop(WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
+    Init(hilbert_.GetGraph(), dmax);
   }
 
   void Init(const AbstractGraph &graph, int dmax) {

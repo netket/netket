@@ -75,9 +75,9 @@ void AddSamplerModule(py::module &m) {
   {
     using DerSampler = MetropolisHop<AbMachineType>;
     py::class_<DerSampler, AbSamplerType>(subm, "MetropolisHop")
-        .def(py::init<AbstractGraph &, AbMachineType &, int>(),
-             py::keep_alive<1, 3>(), py::arg("graph"), py::arg("machine"),
-             py::arg("d_max")) ADDSAMPLERMETHODS(DerSampler);
+        .def(py::init<AbMachineType &, int>(), py::keep_alive<1, 3>(),
+             py::arg("machine"), py::arg("d_max"))
+            ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
