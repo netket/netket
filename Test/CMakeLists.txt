@@ -43,7 +43,8 @@ file(GLOB TEST_SOURCES
     Observable/*.cc
     Sampler/*.cc
     Stats/*.cc
-    Utils/*.cc)
+    Utils/*.cc
+    Optimizer/*.cc)
 
 foreach(_file ${TEST_SOURCES})
    get_filename_component(_file_basename ${_file} NAME_WE)
