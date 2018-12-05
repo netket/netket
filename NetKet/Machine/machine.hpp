@@ -24,6 +24,7 @@
 #include "ffnn.hpp"
 #include "jastrow.hpp"
 #include "jastrow_symm.hpp"
+#include "mps_periodic.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
 #include "rbm_spin_symm.hpp"
@@ -79,6 +80,13 @@ class Machine : public AbstractMachine<T> {
       m_ = Ptype(new RbmMultival<T>(hilbert, pars));
     } else if (pars["Machine"]["Name"] == "Jastrow") {
       m_ = Ptype(new Jastrow<T>(hilbert, pars));
+    } else if (pars["Machine"]["Name"] == "MPSperiodic") {
+      if (FieldExists(pars["Machine"], "Diagonal") and
+          pars["Machine"]["Diagonal"]) {
+        m_ = Ptype(new MPSPeriodic<T, true>(hilbert, pars));
+      } else {
+        m_ = Ptype(new MPSPeriodic<T, false>(hilbert, pars));
+      }
     }
   }
 
@@ -126,8 +134,9 @@ class Machine : public AbstractMachine<T> {
     CheckFieldExists(pars, "Machine");
     const std::string name = FieldVal(pars["Machine"], "Name", "Machine");
 
-    std::set<std::string> machines = {"RbmSpin", "RbmSpinSymm", "RbmMultival",
-                                      "FFNN",    "Jastrow",     "JastrowSymm"};
+    std::set<std::string> machines = {
+        "RbmSpin", "RbmSpinSymm", "RbmMultival", "FFNN",
+        "Jastrow", "JastrowSymm", "MPSperiodic", "MPSdiagonal"};
 
     if (machines.count(name) == 0) {
       std::stringstream s;
