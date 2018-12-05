@@ -29,7 +29,7 @@ template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   H &hamiltonian_;
 
@@ -66,19 +66,9 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
         hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()),
         nrep_(nrep) {
-    Init();
-  }
-
-  // Json constructor
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, const json &pars)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
     Init();
   }
 
@@ -249,7 +239,11 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

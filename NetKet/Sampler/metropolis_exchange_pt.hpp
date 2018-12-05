@@ -29,7 +29,7 @@ namespace netket {
 template <class WfType>
 class MetropolisExchangePt : public AbstractSampler<WfType> {
   WfType &psi_;
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -57,18 +57,16 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  // Json constructor
-  explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
-                                const json &pars)
+  explicit MetropolisExchangePt(const AbstractGraph &graph, WfType &psi,
+                                int dmax = 1, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
+        nrep_(nreplicas) {
     Init(graph, dmax);
   }
 
-  void Init(const Graph &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
@@ -228,7 +226,11 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

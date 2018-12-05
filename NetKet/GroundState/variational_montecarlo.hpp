@@ -24,13 +24,13 @@
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
-#include "Sampler/sampler.hpp"
+#include "Output/json_output_writer.hpp"
+#include "Sampler/abstract_sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include "json_output_writer.hpp"
 #include "matrix_replacement.hpp"
 
 namespace netket {
@@ -43,14 +43,14 @@ namespace netket {
 class VariationalMonteCarlo {
   using GsType = std::complex<double>;
 
-  using VectorT =
-      Eigen::Matrix<typename Machine<GsType>::StateType, Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<typename Machine<GsType>::StateType,
+  using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
+                                Eigen::Dynamic, 1>;
+  using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
-  Hamiltonian &ham_;
-  Sampler<Machine<GsType>> &sampler_;
-  Machine<GsType> &psi_;
+  const AbstractOperator &ham_;
+  AbstractSampler<AbstractMachine<GsType>> &sampler_;
+  AbstractMachine<GsType> &psi_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -75,9 +75,10 @@ class VariationalMonteCarlo {
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
 
-  Optimizer &opt_;
+  AbstractOptimizer &opt_;
 
-  std::vector<Observable> obs_;
+  std::vector<AbstractOperator *> obs_;
+  std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
   bool dosr_;
@@ -95,36 +96,29 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
-  // JSON constructor
-  VariationalMonteCarlo(Hamiltonian &ham, Sampler<Machine<GsType>> &sampler,
-                        Optimizer &opt, const json &pars)
+  VariationalMonteCarlo(const AbstractOperator &ham,
+                        AbstractSampler<AbstractMachine<GsType>> &sampler,
+                        AbstractOptimizer &opt, int nsamples, int niter_opt,
+                        std::string output_file, int discarded_samples = -1,
+                        int discarded_samples_on_init = 0,
+                        std::string method = "Sr", double diagshift = 0.01,
+                        bool rescale_shift = false, bool use_iterative = false,
+                        bool use_cholesky = true, int save_every = 50)
       : ham_(ham),
         sampler_(sampler),
-        psi_(sampler.Psi()),
+        psi_(sampler.GetMachine()),
         opt_(opt),
-        obs_(Observable::FromJson(ham.GetHilbert(), pars)),
         elocvar_(0.) {
-    // DEPRECATED (to remove for v2.0.0)
-    if (FieldExists(pars, "Learning")) {
-      auto pars1 = pars;
-      pars1["GroundState"] = pars["Learning"];
-      Init(pars1);
-    } else {
-      Init(pars);
-    }
-    InitOutput(pars);
+    Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
+         method, diagshift, rescale_shift, use_iterative, use_cholesky);
+
+    InitOutput(output_file, save_every);
   }
 
-  void InitOutput(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    auto pars_gs = FieldExists(pars, "GroundState") ? pars["GroundState"]
-                                                    : pars["Learning"];
-    if (mynode_ == 0) {
-      output_ = JsonOutputWriter::FromJson(pars_gs);
-    }
-  }
-
-  void Init(const json &pars) {
+  void Init(int nsamples, int niter_opt, int discarded_samples,
+            int discarded_samples_on_init, const std::string &method,
+            double diagshift, bool rescale_shift, bool use_iterative,
+            bool use_cholesky) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -137,30 +131,24 @@ class VariationalMonteCarlo {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    nsamples_ = FieldVal(pars["GroundState"], "Nsamples", "GroundState");
+    nsamples_ = nsamples;
 
     nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
 
-    ninitsamples_ =
-        FieldOrDefaultVal(pars["GroundState"], "DiscardedSamplesOnInit", 0.);
+    ninitsamples_ = discarded_samples_on_init;
 
-    ndiscardedsamples_ = FieldOrDefaultVal(
-        pars["GroundState"], "DiscardedSamples", 0.1 * nsamples_node_);
+    if (discarded_samples == -1) {
+      ndiscardedsamples_ = 0.1 * nsamples_node_;
+    } else {
+      ndiscardedsamples_ = discarded_samples;
+    }
 
-    niter_opt_ = FieldVal(pars["GroundState"], "NiterOpt", "GroundState");
+    niter_opt_ = niter_opt;
 
-    if (pars["GroundState"]["Method"] == "Gd") {
+    if (method == "Gd") {
       dosr_ = false;
     } else {
-      double diagshift =
-          FieldOrDefaultVal(pars["GroundState"], "DiagShift", 0.01);
-      bool rescale_shift =
-          FieldOrDefaultVal(pars["GroundState"], "RescaleShift", false);
-      bool use_iterative =
-          FieldOrDefaultVal(pars["GroundState"], "UseIterative", false);
-      use_cholesky_ =
-          FieldOrDefaultVal(pars["GroundState"], "UseCholesky", true);
-      setSrParameters(diagshift, rescale_shift, use_iterative);
+      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
     }
 
     if (dosr_) {
@@ -182,6 +170,18 @@ class VariationalMonteCarlo {
                   << " processes" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  void InitOutput(std::string filebase, int freqbackup) {
+    if (mynode_ == 0) {
+      output_ =
+          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
+    }
+  }
+
+  void AddObservable(AbstractOperator &ob, const std::string &obname) {
+    obs_.push_back(&ob);
+    obsnames_.push_back(obname);
   }
 
   void InitSweeps() {
@@ -211,8 +211,8 @@ class VariationalMonteCarlo {
     obsmanager_.Reset("Energy");
     obsmanager_.Reset("EnergyVariance");
 
-    for (const auto &ob : obs_) {
-      obsmanager_.Reset(ob.Name());
+    for (const auto &obname : obsnames_) {
+      obsmanager_.Reset(obname);
     }
 
     const int nsamp = vsamp_.rows();
@@ -224,8 +224,8 @@ class VariationalMonteCarlo {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
 
-      for (const auto &ob : obs_) {
-        obsmanager_.Push(ob.Name(), ObSamp(ob, vsamp_.row(i)));
+      for (std::size_t on = 0; on < obs_.size(); on++) {
+        obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
       }
     }
 
@@ -270,7 +270,7 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(const Observable &ob, const Eigen::VectorXd &v) {
+  double ObSamp(AbstractOperator &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -402,11 +402,12 @@ class VariationalMonteCarlo {
   }
 
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
-                       bool use_iterative = false) {
+                       bool use_iterative = false, bool use_cholesky = true) {
     sr_diag_shift_ = diagshift;
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
+    use_cholesky_ = use_cholesky;
   }
 };
 

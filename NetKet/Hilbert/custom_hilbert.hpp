@@ -16,9 +16,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_CUSTOM_HILBERT_HPP
@@ -31,6 +32,7 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
+  const AbstractGraph &graph_;
   std::vector<double> local_;
 
   int nstates_;
@@ -38,25 +40,10 @@ class CustomHilbert : public AbstractHilbert {
   int size_;
 
  public:
-  explicit CustomHilbert(const json &pars) {
-    if (FieldExists(pars["Hilbert"], "QuantumNumbers")) {
-      if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
-        throw InvalidInputError("QuantumNumbers is not an array");
-      }
-      local_ = pars["Hilbert"]["QuantumNumbers"].get<std::vector<double>>();
-    } else {
-      throw InvalidInputError("QuantumNumbers are not defined");
-    }
-
-    if (FieldExists(pars["Hilbert"], "Size")) {
-      size_ = pars["Hilbert"]["Size"];
-      if (size_ <= 0) {
-        throw InvalidInputError("Hilbert Size parameter must be positive");
-      }
-    } else {
-      throw InvalidInputError("Hilbert space extent is not defined");
-    }
-
+  explicit CustomHilbert(const AbstractGraph &graph,
+                         const std::vector<double> &localstates)
+      : graph_(graph), local_(localstates) {
+    size_ = graph.Size();
     nstates_ = local_.size();
   }
 
@@ -68,7 +55,7 @@ class CustomHilbert : public AbstractHilbert {
 
   std::vector<double> LocalStates() const override { return local_; }
 
-  void RandomVals(Eigen::VectorXd &state,
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                   netket::default_random_engine &rgen) const override {
     std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
 
@@ -80,7 +67,8 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == size_);
 
@@ -90,7 +78,9 @@ class CustomHilbert : public AbstractHilbert {
       i++;
     }
   }
-};
+
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
+};  // namespace netket
 
 }  // namespace netket
 #endif

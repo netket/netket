@@ -24,35 +24,54 @@ matrix:
 
   - os: osx
     osx_image: xcode8.3
+    install:
+      - brew upgrade python
 
   - os: osx
     osx_image: xcode9.4
 
   - os: linux
+    before_install:
+      - pyenv global $(pyenv whence 2to3)  # activate all python versions
+      - PY_CMD=python3
+      - $PY_CMD -m pip install --user --upgrade pip wheel
     compiler: gcc
     env:
+      - PYTHON=3.6
       - COMPILER=g++-5
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
         packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
   - os: linux
+    before_install:
+      - pyenv global $(pyenv whence 2to3)  # activate all python versions
+      - PY_CMD=python3
+      - $PY_CMD -m pip install --user --upgrade pip wheel
     compiler: gcc
     env:
+      - PYTHON=3.6
       - COMPILER=g++-6
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
     addons:
       apt:
         sources: ['ubuntu-toolchain-r-test']
         packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev','liblapack3',
-                   'libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
   - os: linux
+    before_install:
+      - pyenv global $(pyenv whence 2to3)  # activate all python versions
+      - PY_CMD=python3
+      - $PY_CMD -m pip install --user --upgrade pip wheel
     compiler: clang
     env:
+      - PYTHON=3.6
       - COMPILER=clang++-5.0
       - CXXFLAGS=-std=c++1z
       - CMAKE_OPTIONS=-DUSE_LAPACK=ON
@@ -60,7 +79,8 @@ matrix:
       apt:
         sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
         packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev','python-numpy', 'python-scipy', 'python-matplotlib',
+                   'python-tk']
 
 
 cache:
@@ -84,16 +104,19 @@ script:
        brew upgrade cmake
        brew upgrade openmpi
        cmake --version
+       export PATH=$PATH:/Users/travis/Library/Python/2.7/bin
      fi
   # make sure CXX is correctly set
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # Get all required Python packages
+  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user	
 
   # show OS/compiler version
   - uname -a
   - $CXX --version
 
-  # compile and execute unit tests
-  - mkdir -p build && cd build
-  - cmake .. ${CMAKE_OPTIONS} -DENABLE_TESTS=ON -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
-  - ctest -C Release -V -j
+  # compile and execute Python unit tests
+  - pip install . --user
+  - pytest --verbose Test
   - cd ..

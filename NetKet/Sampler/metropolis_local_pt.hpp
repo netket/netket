@@ -28,9 +28,9 @@ namespace netket {
 // Parallel tempering is also used
 template <class WfType>
 class MetropolisLocalPt : public AbstractSampler<WfType> {
-  WfType &psi_;
+  WfType& psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
@@ -61,18 +61,12 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  // Json constructor
-  explicit MetropolisLocalPt(WfType &psi, const json &pars)
+  // Constructor with one replica by default
+  explicit MetropolisLocalPt(WfType& psi, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-    Init();
-  }
-
-  // Constructor with one replica
-  explicit MetropolisLocalPt(WfType &psi)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()), nrep_(1) {
+        nrep_(nreplicas) {
     Init();
   }
 
@@ -247,9 +241,13 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Visible() override { return v_[0]; }
 
-  void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
+  void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType& GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert& GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

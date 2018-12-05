@@ -16,6 +16,7 @@ while(True):
     plt.xlabel('Time $i\\tau$')
 
     iters=[]
+    times=[]
     energy=[]
     sigma=[]
     evar=[]
@@ -24,6 +25,7 @@ while(True):
     data=json.load(open('test.log'))
     for iteration in data["Output"]:
         iters.append(iteration["Iteration"])
+        times.append(iteration['Time'])
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
         evar.append(iteration["EnergyVariance"]["Mean"])
@@ -48,7 +50,7 @@ while(True):
 
         plt.plot(fitx,p(fitx))
 
-    plt.plot(iters,energy,color='red')
+    plt.plot(times,energy,color='red')
     plt.axhline(y=exact, xmin=0, xmax=iters[-1], linewidth=2, color = 'k',label='Exact')
 
 

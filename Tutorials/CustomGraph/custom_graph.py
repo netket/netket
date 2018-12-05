@@ -20,11 +20,17 @@ import networkx as nx
 
 pars = {}
 
+
+# defining the hilbert space
+pars['Hilbert'] = {
+    'Name': 'Spin',
+    'S': 0.5,
+}
+
 # defining a custom graph
 # here we use networkx to generate a star graph
 # and pass its edges list to NetKet
 G = nx.star_graph(10)
-
 pars['Graph'] = {
     'Edges': list(G.edges),
 }

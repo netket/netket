@@ -28,7 +28,7 @@ template <class WfType>
 class MetropolisHop : public AbstractSampler<WfType> {
   WfType &psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -54,21 +54,12 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  template <class G>
-  MetropolisHop(G &graph, WfType &psi, int dmax = 1)
+  MetropolisHop(WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
+    Init(hilbert_.GetGraph(), dmax);
   }
 
-  // Json constructor
-  explicit MetropolisHop(Graph &graph, WfType &psi, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
-    Init(graph, dmax);
-  }
-
-  template <class G>
-  void Init(G &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -92,8 +83,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
                   << std::endl;
   }
 
-  template <class G>
-  void GenerateClusters(G &graph, int dmax) {
+  void GenerateClusters(const AbstractGraph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);
@@ -207,7 +197,11 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
