@@ -24,7 +24,6 @@
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
-#include "Unsupervised/unsupervised.hpp"
 #include "Utils/all_utils.hpp"
 
 #endif

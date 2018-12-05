@@ -34,7 +34,7 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Sampler/pysampler.hpp"
 #include "Stats/binning.hpp"
 #include "Utils/pyutils.hpp"
-
+#include "Unsupervised/pyunsupervised.hpp"
 namespace netket {
 
 using ode::AddDynamicsModule;
@@ -49,6 +49,7 @@ PYBIND11_MODULE(netket, m) {
   AddOptimizerModule(m);
   AddOutputModule(m);
   AddSamplerModule(m);
+  AddUnsupervisedModule(m);
   AddUtilsModule(m);
 }  // PYBIND11_MODULE
 
