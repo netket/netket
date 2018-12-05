@@ -32,11 +32,11 @@ class AbstractSampler {
 
   virtual void SetVisible(const Eigen::VectorXd& v) = 0;
 
-  virtual WfType& GetMachine() = 0;
+  virtual WfType& GetMachine() noexcept = 0;
 
   virtual Eigen::VectorXd Acceptance() const = 0;
 
-  virtual const AbstractHilbert& GetHilbert() const = 0;
+  virtual const AbstractHilbert& GetHilbert() const noexcept = 0;
 
   virtual ~AbstractSampler() {}
 };

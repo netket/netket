@@ -554,7 +554,9 @@ class MPSPeriodic : public AbstractMachine<T> {
     return der / trace(left_prods[N_ - 1]);
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   // Json functions
   void to_json(json &j) const override {

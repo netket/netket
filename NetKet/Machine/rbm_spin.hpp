@@ -331,7 +331,9 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Name"] = "RbmSpin";

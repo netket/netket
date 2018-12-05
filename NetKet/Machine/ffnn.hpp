@@ -300,7 +300,9 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 };  // namespace netket
 
 }  // namespace netket
