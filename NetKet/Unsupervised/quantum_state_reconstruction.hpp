@@ -24,15 +24,13 @@
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
-#include "Sampler/sampler.hpp"
+#include "Output/json_output_writer.hpp"
+#include "Sampler/abstract_sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include "GroundState/json_output_writer.hpp"
-#include "GroundState/matrix_replacement.hpp"
-#include "Hamiltonian/local_operator.hpp"
 
 namespace netket {
 
@@ -41,17 +39,17 @@ namespace netket {
 class QuantumStateReconstruction {
 
   using GsType = std::complex<double>;
-
-  using VectorT =
-      Eigen::Matrix<typename Machine<GsType>::StateType, Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<typename Machine<GsType>::StateType,
+  using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
+                                Eigen::Dynamic, 1>;
+  using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, Eigen::Dynamic>;
 
+  AbstractSampler<AbstractMachine<GsType>> &sampler_;
+  AbstractMachine<GsType> &psi_;
+  const AbstractHilbert &hilbert_;
+  AbstractOptimizer &opt_;
+
   std::vector<LocalOperator> rotations_;
-  Hilbert hilbert_;
-  
-  Sampler<Machine<GsType>> &sampler_;
-  Machine<GsType> &psi_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -73,7 +71,6 @@ class QuantumStateReconstruction {
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
 
-  Optimizer &opt_;
 
   //std::vector<Observable> obs_;
   //ObsManager obsmanager_;
@@ -82,7 +79,7 @@ class QuantumStateReconstruction {
   int mynode_;
 
   bool dosr_;
-
+  bool use_cholesky_;
   int batchsize_; 
   int batchsize_node_;
   int nsamples_;
@@ -95,7 +92,6 @@ class QuantumStateReconstruction {
   
   netket::default_random_engine rgen_;
   
-  const std::complex<double> I_;
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
   //Eigen::MatrixXd trainSamples_;
@@ -107,53 +103,94 @@ class QuantumStateReconstruction {
   double KL_;
   double logZ_; 
   double NLL_;
+  const std::complex<double> I_;
 
   public:
   using MatType = LocalOperator::MatType;
 
-  QuantumStateReconstruction(Sampler<Machine<GsType>> &sampler,
-                              Optimizer &opt,const json &pars)
-      : hilbert_(pars),
-        sampler_(sampler),
-        psi_(sampler.Psi()),
+  QuantumStateReconstruction( AbstractSampler<AbstractMachine<GsType>> &sampler,
+                              AbstractOptimizer &opt,
+                              int batchsize,
+                              int nsamples,
+                              int niter_opt,
+                              std::vector<MatType> jrot,
+                              std::vector<std::vector<int> > sites,
+                              std::vector<Eigen::VectorXd> trainingSamples,
+                              std::vector<int> trainingBases,
+                              int ndiscardedsamples=-1,
+                              int discarded_samples_on_init=0,
+                              std::string method = "Gd",
+                              double diagshift = 0.01,
+                              bool rescale_shift = false,
+                              bool use_iterative = false,
+                              bool use_cholesky = true
+                              )
+      : sampler_(sampler),
+        psi_(sampler_.GetMachine()),
+        hilbert_(psi_.GetHilbert()),
         opt_(opt),
-        I_(0,1) {
-    // DEPRECATED (to remove for v2.0.0)
-    if (FieldExists(pars, "Learning")) {
-      auto pars1 = pars;
-      pars1["Unsupervised"] = pars["Learning"];
-      Init(pars1);
-    } else {
-      Init(pars);
-    }
-    InitOutput(pars);
-  }
-
-  void InitOutput(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    auto pars_gs = FieldExists(pars, "Unsupervised") ? pars["Unsupervised"]
-                                                    : pars["Learning"];
-      if (mynode_ == 0) {
-      output_ = JsonOutputWriter::FromJson(pars_gs);
-    }
-  }
-
-  void Init(const json &pars) {
+        trainingSamples_(trainingSamples),
+        trainingBases_(trainingBases),
+        I_(0,1){
    
-    opt_.Init(psi_.GetParameters());
+    npar_ = psi_.Npar();
+
+    opt_.Init(psi_.GetParameters());        
+          
+    grad_.resize(npar_);
+    rotated_grad_.resize(npar_);
+
+    Okmean_.resize(npar_);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+    
+    batchsize_ = batchsize;
+    batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
  
-    auto pars_data = pars["Data"];
-    auto jrot = pars_data["Rotations"].get<std::vector<MatType>>();
-    auto sites =
-        pars_data["Sites"].get<std::vector<std::vector<int>>>();
-    trainingSamples_ = pars_data["Samples"].get<std::vector<Eigen::VectorXd>>();
-    trainingBases_   = pars_data["Bases"].get<std::vector<int>>();
-    //std::cout<<jrot.size()<<std::endl;
-    //std::cout<<sites.size()<<std::endl;
+    nsamples_ = nsamples;
+    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
+   
+    ninitsamples_ = discarded_samples_on_init;
+
+    if (ndiscardedsamples == -1) {
+      ndiscardedsamples_ = 0.1 * nsamples_node_;
+    } else {
+      ndiscardedsamples_ = ndiscardedsamples;
+    }
+
+    niter_opt_ = niter_opt;
+
+    if (method == "Gd") {
+      dosr_ = false;
+    } else {
+      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
+    }
+
+    if (dosr_) {
+      InfoMessage() << "Using the Stochastic reconfiguration method"
+                    << std::endl;
+
+      if (use_iterative_) {
+        InfoMessage() << "With iterative solver" << std::endl;
+      } else {
+        if (use_cholesky_) {
+          InfoMessage() << "Using Cholesky decomposition" << std::endl;
+        }
+      }
+    } else {
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
+    }
+    
+  
     for(std::size_t i=0; i<jrot.size(); i++){
       rotations_.push_back(LocalOperator(hilbert_, jrot[i], sites[i]));
-      //rotations_[i].Print();
     }
+
+
+    InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
+                  << " processes" << std::endl;
+ 
 
     basis_states_.resize(1<<psi_.Nvisible(),psi_.Nvisible());
     std::bitset<10> bit;
@@ -165,61 +202,8 @@ class QuantumStateReconstruction {
       }
     }
     
-    npar_ = psi_.Npar();
-
     LoadWavefunction();
-
-    grad_.resize(npar_);
-    rotated_grad_.resize(npar_);
-
-    Okmean_.resize(npar_);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
     
-    //basis_ = FieldVal(pars["Unsupervised"],"Basis","Unsupervised");
-   
-    batchsize_ = FieldVal(pars["Unsupervised"], "Batchsize", "Unsupervised");
-    batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
- 
-    nsamples_ = FieldVal(pars["Unsupervised"], "Nsamples", "Unsupervised");
-
-    nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
-
-    ninitsamples_ =
-        FieldOrDefaultVal(pars["Unsupervised"], "DiscardedSamplesOnInit", 0.);
-
-    ndiscardedsamples_ = FieldOrDefaultVal(
-        pars["Unsupervised"], "DiscardedSamples", 0.1 * nsamples_node_);
-
-    niter_opt_ = FieldVal(pars["Unsupervised"], "NiterOpt", "Unsupervised");
-
-    if (pars["Unsupervised"]["Method"] == "Gd") {
-      dosr_ = false;
-    } else {
-      double diagshift =
-          FieldOrDefaultVal(pars["Unsupervised"], "DiagShift", 0.01);
-      bool rescale_shift =
-          FieldOrDefaultVal(pars["Unsupervised"], "RescaleShift", false);
-      bool use_iterative =
-          FieldOrDefaultVal(pars["Unsupervised"], "UseIterative", false);
-
-      setSrParameters(diagshift, rescale_shift, use_iterative);
-    }
-
-    if (dosr_) {
-      InfoMessage() << "Using the Stochastic reconfiguration method"
-                    << std::endl;
-      if (use_iterative_) {
-        InfoMessage() << "With iterative solver" << std::endl;
-      }
-    } else {
-      InfoMessage() << "Using a gradient-descent based method" << std::endl;
-    }
-
-    InfoMessage() << "Unsupervised learning running on " << totalnodes_
-                  << " processes" << std::endl;
-
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -435,11 +419,12 @@ class QuantumStateReconstruction {
   } 
 
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
-                       bool use_iterative = false) {
+                       bool use_iterative = false, bool use_cholesky = true) {
     sr_diag_shift_ = diagshift;
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
+    use_cholesky_ = use_cholesky;
   }
 
   //Compute the partition function by exact enumeration 
@@ -764,7 +749,13 @@ class QuantumStateReconstruction {
     }
   }
 
-  void LoadWavefunction(){
+  void TestDerivatives(double eps=0.0000001) {
+    TestDerKL(eps);
+    TestDerNLL(eps);
+    TestDerNLLsampling(eps);
+  }
+  
+  TestDerNLLvoid LoadWavefunction(){
     //std::string fileName = "wf_tfim10.txt";
     std::string fileName = "qubits_psi.txt";
     std::ifstream fin(fileName);
