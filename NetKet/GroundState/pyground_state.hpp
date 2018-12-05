@@ -33,7 +33,7 @@ void AddGroundStateModule(py::module &m) {
   auto subm = m.def_submodule("gs");
 
   py::class_<VariationalMonteCarlo>(subm, "Vmc")
-      .def(py::init<const AbstractOperator &, AbSamplerType &,
+      .def(py::init<const AbstractOperator &, SamplerType &,
                     AbstractOptimizer &, int, int, std::string, int, int,
                     std::string, double, bool, bool, bool, int>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
