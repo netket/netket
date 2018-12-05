@@ -755,7 +755,7 @@ class QuantumStateReconstruction {
     TestDerNLLsampling(eps);
   }
   
-  TestDerNLLvoid LoadWavefunction(){
+  void LoadWavefunction(){
     //std::string fileName = "wf_tfim10.txt";
     std::string fileName = "qubits_psi.txt";
     std::ifstream fin(fileName);
