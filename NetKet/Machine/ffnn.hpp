@@ -56,7 +56,7 @@ class FFNN : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   explicit FFNN(const AbstractHilbert &hilbert,
-                const std::vector<AbstractLayer<T> *> &layers)
+                std::vector<AbstractLayer<T> *> layers)
       : hilbert_(hilbert), layers_(layers), nv_(hilbert.Size()) {
     Init();
   }
