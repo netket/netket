@@ -45,4 +45,4 @@ vmc = nk.gs.Vmc(
     output_file='test',
     diag_shift=0.1,
     method='Sr')
-vmc.Run()
+vmc.run()

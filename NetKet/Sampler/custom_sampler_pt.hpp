@@ -31,8 +31,8 @@ namespace netket {
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
 class CustomSamplerPt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  WfType& psi_;
+  const AbstractHilbert& hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
   // number of visible units
@@ -65,17 +65,17 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
  public:
   explicit CustomSamplerPt(
-      std::shared_ptr<WfType> psi, const LocalOperator &move_operators,
+      WfType& psi, const LocalOperator& move_operators,
       std::vector<double> move_weights = std::vector<double>(),
       int nreplicas = 1)
       : psi_(psi),
-        hilbert_(psi->GetHilbert()),
+        hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
-        nv_(hilbert_->Size()),
+        nv_(hilbert_.Size()),
         nrep_(nreplicas) {
     CustomSampler<WfType>::CheckMoveOperators(move_operators_);
 
-    if (hilbert_->Size() != move_operators.GetHilbert()->Size()) {
+    if (hilbert_.Size() != move_operators.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -101,13 +101,13 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = hilbert_.LocalSize();
+    localstates_ = hilbert_.LocalStates();
 
     v_.resize(nrep_);
     for (int i = 0; i < nrep_; i++) {
@@ -151,12 +151,12 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_->RandomVals(v_[i], rgen_);
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_->InitLookup(v_[i], lt_[i]);
+      psi_.InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -182,16 +182,16 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
       }
 
       double ratio = std::norm(std::exp(
-          beta_[rep] * psi_->LogValDiff(v_[rep], tochange_[exit_state],
-                                        newconfs_[exit_state], lt_[rep])));
+          beta_[rep] * psi_.LogValDiff(v_[rep], tochange_[exit_state],
+                                       newconfs_[exit_state], lt_[rep])));
 
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_(rep) += 1;
-        psi_->UpdateLookup(v_[rep], tochange_[exit_state],
-                           newconfs_[exit_state], lt_[rep]);
-        hilbert_->UpdateConf(v_[rep], tochange_[exit_state],
-                             newconfs_[exit_state]);
+        psi_.UpdateLookup(v_[rep], tochange_[exit_state], newconfs_[exit_state],
+                          lt_[rep]);
+        hilbert_.UpdateConf(v_[rep], tochange_[exit_state],
+                            newconfs_[exit_state]);
       }
       moves_(rep) += 1;
     }
@@ -229,8 +229,8 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_->LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_->LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -242,11 +242,11 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Visible() override { return v_[0]; }
 
-  void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
+  void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType& GetMachine() noexcept override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert& GetHilbert() const noexcept override {
     return hilbert_;
   }
 

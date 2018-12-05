@@ -51,7 +51,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 g = nk.graph.Hypercube(length=6, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
-l = hi.size()
+l = hi.size
 X = [[0, 1],
      [1, 0]]
 
@@ -92,19 +92,19 @@ def test_states_in_hilbert():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.get_hilbert()
-        ma = sa.get_machine()
-        localstates = hi.local_states()
+        hi = sa.hilbert
+        ma = sa.machine
+        localstates = hi.local_states
 
         for sw in range(100):
             sa.sweep()
-            visible = sa.get_visible()
-            assert(len(visible) == hi.size())
+            visible = sa.visible
+            assert(len(visible) == hi.size)
             for v in visible:
                 assert(v in localstates)
 
-            assert(np.min(sa.acceptance()) >= 0 and np.max(
-                sa.acceptance()) <= 1.0)
+            assert(np.min(sa.acceptance) >= 0 and np.max(
+                sa.acceptance) <= 1.0)
 
 
 # Testing that samples generated from direct sampling are compatible with those
@@ -116,11 +116,11 @@ def test_correct_sampling():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.get_hilbert()
-        ma = sa.get_machine()
+        hi = sa.hilbert
+        ma = sa.machine
 
         hilb_index = nk.hilbert.HilbertIndex(hi)
-        n_states = hilb_index.n_states()
+        n_states = hilb_index.n_states
 
         n_samples = max(10 * n_states, 10000)
 
@@ -128,7 +128,7 @@ def test_correct_sampling():
         # fill in the histogram for sampler
         for sw in range(n_samples):
             sa.sweep()
-            visible = sa.get_visible()
+            visible = sa.visible
             hist_samp[hilb_index.state_to_number(visible)] += 1
 
         hist_exsamp = np.zeros(n_states)
@@ -136,7 +136,7 @@ def test_correct_sampling():
         # fill in histogram for exact sampler
         for sw in range(n_samples):
             sa.sweep()
-            visible = sa.get_visible()
+            visible = sa.visible
             hist_exsamp[hilb_index.state_to_number(visible)] += 1
 
         print(hist_exsamp)

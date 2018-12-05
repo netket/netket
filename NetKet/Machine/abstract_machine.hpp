@@ -181,7 +181,7 @@ class AbstractMachine {
     stream << j << std::endl;
   }
 
-  virtual std::shared_ptr<const AbstractHilbert> GetHilbert() const = 0;
+  virtual const AbstractHilbert &GetHilbert() const noexcept = 0;
 
   virtual ~AbstractMachine() {}
 };
