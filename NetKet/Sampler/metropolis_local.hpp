@@ -28,9 +28,9 @@ namespace netket {
 // Metropolis sampling generating local moves in hilbert space
 template <class WfType>
 class MetropolisLocal : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType& psi_;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
@@ -53,8 +53,8 @@ class MetropolisLocal : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  explicit MetropolisLocal(std::shared_ptr<WfType> psi)
-      : psi_(psi), hilbert_(psi->GetHilbert()), nv_(hilbert_->Size()) {
+  explicit MetropolisLocal(WfType& psi)
+      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init();
   }
 
@@ -64,7 +64,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
           "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -73,8 +73,8 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = hilbert_.LocalSize();
+    localstates_ = hilbert_.LocalStates();
 
     Seed();
 
@@ -100,10 +100,10 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_);
     }
 
-    psi_->InitLookup(v_, lt_);
+    psi_.InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -134,15 +134,15 @@ class MetropolisLocal : public AbstractSampler<WfType> {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = psi_->LogValDiff(v_, tochange, newconf, lt_);
+      const auto lvd = psi_.LogValDiff(v_, tochange, newconf, lt_);
       double ratio = std::norm(std::exp(lvd));
 
 #ifndef NDEBUG
-      const auto psival1 = psi_->LogVal(v_);
-      if (std::abs(std::exp(psi_->LogVal(v_) - psi_->LogVal(v_, lt_)) - 1.) >
+      const auto psival1 = psi_.LogVal(v_);
+      if (std::abs(std::exp(psi_.LogVal(v_) - psi_.LogVal(v_, lt_)) - 1.) >
           1.0e-8) {
-        std::cerr << psi_->LogVal(v_) << "  and LogVal with Lt is "
-                  << psi_->LogVal(v_, lt_) << std::endl;
+        std::cerr << psi_.LogVal(v_) << "  and LogVal with Lt is "
+                  << psi_.LogVal(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
@@ -150,16 +150,16 @@ class MetropolisLocal : public AbstractSampler<WfType> {
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_[0] += 1;
-        psi_->UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_->UpdateConf(v_, tochange, newconf);
+        psi_.UpdateLookup(v_, tochange, newconf, lt_);
+        hilbert_.UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
-        const auto psival2 = psi_->LogVal(v_);
+        const auto psival2 = psi_.LogVal(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_->LogVal(v_, lt_) << std::endl;
+                    << psi_.LogVal(v_, lt_) << std::endl;
           std::abort();
         }
 #endif
@@ -170,11 +170,11 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Visible() override { return v_; }
 
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
+  void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType& GetMachine() noexcept override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert& GetHilbert() const noexcept override {
     return hilbert_;
   }
 

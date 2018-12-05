@@ -91,11 +91,11 @@ def test_consistent_size():
 
     for name, hi in hilberts.items():
         #print("Hilbert test: %s" % name)
-        assert (hi.size() > 0)
-        assert (hi.local_size() > 0)
-        if hi.is_discrete():
-            assert (len(hi.local_states()) == hi.local_size())
-            for state in hi.local_states():
+        assert (hi.size > 0)
+        assert (hi.local_size > 0)
+        if hi.is_discrete:
+            assert (len(hi.local_states) == hi.local_size)
+            for state in hi.local_states:
                 assert (np.isfinite(state).all())
 
 
@@ -103,14 +103,14 @@ def test_random_states():
     """"""
 
     for name, hi in hilberts.items():
-        assert (hi.size() > 0)
-        assert (hi.local_size() > 0)
-        assert (len(hi.local_states()) == hi.local_size())
+        assert (hi.size > 0)
+        assert (hi.local_size > 0)
+        assert (len(hi.local_states) == hi.local_size)
 
-        if hi.is_discrete():
-            rstate = np.zeros(hi.size())
+        if hi.is_discrete:
+            rstate = np.zeros(hi.size)
             rg = nk.utils.RandomEngine(seed=1234)
-            local_states = hi.local_states()
+            local_states = hi.local_states
 
             for i in range(100):
                 hi.random_vals(rstate, rg)
@@ -123,13 +123,13 @@ def test_mapping():
     """"""
 
     for name, hi in hilberts.items():
-        assert (hi.size() > 0)
-        assert (hi.local_size() > 0)
+        assert (hi.size > 0)
+        assert (hi.local_size > 0)
 
         log_max_states = np.log(nk.hilbert.HilbertIndex.max_states)
-        if hi.size() * np.log(hi.local_size()) < log_max_states:
+        if hi.size * np.log(hi.local_size) < log_max_states:
             hilb_index = nk.hilbert.HilbertIndex(hi)
 
-            for k in range(hilb_index.n_states()):
+            for k in range(hilb_index.n_states):
                 state = hilb_index.number_to_state(k)
                 assert (hilb_index.state_to_number(state) == k)

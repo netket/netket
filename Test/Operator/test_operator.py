@@ -51,20 +51,20 @@ szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
 operators["Custom Hamiltonian"] = sx_hat + sy_hat
 
 
-operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
+operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + 2.0 * sy_hat
 
 rg = nk.utils.RandomEngine(seed=1234)
 
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
-        hi = ha.get_hilbert()
+        hi = ha.hilbert
         print(name, hi)
-        assert (len(hi.local_states()) == hi.local_size())
+        assert (len(hi.local_states) == hi.local_size)
 
-        rstate = np.zeros(hi.size())
+        rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states()
+        local_states = hi.local_states
 
         for i in range(1000):
             hi.random_vals(rstate, rg)
@@ -80,13 +80,13 @@ def test_produce_elements_in_hilbert():
 
 def test_operator_is_hermitean():
     for name, ha in operators.items():
-        hi = ha.get_hilbert()
+        hi = ha.hilbert
         print(name, hi)
-        assert (len(hi.local_states()) == hi.local_size())
+        assert (len(hi.local_states) == hi.local_size)
 
-        rstate = np.zeros(hi.size())
+        rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states()
+        local_states = hi.local_states
 
         for i in range(100):
             hi.random_vals(rstate, rg)
