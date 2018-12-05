@@ -21,10 +21,14 @@
 #include <cassert>
 #include <iostream>
 #include <map>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include "Utils/random_utils.hpp"
+
+#include "binning.hpp"
+#include "onlinestat.hpp"
 
 namespace netket {
 

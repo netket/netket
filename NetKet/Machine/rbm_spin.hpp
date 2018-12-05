@@ -15,8 +15,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_RBM_SPIN_HPP
 #define NETKET_RBM_SPIN_HPP
@@ -30,6 +30,11 @@ template <typename T>
 class RbmSpin : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
+
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -57,16 +62,16 @@ class RbmSpin : public AbstractMachine<T> {
   bool usea_;
   bool useb_;
 
-  const Hilbert &hilbert_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  // constructor
-  explicit RbmSpin(const Hilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert) {
-    from_json(pars);
+  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
+                   int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
+    nh_ = std::max(nhidden, alpha * nv_);
+
+    Init();
   }
 
   void Init() {
@@ -113,7 +118,7 @@ class RbmSpin : public AbstractMachine<T> {
     SetParameters(par);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(b_.size());
     }
@@ -124,7 +129,7 @@ class RbmSpin : public AbstractMachine<T> {
     lt.V(0) = (W_.transpose() * v + b_);
   }
 
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -135,7 +140,7 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
 
     int k = 0;
@@ -192,7 +197,7 @@ class RbmSpin : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     if (usea_) {
@@ -217,7 +222,7 @@ class RbmSpin : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(const Eigen::VectorXd &v) override {
+  T LogVal(VisibleConstType v) override {
     RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -225,7 +230,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -234,7 +239,7 @@ class RbmSpin : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -266,7 +271,7 @@ class RbmSpin : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -314,39 +319,42 @@ class RbmSpin : public AbstractMachine<T> {
     return res;
   }
 
-  static void tanh(const VectorType &x, VectorType &y) {
+  static void tanh(VectorConstRefType x, VectorType &y) {
     assert(y.size() >= x.size());
     y = Eigen::tanh(x.array());
   }
 
-  static void lncosh(const VectorType &x, VectorType &y) {
+  static void lncosh(VectorConstRefType x, VectorType &y) {
     assert(y.size() >= x.size());
     for (int i = 0; i < x.size(); i++) {
       y(i) = lncosh(x(i));
     }
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmSpin";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Nhidden"] = nh_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["a"] = a_;
-    j["Machine"]["b"] = b_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "RbmSpin";
+    j["Nvisible"] = nv_;
+    j["Nhidden"] = nh_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["a"] = a_;
+    j["b"] = b_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "RbmSpin") {
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name != "RbmSpin") {
       throw InvalidInputError(
-          "Error while constructing RbmSpin from Json input");
+          "Error while constructing RbmSpin from input parameters");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = FieldVal<int>(pars, "Nvisible");
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -354,31 +362,31 @@ class RbmSpin : public AbstractMachine<T> {
           "Hilbert space");
     }
 
-    if (FieldExists(pars["Machine"], "Nhidden")) {
-      nh_ = FieldVal(pars["Machine"], "Nhidden");
+    if (FieldExists(pars, "Nhidden")) {
+      nh_ = FieldVal<int>(pars, "Nhidden");
     } else {
-      nh_ = nv_ * double(FieldVal(pars["Machine"], "Alpha"));
+      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
     }
 
-    usea_ = FieldOrDefaultVal(pars["Machine"], "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars["Machine"], "UseHiddenBias", true);
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
 
     Init();
 
     // Loading parameters, if defined in the input
-    if (FieldExists(pars["Machine"], "a")) {
-      a_ = pars["Machine"]["a"];
+    if (FieldExists(pars, "a")) {
+      a_ = FieldVal<VectorType>(pars, "a");
     } else {
       a_.setZero();
     }
 
-    if (FieldExists(pars["Machine"], "b")) {
-      b_ = pars["Machine"]["b"];
+    if (FieldExists(pars, "b")) {
+      b_ = FieldVal<VectorType>(pars, "b");
     } else {
       b_.setZero();
     }
-    if (FieldExists(pars["Machine"], "W")) {
-      W_ = pars["Machine"]["W"];
+    if (FieldExists(pars, "W")) {
+      W_ = FieldVal<MatrixType>(pars, "W");
     }
   }
 };

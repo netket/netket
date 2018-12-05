@@ -25,6 +25,12 @@ pars = {}
 
 L=20
 
+# defining the hilbert space
+pars['Hilbert'] = {
+    'Name': 'Spin',
+    'S': 0.5,
+}
+
 # defining the lattice
 pars['Graph'] = {
     'Name': 'Hypercube',
@@ -36,7 +42,6 @@ pars['Graph'] = {
 # defining the hamiltonian
 pars['Hamiltonian'] = {
     'Name': 'Heisenberg',
-    'TotalSz': 0,
 }
 
 # defining the wave function
@@ -51,8 +56,8 @@ pars['Machine'] = {
 # we also choose a relative frequency of 2 for local-spin flips with respect to exchange flips
 spin_flip = [[0, 1], [1, 0]]
 exchange_flip = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
-weight_spin_flip = 2.0
-weight_exchange_flip = 1.0
+weight_spin_flip = 1.0
+weight_exchange_flip = 2.0
 
 # adding both types of flip for all sites in the chain
 operators = []

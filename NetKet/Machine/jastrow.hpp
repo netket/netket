@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_JASTROW_HPP
 #define NETKET_JASTROW_HPP
@@ -32,6 +32,11 @@ template <typename T>
 class Jastrow : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
+
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -46,22 +51,26 @@ class Jastrow : public AbstractMachine<T> {
   VectorType thetas_;
   VectorType thetasnew_;
 
-  const Hilbert &hilbert_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(const Hilbert &hilbert, const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert) {
-    from_json(pars);
+  explicit Jastrow(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
+    Init();
   }
 
   void Init() {
-    W_.resize(nv_, nv_);
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
 
-    npar_ = nv_ * (nv_ - 1) / 2;
+    W_.resize(nv_, nv_);
+    W_.setZero();
+
+    npar_ = (nv_ * (nv_ - 1)) / 2;
 
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
@@ -97,20 +106,20 @@ class Jastrow : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
+      W_(i, i) = T(0.);
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
-        W_(j, i) = W_(i, j);  // create the lover triangle
-        W_(i, i) = T(0);
+        W_(j, i) = W_(i, j);  // create the lower triangle
         k++;
       }
     }
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(v.size());
     }
@@ -122,7 +131,7 @@ class Jastrow : public AbstractMachine<T> {
   }
 
   // same as for the RBM
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -133,18 +142,18 @@ class Jastrow : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override { return 0.5 * v.dot(W_ * v); }
+  T LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     return 0.5 * v.dot(lt.V(0));
   }
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -155,13 +164,13 @@ class Jastrow : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -170,7 +179,7 @@ class Jastrow : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -178,13 +187,13 @@ class Jastrow : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -193,7 +202,7 @@ class Jastrow : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     VectorType der(npar_);
 
     int k = 0;
@@ -208,20 +217,24 @@ class Jastrow : public AbstractMachine<T> {
     return der;
   }
 
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
+
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "Jastrow";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "Jastrow";
+    j["Nvisible"] = nv_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "Jastrow") {
+    if (pars.at("Name") != "Jastrow") {
       throw InvalidInputError(
           "Error while constructing Jastrow from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -231,8 +244,8 @@ class Jastrow : public AbstractMachine<T> {
 
     Init();
 
-    if (FieldExists(pars["Machine"], "W")) {
-      W_ = pars["Machine"]["W"];
+    if (FieldExists(pars, "W")) {
+      W_ = pars["W"];
     }
   }
 };

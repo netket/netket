@@ -18,6 +18,13 @@ import json
 
 pars={}
 
+# defining the hilbert space
+pars['Hilbert'] = {
+    'Name': 'Spin',
+    'S': 0.5,
+    'TotalSz': 0,
+}
+
 #defining the lattice
 pars['Graph']={
     'Name'           : 'Hypercube',
@@ -29,7 +36,6 @@ pars['Graph']={
 #defining the hamiltonian
 pars['Hamiltonian']={
     'Name'           : 'Heisenberg',
-    'TotalSz'        : 0,
 }
 
 #defining the wave function

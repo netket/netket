@@ -16,9 +16,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include "Utils/random_utils.hpp"
 #include <vector>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/random_utils.hpp"
 #include "abstract_hilbert.hpp"
 
 #ifndef NETKET_QUBITS_HPP
@@ -31,13 +32,15 @@ namespace netket {
 */
 
 class Qubit : public AbstractHilbert {
+  const AbstractGraph &graph_;
+
   std::vector<double> local_;
 
   int nqubits_;
 
  public:
-  explicit Qubit(const json &pars) {
-    const int nqubits = FieldVal(pars["Hilbert"], "Nqubits", "Hilbert");
+  explicit Qubit(const AbstractGraph &graph) : graph_(graph) {
+    const int nqubits = graph.Size();
     Init(nqubits);
   }
 
@@ -58,7 +61,7 @@ class Qubit : public AbstractHilbert {
 
   std::vector<double> LocalStates() const override { return local_; }
 
-  void RandomVals(Eigen::VectorXd &state,
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                   netket::default_random_engine &rgen) const override {
     std::uniform_int_distribution<int> distribution(0, 1);
 
@@ -70,7 +73,8 @@ class Qubit : public AbstractHilbert {
     }
   }
 
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override {
     assert(v.size() == nqubits_);
 
@@ -80,6 +84,8 @@ class Qubit : public AbstractHilbert {
       i++;
     }
   }
+
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket

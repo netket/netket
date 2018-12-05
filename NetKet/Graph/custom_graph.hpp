@@ -15,14 +15,11 @@
 #ifndef NETKET_CUSTOM_GRAPH_HPP
 #define NETKET_CUSTOM_GRAPH_HPP
 
-#include <mpi.h>
 #include <algorithm>
-#include <array>
 #include <cassert>
-#include <unordered_map>
+#include <sstream>
 #include <vector>
-#include "Hilbert/hilbert.hpp"
-#include "Utils/all_utils.hpp"
+#include "abstract_graph.hpp"
 
 namespace netket {
 
@@ -31,135 +28,129 @@ namespace netket {
     The list of edges and nodes is read from a json input file.
 */
 class CustomGraph : public AbstractGraph {
-  // adjacency list
-  std::vector<std::vector<int>> adjlist_;
+ public:
+  using AbstractGraph::ColorMap;
+  using AbstractGraph::Edge;
 
-  ColorMap eclist_;
-
-  int nsites_;
-
+ private:
+  std::vector<Edge> edges_;  ///< List of graph edges
+  ColorMap eclist_;          ///< Edge to color mapping
+  int n_sites_;              ///< Total number of nodes in the graph
+  bool is_connected_;        ///< Whether the graph is connected
+  bool is_bipartite_;        ///< Whether the graph is bipartite
   std::vector<std::vector<int>> automorphisms_;
 
-  bool isbipartite_;
-  bool is_connected_;
-
  public:
-  // Json constructor
-  explicit CustomGraph(const json &pars) { Init(pars); }
-
-  void Init(const json &pars) {
-    // Try to construct from explicit graph definition
-    if (FieldExists(pars, "Graph")) {
-      if (FieldExists(pars["Graph"], "AdjacencyList")) {
-        adjlist_ =
-            pars["Graph"]["AdjacencyList"].get<std::vector<std::vector<int>>>();
+  CustomGraph(std::vector<Edge> edges, ColorMap colors = ColorMap(),
+              std::vector<std::vector<int>> automorphisms =
+                  std::vector<std::vector<int>>(),
+              bool isbipartite = false)
+      : edges_{std::move(edges)},
+        eclist_{std::move(colors)},
+        is_bipartite_{isbipartite},
+        automorphisms_{std::move(automorphisms)} {
+    n_sites_ = CheckEdges();
+    if (n_sites_ == 0) {
+      throw InvalidInputError{"Empty graphs are not supported."};
+    }
+    if (eclist_.empty() && !edges_.empty()) {
+      for (auto const &edge : edges_) {
+        eclist_.emplace(edge, 0);
       }
-      if (FieldExists(pars["Graph"], "Edges")) {
-        std::vector<std::vector<int>> edges =
-            pars["Graph"]["Edges"].get<std::vector<std::vector<int>>>();
-        AdjacencyListFromEdges(edges);
-      }
-      if (FieldExists(pars["Graph"], "Size")) {
-        assert(pars["Graph"]["Size"] > 0);
-        adjlist_.resize(pars["Graph"]["Size"]);
-      }
-    } else if (FieldExists(pars, "Hilbert")) {
-      Hilbert hilbert(pars);
-      nsites_ = hilbert.Size();
-      assert(nsites_ > 0);
-      adjlist_.resize(nsites_);
     } else {
-      throw InvalidInputError(
-          "Graph: one among Size, AdjacencyList, Edges, or Hilbert "
-          "Space Size must be specified");
+      CheckEdgeColors();
     }
-
-    nsites_ = adjlist_.size();
-
-    automorphisms_.resize(1, std::vector<int>(nsites_));
-    for (int i = 0; i < nsites_; i++) {
-      // If no automorphism is specified, we stick to the identity one
-      automorphisms_[0][i] = i;
+    if (!automorphisms_.empty()) {
+      CheckAutomorph();
+    } else {
+      automorphisms_.resize(1);
+      automorphisms_.front().resize(static_cast<std::size_t>(n_sites_));
+      std::iota(std::begin(automorphisms_.front()),
+                std::end(automorphisms_.front()), 0);
     }
-
-    isbipartite_ = false;
     is_connected_ = ComputeConnected();
-
-    // Other graph properties
-    if (FieldExists(pars, "Graph")) {
-      if (FieldExists(pars["Graph"], "Automorphisms")) {
-        automorphisms_ =
-            pars["Graph"]["Automorphisms"].get<std::vector<std::vector<int>>>();
-      }
-
-      if (FieldExists(pars["Graph"], "IsBipartite")) {
-        isbipartite_ = pars["Graph"]["IsBipartite"];
-      }
-
-      // If edge colors are specificied read them in, otherwise set them all to
-      // 0
-      if (FieldExists(pars["Graph"], "EdgeColors")) {
-        std::vector<std::vector<int>> colorlist =
-            pars["Graph"]["EdgeColors"].get<std::vector<std::vector<int>>>();
-        EdgeColorsFromList(colorlist, eclist_);
-      } else {
-        InfoMessage() << "No colors specified, edge colors set to 0 "
-                      << std::endl;
-        EdgeColorsFromAdj(adjlist_, eclist_);
-      }
-    }
-
-    CheckGraph();
-
-    InfoMessage() << "Graph created " << std::endl;
-    InfoMessage() << "Number of nodes = " << nsites_ << std::endl;
   }
 
-  void AdjacencyListFromEdges(const std::vector<std::vector<int>> &edges) {
-    nsites_ = 0;
-
-    for (auto edge : edges) {
-      if (edge.size() != 2) {
-        throw InvalidInputError(
-            "The edge list is invalid (edges need "
-            "to connect exactly two sites)");
-      }
-      if (edge[0] < 0 || edge[1] < 0) {
-        throw InvalidInputError("The edge list is invalid");
-      }
-
-      nsites_ = std::max(std::max(edge[0], edge[1]), nsites_);
+  /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.
+  /// the number of nodes
+  int CheckEdges() const {
+    if (edges_.empty()) {
+      return 0;
     }
+    int min = 0;
+    int max = -1;
+    for (auto const &edge : edges_) {
+      if (edge[0] > edge[1]) {
+        throw InvalidInputError{
+            "For each edge i<->j, i must not be greater than j"};
+      }
+      if (edge[0] < min) min = edge[0];
+      if (edge[1] > max) max = edge[1];
+    }
+    if (min < 0) {
+      throw InvalidInputError{"Nodes act as indices and should be >=0"};
+    }
+    assert(max >= min && "Bug! Postcondition violated");
+    return max + 1;
+  }
 
-    nsites_++;
-    adjlist_.resize(nsites_);
+  void CheckAutomorph() const {
+    auto const print_list = [](std::ostream &os,
+                               std::vector<int> const &xs) -> std::ostream & {
+      os << "[";
+      if (xs.size() >= 1) {
+        os << xs.front();
+      }
+      for (auto i = std::size_t{0}; i < xs.size(); ++i) {
+        os << ", " << xs[i];
+      }
+      return os << "]";
+    };
 
-    for (auto edge : edges) {
-      adjlist_[edge[0]].push_back(edge[1]);
-      adjlist_[edge[1]].push_back(edge[0]);
+    std::vector<std::uint8_t> been_here(static_cast<std::size_t>(n_sites_));
+
+    auto const check_one = [&been_here,
+                            print_list](std::vector<int> const &xs) {
+      using std::begin;
+      using std::end;
+      std::fill(begin(been_here), end(been_here), std::uint8_t{0});
+      // First, check that the cardinalities match
+      if (xs.size() != been_here.size()) {
+        std::ostringstream msg;
+        msg << "Automorphism list is invalid: ";
+        print_list(msg, xs);
+        msg << " is not an automorphism: invalid dimension";
+        throw InvalidInputError{msg.str()};
+      }
+      // Now, check that the i'th "automorphism" is surjective
+      for (auto const x : xs) {
+        if (x < 0 || x >= static_cast<int>(been_here.size())) {
+          std::ostringstream msg;
+          msg << "Automorphism list is invalid: ";
+          print_list(msg, xs);
+          msg << " is not an automorphism: " << x
+              << " is not a valid site index";
+          throw InvalidInputError{msg.str()};
+        }
+        been_here[static_cast<std::size_t>(x)] = 1;
+      }
+      if (!std::all_of(begin(been_here), end(been_here),
+                       [](std::uint8_t x) { return x; })) {
+        std::ostringstream msg;
+        msg << "Automorphism list is invalid: ";
+        print_list(msg, xs);
+        msg << " is not an automorphism: is not a bijection";
+        throw InvalidInputError{msg.str()};
+      }
+    };
+
+    for (auto const &xs : automorphisms_) {
+      check_one(xs);
     }
   }
 
-  void CheckGraph() {
-    for (int i = 0; i < nsites_; i++) {
-      for (auto s : adjlist_[i]) {
-        // Checking if the referenced nodes are within the expected range
-        if (s >= nsites_ || s < 0) {
-          throw InvalidInputError("The graph is invalid");
-        }
-        // Checking if the adjacency list is symmetric
-        // i.e. if site s is declared neihgbor of site i
-        // when site i is declared neighbor of site s
-        if (std::count(adjlist_[s].begin(), adjlist_[s].end(), i) != 1) {
-          throw InvalidInputError("The graph adjacencylist is not symmetric");
-        }
-      }
-    }
-    for (std::size_t i = 0; i < automorphisms_.size(); i++) {
-      if (int(automorphisms_[i].size()) != nsites_) {
-        throw InvalidInputError("The automorphism list is invalid");
-      }
-    }
+  void CheckEdgeColors() {
+    // TODO write a meaningful check of edge colors
   }
 
   // Returns a list of permuted sites constituting an automorphism of the
@@ -168,19 +159,23 @@ class CustomGraph : public AbstractGraph {
     return automorphisms_;
   }
 
-  int Nsites() const override { return nsites_; }
+  int Nsites() const noexcept override { return n_sites_; }
+
+  int Size() const noexcept override { return n_sites_; }
+
+  std::vector<Edge> const &Edges() const noexcept override { return edges_; }
 
   std::vector<std::vector<int>> AdjacencyList() const override {
-    return adjlist_;
+    return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const override { return isbipartite_; }
+  bool IsBipartite() const noexcept override { return is_bipartite_; }
 
-  bool IsConnected() const override { return is_connected_; }
+  bool IsConnected() const noexcept override { return is_connected_; }
 
   // Returns map of the edge and its respective color
-  const ColorMap &EdgeColors() const override { return eclist_; }
-  
+  const ColorMap &EdgeColors() const noexcept override { return eclist_; }
+
  private:
   bool ComputeConnected() const {
     const int start = 0;  // arbitrary node

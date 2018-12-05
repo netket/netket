@@ -24,24 +24,32 @@ std::vector<netket::json> GetExactDiagonalizationInputs() {
            {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 6}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", 1.0}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   pars = {{"Graph",
            {{"Name", "Hypercube"}, {"L", 8}, {"Dimension", 1}, {"Pbc", true}}},
           {"Hamiltonian", {{"Name", "Ising"}, {"h", .5}}},
           {"GroundState", {{"Method", "Ed"}, {"OutputFile", "test"}}}};
+  pars["Hilbert"]["Name"] = "Spin";
+  pars["Hilbert"]["S"] = 0.5;
   input_tests.push_back(pars);
 
   // Complex hamiltonian
@@ -53,12 +61,13 @@ std::vector<netket::json> GetExactDiagonalizationInputs() {
   std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
 
   pars.clear();
+
   pars["Hilbert"]["QuantumNumbers"] = {1, -1};
   pars["Hilbert"]["Size"] = 8;
-  pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx,   sy, sy,
-                                      sy, szsz, sx,  szsz};
-  pars["Hamiltonian"]["ActingOn"] = {{0}, {0, 1}, {1, 0}, {1}, {2}, {3},
-                                     {4}, {4, 5}, {5}, {7, 0}};
+  pars["Hamiltonian"]["Operators"] = {sx, szsz, szsz, sx, sy,
+                                      sy, sy,   szsz, sx, szsz};
+  pars["Hamiltonian"]["ActingOn"] = {{0}, {0, 1}, {1, 0}, {1}, {2},
+                                     {3}, {4},    {4, 5}, {5}, {7, 0}};
 
   input_tests.push_back(pars);
 

@@ -3,8 +3,14 @@ cmake_minimum_required(VERSION 3.1)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 option(ENABLE_TESTS "Enable unit tests." OFF)
+option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
 
 project(NetKet)
+
+add_library(netket_test INTERFACE)
+target_link_libraries(netket_test INTERFACE netket_lib Catch2)
+
+set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
 if(ENABLE_TESTS)
    include(CTest) # adds option BUILD_TESTING (default ON)
@@ -71,11 +77,35 @@ ExternalProject_Get_Property(eigen_project SOURCE_DIR)
 add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
+
+
 # IETL
 ################################################################################
 add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
 
+# PYBIND11
+###############################################################################
+ExternalProject_Add(
+    pybind11_project
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/pybind11"
+    URL "https://github.com/pybind/pybind11/archive/v2.2.4.tar.gz"
+    URL_HASH MD5=c533a107bc95bd0c5525ff650b11bfa1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+set(Python_ADDITIONAL_VERSIONS 3.7 3.6.3 3.6 3.5 3.4)
+find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
+add_library(pybind11 INTERFACE)
+ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
+target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR}/include)
+target_include_directories(pybind11 SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
+if(NOT MSVC)
+    # Greatly reduces the code bloat
+    target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
+endif()
 
 # MPI
 ################################################################################
@@ -161,11 +191,35 @@ if(USE_LAPACK)
 endif()
 
 
-add_executable(netket NetKet/netket.cc)
-target_link_libraries(netket PUBLIC netket_lib)
+
+#target_link_libraries(netket PUBLIC netket_lib)
 # Yes, this is ugly, but until CMake 3.5, we can't add an external project
 # dependency to an interface library
-add_dependencies(netket eigen_project)
+#add_dependencies(netket eigen_project)
+
+
+
+add_library(netket MODULE NetKet/pynetket.cc)
+target_link_libraries(netket  PRIVATE pybind11)
+target_link_libraries(netket PUBLIC netket_lib)
+set_target_properties(netket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
+add_dependencies(netket eigen_project pybind11_project)
+
+if(NETKET_Sanitizer)
+    message(STATUS "Building python library with Clang sanitizer")
+    if(NOT MSVC)
+        target_compile_options(netket
+            INTERFACE
+                -O2 -g -fno-omit-frame-pointer
+                -fsanitize=address -fsanitize=undefined
+        )
+        target_link_libraries(netket
+            INTERFACE
+                -fsanitize=address -fsanitize=undefined
+        )
+    endif()
+endif()
 
 #
 # Testing
