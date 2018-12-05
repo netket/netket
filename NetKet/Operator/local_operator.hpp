@@ -312,7 +312,9 @@ class LocalOperator : public AbstractOperator {
   const std::vector<MatType> &LocalMatrices() const { return mat_; }
   const std::vector<SiteType> &ActingOn() const { return sites_; }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   std::size_t Size() const { return mat_.size(); }
 };  // namespace netket

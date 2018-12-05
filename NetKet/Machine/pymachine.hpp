@@ -24,7 +24,6 @@
 #include <complex>
 #include <vector>
 #include "machine.hpp"
-#include "pyactivation.hpp"
 #include "pylayer.hpp"
 
 namespace py = pybind11;
@@ -141,7 +140,6 @@ void AddMachineModule(py::module &m) {
            py::arg("symperiod") = -1)
           ADDMACHINEMETHODS(MPSPeriodic<MachineType COMMA false>);
 
-  AddActivationModule(m);
   AddLayerModule(m);
 
   {

@@ -360,7 +360,9 @@ class RbmMultival : public AbstractMachine<T> {
     vtilde = t.template cast<double>();
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
     j["Name"] = "RbmMultival";
