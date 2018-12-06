@@ -28,7 +28,7 @@ hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Layers
-layers = [
+layers = (
     nk.layer.ConvolutionalHypercube(
         length=L,
         n_dim=1,
@@ -43,7 +43,7 @@ layers = [
         output_channels=2,
         kernel_length=4),
     nk.layer.Lncosh(input_size=4 * 2 * L)
-]
+)
 
 # FFNN Machine
 ma = nk.machine.FFNN(hi, layers)

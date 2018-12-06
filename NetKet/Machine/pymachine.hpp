@@ -143,8 +143,11 @@ void AddMachineModule(py::module &m) {
   {
     using DerMachine = FFNN<StateType>;
     py::class_<DerMachine, MachineType>(subm, "FFNN")
-        .def(py::init<const AbstractHilbert &,
-                      const std::vector<AbstractLayer<StateType> *> &>(),
+        .def(py::init([](AbstractHilbert const &hi, py::tuple tuple) {
+               auto layers =
+                   py::cast<std::vector<AbstractLayer<StateType> *>>(tuple);
+               return DerMachine{hi, std::move(layers)};
+             }),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
              py::arg("layers")) ADDMACHINEMETHODS(DerMachine);
   }
