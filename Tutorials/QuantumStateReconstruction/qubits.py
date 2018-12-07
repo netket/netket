@@ -16,8 +16,8 @@
 from __future__ import print_function
 import numpy as np
 import math as m
-import netket as nk
 from mpi4py import MPI
+import netket as nk
 
 N = 2
 
@@ -71,7 +71,7 @@ for b in bases:
 
 
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=N, n_dim=1)
+g = nk.graph.Hypercuve(length=N, n_dim=1,pbc=False)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Qubit(graph=g)
