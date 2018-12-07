@@ -31,7 +31,7 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-
+#include <bitset>
 namespace netket {
 
 // Class for unsupervised learningclass Test {
@@ -70,7 +70,6 @@ class QuantumStateReconstruction {
 
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
-
 
   //std::vector<Observable> obs_;
   //ObsManager obsmanager_;
@@ -182,9 +181,22 @@ class QuantumStateReconstruction {
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     }
     
-  
+    //TODO Change this hack 
     for(std::size_t i=0; i<jrot.size(); i++){
-      rotations_.push_back(LocalOperator(hilbert_, jrot[i], sites[i]));
+      if (sites[i].size() == 0){
+        LocalOperator::SiteType vec(1,0);
+        LocalOperator::MatType id(2);
+        id[0].resize(2);
+        id[1].resize(2);
+        id[0][1] = 0.0;
+        id[1][0] = 0.0;
+        id[0][0] = 1.0;
+        id[1][1] = 1.0;
+        rotations_.push_back(LocalOperator(hilbert_,id,vec));
+      }
+      else{
+        rotations_.push_back(LocalOperator(hilbert_, jrot[i], sites[i]));
+      }
     }
 
 
@@ -379,21 +391,9 @@ class QuantumStateReconstruction {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-//  void PrintOutput(int i) {
-//    // Note: This has to be called in all MPI processes, because converting the
-//    // ObsManager to JSON performs a MPI reduction.
-//    auto obs_data = json(obsmanager_);
-//    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
-//                                // the output is only written once
-//      output_->WriteLog(i, obs_data);
-//      output_->WriteState(i, psi_);
-//    }
-//    MPI_Barrier(MPI_COMM_WORLD);
-//  }
-
   //Compute different estimators for the training performance
   void Scan(int i){//,Eigen::MatrixXd &nll_test,std::ofstream &obs_out){
-    if (output_.has_value()) {
+    if (mynode_==0) {
       ExactPartitionFunction();
       ExactKL(); 
       Fidelity();
@@ -412,10 +412,10 @@ class QuantumStateReconstruction {
   }
   //Print observer
   void PrintStats(int i){
-    std::cout << "Epoch: " << i << " \t";     
-    std::cout << "KL = " << std::setprecision(10) << KL_ << " \t";
-    std::cout << "Fidelity = " << std::setprecision(10) << fidelity_<< "\t";//<< Fcheck_;
-    std::cout << std::endl;
+    InfoMessage() << "Epoch: " << i << " \t";     
+    InfoMessage() << "KL = " << std::setprecision(10) << KL_ << " \t";
+    InfoMessage() << "Fidelity = " << std::setprecision(10) << fidelity_<< "\t";//<< Fcheck_;
+    InfoMessage() << std::endl;
   } 
 
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,

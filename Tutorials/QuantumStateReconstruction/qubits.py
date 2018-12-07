@@ -16,8 +16,8 @@
 from __future__ import print_function
 import numpy as np
 import math as m
-from mpi4py import MPI
 import netket as nk
+from mpi4py import MPI
 
 N = 2
 
@@ -71,7 +71,7 @@ for b in bases:
 
 
 # Constructing a 1d lattice
-g = nk.graph.Hypercuve(length=N, n_dim=1,pbc=False)
+g = nk.graph.Hypercube(length=N, n_dim=1,pbc=False)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Qubit(graph=g)
@@ -92,80 +92,11 @@ qst = nk.unsupervised.Qsr(
     optimizer=op,
     batch_size=100,
     n_samples=1000,
-    niter_opt=300,
+    niter_opt=1000,
     rotations=U,
     sites=sites,
     samples=training_samples,
     bases=training_bases)
-#qst.test()
+#qst.test(0.0000001)
+qst.run()
 
-#vmc.run()
-#print(training_bases)
-#print(bases)
-#print(sites)
-#print(training_samples)
-
-
-#pars = {}
-## defining the lattice
-#pars['Graph'] = {
-#    'Name': 'Hypercube',
-#    'L': N,
-#    'Dimension': 1,
-#    'Pbc': False,
-#}
-#
-## We chose a spin 1/2 hilbert space with total Sigmaz=0
-#pars['Hilbert'] = {
-#    'Name': 'Qubit',
-#    'Nqubits': N,
-#}
-#
-#pars['Data'] = {
-#    'Rotations' : U,
-#    'Sites' : sites,
-#    'Samples' : training_samples,
-#    'Bases' : training_bases,
-#}
-#
-## defining the wave function
-#pars['Machine'] = {
-#    'Name': 'RbmSpin',
-#    'Alpha': 1.0,
-#}
-#
-## defining the sampler
-## here we use Metropolis sampling with single spin flips
-#pars['Sampler'] = {
-#    'Name': 'MetropolisLocal',
-#    #'Name': 'Exact',
-#    }
-#
-## defining the Optimizer
-## here we use the Stochastic Gradient Descent
-#pars['Optimizer'] = {
-#    'Name': 'Sgd',
-#    #'Name': 'RMSProp',
-#    'LearningRate': 0.01,
-#}
-#
-## defining the Unsupervised method
-## here we use the gradient descent Method
-#pars['Unsupervised'] = {
-#    'Method': 'Gd',
-#    'Batchsize': 100,
-#    'Nsamples': 1000,
-#    'NiterOpt': 100000,
-#    'Diagshift': 0.1,
-#    'UseIterative': False,
-#    'OutputFile': "test",
-#}
-#
-#json_file = "qubits.json"
-#with open(json_file, 'w') as outfile:
-#    json.dump(pars, outfile,default=encode_complex)
-#
-#print("\nGenerated Json input file: ", json_file)
-#print("\nNow you have two options to run NetKet: ")
-#print("\n1) Serial mode: netket " + json_file)
-#print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
