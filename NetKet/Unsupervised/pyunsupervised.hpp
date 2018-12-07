@@ -41,8 +41,7 @@ void AddUnsupervisedModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Gd",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = false)
-           .def("run", &QuantumStateReconstruction::Run)
-           .def("test", &QuantumStateReconstruction::TestDerivatives);
+           .def("run", &QuantumStateReconstruction::Run);
 }
 
 }  // namespace netket
