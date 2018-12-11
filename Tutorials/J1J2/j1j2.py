@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import print_function
 import json
 import numpy as np
@@ -42,63 +41,39 @@ for i in range(L):
         operators.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
         sites.append([i, (i + d + 1) % L])
 
-pars = {}
+# Custom Graph
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
-pars['Graph']={
-    'Name' : 'Hypercube',
-    'L' : L,
-    'Dimension' : 1,
-}
+# Spin based Hilbert Space
+hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
 
-# We chose a spin 1/2 hilbert space with total Sigmaz=0
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-    'TotalSz': 0,
-}
+# Custom Hamiltonian operator
+op = sum([
+    nk.operator.LocalOperator(hi, operators[i], [sites[i][0]) ) *
+    nk.operator.LocalOperator(hi, operators[i], [sites[i][1]])
+    for i in range(L)
+])
 
-# defining our custom hamiltonian
-pars['Hamiltonian'] = {
-    'Operators': operators,
-    'ActingOn': sites,
-}
+# Restricted Boltzmann Machine
+ma = nk.machine.RbmSpin(hi, alpha=1)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpin',
-    'Alpha': 1,
-}
+# Sampler
+sa = nk.sampler.MetropolisHamiltonianPt(
+    machine=ma, hamiltonian=op, n_replicas=16)
 
-# defining the sampler
-# here we use Hamiltonian sampling to preserve simmetries
-pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonianPt',
-    'Nreplicas': 16,
-}
+# Optimizer
+opt = nk.optimizer.Sgd(learning_rate=0.01)
 
-# defining the Optimizer
-# here we use the Stochastic Gradient Descent
-pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.01,
-}
+# Variational Monte Carlo
+gs = nk.gs.Vmc(
+    hamiltonian=op,
+    sampler=sa,
+    optimizer=opt,
+    n_samples=1000,
+    niter_opt=10000,
+    use_iterative=True,
+    output_file='test',
+    method='Sr')
 
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 10000,
-    'Diagshift': 0.1,
-    'UseIterative': True,
-    'OutputFile': "test",
-}
-
-json_file = "j1j2.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run()
