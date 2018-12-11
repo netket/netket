@@ -17,6 +17,7 @@
 
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
+#include <bitset>
 #include <complex>
 #include <fstream>
 #include <iomanip>
@@ -31,13 +32,11 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include <bitset>
 namespace netket {
 
 // Class for unsupervised learningclass Test {
- 
-class QuantumStateReconstruction {
 
+class QuantumStateReconstruction {
   using GsType = std::complex<double>;
   using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, 1>;
@@ -57,7 +56,7 @@ class QuantumStateReconstruction {
 
   MatrixT Ok_;
   VectorT Okmean_;
-  
+
   Eigen::MatrixXd vsamp_;
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd rotated_grad_;
@@ -72,7 +71,7 @@ class QuantumStateReconstruction {
   std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
-  int batchsize_; 
+  int batchsize_;
   int batchsize_node_;
   int nsamples_;
   int nsamples_node_;
@@ -81,39 +80,32 @@ class QuantumStateReconstruction {
   int niter_opt_;
 
   int npar_;
-  
+
   netket::default_random_engine rgen_;
-  
+
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
- 
-  public:
+
+ public:
   using MatType = LocalOperator::MatType;
 
-  QuantumStateReconstruction( AbstractSampler<AbstractMachine<GsType>> &sampler,
-                              AbstractOptimizer &opt,
-                              int batchsize,
-                              int nsamples,
-                              int niter_opt,
-                              std::vector<MatType> jrot,
-                              std::vector<std::vector<int> > sites,
-                              std::vector<Eigen::VectorXd> trainingSamples,
-                              std::vector<int> trainingBases,
-                              std::string output_file,
-                              int ndiscardedsamples=-1,
-                              int discarded_samples_on_init=0
-                              )
+  QuantumStateReconstruction(
+      AbstractSampler<AbstractMachine<GsType>> &sampler, AbstractOptimizer &opt,
+      int batchsize, int nsamples, int niter_opt, std::vector<MatType> jrot,
+      std::vector<std::vector<int>> sites,
+      std::vector<Eigen::VectorXd> trainingSamples,
+      std::vector<int> trainingBases, std::string output_file,
+      int ndiscardedsamples = -1, int discarded_samples_on_init = 0)
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         hilbert_(psi_.GetHilbert()),
         opt_(opt),
         trainingSamples_(trainingSamples),
-        trainingBases_(trainingBases){
-   
+        trainingBases_(trainingBases) {
     npar_ = psi_.Npar();
 
-    opt_.Init(psi_.GetParameters());        
-          
+    opt_.Init(psi_.GetParameters());
+
     grad_.resize(npar_);
     rotated_grad_.resize(npar_);
 
@@ -121,13 +113,13 @@ class QuantumStateReconstruction {
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-    
+
     batchsize_ = batchsize;
     batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
- 
+
     nsamples_ = nsamples;
     nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
-   
+
     ninitsamples_ = discarded_samples_on_init;
 
     if (ndiscardedsamples == -1) {
@@ -138,10 +130,10 @@ class QuantumStateReconstruction {
 
     niter_opt_ = niter_opt;
 
-    //TODO Change this hack 
-    for(std::size_t i=0; i<jrot.size(); i++){
-      if (sites[i].size() == 0){
-        LocalOperator::SiteType vec(1,0);
+    // TODO Change this hack
+    for (std::size_t i = 0; i < jrot.size(); i++) {
+      if (sites[i].size() == 0) {
+        LocalOperator::SiteType vec(1, 0);
         LocalOperator::MatType id(2);
         id[0].resize(2);
         id[1].resize(2);
@@ -149,9 +141,8 @@ class QuantumStateReconstruction {
         id[1][0] = 0.0;
         id[0][0] = 1.0;
         id[1][1] = 1.0;
-        rotations_.push_back(LocalOperator(hilbert_,id,vec));
-      }
-      else{
+        rotations_.push_back(LocalOperator(hilbert_, id, vec));
+      } else {
         rotations_.push_back(LocalOperator(hilbert_, jrot[i], sites[i]));
       }
     }
@@ -165,8 +156,7 @@ class QuantumStateReconstruction {
 
   void InitOutput(std::string filebase) {
     if (mynode_ == 0) {
-      output_ =
-          JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
+      output_ = JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
     }
   }
 
@@ -175,13 +165,6 @@ class QuantumStateReconstruction {
 
     for (int i = 0; i < ninitsamples_; i++) {
       sampler_.Sweep();
-    }
-  }
-
-  void InitOutput(std::string filebase, int freqbackup) {
-    if (mynode_ == 0) {
-      output_ =
-          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
     }
   }
 
@@ -205,21 +188,22 @@ class QuantumStateReconstruction {
     }
   }
 
-  void Gradient(std::vector<Eigen::VectorXd> &batchSamples,std::vector<int> &batchBases) {
+  void Gradient(std::vector<Eigen::VectorXd> &batchSamples,
+                std::vector<int> &batchBases) {
     Eigen::VectorXcd der(psi_.Npar());
-   
+
     for (const auto &obname : obsnames_) {
       obsmanager_.Reset(obname);
     }
- 
+
     // Positive phase driven by data
     const int ndata = batchsize_node_;
     Ok_.resize(ndata, psi_.Npar());
     for (int i = 0; i < ndata; i++) {
-      RotateGradient(batchBases[i],batchSamples[i],der);
+      RotateGradient(batchBases[i], batchSamples[i], der);
       Ok_.row(i) = der.conjugate();
     }
-    grad_ = -2.0*(Ok_.colwise().mean());
+    grad_ = -2.0 * (Ok_.colwise().mean());
 
     // Negative phase driven by the machine
     Sample();
@@ -229,13 +213,13 @@ class QuantumStateReconstruction {
 
     for (int i = 0; i < nsamp; i++) {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i)).conjugate();
-   
+
       for (std::size_t on = 0; on < obs_.size(); on++) {
         obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
       }
     }
-    grad_ += 2.0*(Ok_.colwise().mean());
-    
+    grad_ += 2.0 * (Ok_.colwise().mean());
+
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_);
@@ -259,26 +243,26 @@ class QuantumStateReconstruction {
     return obval.real();
   }
 
-
-  void Run(){
+  void Run() {
     std::vector<Eigen::VectorXd> batchSamples;
     std::vector<int> batchBases;
     opt_.Reset();
 
     InitSweeps();
-    std::uniform_int_distribution<int> distribution(0,trainingSamples_.size()-1);
+    std::uniform_int_distribution<int> distribution(
+        0, trainingSamples_.size() - 1);
 
     for (int i = 0; i < niter_opt_; i++) {
       int index;
       batchSamples.resize(batchsize_node_);
       batchBases.resize(batchsize_node_);
 
-      for(int k=0;k<batchsize_node_;k++){
+      for (int k = 0; k < batchsize_node_; k++) {
         index = distribution(rgen_);
         batchSamples[k] = trainingSamples_[index];
         batchBases[k] = trainingBases_[index];
       }
-      Gradient(batchSamples,batchBases);
+      Gradient(batchSamples, batchBases);
       UpdateParameters();
       PrintOutput(i);
     }
@@ -292,28 +276,28 @@ class QuantumStateReconstruction {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void RotateGradient(int b_index,const Eigen::VectorXd & state,Eigen::VectorXcd &rotated_gradient) {
-
-    std::complex<double> U,den;
+  void RotateGradient(int b_index, const Eigen::VectorXd &state,
+                      Eigen::VectorXcd &rotated_gradient) {
+    std::complex<double> U, den;
     Eigen::VectorXcd num;
-    Eigen::VectorXd v(1<<psi_.Nvisible());
-    rotations_[b_index].FindConn(state,mel_,connectors_,newconfs_);
+    Eigen::VectorXd v(1 << psi_.Nvisible());
+    rotations_[b_index].FindConn(state, mel_, connectors_, newconfs_);
     assert(connectors_.size() == mel_.size());
-    
+
     const std::size_t nconn = connectors_.size();
-    
-    auto logvaldiffs = (psi_.LogValDiff(state, connectors_, newconfs_));  
+
+    auto logvaldiffs = (psi_.LogValDiff(state, connectors_, newconfs_));
     den = 0.0;
     num.setZero(psi_.Npar());
-    for(std::size_t k=0;k<nconn;k++){
+    for (std::size_t k = 0; k < nconn; k++) {
       v = state;
-      for (std::size_t j=0; j<connectors_[k].size();j++){
+      for (std::size_t j = 0; j < connectors_[k].size(); j++) {
         v(connectors_[k][j]) = newconfs_[k][j];
       }
-      num += mel_[k]*std::exp(logvaldiffs(k)) * psi_.DerLog(v);
-      den += mel_[k]*std::exp(logvaldiffs(k));
+      num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLog(v);
+      den += mel_[k] * std::exp(logvaldiffs(k));
     }
-    rotated_gradient = (num/den);
+    rotated_gradient = (num / den);
   }
 
   void PrintOutput(int i) {
@@ -329,7 +313,6 @@ class QuantumStateReconstruction {
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }
-
 };
 
 }  // namespace netket

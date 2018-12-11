@@ -33,14 +33,18 @@ void AddUnsupervisedModule(py::module &m) {
   auto subm = m.def_submodule("unsupervised");
   using MatType = LocalOperator::MatType;
   py::class_<QuantumStateReconstruction>(subm, "Qsr")
-      .def(py::init<SamplerType &,AbstractOptimizer &,int,int,int,std::vector<MatType>,std::vector<std::vector<int> >,std::vector<Eigen::VectorXd>, std::vector<int>,std::string,int, int>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
-           py::arg("sampler"),
-           py::arg("optimizer"),py::arg("batch_size"),py::arg("n_samples"),py::arg("niter_opt"), py::arg("rotations"),py::arg("sites"),py::arg("samples"),py::arg("bases"), 
-           py::arg("output_file"),
+      .def(py::init<SamplerType &, AbstractOptimizer &, int, int, int,
+                    std::vector<MatType>, std::vector<std::vector<int> >,
+                    std::vector<Eigen::VectorXd>, std::vector<int>, std::string,
+                    int, int>(),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("sampler"),
+           py::arg("optimizer"), py::arg("batch_size"), py::arg("n_samples"),
+           py::arg("niter_opt"), py::arg("rotations"), py::arg("sites"),
+           py::arg("samples"), py::arg("bases"), py::arg("output_file"),
            py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0)
-           .def("run", &QuantumStateReconstruction::Run).def("add_observable",&QuantumStateReconstruction::AddObservable);
+      .def("run", &QuantumStateReconstruction::Run)
+      .def("add_observable", &QuantumStateReconstruction::AddObservable);
 }
 
 }  // namespace netket
