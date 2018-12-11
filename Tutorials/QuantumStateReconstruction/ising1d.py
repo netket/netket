@@ -18,52 +18,15 @@ import json
 import numpy as np
 import math as m
 import netket as nk
+from load_data import load
 from mpi4py import MPI
 
 N=10
+path_to_samples = 'ising1d_train_samples.txt'
+path_to_bases   = 'ising1d_train_bases.txt'
 
-tsamples = np.loadtxt('ising1d_train_samples.txt')
-fin_bases = open('ising1d_train_bases.txt','r')
-lines = fin_bases.readlines()
-bases = [] 
-for b in lines:
-    basis = ""
-    for j in range(N):
-        basis+=b[j]
-    bases.append(basis)
-index_list = sorted(range(len(bases)), key=lambda k: bases[k])
-bases.sort()
-
-training_samples = []
-training_bases = []
-for i in range(len(tsamples)):
-    training_samples.append(tsamples[index_list[i]].tolist())
-
-U_X = 1./(m.sqrt(2))*np.asarray([[1.,1.],[1.,-1.]])
-U_Y = 1./(m.sqrt(2))*np.asarray([[1.,-1j],[1.,1j]])
-U= []
-sites = []
-
-tmp = 'void'
-b_index = -1
-for b in bases:
-    if (b!=tmp):
-        tmp = b
-        sub_sites = []
-        trivial = True
-        for j in range(N):
-            if (tmp[j] != 'Z'):
-                trivial=False
-                sub_sites.append(j)
-                if (tmp[j] == 'X'):
-                    U.append(U_X.tolist())
-                if (tmp[j] == 'Y'):
-                    U.append(U_Y.tolist())
-        if trivial is True:
-            U.append(np.eye(2).tolist())
-        sites.append(sub_sites)
-        b_index+=1
-    training_bases.append(b_index)
+# Load the data
+U,sites,training_samples,training_bases = load(N,path_to_samples,path_to_bases)
 
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=N, n_dim=1,pbc=False)
