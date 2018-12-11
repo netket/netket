@@ -16,7 +16,7 @@ import netket as nk
 from mpi4py import MPI
 
 # 1D Periodic Lattice
-g = nk.graph.Hypercube(length=12, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
 hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=12)

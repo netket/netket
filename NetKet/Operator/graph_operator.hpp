@@ -28,28 +28,31 @@
 namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
-class GraphHamiltonian : public AbstractOperator {
+class GraphOperator : public AbstractOperator {
   const AbstractHilbert &hilbert_;
 
   // Arbitrary graph
   const AbstractGraph &graph_;
 
-  std::vector<LocalOperator> operators_;
+  LocalOperator operator_;
+
   const int nvertices_;
 
  public:
+  using SiteType = std::vector<int>;
   using OMatType = LocalOperator::MatType;
   using OVecType = std::vector<OMatType>;
   using VectorType = AbstractOperator::VectorType;
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit GraphHamiltonian(
-      const AbstractHilbert &hilbert, OVecType siteops = OVecType(),
-      OVecType bondops = OVecType(),
-      std::vector<int> bondops_colors = std::vector<int>())
+  explicit GraphOperator(const AbstractHilbert &hilbert,
+                         OVecType siteops = OVecType(),
+                         OVecType bondops = OVecType(),
+                         std::vector<int> bondops_colors = std::vector<int>())
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
+        operator_(LocalOperator(hilbert)),
         nvertices_(hilbert.Size()) {
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
@@ -67,8 +70,8 @@ class GraphHamiltonian : public AbstractOperator {
     if (siteops.size() > 0) {
       for (int i = 0; i < nvertices_; i++) {
         for (std::size_t j = 0; j < siteops.size(); j++) {
-          operators_.push_back(
-              LocalOperator(hilbert_, siteops[j], std::vector<int>{i}));
+          operator_ = operator_ +
+                      LocalOperator(hilbert_, siteops[j], std::vector<int>{i});
         }
       }
     }
@@ -86,13 +89,13 @@ class GraphHamiltonian : public AbstractOperator {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
-            operators_.push_back(LocalOperator(hilbert_, bondops[c], edge));
+            operator_ = operator_ + LocalOperator(hilbert_, bondops[c], edge);
           }
         }
       }
     }
 
-    InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
+    // InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
   }
 
   void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
@@ -102,9 +105,7 @@ class GraphHamiltonian : public AbstractOperator {
     newconfs.clear();
     mel.resize(0);
 
-    for (std::size_t i = 0; i < operators_.size(); i++) {
-      operators_[i].AddConn(v, mel, connectors, newconfs);
-    }
+    operator_.AddConn(v, mel, connectors, newconfs);
   }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
