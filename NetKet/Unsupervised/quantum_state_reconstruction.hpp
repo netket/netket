@@ -278,9 +278,6 @@ class QuantumStateReconstruction {
     InitSweeps();
     std::uniform_int_distribution<int> distribution(0,trainingSamples_.size()-1);
 
-    TestDerNLL();
-    TestDerNLLsampling();
-    
     for (int i = 0; i < niter_opt_; i++) {
       int index;
       batchSamples.resize(batchsize_node_);
@@ -451,7 +448,6 @@ class QuantumStateReconstruction {
 
   void LoadWavefunction(){
     std::string fileName = "ising1d_psi.txt";
-    //std::string fileName = "qubits_psi.txt";
     std::ifstream fin(fileName);
     wf_.resize(1<<psi_.Nvisible());
     double x_in;
