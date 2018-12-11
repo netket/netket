@@ -45,10 +45,10 @@ for i in range(L):
     G.add_edge(i, (i + 1) % L, color=1)
     G.add_edge(i, (i + 2) % L, color=2)
 
-edge_colors = [[[u, v], G[u][v]['color']] for u, v in G.edges]
+edge_colors = [[u, v, G[u][v]['color']] for u, v in G.edges]
 
 # Custom Graph
-g = nk.graph.CustomGraph(G.edges(), colors=edge_colors)
+g = nk.graph.CustomGraph(edge_colors)
 
 # Spin based Hilbert Space
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
