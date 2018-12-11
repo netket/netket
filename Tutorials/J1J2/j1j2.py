@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
-import json
 import numpy as np
+import netket as nk
+from mpi4py import MPI
 
 # Sigma^z*Sigma^z interactions
-sigmaz = [[1, 0], [0, -1]]
+sigmaz = np.array([[1, 0], [0, -1]])
 mszsz = (np.kron(sigmaz, sigmaz))
 
 # Exchange interactions
@@ -48,11 +48,15 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
 
 # Custom Hamiltonian operator
-op = sum([
-    nk.operator.LocalOperator(hi, operators[i], [sites[i][0]) ) *
-    nk.operator.LocalOperator(hi, operators[i], [sites[i][1]])
-    for i in range(L)
-])
+# This method doesn't work it says we're trying to add type int and LocalOperator
+#op = sum([
+#nk.operator.LocalOperator(hi, operators[i], sites[i])
+#for i in range(len(operators))
+#])
+
+op = nk.operator.LocalOperator(hi, operators[0], sites[0])
+for i in range(1, len(operators)):
+    op += nk.operator.LocalOperator(hi, operators[i], sites[i])
 
 # Restricted Boltzmann Machine
 ma = nk.machine.RbmSpin(hi, alpha=1)
