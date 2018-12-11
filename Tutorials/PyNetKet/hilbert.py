@@ -20,26 +20,26 @@ import numpy as np
 from mpi4py import MPI
 
 # #constructing a 1d lattice
-g = nk.graph.Hypercube(L=10, ndim=1)
+g = nk.graph.Hypercube(length=10, n_dim=1)
 
 # Hilbert space of spins from given graph
 h = Spin(s=0.5, graph=g)
 
-print(h.local_states())
-print(h.size())
+print(h.local_states)
+print(h.size)
 
-#Custom hilbert space
+# Custom hilbert space
 h = CustomHilbert(local_states=[-1, 0, 1], graph=g)
-print(h.size())
-print(h.local_states())
+print(h.size)
+print(h.local_states)
 
-#Updating visible configurations
+# Updating visible configurations
 conf = np.array([-1., 1., 1.])
 h.update_conf(conf, [0], [1])
 print(conf)
 
-#Random states
-rg = nk.RandomEngine(seed=1234)
-conf = np.zeros(h.size())
+# Random states
+rg = nk.utils.RandomEngine(seed=1234)
+conf = np.zeros(h.size)
 h.random_vals(conf, rg)
 print(conf)

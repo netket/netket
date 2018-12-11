@@ -43,113 +43,102 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDSAMPLERMETHODS(name)              \
-                                             \
-  .def("reset", &name::Reset)                \
-      .def("sweep", &name::Sweep)            \
-      .def("get_visible", &name::Visible)    \
-      .def("set_visible", &name::SetVisible) \
-      .def("acceptance", &name::Acceptance)  \
-      .def("get_hilbert", &name::GetHilbert) \
-      .def("get_machine", &name::GetMachine)
+#define ADDSAMPLERMETHODS(name)                                   \
+                                                                  \
+  .def("reset", &name::Reset)                                     \
+      .def("sweep", &name::Sweep)                                 \
+      .def_property("visible", &name::Visible, &name::SetVisible) \
+      .def_property_readonly("acceptance", &name::Acceptance)     \
+      .def_property_readonly("hilbert", &name::GetHilbert)        \
+      .def_property_readonly("machine", &name::GetMachine)
 
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  py::class_<AbSamplerType, std::shared_ptr<AbSamplerType>>(subm, "Sampler")
-      ADDSAMPLERMETHODS(AbSamplerType);
+  py::class_<SamplerType>(subm, "Sampler") ADDSAMPLERMETHODS(SamplerType);
 
   {
-    using DerSampler = MetropolisLocal<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisLocal")
-        .def(py::init<std::shared_ptr<AbMachineType>>(), py::arg("machine"))
-            ADDSAMPLERMETHODS(DerSampler);
+    using DerSampler = MetropolisLocal<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocal")
+        .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
+             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisLocalPt<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisLocalPt")
-        .def(py::init<std::shared_ptr<AbMachineType>, int>(),
+    using DerSampler = MetropolisLocalPt<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocalPt")
+        .def(py::init<MachineType &, int>(), py::keep_alive<1, 2>(),
              py::arg("machine"), py::arg("n_replicas"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisHop<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisHop")
-        .def(py::init<AbstractGraph &, std::shared_ptr<AbMachineType>, int>(),
-             py::arg("graph"), py::arg("machine"), py::arg("d_max"))
+    using DerSampler = MetropolisHop<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisHop")
+        .def(py::init<MachineType &, int>(), py::keep_alive<1, 3>(),
+             py::arg("machine"), py::arg("d_max"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisHamiltonian<AbMachineType, AbstractOperator>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisHamiltonian")
-        .def(py::init<std::shared_ptr<AbMachineType>, AbstractOperator &>(),
-             py::arg("machine"), py::arg("hamiltonian"))
+    using DerSampler = MetropolisHamiltonian<MachineType, AbstractOperator>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonian")
+        .def(py::init<MachineType &, AbstractOperator &>(),
+             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
+             py::arg("hamiltonian")) ADDSAMPLERMETHODS(DerSampler);
+  }
+
+  {
+    using DerSampler = MetropolisHamiltonianPt<MachineType, AbstractOperator>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonianPt")
+        .def(py::init<MachineType &, AbstractOperator &, int>(),
+             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
+             py::arg("hamiltonian"), py::arg("n_replicas"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisHamiltonianPt<AbMachineType, AbstractOperator>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisHamiltonianPt")
-        .def(
-            py::init<std::shared_ptr<AbMachineType>, AbstractOperator &, int>(),
-            py::arg("machine"), py::arg("hamiltonian"), py::arg("n_replicas"))
+    using DerSampler = MetropolisExchange<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisExchange")
+        .def(py::init<const AbstractGraph &, MachineType &, int>(),
+             py::keep_alive<1, 3>(), py::arg("graph"), py::arg("machine"),
+             py::arg("d_max") = 1) ADDSAMPLERMETHODS(DerSampler);
+  }
+
+  {
+    using DerSampler = MetropolisExchangePt<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisExchangePt")
+        .def(py::init<const AbstractGraph &, MachineType &, int, int>(),
+             py::keep_alive<1, 3>(), py::arg("graph"), py::arg("machine"),
+             py::arg("d_max") = 1, py::arg("n_replicas") = 1)
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisExchange<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisExchange")
-        .def(py::init<const AbstractGraph &, std::shared_ptr<AbMachineType>,
-                      int>(),
-             py::arg("graph"), py::arg("machine"), py::arg("d_max") = 1)
-            ADDSAMPLERMETHODS(DerSampler);
+    using DerSampler = ExactSampler<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "ExactSampler")
+        .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
+             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = MetropolisExchangePt<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "MetropolisExchangePt")
-        .def(py::init<const AbstractGraph &, std::shared_ptr<AbMachineType>,
-                      int, int>(),
-             py::arg("graph"), py::arg("machine"), py::arg("d_max") = 1,
-             py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
-  }
-
-  {
-    using DerSampler = ExactSampler<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "ExactSampler")
-        .def(py::init<std::shared_ptr<AbMachineType>>(), py::arg("machine"))
-            ADDSAMPLERMETHODS(DerSampler);
-  }
-
-  {
-    using DerSampler = CustomSampler<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "CustomSampler")
-        .def(py::init<std::shared_ptr<AbMachineType>, const LocalOperator &,
+    using DerSampler = CustomSampler<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "CustomSampler")
+        .def(py::init<MachineType &, const LocalOperator &,
                       std::vector<double>>(),
-             py::arg("machine"), py::arg("move_operators"),
+             py::keep_alive<1, 2>(), py::arg("machine"),
+             py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>())
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
-    using DerSampler = CustomSamplerPt<AbMachineType>;
-    py::class_<DerSampler, AbSamplerType, std::shared_ptr<DerSampler>>(
-        subm, "CustomSamplerPt")
-        .def(py::init<std::shared_ptr<AbMachineType>, const LocalOperator &,
-                      std::vector<double>, int>(),
-             py::arg("machine"), py::arg("move_operators"),
+    using DerSampler = CustomSamplerPt<MachineType>;
+    py::class_<DerSampler, SamplerType>(subm, "CustomSamplerPt")
+        .def(py::init<MachineType &, const LocalOperator &, std::vector<double>,
+                      int>(),
+             py::keep_alive<1, 2>(), py::arg("machine"),
+             py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>(),
              py::arg("n_replicas")) ADDSAMPLERMETHODS(DerSampler);
   }

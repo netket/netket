@@ -29,25 +29,27 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name) \
-  .def("get_conn", &name::GetConn).def("get_hilbert", &name::GetHilbert)
+#define ADDOPERATORMETHODS(name)   \
+  .def("get_conn", &name::GetConn) \
+      .def_property_readonly("hilbert", &name::GetHilbert)
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
 
-  py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(m, "Operator")
+  py::class_<AbstractOperator>(m, "Operator")
       ADDOPERATORMETHODS(AbstractOperator);
 
-  py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
-      subm, "LocalOperator")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    std::vector<LocalOperator::MatType>,
-                    std::vector<LocalOperator::SiteType>>(),
-           py::arg("hilbert"), py::arg("operators"), py::arg("acting_on"))
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    LocalOperator::MatType, LocalOperator::SiteType>(),
+  py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
+      .def(
+          py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
+                   std::vector<LocalOperator::SiteType>>(),
+          py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operators"),
+          py::arg("acting_on"))
+      .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
+                    LocalOperator::SiteType>(),
            py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
-      .def("local_matrices", &LocalOperator::LocalMatrices)
+      .def_property_readonly("local_matrices", &LocalOperator::LocalMatrices)
+      .def_property_readonly("acting_on", &LocalOperator::ActingOn)
       .def(py::self + py::self)
       .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
            py::is_operator())
@@ -59,36 +61,29 @@ void AddOperatorModule(py::module &m) {
            py::is_operator())
       .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
 
-  // .def(std::complex<double>() * py::self)
-  // .def(py::self * std::complex<double>());
+  py::class_<Ising, AbstractOperator>(subm, "Ising")
+      .def(py::init<const AbstractHilbert &, double, double>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("h"),
+           py::arg("J") = 1.0) ADDOPERATORMETHODS(Ising);
 
-  py::class_<Ising, AbstractOperator, std::shared_ptr<Ising>>(subm, "Ising")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double>(),
-           py::arg("hilbert"), py::arg("h"), py::arg("J") = 1.0)
-          ADDOPERATORMETHODS(Ising);
-
-  py::class_<Heisenberg, AbstractOperator, std::shared_ptr<Heisenberg>>(
-      subm, "Heisenberg")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+  py::class_<Heisenberg, AbstractOperator>(subm, "Heisenberg")
+      .def(py::init<const AbstractHilbert &>(), py::keep_alive<1, 2>(),
            py::arg("hilbert")) ADDOPERATORMETHODS(Heisenberg);
 
-  py::class_<GraphHamiltonian, AbstractOperator,
-             std::shared_ptr<GraphHamiltonian>>(subm, "GraphHamiltonian")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>,
-                    GraphHamiltonian::OVecType, GraphHamiltonian::OVecType,
-                    std::vector<int>>(),
-           py::arg("hilbert"),
+  py::class_<GraphHamiltonian, AbstractOperator>(subm, "GraphHamiltonian")
+      .def(py::init<const AbstractHilbert &, GraphHamiltonian::OVecType,
+                    GraphHamiltonian::OVecType, std::vector<int>>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"),
            py::arg("siteops") = GraphHamiltonian::OVecType(),
            py::arg("bondops") = GraphHamiltonian::OVecType(),
            py::arg("bondops_colors") = std::vector<int>())
           ADDOPERATORMETHODS(GraphHamiltonian);
 
-  py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
-      subm, "BoseHubbard")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double,
-                    double>(),
-           py::arg("hilbert"), py::arg("U"), py::arg("V") = 0.,
-           py::arg("mu") = 0.) ADDOPERATORMETHODS(BoseHubbard);
+  py::class_<BoseHubbard, AbstractOperator>(subm, "BoseHubbard")
+      .def(py::init<const AbstractHilbert &, double, double, double>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("U"),
+           py::arg("V") = 0., py::arg("mu") = 0.)
+          ADDOPERATORMETHODS(BoseHubbard);
 
   // Matrix wrappers
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")

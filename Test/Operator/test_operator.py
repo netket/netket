@@ -6,19 +6,20 @@ from mpi4py import MPI
 operators = {}
 
 # Ising 1D
-g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 operators["Ising 1D"] = nk.operator.Ising(h=1.321, hilbert=hi)
 
 # Heisenberg 1D
-g = nk.graph.Hypercube(length=20, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi)
 
 # Bose Hubbard
-g = nk.graph.Hypercube(length=3, ndim=2, pbc=True)
+g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
 hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+
 
 # Graph Hamiltonian
 # TODO (jamesETsmith)
@@ -81,20 +82,20 @@ szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
 
 operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 
-operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
+operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + 2.0 * sy_hat
 
 rg = nk.utils.RandomEngine(seed=1234)
 
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
-        hi = ha.get_hilbert()
+        hi = ha.hilbert
         print(name, hi)
-        assert (len(hi.local_states()) == hi.local_size())
+        assert (len(hi.local_states) == hi.local_size)
 
-        rstate = np.zeros(hi.size())
+        rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states()
+        local_states = hi.local_states
 
         for i in range(1000):
             hi.random_vals(rstate, rg)
@@ -110,13 +111,13 @@ def test_produce_elements_in_hilbert():
 
 def test_operator_is_hermitean():
     for name, ha in operators.items():
-        hi = ha.get_hilbert()
+        hi = ha.hilbert
         print(name, hi)
-        assert (len(hi.local_states()) == hi.local_size())
+        assert (len(hi.local_states) == hi.local_size)
 
-        rstate = np.zeros(hi.size())
+        rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states()
+        local_states = hi.local_states
 
         for i in range(100):
             hi.random_vals(rstate, rg)
