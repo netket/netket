@@ -79,7 +79,6 @@ ma.init_random_parameters(seed=1234, sigma=0.001)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-#op = nk.optimizer.Sgd(learning_rate=0.05)
 op = nk.optimizer.AdaDelta()
 
 # Variational Monte Carlo

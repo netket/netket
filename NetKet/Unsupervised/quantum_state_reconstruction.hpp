@@ -90,16 +90,7 @@ class QuantumStateReconstruction {
   
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
-  Eigen::VectorXcd wf_;
-  //std::vector<Eigen::VectorXcd> rotated_wf_;
-  Eigen::MatrixXd basis_states_;
  
-  double overlap_;
-  //double KL_;
-  double logZ_; 
-  //double NLL_;
-  //const std::complex<double> I_;
-
   public:
   using MatType = LocalOperator::MatType;
 
@@ -126,7 +117,6 @@ class QuantumStateReconstruction {
         opt_(opt),
         trainingSamples_(trainingSamples),
         trainingBases_(trainingBases){
-        //  ,I_(0,1){
    
     npar_ = psi_.Npar();
 
@@ -198,18 +188,6 @@ class QuantumStateReconstruction {
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
                   << " processes" << std::endl;
  
-    basis_states_.resize(1<<psi_.Nvisible(),psi_.Nvisible());
-    std::bitset<10> bit;
-    for(int i=0;i<1<<psi_.Nvisible();i++){
-      bit = i;
-      for(int j=0;j<psi_.Nvisible();j++){
-        //basis_states_(i,j) = 1.0-2.0*bit[psi_.Nvisible()-j-1];
-        basis_states_(i,j) = bit[psi_.Nvisible()-j-1];
-      }
-    }
-    
-    LoadWavefunction();
-    
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -288,10 +266,8 @@ class QuantumStateReconstruction {
         batchSamples[k] = trainingSamples_[index];
         batchBases[k] = trainingBases_[index];
       }
-
       Gradient(batchSamples,batchBases);
       UpdateParameters();
-      Scan(i);
     }
   }
 
@@ -372,31 +348,6 @@ class QuantumStateReconstruction {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  //Compute different estimators for the training performance
-  void Scan(int i){//,Eigen::MatrixXd &nll_test,std::ofstream &obs_out){
-    if (mynode_==0) {
-      ExactPartitionFunction();
-      Overlap();
-      PrintStats(i);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  // Compute the overlap with the target wavefunction
-  void Overlap(){
-      std::complex<double> tmp;
-      for(int i=0;i<basis_states_.rows();i++){
-          tmp += std::conj(wf_(i))*std::exp(psi_.LogVal(basis_states_.row(i))-0.5*logZ_);//))/std::sqrt(Z_);
-      }
-      overlap_ = std::sqrt(std::norm(tmp));
-  }
-  //Print observer
-  void PrintStats(int i){
-    InfoMessage() << "Epoch: " << i << " \t";     
-    InfoMessage() << "Overlap = " << std::setprecision(10) << overlap_<< "\t";//<< Fcheck_;
-    InfoMessage() << std::endl;
-  } 
-
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
                        bool use_iterative = false, bool use_cholesky = true) {
     sr_diag_shift_ = diagshift;
@@ -404,22 +355,6 @@ class QuantumStateReconstruction {
     use_iterative_ = use_iterative;
     dosr_ = true;
     use_cholesky_ = use_cholesky;
-  }
-
-  //Compute the partition function by exact enumeration 
-  void ExactPartitionFunction() {
-      logZ_=0.0;  
-      double tmp = 0.0;
-      double psi_max = -1.0;
-      for(int i=0;i<basis_states_.rows();i++){
-        if (psi_.LogVal(basis_states_.row(i)).real()>psi_max){
-          psi_max = psi_.LogVal(basis_states_.row(i)).real();
-        }
-      }
-      for(int i=0;i<basis_states_.rows();i++){
-        tmp += std::norm(std::exp(psi_.LogVal(basis_states_.row(i))-psi_max));
-      }
-      logZ_ = std::log(tmp) + 2*psi_max;
   }
 
   void RotateGradient(int b_index,const Eigen::VectorXd & state,Eigen::VectorXcd &rotated_gradient) {
@@ -445,187 +380,6 @@ class QuantumStateReconstruction {
     }
     rotated_gradient = (num/den);
   }
-
-  void LoadWavefunction(){
-    std::string fileName = "ising1d_psi.txt";
-    std::ifstream fin(fileName);
-    wf_.resize(1<<psi_.Nvisible());
-    double x_in;
-    for(int i=0;i<1<<psi_.Nvisible();i++){
-      fin >> x_in;
-      wf_.real()(i) = x_in;
-      fin >> x_in;
-      wf_.imag()(i) = x_in;
-    }
-  }
-
-
-
-
-
-
-
-
-
-  double NLL(std::vector<Eigen::VectorXd> &data_samples,std::vector<int> &data_bases){
-    double NLL = 0.0;
-    std::complex<double> rotated_psi;
-    for(std::size_t i=0; i<data_samples.size(); i++){
-      RotateWavefunction(data_bases[i],data_samples[i],rotated_psi);
-      NLL -= std::log(std::norm(rotated_psi));
-    }
-    NLL /= float(data_samples.size()); 
-    return NLL;
-  }
-
-  void RotateWavefunction(int b_index,Eigen::VectorXd &state,std::complex<double> &psiR) {
-
-    std::complex<double> U,tmp,logpsiR;
-    logpsiR = 0.0;
-
-    rotations_[b_index].FindConn(state,mel_,connectors_,newconfs_);
-    assert(connectors_.size() == mel_.size());
-    
-    const std::size_t nconn = connectors_.size();
-    
-    auto logvaldiffs = (psi_.LogValDiff(state, connectors_, newconfs_));  
-    tmp = 0.0;
-
-    for(std::size_t k=0;k<nconn;k++){
-      tmp += mel_[k]*std::exp(logvaldiffs(k));
-    }
-    logpsiR = std::log(tmp) + psi_.LogVal(state);
-    psiR = std::exp(logpsiR-0.5*logZ_);
-  }
-
-
-  // Test the derivatives of the KL divergence
-  void TestDerNLLsampling(double eps=0.0000001){
-    
-    std::cout<<"-- Testing derivates of Negative Log-Likelihood with sampling--"<<std::endl;
-    const std::complex<double> I_(0.0,1.0);
-    double nll;
-    auto pars = psi_.GetParameters();
-    ExactPartitionFunction();
-    Eigen::VectorXcd derNLL(npar_);
-    Eigen::VectorXcd alg_ders;
-    Eigen::VectorXcd num_ders_real;
-    Eigen::VectorXcd num_ders_imag;
-    alg_ders.setZero(npar_);
-    num_ders_real.setZero(npar_);
-    num_ders_imag.setZero(npar_);
-     
-    //-- ALGORITHMIC DERIVATIVES --//
-    for(std::size_t i=0; i<trainingSamples_.size(); i++){
-      RotateGradient(trainingBases_[i],trainingSamples_[i],derNLL);
-      alg_ders -= 2.0*derNLL.conjugate()/double(trainingSamples_.size()); 
-    }
-    
-    nsamples_node_ = 10000;
-    Sample();
-    int nsamp = vsamp_.rows();
-    for(int i=0; i<nsamp; i++){
-      alg_ders += 2.0 * psi_.DerLog(vsamp_.row(i)).conjugate() / double(nsamp);
-    }
-
-    //-- NUMERICAL DERIVATIVES --//
-    for(int p=0;p<npar_;p++){
-      pars(p)+=eps;
-      psi_.SetParameters(pars);
-      double valp=0.0;
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valp = nll;
-      pars(p)-=2.0*eps;
-      psi_.SetParameters(pars);
-      double valm=0.0;
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valm = nll;
-      pars(p)+=eps;
-      num_ders_real(p)=(-valm+valp)/(eps*2.0);
-
-      pars(p)+=I_*eps;
-      psi_.SetParameters(pars);
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valp = nll;
-      pars(p)-=I_*2.0*eps;
-      psi_.SetParameters(pars);
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valm = nll;
-      pars(p)+=eps;
-      num_ders_imag(p)=-(-valm+valp)/(I_*eps*2.0);
-      std::cout<<"Numerical Gradient = (";
-      std::cout<<num_ders_real(p).real()<<" , "<<num_ders_imag(p).imag()<<")\t-->";
-      std::cout<<"(";
-      std::cout<<alg_ders(p).real()<<" , "<<alg_ders(p).imag()<<")     ";
-      std::cout<<std::endl; 
-    }
-  }
-  // Test the derivatives of the KL divergence
-  void TestDerNLL(double eps=0.0000001){
-    
-    std::cout<<"-- Testing derivates of Negative Log-Likelihood --"<<std::endl;
-    const std::complex<double> I_(0.0,1.0);
-    double nll;
-    auto pars = psi_.GetParameters();
-    ExactPartitionFunction();
-    Eigen::VectorXcd derNLL(npar_);
-    Eigen::VectorXcd alg_ders;
-    Eigen::VectorXcd num_ders_real;
-    Eigen::VectorXcd num_ders_imag;
-    alg_ders.setZero(npar_);
-    num_ders_real.setZero(npar_);
-    num_ders_imag.setZero(npar_);
-     
-    //-- ALGORITHMIC DERIVATIVES --//
-    for(std::size_t i=0; i<trainingSamples_.size(); i++){
-      RotateGradient(trainingBases_[i],trainingSamples_[i],derNLL);
-      alg_ders -= 2.0*derNLL.conjugate()/float(trainingSamples_.size()); 
-    }
-    for(int j=0;j<basis_states_.rows();j++){
-      alg_ders += 2.0*(std::norm(std::exp(psi_.LogVal(basis_states_.row(j))-0.5*logZ_))) * psi_.DerLog(basis_states_.row(j)).conjugate();
-    }
-    //-- NUMERICAL DERIVATIVES --//
-    for(int p=0;p<npar_;p++){
-      pars(p)+=eps;
-      psi_.SetParameters(pars);
-      double valp=0.0;
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valp = nll;
-      pars(p)-=2.0*eps;
-      psi_.SetParameters(pars);
-      double valm=0.0;
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valm = nll;
-      pars(p)+=eps;
-      num_ders_real(p)=(-valm+valp)/(eps*2.0);
-
-      pars(p)+=I_*eps;
-      psi_.SetParameters(pars);
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valp = nll;
-      pars(p)-=I_*2.0*eps;
-      psi_.SetParameters(pars);
-      ExactPartitionFunction();
-      nll = NLL(trainingSamples_,trainingBases_);
-      valm = nll;
-      pars(p)+=eps;
-      num_ders_imag(p)=-(-valm+valp)/(I_*eps*2.0);
-      std::cout<<"Numerical Gradient = (";
-      std::cout<<num_ders_real(p).real()<<" , "<<num_ders_imag(p).imag()<<")\t-->";
-      std::cout<<"(";
-      std::cout<<alg_ders(p).real()<<" , "<<alg_ders(p).imag()<<")     ";
-      std::cout<<std::endl; 
-    }
-  }
-
-
 
 };
 
