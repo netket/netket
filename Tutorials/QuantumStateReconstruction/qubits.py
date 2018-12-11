@@ -95,6 +95,7 @@ qst = nk.unsupervised.Qsr(
     niter_opt=1000,
     rotations=U,
     sites=sites,
+    output_file = "output",
     samples=training_samples,
     bases=training_bases)
 #qst.test(0.0000001)

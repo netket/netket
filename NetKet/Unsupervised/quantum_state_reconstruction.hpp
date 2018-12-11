@@ -61,12 +61,6 @@ class QuantumStateReconstruction {
   Eigen::MatrixXd vsamp_;
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd rotated_grad_;
-  Eigen::VectorXcd gradprev_;
-  Eigen::MatrixXcd gradfull_;
-
-  double sr_diag_shift_;
-  bool sr_rescale_shift_;
-  bool use_iterative_;
 
   // This optional will contain a value iff the MPI rank is 0.
   nonstd::optional<JsonOutputWriter> output_;
@@ -74,8 +68,10 @@ class QuantumStateReconstruction {
   int totalnodes_;
   int mynode_;
 
-  bool dosr_;
-  bool use_cholesky_;
+  std::vector<AbstractOperator *> obs_;
+  std::vector<std::string> obsnames_;
+  ObsManager obsmanager_;
+
   int batchsize_; 
   int batchsize_node_;
   int nsamples_;
@@ -103,13 +99,9 @@ class QuantumStateReconstruction {
                               std::vector<std::vector<int> > sites,
                               std::vector<Eigen::VectorXd> trainingSamples,
                               std::vector<int> trainingBases,
+                              std::string output_file,
                               int ndiscardedsamples=-1,
-                              int discarded_samples_on_init=0,
-                              std::string method = "Gd",
-                              double diagshift = 0.01,
-                              bool rescale_shift = false,
-                              bool use_iterative = false,
-                              bool use_cholesky = true
+                              int discarded_samples_on_init=0
                               )
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
@@ -146,27 +138,6 @@ class QuantumStateReconstruction {
 
     niter_opt_ = niter_opt;
 
-    if (method == "Gd") {
-      dosr_ = false;
-    } else {
-      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
-    }
-
-    if (dosr_) {
-      InfoMessage() << "Using the Stochastic reconfiguration method"
-                    << std::endl;
-
-      if (use_iterative_) {
-        InfoMessage() << "With iterative solver" << std::endl;
-      } else {
-        if (use_cholesky_) {
-          InfoMessage() << "Using Cholesky decomposition" << std::endl;
-        }
-      }
-    } else {
-      InfoMessage() << "Using a gradient-descent based method" << std::endl;
-    }
-    
     //TODO Change this hack 
     for(std::size_t i=0; i<jrot.size(); i++){
       if (sites[i].size() == 0){
@@ -187,8 +158,16 @@ class QuantumStateReconstruction {
 
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
                   << " processes" << std::endl;
- 
+    InitOutput(output_file);
+
     MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  void InitOutput(std::string filebase) {
+    if (mynode_ == 0) {
+      output_ =
+          JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
+    }
   }
 
   void InitSweeps() {
@@ -197,6 +176,18 @@ class QuantumStateReconstruction {
     for (int i = 0; i < ninitsamples_; i++) {
       sampler_.Sweep();
     }
+  }
+
+  void InitOutput(std::string filebase, int freqbackup) {
+    if (mynode_ == 0) {
+      output_ =
+          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
+    }
+  }
+
+  void AddObservable(AbstractOperator &ob, const std::string &obname) {
+    obs_.push_back(&ob);
+    obsnames_.push_back(obname);
   }
 
   void Sample() {
@@ -215,17 +206,18 @@ class QuantumStateReconstruction {
   }
 
   void Gradient(std::vector<Eigen::VectorXd> &batchSamples,std::vector<int> &batchBases) {
-    gradfull_.resize(batchsize_node_+nsamples_node_,psi_.Npar());
     Eigen::VectorXcd der(psi_.Npar());
-    Eigen::VectorXcd grad_tmp(psi_.Npar());
-    
+   
+    for (const auto &obname : obsnames_) {
+      obsmanager_.Reset(obname);
+    }
+ 
     // Positive phase driven by data
     const int ndata = batchsize_node_;
     Ok_.resize(ndata, psi_.Npar());
     for (int i = 0; i < ndata; i++) {
       RotateGradient(batchBases[i],batchSamples[i],der);
       Ok_.row(i) = der.conjugate();
-      gradfull_.row(i) = -2.0*der.conjugate();
     }
     grad_ = -2.0*(Ok_.colwise().mean());
 
@@ -237,16 +229,36 @@ class QuantumStateReconstruction {
 
     for (int i = 0; i < nsamp; i++) {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i)).conjugate();
-      gradfull_.row(ndata+i) = 2.0*psi_.DerLog(vsamp_.row(i)).conjugate();
+   
+      for (std::size_t on = 0; on < obs_.size(); on++) {
+        obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
+      }
     }
     grad_ += 2.0*(Ok_.colwise().mean());
     
     // Summing the gradient over the nodes
-    SumOnNodes(gradfull_); 
-    gradfull_ /= double(totalnodes_);
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_);
   }
+
+  double ObSamp(AbstractOperator &ob, const Eigen::VectorXd &v) {
+    ob.FindConn(v, mel_, connectors_, newconfs_);
+
+    assert(connectors_.size() == mel_.size());
+
+    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
+
+    assert(mel_.size() == std::size_t(logvaldiffs.size()));
+
+    std::complex<double> obval = 0;
+
+    for (int i = 0; i < logvaldiffs.size(); i++) {
+      obval += mel_[i] * std::exp(logvaldiffs(i));
+    }
+
+    return obval.real();
+  }
+
 
   void Run(){
     std::vector<Eigen::VectorXd> batchSamples;
@@ -268,93 +280,16 @@ class QuantumStateReconstruction {
       }
       Gradient(batchSamples,batchBases);
       UpdateParameters();
+      PrintOutput(i);
     }
   }
 
   void UpdateParameters() {
     auto pars = psi_.GetParameters();
-    Ok_.resize(batchsize_node_+nsamples_node_,psi_.Npar());
-    Ok_ = gradfull_;
-    if (dosr_) {
-      const int nsamp = vsamp_.rows();
-
-      //Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
-      //SumOnNodes(b);
-      //b /= double(nsamp * totalnodes_);
-      Eigen::VectorXcd b = grad_; 
-      
-      if (!use_iterative_) {
-        // Explicit construction of the S matrix
-        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
-        //Eigen::MatrixXcd S = gradfull_.adjoint() * gradfull_;
-        SumOnNodes(S);
-        S /= double(nsamp * totalnodes_);
-        //S /= double(gradfull_.rows());
-        // Adding diagonal shift
-        S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
-             sr_diag_shift_;
-
-        Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
-        qr.setThreshold(1.0e-6);
-        qr.compute(S);
-        const Eigen::VectorXcd deltaP = qr.solve(b);
-        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
-        // ComputeThinV).solve(b);
-
-        assert(deltaP.size() == grad_.size());
-        grad_ = deltaP;
-
-        if (sr_rescale_shift_) {
-          std::complex<double> nor = (deltaP.dot(S * deltaP));
-          grad_ /= std::sqrt(nor.real());
-        }
-
-      } else {
-        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
-                                 Eigen::IdentityPreconditioner>
-            it_solver;
-        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-        // it_solver;
-        it_solver.setTolerance(1.0e-3);
-        MatrixReplacement S;
-        S.attachMatrix(Ok_);
-        //S.attachMatrix(gradfull_);
-        S.setShift(sr_diag_shift_);
-        S.setScale(1. / double(nsamp));
-        //S.setScale(1. / double(gradfull_.rows()));
-        //S.setScale(1. / double(OK_.rows()));
-        it_solver.compute(S);
-        auto deltaP = it_solver.solve(b);
-
-        grad_ = deltaP;
-        if (sr_rescale_shift_) {
-          auto nor = deltaP.dot(S * deltaP);
-          grad_ /= std::sqrt(nor.real());
-        }
-
-        // if(mynode_==0){
-        //   std::cerr<<it_solver.iterations()<<"
-        //   "<<it_solver.error()<<std::endl;
-        // }
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
-    }
-
     opt_.Update(grad_, pars);
-
     SendToAll(pars);
-
     psi_.SetParameters(pars);
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
-                       bool use_iterative = false, bool use_cholesky = true) {
-    sr_diag_shift_ = diagshift;
-    sr_rescale_shift_ = rescale_shift;
-    use_iterative_ = use_iterative;
-    dosr_ = true;
-    use_cholesky_ = use_cholesky;
   }
 
   void RotateGradient(int b_index,const Eigen::VectorXd & state,Eigen::VectorXcd &rotated_gradient) {
@@ -379,6 +314,20 @@ class QuantumStateReconstruction {
       den += mel_[k]*std::exp(logvaldiffs(k));
     }
     rotated_gradient = (num/den);
+  }
+
+  void PrintOutput(int i) {
+    // Note: This has to be called in all MPI processes, because converting
+    // the ObsManager to JSON performs a MPI reduction.
+    auto obs_data = json(obsmanager_);
+    obs_data["Acceptance"] = sampler_.Acceptance();
+
+    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
+                                // the output is only written once
+      output_->WriteLog(i, obs_data);
+      output_->WriteState(i, psi_);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
 };

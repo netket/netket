@@ -81,6 +81,8 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 # Optimizer
 op = nk.optimizer.AdaDelta()
 
+ha = nk.operator.Ising(h=1.0, hilbert=hi) 
+
 # Variational Monte Carlo
 qst = nk.unsupervised.Qsr(
     sampler=sa,
@@ -90,7 +92,11 @@ qst = nk.unsupervised.Qsr(
     niter_opt=10000,
     rotations=U,
     sites=sites,
+    output_file = "output",
     samples=training_samples,
     bases=training_bases)
+
+qst.add_observable(ha,"Energy")
+
 qst.run()
 
