@@ -11,30 +11,50 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import print_function
 import netket as nk
 import networkx as nx
 import numpy as np
 from mpi4py import MPI
-import scipy.sparse as sparse
 
-# Constructing a 1d lattice
-g = nk.graph.Hypercube(length=4, n_dim=1)
+sigmax = [[0, 1], [1, 0]]
+sigmaz = [[1, 0], [0, -1]]
 
-# Hilbert space of spins from given graph
+mszsz = (np.kron(sigmaz, sigmaz)).tolist()
+
+# Notice that the Transverse-Field Ising model as defined here has sign problem
+L = 20
+site_operator = [sigmax]
+bond_operator = [mszsz]
+
+# Hypercube
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+
+# Custom Hilbert Space
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-# Hamiltonian
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
+# Graph Operator
+op = nk.operator.GraphOperator(
+    hi, siteops=site_operator, bondops=bond_operator)
 
-# Machine
+# Restricted Boltzmann Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.1)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# Sampler
+# Local Metropolis Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma)
-sa.reset(True)
-print(sa.get_visible())
-sa.sweep()
-print(sa.get_visible())
+
+# Optimizer
+opt = nk.optimizer.Sgd(learning_rate=0.1)
+
+# Stochastic reconfiguration
+gs = nk.gs.Vmc(
+    hamiltonian=op,
+    sampler=sa,
+    optimizer=opt,
+    n_samples=4000,
+    niter_opt=300,
+    output_file='test',
+    diag_shift=0.1,
+    method='Sr')
+
+gs.run()
