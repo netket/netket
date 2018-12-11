@@ -56,7 +56,7 @@ class Activation : public AbstractLayer<T> {
     layerpar["Name"] = activation_.name;
     layerpar["Size"] = size_;
 
-    pars["Machine"]["Layers"].push_back(layerpar);
+    pars["Layers"].push_back(layerpar);
   }
 
   void from_json(const json & /*pars*/) override {}

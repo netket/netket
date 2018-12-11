@@ -34,7 +34,7 @@ class RbmSpin : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -66,58 +66,12 @@ class RbmSpin : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert,
-                   int nhidden = 0, int alpha = 0, bool usea = true,
-                   bool useb = true)
-      : hilbert_(hilbert), nv_(hilbert->Size()), usea_(usea), useb_(useb) {
+  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
+                   int alpha = 0, bool usea = true, bool useb = true)
+      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
 
     Init();
-  }
-
-  template <class Ptype>
-  void FromParameters(const Ptype &pars) {
-    std::string name = FieldVal<std::string>(pars, "Name");
-    if (name != "RbmSpin") {
-      throw InvalidInputError(
-          "Error while constructing RbmSpin from input parameters");
-    }
-
-    if (FieldExists(pars, "Nvisible")) {
-      nv_ = FieldVal<int>(pars, "Nvisible");
-    }
-    if (nv_ != hilbert_->Size()) {
-      throw InvalidInputError(
-          "Number of visible units is incompatible with given "
-          "Hilbert space");
-    }
-
-    if (FieldExists(pars, "Nhidden")) {
-      nh_ = FieldVal<int>(pars, "Nhidden");
-    } else {
-      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
-    }
-
-    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
-
-    Init();
-
-    // Loading parameters, if defined in the input
-    if (FieldExists(pars, "a")) {
-      a_ = FieldVal<VectorType>(pars, "a");
-    } else {
-      a_.setZero();
-    }
-
-    if (FieldExists(pars, "b")) {
-      b_ = FieldVal<VectorType>(pars, "b");
-    } else {
-      b_.setZero();
-    }
-    if (FieldExists(pars, "W")) {
-      W_ = FieldVal<MatrixType>(pars, "W");
-    }
   }
 
   void Init() {
@@ -377,22 +331,64 @@ class RbmSpin : public AbstractMachine<T> {
     }
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmSpin";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Nhidden"] = nh_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["a"] = a_;
-    j["Machine"]["b"] = b_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "RbmSpin";
+    j["Nvisible"] = nv_;
+    j["Nhidden"] = nh_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["a"] = a_;
+    j["b"] = b_;
+    j["W"] = W_;
   }
 
-  void from_json(const json &pars) override { FromParameters(pars); }
+  void from_json(const json &pars) override {
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name != "RbmSpin") {
+      throw InvalidInputError(
+          "Error while constructing RbmSpin from input parameters");
+    }
+
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = FieldVal<int>(pars, "Nvisible");
+    }
+    if (nv_ != hilbert_.Size()) {
+      throw InvalidInputError(
+          "Number of visible units is incompatible with given "
+          "Hilbert space");
+    }
+
+    if (FieldExists(pars, "Nhidden")) {
+      nh_ = FieldVal<int>(pars, "Nhidden");
+    } else {
+      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
+    }
+
+    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
+
+    Init();
+
+    // Loading parameters, if defined in the input
+    if (FieldExists(pars, "a")) {
+      a_ = FieldVal<VectorType>(pars, "a");
+    } else {
+      a_.setZero();
+    }
+
+    if (FieldExists(pars, "b")) {
+      b_ = FieldVal<VectorType>(pars, "b");
+    } else {
+      b_.setZero();
+    }
+    if (FieldExists(pars, "W")) {
+      W_ = FieldVal<MatrixType>(pars, "W");
+    }
+  }
 };
 
 }  // namespace netket

@@ -28,8 +28,8 @@ namespace netket {
 // Heisenberg model on an arbitrary graph
 
 class Heisenberg : public AbstractOperator {
-  std::shared_ptr<const AbstractHilbert> hilbert_;
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   const int nspins_;
   double offdiag_;
@@ -42,15 +42,13 @@ class Heisenberg : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit Heisenberg(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(hilbert),
-        graph_(hilbert->GetGraph()),
-        nspins_(hilbert->Size()) {
+  explicit Heisenberg(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
 
   void Init() {
-    if (graph_->IsBipartite()) {
+    if (graph_.IsBipartite()) {
       offdiag_ = -2;
     } else {
       offdiag_ = 2;
@@ -62,7 +60,7 @@ class Heisenberg : public AbstractOperator {
   }
 
   void GenerateBonds() {
-    auto adj = graph_->AdjacencyList();
+    auto adj = graph_.AdjacencyList();
 
     bonds_.resize(nspins_);
 
@@ -104,7 +102,7 @@ class Heisenberg : public AbstractOperator {
     }
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 };

@@ -132,7 +132,7 @@ class SumOutput : public AbstractLayer<T> {
     layerpar["Inputs"] = in_size_;
     layerpar["Outputs"] = out_size_;
 
-    pars["Machine"]["Layers"].push_back(layerpar);
+    pars["Layers"].push_back(layerpar);
   }
 
   void from_json(const json & /*j*/) override {}

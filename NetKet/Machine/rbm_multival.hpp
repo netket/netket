@@ -36,7 +36,7 @@ class RbmMultival : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -78,12 +78,11 @@ class RbmMultival : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert,
-                       int nhidden = 0, int alpha = 0, bool usea = true,
-                       bool useb = true)
+  explicit RbmMultival(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
       : hilbert_(hilbert),
-        nv_(hilbert->Size()),
-        ls_(hilbert->LocalSize()),
+        nv_(hilbert.Size()),
+        ls_(hilbert.LocalSize()),
         usea_(usea),
         useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
@@ -114,7 +113,7 @@ class RbmMultival : public AbstractMachine<T> {
       b_.setZero();
     }
 
-    auto localstates = hilbert_->LocalStates();
+    auto localstates = hilbert_.LocalStates();
 
     localconfs_.resize(nv_ * ls_);
     for (int i = 0; i < nv_ * ls_; i += ls_) {
@@ -361,20 +360,20 @@ class RbmMultival : public AbstractMachine<T> {
     vtilde = t.template cast<double>();
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmMultival";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Nhidden"] = nh_;
-    j["Machine"]["LocalSize"] = ls_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["a"] = a_;
-    j["Machine"]["b"] = b_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "RbmMultival";
+    j["Nvisible"] = nv_;
+    j["Nhidden"] = nh_;
+    j["LocalSize"] = ls_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["a"] = a_;
+    j["b"] = b_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {
@@ -387,7 +386,7 @@ class RbmMultival : public AbstractMachine<T> {
       nv_ = pars["Nvisible"];
     }
 
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Loaded wave-function has incompatible Hilbert space");
     }
@@ -395,7 +394,7 @@ class RbmMultival : public AbstractMachine<T> {
     if (FieldExists(pars, "LocalSize")) {
       ls_ = pars["LocalSize"];
     }
-    if (ls_ != hilbert_->LocalSize()) {
+    if (ls_ != hilbert_.LocalSize()) {
       throw InvalidInputError(
           "Loaded wave-function has incompatible Hilbert space");
     }

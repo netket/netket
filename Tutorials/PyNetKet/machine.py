@@ -19,24 +19,20 @@ import numpy as np
 from mpi4py import MPI
 import scipy.sparse as sparse
 
-#Constructing a 1d lattice
-g = nk.graph.Hypercube(L=4, ndim=1)
+# Constructing a 1d lattice
+g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-#Hamiltonian
+# Hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-#Machine
+# Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.InitRandomPars(seed=1234, sigma=0.1)
-print(ma.GetParameters())
+ma.init_random_parameters(seed=1234, sigma=0.1)
 
-#Layer
-a = np.ones(3, dtype=complex)
-b = np.zeros(3, dtype=complex)
-act = nk.activation.Tanh()
-
-act(a, b)
-print(b)
+ma.save("test.wf")
+ma.parameters = np.zeros(ma.n_par)
+ma.load("test.wf")
+print(ma.parameters)

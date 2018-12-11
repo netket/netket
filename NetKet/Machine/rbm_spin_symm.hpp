@@ -34,9 +34,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
-  std::shared_ptr<const AbstractGraph> graph_;
+  const AbstractGraph &graph_;
 
   // number of visible units
   int nv_;
@@ -86,11 +86,11 @@ class RbmSpinSymm : public AbstractMachine<T> {
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  explicit RbmSpinSymm(std::shared_ptr<const AbstractHilbert> hilbert,
-                       int alpha = 0, bool usea = true, bool useb = true)
+  explicit RbmSpinSymm(const AbstractHilbert &hilbert, int alpha = 0,
+                       bool usea = true, bool useb = true)
       : hilbert_(hilbert),
-        graph_(hilbert->GetGraph()),
-        nv_(hilbert->Size()),
+        graph_(hilbert.GetGraph()),
+        nv_(hilbert.Size()),
         alpha_(alpha),
         usea_(usea),
         useb_(useb) {
@@ -99,8 +99,8 @@ class RbmSpinSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  void Init(std::shared_ptr<const AbstractGraph> graph) {
-    permtable_ = graph->SymmetryTable();
+  void Init(const AbstractGraph &graph) {
+    permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
     nh_ = (alpha_ * permsize_);
 
@@ -401,19 +401,19 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmSpinSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Alpha"] = alpha_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["asymm"] = asymm_;
-    j["Machine"]["bsymm"] = bsymm_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "RbmSpinSymm";
+    j["Nvisible"] = nv_;
+    j["Alpha"] = alpha_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["asymm"] = asymm_;
+    j["bsymm"] = bsymm_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {
@@ -425,7 +425,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

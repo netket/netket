@@ -87,7 +87,7 @@ class FullyConnected : public AbstractLayer<T> {
     layerpar["Bias"] = bias_;
     layerpar["Weight"] = weight_;
 
-    pars["Machine"]["Layers"].push_back(layerpar);
+    pars["Layers"].push_back(layerpar);
   }
 
   void from_json(const json &pars) override {
