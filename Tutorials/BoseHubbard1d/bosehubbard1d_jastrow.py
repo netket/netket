@@ -26,6 +26,7 @@ ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Jastrow Machine with Symmetry
 ma = nk.machine.JastrowSymm(hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)

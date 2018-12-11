@@ -77,7 +77,7 @@ void AddOperatorModule(py::module &m) {
            py::arg("siteops") = GraphOperator::OVecType(),
            py::arg("bondops") = GraphOperator::OVecType(),
            py::arg("bondops_colors") = std::vector<int>())
-          ADDOPERATORMETHODS(GraphOperator);
+      .def(py::self + py::self) ADDOPERATORMETHODS(GraphOperator);
 
   py::class_<BoseHubbard, AbstractOperator>(subm, "BoseHubbard")
       .def(py::init<const AbstractHilbert &, double, double, double>(),

@@ -54,6 +54,7 @@ class GraphOperator : public AbstractOperator {
         graph_(hilbert.GetGraph()),
         operator_(LocalOperator(hilbert)),
         nvertices_(hilbert.Size()) {
+    // Create the local operator as the sum of all site and bond operators
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
       throw InvalidInputError("Must input at least SiteOps or BondOps");
@@ -98,6 +99,23 @@ class GraphOperator : public AbstractOperator {
     // InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
   }
 
+  // Constructor to be used when overloading operators
+  explicit GraphOperator(const AbstractHilbert &hilbert, LocalOperator lop)
+      : hilbert_(hilbert),
+        graph_(hilbert.GetGraph()),
+        operator_(lop),
+        nvertices_(hilbert.Size()) {}
+
+  friend GraphOperator operator+(const GraphOperator &lhs,
+                                 const GraphOperator &rhs) {
+    assert(rhs.graph_.Size() == lhs.graph_.Size());
+
+    auto lop = lhs.operator_;
+    auto rop = rhs.operator_;
+
+    return GraphOperator(lhs.GetHilbert(), lop + rop);
+  }
+
   void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
@@ -105,7 +123,7 @@ class GraphOperator : public AbstractOperator {
     newconfs.clear();
     mel.resize(0);
 
-    operator_.AddConn(v, mel, connectors, newconfs);
+    operator_.FindConn(v, mel, connectors, newconfs);
   }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
