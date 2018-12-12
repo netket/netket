@@ -39,11 +39,11 @@ vmc = nk.gs.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
-    nsamples=1000,
+    n_samples=1000,
     niter_opt=4000,
     diag_shift=5e-3,
     use_iterative=False,
     output_file='test',
     method='Sr')
 
-vmc.Run()
+vmc.run()
