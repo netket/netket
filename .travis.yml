@@ -118,5 +118,5 @@ script:
 
   # compile and execute Python unit tests
   - pip install . --user
-  - pytest --verbose Test
+  - PYTHONPATH="$PWD" pytest --verbose Test
   - cd ..
