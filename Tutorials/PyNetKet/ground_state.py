@@ -14,7 +14,6 @@
 
 from __future__ import print_function
 import netket as nk
-from mpi4py import MPI
 
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=20, n_dim=1)

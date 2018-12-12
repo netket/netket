@@ -15,7 +15,7 @@
 from __future__ import print_function
 import netket as nk
 import numpy as np
-from mpi4py import MPI
+
 from datetime import datetime
 import scipy.sparse as sparse
 
