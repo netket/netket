@@ -34,16 +34,27 @@ namespace netket {
 class AbstractGraph {
  public:
   /**
-  Member function returning the number of sites (nodes) in the graph.
-  @return Number of sites (nodes) in the graph.
+  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
   */
-  virtual int Nsites() const = 0;
+  using Edge = std::array<int, 2>;
+  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
 
   /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
   */
-  virtual int Size() const = 0;
+  virtual int Nsites() const noexcept = 0;
+
+  /**
+  Member function returning the number of sites (nodes) in the graph.
+  @return Number of sites (nodes) in the graph.
+  */
+  virtual int Size() const noexcept = 0;
+
+  /**
+  Returns the graph edges.
+  */
+  virtual std::vector<Edge> const &Edges() const noexcept = 0;
 
   /**
   Member function returning the adjacency list of the graph.
@@ -58,16 +69,10 @@ class AbstractGraph {
   virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
 
   /**
-  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
-  */
-  using Edge = std::array<int, 2>;
-  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
-
-  /**
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  virtual const ColorMap &EdgeColors() const = 0;
+  virtual const ColorMap &EdgeColors() const noexcept = 0;
 
   // Edge Colors from users specified map
   void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
@@ -91,14 +96,14 @@ class AbstractGraph {
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
-  virtual bool IsBipartite() const = 0;
+  virtual bool IsBipartite() const noexcept = 0;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
    * every pair of nodes.
    * @return true, if the graph is connected
    */
-  virtual bool IsConnected() const = 0;
+  virtual bool IsConnected() const noexcept = 0;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling

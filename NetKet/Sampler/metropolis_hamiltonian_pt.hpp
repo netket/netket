@@ -27,9 +27,9 @@ namespace netket {
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
 class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
-  std::shared_ptr<WfType> psi_;
+  WfType &psi_;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   H &hamiltonian_;
 
@@ -63,11 +63,11 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  MetropolisHamiltonianPt(std::shared_ptr<WfType> psi, H &hamiltonian, int nrep)
+  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
       : psi_(psi),
-        hilbert_(psi->GetHilbert()),
+        hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_->Size()),
+        nv_(hilbert_.Size()),
         nrep_(nrep) {
     Init();
   }
@@ -76,7 +76,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!hilbert_.IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -124,12 +124,12 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_->RandomVals(v_[i], rgen_);
+        hilbert_.RandomVals(v_[i], rgen_);
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_->InitLookup(v_[i], lt_[i]);
+      psi_.InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -150,23 +150,23 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
       // Inverse transition
       v1_ = v_[rep];
-      hilbert_->UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
       double w2 = tochange1_.size();
 
       const auto lvd =
-          psi_->LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+          psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
       double ratio = std::norm(std::exp(beta_[rep] * lvd) * w1 / w2);
 
 #ifndef NDEBUG
-      const auto psival1 = psi_->LogVal(v_[rep]);
-      if (std::abs(std::exp(psi_->LogVal(v_[rep]) -
-                            psi_->LogVal(v_[rep], lt_[rep])) -
-                   1.) > 1.0e-8) {
-        std::cerr << psi_->LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << psi_->LogVal(v_[rep], lt_[rep]) << std::endl;
+      const auto psival1 = psi_.LogVal(v_[rep]);
+      if (std::abs(
+              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
+              1.) > 1.0e-8) {
+        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -174,16 +174,16 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
       // Metropolis acceptance test
       if (ratio > distu(rgen_)) {
         accept_(rep) += 1;
-        psi_->UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+        psi_.UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
         v_[rep] = v1_;
 
 #ifndef NDEBUG
-        const auto psival2 = psi_->LogVal(v_[rep]);
+        const auto psival2 = psi_.LogVal(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_->LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
 #endif
@@ -224,8 +224,8 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_->LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_->LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -239,9 +239,9 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  std::shared_ptr<WfType> GetMachine() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 

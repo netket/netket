@@ -12,67 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
+from mpi4py import MPI
 
-from __future__ import print_function
-import json
+# 1D Periodic Lattice
+g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 
-pars = {}
+# Boson Hilbert Space
+hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=12)
 
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Boson',
-    'Nmax': 3,
-    'Nbosons': 12,
-}
+# Bose Hubbard Hamiltonian
+ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
-# defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L': 12,
-    'Dimension': 1,
-    'Pbc': True,
-}
+# Jastrow Machine with Symmetry
+ma = nk.machine.RbmSpinSymm(alpha=4, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'BoseHubbard',
-    'U': 4.0,
-}
+# Sampler
+sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpinSymm',
-    'Alpha': 4.0,
-}
+# Stochastic gradient descent optimization
+op = nk.optimizer.AdaMax()
 
-# defining the sampler
-# here we use Metropolis sampling
-pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
-}
+# Variational Monte Carlo
+vmc = nk.gs.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    niter_opt=4000,
+    diag_shift=5e-3,
+    use_iterative=False,
+    output_file='test',
+    method='Sr')
 
-# defining the Optimizer
-# here we use AdaMax
-pars['Optimizer'] = {
-    'Name': 'AdaMax',
-}
-
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
-    'Diagshift': 5.0e-3,
-    'UseIterative': False,
-    'OutputFile': 'test',
-}
-
-json_file = "bosehubbard1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+vmc.run()

@@ -36,7 +36,7 @@ class Jastrow : public AbstractMachine<T> {
   using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
   using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
 
-  std::shared_ptr<const AbstractHilbert> hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   int nv_;
@@ -56,13 +56,19 @@ class Jastrow : public AbstractMachine<T> {
   using LookupType = typename AbstractMachine<T>::LookupType;
 
   // constructor
-  explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(hilbert), nv_(hilbert->Size()) {
+  explicit Jastrow(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), nv_(hilbert.Size()) {
     Init();
   }
 
   void Init() {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
+
     W_.resize(nv_, nv_);
+    W_.setZero();
 
     npar_ = (nv_ * (nv_ - 1)) / 2;
 
@@ -104,10 +110,10 @@ class Jastrow : public AbstractMachine<T> {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
+      W_(i, i) = T(0.);
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
         W_(j, i) = W_(i, j);  // create the lower triangle
-        W_(i, i) = T(0);
         k++;
       }
     }
@@ -211,14 +217,14 @@ class Jastrow : public AbstractMachine<T> {
     return der;
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const override {
+  const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "Jastrow";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "Jastrow";
+    j["Nvisible"] = nv_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {
@@ -230,7 +236,7 @@ class Jastrow : public AbstractMachine<T> {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = pars["Nvisible"];
     }
-    if (nv_ != hilbert_->Size()) {
+    if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

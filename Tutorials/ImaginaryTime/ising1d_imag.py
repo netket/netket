@@ -21,7 +21,7 @@ import netket as nk
 L = 20
 
 # defining the lattice
-graph = nk.graph.Hypercube(L, ndim=1, pbc=True)
+graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
 
 # defining the hilbert space
 hilbert = nk.hilbert.Spin(graph, 0.5)

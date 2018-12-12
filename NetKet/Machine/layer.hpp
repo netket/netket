@@ -16,8 +16,9 @@
 #define NETKET_LAYER_HPP
 
 #include "abstract_layer.hpp"
+#include "activation_layer.hpp"
 #include "activations.hpp"
-#include "conv_layer.hpp"
 #include "fullconn_layer.hpp"
+#include "hypercube_conv_layer.hpp"
 #include "sum_output.hpp"
 #endif

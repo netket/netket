@@ -19,28 +19,30 @@ from mpi4py import MPI
 from datetime import datetime
 import scipy.sparse as sparse
 
-#Constructing a 1d lattice
-g = nk.graph.Hypercube(L=10, ndim=1)
+# Constructing a 1d lattice
+g = nk.graph.Hypercube(length=10, n_dim=1)
 
-#Hilbert space of spins from given graph
+# Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 Z = [[1, 0], [0, -1]]
 X = [[0, 1], [1, 0]]
 Y = [[0, 1.0j], [-1.0j, 0.0]]
 
-#Local Operator
-#here heisenberg term \vec{sigma}_0 \cdot \vec{sigma}_1
-#showcasing automatic simplifications and tensor products
-o1 = nk.operator.LocalOperator(hi, X, [0]) * (nk.operator.LocalOperator(
+# Local Operator
+# here heisenberg term \vec{sigma}_0 \cdot \vec{sigma}_1
+# showcasing automatic simplifications and tensor products
+o1 = 0.5 * nk.operator.LocalOperator(hi, X, [0]) * (nk.operator.LocalOperator(
     hi, X, [1]))
-# o1+=(nk.LocalOperator(hi,Y,[0])*nk.LocalOperator(hi,Y,[1]))
-# o1+=(nk.LocalOperator(hi,Z,[0])*nk.LocalOperator(hi,Z,[1]))
+o1 += 0.5 * (nk.operator.LocalOperator(hi, Y, [0])
+             * nk.operator.LocalOperator(hi, Y, [1]))
+o1 += (nk.operator.LocalOperator(hi, Z, [0])
+       * nk.operator.LocalOperator(hi, Z, [1]))
 
-for m in o1.LocalMatrices():
+for m in o1.local_matrices:
     print(m, '\n')
 
-#Find the connected elements of the operator
+# Find the connected elements of the operator
 v = np.ones(10)
-(mel, connectors, newconfs) = o1.GetConn(v)
+(mel, connectors, newconfs) = o1.get_conn(v)
 print(connectors)

@@ -12,66 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
+from mpi4py import MPI
 
-from __future__ import print_function
-import json
+# 1D Lattice
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
-pars = {}
+# Hilbert space of spins on the graph
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-}
+# Ising spin hamiltonian
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L': 20,
-    'Dimension': 1,
-    'Pbc': True,
-}
+# Jastrow Machine
+ma = nk.machine.Jastrow(hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Ising',
-    'h': 1.0,
-}
+# Metropolis Local Sampling
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'Jastrow',
-}
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
-}
+# Stochastic reconfiguration
+gs = nk.gs.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    niter_opt=300,
+    output_file='test',
+    diag_shift=0.1,
+    method='Sr')
 
-# defining the Optimizer
-# here we use the Stochastic Gradient Descent
-pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.1,
-}
-
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 4000,
-    'NiterOpt': 300,
-    'Diagshift': 0.1,
-    'UseIterative': False,
-    'OutputFile': "test",
-}
-
-json_file = "ising1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run()

@@ -31,50 +31,47 @@ namespace netket {
 
 constexpr int HilbertIndex::MaxStates;
 
-#define ADDHILBERTMETHODS(name)                \
-                                               \
-  .def("is_discrete", &name::IsDiscrete)       \
-      .def("local_size", &name::LocalSize)     \
-      .def("size", &name::Size)                \
-      .def("local_states", &name::LocalStates) \
-      .def("random_vals", &name ::RandomVals)  \
+#define ADDHILBERTMETHODS(name)                                  \
+                                                                 \
+  .def_property_readonly("is_discrete", &name::IsDiscrete)       \
+      .def_property_readonly("local_size", &name::LocalSize)     \
+      .def_property_readonly("size", &name::Size)                \
+      .def_property_readonly("local_states", &name::LocalStates) \
+      .def("random_vals", &name ::RandomVals)                    \
       .def("update_conf", &name::UpdateConf)
 
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
 
-  py::class_<AbstractHilbert, std::shared_ptr<AbstractHilbert>>(subm, "Hilbert")
+  py::class_<AbstractHilbert>(subm, "Hilbert")
       ADDHILBERTMETHODS(AbstractHilbert);
 
-  py::class_<Spin, AbstractHilbert, std::shared_ptr<Spin>>(subm, "Spin")
-      .def(py::init<std::shared_ptr<const AbstractGraph>, double>(),
+  py::class_<Spin, AbstractHilbert>(subm, "Spin")
+      .def(py::init<const AbstractGraph &, double>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("s"))
-      .def(py::init<std::shared_ptr<const AbstractGraph>, double, double>(),
-           py::arg("graph"), py::arg("s"), py::arg("total_sz"))
-          ADDHILBERTMETHODS(Spin);
+      .def(py::init<const AbstractGraph &, double, double>(),
+           py::keep_alive<1, 2>(), py::arg("graph"), py::arg("s"),
+           py::arg("total_sz")) ADDHILBERTMETHODS(Spin);
 
-  py::class_<Qubit, AbstractHilbert, std::shared_ptr<Qubit>>(subm, "Qubit")
-      .def(py::init<std::shared_ptr<const AbstractGraph>>(), py::arg("graph"))
-          ADDHILBERTMETHODS(Qubit);
+  py::class_<Qubit, AbstractHilbert>(subm, "Qubit")
+      .def(py::init<const AbstractGraph &>(), py::keep_alive<1, 2>(),
+           py::arg("graph")) ADDHILBERTMETHODS(Qubit);
 
-  py::class_<Boson, AbstractHilbert, std::shared_ptr<Boson>>(subm, "Boson")
-      .def(py::init<std::shared_ptr<const AbstractGraph>, int>(),
+  py::class_<Boson, AbstractHilbert>(subm, "Boson")
+      .def(py::init<const AbstractGraph &, int>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("n_max"))
-      .def(py::init<std::shared_ptr<const AbstractGraph>, int, int>(),
+      .def(py::init<const AbstractGraph &, int, int>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("n_max"), py::arg("n_bosons"))
           ADDHILBERTMETHODS(Boson);
 
-  py::class_<CustomHilbert, AbstractHilbert, std::shared_ptr<CustomHilbert>>(
-      subm, "CustomHilbert")
-      .def(
-          py::init<std::shared_ptr<const AbstractGraph>, std::vector<double>>(),
-          py::arg("graph"), py::arg("local_states"))
+  py::class_<CustomHilbert, AbstractHilbert>(subm, "CustomHilbert")
+      .def(py::init<const AbstractGraph &, std::vector<double>>(),
+           py::keep_alive<1, 2>(), py::arg("graph"), py::arg("local_states"))
           ADDHILBERTMETHODS(CustomHilbert);
 
-  py::class_<HilbertIndex, std::shared_ptr<HilbertIndex>>(subm, "HilbertIndex")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"))
-      .def("n_states", &HilbertIndex::NStates)
+  py::class_<HilbertIndex>(subm, "HilbertIndex")
+      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def_property_readonly("n_states", &HilbertIndex::NStates)
       .def("number_to_state", &HilbertIndex::NumberToState)
       .def("state_to_number", &HilbertIndex::StateToNumber)
       .def_readonly_static("max_states", &HilbertIndex::MaxStates);

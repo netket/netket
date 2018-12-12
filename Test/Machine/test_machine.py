@@ -3,13 +3,14 @@ import networkx as nx
 import numpy as np
 import pytest
 from pytest import approx
+import os
 
 machines = {}
 
 
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=4, ndim=1)
+g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -27,28 +28,32 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 
 # Layers
-layers = [
+layers = (
     nk.layer.FullyConnected(
         input_size=g.n_sites,
-        output_size=40,
-        activation=nk.activation.Lncosh())
-]
+        output_size=40),
+    nk.layer.Lncosh(input_size=40),
+)
 
 # FFNN Machine
 machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
 
-layers = [
-    nk.layer.Convolutional(
-        graph=g,
+layers = (
+    nk.layer.ConvolutionalHypercube(
+        length=4,
+        n_dim=1,
         input_channels=1,
         output_channels=2,
-        distance=2,
-        activation=nk.activation.Tanh())
-]
+        stride=1,
+        kernel_length=2,
+        use_bias=True),
+    nk.layer.Lncosh(
+        input_size=8),
+)
 
 # FFNN Machine
-# BUG
-# machines["FFFN 1d Hypercube spin Convolutional"] = nk.machine.FFNN(hi, layers)
+machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(
+    hi, layers)
 
 machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
     hi, bond_dim=3)
@@ -73,18 +78,38 @@ np.random.seed(12346)
 
 
 def log_val_f(par, machine, v):
-    machine.set_parameters(par)
+    machine.parameters = np.copy(par)
     return machine.log_val(v)
 
 
 def test_set_get_parameters():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
-        assert(machine.n_par() > 0)
-        npar = machine.n_par()
+        assert(machine.n_par > 0)
+        npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.set_parameters(randpars)
-        assert(np.array_equal(machine.get_parameters(), randpars))
+        machine.parameters = randpars
+        assert(np.array_equal(machine.parameters, randpars))
+
+
+def test_save_load_parameters(tmpdir):
+    for name, machine in machines.items():
+        print("Machine test: %s" % name)
+        assert(machine.n_par > 0)
+        n_par = machine.n_par
+        randpars = np.random.randn(n_par) + 1.0j * np.random.randn(n_par)
+
+        machine.parameters = np.copy(randpars)
+        fn = tmpdir.mkdir('datawf').join('test.wf')
+
+        filename = os.path.join(fn.dirname, fn.basename)
+
+        machine.save(filename)
+        machine.parameters = np.zeros(n_par, dtype=complex)
+        machine.load(filename)
+        os.remove(filename)
+        os.rmdir(fn.dirname)
+        assert(np.array_equal(machine.parameters, randpars))
 
 
 import numdifftools as nd
@@ -97,26 +122,28 @@ def test_log_derivative():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
 
-        npar = machine.n_par()
-        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        npar = machine.n_par
 
         # random visibile state
-        hi = machine.get_hilbert()
-        assert(hi.size() > 0)
+        hi = machine.hilbert
+        assert(hi.size > 0)
         rg = nk.utils.RandomEngine(seed=1234)
-        v = np.zeros(hi.size())
+        v = np.zeros(hi.size)
 
         for i in range(100):
             hi.random_vals(v, rg)
-            grad = (nd.Gradient(log_val_f, step=1.0e-8))
 
-            machine.set_parameters(randpars)
+            randpars = 0.1 * (np.random.randn(npar) +
+                              1.0j * np.random.randn(npar))
+            machine.parameters = randpars
             der_log = machine.der_log(v)
 
             if("Jastrow" in name):
                 assert(np.max(np.imag(der_log)) == approx(0.))
 
+            grad = (nd.Gradient(log_val_f, step=1.0e-8))
             num_der_log = grad(randpars, machine, v)
+
             assert(np.max(np.real(der_log - num_der_log))
                    == approx(0., rel=1e-4, abs=1e-4))
             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
@@ -128,11 +155,11 @@ def test_log_val_diff():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
 
-        npar = machine.n_par()
+        npar = machine.n_par
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.set_parameters(randpars)
+        machine.parameters = randpars
 
-        hi = machine.get_hilbert()
+        hi = machine.hilbert
 
         rg = nk.utils.RandomEngine(seed=1234)
 
@@ -140,8 +167,8 @@ def test_log_val_diff():
         for i in range(100):
 
             # generate a random state
-            rstate = np.zeros(hi.size())
-            local_states = hi.local_states()
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
             hi.random_vals(rstate, rg)
 
             tochange = []
@@ -149,10 +176,10 @@ def test_log_val_diff():
 
             # random number of changes
             for i in range(100):
-                n_change = np.random.randint(low=0, high=hi.size())
+                n_change = np.random.randint(low=0, high=hi.size)
                 # generate n_change unique sites to be changed
                 tochange.append(np.random.choice(
-                    hi.size(), n_change, replace=False))
+                    hi.size, n_change, replace=False))
                 newconfs.append(np.random.choice(local_states, n_change))
 
             ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
@@ -165,7 +192,7 @@ def test_log_val_diff():
                     assert(newc in local_states)
 
                 for t in toc:
-                    assert(t >= 0 and t < hi.size())
+                    assert(t >= 0 and t < hi.size)
 
                 assert(len(toc) == len(newco))
 
@@ -186,6 +213,6 @@ def test_log_val_diff():
 def test_nvisible():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
-        hi = machine.get_hilbert()
+        hi = machine.hilbert
 
-        assert(machine.n_visible() == hi.size())
+        assert(machine.n_visible == hi.size)

@@ -33,19 +33,20 @@ void AddGroundStateModule(py::module &m) {
   auto subm = m.def_submodule("gs");
 
   py::class_<VariationalMonteCarlo>(subm, "Vmc")
-      .def(py::init<std::shared_ptr<const AbstractOperator>,
-                    std::shared_ptr<AbSamplerType>,
-                    std::shared_ptr<AbstractOptimizer>, int, int, std::string,
-                    int, int, std::string, double, bool, bool, bool, int>(),
-           py::arg("hamiltonian"), py::arg("sampler"), py::arg("optimizer"),
-           py::arg("nsamples"), py::arg("niter_opt"), py::arg("output_file"),
-           py::arg("discarded_samples") = -1,
+      .def(py::init<const AbstractOperator &, SamplerType &,
+                    AbstractOptimizer &, int, int, std::string, int, int,
+                    std::string, double, bool, bool, bool, int>(),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+           py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
+           py::arg("optimizer"), py::arg("n_samples"), py::arg("niter_opt"),
+           py::arg("output_file"), py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
            py::arg("save_every") = 50)
-      .def("AddObservable", &VariationalMonteCarlo::AddObservable)
-      .def("Run", &VariationalMonteCarlo::Run);
+      .def("add_observable", &VariationalMonteCarlo::AddObservable,
+           py::keep_alive<1, 2>())
+      .def("run", &VariationalMonteCarlo::Run);
 
   py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,
@@ -54,7 +55,7 @@ void AddGroundStateModule(py::module &m) {
            py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
            py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
       .def("add_observable", &ImaginaryTimeDriver::AddObservable,
-           py::arg("observable"), py::arg("name"),
+           py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
       .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
 

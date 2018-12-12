@@ -22,48 +22,55 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDLAYERMETHODS(name)                     \
-                                                  \
-  .def("Ninput", &name::Ninput)                   \
-      .def("Noutput", &name::Noutput)             \
-      .def("Npar", &name::Npar)                   \
-      .def("GetParameters", &name::GetParameters) \
-      .def("SetParameters", &name::SetParameters) \
-      .def("InitRandomPars", &name::InitRandomPars);
+#define ADDLAYERMETHODS(name)                                                 \
+                                                                              \
+  .def_property_readonly("n_input", &name::Ninput)                            \
+      .def_property_readonly("n_output", &name::Noutput)                      \
+      .def_property_readonly("n_par", &name::Npar)                            \
+      .def_property("parameters", &name::GetParameters, &name::SetParameters) \
+      .def("init_random_parameters", &name::InitRandomPars);
 // TODO add more methods
 
 void AddLayerModule(py::module &m) {
   auto subm = m.def_submodule("layer");
 
-  py::class_<AbLayerType, std::shared_ptr<AbLayerType>>(subm, "Layer")
-      ADDLAYERMETHODS(AbLayerType);
+  py::class_<LayerType>(subm, "Layer") ADDLAYERMETHODS(LayerType);
 
   {
-    using LayerType = FullyConnected<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        subm, "FullyConnected")
-        .def(py::init<std::shared_ptr<const AbstractActivation>, int, int,
-                      bool>(),
-             py::arg("activation"), py::arg("input_size"),
+    using DerType = FullyConnected<StateType>;
+    py::class_<DerType, LayerType>(subm, "FullyConnected")
+        .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false)
-            ADDLAYERMETHODS(LayerType);
+            ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = Convolutional<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(
-        subm, "Convolutional")
-        .def(py::init<std::shared_ptr<const AbstractGraph>,
-                      std::shared_ptr<const AbstractActivation>, int, int, int,
-                      bool>(),
-             py::arg("graph"), py::arg("activation"), py::arg("input_channels"),
-             py::arg("output_channels"), py::arg("distance") = 1,
-             py::arg("use_bias") = false) ADDLAYERMETHODS(LayerType);
+    using DerType = ConvolutionalHypercube<StateType>;
+    py::class_<DerType, LayerType>(subm, "ConvolutionalHypercube")
+        .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
+             py::arg("n_dim"), py::arg("input_channels"),
+             py::arg("output_channels"), py::arg("stride") = 1,
+             py::arg("kernel_length") = 2, py::arg("use_bias") = false)
+            ADDLAYERMETHODS(DerType);
   }
   {
-    using LayerType = SumOutput<MachineType>;
-    py::class_<LayerType, AbLayerType, std::shared_ptr<LayerType>>(subm,
-                                                                   "SumOutput")
-        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(LayerType);
+    using DerType = SumOutput<StateType>;
+    py::class_<DerType, LayerType>(subm, "SumOutput")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+  }
+  {
+    using DerType = Activation<StateType, Lncosh>;
+    py::class_<DerType, LayerType>(subm, "Lncosh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+  }
+  {
+    using DerType = Activation<StateType, Tanh>;
+    py::class_<DerType, LayerType>(subm, "Tanh")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
+  }
+  {
+    using DerType = Activation<StateType, Relu>;
+    py::class_<DerType, LayerType>(subm, "Relu")
+        .def(py::init<int>(), py::arg("input_size")) ADDLAYERMETHODS(DerType);
   }
 }
 
