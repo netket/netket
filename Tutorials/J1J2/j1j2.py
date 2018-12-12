@@ -28,17 +28,17 @@ J = [1, 0.4]
 
 L = 20
 
-operators = []
+mats = []
 sites = []
 for i in range(L):
 
     for d in [0, 1]:
         # \sum_i J*sigma^z(i)*sigma^z(i+d)
-        operators.append((J[d] * mszsz).tolist())
+        mats.append((J[d] * mszsz).tolist())
         sites.append([i, (i + d + 1) % L])
 
         # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        operators.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
+        mats.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
         sites.append([i, (i + d + 1) % L])
 
 # Custom Graph
@@ -48,15 +48,9 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
 
 # Custom Hamiltonian operator
-# This method doesn't work it says we're trying to add type int and LocalOperator
-#op = sum([
-#nk.operator.LocalOperator(hi, operators[i], sites[i])
-#for i in range(len(operators))
-#])
-
-op = nk.operator.LocalOperator(hi, operators[0], sites[0])
-for i in range(1, len(operators)):
-    op += nk.operator.LocalOperator(hi, operators[i], sites[i])
+op = nk.operator.LocalOperator(hi)
+for mat, site in zip(mats, sites):
+    op += nk.operator.LocalOperator(hi, mat, site)
 
 # Restricted Boltzmann Machine
 ma = nk.machine.RbmSpin(hi, alpha=1)

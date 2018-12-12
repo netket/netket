@@ -44,17 +44,17 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-opt = nk.optimizer.Sgd(learning_rate=0.1)
+opt = nk.optimizer.AdaMax()
 
 # Stochastic reconfiguration
 gs = nk.gs.Vmc(
     hamiltonian=op,
     sampler=sa,
     optimizer=opt,
-    n_samples=4000,
-    niter_opt=300,
+    n_samples=1000,
+    niter_opt=30000,
     output_file='test',
     diag_shift=0.1,
-    method='Sr')
+    method='Gd')
 
 gs.run()

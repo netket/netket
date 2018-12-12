@@ -40,6 +40,7 @@ void AddOperatorModule(py::module &m) {
       ADDOPERATORMETHODS(AbstractOperator);
 
   py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
+      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
       .def(
           py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
                    std::vector<LocalOperator::SiteType>>(),

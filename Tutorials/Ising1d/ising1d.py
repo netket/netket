@@ -26,6 +26,7 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma)
@@ -38,10 +39,10 @@ gs = nk.gs.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
-    nsamples=4000,
+    n_samples=1000,
     niter_opt=300,
     output_file='test',
     diag_shift=0.1,
     method='Sr')
 
-gs.Run()
+gs.run()

@@ -95,8 +95,6 @@ class GraphOperator : public AbstractOperator {
         }
       }
     }
-
-    // InfoMessage() << "Size of operators_ " << operators_.size() << std::endl;
   }
 
   // Constructor to be used when overloading operators
@@ -119,10 +117,6 @@ class GraphOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
-    connectors.clear();
-    newconfs.clear();
-    mel.resize(0);
-
     operator_.FindConn(v, mel, connectors, newconfs);
   }
 
