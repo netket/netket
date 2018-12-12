@@ -22,6 +22,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <complex>
+#include <memory>
 #include <vector>
 #include "all_utils.hpp"
 
@@ -29,7 +30,46 @@ namespace py = pybind11;
 
 namespace netket {
 
+struct PyMPIEnvironment {
+  PyMPIEnvironment() {
+    int already_initialized;
+    MPI_Initialized(&already_initialized);
+    if (!already_initialized) {
+      // We don't have access to command-line arguments
+      if (MPI_Init(nullptr, nullptr) != MPI_SUCCESS) {
+        std::ostringstream msg;
+        msg << "This should never have happened. How did you manage to "
+               "call MPI_Init() in between two C function calls?! "
+               "Terminating now.";
+        std::cerr << msg.str() << std::endl;
+        std::terminate();
+      }
+      have_initialized_ = true;
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully initialized by NetKet." << std::endl;
+#endif
+    }
+  }
+  ~PyMPIEnvironment() {
+    if (have_initialized_) {
+      // We have initialized MPI so it's only right we finalize it.
+      MPI_Finalize();
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully finalized by NetKet." << std::endl;
+#endif
+    }
+  }
+
+ private:
+  bool have_initialized_;
+};
+
 void AddUtilsModule(py::module &m) {
+  // The MPI environment is added to the main module
+  py::class_<PyMPIEnvironment, std::shared_ptr<PyMPIEnvironment>>(
+      m, "mpi_environment");
+  m.attr("_mpi_environment") = py::cast(std::make_shared<PyMPIEnvironment>());
+
   auto subm = m.def_submodule("utils");
 
   py::class_<netket::default_random_engine>(subm, "RandomEngine")
