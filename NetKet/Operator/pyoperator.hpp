@@ -23,7 +23,7 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "netket.hpp"
+#include "operator.hpp"
 
 namespace py = pybind11;
 
@@ -40,6 +40,7 @@ void AddOperatorModule(py::module &m) {
       ADDOPERATORMETHODS(AbstractOperator);
 
   py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
+      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
       .def(
           py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
                    std::vector<LocalOperator::SiteType>>(),
@@ -70,14 +71,14 @@ void AddOperatorModule(py::module &m) {
       .def(py::init<const AbstractHilbert &>(), py::keep_alive<1, 2>(),
            py::arg("hilbert")) ADDOPERATORMETHODS(Heisenberg);
 
-  py::class_<GraphHamiltonian, AbstractOperator>(subm, "GraphHamiltonian")
-      .def(py::init<const AbstractHilbert &, GraphHamiltonian::OVecType,
-                    GraphHamiltonian::OVecType, std::vector<int>>(),
+  py::class_<GraphOperator, AbstractOperator>(subm, "GraphOperator")
+      .def(py::init<const AbstractHilbert &, GraphOperator::OVecType,
+                    GraphOperator::OVecType, std::vector<int>>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"),
-           py::arg("siteops") = GraphHamiltonian::OVecType(),
-           py::arg("bondops") = GraphHamiltonian::OVecType(),
+           py::arg("siteops") = GraphOperator::OVecType(),
+           py::arg("bondops") = GraphOperator::OVecType(),
            py::arg("bondops_colors") = std::vector<int>())
-          ADDOPERATORMETHODS(GraphHamiltonian);
+      .def(py::self + py::self) ADDOPERATORMETHODS(GraphOperator);
 
   py::class_<BoseHubbard, AbstractOperator>(subm, "BoseHubbard")
       .def(py::init<const AbstractHilbert &, double, double, double>(),

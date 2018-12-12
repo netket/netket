@@ -61,6 +61,10 @@ class LocalOperator : public AbstractOperator {
   std::size_t nops_;
 
  public:
+  explicit LocalOperator(const AbstractHilbert &hilbert) : hilbert_(hilbert) {
+    Init();
+  }
+
   explicit LocalOperator(const AbstractHilbert &hilbert,
                          const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites)
@@ -182,23 +186,13 @@ class LocalOperator : public AbstractOperator {
 
     connectors.clear();
     newconfs.clear();
-    mel.resize(0);
 
-    AddConn(v, mel, connectors, newconfs);
-  }
+    connectors.resize(1);
+    newconfs.resize(1);
+    mel.resize(1, 0.);
 
-  void AddConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
-               std::vector<std::vector<int>> &connectors,
-               std::vector<std::vector<double>> &newconfs) const {
-    if (mel.size() == 0) {
-      connectors.resize(1);
-      newconfs.resize(1);
-      mel.resize(1);
-
-      mel[0] = 0;
-      connectors[0].resize(0);
-      newconfs[0].resize(0);
-    }
+    connectors[0].resize(0);
+    newconfs[0].resize(0);
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
@@ -291,6 +285,17 @@ class LocalOperator : public AbstractOperator {
     mat.insert(mat.end(), rhs.mat_.begin(), rhs.mat_.end());
 
     return LocalOperator(lhs.GetHilbert(), mat, sites);
+  }
+
+  void operator=(const LocalOperator &rhs) {
+    assert(rhs.hilbert_.LocalStates().size() == hilbert_.LocalStates().size());
+
+    mat_ = rhs.mat_;
+    sites_ = rhs.sites_;
+    invstate_ = rhs.invstate_;
+    states_ = rhs.states_;
+    connected_ = rhs.connected_;
+    nops_ = rhs.nops_;
   }
 
   template <class T>
