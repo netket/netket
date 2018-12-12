@@ -38,7 +38,7 @@ void AddGroundStateModule(py::module &m) {
                     std::string, double, bool, bool, bool, int>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
-           py::arg("optimizer"), py::arg("nsamples"), py::arg("niter_opt"),
+           py::arg("optimizer"), py::arg("n_samples"), py::arg("niter_opt"),
            py::arg("output_file"), py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
