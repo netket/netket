@@ -61,7 +61,7 @@ class JsonOutputWriter {
    * @param time Optionally, the current simulation time which will be included
    * in the log.
    */
-  void WriteLog(int iteration, const json& observable_data,
+  void WriteLog(Index iteration, const json& observable_data,
                 nonstd::optional<double> time = nonstd::nullopt) {
     json data = observable_data;
     data["Iteration"] = iteration;
@@ -96,7 +96,7 @@ class JsonOutputWriter {
    * frequency.
    */
   template <class State>
-  void WriteState(int iteration, const State& state) {
+  void WriteState(Index iteration, const State& state) {
     if (save_every_ == 0) {
       return;
     }

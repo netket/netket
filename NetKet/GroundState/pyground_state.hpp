@@ -44,9 +44,29 @@ void AddGroundStateModule(py::module &m) {
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
            py::arg("save_every") = 50)
+      .def_property_readonly("psi", &VariationalMonteCarlo::GetPsi)
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
-      .def("run", &VariationalMonteCarlo::Run);
+      .def("run", &VariationalMonteCarlo::Run, py::arg("max_iter"),
+           py::arg("step_size") = 1, py::arg("store_params") = true)
+      .def("iter", &VariationalMonteCarlo::Iterate, py::arg("max_iter"),
+           py::arg("step_size") = 1, py::arg("store_params") = true);
+
+  py::class_<VmcState>(subm, "VmcState")
+      .def_readonly("current_step", &VmcState::current_step)
+      .def_readonly("acceptance", &VmcState::acceptance)
+      .def_readonly("observables", &VmcState::observables)
+      .def_readonly("params", &VmcState::parameters)
+      .def("__repr__", [](const VmcState &self) {
+        std::stringstream str;
+        str << "<VmcState: step=" << self.current_step << ">";
+        return str.str();
+      });
+
+  py::class_<VmcIterator>(subm, "VmcIterator")
+      .def("__iter__", [](VmcIterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
 
   py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
       .def(py::init<ImaginaryTimeDriver::Matrix &,
