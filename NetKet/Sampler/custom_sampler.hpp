@@ -30,7 +30,7 @@ namespace netket {
 
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
-class CustomSampler : public AbstractSampler<WfType> {
+class CustomSampler : public SeedableSampler<WfType> {
   WfType &psi_;
   const AbstractHilbert &hilbert_;
   LocalOperator move_operators_;
@@ -38,8 +38,6 @@ class CustomSampler : public AbstractSampler<WfType> {
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -67,17 +65,6 @@ class CustomSampler : public AbstractSampler<WfType> {
         hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
         nv_(hilbert_.Size()) {
-    Init(move_weights);
-  }
-
-  CustomSampler(WfType &psi, const LocalOperator &move_operators,
-                DistributedRandomEngine::ResultType seed,
-                const std::vector<double> &move_weights = {})
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        move_operators_(move_operators),
-        nv_(hilbert_.Size()),
-        rgen_(seed) {
     Init(move_weights);
   }
 
@@ -125,7 +112,7 @@ class CustomSampler : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_.Get());
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -142,11 +129,11 @@ class CustomSampler : public AbstractSampler<WfType> {
     for (int i = 0; i < nv_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
-      int op = disc_dist(rgen_.Get());
+      int op = disc_dist(this->GetRandomEngine());
 
       move_operators_.FindConn(op, v_, mel_, tochange_, newconfs_);
 
-      double p = distu(rgen_.Get());
+      double p = distu(this->GetRandomEngine());
       std::size_t exit_state = 0;
       double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
@@ -158,7 +145,7 @@ class CustomSampler : public AbstractSampler<WfType> {
           v_, tochange_[exit_state], newconfs_[exit_state], lt_)));
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
                           lt_);

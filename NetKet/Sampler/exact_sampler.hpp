@@ -27,15 +27,13 @@ namespace netket {
 
 // Exact sampling using heat bath, mostly for testing purposes on small systems
 template <class WfType>
-class ExactSampler : public AbstractSampler<WfType> {
+class ExactSampler : public SeedableSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -65,16 +63,6 @@ class ExactSampler : public AbstractSampler<WfType> {
     Init();
   }
 
-  explicit ExactSampler(WfType& psi, DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        rgen_(seed),
-        hilbert_index_(hilbert_),
-        dim_(hilbert_index_.NStates()) {
-    Init();
-  }
-
   void Init() {
     v_.resize(nv_);
 
@@ -97,7 +85,7 @@ class ExactSampler : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_.Get());
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -122,7 +110,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   }
 
   void Sweep() override {
-    int newstate = dist_(rgen_.Get());
+    int newstate = dist_(this->GetRandomEngine());
     v_ = hilbert_index_.NumberToState(newstate);
 
     accept_(0) += 1;

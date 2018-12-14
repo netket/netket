@@ -25,15 +25,13 @@ namespace netket {
 
 // Metropolis sampling generating local hoppings
 template <class WfType>
-class MetropolisHop : public AbstractSampler<WfType> {
+class MetropolisHop : public SeedableSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -56,14 +54,6 @@ class MetropolisHop : public AbstractSampler<WfType> {
  public:
   MetropolisHop(WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(hilbert_.GetGraph(), dmax);
-  }
-
-  MetropolisHop(WfType &psi, int dmax, DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        rgen_(seed) {
     Init(hilbert_.GetGraph(), dmax);
   }
 
@@ -106,7 +96,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_.Get());
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -125,7 +115,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < nv_; i++) {
-      int rcl = distcl(rgen_.Get());
+      int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -136,7 +126,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
       // picking a random state
       for (int k = 0; k < 2; k++) {
-        newstates[k] = diststate(rgen_.Get());
+        newstates[k] = diststate(this->GetRandomEngine());
         newconf[k] = localstates_[newstates[k]];
       }
 
@@ -146,7 +136,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
              std::abs(newconf[1] - v_(sj)) <
                  std::numeric_limits<double>::epsilon()) {
         for (int k = 0; k < 2; k++) {
-          newstates[k] = diststate(rgen_.Get());
+          newstates[k] = diststate(this->GetRandomEngine());
           newconf[k] = localstates_[newstates[k]];
         }
       }
@@ -164,7 +154,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
       }
 #endif
 
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
         hilbert_.UpdateConf(v_, tochange, newconf);

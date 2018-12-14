@@ -30,15 +30,13 @@ namespace netket {
 
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
-class CustomSamplerPt : public AbstractSampler<WfType> {
+class CustomSamplerPt : public SeedableSampler<WfType> {
   WfType& psi_;
   const AbstractHilbert& hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   // for each sampled temperature
@@ -71,19 +69,6 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
         hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
         nv_(hilbert_.Size()),
-        nrep_(nreplicas) {
-    Init(move_weights);
-  }
-
-  CustomSamplerPt(WfType& psi, const LocalOperator& move_operators,
-                  DistributedRandomEngine::ResultType seed,
-                  const std::vector<double>& move_weights = {},
-                  int nreplicas = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        move_operators_(move_operators),
-        nv_(hilbert_.Size()),
-        rgen_(seed),
         nrep_(nreplicas) {
     Init(move_weights);
   }
@@ -146,7 +131,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_.Get());
+        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -165,10 +150,10 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
     for (int i = 0; i < nv_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
-      int op = disc_dist(rgen_.Get());
+      int op = disc_dist(this->GetRandomEngine());
       move_operators_.FindConn(op, v_[rep], mel_, tochange_, newconfs_);
 
-      double p = distu(rgen_.Get());
+      double p = distu(this->GetRandomEngine());
       std::size_t exit_state = 0;
       double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
@@ -181,7 +166,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
                                        newconfs_[exit_state], lt_[rep])));
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
         psi_.UpdateLookup(v_[rep], tochange_[exit_state], newconfs_[exit_state],
                           lt_[rep]);
@@ -202,7 +187,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -212,7 +197,7 @@ class CustomSamplerPt : public AbstractSampler<WfType> {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

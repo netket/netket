@@ -31,6 +31,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
+sa.seed(1234)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)

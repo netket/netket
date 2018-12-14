@@ -41,5 +41,19 @@ class AbstractSampler {
   virtual ~AbstractSampler() {}
 };
 
+template <class WfType>
+class SeedableSampler : public AbstractSampler<WfType> {
+  DistributedRandomEngine engine_;
+
+ public:
+  void Seed(DistributedRandomEngine::ResultType base_seed) {
+    engine_.Seed(base_seed);
+    this->Reset(true);
+  }
+
+ protected:
+  default_random_engine &GetRandomEngine() { return engine_.Get(); }
+};
+
 }  // namespace netket
 #endif
