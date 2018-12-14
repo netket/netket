@@ -1,6 +1,7 @@
 # This files imports all tutorial examples to make them testable
 # by pytest
 
+
 def test_graph():
     import graph
 
