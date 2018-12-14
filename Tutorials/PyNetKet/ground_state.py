@@ -45,5 +45,4 @@ vmc = nk.gs.Vmc(
     diag_shift=0.1,
     method='Sr')
 
-vmc.run(filename_prefix="test", max_iter=2000, save_params_every=200)
-
+vmc.run(filename_prefix="test", max_iter=300, save_params_every=10)
