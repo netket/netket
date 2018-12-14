@@ -23,6 +23,8 @@ using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
 
+#include "pybind_support.hpp"
+
 #include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
 #include "GroundState/pyground_state.hpp"
