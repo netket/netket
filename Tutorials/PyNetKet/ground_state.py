@@ -42,8 +42,8 @@ vmc = nk.gs.Vmc(
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    niter_opt=300,
-    output_file='test',
     diag_shift=0.1,
     method='Sr')
-vmc.run()
+
+vmc.run(filename_prefix="test", max_iter=2000, save_params_every=200)
+

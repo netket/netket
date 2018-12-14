@@ -127,9 +127,6 @@ class VariationalMonteCarlo {
   int totalnodes_;
   int mynode_;
 
-  // This optional will contain a value iff the MPI rank is 0.
-  nonstd::optional<JsonOutputWriter> output_;
-
   AbstractOptimizer &opt_;
 
   std::vector<AbstractOperator *> obs_;
@@ -150,29 +147,26 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
-  VariationalMonteCarlo(const AbstractOperator &ham,
+  VariationalMonteCarlo(const AbstractOperator &hamiltonian,
                         AbstractSampler<AbstractMachine<GsType>> &sampler,
-                        AbstractOptimizer &opt, int nsamples, int niter_opt,
-                        std::string output_file, int discarded_samples = -1,
+                        AbstractOptimizer &optimizer, int nsamples,
+                        int discarded_samples = -1,
                         int discarded_samples_on_init = 0,
-                        std::string method = "Sr", double diagshift = 0.01,
-                        bool rescale_shift = false, bool use_iterative = false,
-                        bool use_cholesky = true, int save_every = 50)
-      : ham_(ham),
+                        const std::string &method = "Sr",
+                        double diag_shift = 0.01, bool rescale_shift = false,
+                        bool use_iterative = false, bool use_cholesky = true)
+      : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
-        opt_(opt),
+        opt_(optimizer),
         elocvar_(0.) {
-    Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
-         method, diagshift, rescale_shift, use_iterative, use_cholesky);
-
-    InitOutput(output_file, save_every);
+    Init(nsamples, discarded_samples, discarded_samples_on_init, method,
+         diag_shift, rescale_shift, use_iterative, use_cholesky);
   }
 
-  void Init(int nsamples, int niter_opt, int discarded_samples,
-            int discarded_samples_on_init, const std::string &method,
-            double diagshift, bool rescale_shift, bool use_iterative,
-            bool use_cholesky) {
+  void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
+            const std::string &method, double diagshift, bool rescale_shift,
+            bool use_iterative, bool use_cholesky) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -222,13 +216,6 @@ class VariationalMonteCarlo {
                   << " processes" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void InitOutput(std::string filebase, int freqbackup) {
-    if (mynode_ == 0) {
-      output_ =
-          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
-    }
   }
 
   void AddObservable(AbstractOperator &ob, const std::string &obname) {
@@ -353,9 +340,9 @@ class VariationalMonteCarlo {
     }
   }
 
-  VmcIterator Iterate(nonstd::optional<Index> max_iter, Index step_size = 1,
-                      bool store_params = true) {
-    assert(max_iter > 0);
+  VmcIterator Iterate(const nonstd::optional<Index> &max_iter,
+                      Index step_size = 1, bool store_params = true) {
+    assert(!max_iter.has_value() || max_iter.value() > 0);
     assert(step_size > 0);
 
     opt_.Reset();
@@ -365,11 +352,32 @@ class VariationalMonteCarlo {
     return VmcIterator(*this, step_size, max_iter, store_params);
   }
 
-  void Run(Index max_iter, Index step_size = 1, bool store_params = true) {
+  void Run(const std::string &filename_prefix, nonstd::optional<Index> max_iter,
+           Index step_size = 1, Index save_params_every = 50) {
     assert(max_iter > 0);
     assert(step_size > 0);
-    for (const auto &state : Iterate(max_iter, step_size, store_params)) {
-      PrintOutput(state.current_step);
+    assert(save_params_every > 0);
+
+    nonstd::optional<JsonOutputWriter> writer;
+    if (mynode_ == 0) {
+      writer.emplace(filename_prefix + ".log", filename_prefix + ".wf",
+                     save_params_every);
+    }
+
+    for (const auto &state : Iterate(max_iter, step_size, false)) {
+      // Note: This has to be called in all MPI processes, because converting
+      // the ObsManager to JSON performs a MPI reduction.
+      auto obs_data = json(obsmanager_);
+      obs_data["Acceptance"] = state.acceptance;
+
+      // writer.has_value() iff the MPI rank is 0, so the output is only
+      // written once
+      if (writer.has_value()) {
+        const Index i = state.current_step;
+        writer->WriteLog(i, obs_data);
+        writer->WriteState(i, psi_);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   }
 
@@ -449,20 +457,6 @@ class VariationalMonteCarlo {
     SendToAll(pars);
 
     psi_.SetParameters(pars);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void PrintOutput(Index i) {
-    // Note: This has to be called in all MPI processes, because converting
-    // the ObsManager to JSON performs a MPI reduction.
-    auto obs_data = json(obsmanager_);
-    obs_data["Acceptance"] = sampler_.Acceptance();
-
-    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
-                                // the output is only written once
-      output_->WriteLog(i, obs_data);
-      output_->WriteState(i, psi_);
-    }
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
