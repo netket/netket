@@ -39,64 +39,12 @@
 
 namespace netket {
 
-class VariationalMonteCarlo;
-
-struct VmcState {
-  Index current_step;
-  Eigen::VectorXd acceptance;
-  ObsManager observables;
-  nonstd::optional<Eigen::VectorXcd> parameters;
-};
-
-class VmcIterator {
- public:
-  // typedefs required for iterators
-  using iterator_category = std::input_iterator_tag;
-  using difference_type = Index;
-  using value_type = VmcState;
-  using pointer_type = VmcState *;
-  using reference_type = VmcState &;
-
- private:
-  VariationalMonteCarlo &vmc_;
-  Index step_size_;
-  nonstd::optional<Index> max_iter_;
-  bool store_params_;
-
-  Index cur_iter_;
-
- public:
-  VmcIterator(VariationalMonteCarlo &vmc, Index step_size,
-              nonstd::optional<Index> max_iter, bool store_params = true)
-      : vmc_(vmc),
-        step_size_(step_size),
-        max_iter_(std::move(max_iter)),
-        store_params_(store_params),
-        cur_iter_(0) {}
-
-  VmcState operator*() const;
-  VmcIterator &operator++();
-
-  // TODO(C++17): Replace with comparison to special Sentinel type, since C++17
-  // allows end() to return a different type from begin().
-  bool operator!=(const VmcIterator &) {
-    return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
-  }
-
-  bool operator==(const VmcIterator &other) { return !(*this != other); }
-
-  VmcIterator begin() const { return *this; }
-  VmcIterator end() const { return *this; }
-};
-
 // Variational Monte Carlo schemes to learn the ground state
 // Available methods:
 // 1) Stochastic reconfiguration optimizer
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
-  friend class VmcIterator;
-
   using GsType = Complex;
   using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, 1>;
@@ -147,6 +95,64 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
+  struct Step {
+    Index index;
+    Eigen::VectorXd acceptance;
+    ObsManager observables;
+    nonstd::optional<Eigen::VectorXcd> parameters;
+  };
+
+  class Iterator {
+   public:
+    // typedefs required for iterators
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = Index;
+    using value_type = Step;
+    using pointer_type = Step *;
+    using reference_type = Step &;
+
+   private:
+    VariationalMonteCarlo &vmc_;
+    Index step_size_;
+    nonstd::optional<Index> max_iter_;
+    bool store_params_;
+
+    Index cur_iter_;
+
+   public:
+    Iterator(VariationalMonteCarlo &vmc, Index step_size,
+             nonstd::optional<Index> max_iter, bool store_params = true)
+        : vmc_(vmc),
+          step_size_(step_size),
+          max_iter_(std::move(max_iter)),
+          store_params_(store_params),
+          cur_iter_(0) {}
+
+    Step operator*() const {
+      using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
+      auto params = store_params_ ? OptionalVec(vmc_.GetPsi().GetParameters())
+                                  : nonstd::nullopt;
+      return {cur_iter_, vmc_.sampler_.Acceptance(), vmc_.obsmanager_,
+              std::move(params)};
+    }
+
+    Iterator &operator++() {
+      vmc_.Advance(step_size_);
+      cur_iter_ += step_size_;
+      return *this;
+    }
+
+    // TODO(C++17): Replace with comparison to special Sentinel type, since
+    // C++17 allows end() to return a different type from begin().
+    bool operator!=(const Iterator &) {
+      return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
+    }
+    bool operator==(const Iterator &other) { return !(*this != other); }
+
+    Iterator begin() const { return *this; }
+    Iterator end() const { return *this; }
+  };
+
   VariationalMonteCarlo(const AbstractOperator &hamiltonian,
                         AbstractSampler<AbstractMachine<GsType>> &sampler,
                         AbstractOptimizer &optimizer, int nsamples,
@@ -340,8 +346,8 @@ class VariationalMonteCarlo {
     }
   }
 
-  VmcIterator Iterate(const nonstd::optional<Index> &max_iter,
-                      Index step_size = 1, bool store_params = true) {
+  Iterator Iterate(const nonstd::optional<Index> &max_iter, Index step_size = 1,
+                   bool store_params = true) {
     assert(!max_iter.has_value() || max_iter.value() > 0);
     assert(step_size > 0);
 
@@ -349,7 +355,7 @@ class VariationalMonteCarlo {
     InitSweeps();
 
     Advance(step_size);
-    return VmcIterator(*this, step_size, max_iter, store_params);
+    return Iterator(*this, step_size, max_iter, store_params);
   }
 
   void Run(const std::string &filename_prefix, nonstd::optional<Index> max_iter,
@@ -373,7 +379,7 @@ class VariationalMonteCarlo {
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
       if (writer.has_value()) {
-        const Index i = state.current_step;
+        const Index i = state.index;
         writer->WriteLog(i, obs_data);
         writer->WriteState(i, psi_);
       }
@@ -471,20 +477,6 @@ class VariationalMonteCarlo {
 
   AbstractMachine<Complex> &GetPsi() { return psi_; }
 };
-
-VmcIterator &VmcIterator::operator++() {
-  vmc_.Advance(step_size_);
-  cur_iter_ += step_size_;
-  return *this;
-}
-
-VmcState VmcIterator::operator*() const {
-  using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
-  auto params = store_params_ ? OptionalVec(vmc_.GetPsi().GetParameters())
-                              : nonstd::nullopt;
-  return VmcState{cur_iter_, vmc_.sampler_.Acceptance(), vmc_.obsmanager_,
-                  std::move(params)};
-}
 
 }  // namespace netket
 
