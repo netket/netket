@@ -41,6 +41,14 @@ void SendToAll(std::vector<int> &value, int root = 0,
                const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_INT, root, comm);
 }
+void SendToAll(std::vector<unsigned int> &value, int root = 0,
+               const MPI_Comm comm = MPI_COMM_WORLD) {
+  MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED, root, comm);
+}
+void SendToAll(std::vector<unsigned long> &value, int root = 0,
+               const MPI_Comm comm = MPI_COMM_WORLD) {
+  MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED_LONG, root, comm);
+}
 void SendToAll(std::vector<double> &value, int root = 0,
                const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_DOUBLE, root, comm);

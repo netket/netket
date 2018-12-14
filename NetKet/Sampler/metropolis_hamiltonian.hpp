@@ -36,7 +36,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   // number of visible units
   const int nv_;
 
-  netket::default_random_engine rgen_;
+  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -69,6 +69,16 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     Init();
   }
 
+  MetropolisHamiltonian(WfType &psi, H &hamiltonian,
+                        DistributedRandomEngine::ResultType seed)
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        hamiltonian_(hamiltonian),
+        nv_(hilbert_.Size()),
+        rgen_(seed) {
+    Init();
+  }
+
   void Init() {
     v_.resize(nv_);
 
@@ -84,31 +94,14 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Hamiltonian Metropolis sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_.Get());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -127,7 +120,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
       std::uniform_real_distribution<double> distu;
 
       // picking a random state to transit to
-      int si = distrs(rgen_);
+      int si = distrs(rgen_.Get());
 
       // Inverse transition
       v1_ = v_;
@@ -151,7 +144,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_)) {
+      if (ratio > distu(rgen_.Get())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;
