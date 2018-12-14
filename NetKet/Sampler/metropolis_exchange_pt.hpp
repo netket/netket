@@ -27,7 +27,7 @@ namespace netket {
 // Metropolis sampling generating local exchanges
 // Parallel tempering is also used
 template <class WfType>
-class MetropolisExchangePt : public SeedableSampler<WfType> {
+class MetropolisExchangePt: public AbstractSampler<WfType> {
   WfType &psi_;
   const AbstractHilbert &hilbert_;
 

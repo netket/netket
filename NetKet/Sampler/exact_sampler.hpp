@@ -27,7 +27,7 @@ namespace netket {
 
 // Exact sampling using heat bath, mostly for testing purposes on small systems
 template <class WfType>
-class ExactSampler : public SeedableSampler<WfType> {
+class ExactSampler: public AbstractSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;

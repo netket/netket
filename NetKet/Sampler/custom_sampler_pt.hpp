@@ -30,7 +30,7 @@ namespace netket {
 
 // Metropolis sampling using custom moves provided by user
 template <class WfType>
-class CustomSamplerPt : public SeedableSampler<WfType> {
+class CustomSamplerPt: public AbstractSampler<WfType> {
   WfType& psi_;
   const AbstractHilbert& hilbert_;
   LocalOperator move_operators_;
