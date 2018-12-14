@@ -41,7 +41,7 @@ namespace netket {
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
-  using GsType = std::complex<double>;
+  using GsType = Complex;
 
   using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, 1>;
@@ -54,7 +54,7 @@ class VariationalMonteCarlo {
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   Eigen::VectorXcd elocs_;
   MatrixT Ok_;
@@ -91,7 +91,7 @@ class VariationalMonteCarlo {
   int ndiscardedsamples_;
   int niter_opt_;
 
-  std::complex<double> elocmean_;
+  Complex elocmean_;
   double elocvar_;
   int npar_;
 
@@ -252,7 +252,7 @@ class VariationalMonteCarlo {
     grad_ /= double(totalnodes_ * nsamp);
   }
 
-  std::complex<double> Eloc(const Eigen::VectorXd &v) {
+  Complex Eloc(const Eigen::VectorXd &v) {
     ham_.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -261,7 +261,7 @@ class VariationalMonteCarlo {
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
-    std::complex<double> eloc = 0;
+    Complex eloc = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
       eloc += mel_[i] * std::exp(logvaldiffs(i));
@@ -279,7 +279,7 @@ class VariationalMonteCarlo {
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
-    std::complex<double> obval = 0;
+    Complex obval = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
       obval += mel_[i] * std::exp(logvaldiffs(i));
@@ -346,7 +346,7 @@ class VariationalMonteCarlo {
         grad_ = deltaP;
 
         if (sr_rescale_shift_) {
-          std::complex<double> nor = (deltaP.dot(S * deltaP));
+          Complex nor = (deltaP.dot(S * deltaP));
           grad_ /= std::sqrt(nor.real());
         }
 

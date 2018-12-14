@@ -15,6 +15,8 @@
 #ifndef NETKET_HEADER_HPP
 #define NETKET_HEADER_HPP
 
+#include "common_types.hpp"
+
 #include "Graph/graph.hpp"
 #include "GroundState/ground_state.hpp"
 #include "Headers/welcome.hpp"

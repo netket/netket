@@ -183,9 +183,9 @@ TEST_CASE("Integrators approximately conserve norm when propagating Schroedinger
     using State = Eigen::VectorXcd;
 
     const double sqrt2 = std::sqrt(2.);
-    const std::complex<double> im(0, 1);
+    const Complex im(0, 1);
 
-    const std::complex<double> g(1/sqrt2, 1/sqrt2);
+    const Complex g(1/sqrt2, 1/sqrt2);
 
     const double delta = 1.;
 
@@ -244,12 +244,12 @@ namespace odeint = boost::numeric::odeint;
 TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]")
 {
     using State = Eigen::VectorXcd;
-    using OdeintState = std::vector<std::complex<double>>;
+    using OdeintState = std::vector<Complex>;
 
     const double sqrt2 = std::sqrt(2.);
-    const std::complex<double> im(0, 1);
+    const Complex im(0, 1);
 
-    const std::complex<double> g(1/sqrt2, 1/sqrt2);
+    const Complex g(1/sqrt2, 1/sqrt2);
     const auto gc = std::conj(g);
 
     const double delta = 1.;

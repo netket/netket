@@ -42,7 +42,7 @@ TEST_CASE("observables produce elements in the hilbert space", "[observable]") {
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -81,7 +81,7 @@ TEST_CASE("observables do not have duplicate newconfs", "[observable]") {
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -121,7 +121,7 @@ TEST_CASE("observables are hermitean", "[observable]") {
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
