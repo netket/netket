@@ -31,8 +31,9 @@ namespace netket {
 
 void AddGroundStateModule(py::module &m) {
   auto subm = m.def_submodule("gs");
+  auto vmc = subm.def_submodule("vmc");
 
-  py::class_<VariationalMonteCarlo>(subm, "Vmc")
+  py::class_<VariationalMonteCarlo>(vmc, "Vmc")
       .def(py::init<const AbstractOperator &, SamplerType &,
                     AbstractOptimizer &, int, int, int, const std::string &,
                     double, bool, bool, bool>(),
@@ -52,32 +53,54 @@ void AddGroundStateModule(py::module &m) {
       .def("iter", &VariationalMonteCarlo::Iterate, py::arg("max_iter"),
            py::arg("step_size") = 1, py::arg("store_params") = true);
 
-  py::class_<VmcState>(subm, "VmcState")
-      .def_readonly("current_step", &VmcState::current_step)
-      .def_readonly("acceptance", &VmcState::acceptance)
-      .def_readonly("observables", &VmcState::observables)
-      .def_readonly("params", &VmcState::parameters)
-      .def("__repr__", [](const VmcState &self) {
+  py::class_<VariationalMonteCarlo::Step>(vmc, "Step")
+      .def_readonly("current_step", &VariationalMonteCarlo::Step::index)
+      .def_readonly("acceptance", &VariationalMonteCarlo::Step::acceptance)
+      .def_readonly("observables", &VariationalMonteCarlo::Step::observables)
+      .def_readonly("params", &VariationalMonteCarlo::Step::parameters)
+      .def("__repr__", [](const VariationalMonteCarlo::Step &self) {
         std::stringstream str;
-        str << "<VmcState: step=" << self.current_step << ">";
+        str << "<VmcStep: step=" << self.index << ">";
         return str.str();
       });
 
-  py::class_<VmcIterator>(subm, "VmcIterator")
-      .def("__iter__", [](VmcIterator &self) {
+  py::class_<VariationalMonteCarlo::Iterator>(vmc, "Iterator")
+      .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());
       });
 
-  py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
-      .def(py::init<ImaginaryTimeDriver::Matrix &,
-                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &, double,
-                    double, double>(),
-           py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
-           py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
-      .def("add_observable", &ImaginaryTimeDriver::AddObservable,
+  auto excact = subm.def_submodule("exact");
+
+  py::class_<ImagTimePropagation>(excact, "ImagTimePropagation")
+      .def(py::init<ImagTimePropagation::Matrix &,
+                    ImagTimePropagation::Stepper &, double,
+                    ImagTimePropagation::StateVector>(),
+           py::arg("hamiltonian"), py::arg("stepper"), py::arg("t0"),
+           py::arg("initial_state"))
+      .def("add_observable", &ImagTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
-      .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
+      .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
+           py::arg("max_steps"),
+           py::arg("store_state") = true)
+      .def_property("t", &ImagTimePropagation::GetTime,
+                    &ImagTimePropagation::SetTime);
+
+  py::class_<ImagTimePropagation::Step>(excact, "ImagTimeStep")
+      .def_readonly("current_step", &ImagTimePropagation::Step::index)
+      .def_readonly("t", &ImagTimePropagation::Step::t)
+      .def_readonly("observables", &ImagTimePropagation::Step::observables)
+      .def_readonly("state", &ImagTimePropagation::Step::state)
+      .def("__repr__", [](const ImagTimePropagation::Step &self) {
+        std::stringstream str;
+        str << "<ImagTimeStep: step=" << self.index << ", it=" << self.t << ">";
+        return str.str();
+      });
+
+  py::class_<ImagTimePropagation::Iterator>(excact, "ImagTimeIterator")
+      .def("__iter__", [](ImagTimePropagation::Iterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
 
   py::class_<eddetail::result_t>(subm, "EdResult")
       .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)
