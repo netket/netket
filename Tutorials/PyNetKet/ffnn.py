@@ -61,7 +61,6 @@ gs = nk.gs.Vmc(
     sampler=sa,
     optimizer=op,
     nsamples=1000,
-    niter_opt=300,
-    output_file='test',
     diag_shift=0.01)
-gs.run()
+
+gs.run(filename_prefix="ffnn_test", max_iter=300, save_params_every=10)
