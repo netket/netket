@@ -39,7 +39,7 @@ class CustomSampler : public AbstractSampler<WfType> {
   // number of visible units
   const int nv_;
 
-  netket::default_random_engine rgen_;
+  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -61,16 +61,30 @@ class CustomSampler : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  explicit CustomSampler(
-      WfType &psi, const LocalOperator &move_operators,
-      std::vector<double> move_weights = std::vector<double>())
+  CustomSampler(WfType &psi, const LocalOperator &move_operators,
+                const std::vector<double> &move_weights = {})
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         move_operators_(move_operators),
         nv_(hilbert_.Size()) {
+    Init(move_weights);
+  }
+
+  CustomSampler(WfType &psi, const LocalOperator &move_operators,
+                DistributedRandomEngine::ResultType seed,
+                const std::vector<double> &move_weights = {})
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        move_operators_(move_operators),
+        nv_(hilbert_.Size()),
+        rgen_(seed) {
+    Init(move_weights);
+  }
+
+  void Init(const std::vector<double> &move_weights) {
     CheckMoveOperators(move_operators_);
 
-    if (hilbert_.Size() != move_operators.GetHilbert().Size()) {
+    if (hilbert_.Size() != move_operators_.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -79,7 +93,7 @@ class CustomSampler : public AbstractSampler<WfType> {
     if (move_weights.size()) {
       operatorsweights_ = move_weights;
 
-      if (operatorsweights_.size() != move_operators.Size()) {
+      if (operatorsweights_.size() != move_operators_.Size()) {
         throw InvalidInputError(
             "The custom sampler definition is inconsistent (between "
             "MoveWeights and MoveOperators sizes)");
@@ -88,10 +102,6 @@ class CustomSampler : public AbstractSampler<WfType> {
       operatorsweights_.resize(move_operators_.Size(), 1.0);
     }
 
-    Init();
-  }
-
-  void Init() {
     v_.resize(nv_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -108,31 +118,14 @@ class CustomSampler : public AbstractSampler<WfType> {
     nstates_ = hilbert_.LocalSize();
     localstates_ = hilbert_.LocalStates();
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Custom Metropolis sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_.Get());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -149,11 +142,11 @@ class CustomSampler : public AbstractSampler<WfType> {
     for (int i = 0; i < nv_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
-      int op = disc_dist(rgen_);
+      int op = disc_dist(rgen_.Get());
 
       move_operators_.FindConn(op, v_, mel_, tochange_, newconfs_);
 
-      double p = distu(rgen_);
+      double p = distu(rgen_.Get());
       std::size_t exit_state = 0;
       double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
@@ -165,7 +158,7 @@ class CustomSampler : public AbstractSampler<WfType> {
           v_, tochange_[exit_state], newconfs_[exit_state], lt_)));
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_)) {
+      if (ratio > distu(rgen_.Get())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
                           lt_);

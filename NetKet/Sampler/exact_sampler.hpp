@@ -35,7 +35,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   // number of visible units
   const int nv_;
 
-  netket::default_random_engine rgen_;
+  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -65,6 +65,16 @@ class ExactSampler : public AbstractSampler<WfType> {
     Init();
   }
 
+  explicit ExactSampler(WfType& psi, DistributedRandomEngine::ResultType seed)
+      : psi_(psi),
+        hilbert_(psi.GetHilbert()),
+        nv_(hilbert_.Size()),
+        rgen_(seed),
+        hilbert_index_(hilbert_),
+        dim_(hilbert_index_.NStates()) {
+    Init();
+  }
+
   void Init() {
     v_.resize(nv_);
 
@@ -80,31 +90,14 @@ class ExactSampler : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Exact sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, rgen_.Get());
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -129,7 +122,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   }
 
   void Sweep() override {
-    int newstate = dist_(rgen_);
+    int newstate = dist_(rgen_.Get());
     v_ = hilbert_index_.NumberToState(newstate);
 
     accept_(0) += 1;

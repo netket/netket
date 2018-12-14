@@ -40,6 +40,82 @@ void RandomGaussian(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> &par,
         std::complex<double>(distribution(generator), distribution(generator));
   }
 }
+
+/**
+ * Random engine that supports deterministic seeding but uses a different
+ * derived seed for every MPI process.
+ */
+class DistributedRandomEngine {
+ public:
+  using ResultType = default_random_engine::result_type;
+
+  /**
+   * Construct the engines with a non-deterministic base seed (obtained from
+   * std::random_device).
+   */
+  DistributedRandomEngine() : engine_(GetDerivedSeed()) {}
+
+  /**
+   * Construct the engines with the given base_seed.
+   */
+  explicit DistributedRandomEngine(ResultType base_seed)
+      : engine_(GetDerivedSeed(base_seed)) {}
+
+  /**
+   * Returns the underlying random engine.
+   */
+  default_random_engine &Get() { return engine_; }
+
+  /**
+   * Resets the seeds of the random engines of all MPI processes from the given
+   * base_seed.
+   */
+  void Seed(ResultType base_seed) { engine_.seed(GetDerivedSeed(base_seed)); }
+
+ private:
+  default_random_engine engine_;
+
+  /**
+   * Generate seeds for all MPI processes pseudo-randomly from a
+   * non-deterministic base seed (which is obtained from std::random_device).
+   */
+  ResultType GetDerivedSeed() {
+    std::random_device rd;
+    return GetDerivedSeed(rd());
+  }
+
+  /**
+   * Generate seeds for all MPI processes pseudo-randomly from the base seed.
+   * @param baseseed Seed used to initialize the RNG which generates the seeds
+   *    of the RNGs for all MPI processes.
+   */
+  ResultType GetDerivedSeed(ResultType base_seed) {
+    int rank_s;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank_s);
+    int size_s;
+    MPI_Comm_size(MPI_COMM_WORLD, &size_s);
+    const auto rank = static_cast<size_t>(rank_s);
+    const auto size = static_cast<size_t>(size_s);
+
+    std::vector<ResultType> seeds;
+    seeds.resize(size);
+
+    default_random_engine seed_engine(base_seed);
+    std::uniform_int_distribution<ResultType> dist;
+
+    if (rank == 0) {
+      for (std::size_t i = 0; i < size; ++i) {
+        seeds[i] = dist(seed_engine);
+      }
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    SendToAll(seeds);
+
+    return seeds[rank];
+  }
+};
+
 }  // namespace netket
 
 #endif
