@@ -109,9 +109,9 @@ class ImagTimePropagation {
 
    public:
     Iterator(ImagTimePropagation& driver, double dt,
-             nonstd::optional<Index> max_iter, bool store_state)
+             nonstd::optional<Index> max_steps, bool store_state)
         : driver_(driver),
-          max_iter_(std::move(max_iter)),
+          max_iter_(std::move(max_steps)),
           dt_(dt),
           store_state_(store_state),
           cur_iter_(0) {}
@@ -132,6 +132,7 @@ class ImagTimePropagation {
     bool operator!=(const Iterator&) {
       return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
     }
+    // pybind11::make_iterator requires operator==
     bool operator==(const Iterator& other) { return !(*this != other); }
 
     Iterator begin() const { return *this; }
