@@ -15,14 +15,17 @@
 #ifndef NETKET_VARIATIONALMONTECARLO_HPP
 #define NETKET_VARIATIONALMONTECARLO_HPP
 
-#include <Eigen/Dense>
-#include <Eigen/IterativeLinearSolvers>
 #include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include <Eigen/Dense>
+#include <Eigen/IterativeLinearSolvers>
+#include <nonstd/optional.hpp>
+
 #include "Machine/machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
@@ -31,9 +34,60 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
+#include "common_types.hpp"
 #include "matrix_replacement.hpp"
 
 namespace netket {
+
+class VariationalMonteCarlo;
+
+struct VmcState {
+  Index current_step;
+  Eigen::VectorXd acceptance;
+  ObsManager observables;
+  nonstd::optional<Eigen::VectorXcd> parameters;
+};
+
+class VmcIterator {
+ public:
+  // typedefs required for iterators
+  using iterator_category = std::input_iterator_tag;
+  using difference_type = Index;
+  using value_type = VmcState;
+  using pointer_type = VmcState *;
+  using reference_type = VmcState &;
+
+ private:
+  VariationalMonteCarlo &vmc_;
+  Index step_size_;
+  nonstd::optional<Index> max_iter_;
+  bool store_params_;
+
+  Index cur_iter_;
+
+ public:
+  VmcIterator(VariationalMonteCarlo &vmc, Index step_size,
+              nonstd::optional<Index> max_iter, bool store_params = true)
+      : vmc_(vmc),
+        step_size_(step_size),
+        max_iter_(std::move(max_iter)),
+        store_params_(store_params),
+        cur_iter_(0) {}
+
+  VmcState operator*() const;
+  VmcIterator &operator++();
+
+  // TODO(C++17): Replace with comparison to special Sentinel type, since C++17
+  // allows end() to return a different type from begin().
+  bool operator!=(const VmcIterator &) {
+    return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
+  }
+
+  bool operator==(const VmcIterator &other) { return !(*this != other); }
+
+  VmcIterator begin() const { return *this; }
+  VmcIterator end() const { return *this; }
+};
 
 // Variational Monte Carlo schemes to learn the ground state
 // Available methods:
@@ -41,8 +95,9 @@ namespace netket {
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
-  using GsType = Complex;
+  friend class VmcIterator;
 
+  using GsType = Complex;
   using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, 1>;
   using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
@@ -89,7 +144,6 @@ class VariationalMonteCarlo {
   int nsamples_node_;
   int ninitsamples_;
   int ndiscardedsamples_;
-  int niter_opt_;
 
   Complex elocmean_;
   double elocvar_;
@@ -142,8 +196,6 @@ class VariationalMonteCarlo {
     } else {
       ndiscardedsamples_ = discarded_samples;
     }
-
-    niter_opt_ = niter_opt;
 
     if (method == "Gd") {
       dosr_ = false;
@@ -292,19 +344,32 @@ class VariationalMonteCarlo {
 
   double Elocvar() { return elocvar_; }
 
-  void Run() {
-    opt_.Reset();
+  void Advance(Index steps = 1) {
+    assert(steps > 0);
+    for (Index i = 0; i < steps; ++i) {
+      Sample();
+      Gradient();
+      UpdateParameters();
+    }
+  }
 
+  VmcIterator Iterate(nonstd::optional<Index> max_iter, Index step_size = 1,
+                      bool store_params = true) {
+    assert(max_iter > 0);
+    assert(step_size > 0);
+
+    opt_.Reset();
     InitSweeps();
 
-    for (int i = 0; i < niter_opt_; i++) {
-      Sample();
+    Advance(step_size);
+    return VmcIterator(*this, step_size, max_iter, store_params);
+  }
 
-      Gradient();
-
-      UpdateParameters();
-
-      PrintOutput(i);
+  void Run(Index max_iter, Index step_size = 1, bool store_params = true) {
+    assert(max_iter > 0);
+    assert(step_size > 0);
+    for (const auto &state : Iterate(max_iter, step_size, store_params)) {
+      PrintOutput(state.current_step);
     }
   }
 
@@ -387,7 +452,7 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void PrintOutput(int i) {
+  void PrintOutput(Index i) {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
@@ -409,7 +474,23 @@ class VariationalMonteCarlo {
     dosr_ = true;
     use_cholesky_ = use_cholesky;
   }
+
+  AbstractMachine<Complex> &GetPsi() { return psi_; }
 };
+
+VmcIterator &VmcIterator::operator++() {
+  vmc_.Advance(step_size_);
+  cur_iter_ += step_size_;
+  return *this;
+}
+
+VmcState VmcIterator::operator*() const {
+  using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
+  auto params = store_params_ ? OptionalVec(vmc_.GetPsi().GetParameters())
+                              : nonstd::nullopt;
+  return VmcState{cur_iter_, vmc_.sampler_.Acceptance(), vmc_.obsmanager_,
+                  std::move(params)};
+}
 
 }  // namespace netket
 
