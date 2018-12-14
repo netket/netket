@@ -12,37 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from __future__ import print_function
+import json
+import numpy as np
+import math as m
 import netket as nk
+from load_data import load
+from mpi4py import MPI
+
+N=10
+path_to_samples = 'ising1d_train_samples.txt'
+path_to_bases   = 'ising1d_train_bases.txt'
+
+# Load the data
+U,sites,training_samples,training_bases = load(N,path_to_samples,path_to_bases)
 
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=20, n_dim=1)
+g = nk.graph.Hypercube(length=N, n_dim=1,pbc=False)
 
 # Hilbert space of spins from given graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
-
-# Hamiltonian
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
+hi = nk.hilbert.Qubit(graph=g)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.01)
+ma.init_random_parameters(seed=1234, sigma=0.001)
 
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
-sa.seed(1234)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.AdaDelta()
+
+ha = nk.operator.Ising(h=1.0, hilbert=hi) 
 
 # Variational Monte Carlo
-vmc = nk.gs.Vmc(
-    hamiltonian=ha,
+qst = nk.unsupervised.Qsr(
     sampler=sa,
     optimizer=op,
-    n_samples=1000,
-    niter_opt=300,
-    output_file='test',
-    diag_shift=0.1,
-    method='Sr')
-vmc.run()
+    batch_size=1000,
+    n_samples=10000,
+    niter_opt=10000,
+    rotations=U,
+    sites=sites,
+    output_file = "output",
+    samples=training_samples,
+    bases=training_bases)
+
+qst.add_observable(ha,"Energy")
+
+qst.run()
+

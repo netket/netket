@@ -27,15 +27,13 @@ namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
 template <class WfType>
-class MetropolisLocal : public AbstractSampler<WfType> {
+class MetropolisLocal: public AbstractSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
-
-  netket::default_random_engine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -76,31 +74,14 @@ class MetropolisLocal : public AbstractSampler<WfType> {
     nstates_ = hilbert_.LocalSize();
     localstates_ = hilbert_.LocalStates();
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Local Metropolis sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
-  void Reset(bool initrandom = false) override {
+  void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -119,18 +100,18 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
     for (int i = 0; i < nv_; i++) {
       // picking a random site to be changed
-      int si = distrs(rgen_);
+      int si = distrs(this->GetRandomEngine());
       assert(si < nv_);
       tochange[0] = si;
 
       // picking a random state
-      int newstate = diststate(rgen_);
+      int newstate = diststate(this->GetRandomEngine());
       newconf[0] = localstates_[newstate];
 
       // make sure that the new state is not equal to the current one
       while (std::abs(newconf[0] - v_(si)) <
              std::numeric_limits<double>::epsilon()) {
-        newstate = diststate(rgen_);
+        newstate = diststate(this->GetRandomEngine());
         newconf[0] = localstates_[newstate];
       }
 
@@ -148,7 +129,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_)) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
         hilbert_.UpdateConf(v_, tochange, newconf);
