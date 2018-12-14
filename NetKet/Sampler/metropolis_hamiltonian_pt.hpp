@@ -26,7 +26,7 @@ namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
-class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
+class MetropolisHamiltonianPt : public SeedableSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
@@ -38,8 +38,6 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   const int nrep_;
   std::vector<double> beta_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   std::vector<Eigen::VectorXd> v_;
@@ -72,16 +70,6 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     Init();
   }
 
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep,
-                          DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
-        nrep_(nrep),
-        rgen_(seed) {
-    Init();
-  }
 
   void Init() {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -118,7 +106,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_.Get());
+        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -140,7 +128,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
       std::uniform_real_distribution<double> distu(0, 1);
 
       // picking a random state to transit to
-      int si = distrs(rgen_.Get());
+      int si = distrs(this->GetRandomEngine());
 
       // Inverse transition
       v1_ = v_[rep];
@@ -166,7 +154,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
         psi_.UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
         v_[rep] = v1_;
@@ -196,7 +184,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -206,7 +194,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

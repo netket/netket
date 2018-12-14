@@ -27,15 +27,13 @@ namespace netket {
 // Metropolis sampling generating local changes
 // Parallel tempering is also used
 template <class WfType>
-class MetropolisLocalPt : public AbstractSampler<WfType> {
+class MetropolisLocalPt : public SeedableSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   // for each sampled temperature
@@ -66,16 +64,6 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(nreplicas) {
-    Init();
-  }
-
-  MetropolisLocalPt(WfType& psi, int nreplicas,
-                    DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        rgen_(seed),
         nrep_(nreplicas) {
     Init();
   }
@@ -116,7 +104,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_.Get());
+        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -139,18 +127,18 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
 
     for (int i = 0; i < nv_; i++) {
       // picking a random site to be changed
-      int si = distrs(rgen_.Get());
+      int si = distrs(this->GetRandomEngine());
       assert(si < nv_);
       tochange[0] = si;
 
       // picking a random state
-      int newstate = diststate(rgen_.Get());
+      int newstate = diststate(this->GetRandomEngine());
       newconf[0] = localstates_[newstate];
 
       // make sure that the new state is not equal to the current one
       while (std::abs(newconf[0] - v_[rep](si)) <
              std::numeric_limits<double>::epsilon()) {
-        newstate = diststate(rgen_.Get());
+        newstate = diststate(this->GetRandomEngine());
         newconf[0] = localstates_[newstate];
       }
 
@@ -168,7 +156,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
       }
 #endif
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
 
         psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
@@ -199,7 +187,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -209,7 +197,7 @@ class MetropolisLocalPt : public AbstractSampler<WfType> {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_.Get())) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

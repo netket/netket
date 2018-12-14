@@ -26,15 +26,13 @@ namespace netket {
 
 // Metropolis sampling generating local exchanges
 template <class WfType>
-class MetropolisExchange : public AbstractSampler<WfType> {
+class MetropolisExchange : public SeedableSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -54,15 +52,6 @@ class MetropolisExchange : public AbstractSampler<WfType> {
  public:
   MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
-  }
-
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi,
-                     DistributedRandomEngine::ResultType seed, int dmax = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        rgen_(seed) {
     Init(graph, dmax);
   }
 
@@ -103,7 +92,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, rgen_.Get());
+        hilbert_.RandomVals(v_, this->GetRandomEngine());
       }
     }
 
@@ -121,7 +110,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
     std::vector<double> newconf(2);
 
     for (int i = 0; i < nv_; i++) {
-      int rcl = distcl(rgen_.Get());
+      int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -136,7 +125,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
         double ratio =
             std::norm(std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_)));
 
-        if (ratio > distu(rgen_.Get())) {
+        if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;
           psi_.UpdateLookup(v_, tochange, newconf, lt_);
           hilbert_.UpdateConf(v_, tochange, newconf);

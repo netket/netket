@@ -55,127 +55,97 @@ namespace netket {
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  using Seed = DistributedRandomEngine::ResultType;
-
   py::class_<SamplerType>(subm, "Sampler") ADDSAMPLERMETHODS(SamplerType);
+
+  using SeedableSamplerType = SeedableSampler<MachineType>;
+  py::class_<SeedableSamplerType, SamplerType>(subm, "SeedableSampler")
+      .def("seed", &SeedableSamplerType::Seed, py::arg("base_seed"));
 
   {
     using DerSampler = MetropolisLocal<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocal")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisLocal")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
-             py::arg("machine"))
-        .def(py::init<MachineType &, Seed>(), py::keep_alive<1, 2>(),
-             py::arg("machine"), py::arg("seed")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisLocalPt<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocalPt")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisLocalPt")
         .def(py::init<MachineType &, int>(), py::keep_alive<1, 2>(),
              py::arg("machine"), py::arg("n_replicas") = 1)
-        .def(py::init<MachineType &, int, Seed>(), py::keep_alive<1, 2>(),
-             py::arg("machine"), py::arg("n_replicas"), py::arg("seed"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisHop<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisHop")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisHop")
         .def(py::init<MachineType &, int>(), py::keep_alive<1, 3>(),
              py::arg("machine"), py::arg("d_max") = 1)
-        .def(py::init<MachineType &, int, Seed>(), py::keep_alive<1, 3>(),
-             py::arg("machine"), py::arg("d_max"), py::arg("seed"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisHamiltonian<MachineType, AbstractOperator>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonian")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisHamiltonian")
         .def(py::init<MachineType &, AbstractOperator &>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-             py::arg("hamiltonian"))
-        .def(py::init<MachineType &, AbstractOperator &, Seed>(),
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-             py::arg("hamiltonian"), py::arg("seed"))
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("hamiltonian")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisHamiltonianPt<MachineType, AbstractOperator>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonianPt")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisHamiltonianPt")
         .def(py::init<MachineType &, AbstractOperator &, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
              py::arg("hamiltonian"), py::arg("n_replicas"))
-        .def(py::init<MachineType &, AbstractOperator &, int, Seed>(),
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-             py::arg("hamiltonian"), py::arg("n_replicas"), py::arg("seed"))
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisExchange<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisExchange")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisExchange")
         .def(py::init<const AbstractGraph &, MachineType &, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max") = 1)
-        .def(py::init<const AbstractGraph &, MachineType &, Seed, int>(),
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-             py::arg("machine"), py::arg("seed"), py::arg("d_max") = 1)
             ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = MetropolisExchangePt<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisExchangePt")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "MetropolisExchangePt")
         .def(py::init<const AbstractGraph &, MachineType &, int, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max") = 1,
-             py::arg("n_replicas") = 1)
-        .def(py::init<const AbstractGraph &, MachineType &, Seed, int, int>(),
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-             py::arg("machine"), py::arg("seed"), py::arg("d_max") = 1,
              py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = ExactSampler<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "ExactSampler")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "ExactSampler")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
-             py::arg("machine"))
-        .def(py::init<MachineType &, Seed>(), py::keep_alive<1, 2>(),
-             py::arg("machine"), py::arg("seed")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = CustomSampler<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "CustomSampler")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "CustomSampler")
         .def(py::init<MachineType &, const LocalOperator &,
                       const std::vector<double> &>(),
              py::keep_alive<1, 2>(), py::arg("machine"),
              py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>())
-        .def(py::init<MachineType &, const LocalOperator &, Seed,
-                      const std::vector<double> &>(),
-             py::keep_alive<1, 2>(), py::arg("machine"),
-             py::arg("move_operators"), py::arg("seed"),
-             py::arg("move_weights")) ADDSAMPLERMETHODS(DerSampler);
+            ADDSAMPLERMETHODS(DerSampler);
   }
 
   {
     using DerSampler = CustomSamplerPt<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "CustomSamplerPt")
+    py::class_<DerSampler, SeedableSamplerType>(subm, "CustomSamplerPt")
         .def(py::init<MachineType &, const LocalOperator &,
                       const std::vector<double> &, int>(),
              py::keep_alive<1, 2>(), py::arg("machine"),
              py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>(),
-             py::arg("n_replicas") = 1)
-        .def(py::init<MachineType &, const LocalOperator &, Seed,
-                      const std::vector<double> &, int>(),
-             py::keep_alive<1, 2>(), py::arg("machine"),
-             py::arg("move_operators"), py::arg("seed"),
-             py::arg("move_weights"), py::arg("n_replicas") = 1)
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
   }
 }
 

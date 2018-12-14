@@ -27,15 +27,13 @@ namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
 template <class WfType>
-class MetropolisLocal : public AbstractSampler<WfType> {
+class MetropolisLocal : public SeedableSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -55,14 +53,6 @@ class MetropolisLocal : public AbstractSampler<WfType> {
  public:
   explicit MetropolisLocal(WfType& psi)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init();
-  }
-
-  MetropolisLocal(WfType& psi, DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        rgen_(seed) {
     Init();
   }
 
@@ -91,7 +81,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_.Get());
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -110,18 +100,18 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 
     for (int i = 0; i < nv_; i++) {
       // picking a random site to be changed
-      int si = distrs(rgen_.Get());
+      int si = distrs(this->GetRandomEngine());
       assert(si < nv_);
       tochange[0] = si;
 
       // picking a random state
-      int newstate = diststate(rgen_.Get());
+      int newstate = diststate(this->GetRandomEngine());
       newconf[0] = localstates_[newstate];
 
       // make sure that the new state is not equal to the current one
       while (std::abs(newconf[0] - v_(si)) <
              std::numeric_limits<double>::epsilon()) {
-        newstate = diststate(rgen_.Get());
+        newstate = diststate(this->GetRandomEngine());
         newconf[0] = localstates_[newstate];
       }
 
@@ -139,7 +129,7 @@ class MetropolisLocal : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
         hilbert_.UpdateConf(v_, tochange, newconf);

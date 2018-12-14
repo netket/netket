@@ -26,7 +26,7 @@ namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
-class MetropolisHamiltonian : public AbstractSampler<WfType> {
+class MetropolisHamiltonian : public SeedableSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
@@ -35,8 +35,6 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
   // number of visible units
   const int nv_;
-
-  DistributedRandomEngine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -69,16 +67,6 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     Init();
   }
 
-  MetropolisHamiltonian(WfType &psi, H &hamiltonian,
-                        DistributedRandomEngine::ResultType seed)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
-        rgen_(seed) {
-    Init();
-  }
-
   void Init() {
     v_.resize(nv_);
 
@@ -101,7 +89,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_.Get());
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -120,7 +108,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
       std::uniform_real_distribution<double> distu;
 
       // picking a random state to transit to
-      int si = distrs(rgen_.Get());
+      int si = distrs(this->GetRandomEngine());
 
       // Inverse transition
       v1_ = v_;
@@ -144,7 +132,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_.Get())) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;
