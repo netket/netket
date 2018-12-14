@@ -15,8 +15,6 @@
 #ifndef NETKET_QUANTUMSTATERECONSTRUCTION_HPP_
 #define NETKET_QUANTUMSTATERECONSTRUCTION_HPP_
 
-#include <Eigen/Dense>
-#include <Eigen/IterativeLinearSolvers>
 #include <bitset>
 #include <complex>
 #include <fstream>
@@ -32,9 +30,8 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-namespace netket {
 
-// Class for unsupervised learningclass Test {
+namespace netket {
 
 class QuantumStateReconstruction {
   using GsType = std::complex<double>;
@@ -257,6 +254,7 @@ class QuantumStateReconstruction {
       batchSamples.resize(batchsize_node_);
       batchBases.resize(batchsize_node_);
 
+      // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         index = distribution(rgen_);
         batchSamples[k] = trainingSamples_[index];
@@ -276,11 +274,13 @@ class QuantumStateReconstruction {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
+  // Evaluate the gradient for a given visible state, in the
+  // basis identified by b_index
   void RotateGradient(int b_index, const Eigen::VectorXd &state,
                       Eigen::VectorXcd &rotated_gradient) {
-    std::complex<double> U, den;
+    std::complex<double> den;
     Eigen::VectorXcd num;
-    Eigen::VectorXd v(1 << psi_.Nvisible());
+    Eigen::VectorXd v(psi_.Nvisible());
     rotations_[b_index].FindConn(state, mel_, connectors_, newconfs_);
     assert(connectors_.size() == mel_.size());
 
