@@ -48,10 +48,11 @@ void AddGroundStateModule(py::module &m) {
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
       .def("run", &VariationalMonteCarlo::Run, py::arg("filename_prefix"),
-           py::arg("max_iter"), py::arg("step_size") = 1,
+           py::arg("max_iter") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
-      .def("iter", &VariationalMonteCarlo::Iterate, py::arg("max_iter"),
-           py::arg("step_size") = 1, py::arg("store_params") = true);
+      .def("iter", &VariationalMonteCarlo::Iterate,
+           py::arg("max_iter") = nonstd::nullopt, py::arg("step_size") = 1,
+           py::arg("store_params") = true);
 
   py::class_<VariationalMonteCarlo::Step>(vmc, "Step")
       .def_readonly("current_step", &VariationalMonteCarlo::Step::index)
@@ -81,7 +82,7 @@ void AddGroundStateModule(py::module &m) {
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
-           py::arg("max_steps"),
+           py::arg("max_steps") = nonstd::nullopt,
            py::arg("store_state") = true)
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime);

@@ -23,7 +23,7 @@ using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
 
-#include "pybind_support.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 #include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
@@ -38,6 +38,7 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Stats/pystats.hpp"
 #include "Utils/pyutils.hpp"
 #include "Unsupervised/pyunsupervised.hpp"
+
 namespace netket {
 
 using ode::AddDynamicsModule;
