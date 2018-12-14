@@ -48,10 +48,10 @@ void AddGroundStateModule(py::module &m) {
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
       .def("run", &VariationalMonteCarlo::Run, py::arg("filename_prefix"),
-           py::arg("max_iter") = nonstd::nullopt, py::arg("step_size") = 1,
+           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
       .def("iter", &VariationalMonteCarlo::Iterate,
-           py::arg("max_iter") = nonstd::nullopt, py::arg("step_size") = 1,
+           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("store_params") = true);
 
   py::class_<VariationalMonteCarlo::Step>(vmc, "Step")

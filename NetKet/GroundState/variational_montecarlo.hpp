@@ -114,17 +114,17 @@ class VariationalMonteCarlo {
    private:
     VariationalMonteCarlo &vmc_;
     Index step_size_;
-    nonstd::optional<Index> max_iter_;
+    nonstd::optional<Index> max_steps_;
     bool store_params_;
 
     Index cur_iter_;
 
    public:
     Iterator(VariationalMonteCarlo &vmc, Index step_size,
-             nonstd::optional<Index> max_iter, bool store_params = true)
+             nonstd::optional<Index> max_steps, bool store_params = true)
         : vmc_(vmc),
           step_size_(step_size),
-          max_iter_(std::move(max_iter)),
+          max_steps_(std::move(max_steps)),
           store_params_(store_params),
           cur_iter_(0) {}
 
@@ -145,8 +145,9 @@ class VariationalMonteCarlo {
     // TODO(C++17): Replace with comparison to special Sentinel type, since
     // C++17 allows end() to return a different type from begin().
     bool operator!=(const Iterator &) {
-      return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
+      return !max_steps_.has_value() || cur_iter_ < max_steps_.value();
     }
+    // pybind11::make_iterator requires operator==
     bool operator==(const Iterator &other) { return !(*this != other); }
 
     Iterator begin() const { return *this; }
@@ -346,21 +347,22 @@ class VariationalMonteCarlo {
     }
   }
 
-  Iterator Iterate(const nonstd::optional<Index> &max_iter, Index step_size = 1,
-                   bool store_params = true) {
-    assert(!max_iter.has_value() || max_iter.value() > 0);
+  Iterator Iterate(const nonstd::optional<Index> &max_steps = nonstd::nullopt,
+                   Index step_size = 1, bool store_params = true) {
+    assert(!max_steps.has_value() || max_steps.value() > 0);
     assert(step_size > 0);
 
     opt_.Reset();
     InitSweeps();
 
     Advance(step_size);
-    return Iterator(*this, step_size, max_iter, store_params);
+    return Iterator(*this, step_size, max_steps, store_params);
   }
 
-  void Run(const std::string &filename_prefix, nonstd::optional<Index> max_iter,
+  void Run(const std::string &filename_prefix,
+           nonstd::optional<Index> max_steps = nonstd::nullopt,
            Index step_size = 1, Index save_params_every = 50) {
-    assert(max_iter > 0);
+    assert(max_steps > 0);
     assert(step_size > 0);
     assert(save_params_every > 0);
 
@@ -370,16 +372,16 @@ class VariationalMonteCarlo {
                      save_params_every);
     }
 
-    for (const auto &state : Iterate(max_iter, step_size, false)) {
+    for (const auto &step : Iterate(max_steps, step_size, false)) {
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
-      obs_data["Acceptance"] = state.acceptance;
+      obs_data["Acceptance"] = step.acceptance;
 
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
       if (writer.has_value()) {
-        const Index i = state.index;
+        const Index i = step.index;
         writer->WriteLog(i, obs_data);
         writer->WriteState(i, psi_);
       }
