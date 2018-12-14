@@ -17,7 +17,7 @@
 
 #include <netket.hpp>
 namespace netket {
-using StateType = std::complex<double>;
+using StateType = Complex;
 using MachineType = AbstractMachine<StateType>;
 using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;

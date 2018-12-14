@@ -29,7 +29,7 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
             input_tests[it]["Machine"]["Layers"].dump()) {
       auto pars = input_tests[it];
 
-      using MType = std::complex<double>;
+      using MType = Complex;
       netket::Graph graph(pars);
       netket::Hilbert hilbert(graph, pars);
 
@@ -70,7 +70,7 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
 //
 //       netket::Hamiltonian hamiltonian(hilbert, pars);
 //
-//       using MType = std::complex<double>;
+//       using MType = Complex;
 //
 //       netket::Machine<MType> machine(graph, hamiltonian, pars);
 //
@@ -111,7 +111,7 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
 //
 //       netket::Hamiltonian hamiltonian(hilbert, pars);
 //
-//       using MType = std::complex<double>;
+//       using MType = Complex;
 //
 //       netket::Machine<MType> machine(graph, hamiltonian, pars);
 //
@@ -171,7 +171,7 @@ TEST_CASE("layers set/get correctly parameters", "[layers]") {
 //
 //       netket::Hamiltonian hamiltonian(hilbert, pars);
 //
-//       using MType = std::complex<double>;
+//       using MType = Complex;
 //       using WfType = netket::Machine<MType>;
 //
 //       WfType machine(graph, hamiltonian, pars);

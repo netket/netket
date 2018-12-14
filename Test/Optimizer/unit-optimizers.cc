@@ -25,8 +25,8 @@
 #include "netket.hpp"
 
 #include "optimizer_input_tests.hpp"
-const std::complex<double> im(0, 1);
-// const std::complex<double> I(0.0, 1.0);
+const Complex im(0, 1);
+// const Complex I(0.0, 1.0);
 const double pi = 3.14159265358979323846;
 
 // Check that optimizer steps correctly. This means parameters initialized

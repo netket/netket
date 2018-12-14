@@ -34,7 +34,7 @@ TEST_CASE("machines set/get correctly parameters", "[machine]") {
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
 
       netket::Machine<MType> machine(graph, hamiltonian, pars);
 
@@ -64,7 +64,7 @@ TEST_CASE("machines write/read to/from json correctly", "[machine]") {
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
 
       netket::Machine<MType> machine(graph, hamiltonian, pars);
 
@@ -105,7 +105,7 @@ TEST_CASE("machines compute log derivatives correctly", "[machine]") {
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
 
       netket::Machine<MType> machine(graph, hamiltonian, pars);
 
@@ -164,7 +164,7 @@ TEST_CASE("machines compute logval differences correctly", "[machine]") {
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
       using WfType = netket::Machine<MType>;
 
       WfType machine(graph, hamiltonian, pars);
@@ -246,7 +246,7 @@ TEST_CASE("machines update look-up tables correctly", "[machine]") {
 
       netket::Hamiltonian hamiltonian(hilbert, pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
       using WfType = netket::Machine<MType>;
 
       WfType machine(graph, hamiltonian, pars);

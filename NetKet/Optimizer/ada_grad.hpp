@@ -34,7 +34,7 @@ class AdaGrad : public AbstractOptimizer {
 
   double epscut_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   explicit AdaGrad(double eta = 0.001, double epscut = 1.0e-7)
