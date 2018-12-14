@@ -26,7 +26,7 @@ namespace netket {
 
 // Metropolis sampling generating local exchanges
 template <class WfType>
-class MetropolisExchange : public SeedableSampler<WfType> {
+class MetropolisExchange: public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;

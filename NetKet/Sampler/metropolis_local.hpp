@@ -27,7 +27,7 @@ namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
 template <class WfType>
-class MetropolisLocal : public SeedableSampler<WfType> {
+class MetropolisLocal: public AbstractSampler<WfType> {
   WfType& psi_;
 
   const AbstractHilbert& hilbert_;

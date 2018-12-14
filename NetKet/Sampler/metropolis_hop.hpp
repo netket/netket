@@ -25,7 +25,7 @@ namespace netket {
 
 // Metropolis sampling generating local hoppings
 template <class WfType>
-class MetropolisHop : public SeedableSampler<WfType> {
+class MetropolisHop: public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;

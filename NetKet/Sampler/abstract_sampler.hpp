@@ -39,20 +39,17 @@ class AbstractSampler {
   virtual const AbstractHilbert& GetHilbert() const noexcept = 0;
 
   virtual ~AbstractSampler() {}
-};
 
-template <class WfType>
-class SeedableSampler : public AbstractSampler<WfType> {
-  DistributedRandomEngine engine_;
-
- public:
   void Seed(DistributedRandomEngine::ResultType base_seed) {
     engine_.Seed(base_seed);
     this->Reset(true);
   }
 
  protected:
-  default_random_engine &GetRandomEngine() { return engine_.Get(); }
+  default_random_engine& GetRandomEngine() { return engine_.Get(); }
+
+ private:
+  DistributedRandomEngine engine_;
 };
 
 }  // namespace netket

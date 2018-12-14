@@ -26,7 +26,7 @@ namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
-class MetropolisHamiltonian : public SeedableSampler<WfType> {
+class MetropolisHamiltonian: public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
