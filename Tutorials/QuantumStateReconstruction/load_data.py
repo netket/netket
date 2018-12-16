@@ -15,16 +15,26 @@
 import numpy as np
 import math as m
 import netket.operator as op
+import netket.graph as gr
+import netket.hilbert as hs
 
 
-def load(hi, path_to_samples, path_to_bases):
+def load(path_to_samples, path_to_bases):
     tsamples = np.loadtxt(path_to_samples)
     fin_bases = open(path_to_bases, 'r')
     lines = fin_bases.readlines()
+    N = (len(lines[0].strip('\n')))
+
+    # Create the hilbert space
+    # TODO remove Hypercube here and put customgraph
+    g = gr.Hypercube(length=N, n_dim=1)
+    hi = hs.Qubit(graph=g)
+
     bases = []
-    N = hi.size
+
     for b in lines:
         basis = ""
+        assert(len(b) == N + 1)
         for j in range(N):
             basis += b[j]
         bases.append(basis)
@@ -43,7 +53,7 @@ def load(hi, path_to_samples, path_to_bases):
 
     rotations = []
 
-    tmp = 'void'
+    tmp = ''
     b_index = -1
     for b in bases:
         if (b != tmp):
@@ -52,12 +62,12 @@ def load(hi, path_to_samples, path_to_bases):
 
             for j in range(N):
                 if (tmp[j] == 'X'):
-                    localop = localop * op.LocalOperator(hi, U_X, [j])
+                    localop *= op.LocalOperator(hi, U_X, [j])
                 if (tmp[j] == 'Y'):
-                    localop = localop * op.LocalOperator(hi, U_Y, [j])
+                    localop *= op.LocalOperator(hi, U_Y, [j])
 
             rotations.append(localop)
             b_index += 1
         training_bases.append(b_index)
 
-    return tuple(rotations), training_samples, training_bases
+    return hi, tuple(rotations), training_samples, training_bases

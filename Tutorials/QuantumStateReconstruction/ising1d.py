@@ -17,19 +17,13 @@ import netket as nk
 from mpi4py import MPI
 from load_data import load
 
-N = 10
+
 path_to_samples = 'ising1d_train_samples.txt'
 path_to_bases = 'ising1d_train_bases.txt'
 
-# Constructing a 1d lattice
-g = nk.graph.Hypercube(length=N, n_dim=1, pbc=False)
-
-# Hilbert space of spins from given graph
-hi = nk.hilbert.Qubit(graph=g)
-
 # Load the data
-rotations, training_samples, training_bases = load(
-    hi, path_to_samples, path_to_bases)
+hi, rotations, training_samples, training_bases = load(
+    path_to_samples, path_to_bases)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
