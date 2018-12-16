@@ -71,8 +71,7 @@ class GraphOperator : public AbstractOperator {
     if (siteops.size() > 0) {
       for (int i = 0; i < nvertices_; i++) {
         for (std::size_t j = 0; j < siteops.size(); j++) {
-          operator_ = operator_ +
-                      LocalOperator(hilbert_, siteops[j], std::vector<int>{i});
+          operator_ += LocalOperator(hilbert_, siteops[j], std::vector<int>{i});
         }
       }
     }
@@ -90,7 +89,7 @@ class GraphOperator : public AbstractOperator {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
-            operator_ = operator_ + LocalOperator(hilbert_, bondops[c], edge);
+            operator_ += LocalOperator(hilbert_, bondops[c], edge);
           }
         }
       }
