@@ -78,7 +78,7 @@ class QuantumStateReconstruction {
 
   int npar_;
 
-  netket::default_random_engine rgen_;
+  DistributedRandomEngine rgen_;
 
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
@@ -256,7 +256,7 @@ class QuantumStateReconstruction {
 
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
-        index = distribution(rgen_);
+        index = distribution(rgen_.Get());
         batchSamples[k] = trainingSamples_[index];
         batchBases[k] = trainingBases_[index];
       }
@@ -286,7 +286,7 @@ class QuantumStateReconstruction {
 
     const std::size_t nconn = connectors_.size();
 
-    auto logvaldiffs = (psi_.LogValDiff(state, connectors_, newconfs_));
+    const auto logvaldiffs = (psi_.LogValDiff(state, connectors_, newconfs_));
     den = 0.0;
     num.setZero(psi_.Npar());
     for (std::size_t k = 0; k < nconn; k++) {
@@ -296,6 +296,20 @@ class QuantumStateReconstruction {
       }
       num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLog(v);
       den += mel_[k] * std::exp(logvaldiffs(k));
+    }
+    if (!std::isfinite(std::abs(den))) {
+      std::cout << den << std::endl;
+      for (std::size_t k = 0; k < nconn; k++) {
+        v = state;
+        for (std::size_t j = 0; j < connectors_[k].size(); j++) {
+          v(connectors_[k][j]) = newconfs_[k][j];
+        }
+        std::cout << mel_[k] << " <-mel" << std::endl;
+        std::cout << psi_.DerLog(v) << " <-derlog" << std::endl;
+        std::cout << logvaldiffs(k) << " <-logvaldiffs" << std::endl;
+        std::cout << std::exp(logvaldiffs(k)) << " <-explog" << std::endl;
+      }
+      std::exit(1);
     }
     rotated_gradient = (num / den);
   }

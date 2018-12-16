@@ -40,7 +40,8 @@ void AddOperatorModule(py::module &m) {
       ADDOPERATORMETHODS(AbstractOperator);
 
   py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
-      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def(py::init<const AbstractHilbert &>(), py::keep_alive<1, 2>(),
+           py::arg("hilbert"))
       .def(
           py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
                    std::vector<LocalOperator::SiteType>>(),
@@ -48,7 +49,8 @@ void AddOperatorModule(py::module &m) {
           py::arg("acting_on"))
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
                     LocalOperator::SiteType>(),
-           py::arg("hilbert"), py::arg("operator"), py::arg("acting_on"))
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operator"),
+           py::arg("acting_on"))
       .def_property_readonly("local_matrices", &LocalOperator::LocalMatrices)
       .def_property_readonly("acting_on", &LocalOperator::ActingOn)
       .def(py::self + py::self)

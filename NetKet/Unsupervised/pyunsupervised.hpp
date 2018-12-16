@@ -43,8 +43,9 @@ void AddUnsupervisedModule(py::module &m) {
            py::arg("samples"), py::arg("bases"), py::arg("output_file"),
            py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0)
-      .def("run", &QuantumStateReconstruction::Run)
-      .def("add_observable", &QuantumStateReconstruction::AddObservable);
+      .def("add_observable", &QuantumStateReconstruction::AddObservable,
+           py::keep_alive<1, 2>())
+      .def("run", &QuantumStateReconstruction::Run);
 }
 
 }  // namespace netket
