@@ -40,17 +40,17 @@ void AddOperatorModule(py::module &m) {
       ADDOPERATORMETHODS(AbstractOperator);
 
   py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
-      .def(py::init<const AbstractHilbert &>(), py::keep_alive<1, 2>(),
-           py::arg("hilbert"))
+      .def(py::init<const AbstractHilbert &, double>(), py::keep_alive<1, 2>(),
+           py::arg("hilbert"), py::arg("constant") = 0.)
       .def(
           py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
-                   std::vector<LocalOperator::SiteType>>(),
+                   std::vector<LocalOperator::SiteType>, double>(),
           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operators"),
-          py::arg("acting_on"))
+          py::arg("acting_on"), py::arg("constant") = 0.)
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
-                    LocalOperator::SiteType>(),
+                    LocalOperator::SiteType, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operator"),
-           py::arg("acting_on"))
+           py::arg("acting_on"), py::arg("constant") = 0.)
       .def_property_readonly("local_matrices", &LocalOperator::LocalMatrices)
       .def_property_readonly("acting_on", &LocalOperator::ActingOn)
       .def(py::self + py::self)
@@ -61,6 +61,14 @@ void AddOperatorModule(py::module &m) {
       .def("__mul__", [](const LocalOperator &a, int b) { return b * a; },
            py::is_operator())
       .def("__rmul__", [](const LocalOperator &a, int b) { return b * a; },
+           py::is_operator())
+      .def("__add__", [](const LocalOperator &a, double b) { return a + b; },
+           py::is_operator())
+      .def("__add__", [](const LocalOperator &a, int b) { return a + b; },
+           py::is_operator())
+      .def("__radd__", [](const LocalOperator &a, double b) { return a + b; },
+           py::is_operator())
+      .def("__radd__", [](const LocalOperator &a, int b) { return a + b; },
            py::is_operator())
       .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
 

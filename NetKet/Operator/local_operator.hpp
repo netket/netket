@@ -58,16 +58,23 @@ class LocalOperator : public AbstractOperator {
   std::vector<StateType> states_;
   std::vector<ConnType> connected_;
 
+  double constant_;
+
   std::size_t nops_;
 
+  static constexpr double mel_cutoff_ = 1.0e-6;
+
  public:
-  explicit LocalOperator(const AbstractHilbert &hilbert) : hilbert_(hilbert) {
+  explicit LocalOperator(const AbstractHilbert &hilbert, double constant = 0.)
+      : hilbert_(hilbert), constant_(constant) {
     Init();
   }
+
   explicit LocalOperator(const AbstractHilbert &hilbert,
                          const std::vector<MatType> &mat,
-                         const std::vector<SiteType> &sites)
-      : hilbert_(hilbert) {
+                         const std::vector<SiteType> &sites,
+                         double constant = 0.)
+      : hilbert_(hilbert), constant_(constant) {
     for (std::size_t i = 0; i < mat.size(); i++) {
       Push(mat[i], sites[i]);
     }
@@ -75,8 +82,8 @@ class LocalOperator : public AbstractOperator {
   }
 
   explicit LocalOperator(const AbstractHilbert &hilbert, const MatType &mat,
-                         const SiteType &sites)
-      : hilbert_(hilbert) {
+                         const SiteType &sites, double constant = 0.)
+      : hilbert_(hilbert), constant_(constant) {
     Push(mat, sites);
     // TODO sort sites and swap columns of mat accordingly
     Init();
@@ -191,7 +198,7 @@ class LocalOperator : public AbstractOperator {
     newconfs.resize(1);
     mel.resize(1);
 
-    mel[0] = 0;
+    mel[0] = constant_;
     connectors[0].resize(0);
     newconfs[0].resize(0);
 
@@ -271,7 +278,17 @@ class LocalOperator : public AbstractOperator {
         }
       }
     }
-    return LocalOperator(lhs.GetHilbert(), mat, sites);
+    auto constant = lhs.constant_ * rhs.constant_;
+    auto opret = LocalOperator(lhs.GetHilbert(), mat, sites, constant);
+
+    if (std::abs(lhs.constant_) > mel_cutoff_) {
+      opret += lhs.constant_ * rhs;
+    }
+    if (std::abs(rhs.constant_) > mel_cutoff_) {
+      opret += rhs.constant_ * lhs;
+    }
+
+    return opret;
   }
 
   friend LocalOperator operator+(const LocalOperator &lhs,
@@ -285,7 +302,16 @@ class LocalOperator : public AbstractOperator {
     sites.insert(sites.end(), rhs.sites_.begin(), rhs.sites_.end());
     mat.insert(mat.end(), rhs.mat_.begin(), rhs.mat_.end());
 
-    return LocalOperator(lhs.GetHilbert(), mat, sites);
+    return LocalOperator(lhs.GetHilbert(), mat, sites,
+                         lhs.constant_ + rhs.constant_);
+  }
+
+  friend LocalOperator operator+(const LocalOperator &lhs, double constant) {
+    auto sites = lhs.sites_;
+    auto mat = lhs.mat_;
+
+    return LocalOperator(lhs.GetHilbert(), mat, sites,
+                         lhs.constant_ + constant);
   }
 
   LocalOperator &operator+=(const LocalOperator &rhs) {
@@ -295,7 +321,13 @@ class LocalOperator : public AbstractOperator {
     this->sites_.insert(this->sites_.end(), rhs.sites_.begin(),
                         rhs.sites_.end());
     this->mat_.insert(this->mat_.end(), rhs.mat_.begin(), rhs.mat_.end());
+    this->constant_ += rhs.constant_;
     this->Init();
+    return *this;
+  }
+
+  LocalOperator &operator+=(double constant) {
+    this->constant_ += constant;
     return *this;
   }
 
@@ -312,7 +344,8 @@ class LocalOperator : public AbstractOperator {
       }
     }
 
-    return LocalOperator(rhs.GetHilbert(), mat, sites);
+    return LocalOperator(rhs.GetHilbert(), mat, sites,
+                         std::real(lhs * rhs.constant_));
   }
 
   const std::vector<MatType> &LocalMatrices() const { return mat_; }
