@@ -14,49 +14,50 @@
 
 import numpy as np
 import math as m
+import netket.operator as op
 
-def load(N,path_to_samples,path_to_bases):
+
+def load(hi, path_to_samples, path_to_bases):
     tsamples = np.loadtxt(path_to_samples)
-    fin_bases = open(path_to_bases,'r')
+    fin_bases = open(path_to_bases, 'r')
     lines = fin_bases.readlines()
-    bases = [] 
+    bases = []
+    N = hi.size
     for b in lines:
         basis = ""
         for j in range(N):
-            basis+=b[j]
+            basis += b[j]
         bases.append(basis)
     index_list = sorted(range(len(bases)), key=lambda k: bases[k])
     bases.sort()
-    
+
     training_samples = []
     training_bases = []
     for i in range(len(tsamples)):
         training_samples.append(tsamples[index_list[i]].tolist())
-    
-    U_X = 1./(m.sqrt(2))*np.asarray([[1.,1.],[1.,-1.]])
-    U_Y = 1./(m.sqrt(2))*np.asarray([[1.,-1j],[1.,1j]])
-    U= []
-    sites = []
-    
+
+    U_X = (1. / (m.sqrt(2)) *
+           np.asarray([[1., 1.], [1., -1.]])).tolist()
+    U_Y = (1. / (m.sqrt(2)) *
+           np.asarray([[1., -1j], [1., 1j]])).tolist()
+
+    rotations = []
+
     tmp = 'void'
     b_index = -1
     for b in bases:
-        if (b!=tmp):
+        if (b != tmp):
             tmp = b
-            sub_sites = []
-            trivial = True
-            for j in range(N):
-                if (tmp[j] != 'Z'):
-                    trivial=False
-                    sub_sites.append(j)
-                    if (tmp[j] == 'X'):
-                        U.append(U_X.tolist())
-                    if (tmp[j] == 'Y'):
-                        U.append(U_Y.tolist())
-            if trivial is True:
-                U.append(np.eye(2).tolist())
-            sites.append(sub_sites)
-            b_index+=1
-        training_bases.append(b_index)
-    return U,sites,training_samples,training_bases
+            localop = op.LocalOperator(hi, 1.0)
 
+            for j in range(N):
+                if (tmp[j] == 'X'):
+                    localop = localop * op.LocalOperator(hi, U_X, [j])
+                if (tmp[j] == 'Y'):
+                    localop = localop * op.LocalOperator(hi, U_Y, [j])
+
+            rotations.append(localop)
+            b_index += 1
+        training_bases.append(b_index)
+
+    return tuple(rotations), training_samples, training_bases
