@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+from mpi4py import MPI
 
 # 2D Lattice
 g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)

@@ -15,7 +15,7 @@
 from __future__ import print_function
 import netket as nk
 import networkx as nx
-
+from mpi4py import MPI
 
 g = nk.graph.Hypercube(length=10, n_dim=1)
 print(g.distances)
