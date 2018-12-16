@@ -16,7 +16,7 @@ from __future__ import print_function
 import netket as nk
 import networkx as nx
 import numpy as np
-
+from mpi4py import MPI
 import scipy.sparse as sparse
 
 # Constructing a 1d lattice

@@ -17,7 +17,7 @@ import netket as nk
 from netket.hilbert import *
 import networkx as nx
 import numpy as np
-
+from mpi4py import MPI
 
 # #constructing a 1d lattice
 g = nk.graph.Hypercube(length=10, n_dim=1)
