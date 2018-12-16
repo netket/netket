@@ -185,23 +185,15 @@ class LocalOperator : public AbstractOperator {
 
     connectors.clear();
     newconfs.clear();
-    mel.resize(0);
+    mel.clear();
 
-    AddConn(v, mel, connectors, newconfs);
-  }
+    connectors.resize(1);
+    newconfs.resize(1);
+    mel.resize(1);
 
-  void AddConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
-               std::vector<std::vector<int>> &connectors,
-               std::vector<std::vector<double>> &newconfs) const {
-    if (mel.size() == 0) {
-      connectors.resize(1);
-      newconfs.resize(1);
-      mel.resize(1);
-
-      mel[0] = 0;
-      connectors[0].resize(0);
-      newconfs[0].resize(0);
-    }
+    mel[0] = 0;
+    connectors[0].resize(0);
+    newconfs[0].resize(0);
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);

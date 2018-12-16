@@ -297,20 +297,7 @@ class QuantumStateReconstruction {
       num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLog(v);
       den += mel_[k] * std::exp(logvaldiffs(k));
     }
-    if (!std::isfinite(std::abs(den))) {
-      std::cout << den << std::endl;
-      for (std::size_t k = 0; k < nconn; k++) {
-        v = state;
-        for (std::size_t j = 0; j < connectors_[k].size(); j++) {
-          v(connectors_[k][j]) = newconfs_[k][j];
-        }
-        std::cout << mel_[k] << " <-mel" << std::endl;
-        std::cout << psi_.DerLog(v) << " <-derlog" << std::endl;
-        std::cout << logvaldiffs(k) << " <-logvaldiffs" << std::endl;
-        std::cout << std::exp(logvaldiffs(k)) << " <-explog" << std::endl;
-      }
-      std::exit(1);
-    }
+    assert(std::isfinite(std::abs(den)));
     rotated_gradient = (num / den);
   }
 
