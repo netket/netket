@@ -104,7 +104,7 @@ class CMakeBuild(build_ext):
                         self.warn(_decode(e.output))
                         raise
                     self.warn('building extension "{}" failed:\n{}'.format(
-                        ext.name, _decode(e.output))
+                        ext.name, _decode(e.output)))
                 else:
                     self.warn(_decode(e.output))
                     raise
