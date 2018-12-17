@@ -5,9 +5,9 @@ import shlex
 import subprocess
 import sys
 
+from distutils import log
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.version import LooseVersion
 
 
 # Poor man's command-line options parsing
@@ -54,45 +54,64 @@ class CMakeExtension(Extension):
 
 
 class CMakeBuild(build_ext):
-    def run(self):
-        try:
-            out = subprocess.check_output(['cmake', '--version'])
-        except OSError:
-            raise RuntimeError("CMake must be installed to build the following extensions: " +
-                               ", ".join(e.name for e in self.extensions))
-
-        if platform.system() == "Windows":
-            cmake_version = LooseVersion(re.search(r'version\s*([\d.]+)', out.decode()).group(1))
-            if cmake_version < '3.1.0':
-                raise RuntimeError("CMake >= 3.1.0 is required on Windows")
-
-        for ext in self.extensions:
-            self.build_extension(ext)
+    """
+    We extend setuptools to support building extensions with CMake. An extension
+    is built with CMake if it inherits from ``CMakeExtension``.
+    """
 
     def build_extension(self, ext):
+        if isinstance(ext, CMakeExtension): # Building with CMake
+            cwd = os.getcwd()
+            # Create a directory for building out-of-source
+            if not os.path.exists(self.build_temp):
+                os.makedirs(self.build_temp)
+            # lib_dir is the directory, where the shared libraries will be
+            # stored (it will probably be different from the build_temp
+            # directory so that setuptools find the libraries)
+            lib_dir = os.path.abspath(self.build_lib)
+            if not os.path.exists(lib_dir):
+                os.makedirs(lib_dir)
+            # Options to pass to CMake during configuration
+            cmake_args = _CMAKE_FLAGS
+            cmake_args.append(
+                '-DNETKET_PYTHON_VERSION={}.{}.{}'.format(*sys.version_info[:3]))
+            cmake_args.append(
+                '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
+
+            # Building
+            os.chdir(self.build_temp)
+            try:
+                # Configuration step
+                output = subprocess.check_output(
+                    ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
+                if self.distribution.verbose:
+                    log.info(output.decode())
+                if not self.distribution.dry_run:
+                    # Build step
+                    output = subprocess.check_output(
+                        ['cmake', '--build', '.'], stderr=subprocess.STDOUT)
+                    if self.distribution.verbose:
+                        log.info(output.decode())
+            except subprocess.CalledProcessError as e:
+                if hasattr(ext, 'optional'):
+                    if not ext.optional:
+                        self.warn(e.output.decode())
+                        raise
+                    self.warn('building extension "{}" failed:\n{}'.format(ext.name, e.output.decode()))
+                else:
+                    self.warn(e.output.decode())
+                    raise
+            os.chdir(cwd)
+        else: # Fall back to the default method
+            if sys.version_info >= (3, 0):
+                super().build_extension(ext)
+            else:
+                super(build_ext, self).build_extension(ext)
+
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
-        cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
-
-        if platform.system() == "Windows":
-            cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
-            if sys.maxsize > 2**32:
-                cmake_args += ['-A', 'x64']
-            build_args += ['--', '/m']
-        else:
-            cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
-            build_args += ['--', '-j2']
-
-        env = os.environ.copy()
-        env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''),
-                                                              self.distribution.get_version())
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
-        subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 setup(
     name='netket',
