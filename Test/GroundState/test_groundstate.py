@@ -1,5 +1,6 @@
 from pytest import approx
 import netket as nk
+from netket.vmc import Vmc
 from mpi4py import MPI
 
 
@@ -18,7 +19,7 @@ def test_vmc_iterator():
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    vmc = nk.gs.vmc.Vmc(
+    vmc = Vmc(
         hamiltonian=ha,
         sampler=sa,
         optimizer=op,

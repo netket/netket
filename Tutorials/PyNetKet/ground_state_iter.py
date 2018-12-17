@@ -26,7 +26,7 @@ sa.seed(SEED)
 op = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Variational Monte Carlo
-vmc = nk.gs.vmc.Vmc(
+vmc = nk.vmc.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,

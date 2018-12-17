@@ -130,7 +130,7 @@ class VariationalMonteCarlo {
 
     Step operator*() const {
       using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
-      auto params = store_params_ ? OptionalVec(vmc_.GetPsi().GetParameters())
+      auto params = store_params_ ? OptionalVec(vmc_.GetMachine().GetParameters())
                                   : nonstd::nullopt;
       return {cur_iter_, vmc_.sampler_.Acceptance(), vmc_.obsmanager_,
               std::move(params)};
@@ -359,7 +359,7 @@ class VariationalMonteCarlo {
     return Iterator(*this, step_size, max_steps, store_params);
   }
 
-  void Run(const std::string &filename_prefix,
+  void Run(const std::string &output_prefix,
            nonstd::optional<Index> max_steps = nonstd::nullopt,
            Index step_size = 1, Index save_params_every = 50) {
     assert(max_steps > 0);
@@ -368,7 +368,7 @@ class VariationalMonteCarlo {
 
     nonstd::optional<JsonOutputWriter> writer;
     if (mynode_ == 0) {
-      writer.emplace(filename_prefix + ".log", filename_prefix + ".wf",
+      writer.emplace(output_prefix + ".log", output_prefix + ".wf",
                      save_params_every);
     }
 
@@ -477,7 +477,7 @@ class VariationalMonteCarlo {
     use_cholesky_ = use_cholesky;
   }
 
-  AbstractMachine<Complex> &GetPsi() { return psi_; }
+  AbstractMachine<Complex> &GetMachine() { return psi_; }
 };
 
 }  // namespace netket

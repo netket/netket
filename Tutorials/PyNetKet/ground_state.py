@@ -39,7 +39,7 @@ sa.seed(SEED)
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational Monte Carlo
-vmc = nk.gs.vmc.Vmc(
+vmc = nk.vmc.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
@@ -47,4 +47,4 @@ vmc = nk.gs.vmc.Vmc(
     diag_shift=0.1,
     method='Sr')
 
-vmc.run(filename_prefix="test", max_steps=300, save_params_every=10)
+vmc.run(output_prefix="test", max_steps=300, save_params_every=10)

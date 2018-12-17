@@ -30,10 +30,10 @@ namespace py = pybind11;
 namespace netket {
 
 void AddGroundStateModule(py::module &m) {
-  auto subm = m.def_submodule("gs");
-  auto vmc = subm.def_submodule("vmc");
+  auto m_exact = m.def_submodule("exact");
+  auto m_vmc = m.def_submodule("vmc");
 
-  py::class_<VariationalMonteCarlo>(vmc, "Vmc")
+  py::class_<VariationalMonteCarlo>(m_vmc, "Vmc")
       .def(py::init<const AbstractOperator &, SamplerType &,
                     AbstractOptimizer &, int, int, int, const std::string &,
                     double, bool, bool, bool>(),
@@ -44,17 +44,17 @@ void AddGroundStateModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true)
-      .def_property_readonly("psi", &VariationalMonteCarlo::GetPsi)
+      .def_property_readonly("machine", &VariationalMonteCarlo::GetMachine)
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
-      .def("run", &VariationalMonteCarlo::Run, py::arg("filename_prefix"),
+      .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),
            py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
       .def("iter", &VariationalMonteCarlo::Iterate,
            py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("store_params") = true);
 
-  py::class_<VariationalMonteCarlo::Step>(vmc, "Step")
+  py::class_<VariationalMonteCarlo::Step>(m_vmc, "Step")
       .def_readonly("current_step", &VariationalMonteCarlo::Step::index)
       .def_readonly("acceptance", &VariationalMonteCarlo::Step::acceptance)
       .def_readonly("observables", &VariationalMonteCarlo::Step::observables)
@@ -65,14 +65,12 @@ void AddGroundStateModule(py::module &m) {
         return str.str();
       });
 
-  py::class_<VariationalMonteCarlo::Iterator>(vmc, "Iterator")
+  py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "Iterator")
       .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());
       });
 
-  auto excact = subm.def_submodule("exact");
-
-  py::class_<ImagTimePropagation>(excact, "ImagTimePropagation")
+  py::class_<ImagTimePropagation>(m_exact, "ImagTimePropagation")
       .def(py::init<ImagTimePropagation::Matrix &,
                     ImagTimePropagation::Stepper &, double,
                     ImagTimePropagation::StateVector>(),
@@ -87,7 +85,7 @@ void AddGroundStateModule(py::module &m) {
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime);
 
-  py::class_<ImagTimePropagation::Step>(excact, "ImagTimeStep")
+  py::class_<ImagTimePropagation::Step>(m_exact, "ImagTimeStep")
       .def_readonly("current_step", &ImagTimePropagation::Step::index)
       .def_readonly("t", &ImagTimePropagation::Step::t)
       .def_readonly("observables", &ImagTimePropagation::Step::observables)
@@ -98,21 +96,22 @@ void AddGroundStateModule(py::module &m) {
         return str.str();
       });
 
-  py::class_<ImagTimePropagation::Iterator>(excact, "ImagTimeIterator")
+  py::class_<ImagTimePropagation::Iterator>(m_exact, "ImagTimeIterator")
       .def("__iter__", [](ImagTimePropagation::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());
       });
 
-  py::class_<eddetail::result_t>(subm, "EdResult")
+  py::class_<eddetail::result_t>(m_exact, "EdResult")
       .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)
       .def_readwrite("eigenvectors", &eddetail::result_t::eigenvectors)
       .def_readwrite("which_eigenvector",
                      &eddetail::result_t::which_eigenvector);
 
-  subm.def("LanczosEd", &lanczos_ed, py::arg("operator"),
-           py::arg("matrix_free") = false, py::arg("first_n") = 1,
-           py::arg("max_iter") = 1000, py::arg("seed") = 42,
-           py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
+  m_exact.def("LanczosEd", &lanczos_ed, py::arg("operator"),
+              py::arg("matrix_free") = false, py::arg("first_n") = 1,
+              py::arg("max_iter") = 1000, py::arg("seed") = 42,
+              py::arg("precision") = 1.0e-14,
+              py::arg("get_groundstate") = false);
 }
 
 }  // namespace netket
