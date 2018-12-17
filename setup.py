@@ -78,6 +78,12 @@ class CMakeBuild(build_ext):
             cmake_args.append(
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
 
+            def _decode(x):
+                if sys.version_info >= (3, 0):
+                    return x.decode()
+                else:
+                    return x
+
             # Building
             os.chdir(self.build_temp)
             try:
@@ -85,21 +91,22 @@ class CMakeBuild(build_ext):
                 output = subprocess.check_output(
                     ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
                 if self.distribution.verbose:
-                    log.info(output.decode())
+                    log.info(_decode(output))
                 if not self.distribution.dry_run:
                     # Build step
                     output = subprocess.check_output(
                         ['cmake', '--build', '.'], stderr=subprocess.STDOUT)
                     if self.distribution.verbose:
-                        log.info(output.decode())
+                        log.info(_decode(output))
             except subprocess.CalledProcessError as e:
                 if hasattr(ext, 'optional'):
                     if not ext.optional:
-                        self.warn(e.output.decode())
+                        self.warn(_decode(e.output))
                         raise
-                    self.warn('building extension "{}" failed:\n{}'.format(ext.name, e.output.decode()))
+                    self.warn('building extension "{}" failed:\n{}'.format(
+                        ext.name, _decode(e.output))
                 else:
-                    self.warn(e.output.decode())
+                    self.warn(_decode(e.output))
                     raise
             os.chdir(cwd)
         else: # Fall back to the default method
