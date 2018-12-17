@@ -14,49 +14,60 @@
 
 import numpy as np
 import math as m
+import netket.operator as op
+import netket.graph as gr
+import netket.hilbert as hs
 
-def load(N,path_to_samples,path_to_bases):
+
+def load(path_to_samples, path_to_bases):
     tsamples = np.loadtxt(path_to_samples)
-    fin_bases = open(path_to_bases,'r')
+    fin_bases = open(path_to_bases, 'r')
     lines = fin_bases.readlines()
-    bases = [] 
+    N = (len(lines[0].strip('\n')))
+
+    # Create the hilbert space
+    # TODO remove Hypercube here and put customgraph
+    g = gr.Hypercube(length=N, n_dim=1)
+    hi = hs.Qubit(graph=g)
+
+    bases = []
+
     for b in lines:
         basis = ""
+        assert(len(b) == N + 1)
         for j in range(N):
-            basis+=b[j]
+            basis += b[j]
         bases.append(basis)
     index_list = sorted(range(len(bases)), key=lambda k: bases[k])
     bases.sort()
-    
+
     training_samples = []
     training_bases = []
     for i in range(len(tsamples)):
         training_samples.append(tsamples[index_list[i]].tolist())
-    
-    U_X = 1./(m.sqrt(2))*np.asarray([[1.,1.],[1.,-1.]])
-    U_Y = 1./(m.sqrt(2))*np.asarray([[1.,-1j],[1.,1j]])
-    U= []
-    sites = []
-    
-    tmp = 'void'
+
+    U_X = (1. / (m.sqrt(2)) *
+           np.asarray([[1., 1.], [1., -1.]])).tolist()
+    U_Y = (1. / (m.sqrt(2)) *
+           np.asarray([[1., -1j], [1., 1j]])).tolist()
+
+    rotations = []
+
+    tmp = ''
     b_index = -1
     for b in bases:
-        if (b!=tmp):
+        if (b != tmp):
             tmp = b
-            sub_sites = []
-            trivial = True
-            for j in range(N):
-                if (tmp[j] != 'Z'):
-                    trivial=False
-                    sub_sites.append(j)
-                    if (tmp[j] == 'X'):
-                        U.append(U_X.tolist())
-                    if (tmp[j] == 'Y'):
-                        U.append(U_Y.tolist())
-            if trivial is True:
-                U.append(np.eye(2).tolist())
-            sites.append(sub_sites)
-            b_index+=1
-        training_bases.append(b_index)
-    return U,sites,training_samples,training_bases
+            localop = op.LocalOperator(hi, 1.0)
 
+            for j in range(N):
+                if (tmp[j] == 'X'):
+                    localop *= op.LocalOperator(hi, U_X, [j])
+                if (tmp[j] == 'Y'):
+                    localop *= op.LocalOperator(hi, U_Y, [j])
+
+            rotations.append(localop)
+            b_index += 1
+        training_bases.append(b_index)
+
+    return hi, tuple(rotations), training_samples, training_bases

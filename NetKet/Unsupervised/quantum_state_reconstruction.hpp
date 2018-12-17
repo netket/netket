@@ -45,7 +45,7 @@ class QuantumStateReconstruction {
   const AbstractHilbert &hilbert_;
   AbstractOptimizer &opt_;
 
-  std::vector<LocalOperator> rotations_;
+  std::vector<AbstractOperator *> rotations_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -84,19 +84,20 @@ class QuantumStateReconstruction {
   std::vector<int> trainingBases_;
 
  public:
-  using MatType = LocalOperator::MatType;
-
-  QuantumStateReconstruction(
-      AbstractSampler<AbstractMachine<GsType>> &sampler, AbstractOptimizer &opt,
-      int batchsize, int nsamples, int niter_opt, std::vector<MatType> jrot,
-      std::vector<std::vector<int>> sites,
-      std::vector<Eigen::VectorXd> trainingSamples,
-      std::vector<int> trainingBases, std::string output_file,
-      int ndiscardedsamples = -1, int discarded_samples_on_init = 0)
+  QuantumStateReconstruction(AbstractSampler<AbstractMachine<GsType>> &sampler,
+                             AbstractOptimizer &opt, int batchsize,
+                             int nsamples, int niter_opt,
+                             std::vector<AbstractOperator *> rotations,
+                             std::vector<Eigen::VectorXd> trainingSamples,
+                             std::vector<int> trainingBases,
+                             std::string output_file,
+                             int ndiscardedsamples = -1,
+                             int discarded_samples_on_init = 0)
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         hilbert_(psi_.GetHilbert()),
         opt_(opt),
+        rotations_(rotations),
         trainingSamples_(trainingSamples),
         trainingBases_(trainingBases) {
     npar_ = psi_.Npar();
@@ -126,23 +127,6 @@ class QuantumStateReconstruction {
     }
 
     niter_opt_ = niter_opt;
-
-    // TODO Change this hack
-    for (std::size_t i = 0; i < jrot.size(); i++) {
-      if (sites[i].size() == 0) {
-        LocalOperator::SiteType vec(1, 0);
-        LocalOperator::MatType id(2);
-        id[0].resize(2);
-        id[1].resize(2);
-        id[0][1] = 0.0;
-        id[1][0] = 0.0;
-        id[0][0] = 1.0;
-        id[1][1] = 1.0;
-        rotations_.push_back(LocalOperator(hilbert_, id, vec));
-      } else {
-        rotations_.push_back(LocalOperator(hilbert_, jrot[i], sites[i]));
-      }
-    }
 
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
                   << " processes" << std::endl;
@@ -281,7 +265,7 @@ class QuantumStateReconstruction {
     std::complex<double> den;
     Eigen::VectorXcd num;
     Eigen::VectorXd v(psi_.Nvisible());
-    rotations_[b_index].FindConn(state, mel_, connectors_, newconfs_);
+    rotations_[b_index]->FindConn(state, mel_, connectors_, newconfs_);
     assert(connectors_.size() == mel_.size());
 
     const std::size_t nconn = connectors_.size();

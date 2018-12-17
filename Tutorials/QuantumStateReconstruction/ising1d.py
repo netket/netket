@@ -13,26 +13,17 @@
 # limitations under the License.
 
 
-from __future__ import print_function
-import json
-import numpy as np
-import math as m
 import netket as nk
-from load_data import load
 from mpi4py import MPI
+from load_data import load
 
-N=10
+
 path_to_samples = 'ising1d_train_samples.txt'
-path_to_bases   = 'ising1d_train_bases.txt'
+path_to_bases = 'ising1d_train_bases.txt'
 
 # Load the data
-U,sites,training_samples,training_bases = load(N,path_to_samples,path_to_bases)
-
-# Constructing a 1d lattice
-g = nk.graph.Hypercube(length=N, n_dim=1,pbc=False)
-
-# Hilbert space of spins from given graph
-hi = nk.hilbert.Qubit(graph=g)
+hi, rotations, training_samples, training_bases = load(
+    path_to_samples, path_to_bases)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
@@ -44,22 +35,20 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 # Optimizer
 op = nk.optimizer.AdaDelta()
 
-ha = nk.operator.Ising(h=1.0, hilbert=hi) 
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# Variational Monte Carlo
+# Quantum State Reconstruction
 qst = nk.unsupervised.Qsr(
     sampler=sa,
     optimizer=op,
     batch_size=1000,
     n_samples=10000,
     niter_opt=10000,
-    rotations=U,
-    sites=sites,
-    output_file = "output",
+    rotations=rotations,
+    output_file="output",
     samples=training_samples,
     bases=training_bases)
 
-qst.add_observable(ha,"Energy")
+qst.add_observable(ha, "Energy")
 
 qst.run()
-
