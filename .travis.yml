@@ -110,7 +110,7 @@ script:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
 
   # Get all required Python packages
-  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user	
+  - pip install numpy scipy matplotlib networkx pytest mpi4py numdifftools --user
 
   # show OS/compiler version
   - uname -a
