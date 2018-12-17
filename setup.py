@@ -1,12 +1,50 @@
 import os
-import re
-import sys
 import platform
+import re
+import shlex
 import subprocess
+import sys
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
+
+
+# Poor man's command-line options parsing
+def steal_cmake_flags(args):
+    """
+    Extracts CMake-related arguments from ``args``. ``args`` is a list of
+    strings usually equal to ``sys.argv``. All arguments of the form
+    ``--cmake-args=...`` are extracted (i.e. removed from ``args``!) and
+    accumulated. If there are no arguments of the specified form,
+    ``NETKET_CMAKE_FLAGS`` environment variable is used instead.
+    """
+    _ARG_PREFIX = '--cmake-args='
+    def _unquote(x):
+        m = re.match(r"'(.*)'", x)
+        if m:
+            return m.group(1)
+        m = re.match(r'"(.*)"', x)
+        if m:
+            return m.group(1)
+        return x
+    stolen_args = [x for x in args if x.startswith(_ARG_PREFIX)]
+    for x in stolen_args:
+        args.remove(x)
+
+    if len(stolen_args) > 0:
+        cmake_args = sum((shlex.split(_unquote(x[len(_ARG_PREFIX):])) for x in stolen_args), [])
+    else:
+        try:
+            cmake_args = shlex.split(os.environ['NETKET_CMAKE_FLAGS'])
+        except KeyError:
+            cmake_args = []
+    return cmake_args
+
+"""
+A list of arguments to be passed to the configuration step of CMake.
+"""
+_CMAKE_FLAGS = steal_cmake_flags(sys.argv)
 
 
 class CMakeExtension(Extension):
