@@ -52,7 +52,7 @@ class GraphOperator : public AbstractOperator {
                          std::vector<int> bondops_colors = std::vector<int>())
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
-        operator_(LocalOperator(hilbert)),
+        operator_(hilbert),
         nvertices_(hilbert.Size()) {
     // Create the local operator as the sum of all site and bond operators
     // Ensure that at least one of SiteOps and BondOps was initialized
@@ -97,7 +97,8 @@ class GraphOperator : public AbstractOperator {
   }
 
   // Constructor to be used when overloading operators
-  explicit GraphOperator(const AbstractHilbert &hilbert, LocalOperator lop)
+  explicit GraphOperator(const AbstractHilbert &hilbert,
+                         const LocalOperator &lop)
       : hilbert_(hilbert),
         graph_(hilbert.GetGraph()),
         operator_(lop),

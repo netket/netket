@@ -62,13 +62,14 @@ def test_produce_elements_in_hilbert():
         hi = ha.hilbert
         print(name, hi)
         assert (len(hi.local_states) == hi.local_size)
-
+        assert(hi.size > 0)
         rstate = np.zeros(hi.size)
 
         local_states = hi.local_states
 
         for i in range(1000):
             hi.random_vals(rstate, rg)
+
             conns = ha.get_conn(rstate)
 
             for connector, newconf in zip(conns[1], conns[2]):

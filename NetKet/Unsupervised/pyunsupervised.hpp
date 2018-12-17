@@ -31,7 +31,7 @@ namespace netket {
 
 void AddUnsupervisedModule(py::module &m) {
   auto subm = m.def_submodule("unsupervised");
-  using MatType = LocalOperator::MatType;
+
   py::class_<QuantumStateReconstruction>(subm, "Qsr")
       .def(py::init([](SamplerType &sa, AbstractOptimizer &op, int batch_size,
                        int n_samples, int niter_opt, py::tuple rotations,

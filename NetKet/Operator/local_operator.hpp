@@ -66,9 +66,7 @@ class LocalOperator : public AbstractOperator {
 
  public:
   explicit LocalOperator(const AbstractHilbert &hilbert, double constant = 0.)
-      : hilbert_(hilbert), constant_(constant) {
-    Init();
-  }
+      : hilbert_(hilbert), constant_(constant), nops_(0) {}
 
   explicit LocalOperator(const AbstractHilbert &hilbert,
                          const std::vector<MatType> &mat,
@@ -116,9 +114,12 @@ class LocalOperator : public AbstractOperator {
 
     nops_ = mat_.size();
 
+    connected_.clear();
+    states_.clear();
+    invstate_.clear();
+
     connected_.resize(nops_);
     states_.resize(nops_);
-    invstate_.clear();
     invstate_.resize(nops_);
 
     for (std::size_t op = 0; op < nops_; op++) {
@@ -137,7 +138,7 @@ class LocalOperator : public AbstractOperator {
       const auto localsize = localstates.size();
 
       // Finding the non-zero matrix elements
-      const double epsilon = 1.0e-6;
+      const double epsilon = mel_cutoff_;
 
       connected.resize(mat.size());
 
@@ -204,6 +205,7 @@ class LocalOperator : public AbstractOperator {
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
+
       assert(st1 < int(mat_[opn].size()));
       assert(st1 < int(connected_[opn].size()));
 
@@ -323,6 +325,7 @@ class LocalOperator : public AbstractOperator {
     this->mat_.insert(this->mat_.end(), rhs.mat_.begin(), rhs.mat_.end());
     this->constant_ += rhs.constant_;
     this->Init();
+
     return *this;
   }
 
