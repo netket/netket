@@ -26,7 +26,7 @@ namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class WfType, class H>
-class MetropolisHamiltonianPt: public AbstractSampler<WfType> {
+class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
@@ -69,7 +69,6 @@ class MetropolisHamiltonianPt: public AbstractSampler<WfType> {
         nrep_(nrep) {
     Init();
   }
-
 
   void Init() {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
@@ -140,7 +139,7 @@ class MetropolisHamiltonianPt: public AbstractSampler<WfType> {
 
       const auto lvd =
           psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
-      double ratio = std::norm(std::exp(beta_[rep] * lvd) * w1 / w2);
+      double ratio = std::norm(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_[rep]);
