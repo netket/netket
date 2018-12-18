@@ -34,6 +34,9 @@
 namespace netket {
 
 class ObsManager {
+  // TODO(C++14/17): Maybe replace with variant (or e.g. mpark::variant)? In
+  // C++11 working with variants is (even) less convenient since C++11 does not
+  // support templated lambda functions.
   std::map<std::string, Binning<double>> scalar_real_obs_;
   std::map<std::string, Binning<Eigen::VectorXd>> vector_real_obs_;
 
@@ -72,7 +75,7 @@ class ObsManager {
     return scalar_real_obs_.size() + vector_real_obs_.size();
   }
 
-  bool Contains(const std::string& name) {
+  bool Contains(const std::string &name) {
     return scalar_real_obs_.count(name) > 0 || vector_real_obs_.count(name) > 0;
   }
 
@@ -82,6 +85,20 @@ class ObsManager {
       scalar_real_obs_.at(name).InsertAllStats(dict);
     } else if (vector_real_obs_.count(name) > 0) {
       vector_real_obs_.at(name).InsertAllStats(dict);
+    }
+  }
+
+  template <class Map>
+  void InsertAllStats(Map &dict) const {
+    for (const auto &kv : scalar_real_obs_) {
+      Map subdict;
+      kv.second.InsertAllStats(subdict);
+      dict[kv.first.c_str()] = subdict;
+    }
+    for (const auto &kv : vector_real_obs_) {
+      Map subdict;
+      kv.second.InsertAllStats(subdict);
+      dict[kv.first.c_str()] = subdict;
     }
   }
 
