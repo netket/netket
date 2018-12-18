@@ -153,7 +153,6 @@ install:
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
 
 script:
-  - mpiexec -n 5 python -m mpi4py.bench helloworld
   - python -c 'from mpi4py import MPI'
   - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --verbose
