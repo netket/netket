@@ -31,7 +31,7 @@ namespace netket {
 
 void AddGroundStateModule(py::module &m) {
   auto m_exact = m.def_submodule("exact");
-  auto m_vmc = m.def_submodule("vmc");
+  auto m_vmc = m.def_submodule("variational");
 
   py::class_<VariationalMonteCarlo>(m_vmc, "Vmc")
       .def(py::init<const AbstractOperator &, SamplerType &,
@@ -59,7 +59,7 @@ void AddGroundStateModule(py::module &m) {
         return data;
       });
 
-  py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "Iterator")
+  py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "VmcIterator")
       .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());
       });

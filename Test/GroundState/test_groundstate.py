@@ -1,6 +1,6 @@
 from pytest import approx
 import netket as nk
-from netket.vmc import Vmc
+from netket.variational import Vmc
 from mpi4py import MPI
 
 

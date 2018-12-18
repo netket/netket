@@ -47,7 +47,7 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 opt = nk.optimizer.AdaMax()
 
 # Stochastic reconfiguration
-gs = nk.vmc.Vmc(
+gs = nk.variational.Vmc(
     hamiltonian=op,
     sampler=sa,
     optimizer=opt,
