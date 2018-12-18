@@ -27,15 +27,16 @@ def test_vmc_iterator():
         diag_shift=0.01)
 
     count = 0
-    last_step = None
-    for step in vmc.iter(300):
+    last_obs = None
+    for i, step in enumerate(vmc.iter(300)):
         count += 1
-        assert len(step) == 2
+        assert step == i
+        obs = vmc.get_observable_stats()
         for name in 'Energy', 'EnergyVariance':
-            assert name in step
-            e = step[name]
+            assert name in obs
+            e = obs[name]
             assert 'Mean' in e and 'Sigma' in e and 'Taucorr' in e
-        last_step = step
+        last_obs = obs
 
     assert count == 300
-    assert last_step['Energy']['Mean'] == approx(-10.25, abs=0.2)
+    assert last_obs['Energy']['Mean'] == approx(-10.25, abs=0.2)

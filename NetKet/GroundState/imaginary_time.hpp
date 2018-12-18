@@ -55,9 +55,8 @@ class ImagTimePropagation {
   }*/
 
   Iterator Iterate(double dt,
-                   nonstd::optional<Index> max_steps = nonstd::nullopt,
-                   bool store_state = true) {
-    return Iterator(*this, dt, std::move(max_steps), store_state);
+                   nonstd::optional<Index> max_steps = nonstd::nullopt) {
+    return Iterator(*this, dt, std::move(max_steps));
   }
 
   void ComputeObservables(const StateVector& state) {
@@ -77,50 +76,36 @@ class ImagTimePropagation {
     }
   }
 
+  const ObsManager& GetObsManager() const { return obsmanager_; }
+
   double GetTime() const { return t_; }
   void SetTime(double t) { t_ = t; }
-
-  /**
-   * Struct storing information on a single ITP step.
-   */
-  struct Step {
-    Index index;
-    double t;
-    ObsManager observables;
-    nonstd::optional<StateVector> state;
-  };
 
   class Iterator {
    public:
     // typedefs required for iterators
     using iterator_category = std::input_iterator_tag;
     using difference_type = Index;
-    using value_type = Step;
-    using pointer_type = Step*;
-    using reference_type = Step&;
+    using value_type = Index;
+    using pointer_type = Index*;
+    using reference_type = Index&;
 
    private:
     ImagTimePropagation& driver_;
     nonstd::optional<Index> max_iter_;
     double dt_;
-    bool store_state_;
 
     Index cur_iter_;
 
    public:
     Iterator(ImagTimePropagation& driver, double dt,
-             nonstd::optional<Index> max_steps, bool store_state)
+             nonstd::optional<Index> max_steps)
         : driver_(driver),
           max_iter_(std::move(max_steps)),
           dt_(dt),
-          store_state_(store_state),
           cur_iter_(0) {}
 
-    Step operator*() const {
-      using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
-      auto state = store_state_ ? OptionalVec(driver_.state_) : nonstd::nullopt;
-      return {cur_iter_, driver_.t_, driver_.obsmanager_, std::move(state)};
-    };
+    Index operator*() const { return cur_iter_; };
     Iterator& operator++() {
       driver_.Advance(dt_);
       cur_iter_ += 1;

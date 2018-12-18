@@ -29,51 +29,6 @@ namespace py = pybind11;
 
 namespace netket {
 
-namespace detail {
-/**
- * Wraps an iterator over simulation steps (like
- * VariationalMonteCarlo::Iterator) and dereferences to a Python dictionary.
- * @tparam It The wrapped C++ iterator type.
- */
-template <class It>
-class PyIteratorAdaptor {
- public:
-  // typedefs required for iterators
-  using iterator_category = std::input_iterator_tag;
-  using difference_type = Index;
-  using value_type = py::dict;
-  using pointer_type = py::dict *;
-  using reference_type = py::dict &;
-
-  explicit PyIteratorAdaptor<It>(It it) : it_(std::move(it)) {}
-
-  bool operator!=(const PyIteratorAdaptor<It> &other) {
-    return it_ != other.it_;
-  }
-  bool operator==(const PyIteratorAdaptor<It> &other) {
-    return it_ == other.it_;
-  }
-
-  PyIteratorAdaptor<It> operator++() {
-    ++it_;
-    return *this;
-  }
-
-  py::dict operator*() {
-    auto step = *it_;
-    py::dict dict;
-    step.observables.InsertAllStats(dict);
-    return dict;
-  }
-
-  PyIteratorAdaptor<It> begin() const { return *this; }
-  PyIteratorAdaptor<It> end() const { return *this; }
-
- private:
-  It it_;
-};
-}  // namespace detail
-
 void AddGroundStateModule(py::module &m) {
   auto m_exact = m.def_submodule("exact");
   auto m_vmc = m.def_submodule("vmc");
@@ -96,12 +51,16 @@ void AddGroundStateModule(py::module &m) {
            py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
       .def("iter", &VariationalMonteCarlo::Iterate,
-           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1);
+           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1)
+      .def("get_observable_stats", [](const VariationalMonteCarlo &self) {
+        py::dict data;
+        self.GetObsManager().InsertAllStats(data);
+        return data;
+      });
 
   py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "Iterator")
       .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
-        detail::PyIteratorAdaptor<VariationalMonteCarlo::Iterator> it(self);
-        return py::make_iterator(it.begin(), it.end());
+        return py::make_iterator(self.begin(), self.end());
       });
 
   py::class_<ImagTimePropagation>(m_exact, "ImagTimePropagation")
@@ -114,15 +73,18 @@ void AddGroundStateModule(py::module &m) {
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
-           py::arg("max_steps") = nonstd::nullopt,
-           py::arg("store_state") = true)
+           py::arg("max_steps") = nonstd::nullopt)
       .def_property("t", &ImagTimePropagation::GetTime,
-                    &ImagTimePropagation::SetTime);
+                    &ImagTimePropagation::SetTime)
+      .def("get_observable_stats", [](const ImagTimePropagation &self) {
+        py::dict data;
+        self.GetObsManager().InsertAllStats(data);
+        return data;
+      });
 
   py::class_<ImagTimePropagation::Iterator>(m_exact, "ImagTimeIterator")
       .def("__iter__", [](ImagTimePropagation::Iterator &self) {
-        detail::PyIteratorAdaptor<ImagTimePropagation::Iterator> it(self);
-        return py::make_iterator(it.begin(), it.end());
+        return py::make_iterator(self.begin(), self.end());
       });
 
   py::class_<eddetail::result_t>(m_exact, "EdResult")

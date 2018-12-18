@@ -54,7 +54,9 @@ driver = nk.exact.ImagTimePropagation(mat, stepper, t0=0, initial_state=psi0)
 # add observable (TODO: more interesting observable)
 driver.add_observable(hamiltonian, 'Hamiltonian')
 
-for obs in driver.iter(dt=0.05, max_steps=500):
+for step in driver.iter(dt=0.05, max_steps=500):
     print("it={:.2f}".format(driver.t))
+
+    obs = driver.get_observable_stats()
     means = {k: v["Mean"] for k, v in obs.items()}
     print("observables={}\n".format(means))
