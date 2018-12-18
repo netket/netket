@@ -37,9 +37,10 @@ vmc = nk.vmc.Vmc(
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 
-for i, obs in enumerate(vmc.iter()):
+for step in vmc.iter():
+    obs = vmc.get_observable_stats()
     if mpi_rank == 0:
-        print("step={}".format(i))
+        print("step={}".format(step))
         print("acceptance={}".format(list(sa.acceptance)))
         print("observables={}\n".format(obs))
         # Print output to the console immediately

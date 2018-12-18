@@ -95,19 +95,14 @@ class VariationalMonteCarlo {
   int npar_;
 
  public:
-  struct Step {
-    Index index;
-    ObsManager observables;
-  };
-
   class Iterator {
    public:
     // typedefs required for iterators
     using iterator_category = std::input_iterator_tag;
     using difference_type = Index;
-    using value_type = Step;
-    using pointer_type = Step *;
-    using reference_type = Step &;
+    using value_type = Index;
+    using pointer_type = Index *;
+    using reference_type = Index &;
 
    private:
     VariationalMonteCarlo &vmc_;
@@ -124,7 +119,7 @@ class VariationalMonteCarlo {
           max_steps_(std::move(max_steps)),
           cur_iter_(0) {}
 
-    Step operator*() const { return {cur_iter_, vmc_.obsmanager_}; }
+    Index operator*() const { return cur_iter_; }
 
     Iterator &operator++() {
       vmc_.Advance(step_size_);
@@ -362,7 +357,7 @@ class VariationalMonteCarlo {
                      save_params_every);
     }
 
-    for (const auto &step : Iterate(max_steps, step_size)) {
+    for (const auto step : Iterate(max_steps, step_size)) {
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
@@ -371,9 +366,8 @@ class VariationalMonteCarlo {
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
       if (writer.has_value()) {
-        const Index i = step.index;
-        writer->WriteLog(i, obs_data);
-        writer->WriteState(i, psi_);
+        writer->WriteLog(step, obs_data);
+        writer->WriteState(step, psi_);
       }
       MPI_Barrier(MPI_COMM_WORLD);
     }
@@ -468,6 +462,7 @@ class VariationalMonteCarlo {
   }
 
   AbstractMachine<Complex> &GetMachine() { return psi_; }
+  const ObsManager &GetObsManager() const { return obsmanager_; }
 };
 
 }  // namespace netket
