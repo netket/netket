@@ -37,11 +37,14 @@ vmc = nk.vmc.Vmc(
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 
-for i, st in enumerate(vmc.iter()):
-    obs = dict(st.observables) # TODO: needs to be called on all MPI processes
+for i, obs in enumerate(vmc.iter()):
     if mpi_rank == 0:
         print("step={}".format(i))
-        print("acceptance={}".format(list(st.acceptance)))
+        print("acceptance={}".format(list(sa.acceptance)))
         print("observables={}\n".format(obs))
+        # Print output to the console immediately
         sys.stdout.flush()
+        # Save current parameters to file
+        ma.save('test.wf')
+
     comm.barrier()

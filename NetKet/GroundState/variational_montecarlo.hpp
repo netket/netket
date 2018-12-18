@@ -97,9 +97,7 @@ class VariationalMonteCarlo {
  public:
   struct Step {
     Index index;
-    Eigen::VectorXd acceptance;
     ObsManager observables;
-    nonstd::optional<Eigen::VectorXcd> parameters;
   };
 
   class Iterator {
@@ -115,26 +113,18 @@ class VariationalMonteCarlo {
     VariationalMonteCarlo &vmc_;
     Index step_size_;
     nonstd::optional<Index> max_steps_;
-    bool store_params_;
 
     Index cur_iter_;
 
    public:
     Iterator(VariationalMonteCarlo &vmc, Index step_size,
-             nonstd::optional<Index> max_steps, bool store_params = true)
+             nonstd::optional<Index> max_steps)
         : vmc_(vmc),
           step_size_(step_size),
           max_steps_(std::move(max_steps)),
-          store_params_(store_params),
           cur_iter_(0) {}
 
-    Step operator*() const {
-      using OptionalVec = nonstd::optional<Eigen::VectorXcd>;
-      auto params = store_params_ ? OptionalVec(vmc_.GetMachine().GetParameters())
-                                  : nonstd::nullopt;
-      return {cur_iter_, vmc_.sampler_.Acceptance(), vmc_.obsmanager_,
-              std::move(params)};
-    }
+    Step operator*() const { return {cur_iter_, vmc_.obsmanager_}; }
 
     Iterator &operator++() {
       vmc_.Advance(step_size_);
@@ -348,7 +338,7 @@ class VariationalMonteCarlo {
   }
 
   Iterator Iterate(const nonstd::optional<Index> &max_steps = nonstd::nullopt,
-                   Index step_size = 1, bool store_params = true) {
+                   Index step_size = 1) {
     assert(!max_steps.has_value() || max_steps.value() > 0);
     assert(step_size > 0);
 
@@ -356,7 +346,7 @@ class VariationalMonteCarlo {
     InitSweeps();
 
     Advance(step_size);
-    return Iterator(*this, step_size, max_steps, store_params);
+    return Iterator(*this, step_size, max_steps);
   }
 
   void Run(const std::string &output_prefix,
@@ -372,11 +362,11 @@ class VariationalMonteCarlo {
                      save_params_every);
     }
 
-    for (const auto &step : Iterate(max_steps, step_size, false)) {
+    for (const auto &step : Iterate(max_steps, step_size)) {
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
-      obs_data["Acceptance"] = step.acceptance;
+      obs_data["Acceptance"] = sampler_.Acceptance();
 
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
