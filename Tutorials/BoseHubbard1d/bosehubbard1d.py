@@ -35,7 +35,7 @@ sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 op = nk.optimizer.AdaMax()
 
 # Variational Monte Carlo
-vmc = nk.vmc.Vmc(
+vmc = nk.variational.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
