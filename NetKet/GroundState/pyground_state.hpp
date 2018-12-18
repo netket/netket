@@ -52,8 +52,9 @@ void AddGroundStateModule(py::module &m) {
            py::arg("save_params_every") = 50)
       .def("iter", &VariationalMonteCarlo::Iterate,
            py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1)
-      .def("get_observable_stats", [](const VariationalMonteCarlo &self) {
+      .def("get_observable_stats", [](VariationalMonteCarlo &self) {
         py::dict data;
+        self.ComputeObservables();
         self.GetObsManager().InsertAllStats(data);
         return data;
       });

@@ -238,13 +238,27 @@ class VariationalMonteCarlo {
     }
   }
 
-  void Gradient() {
-    obsmanager_.Reset("Energy");
-    obsmanager_.Reset("EnergyVariance");
-
+  /**
+   * Computes the expectation values of observables from the currently stored
+   * samples.
+   */
+  void ComputeObservables() {
+    const Index nsamp = vsamp_.rows();
     for (const auto &obname : obsnames_) {
       obsmanager_.Reset(obname);
     }
+    for (Index i_samp = 0; i_samp < nsamp; ++i_samp) {
+      for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
+        const auto& op = obs_[i_obs];
+        const auto& name = obsnames_[i_obs];
+        obsmanager_.Push(name, ComputeMean(*op, vsamp_.row(i_samp)));
+      }
+    }
+  }
+
+  void Gradient() {
+    obsmanager_.Reset("Energy");
+    obsmanager_.Reset("EnergyVariance");
 
     const int nsamp = vsamp_.rows();
     elocs_.resize(nsamp);
@@ -254,10 +268,6 @@ class VariationalMonteCarlo {
       elocs_(i) = Eloc(vsamp_.row(i));
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
-
-      for (std::size_t on = 0; on < obs_.size(); on++) {
-        obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
-      }
     }
 
     elocmean_ = elocs_.mean();
@@ -301,7 +311,7 @@ class VariationalMonteCarlo {
     return eloc;
   }
 
-  double ObSamp(AbstractOperator &ob, const Eigen::VectorXd &v) {
+  double ComputeMean(AbstractOperator &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
