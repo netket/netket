@@ -28,10 +28,9 @@ def test_vmc_iterator():
 
     count = 0
     last_step = None
-    for i, step in enumerate(vmc.iter(300)):
+    for step in vmc.iter(300):
         count += 1
-        assert len(step) == 3
-        assert i == step["Iteration"]
+        assert len(step) == 2
         for name in 'Energy', 'EnergyVariance':
             assert name in step
             e = step[name]
