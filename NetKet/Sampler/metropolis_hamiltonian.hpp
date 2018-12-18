@@ -138,7 +138,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
       double w2 = tochange1_.size();
 
       const auto lvd = psi_.LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
-      double ratio = std::norm(std::exp(lvd) * w1 / w2);
+      double ratio = std::norm(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_);
