@@ -45,7 +45,7 @@ class PyIteratorAdaptor {
   using pointer_type = py::dict *;
   using reference_type = py::dict &;
 
-  explicit PyIteratorAdaptor<It>(It it) : it_(it) {}
+  explicit PyIteratorAdaptor<It>(It it) : it_(std::move(it)) {}
 
   bool operator!=(const PyIteratorAdaptor<It> &other) {
     return it_ != other.it_;
