@@ -60,7 +60,7 @@ gs = nk.vmc.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
-    nsamples=1000,
+    n_samples=1000,
     diag_shift=0.01)
 
-gs.run(output_prefix="ffnn_test", max_iter=300, save_params_every=10)
+gs.run(output_prefix="ffnn_test", max_steps=300, save_params_every=10)
