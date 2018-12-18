@@ -17,54 +17,54 @@ from __future__ import print_function
 import json
 
 pars = {}
+N = 20
 
 # defining the lattice
 pars['Graph'] = {
     'Name': 'Hypercube',
-    'L': 20,
+    'L'   : N,
     'Dimension': 1,
     'Pbc': True,
 }
 
 # defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Heisenberg',
-    'TotalSz': 0,
+pars['Hamiltonian']={
+    'Name'           : 'Heisenberg',
+    'TotalSz'        : 0,
 }
 
-#defining the wave function
-pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
-    'Alpha'          : 1,
+# defining the wave function
+pars['Machine'] = {
+    'Name': 'MPSperiodic',
+    'BondDim': 5,
+    'SymmetryPeriod': 1,
+    'SigmaRand' : 0.01,
+    'Diagonal': False
 }
 
 # defining the sampler
-# here we use Metropolis sampling
-# using moves from the matrix elements of the hamiltonian
+# here we use Metropolis sampling with single spin flips
 pars['Sampler'] = {
     'Name': 'MetropolisHamiltonian',
 }
 
-
 # defining the Optimizer
-# here we use AdaMax
-# notice that Sgd would lead to much faster convergence in this case
+# here we use the Stochastic Gradient Descent
 pars['Optimizer'] = {
-    'Name': 'AdaMax',
+    'Name': 'Sgd',
+    'LearningRate': 0.02,
 }
 
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
-    'Diagshift': 0.1,
-    'UseIterative': False,
-    'OutputFile': 'test',
+pars['GroundState']={
+    'Method'         : 'Sr',
+    'Nsamples'       : 1.0e3,
+    'NiterOpt'       : 500,
+    'Diagshift'      : 0.1,
+    'UseIterative'   : True,
+    'OutputFile'     : 'test',
 }
 
-json_file = "heisenberg1d.json"
+json_file = "MPS_heisenberg1d_N%d.json"%N
 with open(json_file, 'w') as outfile:
     json.dump(pars, outfile)
 
