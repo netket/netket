@@ -16,7 +16,7 @@ matrix:
     - os: osx
       osx_image: xcode10.1
       language: generic
-      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_Sanitizer=ON"
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
 
     # The oldest supported configurations
     - os: linux
@@ -71,7 +71,8 @@ matrix:
             - 'ubuntu-toolchain-r-test'
           packages:
             - 'g++-7'
-            - 'libopenmpi-dev'
+              # NOTE: For some reason using libopenmpi-dev here gives errors
+            - 'libmpich-dev'
 
     # Modern toolsets
     - os: linux
@@ -147,11 +148,13 @@ install:
   - python -m easy_install -U setuptools
   - python -m pip install numpy networkx pytest numdifftools
   # TODO(twesterhout): Remove the following line when #109 is merged.
-  - python -m pip install mpi4py
+  - python -m pip --no-cache-dir install mpi4py
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
 
 script:
+  - mpiexec -n 5 python -m mpi4py.bench helloworld
+  - python -c 'from mpi4py import MPI'
   - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --verbose
 
