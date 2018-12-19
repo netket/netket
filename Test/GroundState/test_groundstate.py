@@ -40,3 +40,37 @@ def test_vmc_iterator():
 
     assert count == 300
     assert last_obs['Energy']['Mean'] == approx(-10.25, abs=0.2)
+
+def test_ed():
+    first_n=3
+    g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    ha = nk.operator.Ising(h=1.0, hilbert=hi)
+    
+    # Test Lanczos ED with eigenvectors
+    res = nk.exact.lanczos_ed(ha, first_n=first_n, compute_eigenvectors=True)
+    assert len(res.eigenvalues) == first_n
+    assert len(res.eigenvectors) == first_n
+    gse = res.mean(ha, 0)
+    fse = res.mean(ha, 1)
+    assert gse == approx(res.eigenvalues[0], rel=1e-12, abs=1e-12)
+    assert fse == approx(res.eigenvalues[1], rel=1e-12, abs=1e-12)
+
+    # Test Lanczos ED without eigenvectors
+    res = nk.exact.lanczos_ed(ha, first_n=first_n, compute_eigenvectors=False)
+    assert len(res.eigenvalues) == first_n
+    assert len(res.eigenvectors) == 0
+
+    # Test Full ED with eigenvectors
+    res = nk.exact.full_ed(ha, first_n=first_n, compute_eigenvectors=True)
+    assert len(res.eigenvalues) == first_n
+    assert len(res.eigenvectors) == first_n
+    gse = res.mean(ha, 0)
+    fse = res.mean(ha, 1)
+    assert gse == approx(res.eigenvalues[0], rel=1e-12, abs=1e-12)
+    assert fse == approx(res.eigenvalues[1], rel=1e-12, abs=1e-12)
+
+    # Test Full ED without eigenvectors
+    res = nk.exact.full_ed(ha, first_n=first_n, compute_eigenvectors=False)
+    assert len(res.eigenvalues) == first_n
+    assert len(res.eigenvectors) == 0
