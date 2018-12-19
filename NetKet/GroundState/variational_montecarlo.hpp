@@ -107,16 +107,16 @@ class VariationalMonteCarlo {
    private:
     VariationalMonteCarlo &vmc_;
     Index step_size_;
-    nonstd::optional<Index> max_steps_;
+    nonstd::optional<Index> n_iter_;
 
     Index cur_iter_;
 
    public:
     Iterator(VariationalMonteCarlo &vmc, Index step_size,
-             nonstd::optional<Index> max_steps)
+             nonstd::optional<Index> n_iter)
         : vmc_(vmc),
           step_size_(step_size),
-          max_steps_(std::move(max_steps)),
+          n_iter_(std::move(n_iter)),
           cur_iter_(0) {}
 
     Index operator*() const { return cur_iter_; }
@@ -130,7 +130,7 @@ class VariationalMonteCarlo {
     // TODO(C++17): Replace with comparison to special Sentinel type, since
     // C++17 allows end() to return a different type from begin().
     bool operator!=(const Iterator &) {
-      return !max_steps_.has_value() || cur_iter_ < max_steps_.value();
+      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
     }
     // pybind11::make_iterator requires operator==
     bool operator==(const Iterator &other) { return !(*this != other); }
@@ -249,8 +249,8 @@ class VariationalMonteCarlo {
     }
     for (Index i_samp = 0; i_samp < nsamp; ++i_samp) {
       for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
-        const auto& op = obs_[i_obs];
-        const auto& name = obsnames_[i_obs];
+        const auto &op = obs_[i_obs];
+        const auto &name = obsnames_[i_obs];
         obsmanager_.Push(name, ObsLocValue(*op, vsamp_.row(i_samp)).real());
       }
     }
@@ -294,9 +294,8 @@ class VariationalMonteCarlo {
   }
 
   /**
-   * Computes the value of the local estimator of the operator `ob` in configuration `v`
-   * which is defined by
-   *        O_loc(v) = ⟨v|ob|Ψ⟩ / ⟨v|Ψ⟩
+   * Computes the value of the local estimator of the operator `ob` in
+   * configuration `v` which is defined by O_loc(v) = ⟨v|ob|Ψ⟩ / ⟨v|Ψ⟩.
    *
    * @param ob Operator representing the observable.
    * @param v Many-body configuration
@@ -333,22 +332,22 @@ class VariationalMonteCarlo {
     }
   }
 
-  Iterator Iterate(const nonstd::optional<Index> &max_steps = nonstd::nullopt,
+  Iterator Iterate(const nonstd::optional<Index> &n_iter = nonstd::nullopt,
                    Index step_size = 1) {
-    assert(!max_steps.has_value() || max_steps.value() > 0);
+    assert(!n_iter.has_value() || n_iter.value() > 0);
     assert(step_size > 0);
 
     opt_.Reset();
     InitSweeps();
 
     Advance(step_size);
-    return Iterator(*this, step_size, max_steps);
+    return Iterator(*this, step_size, n_iter);
   }
 
   void Run(const std::string &output_prefix,
-           nonstd::optional<Index> max_steps = nonstd::nullopt,
+           nonstd::optional<Index> n_iter = nonstd::nullopt,
            Index step_size = 1, Index save_params_every = 50) {
-    assert(max_steps > 0);
+    assert(n_iter > 0);
     assert(step_size > 0);
     assert(save_params_every > 0);
 
@@ -358,7 +357,7 @@ class VariationalMonteCarlo {
                      save_params_every);
     }
 
-    for (const auto step : Iterate(max_steps, step_size)) {
+    for (const auto step : Iterate(n_iter, step_size)) {
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);

@@ -49,10 +49,10 @@ void AddGroundStateModule(py::module &m) {
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
       .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),
-           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
+           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
       .def("iter", &VariationalMonteCarlo::Iterate,
-           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1)
+           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1)
       .def("get_observable_stats", [](VariationalMonteCarlo &self) {
         py::dict data;
         self.ComputeObservables();
@@ -75,7 +75,7 @@ void AddGroundStateModule(py::module &m) {
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
-           py::arg("max_steps") = nonstd::nullopt)
+           py::arg("n_iter") = nonstd::nullopt)
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime)
       .def("get_observable_stats", [](const ImagTimePropagation &self) {

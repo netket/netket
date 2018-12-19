@@ -47,4 +47,4 @@ vmc = nk.variational.Vmc(
     diag_shift=0.1,
     method='Sr')
 
-vmc.run(output_prefix="test", max_steps=300, save_params_every=10)
+vmc.run(output_prefix="test", n_iter=300, save_params_every=10)
