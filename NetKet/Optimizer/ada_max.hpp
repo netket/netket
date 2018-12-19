@@ -40,7 +40,7 @@ class AdaMax : public AbstractOptimizer {
 
   double epscut_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   explicit AdaMax(double alpha = 0.001, double beta1 = 0.9,

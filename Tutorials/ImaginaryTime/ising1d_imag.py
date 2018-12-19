@@ -18,6 +18,13 @@ from mpi4py import MPI
 import netket as nk
 
 
+if MPI.COMM_WORLD.Get_size() > 1:
+    import sys
+    if MPI.COMM_WORLD.Get_rank() == 0:
+        print("Error: The exact imaginary time propagation currently only supports one MPI process")
+    sys.exit(1)
+
+
 L = 20
 
 # defining the lattice
@@ -36,17 +43,20 @@ stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1
 # prepare output
 output = nk.output.JsonOutputWriter('test.log', 'test.wf')
 
+# run from random initial state (does not need to be normalized, this is done
+# by the driver)
+import numpy as np
+psi0 = np.random.rand(mat.dimension)
+
 # create ground state driver
-driver = nk.ImaginaryTimeDriver(mat, stepper, output, tmin=0, tmax=20, dt=0.1)
+driver = nk.exact.ImagTimePropagation(mat, stepper, t0=0, initial_state=psi0)
 
 # add observable (TODO: more interesting observable)
 driver.add_observable(hamiltonian, 'Hamiltonian')
 
-# run from random initial state (does not need to be normalized, this is done 
-# by the driver)
+for step in driver.iter(dt=0.05, max_steps=500):
+    print("it={:.2f}".format(driver.t))
 
-import numpy as np
-init = np.random.rand(mat.dimension)
-
-driver.run(init)
-
+    obs = driver.get_observable_stats()
+    means = {k: v["Mean"] for k, v in obs.items()}
+    print("observables={}\n".format(means))

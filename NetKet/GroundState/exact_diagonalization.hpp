@@ -22,6 +22,7 @@
 #include <ietl/lanczos.h>
 #include <ietl/randomgenerator.h>
 
+#include "common_types.hpp"
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/operator.hpp"
 
@@ -31,7 +32,7 @@ namespace eddetail {
 
 using eigenvalues_t = std::vector<double>;
 using eigenvectors_t =
-    std::vector<Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>>;
+    std::vector<Eigen::Matrix<Complex, Eigen::Dynamic, 1>>;
 
 struct result_t {
   eigenvalues_t eigenvalues;
@@ -42,8 +43,7 @@ struct result_t {
 template <class matrix_t, class iter_t, class random_t>
 result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
                      iter_t& iter, int which_eigenvector = -1) {
-  using complex = std::complex<double>;
-  using vectorspace_t = ietl::vectorspace<complex>;
+  using vectorspace_t = ietl::vectorspace<Complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
   size_t dimension = matrix.Dimension();
@@ -105,7 +105,7 @@ eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
 eddetail::result_t full_ed(const AbstractOperator& hamiltonian, int first_n = 1,
                            bool get_groundstate = false) {
   using eigen_solver_t =
-      Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<std::complex<double>>>;
+      Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<Complex>>;
 
   SparseMatrixWrapper<> matrix(hamiltonian);
 

@@ -30,45 +30,75 @@ namespace py = pybind11;
 namespace netket {
 
 void AddGroundStateModule(py::module &m) {
-  auto subm = m.def_submodule("gs");
+  auto m_exact = m.def_submodule("exact");
+  auto m_vmc = m.def_submodule("variational");
 
-  py::class_<VariationalMonteCarlo>(subm, "Vmc")
+  py::class_<VariationalMonteCarlo>(m_vmc, "Vmc")
       .def(py::init<const AbstractOperator &, SamplerType &,
-                    AbstractOptimizer &, int, int, std::string, int, int,
-                    std::string, double, bool, bool, bool, int>(),
+                    AbstractOptimizer &, int, int, int, const std::string &,
+                    double, bool, bool, bool>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
-           py::arg("optimizer"), py::arg("n_samples"), py::arg("niter_opt"),
-           py::arg("output_file"), py::arg("discarded_samples") = -1,
+           py::arg("optimizer"), py::arg("n_samples"),
+           py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
-           py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
-           py::arg("save_every") = 50)
+           py::arg("use_iterative") = false, py::arg("use_cholesky") = true)
+      .def_property_readonly("machine", &VariationalMonteCarlo::GetMachine)
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
-      .def("run", &VariationalMonteCarlo::Run);
+      .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),
+           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1,
+           py::arg("save_params_every") = 50)
+      .def("iter", &VariationalMonteCarlo::Iterate,
+           py::arg("max_steps") = nonstd::nullopt, py::arg("step_size") = 1)
+      .def("get_observable_stats", [](VariationalMonteCarlo &self) {
+        py::dict data;
+        self.ComputeObservables();
+        self.GetObsManager().InsertAllStats(data);
+        return data;
+      });
 
-  py::class_<ImaginaryTimeDriver>(subm, "ImaginaryTimeDriver")
-      .def(py::init<ImaginaryTimeDriver::Matrix &,
-                    ImaginaryTimeDriver::Stepper &, JsonOutputWriter &, double,
-                    double, double>(),
-           py::arg("hamiltonian"), py::arg("stepper"), py::arg("output_writer"),
-           py::arg("tmin"), py::arg("tmax"), py::arg("dt"))
-      .def("add_observable", &ImaginaryTimeDriver::AddObservable,
+  py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "VmcIterator")
+      .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
+
+  py::class_<ImagTimePropagation>(m_exact, "ImagTimePropagation")
+      .def(py::init<ImagTimePropagation::Matrix &,
+                    ImagTimePropagation::Stepper &, double,
+                    ImagTimePropagation::StateVector>(),
+           py::arg("hamiltonian"), py::arg("stepper"), py::arg("t0"),
+           py::arg("initial_state"))
+      .def("add_observable", &ImagTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
-      .def("run", &ImaginaryTimeDriver::Run, py::arg("initial_state"));
+      .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
+           py::arg("max_steps") = nonstd::nullopt)
+      .def_property("t", &ImagTimePropagation::GetTime,
+                    &ImagTimePropagation::SetTime)
+      .def("get_observable_stats", [](const ImagTimePropagation &self) {
+        py::dict data;
+        self.GetObsManager().InsertAllStats(data);
+        return data;
+      });
 
-  py::class_<eddetail::result_t>(subm, "EdResult")
+  py::class_<ImagTimePropagation::Iterator>(m_exact, "ImagTimeIterator")
+      .def("__iter__", [](ImagTimePropagation::Iterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
+
+  py::class_<eddetail::result_t>(m_exact, "EdResult")
       .def_readwrite("eigenvalues", &eddetail::result_t::eigenvalues)
       .def_readwrite("eigenvectors", &eddetail::result_t::eigenvectors)
       .def_readwrite("which_eigenvector",
                      &eddetail::result_t::which_eigenvector);
 
-  subm.def("LanczosEd", &lanczos_ed, py::arg("operator"),
-           py::arg("matrix_free") = false, py::arg("first_n") = 1,
-           py::arg("max_iter") = 1000, py::arg("seed") = 42,
-           py::arg("precision") = 1.0e-14, py::arg("get_groundstate") = false);
+  m_exact.def("LanczosEd", &lanczos_ed, py::arg("operator"),
+              py::arg("matrix_free") = false, py::arg("first_n") = 1,
+              py::arg("max_iter") = 1000, py::arg("seed") = 42,
+              py::arg("precision") = 1.0e-14,
+              py::arg("get_groundstate") = false);
 }
 
 }  // namespace netket

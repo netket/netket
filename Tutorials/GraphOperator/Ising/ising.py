@@ -47,14 +47,12 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 opt = nk.optimizer.AdaMax()
 
 # Stochastic reconfiguration
-gs = nk.gs.Vmc(
+gs = nk.variational.Vmc(
     hamiltonian=op,
     sampler=sa,
     optimizer=opt,
     n_samples=1000,
-    niter_opt=30000,
-    output_file='test',
     diag_shift=0.1,
     method='Gd')
 
-gs.run()
+gs.run(output_prefix='test', max_steps=30000)

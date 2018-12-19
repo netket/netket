@@ -28,7 +28,7 @@ namespace netket {
  */
 template <class State = Eigen::VectorXcd>
 class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
-  using Matrix = Eigen::SparseMatrix<std::complex<double>>;
+  using Matrix = Eigen::SparseMatrix<Complex>;
 
   Matrix matrix_;
   int dim_;
@@ -40,17 +40,17 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
 
   State Apply(const State& state) const override { return matrix_ * state; }
 
-  std::complex<double> Mean(const State& state) const override {
+  Complex Mean(const State& state) const override {
     return state.adjoint() * matrix_ * state;
   }
 
-  std::array<std::complex<double>, 2> MeanVariance(
+  std::array<Complex, 2> MeanVariance(
       const State& state) const override {
     auto state1 = matrix_ * state;
     auto state2 = matrix_ * state1;
 
-    const std::complex<double> mean = state.adjoint() * state1;
-    const std::complex<double> var = state.adjoint() * state2;
+    const Complex mean = state.adjoint() * state1;
+    const Complex var = state.adjoint() * state2;
 
     return {{mean, var - std::pow(mean, 2)}};
   }
@@ -77,7 +77,7 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
     const HilbertIndex hilbert_index(hilbert);
     dim_ = hilbert_index.NStates();
 
-    using Triplet = Eigen::Triplet<std::complex<double>>;
+    using Triplet = Eigen::Triplet<Complex>;
 
     std::vector<Triplet> tripletList;
     tripletList.reserve(dim_);

@@ -34,7 +34,7 @@ class AdaDelta : public AbstractOptimizer {
   Eigen::VectorXd Eg2_;
   Eigen::VectorXd Edx2_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   // Json constructor
