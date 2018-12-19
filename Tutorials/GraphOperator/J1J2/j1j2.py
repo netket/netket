@@ -77,4 +77,4 @@ gs = nk.variational.Vmc(
     use_iterative=True,
     method='Sr')
 
-gs.run(output_prefix='test', max_steps=10000)
+gs.run(output_prefix='test', n_iter=10000)

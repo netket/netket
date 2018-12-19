@@ -55,8 +55,8 @@ class ImagTimePropagation {
   }*/
 
   Iterator Iterate(double dt,
-                   nonstd::optional<Index> max_steps = nonstd::nullopt) {
-    return Iterator(*this, dt, std::move(max_steps));
+                   nonstd::optional<Index> n_iter = nonstd::nullopt) {
+    return Iterator(*this, dt, std::move(n_iter));
   }
 
   void ComputeObservables(const StateVector& state) {
@@ -92,18 +92,15 @@ class ImagTimePropagation {
 
    private:
     ImagTimePropagation& driver_;
-    nonstd::optional<Index> max_iter_;
+    nonstd::optional<Index> n_iter_;
     double dt_;
 
     Index cur_iter_;
 
    public:
     Iterator(ImagTimePropagation& driver, double dt,
-             nonstd::optional<Index> max_steps)
-        : driver_(driver),
-          max_iter_(std::move(max_steps)),
-          dt_(dt),
-          cur_iter_(0) {}
+             nonstd::optional<Index> n_iter)
+        : driver_(driver), n_iter_(std::move(n_iter)), dt_(dt), cur_iter_(0) {}
 
     Index operator*() const { return cur_iter_; };
     Iterator& operator++() {
@@ -115,7 +112,7 @@ class ImagTimePropagation {
     // TODO(C++17): Replace with comparison to special Sentinel type, since
     // C++17 allows end() to return a different type from begin().
     bool operator!=(const Iterator&) {
-      return !max_iter_.has_value() || cur_iter_ < max_iter_.value();
+      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
     }
     // pybind11::make_iterator requires operator==
     bool operator==(const Iterator& other) { return !(*this != other); }

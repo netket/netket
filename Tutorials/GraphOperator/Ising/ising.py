@@ -55,4 +55,4 @@ gs = nk.variational.Vmc(
     diag_shift=0.1,
     method='Gd')
 
-gs.run(output_prefix='test', max_steps=30000)
+gs.run(output_prefix='test', n_iter=30000)
