@@ -251,7 +251,7 @@ class VariationalMonteCarlo {
       for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
         const auto& op = obs_[i_obs];
         const auto& name = obsnames_[i_obs];
-        obsmanager_.Push(name, ComputeMean(*op, vsamp_.row(i_samp)));
+        obsmanager_.Push(name, ObsLocValue(*op, vsamp_.row(i_samp)).real());
       }
     }
   }
@@ -265,7 +265,7 @@ class VariationalMonteCarlo {
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      elocs_(i) = Eloc(vsamp_.row(i));
+      elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
     }
@@ -293,25 +293,16 @@ class VariationalMonteCarlo {
     grad_ /= double(totalnodes_ * nsamp);
   }
 
-  Complex Eloc(const Eigen::VectorXd &v) {
-    ham_.FindConn(v, mel_, connectors_, newconfs_);
-
-    assert(connectors_.size() == mel_.size());
-
-    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
-
-    assert(mel_.size() == std::size_t(logvaldiffs.size()));
-
-    Complex eloc = 0;
-
-    for (int i = 0; i < logvaldiffs.size(); i++) {
-      eloc += mel_[i] * std::exp(logvaldiffs(i));
-    }
-
-    return eloc;
-  }
-
-  double ComputeMean(AbstractOperator &ob, const Eigen::VectorXd &v) {
+  /**
+   * Computes the value of the local estimator of the operator `ob` in configuration `v`
+   * which is defined by
+   *        O_loc(v) = ⟨v|ob|Ψ⟩ / ⟨v|Ψ⟩
+   *
+   * @param ob Operator representing the observable.
+   * @param v Many-body configuration
+   * @return The value of the local observable O_loc(v).
+   */
+  Complex ObsLocValue(const AbstractOperator &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -326,7 +317,7 @@ class VariationalMonteCarlo {
       obval += mel_[i] * std::exp(logvaldiffs(i));
     }
 
-    return obval.real();
+    return obval;
   }
 
   double ElocMean() { return elocmean_.real(); }
