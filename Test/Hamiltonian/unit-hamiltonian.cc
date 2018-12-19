@@ -45,7 +45,7 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -84,7 +84,7 @@ TEST_CASE("hamiltonians do not have duplicate connections or newconfs",
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -126,7 +126,7 @@ TEST_CASE("hamiltonians are hermitean", "[hamiltonian]") {
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 

@@ -66,8 +66,8 @@ std::vector<netket::json> GetHamiltonianInputs() {
   std::vector<std::vector<double>> sx = {{0, 1}, {1, 0}};
   std::vector<std::vector<double>> szsz = {
       {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}};
-  std::complex<double> Iu(0, 1);
-  std::vector<std::vector<std::complex<double>>> sy = {{0, Iu}, {-Iu, 0}};
+  Complex Iu(0, 1);
+  std::vector<std::vector<Complex>> sy = {{0, Iu}, {-Iu, 0}};
 
   pars.clear();
   pars["Graph"]["Name"] = "Custom";

@@ -56,12 +56,11 @@ sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 op = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Variational Monte Carlo
-gs = nk.gs.Vmc(
+gs = nk.variational.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
-    nsamples=1000,
-    niter_opt=300,
-    output_file='test',
+    n_samples=1000,
     diag_shift=0.01)
-gs.run()
+
+gs.run(output_prefix="ffnn_test", max_steps=300, save_params_every=10)

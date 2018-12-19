@@ -37,17 +37,17 @@ class AbstractMatrixWrapper {
    */
   virtual State Apply(const State& state) const = 0;
 
-  virtual std::complex<double> Mean(const State& state) const {
+  virtual Complex Mean(const State& state) const {
     return state.adjoint() * Apply(state);
   }
 
-  virtual std::array<std::complex<double>, 2> MeanVariance(
+  virtual std::array<Complex, 2> MeanVariance(
       const State& state) const {
     auto state1 = Apply(state);
     auto state2 = Apply(state1);
 
-    const std::complex<double> mean = state.adjoint() * state1;
-    const std::complex<double> var = state.adjoint() * state2;
+    const Complex mean = state.adjoint() * state1;
+    const Complex var = state.adjoint() * state2;
 
     return {{mean, var - std::pow(mean, 2)}};
   }

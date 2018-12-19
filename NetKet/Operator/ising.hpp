@@ -101,7 +101,7 @@ class Ising : public AbstractOperator {
   other sites v'(k)=v, i.e. they are equal to the starting visible
   configuration.
   */
-  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
@@ -131,7 +131,7 @@ class Ising : public AbstractOperator {
     assert(v.size() > 0);
 
     // local matrix element
-    std::complex<double> mel_J = 0;
+    Complex mel_J = 0;
 
     // position and value for conf updates
     std::array<int, 1> position;
