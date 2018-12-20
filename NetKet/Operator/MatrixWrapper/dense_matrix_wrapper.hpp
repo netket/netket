@@ -92,7 +92,7 @@ class DenseMatrixWrapper : public AbstractMatrixWrapper<State> {
       the_operator.ForEachConn(v, [&](ConnectorRef conn) {
         const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
                                                             conn.newconf);
-        matrix_(i, j) += conn.weight;
+        matrix_(i, j) += conn.mel;
       });
     }
   }

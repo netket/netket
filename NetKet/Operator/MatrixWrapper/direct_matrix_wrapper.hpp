@@ -52,7 +52,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
       operator_.ForEachConn(v, [&](ConnectorRef conn) {
         const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.tochange,
                                                              conn.newconf);
-        result(i) += conn.weight * state(j);
+        result(i) += conn.mel * state(j);
       });
     }
     return result;
