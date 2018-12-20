@@ -91,12 +91,14 @@ void AddGroundStateModule(py::module &m) {
   py::class_<eddetail::result_t>(m_exact, "EdResult")
       .def_property_readonly("eigenvalues", &eddetail::result_t::eigenvalues)
       .def_property_readonly("eigenvectors", &eddetail::result_t::eigenvectors)
-    .def("mean", [](eddetail::result_t& self, AbstractOperator& op, int which){
-	if(which >= self.eigenvectors().size() || which < 0) { 
-	  throw std::invalid_argument("Invalid eigenvector index `which`"); 
-	}
-        return self.mean(op, which);
-      }, py::arg("operator"), py::arg("which") = 0);
+      .def("mean",
+           [](eddetail::result_t &self, AbstractOperator &op, int which) {
+             if (which >= self.eigenvectors().size() || which < 0) {
+               throw std::invalid_argument("Invalid eigenvector index `which`");
+             }
+             return self.mean(op, which);
+           },
+           py::arg("operator"), py::arg("which") = 0);
 
   m_exact.def("lanczos_ed", &lanczos_ed, py::arg("operator"),
               py::arg("matrix_free") = false, py::arg("first_n") = 1,
