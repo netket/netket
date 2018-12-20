@@ -90,7 +90,7 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
       the_operator.ForEachConn(v, [&](ConnectorRef conn) {
         const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
                                                             conn.newconf);
-        tripletList.push_back(Triplet(i, j, conn.weight));
+        tripletList.push_back(Triplet(i, j, conn.mel));
       });
     }
 

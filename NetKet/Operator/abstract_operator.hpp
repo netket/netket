@@ -29,7 +29,7 @@ namespace netket {
  */
 struct ConnectorRef {
   /// The matrix element H(v,v')
-  std::complex<double> weight;
+  std::complex<double> mel;
   /// The indices at which v needs to be changed to obtain v'
   nonstd::span<const int> tochange;
   /// The new values such that
