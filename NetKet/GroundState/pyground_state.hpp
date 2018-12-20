@@ -23,6 +23,7 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
+#include "Utils/exceptions.hpp"
 #include "ground_state.hpp"
 
 namespace py = pybind11;
@@ -93,8 +94,9 @@ void AddGroundStateModule(py::module &m) {
       .def_property_readonly("eigenvectors", &eddetail::result_t::eigenvectors)
       .def("mean",
            [](eddetail::result_t &self, AbstractOperator &op, int which) {
-             if (which >= self.eigenvectors().size() || which < 0) {
-               throw std::invalid_argument("Invalid eigenvector index `which`");
+             if (which < 0 || static_cast<std::size_t>(which) >=
+                                  self.eigenvectors().size()) {
+               throw InvalidInputError("Invalid eigenvector index `which`");
              }
              return self.mean(op, which);
            },

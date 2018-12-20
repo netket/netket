@@ -43,7 +43,8 @@ class result_t {
   eigenvectors_t& eigenvectors() { return eigenvectors_; }
 
   Complex mean(AbstractOperator& op, int which = 0) {
-    assert((which < eigenvectors.size()) && which >= 0);
+    assert(which >= 0 &&
+           static_cast<std::size_t>(which) < eigenvectors_.size());
     DirectMatrixWrapper<> op_mat(op);
     return op_mat.Mean(eigenvectors_[which]);
   }
@@ -141,27 +142,6 @@ eddetail::result_t full_ed(const AbstractOperator& op, int first_n = 1,
 
   eddetail::result_t results(std::move(eigenvalues), std::move(eigenvectors));
   return results;
-}
-
-void write_ed_results(const json& pars, const std::vector<double>& eigs,
-                      const std::map<std::string, double>& observables) {
-  std::string file_base = FieldVal(pars["GroundState"], "OutputFile");
-  std::string file_name = file_base + std::string(".log");
-  std::ofstream file_ed(file_name);
-  json data;
-  data["Eigenvalues"] = eigs;
-  for (auto name_value : observables)
-    data[name_value.first] = name_value.second;
-  file_ed << data << std::endl;
-  file_ed.close();
-}
-
-void get_ed_parameters(const json& pars, double& precision, int& n_eigenvalues,
-                       int& random_seed, int& max_iter) {
-  n_eigenvalues = FieldOrDefaultVal(pars["GroundState"], "NumEigenvalues", 1);
-  precision = FieldOrDefaultVal(pars["GroundState"], "Precision", 1.0e-14);
-  random_seed = FieldOrDefaultVal(pars["GroundState"], "RandomSeed", 42);
-  max_iter = FieldOrDefaultVal(pars["GroundState"], "MaxIterations", 1000);
 }
 
 }  // namespace netket
