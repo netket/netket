@@ -22,27 +22,41 @@
 #include <ietl/lanczos.h>
 #include <ietl/randomgenerator.h>
 
-#include "common_types.hpp"
 #include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/operator.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 
 namespace eddetail {
 
 using eigenvalues_t = std::vector<double>;
-using eigenvectors_t =
-    std::vector<Eigen::Matrix<Complex, Eigen::Dynamic, 1>>;
+using eigenvectors_t = std::vector<Eigen::Matrix<Complex, Eigen::Dynamic, 1>>;
 
-struct result_t {
-  eigenvalues_t eigenvalues;
-  int which_eigenvector;
-  eigenvectors_t eigenvectors;
+class result_t {
+ public:
+  result_t(eigenvalues_t eigenvalues, eigenvectors_t eigenvectors)
+      : eigenvalues_(std::move(eigenvalues)),
+        eigenvectors_(std::move(eigenvectors)) {}
+
+  eigenvalues_t& eigenvalues() { return eigenvalues_; }
+  eigenvectors_t& eigenvectors() { return eigenvectors_; }
+
+  Complex mean(AbstractOperator& op, int which = 0) {
+    assert(which >= 0 &&
+           static_cast<std::size_t>(which) < eigenvectors_.size());
+    DirectMatrixWrapper<> op_mat(op);
+    return op_mat.Mean(eigenvectors_[which]);
+  }
+
+ private:
+  eigenvalues_t eigenvalues_;
+  eigenvectors_t eigenvectors_;
 };
 
 template <class matrix_t, class iter_t, class random_t>
 result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
-                     iter_t& iter, int which_eigenvector = -1) {
+                     iter_t& iter, int n_eigenvectors) {
   using vectorspace_t = ietl::vectorspace<Complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
@@ -50,33 +64,34 @@ result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
   vectorspace_t ietl_vecspace(dimension);
   lanczos_t lanczos(matrix, ietl_vecspace);
   lanczos.calculate_eigenvalues(iter, random_gen);
-  result_t result = {lanczos.eigenvalues(), which_eigenvector,
-                     eigenvectors_t()};
+
+  eigenvectors_t eigenvectors;
   if (iter.error_code() == 1)
     WarningMessage() << "Warning: Lanczos eigenvalue computation "
                      << "did NOT converge in " << iter.max_iterations()
                      << " steps!\n";
-  if (which_eigenvector > -1) {
-    result.eigenvectors.resize(1);
+  if (n_eigenvectors > 0) {
+    eigenvectors.resize(n_eigenvectors);
     ietl::Info<double> info;
-    lanczos.eigenvectors(result.eigenvalues.begin() + which_eigenvector,
-                         result.eigenvalues.begin() + which_eigenvector + 1,
-                         result.eigenvectors.begin(), info, random_gen,
+    lanczos.eigenvectors(lanczos.eigenvalues().begin(),
+                         lanczos.eigenvalues().begin() + n_eigenvectors,
+                         eigenvectors.begin(), info, random_gen,
                          iter.max_iterations(), iter.max_iterations());
     if (info.error_info(0) != ietl::Info<double>::ok)
       WarningMessage() << "Warning: Lanczos eigenvector computation "
                        << "did NOT converge in " << iter.max_iterations()
                        << " steps!\n";
   }
+  result_t result(lanczos.eigenvalues(), std::move(eigenvectors));
   return result;
 }
 }  // namespace eddetail
 
-eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
+eddetail::result_t lanczos_ed(const AbstractOperator& op,
                               bool matrix_free = false, int first_n = 1,
                               int max_iter = 1000, int seed = 42,
                               double precision = 1e-14,
-                              bool get_groundstate = false) {
+                              bool compute_eigenvectors = false) {
   using normal_dist_t = std::uniform_real_distribution<double>;
   using random_t = ietl::random_generator<std::mt19937, normal_dist_t>;
   using iter_t = ietl::lanczos_iteration_nlowest<double>;
@@ -85,67 +100,48 @@ eddetail::result_t lanczos_ed(const AbstractOperator& hamiltonian,
 
   // Converge the first_n eigenvalues to precision
   iter_t iter(max_iter, first_n, sqrt(precision), sqrt(precision));
-  eddetail::result_t results;
 
-  int which_eigenvector = get_groundstate ? 0 : -1;
+  int n_eigenvectors = compute_eigenvectors ? first_n : 0;
 
   if (matrix_free) {
-    DirectMatrixWrapper<> matrix(hamiltonian);
-    results =
-        eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);
+    DirectMatrixWrapper<> matrix(op);
+    eddetail::result_t results =
+        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+    results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
+    return results;
   } else {  // computation using Sparse matrix
-    SparseMatrixWrapper<> matrix(hamiltonian);
-    results =
-        eddetail::lanczos_run(matrix, random_gen, iter, which_eigenvector);
+    SparseMatrixWrapper<> matrix(op);
+    eddetail::result_t results =
+        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+    results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
+    return results;
   }
-  results.eigenvalues.resize(first_n);  // Keep only converged eigenvalues
-  return results;
 }
 
-eddetail::result_t full_ed(const AbstractOperator& hamiltonian, int first_n = 1,
-                           bool get_groundstate = false) {
+eddetail::result_t full_ed(const AbstractOperator& op, int first_n = 1,
+                           bool compute_eigenvectors = false) {
   using eigen_solver_t =
       Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<Complex>>;
 
-  SparseMatrixWrapper<> matrix(hamiltonian);
-
-  eddetail::result_t results;
-  results.which_eigenvector = get_groundstate ? 0 : -1;
+  SparseMatrixWrapper<> matrix(op);
 
   eigen_solver_t eigen_solver;
-  if (get_groundstate) {
+  eddetail::eigenvectors_t eigenvectors;
+  if (compute_eigenvectors) {
     eigen_solver = matrix.ComputeEigendecomposition();
-    results.eigenvectors.push_back(eigen_solver.eigenvectors().col(0));
+    for (int i = 0; i < first_n; ++i)
+      eigenvectors.push_back(eigen_solver.eigenvectors().col(i));
   } else {
     eigen_solver = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
   }
   auto eigen_evals = eigen_solver.eigenvalues();
   eigen_evals.conservativeResize(first_n);  // Keep only first_n eigenvalues
-  results.eigenvalues = std::vector<double>(
+  eddetail::eigenvalues_t eigenvalues = std::vector<double>(
       eigen_evals.data(),
       eigen_evals.data() + eigen_evals.rows() * eigen_evals.cols());
+
+  eddetail::result_t results(std::move(eigenvalues), std::move(eigenvectors));
   return results;
-}
-
-void write_ed_results(const json& pars, const std::vector<double>& eigs,
-                      const std::map<std::string, double>& observables) {
-  std::string file_base = FieldVal(pars["GroundState"], "OutputFile");
-  std::string file_name = file_base + std::string(".log");
-  std::ofstream file_ed(file_name);
-  json data;
-  data["Eigenvalues"] = eigs;
-  for (auto name_value : observables)
-    data[name_value.first] = name_value.second;
-  file_ed << data << std::endl;
-  file_ed.close();
-}
-
-void get_ed_parameters(const json& pars, double& precision, int& n_eigenvalues,
-                       int& random_seed, int& max_iter) {
-  n_eigenvalues = FieldOrDefaultVal(pars["GroundState"], "NumEigenvalues", 1);
-  precision = FieldOrDefaultVal(pars["GroundState"], "Precision", 1.0e-14);
-  random_seed = FieldOrDefaultVal(pars["GroundState"], "RandomSeed", 42);
-  max_iter = FieldOrDefaultVal(pars["GroundState"], "MaxIterations", 1000);
 }
 
 }  // namespace netket
