@@ -16,6 +16,8 @@ from __future__ import print_function
 import netket as nk
 from mpi4py import MPI
 
+SEED = 12345
+
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=20, n_dim=1)
 
@@ -27,23 +29,22 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.01)
+ma.init_random_parameters(seed=SEED, sigma=0.01)
 
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
-sa.seed(1234)
+sa.seed(SEED)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational Monte Carlo
-vmc = nk.gs.Vmc(
+vmc = nk.variational.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    niter_opt=300,
-    output_file='test',
     diag_shift=0.1,
     method='Sr')
-vmc.run()
+
+vmc.run(output_prefix="test", n_iter=300, save_params_every=10)

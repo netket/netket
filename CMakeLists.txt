@@ -134,11 +134,15 @@ endif()
 # option(BENCHMARK_DOWNLOAD_DEPENDENCIES "" ON)
 # add_subdirectory(External/benchmark)
 
-
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "[NetKet] CMAKE_BUILD_TYPE not specified, setting it to "
                  "Release. Use `-DCMAKE_BUILD_TYPE=...` to overwrite.")
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Set -O3 in debug mode unless explicitly disabled
+if((${CMAKE_BUILD_TYPE} STREQUAL "Debug") AND NOT NETKET_DISABLE_OPTIMIZATION)
+    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3")
 endif()
 
 if(MSVC)

@@ -33,7 +33,7 @@ class Momentum : public AbstractOptimizer {
 
   Eigen::VectorXd mt_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   explicit Momentum(double eta = 0.001, double beta = 0.9)

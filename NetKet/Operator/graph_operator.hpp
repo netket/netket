@@ -114,7 +114,7 @@ class GraphOperator : public AbstractOperator {
     return GraphOperator(lhs.GetHilbert(), lop + rop);
   }
 
-  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     operator_.FindConn(v, mel, connectors, newconfs);
