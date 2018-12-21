@@ -54,7 +54,7 @@ class AdaDelta : public AbstractOptimizer {
   }
 
   void PrintParameters() {
-    InfoMessage() << "Adelta optimizer initialized with these parameters :"
+    InfoMessage() << "Adadelta optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Rho = " << rho_ << std::endl;
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
