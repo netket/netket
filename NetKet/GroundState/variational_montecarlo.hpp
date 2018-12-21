@@ -15,14 +15,17 @@
 #ifndef NETKET_VARIATIONALMONTECARLO_HPP
 #define NETKET_VARIATIONALMONTECARLO_HPP
 
-#include <Eigen/Dense>
-#include <Eigen/IterativeLinearSolvers>
 #include <complex>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include <Eigen/Dense>
+#include <Eigen/IterativeLinearSolvers>
+#include <nonstd/optional.hpp>
+
 #include "Machine/machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Optimizer/optimizer.hpp"
@@ -31,6 +34,7 @@
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
+#include "common_types.hpp"
 #include "matrix_replacement.hpp"
 
 namespace netket {
@@ -41,8 +45,7 @@ namespace netket {
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
-  using GsType = std::complex<double>;
-
+  using GsType = Complex;
   using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
                                 Eigen::Dynamic, 1>;
   using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
@@ -54,7 +57,7 @@ class VariationalMonteCarlo {
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   Eigen::VectorXcd elocs_;
   MatrixT Ok_;
@@ -72,9 +75,6 @@ class VariationalMonteCarlo {
   int totalnodes_;
   int mynode_;
 
-  // This optional will contain a value iff the MPI rank is 0.
-  nonstd::optional<JsonOutputWriter> output_;
-
   AbstractOptimizer &opt_;
 
   std::vector<AbstractOperator *> obs_;
@@ -89,36 +89,76 @@ class VariationalMonteCarlo {
   int nsamples_node_;
   int ninitsamples_;
   int ndiscardedsamples_;
-  int niter_opt_;
 
-  std::complex<double> elocmean_;
+  Complex elocmean_;
   double elocvar_;
   int npar_;
 
  public:
-  VariationalMonteCarlo(const AbstractOperator &ham,
+  class Iterator {
+   public:
+    // typedefs required for iterators
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = Index;
+    using value_type = Index;
+    using pointer_type = Index *;
+    using reference_type = Index &;
+
+   private:
+    VariationalMonteCarlo &vmc_;
+    Index step_size_;
+    nonstd::optional<Index> n_iter_;
+
+    Index cur_iter_;
+
+   public:
+    Iterator(VariationalMonteCarlo &vmc, Index step_size,
+             nonstd::optional<Index> n_iter)
+        : vmc_(vmc),
+          step_size_(step_size),
+          n_iter_(std::move(n_iter)),
+          cur_iter_(0) {}
+
+    Index operator*() const { return cur_iter_; }
+
+    Iterator &operator++() {
+      vmc_.Advance(step_size_);
+      cur_iter_ += step_size_;
+      return *this;
+    }
+
+    // TODO(C++17): Replace with comparison to special Sentinel type, since
+    // C++17 allows end() to return a different type from begin().
+    bool operator!=(const Iterator &) {
+      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
+    }
+    // pybind11::make_iterator requires operator==
+    bool operator==(const Iterator &other) { return !(*this != other); }
+
+    Iterator begin() const { return *this; }
+    Iterator end() const { return *this; }
+  };
+
+  VariationalMonteCarlo(const AbstractOperator &hamiltonian,
                         AbstractSampler<AbstractMachine<GsType>> &sampler,
-                        AbstractOptimizer &opt, int nsamples, int niter_opt,
-                        std::string output_file, int discarded_samples = -1,
+                        AbstractOptimizer &optimizer, int nsamples,
+                        int discarded_samples = -1,
                         int discarded_samples_on_init = 0,
-                        std::string method = "Sr", double diagshift = 0.01,
-                        bool rescale_shift = false, bool use_iterative = false,
-                        bool use_cholesky = true, int save_every = 50)
-      : ham_(ham),
+                        const std::string &method = "Sr",
+                        double diag_shift = 0.01, bool rescale_shift = false,
+                        bool use_iterative = false, bool use_cholesky = true)
+      : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
-        opt_(opt),
+        opt_(optimizer),
         elocvar_(0.) {
-    Init(nsamples, niter_opt, discarded_samples, discarded_samples_on_init,
-         method, diagshift, rescale_shift, use_iterative, use_cholesky);
-
-    InitOutput(output_file, save_every);
+    Init(nsamples, discarded_samples, discarded_samples_on_init, method,
+         diag_shift, rescale_shift, use_iterative, use_cholesky);
   }
 
-  void Init(int nsamples, int niter_opt, int discarded_samples,
-            int discarded_samples_on_init, const std::string &method,
-            double diagshift, bool rescale_shift, bool use_iterative,
-            bool use_cholesky) {
+  void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
+            const std::string &method, double diagshift, bool rescale_shift,
+            bool use_iterative, bool use_cholesky) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -142,8 +182,6 @@ class VariationalMonteCarlo {
     } else {
       ndiscardedsamples_ = discarded_samples;
     }
-
-    niter_opt_ = niter_opt;
 
     if (method == "Gd") {
       dosr_ = false;
@@ -170,13 +208,6 @@ class VariationalMonteCarlo {
                   << " processes" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void InitOutput(std::string filebase, int freqbackup) {
-    if (mynode_ == 0) {
-      output_ =
-          JsonOutputWriter(filebase + ".log", filebase + ".wf", freqbackup);
-    }
   }
 
   void AddObservable(AbstractOperator &ob, const std::string &obname) {
@@ -207,26 +238,36 @@ class VariationalMonteCarlo {
     }
   }
 
-  void Gradient() {
-    obsmanager_.Reset("Energy");
-    obsmanager_.Reset("EnergyVariance");
-
+  /**
+   * Computes the expectation values of observables from the currently stored
+   * samples.
+   */
+  void ComputeObservables() {
+    const Index nsamp = vsamp_.rows();
     for (const auto &obname : obsnames_) {
       obsmanager_.Reset(obname);
     }
+    for (Index i_samp = 0; i_samp < nsamp; ++i_samp) {
+      for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
+        const auto &op = obs_[i_obs];
+        const auto &name = obsnames_[i_obs];
+        obsmanager_.Push(name, ObsLocValue(*op, vsamp_.row(i_samp)).real());
+      }
+    }
+  }
+
+  void Gradient() {
+    obsmanager_.Reset("Energy");
+    obsmanager_.Reset("EnergyVariance");
 
     const int nsamp = vsamp_.rows();
     elocs_.resize(nsamp);
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      elocs_(i) = Eloc(vsamp_.row(i));
+      elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
-
-      for (std::size_t on = 0; on < obs_.size(); on++) {
-        obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
-      }
     }
 
     elocmean_ = elocs_.mean();
@@ -252,25 +293,15 @@ class VariationalMonteCarlo {
     grad_ /= double(totalnodes_ * nsamp);
   }
 
-  std::complex<double> Eloc(const Eigen::VectorXd &v) {
-    ham_.FindConn(v, mel_, connectors_, newconfs_);
-
-    assert(connectors_.size() == mel_.size());
-
-    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
-
-    assert(mel_.size() == std::size_t(logvaldiffs.size()));
-
-    std::complex<double> eloc = 0;
-
-    for (int i = 0; i < logvaldiffs.size(); i++) {
-      eloc += mel_[i] * std::exp(logvaldiffs(i));
-    }
-
-    return eloc;
-  }
-
-  double ObSamp(AbstractOperator &ob, const Eigen::VectorXd &v) {
+  /**
+   * Computes the value of the local estimator of the operator `ob` in
+   * configuration `v` which is defined by O_loc(v) = ⟨v|ob|Ψ⟩ / ⟨v|Ψ⟩.
+   *
+   * @param ob Operator representing the observable.
+   * @param v Many-body configuration
+   * @return The value of the local observable O_loc(v).
+   */
+  Complex ObsLocValue(const AbstractOperator &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -279,32 +310,66 @@ class VariationalMonteCarlo {
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
-    std::complex<double> obval = 0;
+    Complex obval = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
       obval += mel_[i] * std::exp(logvaldiffs(i));
     }
 
-    return obval.real();
+    return obval;
   }
 
   double ElocMean() { return elocmean_.real(); }
 
   double Elocvar() { return elocvar_; }
 
-  void Run() {
-    opt_.Reset();
+  void Advance(Index steps = 1) {
+    assert(steps > 0);
+    for (Index i = 0; i < steps; ++i) {
+      Sample();
+      Gradient();
+      UpdateParameters();
+    }
+  }
 
+  Iterator Iterate(const nonstd::optional<Index> &n_iter = nonstd::nullopt,
+                   Index step_size = 1) {
+    assert(!n_iter.has_value() || n_iter.value() > 0);
+    assert(step_size > 0);
+
+    opt_.Reset();
     InitSweeps();
 
-    for (int i = 0; i < niter_opt_; i++) {
-      Sample();
+    Advance(step_size);
+    return Iterator(*this, step_size, n_iter);
+  }
 
-      Gradient();
+  void Run(const std::string &output_prefix,
+           nonstd::optional<Index> n_iter = nonstd::nullopt,
+           Index step_size = 1, Index save_params_every = 50) {
+    assert(n_iter > 0);
+    assert(step_size > 0);
+    assert(save_params_every > 0);
 
-      UpdateParameters();
+    nonstd::optional<JsonOutputWriter> writer;
+    if (mynode_ == 0) {
+      writer.emplace(output_prefix + ".log", output_prefix + ".wf",
+                     save_params_every);
+    }
 
-      PrintOutput(i);
+    for (const auto step : Iterate(n_iter, step_size)) {
+      // Note: This has to be called in all MPI processes, because converting
+      // the ObsManager to JSON performs a MPI reduction.
+      auto obs_data = json(obsmanager_);
+      obs_data["Acceptance"] = sampler_.Acceptance();
+
+      // writer.has_value() iff the MPI rank is 0, so the output is only
+      // written once
+      if (writer.has_value()) {
+        writer->WriteLog(step, obs_data);
+        writer->WriteState(step, psi_);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   }
 
@@ -346,7 +411,7 @@ class VariationalMonteCarlo {
         grad_ = deltaP;
 
         if (sr_rescale_shift_) {
-          std::complex<double> nor = (deltaP.dot(S * deltaP));
+          Complex nor = (deltaP.dot(S * deltaP));
           grad_ /= std::sqrt(nor.real());
         }
 
@@ -387,20 +452,6 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void PrintOutput(int i) {
-    // Note: This has to be called in all MPI processes, because converting
-    // the ObsManager to JSON performs a MPI reduction.
-    auto obs_data = json(obsmanager_);
-    obs_data["Acceptance"] = sampler_.Acceptance();
-
-    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
-                                // the output is only written once
-      output_->WriteLog(i, obs_data);
-      output_->WriteState(i, psi_);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
                        bool use_iterative = false, bool use_cholesky = true) {
     sr_diag_shift_ = diagshift;
@@ -409,6 +460,9 @@ class VariationalMonteCarlo {
     dosr_ = true;
     use_cholesky_ = use_cholesky;
   }
+
+  AbstractMachine<Complex> &GetMachine() { return psi_; }
+  const ObsManager &GetObsManager() const { return obsmanager_; }
 };
 
 }  // namespace netket

@@ -73,7 +73,7 @@ class Heisenberg : public AbstractOperator {
     }
   }
 
-  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
