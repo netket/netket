@@ -37,7 +37,7 @@ vmc = nk.variational.Vmc(
 comm = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 
-for step in vmc.iter():
+for step in vmc.iter(300):
     obs = vmc.get_observable_stats()
     if mpi_rank == 0:
         print("step={}".format(step))
