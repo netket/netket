@@ -229,7 +229,7 @@ void AddGraphModule(py::module& m) {
            Examples:
                A 10x10 square lattice with periodic boundary conditions can be
                constructed as follows:
-               
+
                ```python
                >>> from netket.graph import Hypercube
                >>> g=Hypercube(length=10,n_dim=2,pbc=True)
@@ -257,7 +257,9 @@ void AddGraphModule(py::module& m) {
                    Colors must be assigned to **all** edges.
            )EOF");
 
-  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph")
+  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
+      In addition to built-in graphs, NetKet provides the freedom to define
+      custom graphs, specifying a list of edges.)EOF")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
@@ -286,7 +288,19 @@ void AddGraphModule(py::module& m) {
                    Notice that this is not deduced from the edge
                    list and it is left to the user to specify
                    whether the graph is bipartite or not.
-            )EOF");
+
+           Examples:
+               A 10-site one-dimensional lattice with periodic boundary conditions can be
+               constructed specifying the edges as follows:
+
+               ```python
+               >>> from netket.graph import CustomGraph
+               >>> g=CustomGraph([[i, (i + 1) % 10] for i in range(10)])
+               >>> print(g.n_sites)
+               10
+
+               ```
+           )EOF");
 }
 
 }  // namespace netket
