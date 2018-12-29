@@ -24,6 +24,7 @@
 #include <vector>
 #include "Machine/machine.hpp"
 #include "Optimizer/optimizer.hpp"
+#include "Output/json_output_writer.hpp"
 #include "Sampler/abstract_sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
@@ -32,36 +33,40 @@
 namespace netket {
 
 class Supervised {
-  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using complex = std::complex<double>;
 
-  using GsType = std::complex<double>;
-
-  AbstractSampler<AbstractMachine<GsType>> &sampler_;
-  AbstractMachine<GsType> &psi_;
+  AbstractSampler<AbstractMachine<complex>> &sampler_;
+  AbstractMachine<complex> &psi_;
   AbstractOptimizer &opt_;
 
-  Eigen::VectorXcd grad_;
-
-  int batchsize_ = 100;
+  // Total batchsize
+  int batchsize_;
   // Batchsize per node
-  int batchsize_node_ = 100;
-
-  // Number of parameters of the machine
-  int npar_;
-
+  int batchsize_node_;
   // Number of epochs for training
   int niter_opt_ = 10;
 
+  // Total number of computational nodes to run on
+  int totalnodes_;
+  int mynode_;
+
+  // Number of parameters of the machine
+  int npar_;
+  // Stores the gradient of loss w.r.t. the machine parameters
+  Eigen::VectorXcd grad_;
+
+  // Training samples and targets
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<Eigen::VectorXd> trainingTargets_;
+  // Test samples and targets
+  std::vector<Eigen::VectorXd> testSamples_;
+  std::vector<Eigen::VectorXd> testTargets_;
 
+  // Random number generator
   netket::default_random_engine rgen_;
 
-  Eigen::MatrixXd inputs_;
-  Eigen::VectorXcd targets_;
-
  public:
-  Supervised(AbstractSampler<AbstractMachine<GsType>> &sampler,
+  Supervised(AbstractSampler<AbstractMachine<complex>> &sampler,
              AbstractOptimizer &opt, int batchsize, int niter_opt,
              std::vector<Eigen::VectorXd> trainingSamples,
              std::vector<Eigen::VectorXd> trainingTargets,
@@ -71,48 +76,71 @@ class Supervised {
         opt_(opt),
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
-    batchsize_ = batchsize;
-    niter_opt_ = niter_opt;
-
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
 
     grad_.resize(npar_);
 
+    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
+
+    batchsize_ = batchsize;
+    batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
+
+    niter_opt_ = niter_opt;
+
+    InfoMessage() << "Supervised learning running on " << totalnodes_
+                  << " processes" << std::endl;
+    InitOutput(output_file);
+
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void Gradient(std::vector<Eigen::VectorXd> &batchSamples,
-                std::vector<Eigen::VectorXd> &batchTargets) {
-    // Vector for storing the derivatives
-    Eigen::VectorXcd der(psi_.Npar());
-
-    std::complex<double> t;
-
-    // Foreach sample in the batch
-    const int ndata = batchsize_node_;
-    der.setZero(psi_.Npar());
-    for (int i = 0; i < ndata; i++) {
-      // Extract log(config)
-      Eigen::VectorXd sample(batchSamples[i]);
-      std::complex<double> value = psi_.LogVal(sample);
-
-      // And the corresponding target
-      Eigen::VectorXd target(batchTargets[i]);
-      t.real(target[0]);
-      t.imag(target[1]);
-
-      auto partial_gradient = psi_.DerLog(sample);
-      der = der + partial_gradient * (value - t);
+  /// Initializes the output log and wavefunction files
+  void InitOutput(std::string filebase) {
+    // Only the first node
+    if (mynode_ == 0) {
+      JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
     }
-    grad_ = der;
-
-    // Summing the gradient over the nodes
-    SumOnNodes(grad_);
-    // grad_ /= double(totalnodes_);
   }
 
+  /// Computes the gradient of the loss function with respect to
+  /// the machine's parameters for a given batch of samples and targets
+  /// TODO(everthmore): User defined loss function instead of hardcoded MSE
+  void Gradient(std::vector<Eigen::VectorXd> &batchSamples,
+                std::vector<Eigen::VectorXd> &batchTargets) {
+    // Allocate a vector for storing the derivatives ...
+    Eigen::VectorXcd der(psi_.Npar());
+    // ... and zero it out
+    der.setZero(psi_.Npar());
+
+    // Foreach sample in the batch
+    for (int i = 0; i < batchsize_node_; i++) {
+      // Extract log(config)
+      Eigen::VectorXd sample(batchSamples[i]);
+      // And the corresponding target
+      Eigen::VectorXd target(batchTargets[i]);
+
+      // Cast value and target to std::complex<couble>
+      complex value(psi_.LogVal(sample));
+      complex t(target[0], target[1]);
+
+      auto partial_gradient = psi_.DerLog(sample);
+
+      // MSE loss
+      der = der + partial_gradient * (value - t);
+    }
+    // Store derivatives in grad_ ...
+    grad_ = der;
+    // ... and compute the mean of the gradient over the nodes
+    SumOnNodes(grad_);
+    grad_ /= double(totalnodes_);
+  }
+
+  /// Runs the supervised learning on the training samples and targets
+  /// TODO(everthmore): Override w/ function call that sets testSamples_
+  ///                   and testTargets_ and reports on accuracy on those.
   void Run() {
     std::vector<Eigen::VectorXd> batchSamples;
     std::vector<Eigen::VectorXd> batchTargets;
@@ -140,11 +168,10 @@ class Supervised {
       Gradient(batchSamples, batchTargets);
       UpdateParameters();
       PrintMSE();
-
-      // std::cout << " grad norm " << grad_.norm() << std::endl;
     }
   }
 
+  /// Updates the machine parameters with the current gradient
   void UpdateParameters() {
     auto pars = psi_.GetParameters();
     opt_.Update(grad_, pars);
@@ -153,22 +180,19 @@ class Supervised {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
+  /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
   void PrintMSE() {
     const int numSamples = trainingSamples_.size();
-
-    std::complex<double> t;
-    std::complex<double> value;
 
     std::complex<double> mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
       Eigen::VectorXd target = trainingTargets_[i];
 
-      value = psi_.LogVal(sample);
-      t.real(target[0]);
-      t.imag(target[1]);
+      complex value(psi_.LogVal(sample));
+      complex t(target[0], target[1]);
 
-      mse += pow(value - t, 2);
+      mse += 0.5 * pow(value - t, 2);
     }
 
     std::cout << "MSE: " << mse << std::endl;
