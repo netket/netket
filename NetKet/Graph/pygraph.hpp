@@ -208,10 +208,9 @@ void AddGraphModule(py::module& m) {
       list[list]: The automorphisms of the graph,
           including translation symmetries only.)EOF");
 
-  py::class_<Hypercube, AbstractGraph>(
-      subm, "Hypercube",
-      R"EOF(A hypercube lattice of side L in d dimensions.
-        Periodic boundary conditions can also be imposed.)EOF")
+  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube", R"EOF(
+           A hypercube lattice of side L in d dimensions.
+           Periodic boundary conditions can also be imposed.)EOF")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
            py::arg("pbc") = true, R"EOF(
            Constructs a new ``Hypercube`` given its side length and dimension.
@@ -254,12 +253,11 @@ void AddGraphModule(py::module& m) {
                    `Tuple[int, int, int]` where each
                    element `(i, j, c) represents an
                    edge `i <-> j` of color `c`.
-                   Colors must be assigned to **all** edges.
-           )EOF");
+                   Colors must be assigned to **all** edges.)EOF");
 
   py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
-      In addition to built-in graphs, NetKet provides the freedom to define
-      custom graphs, specifying a list of edges.)EOF")
+           In addition to built-in graphs, NetKet provides the freedom to define
+           custom graphs, specifying a list of edges.)EOF")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
