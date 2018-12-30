@@ -105,6 +105,50 @@ class Supervised {
     }
   }
 
+  /// Computes the derivative of negative log of wavefunction overlap,
+  /// taken from https://arxiv.org/abs/1808.05232
+  void LogOverlap(std::vector<Eigen::VectorXd> &batchSamples,
+                  std::vector<Eigen::VectorXd> &batchTargets) {
+    // Allocate vectors for storing the derivatives ...
+    Eigen::VectorXcd num1(psi_.Npar());
+    Eigen::VectorXcd num2(psi_.Npar());
+    Eigen::VectorXcd num3(psi_.Npar());
+    complex den(0.0, 0.0);
+    Eigen::VectorXcd total_der(psi_.Npar());
+
+    // ... and zero them out
+    num1.setZero(psi_.Npar());
+    num2.setZero(psi_.Npar());
+    num3.setZero(psi_.Npar());
+    total_der.setZero(psi_.Npar());
+
+    // Foreach sample in the batch
+    for (int i = 0; i < batchsize_node_; i++) {
+      // Extract log(config)
+      Eigen::VectorXd sample(batchSamples[i]);
+      // And the corresponding target
+      Eigen::VectorXd target(batchTargets[i]);
+
+      // Cast value and target to std::complex<couble>
+      complex value(psi_.LogVal(sample));
+      complex t(target[0], target[1]);
+      auto der = psi_.DerLog(sample);
+
+      num1 = num1 + der * pow(abs(value), 2);
+      num2 = num2 + der * pow(abs(value), 2) * target / value;
+      num3 = num3 + pow(abs(value), 2) * target / value;
+      den = den + pow(abs(value), 2);
+
+      total_der = total_der + (num1 / den) - num2 * num3.inverse();
+    }
+    // Store derivatives in grad_ ...
+    grad_ = total_der;
+
+    // ... and compute the mean of the gradient over the nodes
+    SumOnNodes(grad_);
+    grad_ /= double(totalnodes_);
+  }
+
   /// Computes the gradient of the loss function with respect to
   /// the machine's parameters for a given batch of samples and targets
   /// TODO(everthmore): User defined loss function instead of hardcoded MSE
@@ -125,6 +169,10 @@ class Supervised {
       // Cast value and target to std::complex<couble>
       complex value(psi_.LogVal(sample));
       complex t(target[0], target[1]);
+
+      /// TODO(everthemore): We need to decide whether the user needs
+      ///                    to provide logvals of targets, or whether we do
+      ///                    so here
 
       auto partial_gradient = psi_.DerLog(sample);
 
@@ -165,7 +213,7 @@ class Supervised {
       }
 
       // Compute the gradient on the batch samples
-      Gradient(batchSamples, batchTargets);
+      LogOverlap(batchSamples, batchTargets);
       UpdateParameters();
       PrintMSE();
     }
