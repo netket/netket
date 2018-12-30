@@ -273,6 +273,8 @@ class Supervised {
 
       overlap += sqrt(num1 / den1 * num2 / den2);
     }
+    // Take negative log
+    overlap = -log(overlap);
 
     std::cout << "LogOverlap: " << overlap << std::endl;
   }
