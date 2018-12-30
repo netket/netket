@@ -107,8 +107,8 @@ class Supervised {
 
   /// Computes the derivative of negative log of wavefunction overlap,
   /// taken from https://arxiv.org/abs/1808.05232
-  void LogOverlap(std::vector<Eigen::VectorXd> &batchSamples,
-                  std::vector<Eigen::VectorXd> &batchTargets) {
+  void DerLogOverlap(std::vector<Eigen::VectorXd> &batchSamples,
+                     std::vector<Eigen::VectorXd> &batchTargets) {
     // Allocate vectors for storing the derivatives ...
     Eigen::VectorXcd num1(psi_.Npar());
     Eigen::VectorXcd num2(psi_.Npar());
@@ -131,7 +131,6 @@ class Supervised {
 
       // Cast value and target to std::complex<couble>
       complex value(psi_.LogVal(sample));
-      complex t(target[0], target[1]);
       auto der = psi_.DerLog(sample);
 
       num1 = num1 + der * pow(abs(value), 2);
@@ -213,9 +212,9 @@ class Supervised {
       }
 
       // Compute the gradient on the batch samples
-      LogOverlap(batchSamples, batchTargets);
+      DerLogOverlap(batchSamples, batchTargets);
       UpdateParameters();
-      PrintMSE();
+      PrintLogOverlap();
     }
   }
 
@@ -244,6 +243,38 @@ class Supervised {
     }
 
     std::cout << "MSE: " << mse << std::endl;
+  }
+
+  /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
+  void PrintLogOverlap() {
+    const int numSamples = trainingSamples_.size();
+
+    // Allocate vectors for storing the derivatives ...
+    complex num1(0.0, 0.0);
+    complex num2(0.0, 0.0);
+    complex den1(0.0, 0.0);
+    complex den2(0.0, 0.0);
+
+    std::complex<double> overlap = 0.0;
+    for (int i = 0; i < numSamples; i++) {
+      // Extract log(config)
+      Eigen::VectorXd sample(trainingSamples_[i]);
+      // And the corresponding target
+      Eigen::VectorXd target(trainingTargets_[i]);
+
+      // Cast value and target to std::complex<couble>
+      complex value(psi_.LogVal(sample));
+      complex t(target[0], target[1]);
+
+      num1 += (t / value) * pow(abs(value), 2);
+      den1 += pow(abs(value), 2);
+      num2 += (value / t) * pow(abs(t), 2);
+      den2 += pow(abs(t), 2);
+
+      overlap += sqrt(num1 / den1 * num2 / den2);
+    }
+
+    std::cout << "LogOverlap: " << overlap << std::endl;
   }
 };
 
