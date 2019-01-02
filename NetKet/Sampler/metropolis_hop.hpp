@@ -25,15 +25,13 @@ namespace netket {
 
 // Metropolis sampling generating local hoppings
 template <class WfType>
-class MetropolisHop : public AbstractSampler<WfType> {
+class MetropolisHop: public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
-
-  netket::default_random_engine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -54,18 +52,9 @@ class MetropolisHop : public AbstractSampler<WfType> {
   std::vector<double> localstates_;
 
  public:
-  MetropolisHop(const AbstractGraph &graph, WfType &psi, int dmax = 1)
+  MetropolisHop(WfType &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(graph, dmax);
-  }
-
-  // TODO remove
-  template <class Ptype>
-  explicit MetropolisHop(const AbstractGraph &graph, WfType &psi,
-                         const Ptype &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
-    Init(graph, dmax);
+    Init(hilbert_.GetGraph(), dmax);
   }
 
   void Init(const AbstractGraph &graph, int dmax) {
@@ -81,8 +70,6 @@ class MetropolisHop : public AbstractSampler<WfType> {
     localstates_ = hilbert_.LocalStates();
 
     GenerateClusters(graph, dmax);
-
-    Seed();
 
     Reset(true);
 
@@ -107,24 +94,9 @@ class MetropolisHop : public AbstractSampler<WfType> {
     }
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -143,7 +115,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < nv_; i++) {
-      int rcl = distcl(rgen_);
+      int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -154,7 +126,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
       // picking a random state
       for (int k = 0; k < 2; k++) {
-        newstates[k] = diststate(rgen_);
+        newstates[k] = diststate(this->GetRandomEngine());
         newconf[k] = localstates_[newstates[k]];
       }
 
@@ -164,7 +136,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
              std::abs(newconf[1] - v_(sj)) <
                  std::numeric_limits<double>::epsilon()) {
         for (int k = 0; k < 2; k++) {
-          newstates[k] = diststate(rgen_);
+          newstates[k] = diststate(this->GetRandomEngine());
           newconf[k] = localstates_[newstates[k]];
         }
       }
@@ -182,7 +154,7 @@ class MetropolisHop : public AbstractSampler<WfType> {
       }
 #endif
 
-      if (ratio > distu(rgen_)) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
         hilbert_.UpdateConf(v_, tochange, newconf);
@@ -206,7 +178,11 @@ class MetropolisHop : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 
 #ifndef NETKET_JAS_SYMM_HPP
@@ -74,15 +74,12 @@ class JastrowSymm : public AbstractMachine<T> {
     SetBareParameters();
   }
 
-  // TODO remove
-  // Json constructor
-  explicit JastrowSymm(const AbstractGraph &graph,
-                       const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    from_json(pars);
-  }
-
   void Init(const AbstractGraph &graph) {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
+
     permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
 
@@ -91,10 +88,11 @@ class JastrowSymm : public AbstractMachine<T> {
     }
 
     W_.resize(nv_, nv_);
+    W_.setZero();
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
 
-    nbarepar_ = nv_ * (nv_ - 1) / 2;
+    nbarepar_ = (nv_ * (nv_ - 1)) / 2;
 
     // Constructing the matrix that maps the bare derivatives to the symmetric
     // ones
@@ -279,13 +277,13 @@ class JastrowSymm : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -303,13 +301,13 @@ class JastrowSymm : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -318,12 +316,14 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "JastrowSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "JastrowSymm";
+    j["Nvisible"] = nv_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {

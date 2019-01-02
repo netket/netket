@@ -12,69 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
+from mpi4py import MPI
 
-from __future__ import print_function
-import json
+# 1D Lattice
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
-pars = {}
+# Hilbert space of spins on the graph
+# with total Sz equal to 0
+hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-    'TotalSz': 0,
-}
+# Heisenberg hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi)
 
-# defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L': 20,
-    'Dimension': 1,
-    'Pbc': True,
-}
+# Symmetric RBM Spin Machine
+ma = nk.machine.RbmSpinSymm(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Heisenberg',
-}
+# Metropolis Exchange Sampling
+# Notice that this sampler exchanges two neighboring sites
+# thus preservers the total magnetization
+sa = nk.sampler.MetropolisExchange(machine=ma, graph=g)
 
-#defining the wave function
-pars['Machine']={
-    'Name'           : 'RbmSpinSymm',
-    'Alpha'          : 1,
-}
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.05)
 
-# defining the sampler
-# here we use Metropolis sampling
-# using moves from the matrix elements of the hamiltonian
-pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
-}
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method='Sr')
 
-
-# defining the Optimizer
-# here we use AdaMax
-# notice that Sgd would lead to much faster convergence in this case
-pars['Optimizer'] = {
-    'Name': 'AdaMax',
-}
-
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
-    'Diagshift': 0.1,
-    'UseIterative': False,
-    'OutputFile': 'test',
-}
-
-json_file = "heisenberg1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run(output_prefix='test', n_iter=300)

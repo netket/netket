@@ -26,15 +26,13 @@ namespace netket {
 
 // Metropolis sampling generating local exchanges
 template <class WfType>
-class MetropolisExchange : public AbstractSampler<WfType> {
+class MetropolisExchange: public AbstractSampler<WfType> {
   WfType &psi_;
 
   const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
-
-  netket::default_random_engine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -57,13 +55,6 @@ class MetropolisExchange : public AbstractSampler<WfType> {
     Init(graph, dmax);
   }
 
-  // TODO remove
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, const json &pars)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    int dmax = FieldOrDefaultVal(pars, "Dmax", 1);
-    Init(graph, dmax);
-  }
-
   template <class G>
   void Init(const G &graph, int dmax) {
     v_.resize(nv_);
@@ -75,8 +66,6 @@ class MetropolisExchange : public AbstractSampler<WfType> {
     moves_.resize(1);
 
     GenerateClusters(graph, dmax);
-
-    Seed();
 
     Reset(true);
 
@@ -100,25 +89,10 @@ class MetropolisExchange : public AbstractSampler<WfType> {
     }
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, rgen_);
+        hilbert_.RandomVals(v_, this->GetRandomEngine());
       }
     }
 
@@ -136,7 +110,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
     std::vector<double> newconf(2);
 
     for (int i = 0; i < nv_; i++) {
-      int rcl = distcl(rgen_);
+      int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -151,7 +125,7 @@ class MetropolisExchange : public AbstractSampler<WfType> {
         double ratio =
             std::norm(std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_)));
 
-        if (ratio > distu(rgen_)) {
+        if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;
           psi_.UpdateLookup(v_, tochange, newconf, lt_);
           hilbert_.UpdateConf(v_, tochange, newconf);
@@ -165,7 +139,11 @@ class MetropolisExchange : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

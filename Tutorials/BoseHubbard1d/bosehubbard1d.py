@@ -16,7 +16,7 @@ import netket as nk
 from mpi4py import MPI
 
 # 1D Periodic Lattice
-g = nk.graph.Hypercube(length=12, ndim=1, pbc=True)
+g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
 hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=12)
@@ -26,6 +26,7 @@ ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Jastrow Machine with Symmetry
 ma = nk.machine.RbmSpinSymm(alpha=4, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
@@ -34,15 +35,13 @@ sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 op = nk.optimizer.AdaMax()
 
 # Variational Monte Carlo
-vmc = nk.gs.Vmc(
+vmc = nk.variational.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
-    nsamples=1000,
-    niter_opt=4000,
+    n_samples=1000,
     diag_shift=5e-3,
     use_iterative=False,
-    output_file='test',
     method='Sr')
 
-vmc.Run()
+vmc.run(output_prefix='test', n_iter=4000)

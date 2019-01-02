@@ -17,11 +17,13 @@
 
 #include <netket.hpp>
 namespace netket {
-using MachineType = std::complex<double>;
-using AbMachineType = AbstractMachine<MachineType>;
-using AbLayerType = AbstractLayer<MachineType>;
-using AbSamplerType = AbstractSampler<AbMachineType>;
+using StateType = Complex;
+using MachineType = AbstractMachine<StateType>;
+using LayerType = AbstractLayer<StateType>;
+using SamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
+
+#include "Utils/pybind_helpers.hpp"
 
 #include "Dynamics/pydynamics.hpp"
 #include "Graph/pygraph.hpp"
@@ -33,7 +35,9 @@ using AbSamplerType = AbstractSampler<AbMachineType>;
 #include "Output/pyoutput.hpp"
 #include "Sampler/pysampler.hpp"
 #include "Stats/binning.hpp"
+#include "Stats/pystats.hpp"
 #include "Utils/pyutils.hpp"
+#include "Unsupervised/pyunsupervised.hpp"
 
 namespace netket {
 
@@ -49,7 +53,9 @@ PYBIND11_MODULE(netket, m) {
   AddOptimizerModule(m);
   AddOutputModule(m);
   AddSamplerModule(m);
+  AddStatsModule(m);
   AddUtilsModule(m);
+  AddUnsupervisedModule(m);
 }  // PYBIND11_MODULE
 
 }  // namespace netket

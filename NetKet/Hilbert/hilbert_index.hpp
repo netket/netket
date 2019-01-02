@@ -20,6 +20,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <memory>
 #include <nonstd/span.hpp>
 #include <vector>
 

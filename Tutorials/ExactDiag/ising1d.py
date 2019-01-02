@@ -1,78 +1,37 @@
-#Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
 
-#Licensed under the Apache License, Version 2.0 (the "License");
-#you may not use this file except in compliance with the License.
-#You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
 #    http://www.apache.org/licenses/LICENSE-2.0
 
-#Unless required by applicable law or agreed to in writing, software
-#distributed under the License is distributed on an "AS IS" BASIS,
-#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#See the License for the specific language governing permissions and
-#limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+import netket as nk
+from mpi4py import MPI
 
-from __future__ import print_function
-import json
+# 1D Lattice
+g = nk.graph.Hypercube(length=16, n_dim=1, pbc=True)
 
-pars={}
+# Hilbert space of spins on the graph
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-L=20
+# Ising spin hamiltonian
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-}
+# Perform Lanczos Exact Diagonalization to get lowest three eigenvalues 
+res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
 
-#defining the lattice
-pars['Graph']={
-    'Name'           : 'Hypercube',
-    'L'              : L,
-    'Dimension'      : 1 ,
-    'Pbc'            : True,
-}
+# Print eigenvalues
+print("eigenvalues:", res.eigenvalues)
 
-#defining the hamiltonian
-pars['Hamiltonian']={
-    'Name'           : 'Ising',
-    'h'              : 1.0,
-}
+# Compute energy of ground state
+print("g.s. energy:", res.mean(ha, 0))
 
-#defining the observables to be measured
-sigmaxop = []
-sites = []
-for i in range(L):
-    # \sum_i sigma^x(i)
-    sigmaxop.append([[0, 1], [1, 0]])
-    sites.append([i])
-
-pars['Observables'] = {
-    'Operators': sigmaxop,
-    'ActingOn': sites,
-    'Name': 'SigmaX',
-}
-
-
-#defining the GroundState method
-#here we use Exact Diagonalization
-#suitable for this small system
-pars['GroundState']={
-    'Method'         : 'ED',
-    'MatrixFormat'   : 'Direct',   #choose between 'Dense', 'Sparse', and 'Direct'
-    'OutputFile'     : "test",
-    'NumEigenvalues' : 1,
-    'Precision'      : 1e-14,
-    'RandomSeed'     : 42,
-    'MaxIterations'  : 1000,
-}
-
-json_file="ising1d.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+# Compute energy of first excited state
+print("first excited energy:", res.mean(ha, 1))

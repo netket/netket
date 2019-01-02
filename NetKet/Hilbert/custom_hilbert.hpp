@@ -47,24 +47,6 @@ class CustomHilbert : public AbstractHilbert {
     nstates_ = local_.size();
   }
 
-  // TODO remove
-  template <class Ptype>
-  explicit CustomHilbert(const AbstractGraph &graph, const Ptype &pars)
-      : graph_(graph) {
-    CheckFieldExists(pars, "QuantumNumbers", "Hilbert");
-    // if (!pars["Hilbert"]["QuantumNumbers"].is_array()) {
-    //   throw InvalidInputError("QuantumNumbers is not an array");
-    // }
-
-    std::vector<double> qn =
-        FieldVal<std::vector<double>>(pars, "QuantumNumbers");
-
-    local_ = qn;
-
-    size_ = graph.Size();
-    nstates_ = local_.size();
-  }
-
   bool IsDiscrete() const override { return true; }
 
   int LocalSize() const override { return nstates_; }
@@ -97,7 +79,7 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };  // namespace netket
 
 }  // namespace netket

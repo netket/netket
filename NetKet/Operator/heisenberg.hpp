@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "abstract_operator.hpp"
 
 namespace netket {
@@ -38,20 +38,11 @@ class Heisenberg : public AbstractOperator {
   std::vector<std::vector<int>> bonds_;
 
  public:
-
-   using VectorType = AbstractOperator::VectorType;
-   using VectorRefType = AbstractOperator::VectorRefType;
-   using VectorConstRefType = AbstractOperator::VectorConstRefType;
+  using VectorType = AbstractOperator::VectorType;
+  using VectorRefType = AbstractOperator::VectorRefType;
+  using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit Heisenberg(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
-    Init();
-  }
-
-  // TODO remove
-  // Json constructor
-  template <class Ptype>
-  explicit Heisenberg(const AbstractHilbert &hilbert, const Ptype & /*pars*/)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
     Init();
   }
@@ -82,7 +73,7 @@ class Heisenberg : public AbstractOperator {
     }
   }
 
-  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     connectors.clear();
@@ -111,7 +102,9 @@ class Heisenberg : public AbstractOperator {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 };
 
 }  // namespace netket

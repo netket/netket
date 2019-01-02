@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_MPS_PERIODIC_HPP
 #define NETKET_MPS_PERIODIC_HPP
@@ -83,13 +83,6 @@ class MPSPeriodic : public AbstractMachine<T> {
     }
 
     Init();
-  }
-
-  // TODO remove
-  // constructor as a machine
-  explicit MPSPeriodic(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), N_(hilbert.Size()), d_(hilbert.LocalSize()) {
-    from_json(pars);
   }
 
   inline MatrixType prod(const MatrixType &m1, const MatrixType &m2) const {
@@ -561,19 +554,21 @@ class MPSPeriodic : public AbstractMachine<T> {
     return der / trace(left_prods[N_ - 1]);
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   // Json functions
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "MPSperiodic";
-    j["Machine"]["Length"] = N_;
-    j["Machine"]["BondDim"] = D_;
-    j["Machine"]["PhysDim"] = d_;
-    j["Machine"]["Diagonal"] = diag;
-    j["Machine"]["SymmetryPeriod"] = symperiod_;
+    j["Name"] = "MPSperiodic";
+    j["Length"] = N_;
+    j["BondDim"] = D_;
+    j["PhysDim"] = d_;
+    j["Diagonal"] = diag;
+    j["SymmetryPeriod"] = symperiod_;
     for (int i = 0; i < symperiod_; i++) {
       for (int k = 0; k < d_; k++) {
-        j["Machine"]["W" + std::to_string(d_ * i + k)] = W_[i][k];
+        j["W" + std::to_string(d_ * i + k)] = W_[i][k];
       }
     }
   }

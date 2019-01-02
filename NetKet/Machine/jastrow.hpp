@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 
 #ifndef NETKET_JASTROW_HPP
 #define NETKET_JASTROW_HPP
@@ -61,17 +61,16 @@ class Jastrow : public AbstractMachine<T> {
     Init();
   }
 
-  // TODO remove
-  // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
-    from_json(pars);
-  }
-
   void Init() {
-    W_.resize(nv_, nv_);
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
 
-    npar_ = nv_ * (nv_ - 1) / 2;
+    W_.resize(nv_, nv_);
+    W_.setZero();
+
+    npar_ = (nv_ * (nv_ - 1)) / 2;
 
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
@@ -111,10 +110,10 @@ class Jastrow : public AbstractMachine<T> {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
+      W_(i, i) = T(0.);
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
-        W_(j, i) = W_(i, j);  // create the lover triangle
-        W_(i, i) = T(0);
+        W_(j, i) = W_(i, j);  // create the lower triangle
         k++;
       }
     }
@@ -165,13 +164,13 @@ class Jastrow : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -188,13 +187,13 @@ class Jastrow : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -218,12 +217,14 @@ class Jastrow : public AbstractMachine<T> {
     return der;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "Jastrow";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "Jastrow";
+    j["Nvisible"] = nv_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {
