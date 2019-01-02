@@ -7,8 +7,8 @@ import gzip
 
 def load_training(num_images):
 
-    has_images = os.path.isfile('MNIST/train-images-idx3-ubyte.gz')
-    has_labels = os.path.isfile('MNIST/train-labels-idx1-ubyte.gz')
+    has_images = os.path.isfile('train-images-idx3-ubyte.gz')
+    has_labels = os.path.isfile('train-labels-idx1-ubyte.gz')
 
     if (not has_images) or (not has_labels):
         print("MNIST training data incomplete or missing.")
@@ -17,18 +17,15 @@ def load_training(num_images):
         if( answer != 'y' and answer != 'Y' ):
             exit()
 
-        if not os.path.isdir("MNIST"):
-            os.mkdir("MNIST")
-
         url = 'http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'
-        wget.download(url, 'MNIST/train-images-idx3-ubyte.gz')
+        wget.download(url, 'train-images-idx3-ubyte.gz')
         url = 'http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'
-        wget.download(url, 'MNIST/train-labels-idx1-ubyte.gz')
+        wget.download(url, 'train-labels-idx1-ubyte.gz')
 
 
     image_size = 28
 
-    with gzip.open("MNIST/train-images-idx3-ubyte.gz", "r") as f:
+    with gzip.open("train-images-idx3-ubyte.gz", "r") as f:
         # Skip the first 16 bytes
         f.read(16)
 
@@ -37,7 +34,7 @@ def load_training(num_images):
         data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
         imgs = data.reshape(num_images, image_size*image_size)
 
-    with gzip.open("MNIST/train-labels-idx1-ubyte.gz", "r") as f:
+    with gzip.open("train-labels-idx1-ubyte.gz", "r") as f:
         # Skip the first 8 bytes
         f.read(8)
 
