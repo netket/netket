@@ -37,7 +37,7 @@ class AMSGrad : public AbstractOptimizer {
 
   double epscut_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   explicit AMSGrad(double eta = 0.001, double beta1 = 0.9, double beta2 = 0.999,

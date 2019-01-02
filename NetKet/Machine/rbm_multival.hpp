@@ -16,8 +16,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -87,13 +87,6 @@ class RbmMultival : public AbstractMachine<T> {
         useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
     Init();
-  }
-
-  // TODO remove
-  // Json constructor
-  explicit RbmMultival(const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), nv_(hilbert.Size()), ls_(hilbert.LocalSize()) {
-    from_json(pars);
   }
 
   void Init() {
@@ -367,18 +360,20 @@ class RbmMultival : public AbstractMachine<T> {
     vtilde = t.template cast<double>();
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmMultival";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Nhidden"] = nh_;
-    j["Machine"]["LocalSize"] = ls_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["a"] = a_;
-    j["Machine"]["b"] = b_;
-    j["Machine"]["W"] = W_;
+    j["Name"] = "RbmMultival";
+    j["Nvisible"] = nv_;
+    j["Nhidden"] = nh_;
+    j["LocalSize"] = ls_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["a"] = a_;
+    j["b"] = b_;
+    j["W"] = W_;
   }
 
   void from_json(const json &pars) override {

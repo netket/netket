@@ -20,9 +20,10 @@
 #include <iostream>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Hilbert/hilbert.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/json_helper.hpp"
+#include "Utils/messages.hpp"
 #include "abstract_operator.hpp"
 
 namespace netket {
@@ -59,19 +60,6 @@ class BoseHubbard : public AbstractOperator {
         V_(V),
         mu_(mu) {
     nmax_ = hilbert_.LocalSize() - 1;
-    Init();
-  }
-
-  // TODO remove
-  // Json constructor
-  template <class Ptype>
-  explicit BoseHubbard(const AbstractHilbert &hilbert, const Ptype &pars)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nsites_(hilbert.Size()) {
-    nmax_ = hilbert_.LocalSize() - 1;
-    U_ = FieldVal<double>(pars, "U", "Hamiltonian");
-
-    V_ = FieldOrDefaultVal<double>(pars, "V", .0);
-    mu_ = FieldOrDefaultVal<double>(pars, "Mu", .0);
     Init();
   }
 
@@ -136,7 +124,9 @@ class BoseHubbard : public AbstractOperator {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 };
 
 }  // namespace netket

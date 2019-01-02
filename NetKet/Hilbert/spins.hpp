@@ -65,22 +65,6 @@ class Spin : public AbstractHilbert {
     SetConstraint(totalSz);
   }
 
-  // TODO Remove
-  template <class Ptype>
-  explicit Spin(const Graph &graph, const Ptype &pars) : graph_(graph) {
-    const int nspins = graph.Size();
-    const double S = FieldVal<double>(pars, "S", "Hilbert");
-
-    Init(nspins, S);
-
-    if (FieldExists(pars, "TotalSz")) {
-      auto totalSz = FieldVal<double>(pars, "TotalSz");
-      SetConstraint(totalSz);
-    } else {
-      constraintSz_ = false;
-    }
-  }
-
   void Init(int nspins, double S) {
     S_ = S;
     nspins_ = nspins;
@@ -191,7 +175,7 @@ class Spin : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket

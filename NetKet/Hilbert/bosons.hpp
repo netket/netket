@@ -69,26 +69,6 @@ class Boson : public AbstractHilbert {
     SetNbosons(nbosons);
   }
 
-  // TODO remove
-  template <class Ptype>
-  explicit Boson(const AbstractGraph &graph, const Ptype &pars)
-      : graph_(graph) {
-    nsites_ = graph.Size();
-
-    CheckFieldExists(pars, "Nmax", "Hilbert");
-
-    nmax_ = FieldVal<int>(pars, "Nmax");
-
-    Init();
-
-    if (FieldExists(pars, "Nbosons")) {
-      auto nbosons = FieldVal<int>(pars, "Nbosons");
-      SetNbosons(nbosons);
-    } else {
-      constraintN_ = false;
-    }
-  }
-
   void Init() {
     if (nsites_ <= 0) {
       throw InvalidInputError("Invalid number of sites");
@@ -150,10 +130,10 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  bool CheckConstraint(const Eigen::VectorXd &v) const {
+  bool CheckConstraint(Eigen::Ref<const Eigen::VectorXd> v) const {
     int tot = 0;
     for (int i = 0; i < v.size(); i++) {
-      tot += int(v(i));
+      tot += std::round(v(i));
     }
 
     return tot == nbosons_;
@@ -169,6 +149,7 @@ class Boson : public AbstractHilbert {
       v(sf) = newconf[i];
       i++;
       assert(v(sf) <= nmax_);
+      assert(v(sf) >= 0);
     }
 
     if (constraintN_) {
@@ -176,7 +157,7 @@ class Boson : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket

@@ -34,7 +34,7 @@ class AdaDelta : public AbstractOptimizer {
   Eigen::VectorXd Eg2_;
   Eigen::VectorXd Edx2_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
  public:
   // Json constructor
@@ -54,7 +54,7 @@ class AdaDelta : public AbstractOptimizer {
   }
 
   void PrintParameters() {
-    InfoMessage() << "Adelta optimizer initialized with these parameters :"
+    InfoMessage() << "Adadelta optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Rho = " << rho_ << std::endl;
     InfoMessage() << "Epscut = " << epscut_ << std::endl;

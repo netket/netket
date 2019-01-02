@@ -15,8 +15,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Utils/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -97,14 +97,6 @@ class RbmSpinSymm : public AbstractMachine<T> {
     Init(graph_);
 
     SetBareParameters();
-  }
-
-  // Json constructor
-  // TODO remove
-  explicit RbmSpinSymm(const AbstractGraph &graph,
-                       const AbstractHilbert &hilbert, const json &pars)
-      : hilbert_(hilbert), graph_(graph), nv_(hilbert.Size()) {
-    from_json(pars);
   }
 
   void Init(const AbstractGraph &graph) {
@@ -409,17 +401,19 @@ class RbmSpinSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const AbstractHilbert &GetHilbert() const override { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    j["Machine"]["Name"] = "RbmSpinSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Alpha"] = alpha_;
-    j["Machine"]["UseVisibleBias"] = usea_;
-    j["Machine"]["UseHiddenBias"] = useb_;
-    j["Machine"]["asymm"] = asymm_;
-    j["Machine"]["bsymm"] = bsymm_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "RbmSpinSymm";
+    j["Nvisible"] = nv_;
+    j["Alpha"] = alpha_;
+    j["UseVisibleBias"] = usea_;
+    j["UseHiddenBias"] = useb_;
+    j["asymm"] = asymm_;
+    j["bsymm"] = bsymm_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {

@@ -44,14 +44,6 @@ class Qubit : public AbstractHilbert {
     Init(nqubits);
   }
 
-  // TODO remove
-  template <class Ptype>
-  explicit Qubit(const AbstractGraph &graph, const Ptype & /*pars*/)
-      : graph_(graph) {
-    const int nqubits = graph.Size();
-    Init(nqubits);
-  }
-
   void Init(int nqubits) {
     nqubits_ = nqubits;
 
@@ -93,7 +85,7 @@ class Qubit : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const override { return graph_; }
+  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket
