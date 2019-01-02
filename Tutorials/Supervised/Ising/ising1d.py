@@ -23,15 +23,11 @@ path_to_targets = 'isingtargets.txt'
 # Load the Hilbert space info and data
 hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
 
-print(training_samples[0])
-print(training_targets[0])
-exit()
-
 # Machine
 #ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
 # Layers
-L = 10
+L = 6
 layers = (
     nk.layer.FullyConnected(input_size=L,output_size=20),
     nk.layer.Relu(input_size=20),
