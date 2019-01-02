@@ -27,3 +27,8 @@ g = nk.graph.CustomGraph(Gx.edges)
 print(g.distances)
 print(g.is_bipartite)
 print(g.is_connected)
+
+g = nk.graph.CustomGraph([[i, (i + 1) % 10] for i in range(10)])
+print(g.is_connected)
+print(g.distances)
+print(g.n_sites)
