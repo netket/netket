@@ -179,8 +179,7 @@ void AddGraphModule(py::module& m) {
   py::class_<AbstractGraph>(subm, "Graph")
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
                              R"EOF(
-              Returns the number of vertices in the graph.
-           )EOF")
+      int: The number of vertices in the graph.)EOF")
       .def_property_readonly(
           "edges",
           [](AbstractGraph const& x) {
@@ -189,64 +188,76 @@ void AddGraphModule(py::module& m) {
             return vector_type{x.Edges()};
           },
           R"EOF(
-               Returns the graph edges.
-           )EOF")
+      list: The graph edges.)EOF")
       .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
                              R"EOF(
-               Returns the adjacency list of the graph where each node is
-               represented by an integer in ``[0, n_sites)``
-           )EOF")
+      list: The adjacency list of the graph where each node is
+          represented by an integer in `[0, n_sites)`)EOF")
       .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
                              R"EOF(
-               Whether the graph is bipartite.
-           )EOF")
+      bool: Whether the graph is bipartite.)EOF")
       .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
                              R"EOF(
-               Whether the graph is connected.
-           )EOF")
+      bool: Whether the graph is connected.)EOF")
       .def_property_readonly("distances", &AbstractGraph::AllDistances,
                              R"EOF(
-               Returns distances between the nodes. The fact that some node
-               may not be reachable from another is represented by -1.
-           )EOF")
-      .def_property_readonly("symmetry_table", &AbstractGraph::SymmetryTable);
+      list[list]: The distances between the nodes. The fact that some node
+          may not be reachable from another is represented by -1.)EOF")
+      .def_property_readonly("automorphisms", &AbstractGraph::SymmetryTable,
+                             R"EOF(
+      list[list]: The automorphisms of the graph,
+          including translation symmetries only.)EOF");
 
-  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube")
+  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube", R"EOF(
+           A hypercube lattice of side L in d dimensions.
+           Periodic boundary conditions can also be imposed.)EOF")
       .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
-           py::arg("pbc") = true,
-           R"EOF(
-               Constructs a new ``Hypercube`` given its side length and dimension.
+           py::arg("pbc") = true, R"EOF(
+           Constructs a new ``Hypercube`` given its side length and dimension.
 
-               :param length:
-                   side length of the hypercube. It must be always be >=1,
-                   but if ``pbc==True`` then the minimal valid length is 3.
-               :param n_dim:
-                   dimension of the hypercube. It must be at least 1.
-               :param pbc:
-                   if ``True`` then the constructed hypercube will have periodic
-                   boundary conditions, otherwise open boundary conditions are
-                   emposed.
+           Args:
+               length: Side length of the hypercube.
+                   It must always be >=1,
+                   but if ``pbc==True`` then the minimal
+                   valid length is 3.
+               n_dim: Dimension of the hypercube. It must be at least 1.
+               pbc: If ``True`` then the constructed hypercube
+                   will have periodic boundary conditions, otherwise
+                   open boundary conditions are imposed.
+
+           Examples:
+               A 10x10 square lattice with periodic boundary conditions can be
+               constructed as follows:
+
+               ```python
+               >>> from netket.graph import Hypercube
+               >>> g=Hypercube(length=10,n_dim=2,pbc=True)
+               >>> print(g.n_sites)
+               100
+
+               ```
            )EOF")
       .def(py::init([](int length, py::iterable xs) {
              auto iterator = xs.attr("__iter__")();
              return Hypercube{length, detail::Iterable2ColorMap(iterator)};
            }),
-           py::arg("length"), py::arg("colors"),
-           R"EOF(
-               Constructs a new `Hypercube` given its side length and edge coloring.
+           py::arg("length"), py::arg("colors"), R"EOF(
+           Constructs a new `Hypercube` given its side length and edge coloring.
 
-               ``colors`` must be an iterable of ``Tuple[int, int, int]`` where each
-               element ``(i, j, c)`` represents an edge ``i <-> j`` of color ``c``.
-               Colors must be assigned to __all__ edges.
+           Args:
+               length: Side length of the hypercube.
+                   It must always be >=3 if the
+                   hypercube has periodic boundary conditions
+                   and >=1 otherwise.
+               colors: Edge colors, must be an iterable of
+                   `Tuple[int, int, int]` where each
+                   element `(i, j, c) represents an
+                   edge `i <-> j` of color `c`.
+                   Colors must be assigned to **all** edges.)EOF");
 
-               :param length:
-                   side length of the hypercube. It must be always be >=3 if the
-                   hypercube has periodic boundary conditions and >=1 otherwise.
-               :param colors:
-                   edge colors.
-           )EOF");
-
-  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph")
+  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
+           In addition to built-in graphs, NetKet provides the freedom to define
+           custom graphs, specifying a list of edges.)EOF")
       .def(py::init([](py::iterable xs,
                        std::vector<std::vector<int>> automorphisms,
                        bool const is_bipartite) {
@@ -257,20 +268,37 @@ void AddGraphModule(py::module& m) {
            }),
            py::arg("edges"),
            py::arg("automorphisms") = std::vector<std::vector<int>>(),
-           py::arg("is_bipartite") = false,
-           R"EOF(
-               Constructs a new graph given a list of edges.
+           py::arg("is_bipartite") = false, R"EOF(
+           Constructs a new graph given a list of edges.
 
-                   * If `edges` has elements of type `Tuple[int, int]` it is treated
-                     as a list of edges. Then each element `(i, j)` means a connection
-                     between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also,
-                     `edges` should contain no duplicates.
+           Args:
+               edges: If `edges` has elements of type `Tuple[int, int]` it is treated
+                   as a list of edges. Then each element `(i, j)` means a connection
+                   between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also,
+                   `edges` should contain no duplicates. If `edges` has elements of
+                   type `Tuple[int, int, int]` each element `(i, j, c)` represents an
+                   edge between sites `i` and `j` colored into `c`. It is again assumed
+                   that `0 <= i <= j` and that there are no duplicate elements in `edges`.
+               automorphisms: The automorphisms of the graph, i.e. a List[List[int]]
+                   where the inner List[int] is a unique permutation of the
+                   graph sites.
+               is_bipartite: Wheter the custom graph is bipartite.
+                   Notice that this is not deduced from the edge
+                   list and it is left to the user to specify
+                   whether the graph is bipartite or not.
 
-                   * If `edges` has elements of type `Tuple[int, int, int]` each
-                     element `(i, j, c)` represents an edge between sites `i` and `j`
-                     colored into `c`. It is again assumed that `0 <= i <= j` and that
-                     there are no duplicate elements in `edges`.
-          )EOF");
+           Examples:
+               A 10-site one-dimensional lattice with periodic boundary conditions can be
+               constructed specifying the edges as follows:
+
+               ```python
+               >>> from netket.graph import CustomGraph
+               >>> g=CustomGraph([[i, (i + 1) % 10] for i in range(10)])
+               >>> print(g.n_sites)
+               10
+
+               ```
+           )EOF");
 }
 
 }  // namespace netket
