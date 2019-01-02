@@ -17,11 +17,15 @@ import netket as nk
 from mpi4py import MPI
 from load_data import load
 
-path_to_samples = 'ising1d_train_samples.txt'
-path_to_targets = 'ising1d_train_targets.txt'
+path_to_samples = 'isingsamples.txt'
+path_to_targets = 'isingtargets.txt'
 
 # Load the Hilbert space info and data
 hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
+
+print(training_samples[0])
+print(training_targets[0])
+exit()
 
 # Machine
 #ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
@@ -29,9 +33,9 @@ hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
 # Layers
 L = 10
 layers = (
-    nk.layer.FullyConnected(input_size=L,output_size=100),
-    nk.layer.Relu(input_size=100),
-    nk.layer.FullyConnected(input_size=100,output_size=1),
+    nk.layer.FullyConnected(input_size=L,output_size=20),
+    nk.layer.Relu(input_size=20),
+    nk.layer.FullyConnected(input_size=20,output_size=1),
 )
 
 ma = nk.machine.FFNN(hilbert=hi, layers=layers)
@@ -41,7 +45,7 @@ ma.init_random_parameters(seed=1234, sigma=0.001)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(1e-4)
+op = nk.optimizer.Sgd(1e-2)
 
 # Quantum State Reconstruction
 spvsd = nk.supervised.supervised(

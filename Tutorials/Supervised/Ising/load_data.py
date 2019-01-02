@@ -19,7 +19,7 @@ import netket.hilbert as hs
 
 def load(path_to_samples, path_to_targets):
     tsamples = np.loadtxt(path_to_samples)
-    ttargets = np.loadtxt(path_to_targets)
+    ttargets = np.loadtxt(path_to_targets, dtype=complex)
 
     # Create the hilbert space
     # TODO remove Hypercube here and put customgraph
