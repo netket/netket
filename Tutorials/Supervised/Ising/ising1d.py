@@ -20,21 +20,22 @@ from load_data import load
 path_to_samples = 'isingsamples.txt'
 path_to_targets = 'isingtargets.txt'
 
-# Load the Hilbert space info and data
+# Load the Hilbert space info and data 
 hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
 
 # Machine
-#ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
 # Layers
-L = 6
+L = 10
+middle_layer_size = 20
 layers = (
-    nk.layer.FullyConnected(input_size=L,output_size=20),
-    nk.layer.Relu(input_size=20),
-    nk.layer.FullyConnected(input_size=20,output_size=1),
+    nk.layer.FullyConnected(input_size=L,output_size=middle_layer_size),
+    nk.layer.Tanh(input_size=middle_layer_size),
+    nk.layer.FullyConnected(input_size=middle_layer_size, output_size=1),
 )
 
 ma = nk.machine.FFNN(hilbert=hi, layers=layers)
+#ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.001)
 
 # Sampler
@@ -42,13 +43,14 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
 op = nk.optimizer.Sgd(1e-2)
+#op = nk.optimizer.AdaMax()
 
 # Quantum State Reconstruction
 spvsd = nk.supervised.supervised(
     sampler=sa,
     optimizer=op,
-    batch_size=16,
-    niter_opt=100,
+    batch_size=32,
+    niter_opt=1000,
     output_file="output",
     samples=training_samples,
     targets=training_targets)
