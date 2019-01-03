@@ -57,4 +57,5 @@ spvsd = nk.supervised.supervised(
     samples=training_samples,
     targets=training_targets)
 
-spvsd.run()
+# Run with "Overlap" loss. Also available currently is "MSE"
+spvsd.run(loss_function="Overlap")
