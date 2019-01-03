@@ -48,7 +48,7 @@ void AddSupervisedModule(py::module &m) {
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("sampler"),
            py::arg("optimizer"), py::arg("batch_size"), py::arg("niter_opt"),
            py::arg("samples"), py::arg("targets"), py::arg("output_file"))
-      .def("run", &Supervised::Run);
+      .def("run", &Supervised::Run, py::arg("loss_function") = "MSE");
 }
 
 }  // namespace netket
