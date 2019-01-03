@@ -35,7 +35,7 @@ void AddSupervisedModule(py::module &m) {
   py::class_<Supervised>(subm, "supervised")
       .def(py::init([](SamplerType &sa, AbstractOptimizer &op, int batch_size,
                        int niter_opt, std::vector<Eigen::VectorXd> samples,
-                       std::vector<Eigen::VectorXd> targets,
+                       std::vector<Eigen::VectorXcd> targets,
                        std::string output_file) {
              return Supervised{sa,
                                op,
@@ -45,10 +45,9 @@ void AddSupervisedModule(py::module &m) {
                                std::move(targets),
                                output_file};
            }),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
-           py::keep_alive<1, 7>(), py::arg("sampler"), py::arg("optimizer"),
-           py::arg("batch_size"), py::arg("niter_opt"), py::arg("samples"),
-           py::arg("targets"), py::arg("output_file"))
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("sampler"),
+           py::arg("optimizer"), py::arg("batch_size"), py::arg("niter_opt"),
+           py::arg("samples"), py::arg("targets"), py::arg("output_file"))
       .def("run", &Supervised::Run);
 }
 
