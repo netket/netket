@@ -64,7 +64,7 @@ void AddHilbertModule(py::module &m) {
                s: Spin at each site. Must be integer or half-integer.
 
            Examples:
-               Simple fermionic spin hilbert space.
+               Simple spin hilbert space.
 
                ```python
                >>> from netket.graph import Hypercube
@@ -84,7 +84,7 @@ void AddHilbertModule(py::module &m) {
                total_sz: Constrain total spin of system to a particular value.
 
            Examples:
-               Simple fermionic spin hilbert space.
+               Simple spin hilbert space.
 
                ```python
                >>> from netket.graph import Hypercube
