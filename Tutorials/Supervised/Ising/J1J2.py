@@ -18,16 +18,15 @@ from mpi4py import MPI
 from load_data import load
 import sys
 
-path_to_samples = 'isingsamples.txt'
-path_to_targets = 'isingtargets.txt'
+L = 10
+path_to_samples = 'ising1d-samples-L-{0}.txt'.format(L)
+path_to_targets = 'ising1d-targets-L-{0}.txt'.format(L)
 
 # Load the Hilbert space info and data 
 hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
 
-# Machine
 
 # Layers
-L = 10
 middle_layer_size = 20
 layers = (
     nk.layer.FullyConnected(input_size=L,output_size=middle_layer_size),
@@ -35,6 +34,7 @@ layers = (
     nk.layer.FullyConnected(input_size=middle_layer_size, output_size=1),
 )
 
+# Machine
 ma = nk.machine.FFNN(hilbert=hi, layers=layers)
 #ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.001)
