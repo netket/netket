@@ -152,6 +152,7 @@ class Supervised {
   /// TODO(everthmore): User defined loss function instead of hardcoded MSE
   /// Loss = 0.5 * (log(psi) - log(target)) * (log(psi) - log(target)).conj()
   /// Partial Der = Real part of (derlog(psi)*(log(psi) - log(t)).c()
+  /// TODO(everthemore) Add 2*log(psi) to loss function
   void GradientComplexMSE(std::vector<Eigen::VectorXd> &batchSamples,
                           std::vector<Eigen::VectorXcd> &batchTargets) {
     // Allocate a vector for storing the derivatives ...
@@ -175,6 +176,8 @@ class Supervised {
 
       // MSE loss
       der = der + ((partial_gradient)*std::conj(value - t)).real();
+      // Normalization
+      der = der + 2.0 * partial_gradient.real();
 
       // std::cout << "Der: " << der << std::endl;
     }
