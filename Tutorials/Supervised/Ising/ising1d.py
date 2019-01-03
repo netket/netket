@@ -16,6 +16,7 @@
 import netket as nk
 from mpi4py import MPI
 from load_data import load
+import sys
 
 path_to_samples = 'isingsamples.txt'
 path_to_targets = 'isingtargets.txt'
@@ -42,15 +43,16 @@ ma.init_random_parameters(seed=1234, sigma=0.001)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(1e-2)
-#op = nk.optimizer.AdaMax()
+#op = nk.optimizer.Sgd(1e-2)
+op = nk.optimizer.AdaMax()
 
-# Quantum State Reconstruction
+niter = int(sys.argv[1])
+
 spvsd = nk.supervised.supervised(
     sampler=sa,
     optimizer=op,
     batch_size=32,
-    niter_opt=1000,
+    niter_opt=niter,
     output_file="output",
     samples=training_samples,
     targets=training_targets)
