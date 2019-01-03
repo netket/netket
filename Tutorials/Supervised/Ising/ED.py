@@ -194,78 +194,28 @@ def store_eig_vec(evals_small, evecs_small, filename):
     return
 
 
-def to_1d_json(x, L, formating=False):
-    import codecs;
-    x_real = np.real(x)
-    x_imag = np.imag(x)
+def save_to_txt(x, L, formating=False):
     output={"samples": {}}
 
-    # for i in range(2**4):
-    #     output["Sample"].append({'configs': np.binary_repr(i, width=4), 'real': x_real[i], 'imag': x_imag[i] })
     output["samples"]["configs"] = []
     output["samples"]["amp"] = []
     for i in range(2**L):
-        output["samples"]["configs"].append([2*int(num) - 1 for num in np.binary_repr(i, width=L)])
-        output["samples"]["amp"].append(x) #(x_real[i], x_imag[i]))
-
+        output["samples"]["configs"].append([int(num) for num in np.binary_repr(i, width=L)])
+        output["samples"]["amp"].append(x)
         
-    np.savetxt("isingsamples.txt", output["samples"]["configs"])
-    np.savetxt("isingtargets.txt", output["samples"]["amp"], delimiter='\n')
-
-#    if formating:
-#        json.dump(output, codecs.open('./psi.json', 'w', encoding='utf-8'), separators=(',', ':'),sort_keys=True, indent=4)
-#    else:
-#        json.dump(output, codecs.open('./psi.json', 'w', encoding='utf-8'))
+    np.savetxt("ising1d-samples-L-{0}.txt".format(L), output["samples"]["configs"])
+    np.savetxt("ising1d-targets-L-{0}.txt".format(L), output["samples"]["amp"], delimiter='\n')
 
 
 if __name__ == "__main__":
     import sys
-    model = sys.argv[1]
-    if model == '1dJ1J2':
-        L, J1, J2 = sys.argv[2:]
-        L, J1, J2 = int(L), float(J1), float(J2)
-        N = L
-        print("python 1dJ1J2 L=%d J1=%f J2=%f" % (L, J1, J2) )
-        evals_small, evecs_small = solve_1d_J1J2(L, J1, J2)
-        eig_filename = './ES_%s_L%d_J2_%d.csv' % (model[:2], L, J2*10)
-        to_1d_json(evecs_small[:,0], L)
-#         store_eig_vec(evals_small, evecs_small, eig_filename)
-        print("check one site translation phase : {:.2f}".format(check_phase(evecs_small[:,0])))
-    elif model == '2dJ1J2':
-        Lx, Ly, J1, J2 = sys.argv[2:]
-        Lx, Ly, J1, J2 = int(Lx), int(Ly), float(J1), float(J2)
-        N = Lx * Ly
-        evals_small, evecs_small = solve_2d_J1J2(Lx, Ly, J1, J2)
-        eig_filename = 'EigVec/ES_%s_L%dx%d_J2_%d.csv' % (model[:2], Lx, Ly, J2*10)
-        store_eig_vec(evals_small, evecs_small, eig_filename)
-        print("check n={0:d} site translation phase : {1:.2f}".format(Lx, check_phase(evecs_small[:,0], 2, Lx)))
-    else:
-        print("error in input arguments:\ncurrently support for 1dJ1J2, 2dAFH")
-        raise NotImplementedError
 
+    if( len(sys.argv) < 4 ):
+        print("Incorrect command-line arguments")
+        print("Usage: ED.py L J1 J2")
+        exit(0) 
 
-    # sum_Sx = build_Sx(16)
-    # x=evecs_small[:,0]
-    # print("sum Sx expectation value : ", x.conjugate().dot(sum_Sx.dot(x)))
-
-    for i in range(1,N+1):
-        print("Sz at i={0} , {1:.6f} ".format(i, sz_expectation(i, evecs_small[:,0], N)))
-
-
-    SzSz=[1]
-    for i in range(2, N+1):
-        SzSz.append(spin_spin_correlation(1, i, N, evecs_small[:,0]))
-
-    SzSz = np.real(np.array(SzSz))
-    print("SzSz: ", SzSz)
-
-#     log_file = open('spin_spin_cor_L%d_J2_%d.csv' % (L, J2*10), 'w')
-#     np.savetxt(log_file, SzSz/4., '%.4e', delimiter=',')
-#     log_file.close()
-
-
-
-# plt.plot(np.real(evecs_small[:, 0]), label='real')
-# plt.plot(np.imag(evecs_small[:, 0]), label='imag')
-# plt.legend()
-# plt.show()
+    L, J1, J2 = sys.argv[1:]
+    L, J1, J2 = int(L), float(J1), float(J2)
+    evals_small, evecs_small = solve_1d_J1J2(L, J1, J2)
+    save_to_txt(evecs_small[:,0], L)
