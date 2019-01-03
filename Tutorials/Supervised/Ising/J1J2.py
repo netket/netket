@@ -19,8 +19,8 @@ from load_data import load
 import sys
 
 L = 10
-path_to_samples = 'ising1d-samples-L-{0}.txt'.format(L)
-path_to_targets = 'ising1d-targets-L-{0}.txt'.format(L)
+path_to_samples = '1d-J1J2-samples-L-{0}.txt'.format(L)
+path_to_targets = '1d-J1J2-targets-L-{0}.txt'.format(L)
 
 # Load the Hilbert space info and data 
 hi, training_samples, training_targets = load(path_to_samples, path_to_targets)
