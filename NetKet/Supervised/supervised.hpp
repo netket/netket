@@ -128,16 +128,21 @@ class Supervised {
       Eigen::VectorXd sample(batchSamples[i]);
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
+      complex t(target[0].real(), target[0].imag());
+      // Undo log
+      t = exp(t);
 
       complex value(psi_.LogVal(sample));
+      // Undo Log
+      value = exp(value);
+
+      // Compute derivative of log
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
 
       num1 = num1 + der * pow(abs(value), 2);
-      num2 = num2 + der * std::conj(value) *
-                        target;  // * pow(abs(value), 2) * target / value;
-      num3 = num3 +
-             std::conj(value) * target;  // pow(abs(value), 2) * target / value;
+      num2 = num2 + der * std::conj(value) * target;
+      num3 = num3 + std::conj(value) * target;
       den = den + pow(abs(value), 2);
 
       total_der = total_der + (num1 / den) - num2 * num3.inverse();
@@ -177,10 +182,6 @@ class Supervised {
 
       // MSE loss
       der = der + (partial_gradient.conjugate()) * (value - t);
-      // Normalization
-      // der = der + 2.0 * partial_gradient.real();
-
-      // std::cout << "Der: " << der << std::endl;
     }
     // Store derivatives in grad_ ...
     grad_ = der / batchsize_node_;
@@ -188,15 +189,12 @@ class Supervised {
     // ... and compute the mean of the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_);
-
-    // std::cout << "Gradient: " << grad_ << std::endl;
-    // std::cout << "Norm: " << grad_.norm() << std::endl;
   }
 
   /// Runs the supervised learning on the training samples and targets
   /// TODO(everthmore): Override w/ function call that sets testSamples_
   ///                   and testTargets_ and reports on accuracy on those.
-  void Run() {
+  void Run(std::string lossFunction = "MSE") {
     std::vector<Eigen::VectorXd> batchSamples;
     std::vector<Eigen::VectorXcd> batchTargets;
 
@@ -219,14 +217,18 @@ class Supervised {
         batchTargets[k] = trainingTargets_[index];
       }
 
-      // Compute the gradient on the batch samples
-      // DerLogOverlap(batchSamples, batchTargets);
-      // UpdateParameters();
-      // PrintLogOverlap();
-
-      GradientComplexMSE(batchSamples, batchTargets);
-      UpdateParameters();
-      PrintComplexMSE();
+      if (lossFunction == "MSE") {
+        GradientComplexMSE(batchSamples, batchTargets);
+        UpdateParameters();
+        PrintComplexMSE();
+      } else if (lossFunction == "Overlap") {
+        DerLogOverlap(batchSamples, batchTargets);
+        UpdateParameters();
+        PrintLogOverlap();
+      } else {
+        std::cout << "Supervised loss function \" " << lossFunction
+                  << "\" undefined!" << std::endl;
+      }
     }
   }
 
@@ -251,9 +253,6 @@ class Supervised {
       Eigen::VectorXcd target = trainingTargets_[i];
       complex t(target[0].real(), target[0].imag());
 
-      // std::cout << "value " << i << ": " << value << std::endl;
-      // std::cout << "target " << i << ": " << t << std::endl;
-
       mse += 0.5 * pow(abs(value - t), 2);
     }
 
@@ -268,8 +267,7 @@ class Supervised {
     // Allocate vectors for storing the derivatives ...
     complex num1(0.0, 0.0);
     complex num2(0.0, 0.0);
-    complex den1(0.0, 0.0);
-    complex den2(0.0, 0.0);
+    complex num3(0.0, 0.0);
 
     std::complex<double> overlap = 0.0;
     for (int i = 0; i < numSamples; i++) {
@@ -278,20 +276,18 @@ class Supervised {
       // And the corresponding target
       Eigen::VectorXcd target(trainingTargets_[i]);
 
-      // Cast value and target to std::complex<couble>
+      // Cast value and target to std::complex<couble> and undo logs
       complex value(psi_.LogVal(sample));
+      value = exp(value);
       complex t(target[0].real(), target[0].imag());
+      t = exp(t);
 
-      num1 += (t / value) * pow(abs(value), 2);
-      den1 += pow(abs(value), 2);
-      num2 += (value / t) * pow(abs(t), 2);
-      den2 += pow(abs(t), 2);
-
-      overlap += sqrt(num1 / den1 * num2 / den2);
+      num1 += std::conj(value) * t;
+      num2 += value * std::conj(t);
+      num3 += pow(abs(value), 2);
     }
-    // Take negative log
-    overlap = -log(overlap);
 
+    overlap = -(log(num1) + log(num2) - log(num3));
     std::cout << "LogOverlap: " << overlap << std::endl;
   }
 };
