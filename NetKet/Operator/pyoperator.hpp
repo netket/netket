@@ -15,23 +15,25 @@
 #ifndef NETKET_PYOPERATOR_HPP
 #define NETKET_PYOPERATOR_HPP
 
+#include "operator.hpp"
+#include <complex>
 #include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <complex>
 #include <vector>
-#include "operator.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name)   \
-  .def("get_conn", &name::GetConn) \
-      .def_property_readonly("hilbert", &name::GetHilbert)
+#define ADDOPERATORMETHODS(name)                                               \
+  .def("get_conn", &name::GetConn)                                             \
+      .def_property_readonly(                                                  \
+          "hilbert", &name::GetHilbert,                                        \
+          R"EOF(const AbstractHilbert&: ``Hilbert`` space of operator.)EOF")
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
@@ -39,20 +41,100 @@ void AddOperatorModule(py::module &m) {
   py::class_<AbstractOperator>(m, "Operator")
       ADDOPERATORMETHODS(AbstractOperator);
 
-  py::class_<LocalOperator, AbstractOperator>(subm, "LocalOperator")
+  py::class_<LocalOperator, AbstractOperator>(
+      subm, "LocalOperator", R"EOF(A custom local operator.)EOF")
       .def(py::init<const AbstractHilbert &, double>(), py::keep_alive<1, 2>(),
-           py::arg("hilbert"), py::arg("constant") = 0.)
+           py::arg("hilbert"), py::arg("constant") = 0., R"EOF(
+           Constructs a new ``LocalOperator`` given a hilbert space and (if
+           specified) a constant level shift.
+
+           Args:
+               hilbert: Hilbert space the operator acts on.
+               constant: Level shift for operator. Default is 0.0.
+
+           Examples:
+               Constructs a ``LocalOperator`` without any operators.
+
+               ```python
+               >>> from netket.graph import CustomGraph
+               >>> from netket.hilbert import CustomHilbert
+               >>> from netket.operator import LocalOperator
+               >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
+               >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
+               >>> empty_hat = nk.operator.LocalOperator(hi)
+               >>> empty_hat.active_on
+               [[]]
+               ```
+           )EOF")
       .def(
           py::init<const AbstractHilbert &, std::vector<LocalOperator::MatType>,
                    std::vector<LocalOperator::SiteType>, double>(),
           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operators"),
-          py::arg("acting_on"), py::arg("constant") = 0.)
+          py::arg("acting_on"), py::arg("constant") = 0., R"EOF(
+          Constructs a new ``LocalOperator`` given a hilbert space, a vector of
+          operators, a vector of sites, and (if specified) a constant level
+          shift.
+
+          Args:
+              hilbert: Hilbert space the operator acts on.
+              operators: A list of operators, in matrix form.
+              acting_on: A list of sites, which the corresponding operators act
+                  on.
+              constant: Level shift for operator. Default is 0.0.
+
+          Examples:
+              Constructs a ``LocalOperator`` from a list of operators acting on
+              a corresponding list of sites.
+
+              ```python
+              >>> from netket.graph import CustomGraph
+              >>> from netket.hilbert import CustomHilbert
+              >>> from netket.operator import LocalOperator
+              >>> sx = [[0, 1], [1, 0]]
+              >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
+              >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
+              >>> sx_hat = LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
+              >>> sx_hat.acting_on
+              [[0], [1], [5]]
+              ```
+          )EOF")
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
                     LocalOperator::SiteType, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operator"),
-           py::arg("acting_on"), py::arg("constant") = 0.)
-      .def_property_readonly("local_matrices", &LocalOperator::LocalMatrices)
-      .def_property_readonly("acting_on", &LocalOperator::ActingOn)
+           py::arg("acting_on"), py::arg("constant") = 0., R"EOF(
+           Constructs a new ``LocalOperator`` given a hilbert space, an
+           operator, a site, and (if specified) a constant level
+           shift.
+
+           Args:
+               hilbert: Hilbert space the operator acts on.
+               operator: An operator, in matrix form.
+               acting_on: A list of sites, which the corresponding operators act
+                   on.
+               constant: Level shift for operator. Default is 0.0.
+
+           Examples:
+               Constructs a ``LocalOperator`` from a single operator acting on
+               a single site.
+
+               ```python
+               >>> from netket.graph import CustomGraph
+               >>> from netket.hilbert import CustomHilbert
+               >>> from netket.operator import LocalOperator
+               >>> sx = [[0, 1], [1, 0]]
+               >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
+               >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
+               >>> sx_hat = LocalOperator(hi, sx, [0])
+               >>> sx_hat.acting_on
+               [[0]]
+               ```
+           )EOF")
+      .def_property_readonly(
+          "local_matrices", &LocalOperator::LocalMatrices,
+          R"EOF(list[list]: A list of the local matrices.)EOF")
+      .def_property_readonly(
+          "acting_on", &LocalOperator::ActingOn,
+          R"EOF(list[list]: A list of the sites that each local matrix acts on.)EOF")
       .def(py::self + py::self)
       .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
            py::is_operator())
@@ -72,29 +154,134 @@ void AddOperatorModule(py::module &m) {
            py::is_operator())
       .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
 
-  py::class_<Ising, AbstractOperator>(subm, "Ising")
+  py::class_<Ising, AbstractOperator>(subm, "Ising",
+                                      R"EOF(An Ising Hamiltonian operator.)EOF")
       .def(py::init<const AbstractHilbert &, double, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("h"),
-           py::arg("J") = 1.0) ADDOPERATORMETHODS(Ising);
+           py::arg("J") = 1.0, R"EOF(
+           Constructs a new ``Ising`` given a hilbert space, a transverse field,
+           and (if specified) a coupling constant.
 
-  py::class_<Heisenberg, AbstractOperator>(subm, "Heisenberg")
+           Args:
+               hilbert: Hilbert space the operator acts on.
+               h: The strength of the transverse field.
+               J: The strength of the coupling. Default is 1.0.
+
+           Examples:
+               Constructs an ``Ising`` operator for a 1D system.
+
+               ```python
+               >>> from mpi4py import MPI
+               >>> import netket as nk
+               >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+               >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+               >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
+               # Transverse-Field Ising model created
+               # h = 1.321
+               # J = 0.5
+               ```
+           )EOF") ADDOPERATORMETHODS(Ising);
+
+  py::class_<Heisenberg, AbstractOperator>(
+      subm, "Heisenberg", R"EOF(A Heisenberg Hamiltonian operator.)EOF")
       .def(py::init<const AbstractHilbert &>(), py::keep_alive<1, 2>(),
-           py::arg("hilbert")) ADDOPERATORMETHODS(Heisenberg);
+           py::arg("hilbert"), R"EOF(
+           Constructs a new ``Heisenberg`` given a hilbert space.
 
-  py::class_<GraphOperator, AbstractOperator>(subm, "GraphOperator")
+           Args:
+               hilbert: Hilbert space the operator acts on.
+
+           Examples:
+               Constructs a ``Heisenberg`` operator for a 1D system.
+
+               ```python
+               >>> from mpi4py import MPI
+               >>> import netket as nk
+               >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+               >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
+               >>> op = nk.operator.Heisenberg(hilbert=hi)
+               # Heisenberg model created
+               ```
+           )EOF") ADDOPERATORMETHODS(Heisenberg);
+
+  py::class_<GraphOperator, AbstractOperator>(
+      subm, "GraphOperator", R"EOF(A custom graph based operator.)EOF")
       .def(py::init<const AbstractHilbert &, GraphOperator::OVecType,
                     GraphOperator::OVecType, std::vector<int>>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"),
            py::arg("siteops") = GraphOperator::OVecType(),
            py::arg("bondops") = GraphOperator::OVecType(),
-           py::arg("bondops_colors") = std::vector<int>())
+           py::arg("bondops_colors") = std::vector<int>(), R"EOF(
+           Constructs a new ``GraphOperator`` given a hilbert space and either a
+           list of operators acting on sites or a list acting on the bonds.
+           Users can specify the color of the bond that an operator acts on, if
+           desired. If none are specified, the bond operators act on all edges.
+
+           Args:
+               hilbert: Hilbert space the operator acts on.
+               siteops: A list of operators that act on the nodes of the graph.
+                   The default is an empty list. Note that if no siteops are
+                   specified, the user must give a list of bond operators.
+               bondops: A list of operators that act on the edges of the graph.
+                   The default is an empty list. Note that if no bondops are
+                   specified, the user must give a list of site operators.
+               bondops_colors: A list of edge colors, specifying the color each
+                   bond operator acts on. The defualt is an empty list.
+
+           Examples:
+               Constructs a ``BosGraphOperator`` operator for a 2D system.
+
+               ```python
+               >>> from mpi4py import MPI
+               >>> import netket as nk
+               >>> sigmax = [[0, 1], [1, 0]]
+               >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+               >>> edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
+                        [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15],
+                        [15, 16], [16, 17], [17, 18], [18, 19], [19, 0]]
+               >>> g = nk.graph.CustomGraph(edges=edges)
+               >>> hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+               >>> op = nk.operator.GraphOperator(
+                   hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0])
+               >>> ha.hilbert
+               <netket.hilbert.CustomHilbert object at 0x2b19b8298340>
+
+               ```
+           )EOF")
       .def(py::self + py::self) ADDOPERATORMETHODS(GraphOperator);
 
-  py::class_<BoseHubbard, AbstractOperator>(subm, "BoseHubbard")
+  py::class_<BoseHubbard, AbstractOperator>(
+      subm, "BoseHubbard",
+      R"EOF(A Bose Hubbard model Hamiltonian operator.)EOF")
       .def(py::init<const AbstractHilbert &, double, double, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("U"),
-           py::arg("V") = 0., py::arg("mu") = 0.)
-          ADDOPERATORMETHODS(BoseHubbard);
+           py::arg("V") = 0., py::arg("mu") = 0., R"EOF(
+           Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
+           interaction strength. The chemical potential and the hopping term can
+           be specified as well.
+
+           Args:
+               hilbert: Hilbert space the operator acts on.
+               U: The Hubbard interaction term.
+               V: The hopping term.
+               mu: The chemical potential.
+
+           Examples:
+               Constructs a ``BoseHubbard`` operator for a 2D system.
+
+               ```python
+               >>> from mpi4py import MPI
+               >>> import netket as nk
+               >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
+               >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
+               >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+               # Bose Hubbard model created
+               # U= 4
+               # V= 0
+               # mu= 0
+               # Nmax= 3
+               ```
+           )EOF") ADDOPERATORMETHODS(BoseHubbard);
 
   // Matrix wrappers
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")
@@ -124,6 +311,6 @@ void AddOperatorModule(py::module &m) {
            py::arg("type") = "Sparse");
 }
 
-}  // namespace netket
+} // namespace netket
 
 #endif
