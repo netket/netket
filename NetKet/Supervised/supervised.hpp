@@ -131,16 +131,19 @@ class Supervised {
 
       complex value(psi_.LogVal(sample));
       auto der = psi_.DerLog(sample);
+      der = der.conjugate();
 
       num1 = num1 + der * pow(abs(value), 2);
-      num2 = num2 + der * pow(abs(value), 2) * target / value;
-      num3 = num3 + pow(abs(value), 2) * target / value;
+      num2 = num2 + der * std::conj(value) *
+                        target;  // * pow(abs(value), 2) * target / value;
+      num3 = num3 +
+             std::conj(value) * target;  // pow(abs(value), 2) * target / value;
       den = den + pow(abs(value), 2);
 
       total_der = total_der + (num1 / den) - num2 * num3.inverse();
     }
     // Store derivatives in grad_ ...
-    grad_ = -total_der;
+    grad_ = total_der;
 
     // ... and compute the mean of the gradient over the nodes
     SumOnNodes(grad_);
@@ -151,8 +154,7 @@ class Supervised {
   /// the machine's parameters for a given batch of samples and targets
   /// TODO(everthmore): User defined loss function instead of hardcoded MSE
   /// Loss = 0.5 * (log(psi) - log(target)) * (log(psi) - log(target)).conj()
-  /// Partial Der = Real part of (derlog(psi)*(log(psi) - log(t)).c()
-  /// TODO(everthemore) Add 2*log(psi) to loss function
+  /// Partial Der = Real part of (derlog(psi)*(log(psi) - log(t)).conj()
   void GradientComplexMSE(std::vector<Eigen::VectorXd> &batchSamples,
                           std::vector<Eigen::VectorXcd> &batchTargets) {
     // Allocate a vector for storing the derivatives ...
@@ -162,9 +164,8 @@ class Supervised {
 
     // Foreach sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
-      // Extract log(config)
+      // Extract complex value of log(config)
       Eigen::VectorXd sample(batchSamples[i]);
-      // And get complex value of log(sample)
       complex value(psi_.LogVal(sample));
 
       // And the corresponding target
@@ -175,21 +176,21 @@ class Supervised {
       auto partial_gradient = psi_.DerLog(sample);
 
       // MSE loss
-      der = der + ((partial_gradient)*std::conj(value - t)).real();
+      der = der + (partial_gradient.conjugate()) * (value - t);
       // Normalization
-      der = der + 2.0 * partial_gradient.real();
+      // der = der + 2.0 * partial_gradient.real();
 
       // std::cout << "Der: " << der << std::endl;
     }
     // Store derivatives in grad_ ...
-    grad_ = der;
-
-    std::cout << "Gradient: " << grad_ << std::endl;
-    std::cout << "Norm: " << grad_.norm() << std::endl;
+    grad_ = der / batchsize_node_;
 
     // ... and compute the mean of the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_);
+
+    // std::cout << "Gradient: " << grad_ << std::endl;
+    // std::cout << "Norm: " << grad_.norm() << std::endl;
   }
 
   /// Runs the supervised learning on the training samples and targets
@@ -245,25 +246,20 @@ class Supervised {
     std::complex<double> mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
-      Eigen::VectorXcd target = trainingTargets_[i];
-
-      // std::cout << "Training sample " << i << ": " << sample << std::endl;
-      // std::cout << "Training target " << i << ": " << target << std::endl;
-
       complex value(psi_.LogVal(sample));
-      // complex t(target[0], target[1]);
+
+      Eigen::VectorXcd target = trainingTargets_[i];
       complex t(target[0].real(), target[0].imag());
 
-      std::cout << "value " << i << ": " << value << std::endl;
-      std::cout << "target " << i << ": " << t << std::endl;
+      // std::cout << "value " << i << ": " << value << std::endl;
+      // std::cout << "target " << i << ": " << t << std::endl;
 
       mse += 0.5 * pow(abs(value - t), 2);
     }
 
-    std::cout << "MSE: " << mse << std::endl;
+    complex n(numSamples, 0);
+    std::cout << "MSE: " << mse / n << std::endl;
   }
-
-  /*
 
   /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
   void PrintLogOverlap() {
@@ -284,7 +280,7 @@ class Supervised {
 
       // Cast value and target to std::complex<couble>
       complex value(psi_.LogVal(sample));
-      complex t(target[0], target[1]);
+      complex t(target[0].real(), target[0].imag());
 
       num1 += (t / value) * pow(abs(value), 2);
       den1 += pow(abs(value), 2);
@@ -298,7 +294,6 @@ class Supervised {
 
     std::cout << "LogOverlap: " << overlap << std::endl;
   }
-  */
 };
 
 }  // namespace netket
