@@ -31,5 +31,5 @@ Constructs a ``BoseHubbard`` operator for a 2D system.
 ## Properties
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
-|hilbert |const AbstractHilbert&| ``Hilbert`` space of operator.|
+|hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
 
