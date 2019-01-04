@@ -81,6 +81,6 @@ a single site.
 |   Property   |         Type         |                    Description                     |
 |--------------|----------------------|----------------------------------------------------|
 |acting_on     |list[list]            | A list of the sites that each local matrix acts on.|
-|hilbert       |const AbstractHilbert&| ``Hilbert`` space of operator.                     |
+|hilbert       |netket.hilbert.Hilbert| ``Hilbert`` space of operator.                     |
 |local_matrices|list[list]            | A list of the local matrices.                      |
 

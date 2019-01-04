@@ -33,7 +33,7 @@ namespace netket {
   .def("get_conn", &name::GetConn)                                             \
       .def_property_readonly(                                                  \
           "hilbert", &name::GetHilbert,                                        \
-          R"EOF(const AbstractHilbert&: ``Hilbert`` space of operator.)EOF")
+          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
 
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
@@ -283,29 +283,117 @@ void AddOperatorModule(py::module &m) {
                ```
            )EOF") ADDOPERATORMETHODS(BoseHubbard);
 
-  // Matrix wrappers
-  py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>")
+// Matrix wrappers
+#define ADDWRAPPERMETHODS(name)                                                \
+  .def_property_readonly(                                                      \
+      "dimension", &name<>::Dimension,                                         \
+      R"EOF(int : The Hilbert space dimension corresponding to the Hamiltonian)EOF")
+
+  py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper<>",
+                                      R"EOF(This class wraps an AbstractOperator
+  and provides a method to apply it to a pure state. @tparam State The type of a
+  vector of (complex) coefficients representing the quantum state. Should be
+  Eigen::VectorXcd or a compatible type.)EOF")
       .def("apply", &AbstractMatrixWrapper<>::Apply, py::arg("state"))
-      .def_property_readonly("dimension", &AbstractMatrixWrapper<>::Dimension);
+          ADDWRAPPERMETHODS(AbstractMatrixWrapper);
 
   py::class_<SparseMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      subm, "SparseMatrixWrapper")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
+      subm, "SparseMatrixWrapper",
+      R"EOF(This class stores the matrix elements of a given Operator as an Eigen sparse matrix.)EOF")
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+        Constructs a sparse matrix wrapper from an operator. Matrix elements are
+        stored as a sparse Eigen matrix.
+
+        Args:
+            operator: The operator used to construct the matrix.
+
+        Examples:
+            Printing the dimension of a sparse matrix wrapper.
+
+            ```python
+            >>> import netket as nk
+            >>> from mpi4py import MPI
+            >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+            >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
+            # Transverse-Field Ising model created
+            # h = 1.321
+            # J = 1
+            >>> smw = nk.operator.SparseMatrixWrapper(op)
+            >>> smw.dimension
+            1048576
+            ```
+      )EOF")
       // property name starts with underscore to mark as internal per PEP8
-      .def_property_readonly("_matrix", &SparseMatrixWrapper<>::GetMatrix)
-      .def_property_readonly("dimension", &SparseMatrixWrapper<>::Dimension);
+      .def_property_readonly(
+          "_matrix", &SparseMatrixWrapper<>::GetMatrix,
+          R"EOF(Eigen SparseMatrix Complex : The stored matrix.)EOF")
+          ADDWRAPPERMETHODS(SparseMatrixWrapper);
 
   py::class_<DenseMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      subm, "DenseMatrixWrapper")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
+      subm, "DenseMatrixWrapper",
+      R"EOF(This class stores the matrix elements of
+        a given Operator as an Eigen dense matrix.)EOF")
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+        Constructs a dense matrix wrapper from an operator. Matrix elements are
+        stored as a dense Eigen matrix.
+
+        Args:
+            operator: The operator used to construct the matrix.
+
+        Examples:
+            Printing the dimension of a dense matrix wrapper.
+
+            ```python
+            >>> import netket as nk
+            >>> from mpi4py import MPI
+            >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+            >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
+            # Transverse-Field Ising model created
+            # h = 1.321
+            # J = 1
+            >>> dmw = nk.operator.DirectMatrixWrapper(op)
+            >>> dmw.dimension
+            1048576
+            ```
+
+      )EOF")
       // property name starts with underscore to mark as internal per PEP8
-      .def_property_readonly("_matrix", &DenseMatrixWrapper<>::GetMatrix)
-      .def_property_readonly("dimension", &DenseMatrixWrapper<>::Dimension);
+      .def_property_readonly("_matrix", &DenseMatrixWrapper<>::GetMatrix,
+                             R"EOF(Eigen MatrixXcd : The stored matrix.)EOF")
+          ADDWRAPPERMETHODS(DenseMatrixWrapper);
 
   py::class_<DirectMatrixWrapper<>, AbstractMatrixWrapper<>>(
-      subm, "DirectMatrixWrapper")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"))
-      .def_property_readonly("dimension", &DirectMatrixWrapper<>::Dimension);
+      subm, "DirectMatrixWrapper",
+      R"EOF(This class wraps a given Operator. The
+        matrix elements are not stored separately but are computed from
+        Operator::FindConn every time Apply is called.)EOF")
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+        Constructs a direct matrix wrapper from an operator. Matrix elements are
+        calculated when required.
+
+        Args:
+            operator: The operator used to construct the matrix.
+
+        Examples:
+            Printing the dimension of a direct matrix wrapper.
+
+            ```python
+            >>> import netket as nk
+            >>> from mpi4py import MPI
+            >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+            >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
+            # Transverse-Field Ising model created
+            # h = 1.321
+            # J = 1
+            >>> dmw = nk.operator.DirectMatrixWrapper(op)
+            >>> dmw.dimension
+            1048576
+            ```
+
+      )EOF") ADDWRAPPERMETHODS(DirectMatrixWrapper);
 
   subm.def("wrap_as_matrix", &CreateMatrixWrapper<>, py::arg("operator"),
            py::arg("type") = "Sparse");
