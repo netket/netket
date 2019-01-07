@@ -60,7 +60,8 @@ class Extract(object):
         #be captured. The value specifies the order in which attribute is
         #captured.
         self.ids = {'class' : 0, 'function' : 1, 'signature' : 2,
-                'indent' : 3, 'docstring' : 4, 'body' : 5, 'return_type' : 100}
+                'indent' : 3, 'docstring' : 4, 'body' : 5, 
+                'return_annotation' : 100}
         # This dictionary contains keywords that describe if a function should
         # start with 'def', and if the docstring that comes after the function
         # should be enclosed with """.
@@ -208,12 +209,15 @@ class Extract(object):
                       `'function'`.
                  * `label` : The search query string.
                  * `source` : The source code if the query is a function/method.
+                 * `args` : A dictionary containing signature arguments, and
+                    return type.
 
         Raises:
             NameError: This is exception is raised if the docstring cannot be
                 extracted.
         """
         import textwrap
+        import parse
         matches = self.get_matches(pattern)
 
         if not ids:
@@ -226,12 +230,13 @@ class Extract(object):
             function = get_match(match, ids['function'])
             signature = format_txt(get_match(match, ids['signature']))
             indent = len(get_match(match, ids['indent']))
-            return_type = get_match(match, ids['return_type'])
+            return_annotation = get_match(match, ids['return_annotation'])
             docstring = remove_indent(get_match(match, ids['docstring']),
                                       indent)
             if self.dtype == 'function' or self.dtype == 'method': 
                 source = textwrap.dedent(self.function_keyword + function +
-                                         signature + ':' + return_type + '\n'
+                                         signature + ':' + return_annotation +
+                                         '\n'
                                          +
                                          get_match(match, ids['body'])) 
             else: 
@@ -242,10 +247,14 @@ class Extract(object):
             out['function'] = function
             out['signature'] = signature
             out['docstring'] = docstring
-            out['return_type'] = return_type
+            out['return_annotation'] = return_annotation
             out['source'] = source
             out['type'] = self.dtype
             out['label'] = self.query
+            try:
+                out['parsed_signature'] = parse.parse_signature(out['signature']) 
+            except:
+                pass
             out_list.append(out)
 
         if len(out_list) == 1:
@@ -259,13 +268,13 @@ class PyExtract(Extract):
     """
 
     def extract_function(self):
-        pattern = (r'^\s*(%s)(\([\w\W]*?\))' % self.funcname
-                   + r'\s*(?:->\s*(\w+))?%s\n+' % self.keywords['signature_end']
+        pattern = (r'^\s*(%s)(\([\w\W]*?\)' % self.funcname
+                   + r'\s*(?:->\s*(\w+))?)%s\n+' % self.keywords['signature_end']
                    + r'(\s+)%s([\w\W]*)?%s\n((\4.*\n+)+)?' %
                    (self.keywords['docstring'], self.keywords['docstring']))
 
         ids = {'class' : 100, 'function' : 0, 'signature' : 1,
-                'return_type' : 2, 'indent' : 3, 'docstring' : 4, 'body' : 5}
+                'return_annotation' : 2, 'indent' : 3, 'docstring' : 4, 'body' : 5}
         return self.findall(pattern, ids)
 
     def extract_class(self):
@@ -275,9 +284,13 @@ class PyExtract(Extract):
 
     def extract_method(self):
         pattern = (r'class\s+(%s)\(?\w*\)?:[\n\s]+[\w\W]*?' % self.classname +
-                   r'[\n\s]+def\s+(%s)(\(self[\w\W]*?\)):.*\n' % self.funcname +
+                   r'[\n\s]+def\s+(%s)(\(self[\w\W]*?\)' % self.funcname +
+                   r'\s*(?:->\s*(\w+))?)%s\n+' % self.keywords['signature_end']+
                    r'(\s+)"""([\w\W]*?)"""\n((?:\4.*\n+)+)?')
-        return self.find(pattern)
+        ids = {'class' : 0, 'function' : 1, 'signature' : 2,
+                'return_annotation' : 3, 'indent' : 4, 'docstring' : 5, 'body' :
+                6}
+        return self.find(pattern, ids)
 
     def extract_module(self):
         pattern = r'()()()()^"""([\w\W]*?)"""'
@@ -301,13 +314,13 @@ class PyBindExtract(PyExtract):
         self.split = 1
 
     def extract_function(self):
-        pattern = (r'^\s*(%s)(\([\w\W]*?\))' %
+        pattern = (r'^\s*(%s)(\([\w\W]*?\)' %
                   (self.funcname)
-                   + r'\s*(?:->\s*(\w+))%s\n+' % self.keywords['signature_end']
+                   + r'\s*(?:->\s*(\w+)))%s\n+' % self.keywords['signature_end']
                    + r'(\s*)%s([\w\W]*)?%s((\4.*\n+)+)?' %
                    (self.keywords['docstring'], self.keywords['docstring']))
         ids = {'class' : 100, 'function' : 0, 'signature' : 1,
-                'return_type' : 2, 'indent' : 3, 'docstring' : 4, 'body' : 5}
+                'return_annotation' : 2, 'indent' : 3, 'docstring' : 4, 'body' : 5}
         return self.findall(pattern, ids)
 
     def extract_method(self):
@@ -326,7 +339,7 @@ class PyBindExtract(PyExtract):
                    r'(\(\w+\))?\n+' + 
                    r'(\s+)([\w\W]+)*')
         ids = {'class' : 0, 'function' : 100, 'signature' : 1,
-                'return_type' : 100,
+                'return_annotation' : 100,
                 'indent' : 2, 'docstring' : 3, 'body' : 4}
         return self.find(pattern, ids)
 
