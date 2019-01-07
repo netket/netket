@@ -201,8 +201,9 @@ def save_to_txt(x, L, formating=False):
     output["samples"]["amp"] = []
     for i in range(2**L):
         output["samples"]["configs"].append([int(num) for num in np.binary_repr(i, width=L)])
-        output["samples"]["amp"].append(x)
-        
+
+    output["samples"]["amp"].append(x)
+
     np.savetxt("1d-J1J2-samples-L-{0}.txt".format(L), output["samples"]["configs"])
     np.savetxt("1d-J1J2-targets-L-{0}.txt".format(L), output["samples"]["amp"], delimiter='\n')
 
