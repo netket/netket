@@ -71,6 +71,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import Spin
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = Spin(graph=g, s=0.5)
+               >>> print(hi.size)
+               100
+
                ```
            )EOF")
       .def(py::init<const AbstractGraph &, double, double>(),
@@ -91,6 +94,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import Spin
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = Spin(graph=g, s=0.5, total_sz=0)
+               >>> print(hi.size)
+               100
+
                ```
            )EOF") ADDHILBERTMETHODS(Spin);
 
@@ -111,6 +117,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import Qubit
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = Qubit(graph=g)
+               >>> print(hi.size)
+               100
+
                ```
            )EOF") ADDHILBERTMETHODS(Qubit);
 
@@ -132,6 +141,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import Boson
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = Boson(graph=g, n_max=4)
+               >>> print(hi.size)
+               100
+
                ```
            )EOF")
       .def(py::init<const AbstractGraph &, int, int>(), py::keep_alive<1, 2>(),
@@ -152,6 +164,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import Boson
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = Boson(graph=g, n_max=5, n_bosons=11)
+               >>> print(hi.size)
+               100
+
                ```
            )EOF") ADDHILBERTMETHODS(Boson);
 
@@ -175,6 +190,9 @@ void AddHilbertModule(py::module &m) {
                >>> from netket.hilbert import CustomHilbert
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = CustomHilbert(graph=g, local_states=[-1232, 132, 0])
+               >>> print(hi.size)
+               100
+
                ```
            )EOF") ADDHILBERTMETHODS(CustomHilbert);
 

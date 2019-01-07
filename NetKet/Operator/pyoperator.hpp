@@ -61,9 +61,10 @@ void AddOperatorModule(py::module &m) {
                >>> from netket.operator import LocalOperator
                >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
                >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
-               >>> empty_hat = nk.operator.LocalOperator(hi)
-               >>> empty_hat.active_on
-               [[]]
+               >>> empty_hat = LocalOperator(hi)
+               >>> print(empty_hat.acting_on)
+               []
+
                ```
            )EOF")
       .def(
@@ -94,8 +95,9 @@ void AddOperatorModule(py::module &m) {
               >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
               >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
               >>> sx_hat = LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
-              >>> sx_hat.acting_on
+              >>> print(sx_hat.acting_on)
               [[0], [1], [5]]
+
               ```
           )EOF")
       .def(py::init<const AbstractHilbert &, LocalOperator::MatType,
@@ -125,8 +127,9 @@ void AddOperatorModule(py::module &m) {
                >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
                >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
                >>> sx_hat = LocalOperator(hi, sx, [0])
-               >>> sx_hat.acting_on
+               >>> print(sx_hat.acting_on)
                [[0]]
+
                ```
            )EOF")
       .def_property_readonly(
@@ -176,9 +179,9 @@ void AddOperatorModule(py::module &m) {
                >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
                >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
                >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
-               # Transverse-Field Ising model created
-               # h = 1.321
-               # J = 0.5
+               >>> print(op.hilbert.size)
+               20
+
                ```
            )EOF") ADDOPERATORMETHODS(Ising);
 
@@ -200,7 +203,9 @@ void AddOperatorModule(py::module &m) {
                >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
                >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
                >>> op = nk.operator.Heisenberg(hilbert=hi)
-               # Heisenberg model created
+               >>> print(op.hilbert.size)
+               20
+
                ```
            )EOF") ADDOPERATORMETHODS(Heisenberg);
 
@@ -237,14 +242,14 @@ void AddOperatorModule(py::module &m) {
                >>> sigmax = [[0, 1], [1, 0]]
                >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
                >>> edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
-                        [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15],
-                        [15, 16], [16, 17], [17, 18], [18, 19], [19, 0]]
+               ... [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15],
+               ... [15, 16], [16, 17], [17, 18], [18, 19], [19, 0]]
                >>> g = nk.graph.CustomGraph(edges=edges)
                >>> hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
                >>> op = nk.operator.GraphOperator(
-                   hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0])
-               >>> ha.hilbert
-               <netket.hilbert.CustomHilbert object at 0x2b19b8298340>
+               ... hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0])
+               >>> print(op.hilbert.size)
+               20
 
                ```
            )EOF")
@@ -275,11 +280,9 @@ void AddOperatorModule(py::module &m) {
                >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
                >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
                >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
-               # Bose Hubbard model created
-               # U= 4
-               # V= 0
-               # mu= 0
-               # Nmax= 3
+               >>> print(op.hilbert.size)
+               9
+
                ```
            )EOF") ADDOPERATORMETHODS(BoseHubbard);
 
@@ -316,12 +319,10 @@ void AddOperatorModule(py::module &m) {
             >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
-            # Transverse-Field Ising model created
-            # h = 1.321
-            # J = 1
             >>> smw = nk.operator.SparseMatrixWrapper(op)
             >>> smw.dimension
             1048576
+
             ```
       )EOF")
       // property name starts with underscore to mark as internal per PEP8
@@ -350,12 +351,10 @@ void AddOperatorModule(py::module &m) {
             >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
-            # Transverse-Field Ising model created
-            # h = 1.321
-            # J = 1
             >>> dmw = nk.operator.DirectMatrixWrapper(op)
             >>> dmw.dimension
             1048576
+
             ```
 
       )EOF")
@@ -385,12 +384,10 @@ void AddOperatorModule(py::module &m) {
             >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
-            # Transverse-Field Ising model created
-            # h = 1.321
-            # J = 1
             >>> dmw = nk.operator.DirectMatrixWrapper(op)
             >>> dmw.dimension
             1048576
+
             ```
 
       )EOF") ADDWRAPPERMETHODS(DirectMatrixWrapper);

@@ -18,9 +18,9 @@ Constructs an ``Ising`` operator for a 1D system.
 >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
-# Transverse-Field Ising model created
-# h = 1.321
-# J = 0.5
+>>> print(op.hilbert.size)
+20
+
 ```
 
 

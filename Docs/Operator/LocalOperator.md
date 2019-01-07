@@ -17,9 +17,10 @@ Constructs a ``LocalOperator`` without any operators.
 >>> from netket.operator import LocalOperator
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
->>> empty_hat = nk.operator.LocalOperator(hi)
->>> empty_hat.active_on
-[[]]
+>>> empty_hat = LocalOperator(hi)
+>>> print(empty_hat.acting_on)
+[]
+
 ```
 
 ## Constructor [2]
@@ -45,8 +46,9 @@ a corresponding list of sites.
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
 >>> sx_hat = LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
->>> sx_hat.acting_on
+>>> print(sx_hat.acting_on)
 [[0], [1], [5]]
+
 ```
 
 ## Constructor [3]
@@ -72,8 +74,9 @@ a single site.
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
 >>> sx_hat = LocalOperator(hi, sx, [0])
->>> sx_hat.acting_on
+>>> print(sx_hat.acting_on)
 [[0]]
+
 ```
 
 
