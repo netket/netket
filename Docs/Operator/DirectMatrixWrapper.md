@@ -17,7 +17,7 @@ Printing the dimension of a direct matrix wrapper.
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
 >>> dmw = nk.operator.DirectMatrixWrapper(op)
->>> dmw.dimension
+>>> print(dmw.dimension)
 1048576
 
 ```
