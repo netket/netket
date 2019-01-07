@@ -155,5 +155,5 @@ install:
 script:
   - python -c 'from mpi4py import MPI'
   - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
-  - python -m pytest --verbose Test/
+  - python -m pytest --verbose --doctest-glob='*.md' Docs/
 

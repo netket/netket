@@ -15,16 +15,16 @@
 #ifndef NETKET_PYGROUND_STATE_HPP
 #define NETKET_PYGROUND_STATE_HPP
 
+#include "Utils/exceptions.hpp"
+#include "ground_state.hpp"
+#include <complex>
 #include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <complex>
 #include <vector>
-#include "Utils/exceptions.hpp"
-#include "ground_state.hpp"
 
 namespace py = pybind11;
 
@@ -34,7 +34,9 @@ void AddGroundStateModule(py::module &m) {
   auto m_exact = m.def_submodule("exact");
   auto m_vmc = m.def_submodule("variational");
 
-  py::class_<VariationalMonteCarlo>(m_vmc, "Vmc")
+  py::class_<VariationalMonteCarlo>(
+      m_vmc, "Vmc",
+      R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, SamplerType &,
                     AbstractOptimizer &, int, int, int, const std::string &,
                     double, bool, bool, bool>(),
@@ -44,7 +46,48 @@ void AddGroundStateModule(py::module &m) {
            py::arg("discarded_samples") = -1,
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
-           py::arg("use_iterative") = false, py::arg("use_cholesky") = true)
+           py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
+           R"EOF(
+           Constructs a ``VariationalMonteCarlo`` object given a hamiltonian, 
+           sampler, optimizer, and the number of samples.
+
+           Args:
+               hamiltonian: The hamiltonian of the system.
+               sampler: The sampler object to generate local exchanges.
+               optimizer: The optimizer object that determines how the VMC 
+                   wavefunction is optimized.
+               n_samples: The total number of samples.
+               discarded_samples: The number of samples discarded. Default is 
+                   -1.
+               discarded_samples_on_init: The number of samples discarded upon
+                   initialization. The default is 0.
+               method: The solver method. The default is `Sr` (stochastic 
+                   reconfiguration).
+               diag_shift: The diagonal shift. The default is 0.01.
+               rescale_shift: Whether to rescale the variational parameters. The 
+                   default is false.
+               use_iterative: Whether to solver iteratively. The default is 
+                   false.
+               use_cholesky: Whether to use cholesky decomposition. The default
+                   is true.
+
+           Example:
+               Optimizing a 1D wavefunction with Variational Mante Carlo.
+
+               ```python
+               >>> g = nk.graph.Hypercube(length=8, n_dim=1)
+               >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+               >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+               >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
+               >>> ha = nk.operator.Ising(hi, h=1.0)
+               >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+               >>> sa.seed(SEED)
+               >>> op = nk.optimizer.Sgd(learning_rate=0.1)
+               >>> vmc = Vmc(hamiltonian=ha,sampler=sa,optimizer=op,n_samples=500)
+               >>> vmc.run()
+               ```
+
+           )EOF")
       .def_property_readonly("machine", &VariationalMonteCarlo::GetMachine)
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
@@ -112,6 +155,6 @@ void AddGroundStateModule(py::module &m) {
               py::arg("compute_eigenvectors") = false);
 }
 
-}  // namespace netket
+} // namespace netket
 
 #endif
