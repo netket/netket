@@ -15,6 +15,9 @@ Simple boson hilbert space.
 >>> from netket.hilbert import Boson
 >>> g = Hypercube(length=10,n_dim=2,pbc=True)
 >>> hi = Boson(graph=g, n_max=4)
+>>> print(hi.size)
+100
+
 ```
 
 ## Constructor [2]
@@ -34,6 +37,9 @@ Simple boson hilbert space.
 >>> from netket.hilbert import Boson
 >>> g = Hypercube(length=10,n_dim=2,pbc=True)
 >>> hi = Boson(graph=g, n_max=5, n_bosons=11)
+>>> print(hi.size)
+100
+
 ```
 
 

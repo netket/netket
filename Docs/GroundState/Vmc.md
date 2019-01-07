@@ -21,6 +21,9 @@ sampler, optimizer, and the number of samples.
 Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 ```python
+>>> import netket as nk
+>>> from mpi4py import MPI
+>>> SEED = 3141592
 >>> g = nk.graph.Hypercube(length=8, n_dim=1)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
@@ -29,8 +32,10 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
 >>> sa.seed(SEED)
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
->>> vmc = Vmc(hamiltonian=ha,sampler=sa,optimizer=op,n_samples=500)
->>> vmc.run()
+>>> vmc = nk.variational.Vmc(hamiltonian=ha,sampler=sa,optimizer=op,n_samples=500)
+>>> print(vmc.machine.n_visible)
+8
+
 ```
 
 

@@ -16,12 +16,10 @@ Printing the dimension of a sparse matrix wrapper.
 >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
-# Transverse-Field Ising model created
-# h = 1.321
-# J = 1
 >>> smw = nk.operator.SparseMatrixWrapper(op)
 >>> smw.dimension
 1048576
+
 ```
 
 
