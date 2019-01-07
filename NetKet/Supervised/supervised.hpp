@@ -54,6 +54,10 @@ class Supervised {
   int npar_;
   // Stores the gradient of loss w.r.t. the machine parameters
   Eigen::VectorXcd grad_;
+  Eigen::VectorXcd grad_part_1_;
+  Eigen::VectorXcd grad_part_2_;
+  complex grad_num_1_;
+  complex grad_num_2_;
 
   // Training samples and targets
   std::vector<Eigen::VectorXd> trainingSamples_;
@@ -81,6 +85,8 @@ class Supervised {
     opt_.Init(psi_.GetParameters());
 
     grad_.resize(npar_);
+    grad_part_1_.resize(npar_);
+    grad_part_2_.resize(npar_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
@@ -122,7 +128,7 @@ class Supervised {
     num3.setZero(psi_.Npar());
     total_der.setZero(psi_.Npar());
 
-    // Foreach sample in the batch
+    // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract log(config)
       Eigen::VectorXd sample(batchSamples[i]);
@@ -140,19 +146,33 @@ class Supervised {
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
 
+      /*
       num1 = num1 + der * pow(abs(value), 2);
       num2 = num2 + der * std::conj(value) * target;
       num3 = num3 + std::conj(value) * target;
       den = den + pow(abs(value), 2);
 
       total_der = total_der + (num1 / den) - num2 * num3.inverse();
+      */
+      grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
+      grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
+      grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
+      grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
     }
+    /*
     // Store derivatives in grad_ ...
     grad_ = total_der;
 
     // ... and compute the mean of the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_);
+    */
+
+    SumOnNodes(grad_part_1_);
+    SumOnNodes(grad_num_1_);
+    SumOnNodes(grad_part_2_);
+    SumOnNodes(grad_num_2_);
+    grad_ = grad_part_1_ / grad_num_1_ - grad_part_2_ / grad_num_2_;
   }
 
   /// Computes the gradient of the loss function with respect to
@@ -221,9 +241,11 @@ class Supervised {
         GradientComplexMSE(batchSamples, batchTargets);
         UpdateParameters();
         PrintComplexMSE();
+        PrintLogOverlap();
       } else if (lossFunction == "Overlap") {
         DerLogOverlap(batchSamples, batchTargets);
         UpdateParameters();
+        PrintComplexMSE();
         PrintLogOverlap();
       } else {
         std::cout << "Supervised loss function \" " << lossFunction
@@ -245,6 +267,7 @@ class Supervised {
   void PrintComplexMSE() {
     const int numSamples = trainingSamples_.size();
 
+    std::complex<double> mse_log = 0.0;
     std::complex<double> mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
@@ -253,11 +276,12 @@ class Supervised {
       Eigen::VectorXcd target = trainingTargets_[i];
       complex t(target[0].real(), target[0].imag());
 
-      mse += 0.5 * pow(abs(value - t), 2);
+      mse_log += 0.5 * pow(abs(value - t), 2);
+      mse += 0.5 * pow(abs(exp(value) - exp(t)), 2);
     }
 
     complex n(numSamples, 0);
-    std::cout << "MSE: " << mse / n << std::endl;
+    std::cout << "MSE (log): " << mse_log / n << " MSE : " << mse / n << std::endl;
   }
 
   /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
@@ -268,6 +292,7 @@ class Supervised {
     complex num1(0.0, 0.0);
     complex num2(0.0, 0.0);
     complex num3(0.0, 0.0);
+    complex num4(0.0, 0.0);
 
     std::complex<double> overlap = 0.0;
     for (int i = 0; i < numSamples; i++) {
@@ -285,9 +310,10 @@ class Supervised {
       num1 += std::conj(value) * t;
       num2 += value * std::conj(t);
       num3 += pow(abs(value), 2);
+      num4 += pow(abs(t), 2);
     }
 
-    overlap = -(log(num1) + log(num2) - log(num3));
+    overlap = -(log(num1) + log(num2) - log(num3) - log(num4));
     std::cout << "LogOverlap: " << overlap << std::endl;
   }
 };
