@@ -4,19 +4,19 @@ Variational Monte Carlo schemes to learn the ground state using stochastic recon
 Constructs a ``VariationalMonteCarlo`` object given a hamiltonian, 
 sampler, optimizer, and the number of samples.
 
-|          Field          |   Type   |                                Description                                |
-|-------------------------|----------|---------------------------------------------------------------------------|
-|hamiltonian              |          |The hamiltonian of the system.                                             |
-|sampler                  |          |The sampler object to generate local exchanges.                            |
-|optimizer                |          |The optimizer object that determines how the VMC wavefunction is optimized.|
-|n_samples                |int       |The total number of samples.                                               |
-|discarded_samples        |int=-1    |The number of samples discarded. Default is -1.                            |
-|discarded_samples_on_init|int=0     |The number of samples discarded upon initialization. The default is 0.     |
-|method                   |str='Sr'  |The solver method. The default is `Sr` (stochastic reconfiguration).       |
-|diag_shift               |float=0.01|The diagonal shift. The default is 0.01.                                   |
-|rescale_shift            |bool=False|Whether to rescale the variational parameters. The default is false.       |
-|use_iterative            |bool=False|Whether to solver iteratively. The default is false.                       |
-|use_cholesky             |bool=True |Whether to use cholesky decomposition. The default is true.                |
+|          Field          |   Type   |                                                                         Description                                                                          |
+|-------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|hamiltonian              |          |The hamiltonian of the system.                                                                                                                                |
+|sampler                  |          |The sampler object to generate local exchanges.                                                                                                               |
+|optimizer                |          |The optimizer object that determines how the VMC wavefunction is optimized.                                                                                   |
+|n_samples                |int       |Number of Markov Chain Monte Carlo sweeps to be performed at each step of the optimization.                                                                   |
+|discarded_samples        |int=-1    |Number of sweeps to be discarded at the beginning of the sampling, at each step of the optimization. Default is -1.                                           |
+|discarded_samples_on_init|int=0     |Number of sweeps to be discarded in the first step of optimization, at the beginning of the sampling. The default is 0.                                       |
+|method                   |str='Sr'  |The chosen method to learn the parameters of the wave-function. The default is `Sr` (stochastic reconfiguration).                                             |
+|diag_shift               |float=0.01|The regularization parameter in stochastic reconfiguration. The default is 0.01.                                                                              |
+|rescale_shift            |bool=False|Whether to rescale the variational parameters. The default is false.                                                                                          |
+|use_iterative            |bool=False|Whether to use the iterative solver in the Sr method (this is extremely useful when the number of parameters to optimize is very large). The default is false.|
+|use_cholesky             |bool=True |Whether to use cholesky decomposition. The default is true.                                                                                                   |
 ### Examples
 Optimizing a 1D wavefunction with Variational Mante Carlo.
 
@@ -32,7 +32,8 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
 >>> sa.seed(SEED)
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
->>> vmc = nk.variational.Vmc(hamiltonian=ha,sampler=sa,optimizer=op,n_samples=500)
+>>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, 
+... optimizer=op, n_samples=500)
 >>> print(vmc.machine.n_visible)
 8
 
@@ -41,7 +42,7 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 
 ## Properties
-|Property|Type|Description|
-|--------|----|-----------|
-|machine |    |           |
+|Property|         Type         |                 Description                  |
+|--------|----------------------|----------------------------------------------|
+|machine |netket.machine.Machine| The machine used to express the wavefunction.|
 

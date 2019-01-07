@@ -56,18 +56,24 @@ void AddGroundStateModule(py::module &m) {
                sampler: The sampler object to generate local exchanges.
                optimizer: The optimizer object that determines how the VMC 
                    wavefunction is optimized.
-               n_samples: The total number of samples.
-               discarded_samples: The number of samples discarded. Default is 
-                   -1.
-               discarded_samples_on_init: The number of samples discarded upon
-                   initialization. The default is 0.
-               method: The solver method. The default is `Sr` (stochastic 
+               n_samples: Number of Markov Chain Monte Carlo sweeps to be 
+                   performed at each step of the optimization.
+               discarded_samples: Number of sweeps to be discarded at the 
+                   beginning of the sampling, at each step of the optimization.
+                   Default is -1.
+               discarded_samples_on_init: Number of sweeps to be discarded in 
+                   the first step of optimization, at the beginning of the 
+                   sampling. The default is 0.
+               method: The chosen method to learn the parameters of the 
+                   wave-function. The default is `Sr` (stochastic 
                    reconfiguration).
-               diag_shift: The diagonal shift. The default is 0.01.
+               diag_shift: The regularization parameter in stochastic 
+                   reconfiguration. The default is 0.01.
                rescale_shift: Whether to rescale the variational parameters. The 
                    default is false.
-               use_iterative: Whether to solver iteratively. The default is 
-                   false.
+               use_iterative: Whether to use the iterative solver in the Sr 
+                   method (this is extremely useful when the number of 
+                   parameters to optimize is very large). The default is false.
                use_cholesky: Whether to use cholesky decomposition. The default
                    is true.
 
@@ -86,14 +92,17 @@ void AddGroundStateModule(py::module &m) {
                >>> sa = nk.sampler.MetropolisLocal(machine=ma)
                >>> sa.seed(SEED)
                >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-               >>> vmc = nk.variational.Vmc(hamiltonian=ha,sampler=sa,optimizer=op,n_samples=500)
+               >>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, 
+               ... optimizer=op, n_samples=500)
                >>> print(vmc.machine.n_visible)
                8
 
                ```
 
            )EOF")
-      .def_property_readonly("machine", &VariationalMonteCarlo::GetMachine)
+      .def_property_readonly(
+          "machine", &VariationalMonteCarlo::GetMachine,
+          R"EOF(netket.machine.Machine: The machine used to express the wavefunction.)EOF")
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
            py::keep_alive<1, 2>())
       .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),

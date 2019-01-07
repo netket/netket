@@ -18,8 +18,8 @@ Constructs a ``LocalOperator`` without any operators.
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
 >>> empty_hat = LocalOperator(hi)
->>> print(empty_hat.acting_on)
-[]
+>>> print(len(empty_hat.acting_on))
+0
 
 ```
 
@@ -46,8 +46,8 @@ a corresponding list of sites.
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
 >>> sx_hat = LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
->>> print(sx_hat.acting_on)
-[[0], [1], [5]]
+>>> print(len(sx_hat.acting_on))
+3
 
 ```
 
@@ -74,8 +74,8 @@ a single site.
 >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
 >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
 >>> sx_hat = LocalOperator(hi, sx, [0])
->>> print(sx_hat.acting_on)
-[[0]]
+>>> print(len(sx_hat.acting_on))
+1
 
 ```
 

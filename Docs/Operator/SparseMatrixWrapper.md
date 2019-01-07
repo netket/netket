@@ -17,7 +17,7 @@ Printing the dimension of a sparse matrix wrapper.
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
 >>> smw = nk.operator.SparseMatrixWrapper(op)
->>> smw.dimension
+>>> print(smw.dimension)
 1048576
 
 ```

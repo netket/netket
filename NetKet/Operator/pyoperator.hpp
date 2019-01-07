@@ -62,8 +62,8 @@ void AddOperatorModule(py::module &m) {
                >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
                >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
                >>> empty_hat = LocalOperator(hi)
-               >>> print(empty_hat.acting_on)
-               []
+               >>> print(len(empty_hat.acting_on))
+               0
 
                ```
            )EOF")
@@ -95,8 +95,8 @@ void AddOperatorModule(py::module &m) {
               >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
               >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
               >>> sx_hat = LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
-              >>> print(sx_hat.acting_on)
-              [[0], [1], [5]]
+              >>> print(len(sx_hat.acting_on))
+              3
 
               ```
           )EOF")
@@ -127,8 +127,8 @@ void AddOperatorModule(py::module &m) {
                >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
                >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
                >>> sx_hat = LocalOperator(hi, sx, [0])
-               >>> print(sx_hat.acting_on)
-               [[0]]
+               >>> print(len(sx_hat.acting_on))
+               1
 
                ```
            )EOF")
@@ -320,7 +320,7 @@ void AddOperatorModule(py::module &m) {
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
             >>> smw = nk.operator.SparseMatrixWrapper(op)
-            >>> smw.dimension
+            >>> print(smw.dimension)
             1048576
 
             ```
@@ -352,7 +352,7 @@ void AddOperatorModule(py::module &m) {
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
             >>> dmw = nk.operator.DirectMatrixWrapper(op)
-            >>> dmw.dimension
+            >>> print(dmw.dimension)
             1048576
 
             ```
@@ -385,7 +385,7 @@ void AddOperatorModule(py::module &m) {
             >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
             >>> op = nk.operator.Ising(h=1.321, hilbert=hi)
             >>> dmw = nk.operator.DirectMatrixWrapper(op)
-            >>> dmw.dimension
+            >>> print(dmw.dimension)
             1048576
 
             ```
