@@ -47,8 +47,10 @@ void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
   py::class_<SamplerType>(subm, "Sampler", R"EOF(
-    One of the several Markov Chaing Monte Carlo samplers in NetKet. These
-    generate quantum numbers distributed according to the square modulus of the wave-function:
+    NetKet implements generic sampling routines to be used in conjunction with
+    suitable variational states, the `Machines`.
+    A `Sampler` generates quantum numbers distributed according to the square modulus
+    of the wave-function:
 
     $$
     P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.
@@ -119,7 +121,29 @@ void AddSamplerModule(py::module &m) {
       and $$ n_{\mathrm{max}} $$.
       )EOF")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
-             py::arg("machine"));
+             py::arg("machine"), R"EOF(
+             Constructs a new ``MetropolisLocal`` sampler given a machine.
+
+             Args:
+                 machine: A machine used for the sampling.
+                      The probability distribution being sampled
+                      from is $$ |Psi(s)|^2 $$.
+
+             Examples:
+                 Sampling from a RBM machine in a 1D lattice of spin 1/2
+
+                 ```python
+                 >>> import netket as nk
+                 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+                 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
+                 >>>
+                 >>> # RBM Spin Machine
+                 >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+                 >>>
+                 >>> # Construct a MetropolisLocal Sampler
+                 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+                 ```
+             )EOF");
   }
 
   {
