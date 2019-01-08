@@ -33,6 +33,14 @@ def format_class(cl):
     else:
         f.write(format_function(match, 'Constructor'))
 
+    # methods
+    methods = inspect.getmembers(cl, predicate=inspect.isroutine)
+    docs = (cl.__init__).__doc__
+    clex = ext.PyBindExtract(docs)
+
+    match = clex.extract(func_name)
+    f.write(format_methods(match, func_name))
+
     # properties
     properties = inspect.getmembers(cl, lambda o: isinstance(o, property))
     f.write(format_properties(properties))
