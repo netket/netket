@@ -14,10 +14,10 @@ def format_class(cl):
     if(docs == None):
         return f.getvalue()
 
-    # # remove excess spaces
+    # remove excess spaces
     docs = " ".join(docs.split())
 
-    # General hig-level class docs
+    # General high-level class docs
     f.write('# ' + cl.__name__ + '\n')
     f.write(docs + '\n')
 
@@ -43,10 +43,9 @@ def format_function(ma, name):
     f = io.StringIO("")
     f.write('## ' + name)
     value_matrix = []
-    signature = ma["signature"]
 
-    sigp = pa.parse_signature(signature)
-    gds = pa.GoogleDocString(ma["docstring"], args=sigp).parse()
+    gds = pa.GoogleDocString(ma["docstring"],
+                             signature=ma['parsed_signature']).parse()
 
     has_example = False
     for gd in gds:
@@ -55,7 +54,7 @@ def format_function(ma, name):
             for arg in gd['args']:
                 field = arg['field']
                 sig = arg['signature']
-                # # remove excess spaces
+                # remove excess spaces
                 descr = " ".join(arg['description'].split())
 
                 value_matrix.append([field, sig, descr])

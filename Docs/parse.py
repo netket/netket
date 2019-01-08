@@ -66,20 +66,17 @@ class DocString(object):
 
     """
 
-    def __init__(self, docstring, args=None, returns=None, config=None):
+    def __init__(self, docstring, signature=None, config=None):
         """
 
         Initialize a new parser.
 
         Args:
-            args(dict, optional): A dict containing arguments and types. See
-                the function `parse_signature' to construct this dict from a
-                PEP484 annotated signature. When this argument is specified, the
-                parser will assign types to arguments using this dict instead of
-                obtaining them from the docstrings.
-            returns(string, optional) : Optional return type. When this argument
-                is specified, the parser will assign the return type using this
-                string instead of obtaining it from the docstring.
+            signature(dict, optional): A dict containing arguments and return
+                annotations. See the function `parse_signature' to construct
+                this dict from a PEP484 annotated signature. When this argument
+                is specified, the parser will assign types to arguments using
+                this dict instead of obtaining them from the docstrings.
             config(dict, optional): A dict containing optional configuration
                 settings that modify default behavior.
 
@@ -87,8 +84,7 @@ class DocString(object):
         self.header = {}
         self.docstring = docstring
         self.data = []
-        self.args = args
-        self.returns = returns
+        self.signature = signature
 
         default_config = {}
         default_config['delimiter'] = ':'
@@ -137,12 +133,13 @@ class DocString(object):
 
         for i, di in enumerate(self.data):
             self.check_args(di)
-            self.override_annotations(self.data[i],
-                                      self.args,
-                                      self._config['args'].split('|'))
-            self.override_annotations(self.data[i], 
-                                      {'' : self.returns},
-                                      self._config['returns'].split('|'))
+            if self.signature:
+                self.override_annotations(self.data[i],
+                                          self.signature['args'],
+                                          self._config['args'].split('|'))
+                self.override_annotations(self.data[i], {'' :
+                    self.signature['return_annotation']},
+                    self._config['returns'].split('|'))
             if mark_code_blocks:
                 self.mark_code_blocks(self.data[i])
             
@@ -193,10 +190,10 @@ class DocString(object):
         """
         Check if all args have been documented in the docstring and if, they
         have annotations, annotations matches the ones in the function
-        signature. This method only works when `args` have been specified. 
+        signature. This method only works when `signature` have been specified. 
 
         """
-        if not self.args or not self._config['check_args']:
+        if not self.signature or not self._config['check_args']:
             return
 
         docstring_args = {}
@@ -205,22 +202,23 @@ class DocString(object):
             for arg in section['args']:
                 docstring_args[arg['field']] = arg
 
-            for arg in self.args:
+            for arg in self.signature['args']:
                 # Skip checks if signature does not contain any annotations
                 # or if the argument should not have documentation.
-                if not self.args[arg] or                                       \
+                if not self.signature['args'][arg] or                          \
                    arg in self._config['exclude_warn_if_no_arg_doc']:
                     continue
                 if arg not in docstring_args and                               \
                         self._config['warn_if_no_arg_doc']: 
                     warnings.warn('Missing documentation for `%s` in docstring.'
                             % arg, UserWarning)   
-                elif docstring_args[arg]['signature'] != self.args[arg] and    \
+                elif docstring_args[arg]['signature'] != \
+                     '(%s)'%self.signature['args'][arg] and    \
                      docstring_args[arg]['signature'] != '':
                     warnings.warn('Annotation mismatch for `%s` in docstring.' %
                             arg, UserWarning)   
             for arg in docstring_args:
-                if arg not in self.args:
+                if arg not in self.signature['args']:
                     warnings.warn(' Found argument `%s` in docstring that does'\
                     ' not exist in function signature.' % arg, UserWarning)   
 
@@ -285,7 +283,11 @@ class GoogleDocString(DocString):
 
     """
 
-    def __init__(self, docstring, args=None, returns=None, config=None):
+    def __init__(self, docstring, signature=None, config=None):
+        """
+        Initialize GoogleDocString parser.
+
+        """
         import os
 
         default_config = {}
@@ -301,7 +303,7 @@ class GoogleDocString(DocString):
         if config['extra_headers']:
             config['headers'] += '|' + config['extra_headers']
 
-        super(GoogleDocString, self).__init__(docstring, args, returns, config)
+        super(GoogleDocString, self).__init__(docstring, signature, config)
 
         self._re = {'header' : self._compile_header(),
                     'indent' : self._compile_indent(),
@@ -530,15 +532,34 @@ def summary(txt):
     lines = txt.split('\n')
     return lines[0]
 
-def parse_signature(args):
+def parse_signature(args, return_annotation='__return_annotation'):
         """
-        Parse the signature e.g., `(int: a, int: b)` and put into a dict 
-        {'a' : 'int', 'b' : 'int'}
+        Parse the signature e.g., `(int: a, int: b) -> int` and put into a dict 
+        {'a' : 'int', 'b' : 'int', '__return_annotation__' : 'int'}
+
+        Args:
+            args : string to parse.
+            return_annotation(optional) : define key for placing return type in.
+                Defaults to `'__return_annotation'`. This default value has been
+                chosen to avoid the return type to clash with the arguments.
+                
+
+
         """
+
+        match = re.findall('\(([\w\W]*?)\)\s*(?:->\s*(\w+))?', args)
+        if not match:
+            raise ValueError('The string `%s` is not a signature.' % args) 
+        match = match[0]
+
+        args_out = {'args' : {}, 'return_annotation' : ''}
+
+        if len(match) > 1:
+            args_out['return_annotation'] = match[1]
+
+
         # Remove () 
-        substr = args[1:-1]
-        substr = substr.split(',')
-        args_out = {}
+        substr = match[0].split(',')
         for si in substr:
             # PEP 484 strings separate name and type by : 
             try:
@@ -548,9 +569,10 @@ def parse_signature(args):
                 name = si
                 type_ = ''
                 if '=' in name:
-                    name, _ = name.split('=')
+                    name, type_ = name.split('=')
+                    type_ = '=' + type_
             name = name.strip()
-            args_out[name] = type_.strip()
+            args_out['args'][name] = type_.strip()
         return args_out
 
 def get_config(default, config=None, warn=1):
