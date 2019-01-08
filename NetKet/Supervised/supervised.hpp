@@ -154,10 +154,16 @@ class Supervised {
 
       total_der = total_der + (num1 / den) - num2 * num3.inverse();
       */
-      grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
-      grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
-      grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
-      grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
+
+      //grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
+      //grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
+      //grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
+      //grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
+
+      grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
+      grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
+      grad_part_2_ = grad_part_2_ + der * std::conj(value) * t;
+      grad_num_2_ = grad_num_2_ + std::conj(value) * t;
     }
     /*
     // Store derivatives in grad_ ...
