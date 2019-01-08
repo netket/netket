@@ -19,7 +19,7 @@ def format_class(cl):
 
     # General high-level class docs
     f.write('# ' + cl.__name__ + '\n')
-    f.write(docs + '\n')
+    f.write(docs + '\n\n')
 
     # Docs for __init__
     docs = (cl.__init__).__doc__
@@ -29,17 +29,24 @@ def format_class(cl):
 
     if(isinstance(match, list)):
         for ima, ma in enumerate(match):
-            f.write(format_function(ma, 'Constructor [' + str(ima + 1) + ']'))
+            f.write(format_function(
+                ma, 'Class Constructor [' + str(ima + 1) + ']'))
     else:
-        f.write(format_function(match, 'Constructor'))
+        f.write(format_function(match, 'Class Constructor'))
 
     # methods
+    f.write('## Class Methods \n')
     methods = inspect.getmembers(cl, predicate=inspect.isroutine)
-    docs = (cl.__init__).__doc__
-    clex = ext.PyBindExtract(docs)
+    for method in methods:
+        # skip special methods (__init__ is taken care of above)
+        if(method[0].startswith('__')):
+            continue
 
-    match = clex.extract(func_name)
-    f.write(format_methods(match, func_name))
+        docs = method[1].__doc__
+        clex = ext.PyBindExtract(docs)
+
+        match = clex.extract(method[0])
+        f.write(format_function(match, method[0], level=3))
 
     # properties
     properties = inspect.getmembers(cl, lambda o: isinstance(o, property))
@@ -47,9 +54,9 @@ def format_class(cl):
     return f.getvalue()
 
 
-def format_function(ma, name):
+def format_function(ma, name, level=2):
     f = io.StringIO("")
-    f.write('## ' + name)
+    f.write('#' * level + ' ' + name)
     value_matrix = []
 
     gds = pa.GoogleDocString(ma["docstring"],
@@ -73,13 +80,17 @@ def format_function(ma, name):
             f.write(gd['text'] + '\n')
 
     writer = pytablewriter.MarkdownTableWriter()
-    writer.header_list = ["Field", "Type", "Description"]
+    writer.header_list = ["Argument", "Type", "Description"]
     writer.value_matrix = value_matrix
     writer.stream = f
-    writer.write_table()
+    if(len(value_matrix) > 0):
+        writer.write_table()
+
     if(has_example):
+        f.write('\n')
         f.write('### Examples' + '\n')
         f.write(examples + '\n')
+    f.write('\n')
     return f.getvalue()
 
 
