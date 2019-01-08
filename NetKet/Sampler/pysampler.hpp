@@ -43,43 +43,97 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDSAMPLERMETHODS(name)                                   \
-                                                                  \
-  .def("reset", &name::Reset)                                     \
-      .def("sweep", &name::Sweep)                                 \
-      .def_property("visible", &name::Visible, &name::SetVisible) \
-      .def_property_readonly("acceptance", &name::Acceptance)     \
-      .def_property_readonly("hilbert", &name::GetHilbert)        \
-      .def_property_readonly("machine", &name::GetMachine)
-
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  py::class_<SamplerType>(subm, "Sampler")
-      .def("seed", &SamplerType::Seed, py::arg("base_seed"))
-          ADDSAMPLERMETHODS(SamplerType);
+  py::class_<SamplerType>(subm, "Sampler", R"EOF(
+    One of the several Markov Chaing Monte Carlo samplers in NetKet. These
+    generate quantum numbers distributed according to the square modulus of the wave-function:
+
+    $$
+    P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.
+    $$
+    The samplers typically transit from the current set of quantum numbers
+    $$ \mathbf{s} = s_1 \dots s_N $$ to another set
+    $$ \mathbf{s^\prime} = s^\prime_1 \dots s^\prime_N $$.
+    Samplers are then fully specified by the transition probability:
+
+    $$
+    T( \mathbf{s} \rightarrow \mathbf{s}^\prime) .
+    $$
+    )EOF")
+      .def("seed", &SamplerType::Seed, py::arg("base_seed"), R"EOF(
+      Seeds the random number generator used by the ``Sampler``.
+
+      Args:
+          base_seed: The base seed for the random number generator
+          used by the sampler. Each MPI node is guarantueed to be initialized
+          with a distinct seed.
+      )EOF")
+      .def("reset", &SamplerType::Reset, py::arg("init_random") = false, R"EOF(
+      Resets the state of the sampler, including the acceptance rate statistics
+      and optionally initializing at random the visible units being sampled.
+
+      Args:
+          init_random: If ``True`` the quantum numbers (visible units)
+          are initialized at random, otherwise their value is preserved.
+      )EOF")
+      .def("sweep", &SamplerType::Sweep, R"EOF(
+      Performs a sampling sweep. Typically a single sweep
+      consists of an extensive number of local moves.
+      )EOF")
+      .def_property("visible", &SamplerType::Visible, &SamplerType::SetVisible,
+                    R"EOF(
+                      numpy.array: The quantum numbers being sampled,
+                       and distributed according to $$ |Psi(v)|^2 $$ )EOF")
+      .def_property_readonly("acceptance", &SamplerType::Acceptance, R"EOF(
+        numpy.array: The measured acceptance rate for the sampling.
+        In the case of rejection-free sampling this is always equal to 1.  )EOF")
+      .def_property_readonly("hilbert", &SamplerType::GetHilbert, R"EOF(
+        netket.hilbert: The Hilbert space used for the sampling.  )EOF")
+      .def_property_readonly("machine", &SamplerType::GetMachine, R"EOF(
+        netket.machine: The machine used for the sampling.  )EOF");
 
   {
     using DerSampler = MetropolisLocal<MachineType>;
-    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocal")
+    py::class_<DerSampler, SamplerType>(subm, "MetropolisLocal", R"EOF(
+      This sampler acts locally only on one local degree of freedom $$ s_i $$,
+      and proposes a new state: $$ s_1 \dots s^\prime_i \dots s_N $$,
+      where $$ s^\prime_i \neq s_i $$.
+
+      The transition probability associated to this
+      sampler can be decomposed into two steps:
+
+      1. One of the site indices $$ i = 1\dots N $$ is chosen
+      with uniform probability.
+      2. Among all the possible ($$ m $$) values that $$ s_i $$ can take,
+      one of them is chosen with uniform probability.
+
+      For example, in the case of spin $$ 1/2 $$ particles, $$ m=2 $$
+      and the possible local values are $$ s_i = -1,+1 $$.
+      In this case then `MetropolisLocal` is equivalent to flipping a random spin.
+
+      In the case of bosons, with occupation numbers
+      $$ s_i = 0, 1, \dots n_{\mathrm{max}} $$, `MetropolisLocal`
+      would pick a random local occupation number uniformly between $$ 0 $$
+      and $$ n_{\mathrm{max}} $$.
+      )EOF")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
-             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine"));
   }
 
   {
     using DerSampler = MetropolisLocalPt<MachineType>;
     py::class_<DerSampler, SamplerType>(subm, "MetropolisLocalPt")
         .def(py::init<MachineType &, int>(), py::keep_alive<1, 2>(),
-             py::arg("machine"), py::arg("n_replicas") = 1)
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine"), py::arg("n_replicas") = 1);
   }
 
   {
     using DerSampler = MetropolisHop<MachineType>;
     py::class_<DerSampler, SamplerType>(subm, "MetropolisHop")
         .def(py::init<MachineType &, int>(), py::keep_alive<1, 3>(),
-             py::arg("machine"), py::arg("d_max") = 1)
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine"), py::arg("d_max") = 1);
   }
 
   {
@@ -87,7 +141,7 @@ void AddSamplerModule(py::module &m) {
     py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonian")
         .def(py::init<MachineType &, AbstractOperator &>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-             py::arg("hamiltonian")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("hamiltonian"));
   }
 
   {
@@ -95,8 +149,7 @@ void AddSamplerModule(py::module &m) {
     py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonianPt")
         .def(py::init<MachineType &, AbstractOperator &, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-             py::arg("hamiltonian"), py::arg("n_replicas"))
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("hamiltonian"), py::arg("n_replicas"));
   }
 
   {
@@ -104,8 +157,7 @@ void AddSamplerModule(py::module &m) {
     py::class_<DerSampler, SamplerType>(subm, "MetropolisExchange")
         .def(py::init<const AbstractGraph &, MachineType &, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-             py::arg("machine"), py::arg("d_max") = 1)
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine"), py::arg("d_max") = 1);
   }
 
   {
@@ -114,14 +166,14 @@ void AddSamplerModule(py::module &m) {
         .def(py::init<const AbstractGraph &, MachineType &, int, int>(),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
              py::arg("machine"), py::arg("d_max") = 1,
-             py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("n_replicas") = 1);
   }
 
   {
     using DerSampler = ExactSampler<MachineType>;
     py::class_<DerSampler, SamplerType>(subm, "ExactSampler")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
-             py::arg("machine")) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("machine"));
   }
 
   {
@@ -131,8 +183,7 @@ void AddSamplerModule(py::module &m) {
                       const std::vector<double> &>(),
              py::keep_alive<1, 2>(), py::arg("machine"),
              py::arg("move_operators"),
-             py::arg("move_weights") = std::vector<double>())
-            ADDSAMPLERMETHODS(DerSampler);
+             py::arg("move_weights") = std::vector<double>());
   }
 
   {
@@ -143,7 +194,7 @@ void AddSamplerModule(py::module &m) {
              py::keep_alive<1, 2>(), py::arg("machine"),
              py::arg("move_operators"),
              py::arg("move_weights") = std::vector<double>(),
-             py::arg("n_replicas") = 1) ADDSAMPLERMETHODS(DerSampler);
+             py::arg("n_replicas") = 1);
   }
 }
 
