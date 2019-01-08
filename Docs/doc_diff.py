@@ -1,5 +1,5 @@
 """
-usage: test_docs.py [DocPath1 DocPath2 ...]
+usage: doc_diff.py [DocPath1 DocPath2 ...]
 
 DocPath1, ...   List the directories to perform consistency check of
                 documentation for (optional).
@@ -18,7 +18,7 @@ How to use this test:
 3. Run this test.
 
 Example output:
- python3 test_docs.py Graph
+ python3 doc_diff.py Graph
  Building documentation for: netket.graph.Hypercube
  Mismatch found in: netket.graph.Hypercube
  Report written to: reports/graph/Hypercube.html
