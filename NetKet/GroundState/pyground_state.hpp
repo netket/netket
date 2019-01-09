@@ -122,19 +122,55 @@ void AddGroundStateModule(py::module &m) {
         return py::make_iterator(self.begin(), self.end());
       });
 
-  py::class_<ImagTimePropagation>(m_exact, "ImagTimePropagation")
+  py::class_<ImagTimePropagation>(
+      m_exact, "ImagTimePropagation",
+      R"EOF(Solving for the ground state of the wavefunction using imaginary time propagation.)EOF")
       .def(py::init<ImagTimePropagation::Matrix &,
                     ImagTimePropagation::Stepper &, double,
                     ImagTimePropagation::StateVector>(),
            py::arg("hamiltonian"), py::arg("stepper"), py::arg("t0"),
-           py::arg("initial_state"))
+           py::arg("initial_state"), R"EOF(
+           Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper, 
+           a time, and an initial state.
+
+           Args:
+               hamiltonian: The hamiltonian of the system. 
+               stepper: Stepper (i.e. propagator) that transforms the state of 
+                   the system from one timestep to the next.
+               t0: The initial time.
+               initial_state: The initial state of the system (when propagation 
+                   begins.)
+
+           Examples:
+               Solving 1D ising model with imagniary time propagation.
+
+               ```python
+               >>> from mpi4py import MPI
+               >>> import netket as nk
+               >>> import numpy as np
+               >>> L = 20
+               >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
+               >>> hilbert = nk.hilbert.Spin(graph, 0.5)
+               >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
+               >>> mat = nk.operator.wrap_as_matrix(hamiltonian)
+               >>> stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
+               >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
+               >>> psi0 = np.random.rand(mat.dimension)
+               >>> driver = nk.exact.ImagTimePropagation(mat, stepper, t0=0, initial_state=psi0)
+               >>> driver.add_observable(hamiltonian, 'Hamiltonian')
+               >>> for step in driver.iter(dt=0.05, n_iter=2):
+               ...     obs = driver.get_observable_stats()
+
+               ```
+           )EOF")
       .def("add_observable", &ImagTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "Sparse")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
            py::arg("n_iter") = nonstd::nullopt)
       .def_property("t", &ImagTimePropagation::GetTime,
-                    &ImagTimePropagation::SetTime)
+                    &ImagTimePropagation::SetTime,
+                    R"EOF(double: Time in the simulation.)EOF")
       .def("get_observable_stats", [](const ImagTimePropagation &self) {
         py::dict data;
         self.GetObsManager().InsertAllStats(data);
@@ -146,9 +182,15 @@ void AddGroundStateModule(py::module &m) {
         return py::make_iterator(self.begin(), self.end());
       });
 
-  py::class_<eddetail::result_t>(m_exact, "EdResult")
-      .def_property_readonly("eigenvalues", &eddetail::result_t::eigenvalues)
-      .def_property_readonly("eigenvectors", &eddetail::result_t::eigenvectors)
+  py::class_<eddetail::result_t>(
+      m_exact, "EdResult",
+      R"EOF(Exact diagonalization of the system hamiltonian using either Lanczos or full diagonalization.)EOF")
+      .def_property_readonly(
+          "eigenvalues", &eddetail::result_t::eigenvalues,
+          R"EOF(vector<double>: The eigenvalues of the hamiltonian of the system.)EOF")
+      .def_property_readonly(
+          "eigenvectors", &eddetail::result_t::eigenvectors,
+          R"EOF(vector<Eigen::Matrix<Complex, Eigen::Dynamic, 1>>: The complex eigenvectors of the system hamiltonian.)EOF")
       .def("mean",
            [](eddetail::result_t &self, AbstractOperator &op, int which) {
              if (which < 0 || static_cast<std::size_t>(which) >=
