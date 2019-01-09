@@ -1,7 +1,6 @@
 import pytablewriter
 import parse as pa
 import extract as ext
-import re
 import inspect
 import io
 
@@ -23,6 +22,13 @@ def format_class(cl):
 
     # Docs for __init__
     docs = (cl.__init__).__doc__
+
+    if(not "__init__" in docs):
+        return ""
+
+    if(inspect.isabstract(cl)):
+        return ""
+
     clex = ext.PyBindExtract(docs)
 
     match = clex.extract("__init__")
