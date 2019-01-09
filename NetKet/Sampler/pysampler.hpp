@@ -52,17 +52,14 @@ void AddSamplerModule(py::module &m) {
     A `Sampler` generates quantum numbers distributed according to the square modulus
     of the wave-function:
 
-    $$
-    P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.
-    $$
+    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.$$
+
     The samplers typically transit from the current set of quantum numbers
-    $$ \mathbf{s} = s_1 \dots s_N $$ to another set
-    $$ \mathbf{s^\prime} = s^\prime_1 \dots s^\prime_N $$.
+    $\mathbf{s} = s_1 \dots s_N$ to another set
+    $\mathbf{s^\prime} = s^\prime_1 \dots s^\prime_N$.
     Samplers are then fully specified by the transition probability:
 
-    $$
-    T( \mathbf{s} \rightarrow \mathbf{s}^\prime) .
-    $$
+    $$T( \mathbf{s} \rightarrow \mathbf{s}^\prime) .$$
     )EOF")
       .def("seed", &SamplerType::Seed, py::arg("base_seed"), R"EOF(
       Seeds the random number generator used by the ``Sampler``.
@@ -87,7 +84,7 @@ void AddSamplerModule(py::module &m) {
       .def_property("visible", &SamplerType::Visible, &SamplerType::SetVisible,
                     R"EOF(
                       numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$ |Psi(v)|^2 $$ )EOF")
+                       and distributed according to $|\Psi(v)|^2$ )EOF")
       .def_property_readonly("acceptance", &SamplerType::Acceptance, R"EOF(
         numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.  )EOF")
@@ -99,26 +96,26 @@ void AddSamplerModule(py::module &m) {
   {
     using DerSampler = MetropolisLocal<MachineType>;
     py::class_<DerSampler, SamplerType>(subm, "MetropolisLocal", R"EOF(
-      This sampler acts locally only on one local degree of freedom $$ s_i $$,
-      and proposes a new state: $$ s_1 \dots s^\prime_i \dots s_N $$,
-      where $$ s^\prime_i \neq s_i $$.
+      This sampler acts locally only on one local degree of freedom $s_i$,
+      and proposes a new state: $s_1 \dots s^\prime_i \dots s_N$,
+      where $s^\prime_i \neq s_i$.
 
       The transition probability associated to this
       sampler can be decomposed into two steps:
 
-      1. One of the site indices $$ i = 1\dots N $$ is chosen
+      1. One of the site indices $i = 1\dots N$ is chosen
       with uniform probability.
-      2. Among all the possible ($$ m $$) values that $$ s_i $$ can take,
+      2. Among all the possible ($m$) values that $s_i$ can take,
       one of them is chosen with uniform probability.
 
-      For example, in the case of spin $$ 1/2 $$ particles, $$ m=2 $$
-      and the possible local values are $$ s_i = -1,+1 $$.
+      For example, in the case of spin $1/2$ particles, $m=2$
+      and the possible local values are $s_i = -1,+1$.
       In this case then `MetropolisLocal` is equivalent to flipping a random spin.
 
       In the case of bosons, with occupation numbers
-      $$ s_i = 0, 1, \dots n_{\mathrm{max}} $$, `MetropolisLocal`
-      would pick a random local occupation number uniformly between $$ 0 $$
-      and $$ n_{\mathrm{max}} $$.
+      $s_i = 0, 1, \dots n_{\mathrm{max}}$, `MetropolisLocal`
+      would pick a random local occupation number uniformly between $0$
+      and $n_{\mathrm{max}}$.
       )EOF")
         .def(py::init<MachineType &>(), py::keep_alive<1, 2>(),
              py::arg("machine"), R"EOF(
@@ -127,7 +124,7 @@ void AddSamplerModule(py::module &m) {
              Args:
                  machine: A machine used for the sampling.
                       The probability distribution being sampled
-                      from is $$ |Psi(s)|^2 $$.
+                      from is $|\Psi(s)|^2$.
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2
