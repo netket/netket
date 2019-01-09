@@ -557,15 +557,20 @@ def parse_signature(args, return_annotation='__return_annotation'):
         if len(match) > 1:
             args_out['return_annotation'] = match[1]
 
-
         # Remove () 
         substr = match[0].split(',')
         for si in substr:
             # PEP 484 strings separate name and type by : 
-            try:
-                name, type_ = si.split(':')
-            # No PEP484 string (':' does not exist)
-            except:
+            strsplit = si.split(':')
+            # Assume that argument contains cpp syntax: `::`
+            if len(strsplit) > 2:
+                name = strsplit[0]
+                type_ = ':'.join(strsplit[1:])
+            elif len(strsplit) == 2:
+                name = strsplit[0]
+                type_ = strsplit[1]
+            # No PEP484 string (`:` does not exist)
+            else:
                 name = si
                 type_ = ''
                 if '=' in name:
@@ -652,4 +657,5 @@ def mark_code_blocks(txt, keyword='>>>', split='\n', tag="```", lang='python'):
         else:
             out_blocks.append(block)
     return split.join(out_blocks)
+
 
