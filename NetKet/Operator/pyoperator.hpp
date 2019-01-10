@@ -30,7 +30,10 @@ namespace py = pybind11;
 namespace netket {
 
 #define ADDOPERATORMETHODS(name)                                               \
-  .def("get_conn", &name::GetConn)                                             \
+  .def(                                                                        \
+      "get_conn", &name::GetConn,                                              \
+      R"EOF(Iterates over all states reachable from a given visible configuration v,
+   i.e., all states v' such that O(v,v') is non-zero.)EOF")                    \
       .def_property_readonly(                                                  \
           "hilbert", &name::GetHilbert,                                        \
           R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
