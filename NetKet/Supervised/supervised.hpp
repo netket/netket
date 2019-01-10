@@ -111,22 +111,16 @@ class Supervised {
     }
   }
 
-  /// Computes the derivative of negative log of wavefunction overlap,
-  /// taken from https://arxiv.org/abs/1808.05232
-  void DerLogOverlap(std::vector<Eigen::VectorXd> &batchSamples,
-                     std::vector<Eigen::VectorXcd> &batchTargets) {
-    // Allocate vectors for storing the derivatives ...
-    Eigen::VectorXcd num1(psi_.Npar());
-    Eigen::VectorXcd num2(psi_.Npar());
-    Eigen::VectorXcd num3(psi_.Npar());
-    complex den(0.0, 0.0);
-    Eigen::VectorXcd total_der(psi_.Npar());
-
+  /// Computes the gradient estimate of the derivative of negative log
+  /// of wavefunction overlap, with index i sampled from unifrom[1, N]
+  void DerLogOverlap_uni(std::vector<Eigen::VectorXd> &batchSamples,
+                         std::vector<Eigen::VectorXcd> &batchTargets) {
     // ... and zero them out
-    num1.setZero(psi_.Npar());
-    num2.setZero(psi_.Npar());
-    num3.setZero(psi_.Npar());
-    total_der.setZero(psi_.Npar());
+    grad_.setZero(psi_.Npar());
+    grad_part_1_.setZero(psi_.Npar());
+    grad_part_2_.setZero(psi_.Npar());
+    grad_num_1_ = 0;
+    grad_num_2_ = 0;
 
     // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
@@ -146,15 +140,6 @@ class Supervised {
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
 
-      /*
-      num1 = num1 + der * pow(abs(value), 2);
-      num2 = num2 + der * std::conj(value) * target;
-      num3 = num3 + std::conj(value) * target;
-      den = den + pow(abs(value), 2);
-
-      total_der = total_der + (num1 / den) - num2 * num3.inverse();
-      */
-
       //grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
       //grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
       //grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
@@ -165,21 +150,63 @@ class Supervised {
       grad_part_2_ = grad_part_2_ + der * std::conj(value) * t;
       grad_num_2_ = grad_num_2_ + std::conj(value) * t;
     }
-    /*
-    // Store derivatives in grad_ ...
-    grad_ = total_der;
-
-    // ... and compute the mean of the gradient over the nodes
-    SumOnNodes(grad_);
-    grad_ /= double(totalnodes_);
-    */
 
     SumOnNodes(grad_part_1_);
     SumOnNodes(grad_num_1_);
     SumOnNodes(grad_part_2_);
     SumOnNodes(grad_num_2_);
+    /// No need to devide by totalnodes_
     grad_ = grad_part_1_ / grad_num_1_ - grad_part_2_ / grad_num_2_;
   }
+
+  /// Computes the gradient estimate of the derivative of negative log
+  /// of wavefunction overlap, with index Xi sampled from Phi
+  void DerLogOverlap_phi(std::vector<Eigen::VectorXd> &batchSamples,
+                         std::vector<Eigen::VectorXcd> &batchTargets) {
+    // ... and zero them out
+    grad_.setZero(psi_.Npar());
+    grad_part_1_.setZero(psi_.Npar());
+    grad_part_2_.setZero(psi_.Npar());
+    grad_num_1_ = 0;
+    grad_num_2_ = 0;
+
+    // For each sample in the batch
+    for (int i = 0; i < batchsize_node_; i++) {
+      // Extract log(config)
+      Eigen::VectorXd sample(batchSamples[i]);
+      // And the corresponding target
+      Eigen::VectorXcd target(batchTargets[i]);
+      complex t(target[0].real(), target[0].imag());
+      // Undo log
+      t = exp(t);
+
+      complex value(psi_.LogVal(sample));
+      // Undo Log
+      value = exp(value);
+
+      // Compute derivative of log
+      auto der = psi_.DerLog(sample);
+      der = der.conjugate();
+
+      grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
+      grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
+      grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
+      grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
+
+      // grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
+      // grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
+      // grad_part_2_ = grad_part_2_ + der * std::conj(value) * t;
+      // grad_num_2_ = grad_num_2_ + std::conj(value) * t;
+    }
+
+    SumOnNodes(grad_part_1_);
+    SumOnNodes(grad_num_1_);
+    SumOnNodes(grad_part_2_);
+    SumOnNodes(grad_num_2_);
+    /// No need to devide by totalnodes_
+    grad_ = grad_part_1_ / grad_num_1_ - grad_part_2_ / grad_num_2_;
+  }
+
 
   /// Computes the gradient of the loss function with respect to
   /// the machine's parameters for a given batch of samples and targets
@@ -227,32 +254,60 @@ class Supervised {
     opt_.Reset();
 
     // Initialize a uniform distribution to draw training samples from
-    std::uniform_int_distribution<int> distribution(
+    std::uniform_int_distribution<int> distribution_uni(
         0, trainingSamples_.size() - 1);
+
+    std::vector<double> trainingTarget_values_;
+    trainingTarget_values_.resize(trainingTargets_.size());
+    for (unsigned int i = 0; i < trainingTargets_.size(); i++) {
+      trainingTarget_values_[i] = exp(2 * trainingTargets_[i][0].real());
+    }
+    std::discrete_distribution<int> distribution_phi(
+      trainingTarget_values_.begin(), trainingTarget_values_.end());
 
     for (int i = 0; i < niter_opt_; i++) {
       int index;
       batchSamples.resize(batchsize_node_);
       batchTargets.resize(batchsize_node_);
 
-      // Randomly select a batch of training data
-      for (int k = 0; k < batchsize_node_; k++) {
-        // Draw from the distribution using the netket random number generator
-        index = distribution(rgen_);
-        batchSamples[k] = trainingSamples_[index];
-        batchTargets[k] = trainingTargets_[index];
+      if (lossFunction == "MSE" || lossFunction == "Overlap_uni") {
+        // Randomly select a batch of training data
+        for (int k = 0; k < batchsize_node_; k++) {
+          // Draw from the distribution using the netket random number generator
+          index = distribution_uni(rgen_);
+          batchSamples[k] = trainingSamples_[index];
+          batchTargets[k] = trainingTargets_[index];
+        }
+      } else if (lossFunction == "Overlap_phi") {
+        // Randomly select a batch of training data
+        for (int k = 0; k < batchsize_node_; k++) {
+          // Draw from the distribution using the netket random number generator
+          index = distribution_phi(rgen_);
+          batchSamples[k] = trainingSamples_[index];
+          batchTargets[k] = trainingTargets_[index];
+        }
+      } else {
+        std::cout << "Supervised loss function \" " << lossFunction
+                  << "\" undefined!" << std::endl;
       }
+
+
 
       if (lossFunction == "MSE") {
         GradientComplexMSE(batchSamples, batchTargets);
         UpdateParameters();
         PrintComplexMSE();
         PrintLogOverlap();
-      } else if (lossFunction == "Overlap") {
-        DerLogOverlap(batchSamples, batchTargets);
+      } else if (lossFunction == "Overlap_uni") {
+        DerLogOverlap_uni(batchSamples, batchTargets);
         UpdateParameters();
         PrintComplexMSE();
         PrintLogOverlap();
+      } else if (lossFunction == "Overlap_phi") {
+	DerLogOverlap_phi(batchSamples, batchTargets);
+	UpdateParameters();
+	PrintComplexMSE();
+	PrintLogOverlap();
       } else {
         std::cout << "Supervised loss function \" " << lossFunction
                   << "\" undefined!" << std::endl;
