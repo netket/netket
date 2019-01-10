@@ -13,7 +13,7 @@ def import_from_string(name):
     return m
 
 
-submodules = ['graph', 'sampler', 'hilbert', 'operator']
+submodules = ['graph', 'sampler', 'hilbert', 'operator', 'variational']
 
 for submod in submodules:
     sm = import_from_string('netket.' + submod)
