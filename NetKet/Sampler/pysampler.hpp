@@ -15,14 +15,6 @@
 #ifndef NETKET_PYSAMPLER_HPP
 #define NETKET_PYSAMPLER_HPP
 
-#include <mpi.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
-#include <vector>
 #include "Graph/graph.hpp"
 #include "Operator/operator.hpp"
 #include "Utils/memory_utils.hpp"
@@ -38,6 +30,14 @@
 #include "metropolis_hop.hpp"
 #include "metropolis_local.hpp"
 #include "metropolis_local_pt.hpp"
+#include <complex>
+#include <mpi.h>
+#include <pybind11/complex.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -131,6 +131,8 @@ void AddSamplerModule(py::module &m) {
 
                  ```python
                  >>> import netket as nk
+                 >>> from mpi4py import MPI
+                 >>> 
                  >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
                  >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
                  >>>
@@ -139,6 +141,9 @@ void AddSamplerModule(py::module &m) {
                  >>>
                  >>> # Construct a MetropolisLocal Sampler
                  >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+                 >>> print(sa.hilbert.size)
+                 100
+
                  ```
              )EOF");
   }
@@ -219,6 +224,6 @@ void AddSamplerModule(py::module &m) {
   }
 }
 
-}  // namespace netket
+} // namespace netket
 
 #endif
