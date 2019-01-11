@@ -122,6 +122,15 @@ class Supervised {
     grad_num_1_ = 0;
     grad_num_2_ = 0;
 
+    double max_log_psi = 0;
+    /// [TODO] avoid going through psi twice.
+    for (int i = 0; i < batchsize_node_; i++) {
+      complex value(psi_.LogVal(batchSamples[i]));
+      if ( max_log_psi < value.real() ) {
+        max_log_psi = value.real();
+      }
+    }
+
     // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract log(config)
@@ -134,6 +143,7 @@ class Supervised {
 
       complex value(psi_.LogVal(sample));
       // Undo Log
+      value = value - max_log_psi;
       value = exp(value);
 
       // Compute derivative of log
@@ -170,6 +180,15 @@ class Supervised {
     grad_num_1_ = 0;
     grad_num_2_ = 0;
 
+    double max_log_psi = 0;
+    /// [TODO] avoid going through psi twice.
+    for (int i = 0; i < batchsize_node_; i++) {
+      complex value(psi_.LogVal(batchSamples[i]));
+      if ( max_log_psi < value.real() ) {
+        max_log_psi = value.real();
+      }
+    }
+
     // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract log(config)
@@ -182,6 +201,7 @@ class Supervised {
 
       complex value(psi_.LogVal(sample));
       // Undo Log
+      value = value - max_log_psi;
       value = exp(value);
 
       // Compute derivative of log
