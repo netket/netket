@@ -1,9 +1,10 @@
 # CustomGraph
 In addition to built-in graphs, NetKet provides the freedom to define custom graphs, specifying a list of edges.
-## Constructor
+
+## Class Constructor
 Constructs a new graph given a list of edges.
 
-|    Field    |       Type       |                                                                                                                                                                                                                                     Description                                                                                                                                                                                                                                     |
+|  Argument   |       Type       |                                                                                                                                                                                                                                     Description                                                                                                                                                                                                                                     |
 |-------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |edges        |iterable          |If `edges` has elements of type `Tuple[int, int]` it is treated as a list of edges. Then each element `(i, j)` means a connection between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also, `edges` should contain no duplicates. If `edges` has elements of type `Tuple[int, int, int]` each element `(i, j, c)` represents an edge between sites `i` and `j` colored into `c`. It is again assumed that `0 <= i <= j` and that there are no duplicate elements in `edges`.|
 |automorphisms|List[List[int]]=[]|The automorphisms of the graph, i.e. a List[List[int]] where the inner List[int] is a unique permutation of the graph sites.                                                                                                                                                                                                                                                                                                                                                         |
@@ -22,6 +23,8 @@ constructed specifying the edges as follows:
 ```
 
 
+
+## Class Methods 
 ## Properties
 |   Property   |      Type       |                                                        Description                                                        |
 |--------------|-----------------|---------------------------------------------------------------------------------------------------------------------------|
@@ -32,5 +35,3 @@ constructed specifying the edges as follows:
 |is_bipartite  |       bool      | Whether the graph is bipartite.                                                                                           |
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
-
-
