@@ -27,7 +27,7 @@ def load_ed_data(L, J2=0.4):
         [[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
     # Couplings J1 and J2
-    J = [-1., J2]
+    J = [1., J2]
 
     mats = []
     sites = []
@@ -61,10 +61,12 @@ def load_ed_data(L, J2=0.4):
 
     tsamples = []
     hind = nk.hilbert.HilbertIndex(hi)
+
     for i in range(hind.n_states):
         visible = hind.number_to_state(i)
         # only pick zero-magnetization states
-        if(np.abs(np.sum(visible)) < 1.0e-4):
+        mag = np.sum(visible)
+        if(np.abs(mag) < 1.0e-4):
             tsamples.append(visible.tolist())
             ttargets.append([np.log(res.eigenvectors[0][i])])
 

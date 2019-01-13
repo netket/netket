@@ -52,11 +52,12 @@ overlaps = []
 # Run with "Overlap" loss. Also available currently is "MSE"
 for i in range(niter):
     spvsd.iterate(loss_function="Overlap_phi")
-    print(spvsd.log_overlap.real)
+    print('Minus Log overlap =', spvsd.log_overlap.real)
     overlaps.append(np.exp(-spvsd.log_overlap.real))
 
 plt.plot(overlaps)
 plt.ylabel('Overlap')
 plt.xlabel('Iteration #')
 plt.axhline(y=1, xmin=0, xmax=niter, linewidth=2, color='k', label='1')
+plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
 plt.show()
