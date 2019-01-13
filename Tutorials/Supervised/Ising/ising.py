@@ -20,32 +20,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 L = 10
-J2 = 0.4
 
 # Load the Hilbert space info and data
-hi, training_samples, training_targets = load_ed_data(L, J2)
+hi, training_samples, training_targets = load_ed_data(L)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
-ma.init_random_parameters(seed=1234, sigma=0.01)
+ma.init_random_parameters(seed=1234, sigma=0.1)
 
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
+# op = nk.optimizer.Sgd(1e-1)
 op = nk.optimizer.AdaDelta()
 
 
 spvsd = nk.supervised.supervised(
     sampler=sa,
     optimizer=op,
-    batch_size=400,
+    batch_size=1000,
     output_file="output",
     samples=training_samples,
     targets=training_targets)
 
-niter = 4000
+niter = 500
 
 overlaps = []
 

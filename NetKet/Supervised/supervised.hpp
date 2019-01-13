@@ -20,6 +20,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 #include "Machine/machine.hpp"
@@ -43,8 +44,6 @@ class Supervised {
   int batchsize_;
   // Batchsize per node
   int batchsize_node_;
-  // Number of epochs for training
-  int niter_opt_ = 10;
 
   // Total number of computational nodes to run on
   int totalnodes_;
@@ -69,9 +68,14 @@ class Supervised {
   // Random number generator
   netket::default_random_engine rgen_;
 
+  complex log_overlap_;
+
+  std::uniform_int_distribution<int> distribution_uni_;
+  std::discrete_distribution<> distribution_phi_;
+
  public:
   Supervised(AbstractSampler<AbstractMachine<complex>> &sampler,
-             AbstractOptimizer &opt, int batchsize, int niter_opt,
+             AbstractOptimizer &opt, int batchsize,
              std::vector<Eigen::VectorXd> trainingSamples,
              std::vector<Eigen::VectorXcd> trainingTargets,
              std::string output_file)
@@ -94,7 +98,17 @@ class Supervised {
     batchsize_ = batchsize;
     batchsize_node_ = int(std::ceil(double(batchsize_) / double(totalnodes_)));
 
-    niter_opt_ = niter_opt;
+    // Initialize a uniform distribution to draw training samples from
+    distribution_uni_ =
+        std::uniform_int_distribution<int>(0, trainingSamples_.size() - 1);
+
+    std::vector<double> trainingTarget_values_;
+    trainingTarget_values_.resize(trainingTargets_.size());
+    for (unsigned int i = 0; i < trainingTargets_.size(); i++) {
+      trainingTarget_values_[i] = exp(2 * trainingTargets_[i][0].real());
+    }
+    distribution_phi_ = std::discrete_distribution<>(
+        trainingTarget_values_.begin(), trainingTarget_values_.end());
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
                   << " processes" << std::endl;
@@ -126,7 +140,7 @@ class Supervised {
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
       complex value(psi_.LogVal(batchSamples[i]));
-      if ( max_log_psi < value.real() ) {
+      if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
     }
@@ -150,10 +164,10 @@ class Supervised {
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
 
-      //grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
-      //grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
-      //grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
-      //grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
+      // grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t),
+      // 2); grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
+      // grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
+      // grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
 
       grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
       grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
@@ -180,11 +194,11 @@ class Supervised {
     grad_num_1_ = 0;
     grad_num_2_ = 0;
 
-    double max_log_psi = 0;
+    double max_log_psi = -std::numeric_limits<double>::infinity();
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
       complex value(psi_.LogVal(batchSamples[i]));
-      if ( max_log_psi < value.real() ) {
+      if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
     }
@@ -195,7 +209,7 @@ class Supervised {
       Eigen::VectorXd sample(batchSamples[i]);
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
-      complex t(target[0].real(), target[0].imag());
+      complex t = target[0];
       // Undo log
       t = exp(t);
 
@@ -208,10 +222,10 @@ class Supervised {
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
 
-      grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t), 2);
-      grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
-      grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
-      grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
+      grad_part_1_ = grad_part_1_ + der * std::norm(value / t);
+      grad_num_1_ = grad_num_1_ + std::norm(value / t);
+      grad_part_2_ = grad_part_2_ + der * std::conj(value / t);
+      grad_num_2_ = grad_num_2_ + std::conj(value / t);
 
       // grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
       // grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
@@ -226,7 +240,6 @@ class Supervised {
     /// No need to devide by totalnodes_
     grad_ = grad_part_1_ / grad_num_1_ - grad_part_2_ / grad_num_2_;
   }
-
 
   /// Computes the gradient of the loss function with respect to
   /// the machine's parameters for a given batch of samples and targets
@@ -264,74 +277,58 @@ class Supervised {
     grad_ /= double(totalnodes_);
   }
 
+  void Iterate(std::string lossFunction) {
+    std::vector<Eigen::VectorXd> batchSamples(batchsize_node_);
+    std::vector<Eigen::VectorXcd> batchTargets(batchsize_node_);
+
+    int index;
+
+    if (lossFunction == "MSE" || lossFunction == "Overlap_uni") {
+      // Randomly select a batch of training data
+      for (int k = 0; k < batchsize_node_; k++) {
+        // Draw from the distribution using the netket random number generator
+        index = distribution_uni_(rgen_);
+        batchSamples[k] = trainingSamples_[index];
+        batchTargets[k] = trainingTargets_[index];
+      }
+    } else if (lossFunction == "Overlap_phi") {
+      // Randomly select a batch of training data
+      for (int k = 0; k < batchsize_node_; k++) {
+        // Draw from the distribution using the netket random number generator
+        index = distribution_phi_(rgen_);
+        batchSamples[k] = trainingSamples_[index];
+        batchTargets[k] = trainingTargets_[index];
+      }
+    } else {
+      std::cout << "Supervised loss function \" " << lossFunction
+                << "\" undefined!" << std::endl;
+    }
+
+    if (lossFunction == "MSE") {
+      GradientComplexMSE(batchSamples, batchTargets);
+      UpdateParameters();
+      ComputeLosses();
+    } else if (lossFunction == "Overlap_uni") {
+      DerLogOverlap_uni(batchSamples, batchTargets);
+      UpdateParameters();
+      ComputeLosses();
+    } else if (lossFunction == "Overlap_phi") {
+      DerLogOverlap_phi(batchSamples, batchTargets);
+      UpdateParameters();
+      ComputeLosses();
+    } else {
+      std::cout << "Supervised loss function \" " << lossFunction
+                << "\" undefined!" << std::endl;
+    }
+  }
+
   /// Runs the supervised learning on the training samples and targets
   /// TODO(everthmore): Override w/ function call that sets testSamples_
   ///                   and testTargets_ and reports on accuracy on those.
-  void Run(std::string lossFunction = "MSE") {
-    std::vector<Eigen::VectorXd> batchSamples;
-    std::vector<Eigen::VectorXcd> batchTargets;
-
+  void Run(int niter_opt, std::string lossFunction = "MSE") {
     opt_.Reset();
-
-    // Initialize a uniform distribution to draw training samples from
-    std::uniform_int_distribution<int> distribution_uni(
-        0, trainingSamples_.size() - 1);
-
-    std::vector<double> trainingTarget_values_;
-    trainingTarget_values_.resize(trainingTargets_.size());
-    for (unsigned int i = 0; i < trainingTargets_.size(); i++) {
-      trainingTarget_values_[i] = exp(2 * trainingTargets_[i][0].real());
-    }
-    std::discrete_distribution<int> distribution_phi(
-      trainingTarget_values_.begin(), trainingTarget_values_.end());
-
-    for (int i = 0; i < niter_opt_; i++) {
-      int index;
-      batchSamples.resize(batchsize_node_);
-      batchTargets.resize(batchsize_node_);
-
-      if (lossFunction == "MSE" || lossFunction == "Overlap_uni") {
-        // Randomly select a batch of training data
-        for (int k = 0; k < batchsize_node_; k++) {
-          // Draw from the distribution using the netket random number generator
-          index = distribution_uni(rgen_);
-          batchSamples[k] = trainingSamples_[index];
-          batchTargets[k] = trainingTargets_[index];
-        }
-      } else if (lossFunction == "Overlap_phi") {
-        // Randomly select a batch of training data
-        for (int k = 0; k < batchsize_node_; k++) {
-          // Draw from the distribution using the netket random number generator
-          index = distribution_phi(rgen_);
-          batchSamples[k] = trainingSamples_[index];
-          batchTargets[k] = trainingTargets_[index];
-        }
-      } else {
-        std::cout << "Supervised loss function \" " << lossFunction
-                  << "\" undefined!" << std::endl;
-      }
-
-
-
-      if (lossFunction == "MSE") {
-        GradientComplexMSE(batchSamples, batchTargets);
-        UpdateParameters();
-        PrintComplexMSE();
-        PrintLogOverlap();
-      } else if (lossFunction == "Overlap_uni") {
-        DerLogOverlap_uni(batchSamples, batchTargets);
-        UpdateParameters();
-        PrintComplexMSE();
-        PrintLogOverlap();
-      } else if (lossFunction == "Overlap_phi") {
-	DerLogOverlap_phi(batchSamples, batchTargets);
-	UpdateParameters();
-	PrintComplexMSE();
-	PrintLogOverlap();
-      } else {
-        std::cout << "Supervised loss function \" " << lossFunction
-                  << "\" undefined!" << std::endl;
-      }
+    for (int i = 0; i < niter_opt; i++) {
+      Iterate(lossFunction);
     }
   }
 
@@ -362,11 +359,13 @@ class Supervised {
     }
 
     complex n(numSamples, 0);
-    std::cout << "MSE (log): " << mse_log / n << " MSE : " << mse / n << std::endl;
+    std::cout << "MSE (log): " << mse_log / n << " MSE : " << mse / n
+              << std::endl;
   }
 
-  /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
-  void PrintLogOverlap() {
+  void ComputeLosses() { ComputeLogOverlap(); }
+
+  void ComputeLogOverlap() {
     const int numSamples = trainingSamples_.size();
 
     // Allocate vectors for storing the derivatives ...
@@ -376,6 +375,17 @@ class Supervised {
     complex num4(0.0, 0.0);
 
     std::complex<double> overlap = 0.0;
+
+    Eigen::VectorXcd logpsi(numSamples);
+    double max_log_psi = -std::numeric_limits<double>::infinity();
+
+    for (int i = 0; i < numSamples; i++) {
+      logpsi(i) = psi_.LogVal(trainingSamples_[i]);
+      if (std::real(logpsi(i)) > max_log_psi) {
+        max_log_psi = std::real(logpsi(i));
+      }
+    }
+
     for (int i = 0; i < numSamples; i++) {
       // Extract log(config)
       Eigen::VectorXd sample(trainingSamples_[i]);
@@ -384,19 +394,20 @@ class Supervised {
 
       // Cast value and target to std::complex<couble> and undo logs
       complex value(psi_.LogVal(sample));
-      value = exp(value);
+      value = exp(value - max_log_psi);
       complex t(target[0].real(), target[0].imag());
       t = exp(t);
 
       num1 += std::conj(value) * t;
       num2 += value * std::conj(t);
-      num3 += pow(abs(value), 2);
-      num4 += pow(abs(t), 2);
+      num3 += std::norm(value);
+      num4 += std::norm(t);
     }
 
-    overlap = -(log(num1) + log(num2) - log(num3) - log(num4));
-    std::cout << "LogOverlap: " << overlap << std::endl;
+    log_overlap_ = -(log(num1) + log(num2) - log(num3) - log(num4));
   }
+
+  complex GetLogOverlap() const { return log_overlap_; }
 };
 
 }  // namespace netket
