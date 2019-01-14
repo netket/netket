@@ -5,12 +5,12 @@ Solving for the ground state of the wavefunction using imaginary time propagatio
 Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper, 
 a time, and an initial state.
 
-|  Argument   |                              Type                              |                                          Description                                           |
-|-------------|----------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-|hamiltonian  |netket::AbstractMatrixWrapper<Eigen::Matrix<std::complex<double>|The hamiltonian of the system.                                                                  |
-|stepper      |netket.dynamics.AbstractTimeStepper                             |Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.|
-|t0           |float                                                           |The initial time.                                                                               |
-|initial_state|numpy.ndarray[complex128[m                                      |The initial state of the system (when propagation begins.)                                      |
+|  Argument   |                                        Type                                        |                                          Description                                           |
+|-------------|------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+|hamiltonian  |netket::AbstractMatrixWrapper<Eigen::Matrix<std::complex<double>, -1, 1, 0, -1, 1> >|The hamiltonian of the system.                                                                  |
+|stepper      |netket.dynamics.AbstractTimeStepper                                                 |Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.|
+|t0           |float                                                                               |The initial time.                                                                               |
+|initial_state|numpy.ndarray[complex128[m, 1]]                                                     |The initial state of the system (when propagation begins.)                                      |
 
 ### Examples
 Solving 1D ising model with imagniary time propagation.

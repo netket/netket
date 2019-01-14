@@ -95,9 +95,9 @@ that the matrix element O(v,v') is different from zero. In general there
 will be several different connected visible units satisfying this 
 condition, and they are denoted here v'(k), for k=0,1...N_connected.
 
-|Argument|         Type          |                   Description                    |
-|--------|-----------------------|--------------------------------------------------|
-|v       |numpy.ndarray[float64[m|A constant reference to the visible configuration.|
+|Argument|            Type            |                   Description                    |
+|--------|----------------------------|--------------------------------------------------|
+|v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
 ## Properties
 |   Property   |         Type         |                    Description                     |

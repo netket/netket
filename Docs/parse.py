@@ -30,6 +30,7 @@ data can for instance be serialized using JSON, or rendered to markdown.
 import re
 import warnings
 
+
 class DocString(object):
     """
     This is the base class for parsing docstrings.
@@ -113,8 +114,12 @@ class DocString(object):
         # _re .. : Regex functions.
         # _indent : This variable will hold the current indentation (number of spaces).
 
-        self._parsing = {'indent' : 0, 'linenum' : 0, 'sections' : [],
-                         'section' : []}
+        self._parsing = {
+            'indent': 0,
+            'linenum': 0,
+            'sections': [],
+            'section': []
+        }
         self._re = {}
 
     def parse(self, mark_code_blocks=False):
@@ -134,15 +139,14 @@ class DocString(object):
         for i, di in enumerate(self.data):
             self.check_args(di)
             if self.signature:
-                self.override_annotations(self.data[i],
-                                          self.signature['args'],
+                self.override_annotations(self.data[i], self.signature['args'],
                                           self._config['args'].split('|'))
-                self.override_annotations(self.data[i], {'' :
-                    self.signature['return_annotation']},
+                self.override_annotations(
+                    self.data[i], {'': self.signature['return_annotation']},
                     self._config['returns'].split('|'))
             if mark_code_blocks:
                 self.mark_code_blocks(self.data[i])
-            
+
         return self.data
 
     def extract_sections(self):
@@ -165,8 +169,8 @@ class DocString(object):
 
         data = self.data
         data.append(self.header)
-        return json.dumps(self.data, sort_keys=True,
-                          indent=4, separators=(',', ': '))
+        return json.dumps(
+            self.data, sort_keys=True, indent=4, separators=(',', ': '))
 
     def __str__(self):
         """
@@ -209,18 +213,20 @@ class DocString(object):
                    arg in self._config['exclude_warn_if_no_arg_doc']:
                     continue
                 if arg not in docstring_args and                               \
-                        self._config['warn_if_no_arg_doc']: 
-                    warnings.warn('Missing documentation for `%s` in docstring.'
-                            % arg, UserWarning)   
+                        self._config['warn_if_no_arg_doc']:
+                    warnings.warn(
+                        'Missing documentation for `%s` in docstring.' % arg,
+                        UserWarning)
                 elif docstring_args[arg]['signature'] != \
                      '(%s)'%self.signature['args'][arg] and    \
                      docstring_args[arg]['signature'] != '':
-                    warnings.warn('Annotation mismatch for `%s` in docstring.' %
-                            arg, UserWarning)   
+                    warnings.warn(
+                        'Annotation mismatch for `%s` in docstring.' % arg,
+                        UserWarning)
             for arg in docstring_args:
                 if arg not in self.signature['args']:
                     warnings.warn(' Found argument `%s` in docstring that does'\
-                    ' not exist in function signature.' % arg, UserWarning)   
+                    ' not exist in function signature.' % arg, UserWarning)
 
     def override_annotations(self, section, parsed_args, headers):
         """
@@ -250,11 +256,12 @@ class DocString(object):
         not None.
 
         """
-        if not self._config['code']: 
+        if not self._config['code']:
             return
 
-        section['text'] = mark_code_blocks(section['text'], 
-                                           lang=self._config['code'])
+        section['text'] = mark_code_blocks(
+            section['text'], lang=self._config['code'])
+
 
 class GoogleDocString(DocString):
     """
@@ -305,10 +312,11 @@ class GoogleDocString(DocString):
 
         super(GoogleDocString, self).__init__(docstring, signature, config)
 
-        self._re = {'header' : self._compile_header(),
-                    'indent' : self._compile_indent(),
-                    'arg' : self._compile_arg()}
-
+        self._re = {
+            'header': self._compile_header(),
+            'indent': self._compile_indent(),
+            'arg': self._compile_arg()
+        }
 
     def parse_section(self, section):
         """
@@ -335,7 +343,6 @@ class GoogleDocString(DocString):
         # Get header
         lines = section.split('\n')
         header = self._compile_header().findall(lines[0])
-
 
         # Skip the first line if it is a header
         header = self._get_header(lines[0])
@@ -393,7 +400,7 @@ class GoogleDocString(DocString):
                 new_section = True
             # Section ends because of a change in indent that is not caused
             # by a line break
-            elif line  and current_indent < self._parsing['indent']:
+            elif line and current_indent < self._parsing['indent']:
                 self._end_section()
                 self._begin_section()
 
@@ -420,28 +427,28 @@ class GoogleDocString(DocString):
             description.append(lines[self._parsing['linenum']])
             next_line = _get_next_line(lines, self._parsing['linenum'])
 
-        return {'field' : arg_data[0][0],
-                'signature' : arg_data[0][1],
-                'description' : '\n'.join(description)}
+        return {
+            'field': arg_data[0][0],
+            'signature': arg_data[0][1],
+            'description': '\n'.join(description)
+        }
 
     def _compile_header(self):
-        return re.compile(r'^\s*(%s)%s\s*'%(self._config['headers'],
-                                            self._config['delimiter']))
+        return re.compile(r'^\s*(%s)%s\s*' % (self._config['headers'],
+                                              self._config['delimiter']))
 
     def _compile_indent(self):
-        return re.compile(r'(^\s{%s,})'%self._config['indent'])
+        return re.compile(r'(^\s{%s,})' % self._config['indent'])
 
     def _compile_arg(self):
-        return re.compile(r'(\w*)\s*(\(.*\))?\s*%s(.*)' %
-                          self._config['arg_delimiter'])
-
+        return re.compile(
+            r'(\w*)\s*(\(.*\))?\s*%s(.*)' % self._config['arg_delimiter'])
 
     def _err_if_missing_indent(self, lines, linenumber):
         next_line = _get_next_line(lines, linenumber)
         is_next_indent = self._is_indent(next_line)
         if not is_next_indent:
-            raise SyntaxError("Missing indent after `%s`" %
-                              next_line)
+            raise SyntaxError("Missing indent after `%s`" % next_line)
 
     def _begin_section(self):
         self._parsing['section'] = []
@@ -478,11 +485,13 @@ class GoogleDocString(DocString):
             return header[0]
         else:
             return ''
+
     def _get_arg(self, line):
         return self._re['arg'].findall(line)
 
     def _is_arg(self, line):
         return bool(self._re['arg'].findall(line))
+
 
 def _get_next_line(lines, linenumber):
     """
@@ -497,6 +506,7 @@ def _get_next_line(lines, linenumber):
         if lines[inc]:
             return lines[inc]
         inc += 1
+
 
 def parser(obj, choice='Google', args=None, returns=None, config=None):
     """
@@ -517,13 +527,14 @@ def parser(obj, choice='Google', args=None, returns=None, config=None):
         NotImplementedError : This exception is raised when no parser is found.
 
     """
-    parsers = {'Google' : GoogleDocString}
+    parsers = {'Google': GoogleDocString}
 
     if choice in parsers:
         return parsers[choice](obj, args, returns, config)
     else:
-        NotImplementedError('The docstring parser `%s` is not implemented' %
-                            choice)
+        NotImplementedError(
+            'The docstring parser `%s` is not implemented' % choice)
+
 
 def summary(txt):
     """
@@ -532,8 +543,9 @@ def summary(txt):
     lines = txt.split('\n')
     return lines[0]
 
+
 def parse_signature(args, return_annotation='__return_annotation'):
-        """
+    """
         Parse the signature e.g., `(int: a, int: b) -> int` and put into a dict 
         {'a' : 'int', 'b' : 'int', '__return_annotation__' : 'int'}
 
@@ -547,38 +559,52 @@ def parse_signature(args, return_annotation='__return_annotation'):
 
         """
 
-        match = re.findall('\(([\w\W]*?)\)\s*(?:->\s*(\w+))?', args)
-        if not match:
-            raise ValueError('The string `%s` is not a signature.' % args) 
-        match = match[0]
+    match = re.findall('\(([\w\W]*?)\)\s*(?:->\s*(\w+))?', args)
+    if not match:
+        raise ValueError('The string `%s` is not a signature.' % args)
+    match = match[0]
 
-        args_out = {'args' : {}, 'return_annotation' : ''}
+    args_out = {'args': {}, 'return_annotation': ''}
 
-        if len(match) > 1:
-            args_out['return_annotation'] = match[1]
+    if len(match) > 1:
+        args_out['return_annotation'] = match[1]
 
-        # Remove () 
-        substr = match[0].split(',')
-        for si in substr:
-            # PEP 484 strings separate name and type by : 
-            strsplit = si.split(':')
-            # Assume that argument contains cpp syntax: `::`
-            if len(strsplit) > 2:
-                name = strsplit[0]
-                type_ = ':'.join(strsplit[1:])
-            elif len(strsplit) == 2:
-                name = strsplit[0]
-                type_ = strsplit[1]
-            # No PEP484 string (`:` does not exist)
-            else:
-                name = si
-                type_ = ''
-                if '=' in name:
-                    name, type_ = name.split('=')
-                    type_ = '=' + type_
-            name = name.strip()
-            args_out['args'][name] = type_.strip()
-        return args_out
+    # Split the function input string
+    counts = {"p": 0, "l": 0, "b": 0}
+    marker = 0
+    txt = match[0]
+    for i, c in enumerate(txt):
+
+        # Count brackets, parentheses and inequality symbols
+        if c == "(":  # parentheses
+            counts["p"] += 1
+        elif c == ")":
+            counts["p"] -= 1
+        elif c == "<":  # greater than or less than symbols
+            counts["l"] += 1
+        elif c == ">":
+            counts["l"] -= 1
+        elif c == "[":  # greater than or less than symbols
+            counts["b"] += 1
+        elif c == "]":
+            counts["b"] -= 1
+
+        # Splitting
+        if c == ',' and counts["p"] == 0 and counts["l"] == 0 and counts[
+                "b"] == 0:
+            name = txt[marker:i].split(":", 1)[0].strip(' ')
+            type_ = txt[marker:i].split(":", 1)[1].strip(' ')
+            args_out['args'][name] = type_
+            marker = i + 1
+        elif i == (
+                len(txt) - 1
+        ) and counts["p"] == 0 and counts["l"] == 0 and counts["b"] == 0:
+            name = txt[marker:i + 1].split(":", 1)[0].strip(' ')
+            type_ = txt[marker:i + 1].split(":", 1)[1].strip(' ')
+            args_out['args'][name] = type_
+            marker = i + 1
+    return args_out
+
 
 def get_config(default, config=None, warn=1):
     """
@@ -617,6 +643,7 @@ def get_config(default, config=None, warn=1):
 
     return config_out
 
+
 def mark_code_blocks(txt, keyword='>>>', split='\n', tag="```", lang='python'):
     """
 
@@ -639,23 +666,20 @@ def mark_code_blocks(txt, keyword='>>>', split='\n', tag="```", lang='python'):
     """
     import re
 
-    blocks = re.split('^%s'%split, txt, flags=re.M)
+    blocks = re.split('^%s' % split, txt, flags=re.M)
     out_blocks = []
 
     for block in blocks:
         lines = block.split(keyword)
-        match = re.findall('(\s*)(%s[\w\W]+)'%keyword, keyword.join(lines[1:]), 
-                           re.M)
+        match = re.findall('(\s*)(%s[\w\W]+)' % keyword,
+                           keyword.join(lines[1:]), re.M)
         if match:
             before_code = lines[0]
             indent = match[0][0]
             indented_tag = '%s%s' % (indent, tag)
-            code = '%s%s'% (indent, match[0][1])
-            out_blocks.append('%s%s%s\n%s%s'%(before_code,
-                                              indented_tag, lang, code, 
-                                              indented_tag))
+            code = '%s%s' % (indent, match[0][1])
+            out_blocks.append('%s%s%s\n%s%s' % (before_code, indented_tag,
+                                                lang, code, indented_tag))
         else:
             out_blocks.append(block)
     return split.join(out_blocks)
-
-
