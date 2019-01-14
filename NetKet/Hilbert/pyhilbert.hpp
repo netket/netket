@@ -31,27 +31,55 @@ namespace netket {
 
 constexpr int HilbertIndex::MaxStates;
 
-#define ADDHILBERTMETHODS(name)                                                       \
-                                                                                      \
-  .def_property_readonly(                                                             \
-      "is_discrete", &name::IsDiscrete,                                               \
-      R"EOF(bool: Whether the hilbert space is discrete.)EOF")                        \
-      .def_property_readonly("local_size", &name::LocalSize,                          \
-                             R"EOF(int: Size of the local hilbert space.)EOF")        \
-      .def_property_readonly(                                                         \
-          "size", &name::Size,                                                        \
-          R"EOF(int: The number of visible units needed to describe the system.)EOF") \
-      .def_property_readonly(                                                         \
-          "local_states", &name::LocalStates,                                         \
-          R"EOF(list[float]: List of discreet local quantum numbers.)EOF")            \
-      .def("random_vals", &name ::RandomVals)                                         \
-      .def("update_conf", &name::UpdateConf)
-
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
 
   py::class_<AbstractHilbert>(subm, "Hilbert")
-      ADDHILBERTMETHODS(AbstractHilbert);
+      .def_property_readonly(
+          "is_discrete", &AbstractHilbert::IsDiscrete,
+          R"EOF(bool: Whether the hilbert space is discrete.)EOF")
+      .def_property_readonly("local_size", &AbstractHilbert::LocalSize,
+                             R"EOF(int: Size of the local hilbert space.)EOF")
+      .def_property_readonly(
+          "size", &AbstractHilbert::Size,
+          R"EOF(int: The number of visible units needed to describe the system.)EOF")
+      .def_property_readonly(
+          "local_states", &AbstractHilbert::LocalStates,
+          R"EOF(list[float]: List of discreet local quantum numbers.)EOF")
+      .def("random_vals", &AbstractHilbert::RandomVals, R"EOF(
+       Member function generating uniformely distributed local random states.
+
+       Args:
+           state: A reference to a visible configuration, in output this 
+               contains the random state.
+           rgen: The random number generator.
+
+       Examples:
+           Test that a new random state is a possible state for the hilbert
+           space.
+
+           ```python
+           >>> import netket as nk
+           >>> nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1)
+           >>> rstate = np.zeros(hi.size)
+           >>> rg = nk.utils.RandomEngine(seed=1234)
+           >>> hi.random_vals(rstate, rg)
+           >>> local_states = hi.local_states
+           >>> print(rstate[0] in local_states)
+           True
+
+       ```
+       )EOF")
+      .def("update_conf", &AbstractHilbert::UpdateConf, R"EOF(
+      Member function updating a visible configuration using the information on
+      where the local changes have been done.
+
+      Ars:
+          v: The vector of visible units to be modified.
+          tochange: A list of which qunatum numbers will be modified.
+          newconf: Contains the value that those quantum numbers should take.
+
+      )EOF");
 
   py::class_<Spin, AbstractHilbert>(
       subm, "Spin", R"EOF(Hilbert space composed of spin states.)EOF")
@@ -98,7 +126,7 @@ void AddHilbertModule(py::module &m) {
                100
 
                ```
-           )EOF") ADDHILBERTMETHODS(Spin);
+           )EOF");
 
   py::class_<Qubit, AbstractHilbert>(
       subm, "Qubit", R"EOF(Hilbert space composed of qubits.)EOF")
@@ -121,7 +149,7 @@ void AddHilbertModule(py::module &m) {
                100
 
                ```
-           )EOF") ADDHILBERTMETHODS(Qubit);
+           )EOF");
 
   py::class_<Boson, AbstractHilbert>(
       subm, "Boson", R"EOF(Hilbert space composed of bosonic states.)EOF")
@@ -168,7 +196,7 @@ void AddHilbertModule(py::module &m) {
                100
 
                ```
-           )EOF") ADDHILBERTMETHODS(Boson);
+           )EOF");
 
   py::class_<CustomHilbert, AbstractHilbert>(subm, "CustomHilbert",
                                              R"EOF(A custom hilbert space.)EOF")
@@ -194,7 +222,7 @@ void AddHilbertModule(py::module &m) {
                100
 
                ```
-           )EOF") ADDHILBERTMETHODS(CustomHilbert);
+           )EOF");
 
   py::class_<HilbertIndex>(subm, "HilbertIndex")
       .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))

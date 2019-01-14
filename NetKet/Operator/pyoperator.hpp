@@ -29,17 +29,29 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDOPERATORMETHODS(name)                                               \
-  .def("get_conn", &name::GetConn)                                             \
-      .def_property_readonly(                                                  \
-          "hilbert", &name::GetHilbert,                                        \
-          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
-
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
 
-  py::class_<AbstractOperator>(m, "Operator")
-      ADDOPERATORMETHODS(AbstractOperator);
+  py::class_<AbstractOperator>(m, "Operator", R"EOF(
+      Abstract class for quantum Operators. This class prototypes the methods 
+      needed by a class satisfying the Operator concept. Users interested in 
+      implementing new quantum Operators should derive they own class from this
+      class
+       )EOF")
+      .def("get_conn", &AbstractOperator::GetConn, R"EOF(
+       Member function finding the connected elements of the Operator. Starting
+       from a given visible state v, it finds all other visible states v' such 
+       that the matrix element O(v,v') is different from zero. In general there
+       will be several different connected visible units satisfying this 
+       condition, and they are denoted here v'(k), for k=0,1...N_connected.
+    
+       Args:
+           v: A constant reference to the visible configuration.
+
+       )EOF")
+      .def_property_readonly(
+          "hilbert", &AbstractOperator::GetHilbert,
+          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF");
 
   py::class_<LocalOperator, AbstractOperator>(
       subm, "LocalOperator", R"EOF(A custom local operator.)EOF")
@@ -155,7 +167,7 @@ void AddOperatorModule(py::module &m) {
            py::is_operator())
       .def("__radd__", [](const LocalOperator &a, int b) { return a + b; },
            py::is_operator())
-      .def(py::self * py::self) ADDOPERATORMETHODS(LocalOperator);
+      .def(py::self * py::self); // ADDOPERATORMETHODS(LocalOperator);
 
   py::class_<Ising, AbstractOperator>(subm, "Ising",
                                       R"EOF(An Ising Hamiltonian operator.)EOF")
@@ -183,7 +195,7 @@ void AddOperatorModule(py::module &m) {
                20
 
                ```
-           )EOF") ADDOPERATORMETHODS(Ising);
+           )EOF"); // ADDOPERATORMETHODS(Ising);
 
   py::class_<Heisenberg, AbstractOperator>(
       subm, "Heisenberg", R"EOF(A Heisenberg Hamiltonian operator.)EOF")
@@ -207,7 +219,7 @@ void AddOperatorModule(py::module &m) {
                20
 
                ```
-           )EOF") ADDOPERATORMETHODS(Heisenberg);
+           )EOF"); // ADDOPERATORMETHODS(Heisenberg);
 
   py::class_<GraphOperator, AbstractOperator>(
       subm, "GraphOperator", R"EOF(A custom graph based operator.)EOF")
@@ -253,7 +265,7 @@ void AddOperatorModule(py::module &m) {
 
                ```
            )EOF")
-      .def(py::self + py::self) ADDOPERATORMETHODS(GraphOperator);
+      .def(py::self + py::self); // ADDOPERATORMETHODS(GraphOperator);
 
   py::class_<BoseHubbard, AbstractOperator>(
       subm, "BoseHubbard",
@@ -284,9 +296,9 @@ void AddOperatorModule(py::module &m) {
                9
 
                ```
-           )EOF") ADDOPERATORMETHODS(BoseHubbard);
+           )EOF"); // ADDOPERATORMETHODS(BoseHubbard);
 
-// Matrix wrappers
+  // Matrix wrappers
 #define ADDWRAPPERMETHODS(name)                                                \
   .def_property_readonly(                                                      \
       "dimension", &name<>::Dimension,                                         \
@@ -303,7 +315,8 @@ void AddOperatorModule(py::module &m) {
   py::class_<SparseMatrixWrapper<>, AbstractMatrixWrapper<>>(
       subm, "SparseMatrixWrapper",
       R"EOF(This class stores the matrix elements of a given Operator as an Eigen sparse matrix.)EOF")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"),
+           R"EOF(
         Constructs a sparse matrix wrapper from an operator. Matrix elements are
         stored as a sparse Eigen matrix.
 
@@ -325,7 +338,8 @@ void AddOperatorModule(py::module &m) {
 
             ```
       )EOF")
-      // property name starts with underscore to mark as internal per PEP8
+      // property name starts with underscore to mark as internal per
+      // PEP8
       .def_property_readonly(
           "_matrix", &SparseMatrixWrapper<>::GetMatrix,
           R"EOF(Eigen SparseMatrix Complex : The stored matrix.)EOF")
@@ -335,7 +349,8 @@ void AddOperatorModule(py::module &m) {
       subm, "DenseMatrixWrapper",
       R"EOF(This class stores the matrix elements of
         a given Operator as an Eigen dense matrix.)EOF")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"),
+           R"EOF(
         Constructs a dense matrix wrapper from an operator. Matrix elements are
         stored as a dense Eigen matrix.
 
@@ -358,7 +373,8 @@ void AddOperatorModule(py::module &m) {
             ```
 
       )EOF")
-      // property name starts with underscore to mark as internal per PEP8
+      // property name starts with underscore to mark as internal per
+      // PEP8
       .def_property_readonly("_matrix", &DenseMatrixWrapper<>::GetMatrix,
                              R"EOF(Eigen MatrixXcd : The stored matrix.)EOF")
           ADDWRAPPERMETHODS(DenseMatrixWrapper);
@@ -368,7 +384,8 @@ void AddOperatorModule(py::module &m) {
       R"EOF(This class wraps a given Operator. The
         matrix elements are not stored separately but are computed from
         Operator::FindConn every time Apply is called.)EOF")
-      .def(py::init<const AbstractOperator &>(), py::arg("operator"), R"EOF(
+      .def(py::init<const AbstractOperator &>(), py::arg("operator"),
+           R"EOF(
         Constructs a direct matrix wrapper from an operator. Matrix elements are
         calculated when required.
 
