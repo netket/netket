@@ -104,18 +104,73 @@ void AddGroundStateModule(py::module &m) {
           "machine", &VariationalMonteCarlo::GetMachine,
           R"EOF(netket.machine.Machine: The machine used to express the wavefunction.)EOF")
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
-           py::keep_alive<1, 2>())
+           py::keep_alive<1, 2>(), R"EOF(
+           Add an observable quantity, that will be calculated at each 
+           iteration.
+
+           Args:
+               ob: The operator form of the observable.
+               obname: The name of the observable.
+
+           )EOF")
       .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),
            py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1,
-           py::arg("save_params_every") = 50)
+           py::arg("save_params_every") = 50, R"EOF(
+           Optimize the Vmc wavefunction.
+
+           Args:
+               output_prefix: The output file name, without extension.
+               n_iter: The maximum number of iterations.
+               step_size: Number of iterations performed at a time. Default is 
+                   1.
+               save_params_every: Frequency to dump wavefunction parameters. The
+                   default is 50.
+
+           Examples:
+               Running a simple Vmc calculation.
+
+               
+               ```python
+               >>> import netket as nk
+               >>> from mpi4py import MPI
+               >>> SEED = 3141592
+               >>> g = nk.graph.Hypercube(length=8, n_dim=1)
+               >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+               >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+               >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
+               >>> ha = nk.operator.Ising(hi, h=1.0)
+               >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+               >>> sa.seed(SEED)
+               >>> op = nk.optimizer.Sgd(learning_rate=0.1)
+               >>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, 
+               ... optimizer=op, n_samples=500)
+               >>> vmc.run(output_prefix='test', n_iter=1)
+               
+
+               ```               
+
+           )EOF")
       .def("iter", &VariationalMonteCarlo::Iterate,
-           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1)
-      .def("get_observable_stats", [](VariationalMonteCarlo &self) {
-        py::dict data;
-        self.ComputeObservables();
-        self.GetObsManager().InsertAllStats(data);
-        return data;
-      });
+           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1, R"EOF(
+           Iterate the optimization of the Vmc wavefunction. 
+ 
+           Args:
+               n_iter: The maximum number of iterations.
+               step_size: Number of iterations performed at a time. Default is 
+                   1.
+
+           )EOF")
+      .def("get_observable_stats",
+           [](VariationalMonteCarlo &self) {
+             py::dict data;
+             self.ComputeObservables();
+             self.GetObsManager().InsertAllStats(data);
+             return data;
+           },
+           R"EOF(
+        Calculate and return the value of the operators stored as observables.
+
+        )EOF");
 
   py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "VmcIterator")
       .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
@@ -165,17 +220,40 @@ void AddGroundStateModule(py::module &m) {
            )EOF")
       .def("add_observable", &ImagTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
-           py::arg("matrix_type") = "Sparse")
+           py::arg("matrix_type") = "Sparse", R"EOF(
+           Add an observable quantity, that will be calculated at each 
+           iteration.
+
+           Args:
+               ob: The operator form of the observable.
+               obname: The name of the observable.
+               matrix_type: The type of matrix used for the observable when
+                   creating the matrix wrapper. The default is `Sparse`. The
+                   other choices are `Dense` and `Direct`.
+
+           )EOF")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
-           py::arg("n_iter") = nonstd::nullopt)
+           py::arg("n_iter") = nonstd::nullopt, R"EOF(
+           Iterate the optimization of the Vmc wavefunction. 
+ 
+           Args:
+               dt: Number of iterations performed at a time.
+               n_iter: The maximum number of iterations.
+
+           )EOF")
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
-      .def("get_observable_stats", [](const ImagTimePropagation &self) {
-        py::dict data;
-        self.GetObsManager().InsertAllStats(data);
-        return data;
-      });
+      .def("get_observable_stats",
+           [](const ImagTimePropagation &self) {
+             py::dict data;
+             self.GetObsManager().InsertAllStats(data);
+             return data;
+           },
+           R"EOF(
+        Calculate and return the value of the operators stored as observables.
+
+        )EOF");
 
   py::class_<ImagTimePropagation::Iterator>(m_exact, "ImagTimeIterator")
       .def("__iter__", [](ImagTimePropagation::Iterator &self) {
@@ -205,10 +283,73 @@ void AddGroundStateModule(py::module &m) {
               py::arg("matrix_free") = false, py::arg("first_n") = 1,
               py::arg("max_iter") = 1000, py::arg("seed") = 42,
               py::arg("precision") = 1.0e-14,
-              py::arg("compute_eigenvectors") = false);
+              py::arg("compute_eigenvectors") = false, R"EOF(
+              Use the Lanczos algorithm to diagonalize the operator using 
+              routines from IETL.
+
+              Args:
+                  operator: The operator to diagnolize.
+                  matrix_free: Indicate whether the operator is stored 
+                      (sparse/dense) or not (direct). The default is `False`.
+                  first_n: The numver of eigenvalues to converge. The default is
+                      1.
+                  max_iter: The maximum number of iterations. The default is 1000.
+                  seed: The random number generator seed. The default is 42.
+                  precision: The precision to which the eigenvalues will be 
+                      computed. The default is 1e-14.
+                  comput_eigenvectors: Whether or not to compute the 
+                      eigenvectors of the operator.  The default is `False`.
+
+
+              Examples:
+                  Testing the numer of eigenvalues saved when solving a simple 
+                  1D Ising problem.
+
+                  ```python
+                  >>> import netket as nk
+                  >>> from mpi4py import MPI
+                  >>> first_n=3
+                  >>> g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+                  >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+                  >>> ha = nk.operator.Ising(h=1.0, hilbert=hi)
+                  >>> res = nk.exact.lanczos_ed(ha, first_n=first_n, compute_eigenvectors=True)
+                  >>> print(len(res.eigenvalues) == first_n)
+                  True
+
+                  ```
+
+              )EOF");
 
   m_exact.def("full_ed", &full_ed, py::arg("operator"), py::arg("first_n") = 1,
-              py::arg("compute_eigenvectors") = false);
+              py::arg("compute_eigenvectors") = false, R"EOF(
+              Diagonalize the operator using routines from IETL.
+
+              Args:
+                  operator: The operator to diagnolize.
+                  first_n: The numver of eigenvalues to converge. The default is
+                      1.
+                  comput_eigenvectors: Whether or not to compute the 
+                      eigenvectors of the operator.  The default is `False`.
+
+
+              Examples:
+                  Testing the numer of eigenvalues saved when solving a simple 
+                  1D Ising problem.
+
+                  ```python
+                  >>> import netket as nk
+                  >>> from mpi4py import MPI
+                  >>> first_n=3
+                  >>> g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+                  >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+                  >>> ha = nk.operator.Ising(h=1.0, hilbert=hi)
+                  >>> res = nk.exact.full_ed(ha, first_n=first_n, compute_eigenvectors=True)
+                  >>> print(len(res.eigenvalues) == first_n)
+                  True
+
+                  ```
+
+              )EOF");
 }
 
 } // namespace netket
