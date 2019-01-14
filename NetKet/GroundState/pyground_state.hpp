@@ -104,13 +104,13 @@ void AddGroundStateModule(py::module &m) {
           "machine", &VariationalMonteCarlo::GetMachine,
           R"EOF(netket.machine.Machine: The machine used to express the wavefunction.)EOF")
       .def("add_observable", &VariationalMonteCarlo::AddObservable,
-           py::keep_alive<1, 2>(), R"EOF(
+           py::keep_alive<1, 2>(), py::arg("ob"), py::arg("ob_name"), R"EOF(
            Add an observable quantity, that will be calculated at each 
            iteration.
 
            Args:
                ob: The operator form of the observable.
-               obname: The name of the observable.
+               ob_name: The name of the observable.
 
            )EOF")
       .def("run", &VariationalMonteCarlo::Run, py::arg("output_prefix"),
@@ -121,8 +121,7 @@ void AddGroundStateModule(py::module &m) {
            Args:
                output_prefix: The output file name, without extension.
                n_iter: The maximum number of iterations.
-               step_size: Number of iterations performed at a time. Default is 
-                   1.
+               step_size: Number of iterations performed at a time. Default is 1.
                save_params_every: Frequency to dump wavefunction parameters. The
                    default is 50.
 
@@ -225,8 +224,8 @@ void AddGroundStateModule(py::module &m) {
            iteration.
 
            Args:
-               ob: The operator form of the observable.
-               obname: The name of the observable.
+               observable: The operator form of the observable.
+               name: The name of the observable.
                matrix_type: The type of matrix used for the observable when
                    creating the matrix wrapper. The default is `Sparse`. The
                    other choices are `Dense` and `Direct`.

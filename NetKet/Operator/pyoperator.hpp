@@ -38,7 +38,7 @@ void AddOperatorModule(py::module &m) {
       implementing new quantum Operators should derive they own class from this
       class
        )EOF")
-      .def("get_conn", &AbstractOperator::GetConn, R"EOF(
+      .def("get_conn", &AbstractOperator::GetConn, py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such 
        that the matrix element O(v,v') is different from zero. In general there

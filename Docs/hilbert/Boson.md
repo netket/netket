@@ -52,13 +52,10 @@ Simple boson hilbert space.
 ### random_vals
 Member function generating uniformely distributed local random states.
 
-```
-
-
-|Argument|Type|                                   Description                                   |
-|--------|----|---------------------------------------------------------------------------------|
-|state   |    |A reference to a visible configuration, in output this contains the random state.|
-|rgen    |    |The random number generator.                                                     |
+|Argument|                   Type                   |                                   Description                                   |
+|--------|------------------------------------------|---------------------------------------------------------------------------------|
+|state   |numpy.ndarray[float64[m                   |A reference to a visible configuration, in output this contains the random state.|
+|rgen    |std::mersenne_twister_engine<unsigned long|The random number generator.                                                     |
 
 ### Examples
 Test that a new random state is a possible state for the hilbert
@@ -66,7 +63,8 @@ space.
 
 ```python
 >>> import netket as nk
->>> nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1)
+>>> import numpy as np
+>>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
 >>> rstate = np.zeros(hi.size)
 >>> rg = nk.utils.RandomEngine(seed=1234)
 >>> hi.random_vals(rstate, rg)
@@ -74,18 +72,19 @@ space.
 >>> print(rstate[0] in local_states)
 True
 
+```
+
+
 
 ### update_conf
 Member function updating a visible configuration using the information on
 where the local changes have been done.
 
-Ars:
-v: The vector of visible units to be modified.
-tochange: A list of which qunatum numbers will be modified.
-newconf: Contains the value that those quantum numbers should take.
-
-
-
+|Argument |         Type          |                       Description                        |
+|---------|-----------------------|----------------------------------------------------------|
+|v        |numpy.ndarray[float64[m|The vector of visible units to be modified.               |
+|to_change|List[int]              |A list of which qunatum numbers will be modified.         |
+|new_conf |List[float]            |Contains the value that those quantum numbers should take.|
 
 ## Properties
 |  Property  |   Type    |                        Description                        |

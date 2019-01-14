@@ -46,7 +46,8 @@ void AddHilbertModule(py::module &m) {
       .def_property_readonly(
           "local_states", &AbstractHilbert::LocalStates,
           R"EOF(list[float]: List of discreet local quantum numbers.)EOF")
-      .def("random_vals", &AbstractHilbert::RandomVals, R"EOF(
+      .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
+           py::arg("rgen"), R"EOF(
        Member function generating uniformely distributed local random states.
 
        Args:
@@ -60,7 +61,8 @@ void AddHilbertModule(py::module &m) {
 
            ```python
            >>> import netket as nk
-           >>> nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1)
+           >>> import numpy as np
+           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
            >>> rstate = np.zeros(hi.size)
            >>> rg = nk.utils.RandomEngine(seed=1234)
            >>> hi.random_vals(rstate, rg)
@@ -68,16 +70,17 @@ void AddHilbertModule(py::module &m) {
            >>> print(rstate[0] in local_states)
            True
 
-       ```
+           ```
        )EOF")
-      .def("update_conf", &AbstractHilbert::UpdateConf, R"EOF(
+      .def("update_conf", &AbstractHilbert::UpdateConf, py::arg("v"),
+           py::arg("to_change"), py::arg("new_conf"), R"EOF(
       Member function updating a visible configuration using the information on
       where the local changes have been done.
 
-      Ars:
+      Args:
           v: The vector of visible units to be modified.
-          tochange: A list of which qunatum numbers will be modified.
-          newconf: Contains the value that those quantum numbers should take.
+          to_change: A list of which qunatum numbers will be modified.
+          new_conf: Contains the value that those quantum numbers should take.
 
       )EOF");
 
