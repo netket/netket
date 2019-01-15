@@ -91,32 +91,32 @@ void AddMachineModule(py::module &m) {
              py::arg("use_visible_bias") = true,
              py::arg("use_hidden_bias") = true,
              R"EOF(
-                     Constructs a new ``RbmSpin`` machine:
+                   Constructs a new ``RbmSpin`` machine:
 
-                     Args:
-                         hilbert: Hilbert space object for the system.
-                         n_hidden: Number of hidden units.
-                         alpha: Hidden unit density.
-                         use_visible_bias: If ``True`` then there would be a
-                                          bias on the visible units.
-                                          Default ``True``.
-                         use_hidden_bias: If ``True`` then there would be a
-                                         bias on the visible units.
-                                         Default ``True``.
+                   Args:
+                       hilbert: Hilbert space object for the system.
+                       n_hidden: Number of hidden units.
+                       alpha: Hidden unit density.
+                       use_visible_bias: If ``True`` then there would be a
+                                        bias on the visible units.
+                                        Default ``True``.
+                       use_hidden_bias: If ``True`` then there would be a
+                                       bias on the visible units.
+                                       Default ``True``.
 
-                     Examples:
-                         A ``RbmSpin`` machine with hidden unit density alpha = 2
-                         for a one-dimensional L=20 spin-half system:
+                   Examples:
+                       A ``RbmSpin`` machine with hidden unit density
+                       alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                         ```python
-                         >>> from netket.machine import RbmSpin
-                         >>> from netket.hilbert import Spin
-                         >>> from netket.graph import Hypercube
-                         >>> g = Hypercube(length=20, n_dim=1)
-                         >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                         >>> ma = RbmSpin(alpha=2)
-                         ```
-                     )EOF") ADDMACHINEMETHODS(DerMachine);
+                       ```python
+                       >>> from netket.machine import RbmSpin
+                       >>> from netket.hilbert import Spin
+                       >>> from netket.graph import Hypercube
+                       >>> g = Hypercube(length=20, n_dim=1)
+                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+                       >>> ma = RbmSpin(alpha=2)
+                       ```
+                   )EOF") ADDMACHINEMETHODS(DerMachine);
   }
 
   {
@@ -129,37 +129,38 @@ void AddMachineModule(py::module &m) {
              py::arg("use_visible_bias") = true,
              py::arg("use_hidden_bias") = true,
              R"EOF(
-                     Constructs a new ``RbmSpinSymm`` machine:
+                   Constructs a new ``RbmSpinSymm`` machine:
 
-                     Args:
-                         hilbert: Hilbert space object for the system.
-                         alpha: Hidden unit density.
-                         use_visible_bias: If ``True`` then there would be a
-                                          bias on the visible units.
-                                          Default ``True``.
-                         use_hidden_bias: If ``True`` then there would be a
-                                         bias on the visible units.
-                                         Default ``True``.
+                   Args:
+                       hilbert: Hilbert space object for the system.
+                       alpha: Hidden unit density.
+                       use_visible_bias: If ``True`` then there would be a
+                                        bias on the visible units.
+                                        Default ``True``.
+                       use_hidden_bias: If ``True`` then there would be a
+                                       bias on the visible units.
+                                       Default ``True``.
 
-                     Examples:
-                         A ``RbmSpinSymm`` machine with hidden unit density alpha = 2
-                         for a one-dimensional L=20 spin-half system:
+                   Examples:
+                       A ``RbmSpinSymm`` machine with hidden unit density
+                       alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                         ```python
-                         >>> from netket.machine import RbmSpinSymm
-                         >>> from netket.hilbert import Spin
-                         >>> from netket.graph import Hypercube
-                         >>> g = Hypercube(length=20, n_dim=1)
-                         >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                         >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-                         ```
-                     )EOF") ADDMACHINEMETHODS(DerMachine);
+                       ```python
+                       >>> from netket.machine import RbmSpinSymm
+                       >>> from netket.hilbert import Spin
+                       >>> from netket.graph import Hypercube
+                       >>> g = Hypercube(length=20, n_dim=1)
+                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+                       >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
+                       ```
+                   )EOF") ADDMACHINEMETHODS(DerMachine);
   }
 
   {
     using DerMachine = RbmMultival<StateType>;
     py::class_<DerMachine, MachineType>(subm, "RbmMultiVal", R"EOF(
-             A fully connected Restricted Boltzmann Machine for handling larger local Hilbert spaces.)EOF")
+             A fully connected Restricted Boltzmann Machine for handling larger
+             local Hilbert spaces.)EOF")
         .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),
              py::keep_alive<1, 2>(), py::arg("hilbert"),
              py::arg("n_hidden") = 0, py::arg("alpha") = 0,
@@ -215,32 +216,32 @@ void AddMachineModule(py::module &m) {
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
              py::arg("layers"),
              R"EOF(
-                      Constructs a new ``FFNN`` machine:
+                    Constructs a new ``FFNN`` machine:
 
-                      Args:
-                          hi: Hilbert space object for the system.
-                          layers: Tuple of layers.
+                    Args:
+                        hi: Hilbert space object for the system.
+                        layers: Tuple of layers.
 
-                      Examples:
-                          A ``FFNN`` machine with 2 layers.
-                          for a one-dimensional L=20 spin-half system:
+                    Examples:
+                        A ``FFNN`` machine with 2 layers.
+                        for a one-dimensional L=20 spin-half system:
 
-                          ```python
-                          >>> from netket.layer import SumOutput
-                          >>> from netket.layer import FullyConnected
-                          >>> from netket.layer import Lncosh
-                          >>> from netket.hilbert import Spin
-                          >>> from netket.graph import Hypercube
-                          >>> from netket.machine import FFNN
-                          >>> g = Hypercube(length=20, n_dim=1)
-                          >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                          >>> layers = (
-                            FullyConnected(input_size=20,output_size=20,use_bias=True),
-                            Lncosh(input_size=20),
-                            SumOutput(input_size=20))
-                          >>> ma = FFNN(hi, layers)
-                          ```
-                      )EOF") ADDMACHINEMETHODS(DerMachine);
+                        ```python
+                        >>> from netket.layer import SumOutput
+                        >>> from netket.layer import FullyConnected
+                        >>> from netket.layer import Lncosh
+                        >>> from netket.hilbert import Spin
+                        >>> from netket.graph import Hypercube
+                        >>> from netket.machine import FFNN
+                        >>> g = Hypercube(length=20, n_dim=1)
+                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+                        >>> layers = (
+                          FullyConnected(input_size=20,output_size=20,use_bias=True),
+                          Lncosh(input_size=20),
+                          SumOutput(input_size=20))
+                        >>> ma = FFNN(hi, layers)
+                        ```
+                    )EOF") ADDMACHINEMETHODS(DerMachine);
   }
 }
 
