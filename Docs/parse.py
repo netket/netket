@@ -570,7 +570,7 @@ def parse_signature(args, return_annotation='__return_annotation'):
         args_out['return_annotation'] = match[1]
 
     # Split the function input string
-    counts = {"p": 0, "l": 0, "b": 0}
+    counts = {"p": 0, "l": 0, "b": 0, ":": 0}
     marker = 0
     txt = match[0]
     for i, c in enumerate(txt):
@@ -588,19 +588,43 @@ def parse_signature(args, return_annotation='__return_annotation'):
             counts["b"] += 1
         elif c == "]":
             counts["b"] -= 1
+        elif c == ":":
+            counts[":"] += 1
 
         # Splitting
         if c == ',' and counts["p"] == 0 and counts["l"] == 0 and counts[
                 "b"] == 0:
-            name = txt[marker:i].split(":", 1)[0].strip(' ')
-            type_ = txt[marker:i].split(":", 1)[1].strip(' ')
+            # PEP 484 annotated string
+            if counts[":"]:
+                name = txt[marker:i].split(":", 1)[0].strip(' ')
+                type_ = txt[marker:i].split(":", 1)[1].strip(' ')
+                counts[":"] -= 1
+            # No PEP484 string (`:` does not exist)
+            else:
+                name = txt[marker:i].strip(' ')
+                type_ = ''
+                if '=' in name:
+                    name, type_ = name.split('=')
+                    type_ = '=' + type_
+
             args_out['args'][name] = type_
             marker = i + 1
         elif i == (
                 len(txt) - 1
         ) and counts["p"] == 0 and counts["l"] == 0 and counts["b"] == 0:
-            name = txt[marker:i + 1].split(":", 1)[0].strip(' ')
-            type_ = txt[marker:i + 1].split(":", 1)[1].strip(' ')
+            # PEP 484 annotated string
+            if counts[":"]:
+                name = txt[marker:i + 1].split(":", 1)[0].strip(' ')
+                type_ = txt[marker:i + 1].split(":", 1)[1].strip(' ')
+                counts[":"] -= 1
+            # No PEP484 string (`:` does not exist)
+            else:
+                name = txt[marker:i + 1].strip(' ')
+                type_ = ''
+                if '=' in name:
+                    name, type_ = name.split('=')
+                    type_ = '=' + type_
+
             args_out['args'][name] = type_
             marker = i + 1
     return args_out

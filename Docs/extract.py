@@ -227,7 +227,10 @@ class Extract(object):
                 extracted.
         """
         import textwrap
-        import parse
+        try:
+            from . import parse
+        except:
+            import parse
         matches = self.get_matches(pattern)
 
         if not ids:
