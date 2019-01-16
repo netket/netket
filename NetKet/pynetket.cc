@@ -21,7 +21,7 @@ using StateType = Complex;
 using MachineType = AbstractMachine<StateType>;
 using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;
-}  // namespace netket
+} // namespace netket
 
 #include "Utils/pybind_helpers.hpp"
 
@@ -36,8 +36,8 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Sampler/pysampler.hpp"
 #include "Stats/binning.hpp"
 #include "Stats/pystats.hpp"
-#include "Utils/pyutils.hpp"
 #include "Unsupervised/pyunsupervised.hpp"
+#include "Utils/pyutils.hpp"
 
 namespace netket {
 
@@ -56,8 +56,8 @@ PYBIND11_MODULE(netket, m) {
   AddStatsModule(m);
   AddUtilsModule(m);
   AddUnsupervisedModule(m);
-}  // PYBIND11_MODULE
+} // PYBIND11_MODULE
 
-}  // namespace netket
+} // namespace netket
 
 #endif
