@@ -35,14 +35,13 @@ import sys
 import format as fmt
 import netket
 import shutil
+import build
 
 build_dir = 'temp'
 report_dir = 'report'
 
-# this list will be overwritten if command line arguments are passed.
-doc_dirs = ['Graph']
 
-def get_generated_docs():
+def get_generated_docs(submodules):
     """
     Return a list of paths to generated docs (e.g., `Graph/Hypercube.md`), paths
     to docs to generate, and module import statement (e.g., `graph.hypercube`). 
@@ -54,12 +53,12 @@ def get_generated_docs():
     mod_files = []
     # Module import statements
     classes = []
-    for doc_dir in doc_dirs:
-        tmp = os.listdir(doc_dir)
+    for submodule in submodules:
+        tmp = os.listdir(submodule)
         for file_ in tmp:
-            ref_files.append('%s/%s'%(doc_dir, file_))
-            mod_files.append('%s/%s/%s'%(build_dir, doc_dir, file_))
-            classes.append('netket.%s.%s'%(doc_dir.lower(),
+            ref_files.append('%s/%s'%(submodule, file_))
+            mod_files.append('%s/%s/%s'%(build_dir, submodule, file_))
+            classes.append('netket.%s.%s'%(submodule.lower(),
                            file_.split('.')[0])) 
 
     return ref_files, mod_files, classes
@@ -67,19 +66,6 @@ def get_generated_docs():
 def init_dir(new_dir):
     if not os.path.isdir(new_dir):
         os.mkdir(new_dir)
-
-def build(class_name, output_name, verbose=1):
-    """
-    Temporarily build the documentation.
-    """
-    if verbose:
-        print("Building documentation for: %s"% class_name)  
-    class_obj = eval(class_name)
-    markdown = fmt.format_class(class_obj)
-
-    with open(output_name, 'w') as filehandle:
-        filehandle.write(markdown)
-
 
 def make_report(ref_file, mod_file, class_name, report_dir='reports/',
                 verbose=1):
@@ -124,22 +110,23 @@ def init_docs(build_dir, doc_dirs):
     for doc_dir in doc_dirs:
         init_dir('%s/%s'%(build_dir, doc_dir))
 
-def run(build_dir, doc_dirs, report_dir):
-    init_docs(build_dir, doc_dirs)
-    ref_files, mod_files, classes = get_generated_docs()
+def run(build_dir, submodules, report_dir):
+    init_docs(build_dir, submodules)
+    build.build_docs(output_directory=build_dir, submodules=submodules)
+    ref_files, mod_files, classes = get_generated_docs(submodules)
     err = False
     for ref_file, mod_file, class_name in zip(ref_files, mod_files, classes):
-        build(class_name, mod_file)
         is_consistent = make_report(ref_file, mod_file, class_name, report_dir)
         if not is_consistent:
             err = True
 
     # Remove directory that contains temporarily generated docs. 
     shutil.rmtree(build_dir)
-
     return err
 
 if len(sys.argv) > 1:
-    doc_dirs = sys.argv[1::]
+    submodules = sys.argv[1::]
+else:
+    submodules = build.default_submodules
 
-sys.exit(run(build_dir, doc_dirs, report_dir))
+sys.exit(run(build_dir, submodules, report_dir))
