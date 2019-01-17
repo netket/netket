@@ -151,7 +151,9 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
-        elocvar_(0.) {
+        elocvar_(0.),
+        totalnodes_(MpiSize()),
+        mynode_(MpiRank()) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
          diag_shift, rescale_shift, use_iterative, use_cholesky);
   }
@@ -167,9 +169,6 @@ class VariationalMonteCarlo {
     Okmean_.resize(npar_);
 
     setSrParameters();
-
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     nsamples_ = nsamples;
 

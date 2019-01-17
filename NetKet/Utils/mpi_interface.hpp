@@ -24,6 +24,18 @@
 
 namespace netket {
 
+int MpiRank(MPI_Comm comm = MPI_COMM_WORLD) {
+  int rank;
+  MPI_Comm_rank(comm, &rank);
+  return rank;
+}
+
+int MpiSize(MPI_Comm comm = MPI_COMM_WORLD) {
+  int size;
+  MPI_Comm_size(comm, &size);
+  return size;
+}
+
 inline void SendToAll(double &val, int sendnode = 0,
                       const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&val, 1, MPI_DOUBLE, sendnode, comm);
