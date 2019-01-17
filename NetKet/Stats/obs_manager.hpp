@@ -51,6 +51,12 @@ class ObsManager {
     vector_real_obs_[name] << data;
   }
 
+  void Reset() {
+    for (const auto &name : Names()) {
+      Reset(name);
+    }
+  }
+
   inline void Reset(const std::string &name) {
     if (scalar_real_obs_.count(name) > 0) {
       scalar_real_obs_[name].Reset();

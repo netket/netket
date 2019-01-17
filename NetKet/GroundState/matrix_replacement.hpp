@@ -64,7 +64,7 @@ class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
                           Eigen::AliasFreeProduct>(*this, x.derived());
   }
   // Custom API:
-  MatrixReplacement() : shift_(0), scale_(1) {}
+  explicit MatrixReplacement() : shift_(0), scale_(1) {}
   void attachMatrix(const Eigen::MatrixXcd &mat) { mp_mat_ = mat; }
   void attachMatrix(const Eigen::MatrixXd &mat) { mp_mat_ = mat; }
   void setShift(double shift) { shift_ = shift; }

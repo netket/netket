@@ -39,6 +39,137 @@
 
 namespace netket {
 
+namespace detail {
+/**
+ * Computes the average of the matrix or vector `t` of samples over all MPI
+ * nodes.
+ * @tparam T Eigen vector or matrix type
+ * @param t Vector or matrix of samples (should have size n_samples or n_samples
+ * x n_samples.
+ * @param n_samples Number of samples per node.
+ * @param n_nodes Number of MPI nodes.
+ */
+template <class T>
+void AverageSamplesOverNodes(T &t, Index n_samples, Index n_nodes) {
+  SumOnNodes(t);
+  t /= double(n_samples) * n_nodes;
+}
+}  // namespace detail
+
+/**
+ * This class computes parameter updates for ground state search
+ * using the stochastic reconfiguration method.
+ */
+class StochasticReconfiguration {
+ public:
+  enum class Solver {
+    ConjugateGradient,
+    CholeskyLLT,
+    HouseholderQR,
+  };
+
+  explicit StochasticReconfiguration(
+      double diag_shift = 0.0, bool rescale_shift = false,
+      Solver linear_solver = Solver::ConjugateGradient)
+      : diag_shift_(diag_shift),
+        rescale_shift_(rescale_shift),
+        solver_(linear_solver),
+        n_nodes_(MpiSize()) {}
+
+  Eigen::VectorXcd ComputeUpdate(const Eigen::MatrixXcd &Ok,
+                                 const Eigen::VectorXcd &b) const {
+    switch (solver_) {
+      case Solver::ConjugateGradient:
+      default:
+        return Compute_ConjugateGradient(Ok, b);
+        break;
+      case Solver::CholeskyLLT:
+        return Compute_CholeskyLLT(Ok, b);
+        break;
+      case Solver::HouseholderQR:
+        return Compute_HouseholderQR(Ok, b);
+        break;
+    }
+  }
+
+ private:
+  Eigen::VectorXcd Compute_ConjugateGradient(const Eigen::MatrixXcd &Ok,
+                                             const Eigen::VectorXcd &b) const {
+    double n_samples = Ok.rows();
+
+    MatrixReplacement S;
+    S.attachMatrix(Ok);
+    S.setShift(diag_shift_);
+    S.setScale(1. / n_samples * n_nodes_);
+
+    using CGSolver =
+        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
+                                 Eigen::IdentityPreconditioner>;
+    CGSolver solver;
+    solver.setTolerance(1.0e-3);  // TODO: Maybe make this configurable?
+
+    solver.compute(S);
+    Eigen::VectorXcd deltaP = solver.solve(b);
+
+    if (rescale_shift_) {
+      Complex nor = deltaP.dot(S * deltaP);
+      deltaP /= std::sqrt(nor.real());
+    }
+
+    return deltaP;
+  }
+
+  Eigen::VectorXcd Compute_CholeskyLLT(const Eigen::MatrixXcd &Ok,
+                                       const Eigen::VectorXcd &b) const {
+    // Explicit construction of the S matrix
+    Eigen::MatrixXcd S = Ok.adjoint() * Ok;
+    const Index S_dim = S.rows();
+    detail::AverageSamplesOverNodes(S, S_dim, n_nodes_);
+
+    // Adding diagonal shift
+    S += Eigen::MatrixXd::Identity(S_dim, S_dim) * diag_shift_;
+
+    Eigen::LLT<Eigen::MatrixXcd> llt(S.rows());
+    llt.compute(S);
+    Eigen::VectorXcd deltaP = llt.solve(b);
+
+    if (rescale_shift_) {
+      Complex nor = (deltaP.dot(S * deltaP));
+      deltaP /= std::sqrt(nor.real());
+    }
+
+    return deltaP;
+  }
+
+  Eigen::VectorXcd Compute_HouseholderQR(const Eigen::MatrixXcd &Ok,
+                                         const Eigen::VectorXcd &b) const {
+    // Explicit construction of the S matrix
+    Eigen::MatrixXcd S = Ok.adjoint() * Ok;
+    const Index S_dim = S.rows();
+    detail::AverageSamplesOverNodes(S, S_dim, n_nodes_);
+
+    // Adding diagonal shift
+    S += Eigen::MatrixXd::Identity(S_dim, S_dim) * diag_shift_;
+
+    Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
+    qr.setThreshold(1.0e-6);  // TODO: Maybe make this configurable?
+    qr.compute(S);
+    Eigen::VectorXcd deltaP = qr.solve(b);
+
+    if (rescale_shift_) {
+      Complex nor = (deltaP.dot(S * deltaP));
+      deltaP /= std::sqrt(nor.real());
+    }
+
+    return deltaP;
+  }
+
+  double diag_shift_;
+  bool rescale_shift_;
+  Solver solver_;
+  Index n_nodes_;
+};
+
 // Variational Monte Carlo schemes to learn the ground state
 // Available methods:
 // 1) Stochastic reconfiguration optimizer
@@ -68,22 +199,18 @@ class VariationalMonteCarlo {
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd gradprev_;
 
-  double sr_diag_shift_;
-  bool sr_rescale_shift_;
-  bool use_iterative_;
-
   int totalnodes_;
-  int mynode_;
 
+  int mynode_;
   AbstractOptimizer &opt_;
 
   std::vector<AbstractOperator *> obs_;
+
   std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
   bool dosr_;
-
-  bool use_cholesky_;
+  StochasticReconfiguration sr_;
 
   int nsamples_;
   int nsamples_node_;
@@ -168,7 +295,7 @@ class VariationalMonteCarlo {
     grad_.resize(npar_);
     Okmean_.resize(npar_);
 
-    setSrParameters();
+    SetSrParameters();
 
     nsamples_ = nsamples;
 
@@ -185,17 +312,18 @@ class VariationalMonteCarlo {
     if (method == "Gd") {
       dosr_ = false;
     } else {
-      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
+      dosr_ = true;
+      SetSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
     }
 
     if (dosr_) {
       InfoMessage() << "Using the Stochastic reconfiguration method"
                     << std::endl;
 
-      if (use_iterative_) {
+      if (use_iterative) {
         InfoMessage() << "With iterative solver" << std::endl;
       } else {
-        if (use_cholesky_) {
+        if (use_cholesky) {
           InfoMessage() << "Using Cholesky decomposition" << std::endl;
         }
       }
@@ -286,10 +414,7 @@ class VariationalMonteCarlo {
     }
 
     grad_ = 2. * (Ok_.adjoint() * elocs_);
-
-    // Summing the gradient over the nodes
-    SumOnNodes(grad_);
-    grad_ /= double(totalnodes_ * nsamp);
+    detail::AverageSamplesOverNodes(grad_, nsamp, totalnodes_);
   }
 
   /**
@@ -376,71 +501,7 @@ class VariationalMonteCarlo {
     auto pars = psi_.GetParameters();
 
     if (dosr_) {
-      const int nsamp = vsamp_.rows();
-
-      Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
-      SumOnNodes(b);
-      b /= double(nsamp * totalnodes_);
-
-      if (!use_iterative_) {
-        // Explicit construction of the S matrix
-        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
-        SumOnNodes(S);
-        S /= double(nsamp * totalnodes_);
-
-        // Adding diagonal shift
-        S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
-             sr_diag_shift_;
-
-        Eigen::VectorXcd deltaP;
-        if (use_cholesky_ == false) {
-          Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
-          qr.setThreshold(1.0e-6);
-          qr.compute(S);
-          deltaP = qr.solve(b);
-        } else {
-          Eigen::LLT<Eigen::MatrixXcd> llt(S.rows());
-          llt.compute(S);
-          deltaP = llt.solve(b);
-        }
-        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
-        // ComputeThinV).solve(b);
-
-        assert(deltaP.size() == grad_.size());
-        grad_ = deltaP;
-
-        if (sr_rescale_shift_) {
-          Complex nor = (deltaP.dot(S * deltaP));
-          grad_ /= std::sqrt(nor.real());
-        }
-
-      } else {
-        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
-                                 Eigen::IdentityPreconditioner>
-            it_solver;
-        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-        // it_solver;
-        it_solver.setTolerance(1.0e-3);
-        MatrixReplacement S;
-        S.attachMatrix(Ok_);
-        S.setShift(sr_diag_shift_);
-        S.setScale(1. / double(nsamp * totalnodes_));
-
-        it_solver.compute(S);
-        auto deltaP = it_solver.solve(b);
-
-        grad_ = deltaP;
-        if (sr_rescale_shift_) {
-          auto nor = deltaP.dot(S * deltaP);
-          grad_ /= std::sqrt(nor.real());
-        }
-
-        // if(mynode_==0){
-        //   std::cerr<<it_solver.iterations()<<"
-        //   "<<it_solver.error()<<std::endl;
-        // }
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
+      grad_ = sr_.ComputeUpdate(Ok_, 0.5 * grad_);
     }
 
     opt_.Update(grad_, pars);
@@ -451,13 +512,17 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
+  void SetSrParameters(double diag_shift = 0.01, bool rescale_shift = false,
                        bool use_iterative = false, bool use_cholesky = true) {
-    sr_diag_shift_ = diagshift;
-    sr_rescale_shift_ = rescale_shift;
-    use_iterative_ = use_iterative;
-    dosr_ = true;
-    use_cholesky_ = use_cholesky;
+    StochasticReconfiguration::Solver solver;
+    if (use_iterative) {
+      solver = StochasticReconfiguration::Solver::ConjugateGradient;
+    } else if (use_cholesky) {
+      solver = StochasticReconfiguration::Solver::CholeskyLLT;
+    } else {
+      solver = StochasticReconfiguration::Solver::HouseholderQR;
+    }
+    sr_ = StochasticReconfiguration{diag_shift, rescale_shift, solver};
   }
 
   AbstractMachine<Complex> &GetMachine() { return psi_; }
