@@ -1,3 +1,12 @@
+"""
+usage: build.py [module1 module2 ...]
+
+Build the documentation.
+
+module1, ...   List the submodules to build documentation for. Builds
+               documentation for all submodules if left empty.
+
+"""
 import netket
 import format
 import inspect
@@ -31,3 +40,10 @@ def build_docs(output_directory='./', submodules=None):
             with open(output_directory + "/" + submod + "/" + clsm[0] + ".md",
                       "w") as text_file:
                 text_file.write(markdown)
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        submodules = sys.argv[1::]
+    else:
+        submodules = default_submodules
+    build_docs(submodules=submodules)
