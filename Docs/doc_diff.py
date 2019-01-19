@@ -34,7 +34,7 @@ import sys
 import format as fmt
 import netket
 import shutil
-import build
+import build_docs
 
 build_dir = 'temp'
 report_dir = 'report'
@@ -111,7 +111,7 @@ def init_docs(build_dir, doc_dirs):
 
 def run(build_dir, submodules, report_dir):
     init_docs(build_dir, submodules)
-    build.build_docs(output_directory=build_dir, submodules=submodules)
+    build_docs.build_docs(output_directory=build_dir, submodules=submodules)
     ref_files, mod_files, classes = get_generated_docs(submodules)
     err = False
     for ref_file, mod_file, class_name in zip(ref_files, mod_files, classes):
@@ -126,6 +126,6 @@ def run(build_dir, submodules, report_dir):
 if len(sys.argv) > 1:
     submodules = sys.argv[1::]
 else:
-    submodules = build.default_submodules
+    submodules = build_docs.default_submodules
 
 sys.exit(run(build_dir, submodules, report_dir))
