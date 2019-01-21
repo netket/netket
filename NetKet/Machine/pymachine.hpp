@@ -168,6 +168,8 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.machine import RbmSpin
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
+                       >>> from mpi4py import MPI
+                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpin(alpha=2)
@@ -213,6 +215,8 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.machine import RbmSpinSymm
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
+                       >>> from mpi4py import MPI
+                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
@@ -259,6 +263,8 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.machine import Jastrow
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
+                       >>> from mpi4py import MPI
+                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = Jastrow(hilbert=hi)
@@ -291,6 +297,8 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.machine import JastrowSymm
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
+                       >>> from mpi4py import MPI
+                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = JastrowSymm(hilbert=hi)
@@ -347,6 +355,8 @@ void AddMachineModule(py::module &m) {
                         >>> from netket.hilbert import Spin
                         >>> from netket.graph import Hypercube
                         >>> from netket.machine import FFNN
+                        >>> from mpi4py import MPI
+                        >>>
                         >>> g = Hypercube(length=20, n_dim=1)
                         >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                         >>> layers = (
