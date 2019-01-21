@@ -333,7 +333,7 @@ void AddMachineModule(py::module &m) {
                     Constructs a new ``FFNN`` machine:
 
                     Args:
-                        hi: Hilbert space object for the system.
+                        hilbert: Hilbert space object for the system.
                         layers: Tuple of layers.
 
                     Examples:
