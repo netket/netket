@@ -22,31 +22,48 @@ namespace py = pybind11;
 
 namespace netket {
 
-#define ADDLAYERMETHODS(name)                                                                      \
-                                                                                                   \
-  .def_property_readonly("n_input", &name::Ninput,                                                 \
-                         R"EOF(int: The number of inputs into the layer.)EOF")                     \
-      .def_property_readonly(                                                                      \
-          "n_output", &name::Noutput,                                                              \
-          R"EOF(int: The number of outputs from the layer.)EOF")                                   \
-      .def_property_readonly(                                                                      \
-          "n_par", &name::Npar,                                                                    \
-          R"EOF(int: The number parameters within the layer.)EOF")                                 \
-      .def_property(                                                                               \
-          "parameters", &name::GetParameters, &name::SetParameters,                                \
-          R"EOF(list: List containing the parameters within the layer. Readable and writable)EOF") \
-      .def("init_random_parameters", &name::InitRandomPars);
-// TODO add more methods
-
 void AddLayerModule(py::module &m) {
   auto subm = m.def_submodule("layer");
 
-  py::class_<LayerType>(subm, "Layer") ADDLAYERMETHODS(LayerType);
+  py::class_<LayerType>(subm, "Layer")
+      .def_property_readonly(
+          "n_input", &LayerType::Ninput,
+          R"EOF(int: The number of inputs into the layer.)EOF")
+      .def_property_readonly(
+          "n_output", &LayerType::Noutput,
+          R"EOF(int: The number of outputs from the layer.)EOF")
+      .def_property_readonly(
+          "n_par", &LayerType::Npar,
+          R"EOF(int: The number parameters within the layer.)EOF")
+      .def_property("parameters", &LayerType::GetParameters,
+                    &LayerType::SetParameters,
+                    R"EOF(list: List containing the parameters within the layer.
+            Readable and writable)EOF")
+      .def("init_random_parameters", &LayerType::InitRandomPars,
+           py::arg("seed") = 1234, py::arg("sigma") = 0.1, R"EOF(
+        Member function to initialise layer parameters.
+
+        Args:
+            seed: The random number generator seed.
+            sigma: Standard deviation of normal distribution from which
+                parameters are drawn.
+      )EOF");
+  // TODO add more methods
 
   {
     using DerType = FullyConnected<StateType>;
     py::class_<DerType, LayerType>(subm, "FullyConnected", R"EOF(
-             A fully connected feedforward layer.)EOF")
+             A fully connected feedforward layer. This layer implements the
+             transformation from a m-dimensional input vector
+             $$ \boldsymbol{v}_n $$ to a n-dimensional output vector
+             $$ \boldsymbol{v}_{n+1} $$:
+
+             $$ \boldsymbol{v}_n \rightarrow \boldsymbol{v}_{n+1} =
+             g_{n}(\boldsymbol{W}{n}\boldsymbol{v}{n} + \boldsymbol{b}_{n} ) $$
+
+             where $$ \boldsymbol{W}{n} $$ is a m by n weights matrix and
+             $$ \boldsymbol{b}_{n} $$ is a n-dimensional bias vector.
+             )EOF")
         .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false, R"EOF(
              Constructs a new ``FullyConnected`` layer given input and output
@@ -67,12 +84,15 @@ void AddLayerModule(py::module &m) {
                  >>> from netket.layer import FullyConnected
                  >>> l=FullyConnected(input_size=10,output_size=20,use_bias=True)
                  ```
-             )EOF") ADDLAYERMETHODS(DerType);
+             )EOF");
   }
   {
     using DerType = ConvolutionalHypercube<StateType>;
     py::class_<DerType, LayerType>(subm, "ConvolutionalHypercube", R"EOF(
-             A convolutional feedforward layer for hypercubes.)EOF")
+             A convolutional feedforward layer for hypercubes. This layer works
+             only for the ``Hypercube`` graph defined in ``graph``. This layer
+             implements the standard convolution with periodic boundary
+             conditions.)EOF")
         .def(py::init<int, int, int, int, int, int, bool>(), py::arg("length"),
              py::arg("n_dim"), py::arg("input_channels"),
              py::arg("output_channels"), py::arg("stride") = 1,
@@ -102,7 +122,7 @@ void AddLayerModule(py::module &m) {
                      output_channels=8,
                      kernel_length=4)
                  ```
-             )EOF") ADDLAYERMETHODS(DerType);
+             )EOF");
   }
   {
     using DerType = SumOutput<StateType>;
@@ -121,7 +141,7 @@ void AddLayerModule(py::module &m) {
             >>> from netket.layer import SumOutput
             >>> l=SumOutput(input_size=10)
             ```
-        )EOF") ADDLAYERMETHODS(DerType);
+        )EOF");
   }
   {
     using DerType = Activation<StateType, Lncosh>;
@@ -141,7 +161,7 @@ void AddLayerModule(py::module &m) {
             >>> from netket.layer import Lncosh
             >>> l=Lncosh(input_size=10)
             ```
-        )EOF") ADDLAYERMETHODS(DerType);
+        )EOF");
   }
   {
     using DerType = Activation<StateType, Tanh>;
@@ -161,7 +181,7 @@ void AddLayerModule(py::module &m) {
             >>> from netket.layer import Tanh
             >>> l=Tanh(input_size=10)
             ```
-        )EOF") ADDLAYERMETHODS(DerType);
+        )EOF");
   }
   {
     using DerType = Activation<StateType, Relu>;
@@ -181,7 +201,7 @@ void AddLayerModule(py::module &m) {
             >>> from netket.layer import Relu
             >>> l=Relu(input_size=10)
             ```
-        )EOF") ADDLAYERMETHODS(DerType);
+        )EOF");
   }
 }
 
