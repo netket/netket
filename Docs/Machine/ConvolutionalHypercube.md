@@ -8,8 +8,8 @@ Constructs a new ``ConvolutionalHypercube`` layer.
 |---------------|----------|--------------------------------------------------------------------------------------------------|
 |length         |int       |Size of input images.                                                                             |
 |n_dim          |int       |Dimension of the input images.                                                                    |
-|input_channels |int       |Number of input channnels.                                                                        |
-|output_channels|int       |Number of output channnels.                                                                       |
+|input_channels |int       |Number of input channels.                                                                         |
+|output_channels|int       |Number of output channels.                                                                        |
 |stride         |int=1     |Stride distance.                                                                                  |
 |kernel_length  |int=2     |Size of the kernels.                                                                              |
 |use_bias       |bool=False|If ``True`` then the transformation will include a bias, i.e., the transformation would be affine.|
