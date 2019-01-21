@@ -102,8 +102,8 @@ void AddLayerModule(py::module &m) {
              Args:
                  length: Size of input images.
                  n_dim: Dimension of the input images.
-                 input_channels: Number of input channnels.
-                 output_channels: Number of output channnels.
+                 input_channels: Number of input channels.
+                 output_channels: Number of output channels.
                  stride: Stride distance.
                  kernel_length:  Size of the kernels.
                  use_bias: If ``True`` then the transformation will include a
