@@ -25,6 +25,7 @@ alpha = 2 for a one-dimensional L=20 spin-half system:
 >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
 >>> print(ma.n_par)
 43
+
 ```
 
 

@@ -22,6 +22,7 @@ system:
 >>> ma = Jastrow(hilbert=hi)
 >>> print(ma.n_par)
 190
+
 ```
 
 
