@@ -27,6 +27,7 @@ for a one-dimensional L=20 spin-half system:
 >>> ma = FFNN(hi, layers)
 >>> print(ma.n_par)
 420
+
 ```
 
 

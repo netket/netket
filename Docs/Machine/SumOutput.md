@@ -16,6 +16,7 @@ A ``SumOutput`` layer which takes 10-dimensional inputs:
 >>> l=SumOutput(input_size=10)
 >>> print(l.n_par)
 0
+
 ```
 
 

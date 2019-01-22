@@ -22,6 +22,7 @@ A ``JastrowSymm`` machine for a one-dimensional L=20 spin
 >>> ma = JastrowSymm(hilbert=hi)
 >>> print(ma.n_par)
 10
+
 ```
 
 

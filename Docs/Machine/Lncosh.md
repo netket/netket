@@ -17,6 +17,7 @@ coefficient-wise to a 10-dimensional input:
 >>> l=Lncosh(input_size=10)
 >>> print(l.n_par)
 0
+
 ```
 
 
