@@ -173,6 +173,8 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpin(alpha=2)
+                       >>> print(ma.n_par)
+                       860
                        ```
                    )EOF");
   }
@@ -220,6 +222,8 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
+                       >>> print(ma.n_par)
+                       43
                        ```
                    )EOF");
   }
@@ -268,6 +272,8 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = Jastrow(hilbert=hi)
+                       >>> print(ma.n_par)
+                       190
                        ```
                    )EOF");
   }
@@ -302,6 +308,8 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = JastrowSymm(hilbert=hi)
+                       >>> print(ma.n_par)
+                       10
                        ```
                    )EOF");
   }
@@ -338,34 +346,33 @@ void AddMachineModule(py::module &m) {
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
              py::arg("layers"),
              R"EOF(
-                    Constructs a new ``FFNN`` machine:
+              Constructs a new ``FFNN`` machine:
 
-                    Args:
-                        hilbert: Hilbert space object for the system.
-                        layers: Tuple of layers.
+              Args:
+                  hilbert: Hilbert space object for the system.
+                  layers: Tuple of layers.
 
-                    Examples:
-                        A ``FFNN`` machine with 2 layers.
-                        for a one-dimensional L=20 spin-half system:
+              Examples:
+                  A ``FFNN`` machine with 2 layers.
+                  for a one-dimensional L=20 spin-half system:
 
-                        ```python
-                        >>> from netket.layer import SumOutput
-                        >>> from netket.layer import FullyConnected
-                        >>> from netket.layer import Lncosh
-                        >>> from netket.hilbert import Spin
-                        >>> from netket.graph import Hypercube
-                        >>> from netket.machine import FFNN
-                        >>> from mpi4py import MPI
-                        >>>
-                        >>> g = Hypercube(length=20, n_dim=1)
-                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                        >>> layers = (
-                          FullyConnected(input_size=20,output_size=20,use_bias=True),
-                          Lncosh(input_size=20),
-                          SumOutput(input_size=20))
-                        >>> ma = FFNN(hi, layers)
-                        ```
-                    )EOF");
+                  ```python
+                  >>> from netket.layer import SumOutput
+                  >>> from netket.layer import FullyConnected
+                  >>> from netket.layer import Lncosh
+                  >>> from netket.hilbert import Spin
+                  >>> from netket.graph import Hypercube
+                  >>> from netket.machine import FFNN
+                  >>> from mpi4py import MPI
+                  >>>
+                  >>> g = Hypercube(length=20, n_dim=1)
+                  >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+                  >>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))
+                  >>> ma = FFNN(hi, layers)
+                  >>> print(ma.n_par)
+                  420
+                  ```
+              )EOF");
   }
 }
 

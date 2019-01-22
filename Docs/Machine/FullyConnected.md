@@ -18,6 +18,8 @@ and gives a 20-dimensional output:
 ```python
 >>> from netket.layer import FullyConnected
 >>> l=FullyConnected(input_size=10,output_size=20,use_bias=True)
+>>> print(l.n_par)
+220
 ```
 
 

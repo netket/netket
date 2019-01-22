@@ -15,6 +15,8 @@ coefficient-wise to a 10-dimensional input:
 ```python
 >>> from netket.layer import Relu
 >>> l=Relu(input_size=10)
+>>> print(l.n_par)
+0
 ```
 
 

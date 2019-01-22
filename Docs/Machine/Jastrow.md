@@ -21,6 +21,8 @@ system:
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = Jastrow(hilbert=hi)
+>>> print(ma.n_par)
+190
 ```
 
 

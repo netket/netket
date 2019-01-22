@@ -83,6 +83,8 @@ void AddLayerModule(py::module &m) {
                  ```python
                  >>> from netket.layer import FullyConnected
                  >>> l=FullyConnected(input_size=10,output_size=20,use_bias=True)
+                 >>> print(l.n_par)
+                 220
                  ```
              )EOF");
   }
@@ -115,12 +117,9 @@ void AddLayerModule(py::module &m) {
 
                  ```python
                  >>> from netket.layer import ConvolutionalHypercube
-                 >>> l=ConvolutionalHypercube(
-                     length=10,
-                     n_dim=2,
-                     input_channels=4,
-                     output_channels=8,
-                     kernel_length=4)
+                 >>> l=ConvolutionalHypercube(length=10,n_dim=2,input_channels=4,output_channels=8,kernel_length=4)
+                 >>> print(l.n_par)
+                 520
                  ```
              )EOF");
   }
@@ -140,6 +139,8 @@ void AddLayerModule(py::module &m) {
             ```python
             >>> from netket.layer import SumOutput
             >>> l=SumOutput(input_size=10)
+            >>> print(l.n_par)
+            0
             ```
         )EOF");
   }
@@ -160,6 +161,8 @@ void AddLayerModule(py::module &m) {
             ```python
             >>> from netket.layer import Lncosh
             >>> l=Lncosh(input_size=10)
+            >>> print(l.n_par)
+            0
             ```
         )EOF");
   }
@@ -180,6 +183,8 @@ void AddLayerModule(py::module &m) {
             ```python
             >>> from netket.layer import Tanh
             >>> l=Tanh(input_size=10)
+            >>> print(l.n_par)
+            0
             ```
         )EOF");
   }
@@ -200,6 +205,8 @@ void AddLayerModule(py::module &m) {
             ```python
             >>> from netket.layer import Relu
             >>> l=Relu(input_size=10)
+            >>> print(l.n_par)
+            0
             ```
         )EOF");
   }
