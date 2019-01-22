@@ -15,6 +15,8 @@ coefficient-wise to a 10-dimensional input:
 ```python
 >>> from netket.layer import Tanh
 >>> l=Tanh(input_size=10)
+>>> print(l.n_par)
+0
 ```
 
 

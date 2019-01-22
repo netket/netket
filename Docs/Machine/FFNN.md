@@ -24,11 +24,10 @@ for a one-dimensional L=20 spin-half system:
 >>>
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
->>> layers = (
-  FullyConnected(input_size=20,output_size=20,use_bias=True),
-  Lncosh(input_size=20),
-  SumOutput(input_size=20))
+>>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))
 >>> ma = FFNN(hi, layers)
+>>> print(ma.n_par)
+420
 ```
 
 
