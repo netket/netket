@@ -169,10 +169,9 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
                        >>> from mpi4py import MPI
-                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpin(alpha=2)
+                       >>> ma = RbmSpin(hilbert=hi,alpha=2)
                        >>> print(ma.n_par)
                        860
                        ```
@@ -218,7 +217,6 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
                        >>> from mpi4py import MPI
-                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
@@ -268,7 +266,6 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
                        >>> from mpi4py import MPI
-                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = Jastrow(hilbert=hi)
@@ -304,7 +301,6 @@ void AddMachineModule(py::module &m) {
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
                        >>> from mpi4py import MPI
-                       >>>
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = JastrowSymm(hilbert=hi)
@@ -364,7 +360,6 @@ void AddMachineModule(py::module &m) {
                   >>> from netket.graph import Hypercube
                   >>> from netket.machine import FFNN
                   >>> from mpi4py import MPI
-                  >>>
                   >>> g = Hypercube(length=20, n_dim=1)
                   >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                   >>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))

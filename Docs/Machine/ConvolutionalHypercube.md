@@ -22,7 +22,7 @@ and gives 8 10x10 output images by convolving with 4x4 kernels:
 >>> from netket.layer import ConvolutionalHypercube
 >>> l=ConvolutionalHypercube(length=10,n_dim=2,input_channels=4,output_channels=8,kernel_length=4)
 >>> print(l.n_par)
-520
+512
 ```
 
 
