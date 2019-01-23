@@ -25,6 +25,7 @@ for a one-dimensional L=20 spin-half system:
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))
 >>> ma = FFNN(hi, layers)
+# Total Number of Parameters = 420
 >>> print(ma.n_par)
 420
 

@@ -96,8 +96,9 @@ void AddMachineModule(py::module &m) {
           "n_visible", &MachineType::Nvisible,
           R"EOF(int: The number of inputs into the machine aka visible units in
             the case of Restricted Boltzmann Machines.)EOF")
-      .def_property_readonly("hilbert", &MachineType ::GetHilbert,
-                             R"EOF(The hilbert space object of the system.)EOF")
+      .def_property_readonly(
+          "hilbert", &MachineType::GetHilbert,
+          R"EOF(netket.hilbert.Hilbert: The hilbert space object of the system.)EOF")
       .def("save",
            [](const MachineType &a, std::string filename) {
              json j;
