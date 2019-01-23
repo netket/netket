@@ -20,6 +20,7 @@ A ``JastrowSymm`` machine for a one-dimensional L=20 spin
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = JastrowSymm(hilbert=hi)
+# Jastrow WF Initizialized with nvisible = 20
 >>> print(ma.n_par)
 10
 
@@ -77,10 +78,10 @@ Member function to save the machine parameters.
 |filename|str |name of file to save parameters to.|
 
 ## Properties
-| Property |Type|                                                   Description                                                    |
-|----------|----|------------------------------------------------------------------------------------------------------------------|
-|hilbert   |    |The hilbert space object of the system.                                                                           |
-|n_par     |int | The number of parameters in the machine.                                                                         |
-|n_visible |int | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
-|parameters|list| List containing the parameters within the layer.             Read and write                                      |
+| Property |         Type         |                                                   Description                                                    |
+|----------|----------------------|------------------------------------------------------------------------------------------------------------------|
+|hilbert   |netket.hilbert.Hilbert| The hilbert space object of the system.                                                                          |
+|n_par     |int                   | The number of parameters in the machine.                                                                         |
+|n_visible |int                   | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
+|parameters|list                  | List containing the parameters within the layer.             Read and write                                      |
 

@@ -83,10 +83,10 @@ Member function to save the machine parameters.
 |filename|str |name of file to save parameters to.|
 
 ## Properties
-| Property |Type|                                                   Description                                                    |
-|----------|----|------------------------------------------------------------------------------------------------------------------|
-|hilbert   |    |The hilbert space object of the system.                                                                           |
-|n_par     |int | The number of parameters in the machine.                                                                         |
-|n_visible |int | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
-|parameters|list| List containing the parameters within the layer.             Read and write                                      |
+| Property |         Type         |                                                   Description                                                    |
+|----------|----------------------|------------------------------------------------------------------------------------------------------------------|
+|hilbert   |netket.hilbert.Hilbert| The hilbert space object of the system.                                                                          |
+|n_par     |int                   | The number of parameters in the machine.                                                                         |
+|n_visible |int                   | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
+|parameters|list                  | List containing the parameters within the layer.             Read and write                                      |
 
