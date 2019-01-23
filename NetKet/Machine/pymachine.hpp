@@ -173,9 +173,6 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpin(hilbert=hi,alpha=2)
-                       # RBM Initizialized with nvisible = 20 and nhidden = 40
-                       # Using visible bias = 1
-                       # Using hidden bias  = 1
                        >>> print(ma.n_par)
                        860
 
@@ -225,8 +222,6 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-                       # RBM Initizialized with nvisible = 20 and nhidden = 40
-                       # Symmetries are being used : 43 parameters left, instead of 860
                        >>> print(ma.n_par)
                        43
 
@@ -277,7 +272,6 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = Jastrow(hilbert=hi)
-                       # Jastrow WF Initizialized with nvisible = 20 and nparams = 190
                        >>> print(ma.n_par)
                        190
 
@@ -314,8 +308,6 @@ void AddMachineModule(py::module &m) {
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = JastrowSymm(hilbert=hi)
-                       # Jastrow WF Initizialized with nvisible = 20
-                       # Symmetries are being used : 10 parameters left, instead of 190
                        >>> print(ma.n_par)
                        10
 
@@ -377,11 +369,6 @@ void AddMachineModule(py::module &m) {
                   >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                   >>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))
                   >>> ma = FFNN(hi, layers)
-                  # FFNN Initizialized with 3 Layers: 20 -> 20 -> 20 -> 1
-                  # Layer 1 : Fully Connected Layer
-                  # Layer 2 : Lncosh Activation Layer
-                  # Layer 3 : Sum Output Layer
-                  # Total Number of Parameters = 420
                   >>> print(ma.n_par)
                   420
 

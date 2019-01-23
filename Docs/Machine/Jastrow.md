@@ -20,7 +20,6 @@ system:
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = Jastrow(hilbert=hi)
-# Jastrow WF Initizialized with nvisible = 20 and nparams = 190
 >>> print(ma.n_par)
 190
 
