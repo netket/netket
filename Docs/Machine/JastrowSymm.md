@@ -20,7 +20,6 @@ A ``JastrowSymm`` machine for a one-dimensional L=20 spin
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = JastrowSymm(hilbert=hi)
-# Jastrow WF Initizialized with nvisible = 20
 >>> print(ma.n_par)
 10
 

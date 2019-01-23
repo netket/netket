@@ -23,7 +23,6 @@ alpha = 2 for a one-dimensional L=20 spin-half system:
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-# RBM Initizialized with nvisible = 20 and nhidden = 40
 >>> print(ma.n_par)
 43
 
