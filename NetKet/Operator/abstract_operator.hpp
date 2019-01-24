@@ -15,12 +15,12 @@
 #ifndef NETKET_ABSTRACT_OPERATOR_HPP
 #define NETKET_ABSTRACT_OPERATOR_HPP
 
+#include "Hilbert/hilbert.hpp"
 #include <Eigen/Dense>
 #include <complex>
 #include <nonstd/span.hpp>
 #include <tuple>
 #include <vector>
-#include "Hilbert/hilbert.hpp"
 
 namespace netket {
 /**
@@ -46,7 +46,7 @@ struct ConnectorRef {
    own class from this class.
 */
 class AbstractOperator {
- public:
+public:
   using VectorType = Eigen::VectorXd;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
@@ -75,8 +75,8 @@ class AbstractOperator {
 
   using ConnCallback = std::function<void(ConnectorRef)>;
 
-  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
-      VectorConstRefType v) const {
+  virtual std::tuple<MelType, ConnectorsType, NewconfsType>
+  GetConn(VectorConstRefType v) const {
     std::vector<std::complex<double>> mel;
     std::vector<std::vector<int>> connectors;
     std::vector<std::vector<double>> newconfs;
@@ -119,6 +119,6 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
-}  // namespace netket
+} // namespace netket
 
 #endif
