@@ -2,6 +2,7 @@ import json
 from pytest import approx
 import netket as nk
 from mpi4py import MPI
+import shutil
 import tempfile
 
 
@@ -57,13 +58,15 @@ def test_vmc_iterator():
 def test_vmc_run():
     vmc = _setup_vmc()
 
-    with tempfile.TemporaryDirectory() as tempdir:
-        print("Writing test output files to: {}".format(tempdir))
-        prefix = tempdir + '/vmc_test'
-        vmc.run(prefix, 300)
+    tempdir = tempfile.mkdtemp()
+    print("Writing test output files to: {}".format(tempdir))
+    prefix = tempdir + '/vmc_test'
+    vmc.run(prefix, 300)
 
-        with open(prefix + '.log') as logfile:
-            log = json.load(logfile)
+    with open(prefix + '.log') as logfile:
+        log = json.load(logfile)
+
+    shutil.rmtree(tempdir)
 
     assert 'Output' in log
     output = log['Output']
