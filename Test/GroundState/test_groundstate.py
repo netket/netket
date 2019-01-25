@@ -1,13 +1,15 @@
+import json
 from pytest import approx
 import netket as nk
-from netket.variational import Vmc
 from mpi4py import MPI
+import shutil
+import tempfile
 
 
 SEED = 3141592
 
 
-def test_vmc_iterator():
+def _setup_vmc():
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
 
@@ -19,12 +21,23 @@ def test_vmc_iterator():
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    vmc = Vmc(
+    vmc = nk.variational.Vmc(
         hamiltonian=ha,
         sampler=sa,
         optimizer=op,
         n_samples=500,
         diag_shift=0.01)
+
+    # Add custom observable
+    X = [[0, 1], [1, 0]]
+    sx = nk.operator.LocalOperator(hi, [X] * 8, [[i] for i in range(8)])
+    vmc.add_observable(sx, 'SigmaX')
+
+    return vmc
+
+
+def test_vmc_iterator():
+    vmc = _setup_vmc()
 
     count = 0
     last_obs = None
@@ -32,7 +45,7 @@ def test_vmc_iterator():
         count += 1
         assert step == i
         obs = vmc.get_observable_stats()
-        for name in 'Energy', 'EnergyVariance':
+        for name in 'Energy', 'EnergyVariance', 'SigmaX':
             assert name in obs
             e = obs[name]
             assert 'Mean' in e and 'Sigma' in e and 'Taucorr' in e
@@ -40,6 +53,36 @@ def test_vmc_iterator():
 
     assert count == 300
     assert last_obs['Energy']['Mean'] == approx(-10.25, abs=0.2)
+
+
+def test_vmc_run():
+    vmc = _setup_vmc()
+
+    tempdir = tempfile.mkdtemp()
+    print("Writing test output files to: {}".format(tempdir))
+    prefix = tempdir + '/vmc_test'
+    vmc.run(prefix, 300)
+
+    with open(prefix + '.log') as logfile:
+        log = json.load(logfile)
+
+    shutil.rmtree(tempdir)
+
+    assert 'Output' in log
+    output = log['Output']
+    assert len(output) == 300
+
+    for i, obs in enumerate(output):
+        step = obs['Iteration']
+        assert step == i
+        for name in 'Energy', 'EnergyVariance', 'SigmaX':
+            assert name in obs
+            e = obs[name]
+            assert 'Mean' in e and 'Sigma' in e and 'Taucorr' in e
+        last_obs = obs
+
+    assert last_obs['Energy']['Mean'] == approx(-10.25, abs=0.2)
+
 
 def test_ed():
     first_n=3
