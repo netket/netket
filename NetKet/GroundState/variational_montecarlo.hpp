@@ -358,6 +358,8 @@ class VariationalMonteCarlo {
     }
 
     for (const auto step : Iterate(n_iter, step_size)) {
+      ComputeObservables();
+
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
