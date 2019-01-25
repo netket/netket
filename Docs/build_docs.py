@@ -1,5 +1,5 @@
 """
-usage: build.py [module1 module2 ...]
+usage: python build_docs.py [module1 module2 ...]
 
 Build the documentation.
 
@@ -18,11 +18,13 @@ default_submodules = [
     'graph', 'sampler', 'hilbert', 'operator', 'variational', 'exact'
 ]
 
+
 def import_from_string(name):
     m = __import__(name)
     for n in name.split(".")[1:]:
         m = getattr(m, n)
     return m
+
 
 def build_docs(output_directory='./', submodules=None):
     if not submodules:
@@ -40,6 +42,7 @@ def build_docs(output_directory='./', submodules=None):
             with open(output_directory + "/" + submod + "/" + clsm[0] + ".md",
                       "w") as text_file:
                 text_file.write(markdown)
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
