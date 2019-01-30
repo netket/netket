@@ -8,6 +8,7 @@ Constructs a new ``Heisenberg`` given a hilbert space.
 |--------|----------------------|-----------------------------------|
 |hilbert |netket.hilbert.Hilbert|Hilbert space the operator acts on.|
 
+
 ### Examples
 Constructs a ``Heisenberg`` operator for a 1D system.
 
@@ -36,7 +37,10 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+
 ## Properties
+
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
+

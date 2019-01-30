@@ -119,6 +119,6 @@ def format_properties(properties):
     writer.value_matrix = value_matrix
     writer.stream = f
 
-    f.write('## Properties' + '\n')
+    f.write('## Properties' + '\n\n')
     writer.write_table()
     return f.getvalue()
