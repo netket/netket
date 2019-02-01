@@ -60,9 +60,7 @@ void AddCustomSamplerPt(py::module &subm) {
                  >>> # Construct a Custom Sampler with parallel tempering
                  >>> # Using random local spin flips (Pauli X operator)
                  >>> X = [[0, 1],[1, 0]]
-                 >>> move_op = nk.operator.LocalOperator(hilbert=hi,
-                                    operators=[X] * g.size,
-                                    acting_on=[[i] for i in range(g.size)])
+                 >>> move_op = nk.operator.LocalOperator(hilbert=hi,operators=[X] * g.size,acting_on=[[i] for i in range(g.size)])
                  >>> sa = nk.sampler.CustomSamplerPt(machine=ma, move_operators=move_op,n_replicas=10)
 
                  ```
