@@ -30,14 +30,14 @@ ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma)
+# sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
 
 
 spvsd = nk.supervised.supervised(
-    sampler=sa,
+    machine=ma,
     optimizer=op,
     batch_size=400,
     output_file="output",

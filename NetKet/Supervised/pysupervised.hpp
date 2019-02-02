@@ -33,18 +33,18 @@ void AddSupervisedModule(py::module &m) {
   auto subm = m.def_submodule("supervised");
 
   py::class_<Supervised>(subm, "supervised")
-      .def(py::init([](SamplerType &sa, AbstractOptimizer &op, int batch_size,
+      .def(py::init([](MachineType &ma, AbstractOptimizer &op, int batch_size,
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<Eigen::VectorXcd> targets,
                        std::string output_file) {
-             return Supervised{sa,
+             return Supervised{ma,
                                op,
                                batch_size,
                                std::move(samples),
                                std::move(targets),
                                output_file};
            }),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("sampler"),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
            py::arg("optimizer"), py::arg("batch_size"), py::arg("samples"),
            py::arg("targets"), py::arg("output_file"))
       .def_property_readonly("log_overlap", &Supervised::GetLogOverlap)

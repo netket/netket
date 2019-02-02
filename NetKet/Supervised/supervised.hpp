@@ -26,7 +26,6 @@
 #include "Machine/machine.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Output/json_output_writer.hpp"
-#include "Sampler/abstract_sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
@@ -36,7 +35,6 @@ namespace netket {
 class Supervised {
   using complex = std::complex<double>;
 
-  AbstractSampler<AbstractMachine<complex>> &sampler_;
   AbstractMachine<complex> &psi_;
   AbstractOptimizer &opt_;
 
@@ -74,13 +72,12 @@ class Supervised {
   std::discrete_distribution<> distribution_phi_;
 
  public:
-  Supervised(AbstractSampler<AbstractMachine<complex>> &sampler,
+  Supervised(AbstractMachine<complex> &psi,
              AbstractOptimizer &opt, int batchsize,
              std::vector<Eigen::VectorXd> trainingSamples,
              std::vector<Eigen::VectorXcd> trainingTargets,
              std::string output_file)
-      : sampler_(sampler),
-        psi_(sampler_.GetMachine()),
+      : psi_(psi),
         opt_(opt),
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
