@@ -15,7 +15,7 @@
 
 import netket as nk
 from mpi4py import MPI
-from ed import load_ed_data
+from ED import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -27,7 +27,6 @@ hi, training_samples, training_targets = load_ed_data(L, J2)
 
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
