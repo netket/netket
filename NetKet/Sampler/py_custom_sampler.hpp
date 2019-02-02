@@ -83,7 +83,7 @@ void AddCustomSampler(py::module &subm) {
                  >>> # Construct a Custom Sampler
                  >>> # Using random local spin flips (Pauli X operator)
                  >>> X = [[0, 1],[1, 0]]
-                 >>> move_op = nk.operator.LocalOperator(hilbert=hi,operators=[X] * g.size,acting_on=[[i] for i in range(g.size)])
+                 >>> move_op = nk.operator.LocalOperator(hilbert=hi,operators=[X] * g.n_sites,acting_on=[[i] for i in range(g.n_sites)])
                  >>> sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 
                  ```
