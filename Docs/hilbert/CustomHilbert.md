@@ -2,7 +2,7 @@
 A custom hilbert space.
 
 ## Class Constructor
-Constructs a new ``CustomHilbert`` given a graph and a list of 
+Constructs a new ``CustomHilbert`` given a graph and a list of
 eigenvalues of the states.
 
 |  Argument  |       Type       |         Description          |
