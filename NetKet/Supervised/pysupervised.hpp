@@ -47,7 +47,9 @@ void AddSupervisedModule(py::module &m) {
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
            py::arg("optimizer"), py::arg("batch_size"), py::arg("samples"),
            py::arg("targets"), py::arg("output_file"))
-      .def_property_readonly("log_overlap", &Supervised::GetLogOverlap)
+      .def_property_readonly("loss_log_overlap", &Supervised::GetLogOverlap)
+      .def_property_readonly("loss_mse", &Supervised::GetMse)
+      .def_property_readonly("loss_mse_log", &Supervised::GetMseLog)
       .def("run", &Supervised::Run, py::arg("niter_opt"),
            py::arg("loss_function") = "MSE")
       .def("iterate", &Supervised::Iterate, py::arg("loss_function") = "MSE");

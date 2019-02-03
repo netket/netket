@@ -66,7 +66,14 @@ class Supervised {
   // Random number generator
   netket::default_random_engine rgen_;
 
-  complex log_overlap_;
+  // Writer to the output
+  // This optional will contain a value iff the MPI rank is 0.
+  nonstd::optional<JsonOutputWriter> output_;
+
+  // All loss function is real
+  double loss_log_overlap_;
+  double loss_mse_;
+  double loss_mse_log_;
 
   std::uniform_int_distribution<int> distribution_uni_;
   std::discrete_distribution<> distribution_phi_;
@@ -118,7 +125,7 @@ class Supervised {
   void InitOutput(std::string filebase) {
     // Only the first node
     if (mynode_ == 0) {
-      JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
+      output_ = JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
     }
   }
 
@@ -160,11 +167,6 @@ class Supervised {
       // Compute derivative of log
       auto der = psi_.DerLog(sample);
       der = der.conjugate();
-
-      // grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2) / pow(abs(t),
-      // 2); grad_num_1_ = grad_num_1_ + pow(abs(value), 2) / pow(abs(t), 2);
-      // grad_part_2_ = grad_part_2_ + der * std::conj(value) / std::conj(t);
-      // grad_num_2_ = grad_num_2_ + std::conj(value) / std::conj(t);
 
       grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
       grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
@@ -224,10 +226,6 @@ class Supervised {
       grad_part_2_ = grad_part_2_ + der * std::conj(value / t);
       grad_num_2_ = grad_num_2_ + std::conj(value / t);
 
-      // grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
-      // grad_num_1_ = grad_num_1_ + pow(abs(value), 2);
-      // grad_part_2_ = grad_part_2_ + der * std::conj(value) * t;
-      // grad_num_2_ = grad_num_2_ + std::conj(value) * t;
     }
 
     SumOnNodes(grad_part_1_);
@@ -243,7 +241,7 @@ class Supervised {
   /// TODO(everthmore): User defined loss function instead of hardcoded MSE
   /// Loss = 0.5 * (log(psi) - log(target)) * (log(psi) - log(target)).conj()
   /// Partial Der = Real part of (derlog(psi)*(log(psi) - log(t)).conj()
-  void GradientComplexMSE(std::vector<Eigen::VectorXd> &batchSamples,
+  void GradientComplexMse(std::vector<Eigen::VectorXd> &batchSamples,
                           std::vector<Eigen::VectorXcd> &batchTargets) {
     // Allocate a vector for storing the derivatives ...
     Eigen::VectorXcd der(psi_.Npar());
@@ -302,7 +300,7 @@ class Supervised {
     }
 
     if (lossFunction == "MSE") {
-      GradientComplexMSE(batchSamples, batchTargets);
+      GradientComplexMse(batchSamples, batchTargets);
       UpdateParameters();
       ComputeLosses();
     } else if (lossFunction == "Overlap_uni") {
@@ -327,6 +325,7 @@ class Supervised {
     for (int i = 0; i < niter_opt; i++) {
       Iterate(lossFunction);
     }
+    // PrintOutput();
   }
 
   /// Updates the machine parameters with the current gradient
@@ -338,12 +337,18 @@ class Supervised {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  /// Outputs the current Mean-Squared-Error (mostly debugging, temporarily)
-  void PrintComplexMSE() {
+  void ComputeLosses() {
+    ComputeMse();
+    ComputeLogOverlap();
+  }
+
+  /// Compute the MSE of psi and the MSE of log(psi)
+  /// for monitoring the convergence.
+  void ComputeMse() {
     const int numSamples = trainingSamples_.size();
 
-    std::complex<double> mse_log = 0.0;
-    std::complex<double> mse = 0.0;
+    double mse_log = 0.0;
+    double mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
       complex value(psi_.LogVal(sample));
@@ -351,16 +356,17 @@ class Supervised {
       Eigen::VectorXcd target = trainingTargets_[i];
       complex t(target[0].real(), target[0].imag());
 
-      mse_log += 0.5 * pow(abs(value - t), 2);
-      mse += 0.5 * pow(abs(exp(value) - exp(t)), 2);
+      mse_log += 0.5 * std::norm(value - t);
+      mse += 0.5 * std::norm(exp(value) - exp(t));
     }
 
-    complex n(numSamples, 0);
-    std::cout << "MSE (log): " << mse_log / n << " MSE : " << mse / n
-              << std::endl;
+    loss_mse_ = mse / numSamples;
+    loss_mse_log_ = mse_log / numSamples;
   }
 
-  void ComputeLosses() { ComputeLogOverlap(); }
+  double GetMse() const { return loss_mse_; }
+
+  double GetMseLog() const { return loss_mse_log_; }
 
   void ComputeLogOverlap() {
     const int numSamples = trainingSamples_.size();
@@ -389,7 +395,7 @@ class Supervised {
       // And the corresponding target
       Eigen::VectorXcd target(trainingTargets_[i]);
 
-      // Cast value and target to std::complex<couble> and undo logs
+      // Cast value and target to std::complex<double> and undo logs
       complex value(psi_.LogVal(sample));
       value = exp(value - max_log_psi);
       complex t(target[0].real(), target[0].imag());
@@ -401,10 +407,12 @@ class Supervised {
       num4 += std::norm(t);
     }
 
-    log_overlap_ = -(log(num1) + log(num2) - log(num3) - log(num4));
+    complex complex_log_overlap_ = -(log(num1) + log(num2) - log(num3) - log(num4));
+    assert(std::abs(complex_log_overlap_.imag()) < 1e-8);
+    loss_log_overlap_ = complex_log_overlap_.real();
   }
 
-  complex GetLogOverlap() const { return log_overlap_; }
+  double GetLogOverlap() const { return loss_log_overlap_; }
 };
 
 }  // namespace netket
