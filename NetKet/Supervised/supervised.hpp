@@ -341,8 +341,8 @@ class Supervised {
     opt_.Reset();
     for (int i = 0; i < niter_opt; i++) {
       Iterate(lossFunction);
+      PrintOutput(i);
     }
-    // PrintOutput();
   }
 
   /// Updates the machine parameters with the current gradient
@@ -430,6 +430,27 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
+
+  void PrintOutput(int i) {
+    // Note: This has to be called in all MPI processes, because converting
+    // the ObsManager to JSON performs a MPI reduction.
+
+    // auto obs_data = json(obsmanager_);
+    // obs_data["Acceptance"] = sampler_.Acceptance();
+
+    json out_data;
+    out_data["log_overlap"] = loss_log_overlap_;
+    out_data["mse"] = loss_mse_;
+    out_data["mse_log"] = loss_mse_log_;
+
+    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
+                                // the output is only written once
+      output_->WriteLog(i, out_data);
+      output_->WriteState(i, psi_);
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
 };
 
 }  // namespace netket

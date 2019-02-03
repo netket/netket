@@ -19,6 +19,11 @@ from ED import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+
 L = 10
 J2 = 0.4
 
@@ -28,9 +33,6 @@ hi, training_samples, training_targets = load_ed_data(L, J2)
 # Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
-
-# Sampler
-# sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
@@ -48,15 +50,23 @@ niter = 4000
 
 overlaps = []
 
-# Run with "Overlap" loss. Also available currently is "MSE"
-for i in range(niter):
-    spvsd.iterate(loss_function="Overlap_phi")
-    print('Minus Log overlap =', spvsd.log_overlap.real)
-    overlaps.append(np.exp(-spvsd.log_overlap.real))
+# Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
+spvsd.run(niter_opt=niter, loss_function="Overlap_phi")
+exit()
 
-plt.plot(overlaps)
-plt.ylabel('Overlap')
-plt.xlabel('Iteration #')
-plt.axhline(y=1, xmin=0, xmax=niter, linewidth=2, color='k', label='1')
-plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
-plt.show()
+
+# for i in range(niter):
+#     spvsd.iterate(loss_function="Overlap_phi")
+#     if rank == 0:
+#         print('Minus Log overlap =', spvsd.loss_log_overlap)
+#         print('MSE (psi) =', spvsd.loss_mse)
+#         print('MSE (log psi) =', spvsd.loss_mse_log)
+#         overlaps.append(np.exp(-spvsd.loss_log_overlap))
+#
+# if rank == 0:
+#     plt.plot(overlaps)
+#     plt.ylabel('Overlap')
+#     plt.xlabel('Iteration #')
+#     plt.axhline(y=1, xmin=0, xmax=niter, linewidth=2, color='k', label='1')
+#     plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
+#     plt.show()
