@@ -117,8 +117,25 @@ class Supervised {
     InfoMessage() << "Supervised learning running on " << totalnodes_
                   << " processes" << std::endl;
     InitOutput(output_file);
+    Seed();
 
     MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  /// Set different random seed in all processes
+  void Seed(int baseseed = 0) {
+    std::random_device rd;
+    std::vector<int> seeds(totalnodes_);
+
+    if (mynode_ == 0) {
+      for (int i = 0; i < totalnodes_; i++) {
+        seeds[i] = rd() + baseseed;
+      }
+    }
+
+    SendToAll(seeds);
+
+    rgen_.seed(seeds[mynode_]);
   }
 
   /// Initializes the output log and wavefunction files
