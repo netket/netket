@@ -42,7 +42,6 @@ spvsd = nk.supervised.supervised(
     machine=ma,
     optimizer=op,
     batch_size=400,
-    output_file="output",
     samples=training_samples,
     targets=training_targets)
 
@@ -51,7 +50,7 @@ niter = 4000
 overlaps = []
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
-spvsd.run(niter_opt=niter, loss_function="Overlap_phi")
+spvsd.run(niter_opt=niter, loss_function="Overlap_phi", output_prefix='output', save_params_every=50)
 exit()
 
 

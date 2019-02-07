@@ -35,23 +35,22 @@ void AddSupervisedModule(py::module &m) {
   py::class_<Supervised>(subm, "supervised")
       .def(py::init([](MachineType &ma, AbstractOptimizer &op, int batch_size,
                        std::vector<Eigen::VectorXd> samples,
-                       std::vector<Eigen::VectorXcd> targets,
-                       std::string output_file) {
+                       std::vector<Eigen::VectorXcd> targets) {
              return Supervised{ma,
                                op,
                                batch_size,
                                std::move(samples),
-                               std::move(targets),
-                               output_file};
+                               std::move(targets)};
            }),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
            py::arg("optimizer"), py::arg("batch_size"), py::arg("samples"),
-           py::arg("targets"), py::arg("output_file"))
+           py::arg("targets"))
       .def_property_readonly("loss_log_overlap", &Supervised::GetLogOverlap)
       .def_property_readonly("loss_mse", &Supervised::GetMse)
       .def_property_readonly("loss_mse_log", &Supervised::GetMseLog)
       .def("run", &Supervised::Run, py::arg("niter_opt"),
-           py::arg("loss_function") = "MSE")
+           py::arg("loss_function") = "MSE", py::arg("output_prefix") = "output",
+	   py::arg("save_params_every") = 50)
       .def("iterate", &Supervised::Iterate, py::arg("loss_function") = "MSE");
 }
 
