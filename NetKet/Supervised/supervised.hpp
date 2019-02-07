@@ -66,10 +66,6 @@ class Supervised {
   // Random number generator
   netket::default_random_engine rgen_;
 
-  // Writer to the output
-  // This optional will contain a value iff the MPI rank is 0.
-  nonstd::optional<JsonOutputWriter> output_;
-
   // All loss function is real
   double loss_log_overlap_;
   double loss_mse_;
@@ -82,8 +78,7 @@ class Supervised {
   Supervised(AbstractMachine<complex> &psi,
              AbstractOptimizer &opt, int batchsize,
              std::vector<Eigen::VectorXd> trainingSamples,
-             std::vector<Eigen::VectorXcd> trainingTargets,
-             std::string output_file)
+             std::vector<Eigen::VectorXcd> trainingTargets)
       : psi_(psi),
         opt_(opt),
         trainingSamples_(trainingSamples),
@@ -116,7 +111,6 @@ class Supervised {
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
                   << " processes" << std::endl;
-    InitOutput(output_file);
     Seed();
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -136,14 +130,6 @@ class Supervised {
     SendToAll(seeds);
 
     rgen_.seed(seeds[mynode_]);
-  }
-
-  /// Initializes the output log and wavefunction files
-  void InitOutput(std::string filebase) {
-    // Only the first node
-    if (mynode_ == 0) {
-      output_ = JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
-    }
   }
 
   /// Computes the gradient estimate of the derivative of negative log
@@ -337,11 +323,36 @@ class Supervised {
   /// Runs the supervised learning on the training samples and targets
   /// TODO(everthmore): Override w/ function call that sets testSamples_
   ///                   and testTargets_ and reports on accuracy on those.
-  void Run(int niter_opt, std::string lossFunction = "MSE") {
+  void Run(int niter_opt, const std::string &lossFunction = "MSE",
+           const std::string &output_prefix = "output",
+	   int save_params_every = 50) {
+    assert(niter_opt > 0);
+    assert(save_params_every > 0);
+
+    /// Writer to the output
+    /// This optional will contain a value iff the MPI rank is 0.
+    nonstd::optional<JsonOutputWriter> writer;
+    if (mynode_ == 0) {
+      /// Initializes the output log and wavefunction files
+      writer.emplace(output_prefix + ".log", output_prefix + ".wf",
+		     save_params_every);
+    }
+
     opt_.Reset();
     for (int i = 0; i < niter_opt; i++) {
       Iterate(lossFunction);
-      PrintOutput(i);
+      // writer.has_value() iff the MPI rank is 0, so the output is only
+      // written once
+      if (writer.has_value()){
+        json out_data;
+        out_data["log_overlap"] = loss_log_overlap_;
+        out_data["mse"] = loss_mse_;
+        out_data["mse_log"] = loss_mse_log_;
+
+        writer->WriteLog(i, out_data);
+        writer->WriteState(i, psi_);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
     }
   }
 
@@ -394,8 +405,6 @@ class Supervised {
     complex num3(0.0, 0.0);
     complex num4(0.0, 0.0);
 
-    std::complex<double> overlap = 0.0;
-
     Eigen::VectorXcd logpsi(numSamples);
     double max_log_psi = -std::numeric_limits<double>::infinity();
 
@@ -430,26 +439,6 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
-
-  void PrintOutput(int i) {
-    // Note: This has to be called in all MPI processes, because converting
-    // the ObsManager to JSON performs a MPI reduction.
-
-    // auto obs_data = json(obsmanager_);
-    // obs_data["Acceptance"] = sampler_.Acceptance();
-
-    json out_data;
-    out_data["log_overlap"] = loss_log_overlap_;
-    out_data["mse"] = loss_mse_;
-    out_data["mse_log"] = loss_mse_log_;
-
-    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
-                                // the output is only written once
-      output_->WriteLog(i, out_data);
-      output_->WriteState(i, psi_);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
 
 };
 
