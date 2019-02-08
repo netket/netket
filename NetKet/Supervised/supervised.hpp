@@ -310,10 +310,10 @@ class Supervised {
   /// Runs the supervised learning on the training samples and targets
   /// TODO(everthmore): Override w/ function call that sets testSamples_
   ///                   and testTargets_ and reports on accuracy on those.
-  void Run(int niter_opt, const std::string &lossFunction = "MSE",
+  void Run(int n_iter, const std::string &lossFunction = "MSE",
            const std::string &output_prefix = "output",
 	   int save_params_every = 50) {
-    assert(niter_opt > 0);
+    assert(n_iter > 0);
     assert(save_params_every > 0);
 
     /// Writer to the output
@@ -326,7 +326,7 @@ class Supervised {
     }
 
     opt_.Reset();
-    for (int i = 0; i < niter_opt; i++) {
+    for (int i = 0; i < n_iter; i++) {
       Iterate(lossFunction);
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once

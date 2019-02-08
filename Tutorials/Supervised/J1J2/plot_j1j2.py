@@ -6,8 +6,6 @@ plt.ion()
 
 while(True):
     plt.clf()
-    plt.ylabel('Overlap Error = 1-F')
-    plt.xlabel('Iteration #')
 
     iters=[]
     log_overlap=[]
@@ -23,13 +21,22 @@ while(True):
 
     overlap = np.exp(-np.array(log_overlap))
 
-    plt.semilogy(iters, 1.-overlap)
-    plt.axhline(y=1, xmin=0, xmax=iters[-1], linewidth=2, color='k',label='max error = 1')
+    J2 = 0.4
+    plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
+    plt.subplot(2, 1, 1)
+    plt.ylabel('Overlap = F')
+    plt.xlabel('Iteration #')
+
+    plt.plot(iters, overlap)
+    plt.axhline(y=1, xmin=0, xmax=iters[-1], linewidth=2, color='k',label='max accuracy = 1')
 
     plt.legend(frameon=False)
 
-    J2 = 0.4
-    plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
+    plt.subplot(2, 1, 2)
+    plt.ylabel('Overlap Error = 1-F')
+    plt.xlabel('Iteration #')
+    plt.semilogy(iters, 1.-overlap)
+
 
     plt.pause(1)
 
