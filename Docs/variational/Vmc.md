@@ -19,7 +19,6 @@ sampler, optimizer, and the number of samples.
 |use_iterative            |bool=False                                                                   |Whether to use the iterative solver in the Sr method (this is extremely useful when the number of parameters to optimize is very large). The default is false.|
 |use_cholesky             |bool=True                                                                    |Whether to use cholesky decomposition. The default is true.                                                                                                   |
 
-
 ### Examples
 Optimizing a 1D wavefunction with Variational Mante Carlo.
 
@@ -55,7 +54,6 @@ iteration.
 |ob      |netket::AbstractOperator|The operator form of the observable.|
 |ob_name |str                     |The name of the observable.         |
 
-
 ### get_observable_stats
 Calculate and return the value of the operators stored as observables.
 
@@ -70,7 +68,6 @@ Iterate the optimization of the Vmc wavefunction.
 |n_iter   |Optional[int]=None|The maximum number of iterations.                   |
 |step_size|int=1             |Number of iterations performed at a time. Default is|
 
-
 ### run
 Optimize the Vmc wavefunction.
 
@@ -80,7 +77,6 @@ Optimize the Vmc wavefunction.
 |n_iter           |Optional[int]=None|The maximum number of iterations.                            |
 |step_size        |int=1             |Number of iterations performed at a time. Default is 1.      |
 |save_params_every|int=50            |Frequency to dump wavefunction parameters. The default is 50.|
-
 
 ### Examples
 Running a simple Vmc calculation.
@@ -113,4 +109,3 @@ Running a simple Vmc calculation.
 |Property|         Type         |                 Description                  |
 |--------|----------------------|----------------------------------------------|
 |machine |netket.machine.Machine| The machine used to express the wavefunction.|
-

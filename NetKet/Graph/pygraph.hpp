@@ -111,7 +111,7 @@ namespace {
 /// `(int, int, int)`.
 /// * `callback(edges)` if the iterable contained elements of type `(int, int)`.
 template <class Function>
-auto WithEdges(py::iterator first, Function&& callback)
+auto WithEdges(py::iterator first, Function &&callback)
     -> decltype(std::forward<Function>(callback)(
         std::declval<std::vector<AbstractGraph::Edge>>())) {
   using std::begin;
@@ -125,13 +125,13 @@ auto WithEdges(py::iterator first, Function&& callback)
       // If the following line succeeds, we have a sequence of `(int, int)`.
       static_cast<void>(first->template cast<std::tuple<int, int>>());
       has_colours = false;
-    } catch (py::cast_error& /*unused*/) {
+    } catch (py::cast_error & /*unused*/) {
       try {
         // If the following line succeeds, we have a sequence of `(int, int,
         // int)`.
         static_cast<void>(first->template cast<std::tuple<int, int, int>>());
         has_colours = true;
-      } catch (py::cast_error& /*unused*/) {
+      } catch (py::cast_error & /*unused*/) {
         throw py::cast_error("Unable to cast Python instance of type " +
                              std::string{py::str(first->get_type())} +
                              " to either one of the following C++ types: '" +
@@ -147,7 +147,7 @@ auto WithEdges(py::iterator first, Function&& callback)
     edges.reserve(colors.size());
     std::transform(
         begin(colors), end(colors), std::back_inserter(edges),
-        [](std::pair<AbstractGraph::Edge, int> const& x) { return x.first; });
+        [](std::pair<AbstractGraph::Edge, int> const &x) { return x.first; });
     return std::forward<Function>(callback)(std::move(edges),
                                             std::move(colors));
   } else {
@@ -173,7 +173,7 @@ struct CustomGraphInit {
 };
 }  // namespace
 
-void AddGraphModule(py::module& m) {
+void AddGraphModule(py::module &m) {
   auto subm = m.def_submodule("graph");
 
   py::class_<AbstractGraph>(subm, "Graph")
@@ -182,7 +182,7 @@ void AddGraphModule(py::module& m) {
       int: The number of vertices in the graph.)EOF")
       .def_property_readonly(
           "edges",
-          [](AbstractGraph const& x) {
+          [](AbstractGraph const &x) {
             using vector_type =
                 std::remove_reference<decltype(x.Edges())>::type;
             return vector_type{x.Edges()};
@@ -299,6 +299,43 @@ void AddGraphModule(py::module& m) {
 
                ```
            )EOF");
+
+  py::class_<Lattice, AbstractGraph>(subm, "Lattice", R"EOF(
+                             A generic lattice built translating a unit cell. The unit cell can contain
+                             an arbitrary number of atoms, located at arbitrary positions.
+                             Periodic boundary conditions can also be imposed along the desired directions.)EOF")
+      .def(py::init<std::vector<std::vector<double>>, std::vector<int>,
+                    std::vector<bool>, std::vector<std::vector<double>>>(),
+           py::arg("basis_vectors"), py::arg("extent"),
+           py::arg("pbc") = std::vector<double>(0),
+           py::arg("atoms_coord") = std::vector<std::vector<double>>(0),
+           R"EOF(
+                             Constructs a new ``Lattice`` given its side length and the features of the unit cell.
+
+                             Args:
+                                 basis_vectors: The basis vectors of the unit cell.
+                                 extent: The number of copies of the unit cell.
+                                 pbc: If ``True`` then the constructed lattice
+                                     will have periodic boundary conditions, otherwise
+                                     open boundary conditions are imposed (default=True).
+                                 atoms_coord: The coordinates of different atoms in the unit cell (default=one atom at the origin).
+
+                             Examples:
+                                 Constructs a rectangular 3X4 lattice with periodic boundaries
+
+                                 ```python
+                                 >>> from netket.graph import Lattice
+                                 >>> g=Lattice(basis_vectors=[[1,0],[0,1]],extent=[3,4])
+                                 >>> print(g.n_sites)
+                                 12
+
+                                 ```
+                             )EOF")
+      .def_property_readonly("coordinates", &Lattice::Coordinates,
+                             R"EOF(
+               list[list]: The coordinates of the atoms in the lattice.)EOF")
+      .def_property_readonly("n_dim", &Lattice::Ndim, R"EOF(
+               int: The dimension of the lattice.)EOF");
 }
 
 }  // namespace netket

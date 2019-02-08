@@ -10,7 +10,6 @@ Constructs a new graph given a list of edges.
 |automorphisms|List[List[int]]=[]|The automorphisms of the graph, i.e. a List[List[int]] where the inner List[int] is a unique permutation of the graph sites.                                                                                                                                                                                                                                                                                                                                                         |
 |is_bipartite |bool=False        |Wheter the custom graph is bipartite. Notice that this is not deduced from the edge list and it is left to the user to specify whether the graph is bipartite or not.                                                                                                                                                                                                                                                                                                                |
 
-
 ### Examples
 A 10-site one-dimensional lattice with periodic boundary conditions can be
 constructed specifying the edges as follows:
@@ -37,4 +36,3 @@ constructed specifying the edges as follows:
 |is_bipartite  |       bool      | Whether the graph is bipartite.                                                                                           |
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
-
