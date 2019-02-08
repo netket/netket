@@ -63,9 +63,6 @@ class Supervised {
   std::vector<Eigen::VectorXd> testSamples_;
   std::vector<Eigen::VectorXcd> testTargets_;
 
-  // Random number generator
-  netket::default_random_engine rgen_;
-
   // All loss function is real
   double loss_log_overlap_;
   double loss_mse_;
@@ -73,6 +70,13 @@ class Supervised {
 
   std::uniform_int_distribution<int> distribution_uni_;
   std::discrete_distribution<> distribution_phi_;
+
+ protected:
+  // Random number generator with correct seeding for parallel processes
+  default_random_engine& GetRandomEngine() { return engine_.Get(); }
+
+ private:
+  DistributedRandomEngine engine_;
 
  public:
   Supervised(AbstractMachine<complex> &psi,
@@ -111,25 +115,8 @@ class Supervised {
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
                   << " processes" << std::endl;
-    Seed();
 
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  /// Set different random seed in all processes
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
   }
 
   /// Computes the gradient estimate of the derivative of negative log
@@ -285,7 +272,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_uni_(rgen_);
+        index = distribution_uni_(this->GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }
@@ -293,7 +280,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_phi_(rgen_);
+        index = distribution_phi_(this->GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }
