@@ -1,5 +1,6 @@
 import netket as nk
 import networkx as nx
+import math
 from mpi4py import MPI
 
 nxg = nx.star_graph(10)
@@ -7,7 +8,10 @@ graphs = [
     nk.graph.Hypercube(length=10, n_dim=1, pbc=True),
     nk.graph.Hypercube(length=4, n_dim=2, pbc=True),
     nk.graph.Hypercube(length=5, n_dim=1, pbc=False),
-    nk.graph.CustomGraph(nxg.edges())
+    nk.graph.CustomGraph(nxg.edges()),
+    nk.graph.Lattice(basis_vectors=[[1.,0.],[1./2.,math.sqrt(3)/2.]], extent=[4,4], pbc=[0,0], atoms_coord = [[0,0]]),
+    nk.graph.Lattice(basis_vectors=[[1.5,math.sqrt(3)/2.], [0,math.sqrt(3)]],extent=[3,5], atoms_coord = [[0,0],[1,0]]),
+    nk.graph.Lattice(basis_vectors=[[2.,0.],[1.,math.sqrt(3)]], extent=[4,4], atoms_coord = [[0,0],[1./2.,math.sqrt(3)/2.],[1.,0.]])
 ]
 
 
