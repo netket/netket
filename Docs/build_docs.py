@@ -15,7 +15,7 @@ import os
 import pkgutil
 
 default_submodules = [
-    'graph', 'sampler', 'hilbert', 'operator', 'variational', 'exact', 'machine'
+    'graph', 'sampler', 'hilbert', 'operator', 'variational', 'exact', 'machine', 'supervised'
 ]
 
 

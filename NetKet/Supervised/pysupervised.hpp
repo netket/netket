@@ -50,19 +50,19 @@ void AddSupervisedModule(py::module &m) {
            data, including samples and targets.
 
            Args:
-               ma: The machine representing the wave function.
-               op: The optimizer object that determines how the SGD optimization.
+               machine: The machine representing the wave function.
+               optimizer: The optimizer object that determines how the SGD optimization.
                batch_size: The batch size used in SGD.
                samples: The input data, i.e. many-body basis.
                targets: The output label, i.e. amplitude of the corresponding basis.
 
            )EOF")
       .def_property_readonly("loss_log_overlap", &Supervised::GetLogOverlap,
-           R"EOF(Log Overlap loss: The negative log fidelity.)EOF")
+           R"EOF(double: The current negative log fidelity.)EOF")
       .def_property_readonly("loss_mse", &Supervised::GetMse,
-           R"EOF(MSE loss: The mean square error of amplitudes.)EOF")
+           R"EOF(double: The mean square error of amplitudes.)EOF")
       .def_property_readonly("loss_mse_log", &Supervised::GetMseLog,
-           R"EOF(MSE log loss: The mean square error of the log of amplitudes.)EOF")
+           R"EOF(double: The mean square error of the log of amplitudes.)EOF")
       .def("run", &Supervised::Run, py::arg("n_iter"),
            py::arg("loss_function") = "Overlap_phi", py::arg("output_prefix") = "output",
 	   py::arg("save_params_every") = 50, R"EOF(
