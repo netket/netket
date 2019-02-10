@@ -15,7 +15,7 @@
 
 import netket as nk
 from mpi4py import MPI
-from ED import load_ed_data
+from ed import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -50,7 +50,6 @@ n_iter = 4000
 overlaps = []
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
-import pdb;pdb.set_trace()
 spvsd.run(n_iter=n_iter, loss_function="Overlap_phi", output_prefix='output', save_params_every=50)
 exit()
 
