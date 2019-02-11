@@ -1,5 +1,18 @@
 # MetropolisHamiltonian
-Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator). In this case, the transition matrix is taken to be: $$ T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|), $$ where $$ \theta(x) $$ is the Heaviside step function, and $$ \mathcal{N}(\mathbf{s}) $$ is a state-dependent normalization. The effect of this transition probability is then to connect (with uniform probability) a given state $$ \mathbf{s} $$ to all those states $$ \mathbf{s}^\prime $$ for which the Hamiltonian has finite matrix elements. Notice that this sampler preserves by construction all the symmetries of the Hamiltonian. This is in generally not true for the local samplers instead.
+Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
+    In this case, the transition matrix is taken to be:
+
+    $$
+    T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
+    $$
+
+    where $$ \theta(x) $$ is the Heaviside step function, and $$ \mathcal{N}(\mathbf{s}) $$
+    is a state-dependent normalization.
+    The effect of this transition probability is then to connect (with uniform probability)
+    a given state $$ \mathbf{s} $$ to all those states $$ \mathbf{s}^\prime $$ for which the Hamiltonian has
+    finite matrix elements.
+    Notice that this sampler preserves by construction all the symmetries
+    of the Hamiltonian. This is in generally not true for the local samplers instead.
 
 ## Class Constructor
 Constructs a new ``MetropolisHamiltonian`` sampler given a machine

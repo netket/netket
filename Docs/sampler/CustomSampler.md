@@ -1,5 +1,28 @@
 # CustomSampler
-Custom Sampler, where transition operators are specified by the user. For the moment, this functionality is limited to transition operators which are sums of $$k$$-local operators: $$ \mathcal{M}= \sum_i M_i $$ where the move operators $$ M_i $$ act on an (arbitrary) subset of sites. The operators $$ M_i $$ are specified giving their matrix elements, and a list of sites on which they act. Each operator $$ M_i $$ must be real, symmetric, positive definite and stochastic (i.e. sum of each column and line is 1). The transition probability associated to a custom sampler can be decomposed into two steps: 1. One of the move operators $$ M_i $$ is chosen with a weight given by the user (or uniform probability by default). If the weights are provided, they do not need to sum to unity. 2. Starting from state $$ |n \rangle $$, the probability to transition to state $$ |m\rangle $$ is given by $$ \langle n| M_i | m \rangle $$.
+Custom Sampler, where transition operators are specified by the user.
+    For the moment, this functionality is limited to transition operators which
+    are sums of $$k$$-local operators:
+
+    $$
+    \mathcal{M}= \sum_i M_i
+    $$
+
+    where the move operators $$ M_i $$ act on an (arbitrary) subset of sites.
+
+    The operators $$ M_i $$ are specified giving their matrix elements, and a list
+    of sites on which they act. Each operator $$ M_i $$ must be real,
+    symmetric, positive definite and stochastic (i.e. sum of each column and line is 1).
+
+    The transition probability associated to a custom sampler can be decomposed into two steps:
+
+    1. One of the move operators $$ M_i $$ is chosen with a weight given by the
+    user (or uniform probability by default). If the weights are provided,
+    they do not need to sum to unity.
+
+    2. Starting from state
+    $$ |n \rangle $$, the probability to transition to state
+    $$ |m\rangle $$ is given by
+    $$ \langle n|  M_i | m \rangle $$.
 
 ## Class Constructor
 Constructs a new ``CustomSampler`` given a machine and a list of local
