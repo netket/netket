@@ -25,18 +25,18 @@ using SamplerType = AbstractSampler<MachineType>;
 
 #include "Utils/pybind_helpers.hpp"
 
-#include "Dynamics/pydynamics.hpp"
+#include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
 #include "GroundState/py_ground_state.hpp"
 #include "Hilbert/py_hilbert.hpp"
-#include "Machine/pymachine.hpp"
+#include "Machine/py_machine.hpp"
 #include "Operator/py_operator.hpp"
 #include "Optimizer/py_optimizer.hpp"
 #include "Output/py_output.hpp"
 #include "Sampler/py_sampler.hpp"
 #include "Stats/py_stats.hpp"
-#include "Unsupervised/pyunsupervised.hpp"
-#include "Utils/pyutils.hpp"
+#include "Unsupervised/py_unsupervised.hpp"
+#include "Utils/py_utils.hpp"
 
 namespace netket {
 
