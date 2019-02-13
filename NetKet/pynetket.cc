@@ -36,6 +36,7 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Sampler/pysampler.hpp"
 #include "Stats/binning.hpp"
 #include "Stats/pystats.hpp"
+#include "Supervised/pysupervised.hpp"
 #include "Unsupervised/pyunsupervised.hpp"
 #include "Utils/pyutils.hpp"
 
@@ -55,6 +56,7 @@ PYBIND11_MODULE(netket, m) {
   AddSamplerModule(m);
   AddStatsModule(m);
   AddUtilsModule(m);
+  AddSupervisedModule(m);
   AddUnsupervisedModule(m);
 } // PYBIND11_MODULE
 
