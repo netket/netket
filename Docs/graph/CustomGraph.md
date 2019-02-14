@@ -1,5 +1,5 @@
 # CustomGraph
-In addition to built-in graphs, NetKet provides the freedom to define custom graphs, specifying a list of edges.
+A custom graph, specified by a list of edges and optionally colors.
 
 ## Class Constructor
 Constructs a new graph given a list of edges.
