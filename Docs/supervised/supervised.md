@@ -24,6 +24,7 @@ having self-defined control sequence in python.
 |loss_function|str='Overlap_phi'|The loss function choosing for learning, Default: Overlap_phi|
 
 
+
 ### run
 Run supervised learning.
 
@@ -35,6 +36,7 @@ Run supervised learning.
 |save_params_every|int=50           |Frequency to dump wavefunction parameters. The default is 50.|
 
 
+
 ## Properties
 
 |    Property    | Type |                  Description                   |
@@ -42,4 +44,5 @@ Run supervised learning.
 |loss_log_overlap|double| The current negative log fidelity.             |
 |loss_mse        |double| The mean square error of amplitudes.           |
 |loss_mse_log    |double| The mean square error of the log of amplitudes.|
+
 

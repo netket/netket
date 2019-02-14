@@ -39,6 +39,7 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Unsupervised/py_unsupervised.hpp"
 #include "Utils/py_utils.hpp"
 
+
 namespace netket {
 
 using ode::AddDynamicsModule;
