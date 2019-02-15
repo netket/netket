@@ -1,6 +1,0 @@
-scipy
-numpy
-matplotlib
-pytest-cov
-cmake
-mpi4py
