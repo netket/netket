@@ -6,6 +6,8 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/netket/netket/badge)](https://www.codefactor.io/repository/github/netket/netket)
 [![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/jamesETsmith/netket/mybinder)
+
 
 # __NetKet__
 
@@ -30,35 +32,35 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Heisenberg
     * Bose-Hubbard
   * Custom Hamiltonians
-    * General k-local Hamiltonians defined on Graphs 
+    * General k-local Hamiltonians defined on Graphs
     * Any k-local Hamiltonian [from input file]
- 
+
  * Ground State Solvers  
-   * Stochastic Learning Methods 
+   * Stochastic Learning Methods
      * Gradient Descent
      * Stochastic Reconfiguration Method
        * Direct Solver
        * Iterative Solver for Large Number of Parameters  
-   * Exact Diagonalization 
-     * Full Solver 
-     * Lanczos Solver 
-     * Imaginary-Time Dynamics 
+   * Exact Diagonalization
+     * Full Solver
+     * Lanczos Solver
+     * Imaginary-Time Dynamics
 
  * Optimizers
     * Stochastic Gradient Descent
     * AdaMax, AdaDelta, AdaGrad, AMSGrad
     * RMSProp
     * Momentum
-    * Gradient Clipping 
+    * Gradient Clipping
 
 * Machines
   * Restricted Boltzmann Machines
     * Standard
     * For Custom Local Hilbert Spaces
     * With Permutation Symmetry Using Graph Isomorphisms
-  * Feed-Forward Networks 
+  * Feed-Forward Networks
     * For Custom Local Hilbert Spaces
-    * Fully connected layer 
+    * Fully connected layer
     * Convnet layer for arbitrary underlying graph
     * Any Layer Satisfying Prototypes in `AbstractLayer` [extending C++ code]
   * Jastrow wavefunction
@@ -79,7 +81,7 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Automatic Moves with Hamiltonian Symmetry
     * Parallel Tempering Versions
   * Custom Sampling
-    * Any k-local Stochastic Operator can be used to do Metropolis Sampling 
+    * Any k-local Stochastic Operator can be used to do Metropolis Sampling
 
 * Statistics
   * Automatic Estimate of Correlation Times
