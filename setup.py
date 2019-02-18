@@ -20,6 +20,7 @@ def steal_cmake_flags(args):
     ``NETKET_CMAKE_FLAGS`` environment variable is used instead.
     """
     _ARG_PREFIX = '--cmake-args='
+
     def _unquote(x):
         m = re.match(r"'(.*)'", x)
         if m:
@@ -33,13 +34,15 @@ def steal_cmake_flags(args):
         args.remove(x)
 
     if len(stolen_args) > 0:
-        cmake_args = sum((shlex.split(_unquote(x[len(_ARG_PREFIX):])) for x in stolen_args), [])
+        cmake_args = sum(
+            (shlex.split(_unquote(x[len(_ARG_PREFIX):])) for x in stolen_args), [])
     else:
         try:
             cmake_args = shlex.split(os.environ['NETKET_CMAKE_FLAGS'])
         except KeyError:
             cmake_args = []
     return cmake_args
+
 
 """
 A list of arguments to be passed to the configuration step of CMake.
@@ -60,7 +63,7 @@ class CMakeBuild(build_ext):
     """
 
     def build_extension(self, ext):
-        if isinstance(ext, CMakeExtension): # Building with CMake
+        if isinstance(ext, CMakeExtension):  # Building with CMake
             cwd = os.getcwd()
             # Create a directory for building out-of-source
             if not os.path.exists(self.build_temp):
@@ -109,26 +112,30 @@ class CMakeBuild(build_ext):
                     self.warn(_decode(e.output))
                     raise
             os.chdir(cwd)
-        else: # Fall back to the default method
+        else:  # Fall back to the default method
             if sys.version_info >= (3, 0):
                 super().build_extension(ext)
             else:
                 super(build_ext, self).build_extension(ext)
 
-        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        extdir = os.path.abspath(os.path.dirname(
+            self.get_ext_fullpath(ext.name)))
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
 
 
 setup(
     name='netket',
-    version='2.0',
+    version='2.0a1',
     author='Giuseppe Carleo et al.',
-    description='NetKet',
     url='http://github.com/netket/netket',
     author_email='netket@netket.org',
-    license='Apache',
+    license='Apache 2.0',
     ext_modules=[CMakeExtension('netket')],
+    install_requires=['mpi4py', 'cmake', 'numpy'],
+    long_description="""NetKet is an open - source project delivering cutting - edge
+         methods for the study of many - body quantum systems with artificial
+         neural networks and machine learning techniques.""",
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )
