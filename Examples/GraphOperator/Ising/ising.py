@@ -14,7 +14,6 @@
 import netket as nk
 import networkx as nx
 import numpy as np
-from mpi4py import MPI
 
 sigmax = [[0, 1], [1, 0]]
 sigmaz = [[1, 0], [0, -1]]

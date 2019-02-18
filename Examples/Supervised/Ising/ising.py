@@ -14,7 +14,6 @@
 
 
 import netket as nk
-from mpi4py import MPI
 from ed import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np

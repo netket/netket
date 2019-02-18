@@ -16,6 +16,8 @@
 #define NETKET_PYNETKET_CC
 
 #include <netket.hpp>
+#include "Utils/mpi_interface.hpp"  // for MPIInitializer
+
 namespace netket {
 using StateType = Complex;
 using MachineType = AbstractMachine<StateType>;
@@ -41,6 +43,10 @@ using SamplerType = AbstractSampler<MachineType>;
 
 
 namespace netket {
+
+namespace detail {
+static MPIInitializer _do_not_use_me_dummy_{};
+}  // namespace detail
 
 using ode::AddDynamicsModule;
 

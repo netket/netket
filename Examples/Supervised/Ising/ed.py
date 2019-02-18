@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-from mpi4py import MPI
 import numpy as np
 
 

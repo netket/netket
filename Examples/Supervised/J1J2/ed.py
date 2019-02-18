@@ -14,7 +14,6 @@
 
 import numpy as np
 import netket as nk
-from mpi4py import MPI
 
 
 def load_ed_data(L, J2=0.4):
