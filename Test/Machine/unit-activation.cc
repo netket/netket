@@ -47,7 +47,7 @@ TEST_CASE("activations compute derivatives correctly", "[activation]") {
 
       netket::Activation activation(pars);
 
-      using MType = std::complex<double>;
+      using MType = Complex;
 
       double eps = std::sqrt(std::numeric_limits<double>::epsilon()) * 1000;
 

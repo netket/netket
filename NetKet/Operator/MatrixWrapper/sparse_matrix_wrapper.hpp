@@ -24,40 +24,39 @@ namespace netket {
 
 /**
  * This class stores the matrix elements of a given Operator
- *  as an Eigen dense matrix.
+ *  as an Eigen sparse matrix.
  */
 template <class State = Eigen::VectorXcd>
 class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
-  using Matrix = Eigen::SparseMatrix<std::complex<double>>;
+  using Matrix = Eigen::SparseMatrix<Complex>;
 
   Matrix matrix_;
   int dim_;
 
- public:
-  explicit SparseMatrixWrapper(const AbstractOperator& the_operator) {
+public:
+  explicit SparseMatrixWrapper(const AbstractOperator &the_operator) {
     InitializeMatrix(the_operator);
   }
 
-  State Apply(const State& state) const override { return matrix_ * state; }
+  State Apply(const State &state) const override { return matrix_ * state; }
 
-  std::complex<double> Mean(const State& state) const override {
+  Complex Mean(const State &state) const override {
     return state.adjoint() * matrix_ * state;
   }
 
-  std::array<std::complex<double>, 2> MeanVariance(
-      const State& state) const override {
+  std::array<Complex, 2> MeanVariance(const State &state) const override {
     auto state1 = matrix_ * state;
     auto state2 = matrix_ * state1;
 
-    const std::complex<double> mean = state.adjoint() * state1;
-    const std::complex<double> var = state.adjoint() * state2;
+    const Complex mean = state.adjoint() * state1;
+    const Complex var = state.adjoint() * state2;
 
     return {{mean, var - std::pow(mean, 2)}};
   }
 
   int Dimension() const override { return dim_; }
 
-  const Matrix& GetMatrix() const { return matrix_; }
+  const Matrix &GetMatrix() const { return matrix_; }
 
   /**
    * Computes the eigendecomposition of the given matrix.
@@ -66,18 +65,18 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
    * @return An instance of Eigen::SelfAdjointEigenSolver initialized with the
    * wrapped operator and options.
    */
-  Eigen::SelfAdjointEigenSolver<Matrix> ComputeEigendecomposition(
-      int options = Eigen::ComputeEigenvectors) const {
+  Eigen::SelfAdjointEigenSolver<Matrix>
+  ComputeEigendecomposition(int options = Eigen::ComputeEigenvectors) const {
     return Eigen::SelfAdjointEigenSolver<Matrix>(matrix_, options);
   }
 
- private:
-  void InitializeMatrix(const AbstractOperator& the_operator) {
-    const auto& hilbert = the_operator.GetHilbert();
+private:
+  void InitializeMatrix(const AbstractOperator &the_operator) {
+    const auto &hilbert = the_operator.GetHilbert();
     const HilbertIndex hilbert_index(hilbert);
     dim_ = hilbert_index.NStates();
 
-    using Triplet = Eigen::Triplet<std::complex<double>>;
+    using Triplet = Eigen::Triplet<Complex>;
 
     std::vector<Triplet> tripletList;
     tripletList.reserve(dim_);
@@ -88,9 +87,9 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
     for (int i = 0; i < dim_; ++i) {
       const auto v = hilbert_index.NumberToState(i);
       the_operator.ForEachConn(v, [&](ConnectorRef conn) {
-        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.positions,
-                                                            conn.values);
-        tripletList.push_back(Triplet(i, j, conn.weight));
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
+                                                            conn.newconf);
+        tripletList.push_back(Triplet(i, j, conn.mel));
       });
     }
 
@@ -99,6 +98,6 @@ class SparseMatrixWrapper : public AbstractMatrixWrapper<State> {
   }
 };
 
-}  // namespace netket
+} // namespace netket
 
-#endif  // NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH
+#endif // NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH

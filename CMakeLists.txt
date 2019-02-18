@@ -95,17 +95,18 @@ ExternalProject_Add(
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
 )
-set(Python_ADDITIONAL_VERSIONS 3.7 3.6.3 3.6 3.5 3.4)
+if (NOT NETKET_PYTHON_VERSION)
+    set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 2.7)
+endif()
 find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
+
 add_library(pybind11 INTERFACE)
 ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
 target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR}/include)
 target_include_directories(pybind11 SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
 target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
-if(NOT MSVC)
-    # Greatly reduces the code bloat
-    target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
-endif()
+# Greatly reduces the code bloat
+target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 
 # MPI
 ################################################################################
@@ -133,9 +134,15 @@ endif()
 # option(BENCHMARK_DOWNLOAD_DEPENDENCIES "" ON)
 # add_subdirectory(External/benchmark)
 
-
 if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "[NetKet] CMAKE_BUILD_TYPE not specified, setting it to "
+                 "Release. Use `-DCMAKE_BUILD_TYPE=...` to overwrite.")
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Set -O3 in debug mode unless explicitly disabled
+if((${CMAKE_BUILD_TYPE} STREQUAL "Debug") AND NOT NETKET_DISABLE_OPTIMIZATION)
+    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3")
 endif()
 
 if(MSVC)
@@ -156,7 +163,7 @@ if("Ninja" STREQUAL ${CMAKE_GENERATOR})
     CHECK_CXX_COMPILER_FLAG("-fdiagnostics-color" COMPILER_SUPPORTS_-fdiagnostics-color)
     if (COMPILER_SUPPORTS_-fdiagnostics-color)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color")
-    endif ()
+    endif()
 endif()
 
 #
@@ -200,25 +207,22 @@ endif()
 
 
 add_library(netket MODULE NetKet/pynetket.cc)
-target_link_libraries(netket  PRIVATE pybind11)
-target_link_libraries(netket PUBLIC netket_lib)
-set_target_properties(netket  PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
+target_link_libraries(netket PUBLIC netket_lib pybind11)
+set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
+                                        SUFFIX "${PYTHON_MODULE_EXTENSION}")
 add_dependencies(netket eigen_project pybind11_project)
 
 if(NETKET_Sanitizer)
-    message(STATUS "Building python library with Clang sanitizer")
-    if(NOT MSVC)
-        target_compile_options(netket
-            INTERFACE
-                -O2 -g -fno-omit-frame-pointer
-                -fsanitize=address -fsanitize=undefined
-        )
-        target_link_libraries(netket
-            INTERFACE
-                -fsanitize=address -fsanitize=undefined
-        )
-    endif()
+    message(STATUS "[NetKet] Building python library with address and UB sanitizers")
+    target_compile_options(netket_lib
+        INTERFACE
+            -g -fno-omit-frame-pointer
+            -fsanitize=address -fsanitize=undefined
+    )
+    target_link_libraries(netket_lib
+        INTERFACE
+            -fsanitize=address -fsanitize=undefined
+    )
 endif()
 
 #
@@ -234,4 +238,4 @@ endif()
 # Installing
 #
 
-install (TARGETS netket DESTINATION bin)
+# install (TARGETS netket DESTINATION bin)

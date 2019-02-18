@@ -36,8 +36,6 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   // number of visible units
   const int nv_;
 
-  netket::default_random_engine rgen_;
-
   // states of visible units
   Eigen::VectorXd v_;
 
@@ -84,31 +82,14 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Hamiltonian Metropolis sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -127,7 +108,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
       std::uniform_real_distribution<double> distu;
 
       // picking a random state to transit to
-      int si = distrs(rgen_);
+      int si = distrs(this->GetRandomEngine());
 
       // Inverse transition
       v1_ = v_;
@@ -138,7 +119,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
       double w2 = tochange1_.size();
 
       const auto lvd = psi_.LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
-      double ratio = std::norm(std::exp(lvd) * w1 / w2);
+      double ratio = std::norm(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_);
@@ -151,7 +132,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(rgen_)) {
+      if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;

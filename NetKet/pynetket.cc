@@ -19,23 +19,28 @@
 #include "Utils/mpi_interface.hpp"  // for MPIInitializer
 
 namespace netket {
-using StateType = std::complex<double>;
+using StateType = Complex;
 using MachineType = AbstractMachine<StateType>;
 using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;
 }  // namespace netket
 
-#include "Dynamics/pydynamics.hpp"
-#include "Graph/pygraph.hpp"
-#include "GroundState/pyground_state.hpp"
-#include "Hilbert/pyhilbert.hpp"
-#include "Machine/pymachine.hpp"
-#include "Operator/pyoperator.hpp"
-#include "Optimizer/pyoptimizer.hpp"
-#include "Output/pyoutput.hpp"
-#include "Sampler/pysampler.hpp"
-#include "Stats/binning.hpp"
-#include "Utils/pyutils.hpp"
+#include "Utils/pybind_helpers.hpp"
+
+#include "Dynamics/py_dynamics.hpp"
+#include "Graph/py_graph.hpp"
+#include "GroundState/py_ground_state.hpp"
+#include "Hilbert/py_hilbert.hpp"
+#include "Machine/py_machine.hpp"
+#include "Operator/py_operator.hpp"
+#include "Optimizer/py_optimizer.hpp"
+#include "Output/py_output.hpp"
+#include "Sampler/py_sampler.hpp"
+#include "Stats/py_stats.hpp"
+#include "Supervised/py_supervised.hpp"
+#include "Unsupervised/py_unsupervised.hpp"
+#include "Utils/py_utils.hpp"
+
 
 namespace netket {
 
@@ -55,7 +60,10 @@ PYBIND11_MODULE(netket, m) {
   AddOptimizerModule(m);
   AddOutputModule(m);
   AddSamplerModule(m);
+  AddStatsModule(m);
   AddUtilsModule(m);
+  AddSupervisedModule(m);
+  AddUnsupervisedModule(m);
 }  // PYBIND11_MODULE
 
 }  // namespace netket
