@@ -9,9 +9,10 @@ namespace netket {
 
 class Lattice : public AbstractGraph {
   int ndim_;
-  int nlatticesites_;
-  int nsites_;
-  int natoms_;
+  int nsites_;         // number of nodes in the graph
+  int natoms_;         // number of atoms in the unit cell
+  int nlatticesites_;  // number of lattice sites (one lattice site can contain
+                       // natoms_)
   std::vector<int> extent_;
   std::vector<bool> pbc_;
   std::vector<std::vector<double>> basis_vectors_;
@@ -31,54 +32,126 @@ class Lattice : public AbstractGraph {
           std::vector<std::vector<double>> V_atoms);
   ~Lattice();
 
+  // Get private members
+
+  /**
+  Member function returning the dimensionality of the graph.
+  @return Dimensionality of the graph.
+  */
   int Ndim() const noexcept;
+
   int Nsites() const noexcept override;
   int Size() const noexcept override;
-  std::vector<std::vector<double>> Coordinates() const noexcept;
-  std::vector<Edge> const &Edges() const noexcept override;
-  std::vector<std::vector<int>> SymmetryTable() const noexcept override;
-  std::vector<std::vector<int>> AdjacencyList() const noexcept override;
+
+  /**
+  Member function returning the basis vectors that define the lattice (graph).
+  @return Basis vectors that define the lattice (graph).
+  */
+  std::vector<std::vector<double>> BasisVectors() const;
+
+  // Graph properties #1
+  /**
+   Member function returning the coordinates of the graph sites (nodes).
+   @return Coordinates of the graph sites (nodes).
+   */
+  std::vector<std::vector<double>> Coordinates() const;
+
+  std::vector<Edge> const &Edges() const override;
+  std::vector<std::vector<int>> SymmetryTable() const override;
+  std::vector<std::vector<int>> AdjacencyList() const override;
   const ColorMap &EdgeColors() const noexcept override;
   bool IsBipartite() const noexcept override;
   bool IsConnected() const noexcept override;
 
- private:
-  // Lattice sites representations
+  // Graph sites representations (site = k, vector = n_i, coord = coordinates)
+
+  /**
+  Member function returning the vector of integers corresponding to the site i,
+  where i is an integer. The output vector indicates how many translations of
+  the basis vectors have been performed while building the graph.
+  @param i Integer label associated to a graph node.
+   */
   std::vector<int> Site2Vector(int i) const;
+
+  /**
+  Member function returning the coordinates of the i-th atom in the site
+  labelled by n.
+  @param n Vector of integers associated to a graph node (see above)
+  @param iatom Label indicating which atom in the unit cell is considered
+   */
   std::vector<double> Vector2Coord(const std::vector<int> &n, int iatom) const;
+
+  /**
+  Member function returning the coordinates of the k-th lattice site (graph
+  node).
+  @param k Integer label associated to a graph node.
+  */
   std::vector<double> Site2Coord(int k) const;
+
+  /**
+  Member function returning the integer label associated to a graph node,
+  given its vectorial characterizaion.
+  @param n Vector of integers associated to a graph node (see above)
+   */
   int Vector2Site(const std::vector<int> &n) const;
-  // Neighbours
-  std::vector<std::vector<int>> PossibleLatticeNeighbours() const;
-  std::vector<double> NeighboursSquaredDistance(
-      const std::vector<std::vector<int>> &neighbours_matrix, int iatom) const;
-  std::vector<std::vector<int>> LatticeNeighbours(int iatom) const;
 
+  /**
+  Member function returning the label indicating which atom in the unit cell is
+  associated to the k-th graph node.
+  @param k Integer label associated to a graph node.
+   */
+  int AtomLabel(int k) const;
+
+  /**
+  Member function returning the integer label of the NEAREST neighbours of the
+  k-th site.
+  @param k Integer label associated to a graph node.
+  @param iatom Label indicating which atom in the unit cell is considered
+   */
   std::vector<int> FindNeighbours(int k, int iatom) const;
-  // FindNeighbours returns the index of the neighbours of site k (supposing
-  // that the site 0 is at the origin of the coordinates)
 
-  // Edges and AdjacencyList
-  std::vector<Edge> BuildEdges() const;
-  // BuildEdges build the edges
-
-  // Symmetries
-  std::vector<std::vector<int>> BuildSymmetryTable() const;
-  // BuildSymmetryTable build the symmetrytable = st[i][j] contiene la
-  // i-esima permutazione equivalente dei siti
-
-  double GetNorm(const std::vector<double> &coord) const;
-  // GetNorm returns the norm (squared distance from 0) of its argument
-  double GetSquaredDistance(const std::vector<double> &v1,
-                            const std::vector<double> &v2) const;
-  // GetSquaredDistance returns the distance between its argument
-  bool RelativelyEqual(double a, double b,
-                       double maxRelativeDiff = 1.0e-6) const;
-  // RelativelyEqual gives true if a and b are equal up to an epsilon
-  // (double comparison issue)
-
+ private:
+  // Graph properties #2
   bool ComputeConnected() const;
   bool ComputeBipartite() const;
+  std::vector<Edge> BuildEdges() const;
+  std::vector<std::vector<int>> BuildSymmetryTable() const;
+
+  // Nearest Neighbours Utils
+  /**
+  Member function computing the vector representation of all the "possible"
+  nearest neighbours of a generic lattice site (k). The NN candidates are the
+  ones living in sites which are translated by +1,0,-1 basis_vectors from site
+  k. Each vector can have +1/0/-1, so all the permutations have to be
+  considered.
+   */
+  std::vector<std::vector<int>> PossibleLatticeNeighbours() const;
+
+  /**
+  Member function computing the distances between the "possible" nearest
+  neighbours.
+   */
+  std::vector<double> NeighboursSquaredDistance(
+      const std::vector<std::vector<int>> &neighbours_matrix, int iatom) const;
+
+  /**
+  Member function computing the vector representation of all the nearest
+  neighbours of the i-th atom in a generic lattice site. Basically it applies
+  the distance criterion to the "possible" nearest neighbours (see above).
+   */
+  std::vector<std::vector<int>> LatticeNeighbours(int iatom) const;
+
+  // Generic Utils
+  /**
+  Member function returning the norm of its argument.
+   */
+  double GetNorm(const std::vector<double> &coord) const;
+
+  /**
+  Member function returning the squared distance between its arguments.
+   */
+  double GetSquaredDistance(const std::vector<double> &v1,
+                            const std::vector<double> &v2) const;
 };
 }  // namespace netket
 

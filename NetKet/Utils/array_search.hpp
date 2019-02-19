@@ -16,14 +16,17 @@
 #define NETKET_ARRAYSEARCH_HPP
 
 namespace netket {
-// Finds the smallest non zero element of an array
+
+/**
+  Returns the smallest non zero element of an array.
+*/
 template <class ForwardIterator>
 ForwardIterator min_nonzero_elem(ForwardIterator first, ForwardIterator last) {
   if (first == last) return last;
   ForwardIterator smallest = first;
 
   while (++first != last)
-    if (*first < *smallest and *first != 0) smallest = first;
+    if (*first < *smallest && *first != 0) smallest = first;
   return smallest;
 };
 }  // namespace netket

@@ -301,7 +301,7 @@ void AddGraphModule(py::module &m) {
            )EOF");
 
   py::class_<Lattice, AbstractGraph>(subm, "Lattice", R"EOF(
-                             A generic lattice built translating a unit cell. The unit cell can contain
+                             A generic lattice built translating a unit cell and adding edges between nearest neighbours sites. The unit cell can contain
                              an arbitrary number of atoms, located at arbitrary positions.
                              Periodic boundary conditions can also be imposed along the desired directions.)EOF")
       .def(py::init<std::vector<std::vector<double>>, std::vector<int>,
@@ -333,9 +333,18 @@ void AddGraphModule(py::module &m) {
                              )EOF")
       .def_property_readonly("coordinates", &Lattice::Coordinates,
                              R"EOF(
-               list[list]: The coordinates of the atoms in the lattice.)EOF")
+      list[list]: The coordinates of the atoms in the lattice.)EOF")
       .def_property_readonly("n_dim", &Lattice::Ndim, R"EOF(
-               int: The dimension of the lattice.)EOF");
+      int: The dimension of the lattice.)EOF")
+      .def_property_readonly("basis_vectors", &Lattice::BasisVectors, R"EOF(
+      list[list]: The basis vectors of the lattice.)EOF")
+      .def("atom_label", &Lattice::AtomLabel, py::arg("site"), R"EOF(
+          Member function returning the atom label given its site index. The atom label indicates to which sublattice the atom belongs.
+
+          Args:
+              site: The site index.
+
+          )EOF");
 }
 
 }  // namespace netket

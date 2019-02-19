@@ -11,10 +11,10 @@ namespace netket {
  *
  * This is a replacement of std::clamp which was introduced in C++17.
  */
-template<class T, class Comparator>
-constexpr const T& bound(const T& v, const T& lo, const T& hi, Comparator comp)
-{
-    return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+template <class T, class Comparator>
+constexpr const T& bound(const T& v, const T& lo, const T& hi,
+                         Comparator comp) {
+  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
 
 /**
@@ -23,12 +23,20 @@ constexpr const T& bound(const T& v, const T& lo, const T& hi, Comparator comp)
  *
  * This is a replacement of std::clamp which was introduced in C++17.
  */
-template<class T>
-constexpr const T& bound(const T& v, const T& lo, const T& hi)
-{
-    return bound(v, lo, hi, std::less<T>());
+template <class T>
+constexpr const T& bound(const T& v, const T& lo, const T& hi) {
+  return bound(v, lo, hi, std::less<T>());
 }
 
+bool RelativelyEqual(double a, double b, double maxRelativeDiff) {
+  const double difference = std::abs(a - b);
+  // Scale to the largest value.
+  a = std::abs(a);
+  b = std::abs(b);
+  const double scaledEpsilon = maxRelativeDiff * std::max(a, b);
+  return difference <= scaledEpsilon;
 }
 
-#endif // NETKET_MATH_HELPERS_HPP
+}  // namespace netket
+
+#endif  // NETKET_MATH_HELPERS_HPP

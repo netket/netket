@@ -19,6 +19,7 @@
 #include <iostream>
 #include <vector>
 #include "Utils/array_search.hpp"
+#include "Utils/math_helpers.hpp"
 #include "Utils/messages.hpp"
 #include "Utils/next_variation.hpp"
 
@@ -33,115 +34,102 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
       atoms_coord_(std::move(V_atoms)) {
   ndim_ = basis_vectors_.size();
 
-  // check if dimensions are consistents
+  // Dimension consistency check #1
   for (int i = 0; i < ndim_; i++) {
     if (basis_vectors_[i].size() != ndim_) {
-      ErrorMessage() << "Each element of basis_vectors must have ndim"
-                        "components. Dimensions are inconsistent. Exit.\n";
-      exit(EXIT_FAILURE);
+      throw InvalidInputError{
+          "Each element of basis_vectors must have ndim components.\n"};
     }
   }
-
+  // Dimension consistency check #2
   if (extent_.size() != ndim_) {
-    ErrorMessage() << "Extent must have ndim components. Dimension is "
-                      "inconsistent. Exit.\n";
-    exit(EXIT_FAILURE);
+    throw InvalidInputError{"Extent must have ndim components.\n"};
   }
 
-  // default case is a single atom in the unit cell, located at the origin
+  // Default case: a single atom in the unit cell, located at the origin
   if (atoms_coord_.size() == 0) {
     atoms_coord_.resize(1, std::vector<double>(ndim_, 0));
   }
 
   natoms_ = atoms_coord_.size();
 
+  // Dimension consistency check #3
   for (int i = 0; i < natoms_; i++) {
     if (atoms_coord_[i].size() != ndim_) {
-      ErrorMessage() << "Each element of atoms_coord must have ndim "
-                        "components. Dimension is inconsistent. Exit.\n";
-      exit(EXIT_FAILURE);
+      throw InvalidInputError{
+          "Each element of atoms_coord must have ndim components.\n"};
     }
   }
 
-  // default case for pbc is true
+  // Default case for pbc is true
   if (pbc_.size() == 0) {
     pbc_.resize(ndim_, true);
   }
 
+  // Dimension consistency check #4
   if (pbc_.size() != ndim_) {
-    ErrorMessage() << "Pbc must have ndim components. Dimension is "
-                      "inconsistent. Exit.\n";
-    exit(EXIT_FAILURE);
+    throw InvalidInputError{"Pbc must have ndim components.\n"};
   }
 
-  // PATHOLOGIC 1: pbc(i) for extent(i)<=2 + extent(i)=0)
+  // PATHOLOGIC #1: non-positive extent and pbc in too small lattices)
   for (int i = 0; i < ndim_; i++) {
-    if (extent_[i] <= 2 and pbc_[i] == true) {
-      ErrorMessage() << "PBC are not allowed when extent<2. Exit.\n";
-      exit(EXIT_FAILURE);
+    if (extent_[i] <= 0) {
+      throw InvalidInputError{"Extent components must be >0.\n"};
     }
-    if (extent_[i] == 0) {
-      ErrorMessage() << "Extent components must be >0. Exit.\n";
-      exit(EXIT_FAILURE);
+    if (extent_[i] <= 2 and pbc_[i] == true) {
+      throw InvalidInputError{"PBC are not allowed when extent<=2.\n"};
     }
   }
 
   nlatticesites_ = 1;
   for (int k = 0; k < ndim_; k++) nlatticesites_ *= extent_[k];
 
-  // PATHOLOGIC 2: nlatticesites_=0,1
+  // PATHOLOGIC# 2: nlatticesites_=0,1
   if (nlatticesites_ <= 1) {
-    ErrorMessage()
-        << "A well-defined lattice must have at least 2 sites. Exit.\n";
-    exit(EXIT_FAILURE);
+    throw InvalidInputError{
+        "A well-defined lattice must have at least 2 sites.\n"};
   }
 
   nsites_ = nlatticesites_ * natoms_;
 
+  // Build the Bravais lattice (coordinates)
   for (int k = 0; k < natoms_; k++) {
     for (int i = 0; i < nlatticesites_; i++) {
-      std::vector<int> n = Site2Vector(i);  // from site i to coefficents
+      std::vector<int> n = Site2Vector(i);
       std::vector<double> R =
-          Vector2Coord(n, k);  // initialize the R vector (coord of one site)
+          Vector2Coord(n, k);  // fill R with coord of atom k of site i
       R_.push_back(R);
     }
   }
-
   edges_ = BuildEdges();
-
   symmetrytable_ = BuildSymmetryTable();
+  is_connected_ = ComputeConnected();
+  is_bipartite_ = ComputeBipartite();
 
-  colors_.reserve(nlatticesites_);
+  colors_.reserve(nsites_);
   for (auto const &edge : edges_) {
     auto success = colors_.emplace(edge, 0).second;
     static_cast<void>(success);  // Make everyone happy in the NDEBUG case
     assert(success && "There should be no duplicate edges");
   }
 
-  is_connected_ = ComputeConnected();
-  is_bipartite_ = ComputeBipartite();
-
 };  // namespace netket
 Lattice::~Lattice(){};
 
-// Get private member
+// Get private members
 int Lattice::Ndim() const noexcept { return ndim_; };
 int Lattice::Nsites() const noexcept { return nsites_; };
 int Lattice::Size() const noexcept { return Nsites(); };
-
-std::vector<std::vector<double>> Lattice::Coordinates() const noexcept {
-  std::vector<std::vector<double>> result;
-  for (int k = 0; k < nsites_; k++) result.push_back(R_[k]);
-  return result;
+std::vector<std::vector<double>> Lattice::BasisVectors() const {
+  return basis_vectors_;
 }
-std::vector<Lattice::Edge> const &Lattice::Edges() const noexcept {
-  return edges_;
-};
-std::vector<std::vector<int>> Lattice::SymmetryTable() const noexcept {
+
+// Graph properties
+std::vector<std::vector<double>> Lattice::Coordinates() const { return R_; }
+std::vector<Lattice::Edge> const &Lattice::Edges() const { return edges_; };
+std::vector<std::vector<int>> Lattice::SymmetryTable() const {
   return symmetrytable_;
 };
-
-// Returns map of the edge and its respective color
 const AbstractGraph::ColorMap &Lattice::EdgeColors() const noexcept {
   return colors_;
 }
@@ -190,16 +178,13 @@ bool Lattice::ComputeBipartite() const {
   return is_bipartite;
 }
 
-// Lattice representations (site = k, vector = n_i, coord = cartesian
-// coordinates)
+// Graph sites representations (site = k, vector = n_i, coord = coordinates)
 std::vector<int> Lattice::Site2Vector(int i) const {
+  assert(i >= 0 && "Bug! Site index should be non-negative");
   int ndim = extent_.size();
   std::vector<int> result(ndim, 0);
   int ip;
-  if (i < nlatticesites_)
-    ip = i;
-  else
-    ip = i % nlatticesites_;
+  ip = i % nlatticesites_;
   int k = ndim - 1;
   while (ip > 0) {
     result[k] = ip % extent_[k];
@@ -208,40 +193,50 @@ std::vector<int> Lattice::Site2Vector(int i) const {
   }
   return result;
 };
+
 std::vector<double> Lattice::Vector2Coord(const std::vector<int> &n,
                                           int iatom) const {
   std::vector<double> R(ndim_, 0);
+  assert(iatom >= 0 && "Bug! Atom index should be non-negative");
   for (int j = 0; j < ndim_; j++) {
     R[j] = atoms_coord_[iatom][j];
     for (int k = 0; k < ndim_; k++) R[j] += n[k] * basis_vectors_[k][j];
   }
-
   return R;
 };
-std::vector<double> Lattice::Site2Coord(int k) const { return R_[k]; }
+
+std::vector<double> Lattice::Site2Coord(int k) const {
+  assert(k >= 0 && "Bug! Site index should be non-negative");
+  return R_[k];
+}
+
 int Lattice::Vector2Site(const std::vector<int> &n) const {
   int k = 0;
-
   for (int i = 0; i < Ndim(); i++) {
     int base = 1;
     for (int j = i + 1; j < Ndim(); j++) base *= extent_[j];
     k += n[i] * base;
   }
-
   return k;
 }
 
-// Neighbours
+int Lattice::AtomLabel(int k) const {
+  assert(k >= 0 && "Bug! Site index should be non-negative");
+  return k / nlatticesites_;
+}
+
+// Nearest Neighbours Utils
 std::vector<std::vector<int>> Lattice::PossibleLatticeNeighbours() const {
-  const int nsymbols = 3;
+  constexpr int nsymbols = 3;
   const int max = nsymbols - 1;
   std::vector<int> b(ndim_, 0);
   std::vector<int> result_vector;
   std::vector<std::vector<int>> result_matrix;
   std::vector<int> row(ndim_, 0);
   do {
-    for (std::vector<int>::const_iterator ib = b.begin(); ib != b.end(); ++ib)
-      result_vector.push_back(*ib);
+    for (auto const &x : b) {
+      result_vector.push_back(x);
+    }
   } while (next_variation(b.begin(), b.end(), max));
 
   for (std::size_t i = 0; i < result_vector.size() / ndim_; i++) {
@@ -256,6 +251,7 @@ std::vector<std::vector<int>> Lattice::PossibleLatticeNeighbours() const {
 std::vector<double> Lattice::NeighboursSquaredDistance(
     const std::vector<std::vector<int>> &neighbours_matrix, int iatom) const {
   std::vector<double> distance;
+  assert(iatom >= 0 && "Bug! Atom index should be non-negative");
   for (std::size_t row = 0; row < neighbours_matrix.size(); row++) {
     std::vector<int> n(ndim_, 0);
     for (int j = 0; j < ndim_; j++) n[j] = neighbours_matrix[row][j];
@@ -305,18 +301,21 @@ std::vector<int> Lattice::FindNeighbours(int k, int iatom) const {
     for (int j = 0; j < Ndim(); j++) {
       int new_index = n[j] + lattice_neighbours_vector[i][j];
       if (pbc_[j]) {
-        if (new_index < 0)
+        if (new_index < 0) {
           new_index = extent_[j] - 1;
-        else if (new_index >= extent_[j])
+        } else if (new_index >= extent_[j]) {
           new_index = 0;
+        }
         single_neighbour_vector.push_back(new_index);
 
-      } else if (new_index >= 0 and new_index < extent_[j])
+      } else if (new_index >= 0 and new_index < extent_[j]) {
         single_neighbour_vector.push_back(new_index);
+      }
 
-      else
-        flag = false;  // if new_index refers to a border site, don't add this
-                       // site to the neighbours
+      else {
+        flag = false;
+      }  // if new_index refers to a border site, don't add this
+         // site to the neighbours
     }
     if (flag) {
       single_neighbour.push_back(Vector2Site(single_neighbour_vector) +
@@ -328,7 +327,6 @@ std::vector<int> Lattice::FindNeighbours(int k, int iatom) const {
   return single_neighbour;
 }
 
-// Edges and AdjacencyList
 std::vector<Lattice::Edge> Lattice::BuildEdges() const {
   std::vector<Lattice::Edge> edge_vector;
   for (int k = 0; k < nlatticesites_; k++) {
@@ -346,7 +344,7 @@ std::vector<Lattice::Edge> Lattice::BuildEdges() const {
   return edge_vector;
 };
 
-std::vector<std::vector<int>> Lattice::AdjacencyList() const noexcept {
+std::vector<std::vector<int>> Lattice::AdjacencyList() const {
   std::vector<std::vector<int>> adlist(nsites_);
   for (int k = 0; k < nsites_; k++) {
     for (std::size_t i = 0; i < edges_.size(); i++) {
@@ -359,7 +357,6 @@ std::vector<std::vector<int>> Lattice::AdjacencyList() const noexcept {
   return adlist;
 }
 
-// Symmetries
 std::vector<std::vector<int>> Lattice::BuildSymmetryTable() const {
   std::vector<std::vector<int>> integers_all;
   std::vector<std::vector<int>> result;
@@ -395,17 +392,8 @@ bool Lattice::IsBipartite() const noexcept { return is_bipartite_; }
 
 bool Lattice::IsConnected() const noexcept { return is_connected_; }
 
-// Utilities
-bool Lattice::RelativelyEqual(double a, double b,
-                              double maxRelativeDiff) const {
-  const double difference = std::abs(a - b);
+// Generic Utils
 
-  // Scale to the largest value.
-  a = std::abs(a);
-  b = std::abs(b);
-  const double scaledEpsilon = maxRelativeDiff * std::max(a, b);
-  return difference <= scaledEpsilon;
-}
 double Lattice::GetNorm(const std::vector<double> &coord) const {
   double distance = 0;
   for (std::size_t i = 0; i < coord.size(); i++)
@@ -416,9 +404,9 @@ double Lattice::GetSquaredDistance(const std::vector<double> &v1,
                                    const std::vector<double> &v2) const {
   double distance = 0;
   if (v1.size() != v2.size()) {
-    ErrorMessage() << "Impossible to compute distance between two vectors of "
-                      "different size. Exit.\n";
-    exit(EXIT_FAILURE);
+    throw InvalidInputError{
+        "Impossible to compute distance between two vectors of "
+        "different size.\n"};
   }
   for (std::size_t i = 0; i < v1.size(); i++)
     distance += (v1[i] - v2[i]) * (v1[i] - v2[i]);
