@@ -1,7 +1,6 @@
 import netket as nk
 import networkx as nx
 import math
-from mpi4py import MPI
 
 nxg = nx.star_graph(10)
 graphs = [

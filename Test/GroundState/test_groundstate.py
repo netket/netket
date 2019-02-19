@@ -1,7 +1,6 @@
 import json
 from pytest import approx
 import netket as nk
-from mpi4py import MPI
 import shutil
 import tempfile
 
