@@ -262,7 +262,7 @@ class Supervised {
     grad_ /= double(totalnodes_);
   }
 
-  void Iterate(std::string lossFunction) {
+  void Advance(std::string lossFunction) {
     std::vector<Eigen::VectorXd> batchSamples(batchsize_node_);
     std::vector<Eigen::VectorXcd> batchTargets(batchsize_node_);
 
@@ -327,7 +327,7 @@ class Supervised {
 
     opt_.Reset();
     for (int i = 0; i < n_iter; i++) {
-      Iterate(lossFunction);
+        Advance(lossFunction);
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
       if (writer.has_value()){

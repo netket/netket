@@ -32,7 +32,7 @@ namespace netket {
 void AddSupervisedModule(py::module &m) {
   auto subm = m.def_submodule("supervised");
 
-  py::class_<Supervised>(subm, "supervised", R"EOF(Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.)EOF")
+  py::class_<Supervised>(subm, "Supervised", R"EOF(Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.)EOF")
       .def(py::init([](MachineType &ma, AbstractOptimizer &op, int batch_size,
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<Eigen::VectorXcd> targets) {
@@ -75,7 +75,7 @@ void AddSupervisedModule(py::module &m) {
                save_params_every: Frequency to dump wavefunction parameters. The default is 50.
 
            )EOF")
-      .def("iterate", &Supervised::Iterate, py::arg("loss_function") = "Overlap_phi", R"EOF(
+      .def("advance", &Supervised::Advance, py::arg("loss_function") = "Overlap_phi", R"EOF(
            Run one iteration of supervised learning. This should be helpful for testing and
            having self-defined control sequence in python.
 
