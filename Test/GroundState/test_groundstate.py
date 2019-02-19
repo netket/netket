@@ -32,11 +32,24 @@ def _setup_vmc():
     sx = nk.operator.LocalOperator(hi, [X] * 8, [[i] for i in range(8)])
     vmc.add_observable(sx, 'SigmaX')
 
-    return vmc
+    return ma, vmc
+
+
+def test_vmc_advance():
+    ma1, vmc1 = _setup_vmc()
+    ma2, vmc2 = _setup_vmc()
+
+    for i in range(11):
+        vmc1.advance()
+
+    for step in vmc2.iter(10):
+        pass
+
+    assert (ma1.parameters == ma2.parameters).all()
 
 
 def test_vmc_iterator():
-    vmc = _setup_vmc()
+    ma, vmc = _setup_vmc()
 
     count = 0
     last_obs = None
@@ -55,7 +68,7 @@ def test_vmc_iterator():
 
 
 def test_vmc_run():
-    vmc = _setup_vmc()
+    ma, vmc = _setup_vmc()
 
     tempdir = tempfile.mkdtemp()
     print("Writing test output files to: {}".format(tempdir))
