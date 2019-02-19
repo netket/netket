@@ -14,15 +14,7 @@
 
 
 import netket as nk
-from mpi4py import MPI
 from ed import load_ed_data
-import matplotlib.pyplot as plt
-import numpy as np
-
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-
 
 L = 10
 J2 = 0.4
@@ -38,7 +30,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 op = nk.optimizer.AdaDelta()
 
 
-spvsd = nk.supervised.supervised(
+spvsd = nk.supervised.Supervised(
     machine=ma,
     optimizer=op,
     batch_size=400,
@@ -50,22 +42,5 @@ n_iter = 4000
 overlaps = []
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
-spvsd.run(n_iter=n_iter, loss_function="Overlap_phi", output_prefix='output', save_params_every=50)
-exit()
-
-
-# for i in range(niter):
-#     spvsd.iterate(loss_function="Overlap_phi")
-#     if rank == 0:
-#         print('Minus Log overlap =', spvsd.loss_log_overlap)
-#         print('MSE (psi) =', spvsd.loss_mse)
-#         print('MSE (log psi) =', spvsd.loss_mse_log)
-#         overlaps.append(np.exp(-spvsd.loss_log_overlap))
-#
-# if rank == 0:
-#     plt.plot(overlaps)
-#     plt.ylabel('Overlap')
-#     plt.xlabel('Iteration #')
-#     plt.axhline(y=1, xmin=0, xmax=niter, linewidth=2, color='k', label='1')
-#     plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
-#     plt.show()
+spvsd.run(n_iter=n_iter, loss_function="Overlap_phi",
+          output_prefix='output', save_params_every=50)

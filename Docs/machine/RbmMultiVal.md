@@ -1,6 +1,6 @@
 # RbmMultiVal
 A fully connected Restricted Boltzmann Machine for handling larger
-             local Hilbert spaces.
+ local Hilbert spaces.
 
 ## Class Constructor
 ## Class Methods 

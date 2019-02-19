@@ -1,9 +1,9 @@
 # FFNN
 A feedforward neural network (FFNN) Machine. This machine is
-             constructed by providing a sequence of layers from the ``layer``
-             class. Each layer implements a transformation such that the
-             information is transformed sequentially as it moves from the input
-             nodes through the hidden layers and to the output nodes.
+ constructed by providing a sequence of layers from the ``layer``
+ class. Each layer implements a transformation such that the
+ information is transformed sequentially as it moves from the input
+ nodes through the hidden layers and to the output nodes.
 
 ## Class Constructor
 Constructs a new ``FFNN`` machine:

@@ -1,7 +1,7 @@
 # DirectMatrixWrapper
 This class wraps a given Operator. The
-        matrix elements are not stored separately but are computed from
-        Operator::FindConn every time Apply is called.
+ matrix elements are not stored separately but are computed from
+ Operator::FindConn every time Apply is called.
 
 ## Class Constructor
 Constructs a direct matrix wrapper from an operator. Matrix elements are

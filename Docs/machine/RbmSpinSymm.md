@@ -1,14 +1,14 @@
 # RbmSpinSymm
 A fully connected Restricted Boltzmann Machine with lattice
-             symmetries. This type of RBM has spin 1/2 hidden units and is
-             defined by:
+ symmetries. This type of RBM has spin 1/2 hidden units and is
+ defined by:
 
-             $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+ $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+ \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$
 
-             for arbitrary local quantum numbers $$ s_i $$. However, the weights
-             ($$ W_{ij} $$) and biases ($$ a_i $$, $$ b_i $$) respects the
-             specified symmetries of the lattice.
+ for arbitrary local quantum numbers $$ s_i $$. However, the weights
+ ($$ W_{ij} $$) and biases ($$ a_i $$, $$ b_i $$) respects the
+ specified symmetries of the lattice.
 
 ## Class Constructor
 Constructs a new ``RbmSpinSymm`` machine:

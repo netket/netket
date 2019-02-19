@@ -1,20 +1,20 @@
 # Sgd
 Simple Stochastic Gradient Descent Optimizer.
-        [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent)
-        is one of the most popular optimizers in machine learning applications.
-        Given a stochastic estimate of the gradient of the cost function ($$ G(\mathbf{p}) $$),
-        it performs the update:
+ [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent)
+ is one of the most popular optimizers in machine learning applications.
+ Given a stochastic estimate of the gradient of the cost function ($$ G(\mathbf{p}) $$),
+ it performs the update:
 
-        $$
-        p^\prime_k = p_k -\eta G_k(\mathbf{p}),
-        $$
+ $$
+ p^\prime_k = p_k -\eta G_k(\mathbf{p}),
+ $$
 
-        where $$ \eta $$ is the so-called learning rate.
-        NetKet also implements two extensions to the simple SGD,
-        the first one is $$ L_2 $$ regularization,
-        and the second one is the possibility to set a decay
-        factor $$ \gamma \leq 1 $$ for the learning rate, such that
-        at iteration $$ n $$ the learning rate is $$ \eta \gamma^n $$.
+ where $$ \eta $$ is the so-called learning rate.
+ NetKet also implements two extensions to the simple SGD,
+ the first one is $$ L_2 $$ regularization,
+ and the second one is the possibility to set a decay
+ factor $$ \gamma \leq 1 $$ for the learning rate, such that
+ at iteration $$ n $$ the learning rate is $$ \eta \gamma^n $$.
 
 ## Class Constructor
 Constructs a new ``Sgd`` optimizer.

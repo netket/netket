@@ -1,7 +1,7 @@
 # MetropolisHamiltonianPt
 This sampler performs parallel-tempering moves in addition to
-    the local moves implemented in `MetropolisHamiltonian`.
-    The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+ the local moves implemented in `MetropolisHamiltonian`.
+ The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
 
 ## Class Constructor
 Constructs a new ``MetropolisHamiltonianPt`` sampler given a machine,

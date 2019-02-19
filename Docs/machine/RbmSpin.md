@@ -1,11 +1,11 @@
 # RbmSpin
 A fully connected Restricted Boltzmann Machine (RBM). This type of
-          RBM has spin 1/2 hidden units and is defined by:
+ RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+ $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+ \left(\sum_i^N W_{ij} s_i + b_j \right) $$
 
-          for arbitrary local quantum numbers $$ s_i $$.
+ for arbitrary local quantum numbers $$ s_i $$.
 
 ## Class Constructor
 Constructs a new ``RbmSpin`` machine:
