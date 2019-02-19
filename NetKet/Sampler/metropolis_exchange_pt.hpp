@@ -27,14 +27,15 @@ namespace netket {
 // Metropolis sampling generating local exchanges
 // Parallel tempering is also used
 template <class WfType>
-class MetropolisExchangePt : public AbstractSampler<WfType> {
+class MetropolisExchangePt: public AbstractSampler<WfType> {
   WfType &psi_;
-  const Hilbert &hilbert_;
+  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
 
-  netket::default_random_engine rgen_;
+  const int nrep_;
+  std::vector<double> beta_;
 
   // states of visible units
   // for each sampled temperature
@@ -52,23 +53,17 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
   // Look-up tables
   std::vector<typename WfType::LookupType> lt_;
 
-  const int nrep_;
-
-  std::vector<double> beta_;
-
  public:
-  // Json constructor
-  explicit MetropolisExchangePt(const Graph &graph, WfType &psi,
-                                const json &pars)
+  MetropolisExchangePt(const AbstractGraph &graph, WfType &psi, int dmax = 1,
+                       int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        nrep_(FieldVal(pars["Sampler"], "Nreplicas")) {
-    int dmax = FieldOrDefaultVal(pars["Sampler"], "Dmax", 1);
+        nrep_(nreplicas) {
     Init(graph, dmax);
   }
 
-  void Init(const Graph &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
@@ -87,8 +82,6 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     moves_.resize(2 * nrep_);
 
     GenerateClusters(graph, dmax);
-
-    Seed();
 
     Reset(true);
 
@@ -114,25 +107,10 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     }
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], rgen_);
+        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -153,7 +131,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     std::vector<double> newconf(2);
 
     for (int i = 0; i < nv_; i++) {
-      int rcl = distcl(rgen_);
+      int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -170,7 +148,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
             std::exp(beta_[rep] *
                      psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep])));
 
-        if (ratio > distu(rgen_)) {
+        if (ratio > distu(this->GetRandomEngine())) {
           accept_(rep) += 1;
           psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
           hilbert_.UpdateConf(v_[rep], tochange, newconf);
@@ -191,7 +169,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -201,7 +179,7 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(rgen_)) {
+      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -228,7 +206,11 @@ class MetropolisExchangePt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType &GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

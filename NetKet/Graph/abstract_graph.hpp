@@ -18,8 +18,8 @@
 #include <array>
 #include <cassert>
 #include <queue>
-#include <utility>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "Utils/array_hasher.hpp"
 
@@ -34,10 +34,27 @@ namespace netket {
 class AbstractGraph {
  public:
   /**
+  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
+  */
+  using Edge = std::array<int, 2>;
+  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
+
+  /**
   Member function returning the number of sites (nodes) in the graph.
   @return Number of sites (nodes) in the graph.
   */
-  virtual int Nsites() const = 0;
+  virtual int Nsites() const noexcept = 0;
+
+  /**
+  Member function returning the number of sites (nodes) in the graph.
+  @return Number of sites (nodes) in the graph.
+  */
+  virtual int Size() const noexcept = 0;
+
+  /**
+  Returns the graph edges.
+  */
+  virtual std::vector<Edge> const &Edges() const noexcept = 0;
 
   /**
   Member function returning the adjacency list of the graph.
@@ -52,16 +69,10 @@ class AbstractGraph {
   virtual std::vector<std::vector<int>> SymmetryTable() const = 0;
 
   /**
-  Custom type for unordered_map<array<int,2>, int> w/ a custom hash function
-  */
-  using Edge = std::array<int, 2>;
-  using ColorMap = std::unordered_map<Edge, int, netket::ArrayHasher>;
-
-  /**
   Member function returning edge colors of the graph.
   @return ec[i][j] is the color of the edge between nodes i and j.
   */
-  virtual const ColorMap &EdgeColors() const = 0;
+  virtual const ColorMap &EdgeColors() const noexcept = 0;
 
   // Edge Colors from users specified map
   void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
@@ -85,23 +96,25 @@ class AbstractGraph {
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
-  virtual bool IsBipartite() const = 0;
+  virtual bool IsBipartite() const noexcept = 0;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
    * every pair of nodes.
    * @return true, if the graph is connected
    */
-  virtual bool IsConnected() const = 0;
+  virtual bool IsConnected() const noexcept = 0;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
-   * visitor_func exactly once for each node within the component reachable from start.
+   * visitor_func exactly once for each node within the component reachable from
+   * start.
    * @param start The starting node for the BFS.
-   * @param visitor_func Function void visitor_func(int node, int depth) which is
-   *    called once for each visited node and where depth is the distance of node from start.
+   * @param visitor_func Function void visitor_func(int node, int depth) which
+   * is called once for each visited node and where depth is the distance of
+   * node from start.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, Func visitor_func) const {
     BreadthFirstSearch(start, Nsites(), visitor_func);
   }
@@ -112,10 +125,11 @@ class AbstractGraph {
    * all nodes reachable from start in at most max_depth steps.
    * @param start The starting node for the BFS.
    * @param max_depth The maximum distance from start for nodes to be visited.
-   * @param visitor_func Function void visitor_func(int node, int depth) which is
-   *    called once for each visited node and where depth is the distance of node from start.
+   * @param visitor_func Function void visitor_func(int node, int depth) which
+   * is called once for each visited node and where depth is the distance of
+   * node from start.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(int start, int max_depth, Func visitor_func) const;
 
   /**
@@ -134,14 +148,16 @@ class AbstractGraph {
    *    explored, which allows to distinguish the components. The depth is the
    *    distance from comp to the current node.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch(Func visitor_func) const;
 
   /**
-   * Computes the distances of all nodes from a root node (single-source shortest
-   * path problem). The distance of nodes not reachable from root are set to -1.
+   * Computes the distances of all nodes from a root node (single-source
+   * shortest path problem). The distance of nodes not reachable from root are
+   * set to -1.
    * @param root The root node from which the distances are calculated.
-   * @return A vector `dist` of distances where dist[v] is the distance of v to root.
+   * @return A vector `dist` of distances where dist[v] is the distance of v to
+   * root.
    */
   virtual std::vector<int> Distances(int root) const;
 
@@ -164,10 +180,47 @@ class AbstractGraph {
    * seen[v] == true will be ignored even when they are first discovered
    * by the search. seen[start] is required to be false.
    */
-  template<typename Func>
+  template <typename Func>
   void BreadthFirstSearch_Impl(int start, int max_depth, Func visitor_func,
-                               std::vector<bool>& seen) const;
+                               std::vector<bool> &seen) const;
 };
+
+namespace detail {
+/// Constructs the adjacency list given graph edges. No sanity checks are
+/// performed. Use at your own risk!
+std::vector<std::vector<int>> AdjacencyListFromEdges(
+    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
+  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
+  std::vector<std::vector<int>> adjacency_list(
+      static_cast<std::size_t>(number_sites));
+  for (auto const &edge : edges) {
+    adjacency_list[edge[0]].push_back(edge[1]);
+    adjacency_list[edge[1]].push_back(edge[0]);
+  }
+  return adjacency_list;
+}
+
+int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
+  if (edges.empty()) {
+    return 0;
+  }
+  int min = 0;
+  int max = -1;
+  for (auto const &edge : edges) {
+    if (edge[0] > edge[1]) {
+      throw InvalidInputError{
+          "For each edge i<->j, i must not be greater than j"};
+    }
+    if (edge[0] < min) min = edge[0];
+    if (edge[1] > max) max = edge[1];
+  }
+  if (min < 0) {
+    throw InvalidInputError{"Nodes act as indices and should be >=0"};
+  }
+  assert(max >= min && "Bug! Postcondition violated");
+  return max + 1;
+}
+}  // namespace detail
 
 }  // namespace netket
 

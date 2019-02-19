@@ -15,13 +15,13 @@
 #ifndef NETKET_ADADELTA_HPP
 #define NETKET_ADADELTA_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -34,9 +34,17 @@ class AdaDelta : public AbstractOptimizer {
   Eigen::VectorXd Eg2_;
   Eigen::VectorXd Edx2_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
-public:
+ public:
+  // Json constructor
+  explicit AdaDelta(double rho = 0.95, double epscut = 1.0e-7)
+      : rho_(rho), epscut_(epscut), I_(0, 1) {
+    npar_ = -1;
+
+    PrintParameters();
+  }
+
   // Json constructor
   explicit AdaDelta(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -46,7 +54,7 @@ public:
   }
 
   void PrintParameters() {
-    InfoMessage() << "Adelta optimizer initialized with these parameters :"
+    InfoMessage() << "Adadelta optimizer initialized with these parameters :"
                   << std::endl;
     InfoMessage() << "Rho = " << rho_ << std::endl;
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
@@ -125,6 +133,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

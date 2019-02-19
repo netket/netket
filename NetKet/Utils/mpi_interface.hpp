@@ -41,6 +41,14 @@ void SendToAll(std::vector<int> &value, int root = 0,
                const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_INT, root, comm);
 }
+void SendToAll(std::vector<unsigned int> &value, int root = 0,
+               const MPI_Comm comm = MPI_COMM_WORLD) {
+  MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED, root, comm);
+}
+void SendToAll(std::vector<unsigned long> &value, int root = 0,
+               const MPI_Comm comm = MPI_COMM_WORLD) {
+  MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED_LONG, root, comm);
+}
 void SendToAll(std::vector<double> &value, int root = 0,
                const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_DOUBLE, root, comm);
@@ -172,6 +180,43 @@ inline void SumOnNodes(Eigen::VectorXcd &val, Eigen::VectorXcd &sum,
   MPI_Allreduce(val.data(), sum.data(), val.size(), MPI_DOUBLE_COMPLEX, MPI_SUM,
                 comm);
 }
+
+namespace detail {
+struct MPIInitializer {
+  MPIInitializer() {
+    int already_initialized;
+    MPI_Initialized(&already_initialized);
+    if (!already_initialized) {
+      // We don't have access to command-line arguments
+      if (MPI_Init(nullptr, nullptr) != MPI_SUCCESS) {
+        std::ostringstream msg;
+        msg << "This should never have happened. How did you manage to "
+               "call MPI_Init() in between two C function calls?! "
+               "Terminating now.";
+        std::cerr << msg.str() << std::endl;
+        std::terminate();
+      }
+      have_initialized_ = true;
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully initialized by NetKet." << std::endl;
+#endif
+    }
+  }
+
+  ~MPIInitializer() {
+    if (have_initialized_) {
+      // We have initialized MPI so it's only right we finalize it.
+      MPI_Finalize();
+#if !defined(NDEBUG)
+      std::cerr << "MPI successfully finalized by NetKet." << std::endl;
+#endif
+    }
+  }
+
+ private:
+  bool have_initialized_;
+};
+}  // namespace detail
 
 }  // namespace netket
 

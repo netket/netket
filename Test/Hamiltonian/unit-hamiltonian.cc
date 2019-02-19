@@ -32,10 +32,9 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
-
-      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       const auto lstate = hilbert.LocalStates();
       REQUIRE(int(lstate.size()) == hilbert.LocalSize());
@@ -46,7 +45,7 @@ TEST_CASE("hamiltonians produce elements in the hilbert space",
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -77,16 +76,15 @@ TEST_CASE("hamiltonians do not have duplicate connections or newconfs",
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
-
-      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       netket::default_random_engine rgen(3421);
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 
@@ -120,16 +118,15 @@ TEST_CASE("hamiltonians are hermitean", "[hamiltonian]") {
       auto pars = input_tests[it];
 
       netket::Graph graph(pars);
+      netket::Hilbert hilbert(graph, pars);
 
-      netket::Hamiltonian hamiltonian(graph, pars);
-
-      const netket::Hilbert &hilbert = hamiltonian.GetHilbert();
+      netket::Hamiltonian hamiltonian(hilbert, pars);
 
       netket::default_random_engine rgen(3421);
 
       Eigen::VectorXd v(hilbert.Size());
 
-      std::vector<std::complex<double>> mel;
+      std::vector<Complex> mel;
       std::vector<std::vector<int>> connectors;
       std::vector<std::vector<double>> newconfs;
 

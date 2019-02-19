@@ -27,15 +27,13 @@ namespace netket {
 
 // Exact sampling using heat bath, mostly for testing purposes on small systems
 template <class WfType>
-class ExactSampler : public AbstractSampler<WfType> {
-  WfType &psi_;
+class ExactSampler: public AbstractSampler<WfType> {
+  WfType& psi_;
 
-  const Hilbert &hilbert_;
+  const AbstractHilbert& hilbert_;
 
   // number of visible units
   const int nv_;
-
-  netket::default_random_engine rgen_;
 
   // states of visible units
   Eigen::VectorXd v_;
@@ -56,7 +54,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   std::vector<double> psivals_;
 
  public:
-  explicit ExactSampler(WfType &psi)
+  explicit ExactSampler(WfType& psi)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
@@ -80,31 +78,14 @@ class ExactSampler : public AbstractSampler<WfType> {
     accept_.resize(1);
     moves_.resize(1);
 
-    Seed();
-
     Reset(true);
 
     InfoMessage() << "Exact sampler is ready " << std::endl;
   }
 
-  void Seed(int baseseed = 0) {
-    std::random_device rd;
-    std::vector<int> seeds(totalnodes_);
-
-    if (mynode_ == 0) {
-      for (int i = 0; i < totalnodes_; i++) {
-        seeds[i] = rd() + baseseed;
-      }
-    }
-
-    SendToAll(seeds);
-
-    rgen_.seed(seeds[mynode_]);
-  }
-
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, rgen_);
+      hilbert_.RandomVals(v_, this->GetRandomEngine());
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -129,7 +110,7 @@ class ExactSampler : public AbstractSampler<WfType> {
   }
 
   void Sweep() override {
-    int newstate = dist_(rgen_);
+    int newstate = dist_(this->GetRandomEngine());
     v_ = hilbert_index_.NumberToState(newstate);
 
     accept_(0) += 1;
@@ -138,9 +119,13 @@ class ExactSampler : public AbstractSampler<WfType> {
 
   Eigen::VectorXd Visible() override { return v_; }
 
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
+  void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
-  WfType &Psi() override { return psi_; }
+  WfType& GetMachine() noexcept override { return psi_; }
+
+  const AbstractHilbert& GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

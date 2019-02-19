@@ -16,10 +16,9 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <memory>
 #include <vector>
 #include "Utils/random_utils.hpp"
-
-#include <nonstd/span.hpp>
 
 namespace netket {
 
@@ -65,7 +64,7 @@ class AbstractHilbert {
   the random state.
   @param rgen the random number generator to be used
   */
-  virtual void RandomVals(Eigen::VectorXd &state,
+  virtual void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
                           netket::default_random_engine &rgen) const = 0;
 
   /**
@@ -75,8 +74,11 @@ class AbstractHilbert {
   @param tochange contains a list of which quantum numbers are to be modified.
   @param newconf contains the value that those quantum numbers should take
   */
-  virtual void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
+  virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                          const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
+
+  virtual const AbstractGraph &GetGraph() const noexcept = 0;
 
   virtual ~AbstractHilbert() {}
 };

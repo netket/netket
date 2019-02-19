@@ -19,7 +19,7 @@
 #include <complex>
 #include <fstream>
 #include <vector>
-#include "Lookup/lookup.hpp"
+#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
@@ -35,6 +35,9 @@ class AbstractMachine {
   using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
   using StateType = T;
   using LookupType = Lookup<T>;
+  using VectorRefType = Eigen::Ref<VectorType>;
+  using VectorConstRefType = Eigen::Ref<const VectorType>;
+  using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
 
   /**
   Member function returning the number of variational parameters.
@@ -51,7 +54,7 @@ class AbstractMachine {
   /**
   Member function setting the current set of parameters in the machine.
   */
-  virtual void SetParameters(const VectorType &pars) = 0;
+  virtual void SetParameters(VectorConstRefType pars) = 0;
 
   /**
   Member function providing a random initialization of the parameters.
@@ -73,7 +76,7 @@ class AbstractMachine {
   @param v a constant reference to a visible configuration.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(const Eigen::VectorXd &v) = 0;
+  virtual T LogVal(VisibleConstType v) = 0;
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -84,7 +87,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(const Eigen::VectorXd &v, const LookupType &lt) = 0;
+  virtual T LogVal(VisibleConstType v, const LookupType &lt) = 0;
 
   /**
   Member function initializing the look-up tables.
@@ -97,7 +100,7 @@ class AbstractMachine {
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual void InitLookup(const Eigen::VectorXd &v, LookupType &lt) = 0;
+  virtual void InitLookup(VisibleConstType v, LookupType &lt) = 0;
 
   /**
   Member function updating the look-up tables.
@@ -116,7 +119,7 @@ class AbstractMachine {
   visible state.
   @param lt a reference to the look-up table to be updated.
   */
-  virtual void UpdateLookup(const Eigen::VectorXd &v,
+  virtual void UpdateLookup(VisibleConstType v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
                             LookupType &lt) = 0;
@@ -134,7 +137,7 @@ class AbstractMachine {
   @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
   */
   virtual VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) = 0;
 
   /**
@@ -150,7 +153,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return The value of log(Psi(v')) - log(Psi(v))
   */
-  virtual T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &toflip,
+  virtual T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
                        const std::vector<double> &newconf,
                        const LookupType &lt) = 0;
 
@@ -161,22 +164,24 @@ class AbstractMachine {
   @return Derivatives of the logarithm of the wave function with respect to the
   set of parameters.
   */
-  virtual VectorType DerLog(const Eigen::VectorXd &v) = 0;
+  virtual VectorType DerLog(VisibleConstType v) = 0;
 
   virtual void to_json(json &j) const = 0;
   virtual void from_json(const json &j) = 0;
 
-  void Save(std::string filename) const {
+  void Save(const std::string &filename) const {
     std::ofstream filewf(filename);
     Save(filewf);
     filewf.close();
   }
 
-  void Save(std::ofstream& stream) const {
+  void Save(std::ofstream &stream) const {
     json j;
     to_json(j);
     stream << j << std::endl;
   }
+
+  virtual const AbstractHilbert &GetHilbert() const noexcept = 0;
 
   virtual ~AbstractMachine() {}
 };

@@ -17,8 +17,12 @@
 
 #include "exceptions.hpp"
 #include "json_utils.hpp"
+#include "kronecker_product.hpp"
+#include "lookup.hpp"
 #include "math_helpers.hpp"
+#include "memory_utils.hpp"
 #include "messages.hpp"
+#include "next_variation.hpp"
 #include "parallel_utils.hpp"
 #include "random_utils.hpp"
 #include "stopwatch.hpp"

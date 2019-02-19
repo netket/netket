@@ -15,13 +15,13 @@
 #ifndef NETKET_MOMENTUM_HPP
 #define NETKET_MOMENTUM_HPP
 
-#include "abstract_optimizer.hpp"
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include "abstract_optimizer.hpp"
 
 namespace netket {
 
@@ -33,9 +33,16 @@ class Momentum : public AbstractOptimizer {
 
   Eigen::VectorXd mt_;
 
-  const std::complex<double> I_;
+  const Complex I_;
 
-public:
+ public:
+  explicit Momentum(double eta = 0.001, double beta = 0.9)
+      : eta_(eta), beta_(beta), I_(0, 1) {
+    npar_ = -1;
+    PrintParameters();
+  }
+
+  // TODO remove
   // Json constructor
   explicit Momentum(const json &pars) : I_(0, 1) {
     npar_ = -1;
@@ -91,6 +98,7 @@ public:
 
   void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
 
+  // TODO remove
   void from_json(const json &pars) {
     // DEPRECATED (to remove for v2.0.0)
     std::string section = "Optimizer";
@@ -102,6 +110,6 @@ public:
   }
 };
 
-} // namespace netket
+}  // namespace netket
 
 #endif

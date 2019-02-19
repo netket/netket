@@ -1,99 +1,160 @@
-#########################
-# project configuration #
-#########################
-
-# C++ project
-language: cpp
-
-dist: trusty
+language: python
 sudo: required
-
-################
-# build matrix #
-################
 
 matrix:
   include:
+    - os: osx
+      osx_image: xcode9.4
+      language: generic
+      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
 
-  # clang sanitizer
-  - os: osx
-    osx_image: xcode9.4
-    compiler: clang
-    env:
-      - CMAKE_OPTIONS=-DNETKET_Sanitizer=ON
+    - os: osx
+      osx_image: xcode10.1
+      language: generic
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
 
-  - os: osx
-    osx_image: xcode8.3
+    - os: osx
+      osx_image: xcode10.1
+      language: generic
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
 
-  - os: osx
-    osx_image: xcode9.4
+    # The oldest supported configurations
+    - os: linux
+      dist: trusty
+      python: 2.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS=-stdlib=libc++"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-trusty'
+            - 'llvm-toolchain-trusty-4.0'
+          packages:
+            - 'clang-4.0'
+            - 'libc++-dev'
+            - 'libmpich-dev'
 
-  - os: linux
-    compiler: gcc
-    env:
-      - COMPILER=g++-5
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-    addons:
-      apt:
-        sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-5','mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+    - os: linux
+      dist: trusty
+      python: 2.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-5"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'g++-5'
+            - 'libmpich-dev'
 
-  - os: linux
-    compiler: gcc
-    env:
-      - COMPILER=g++-6
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-    addons:
-      apt:
-        sources: ['ubuntu-toolchain-r-test']
-        packages: ['g++-6','mpich','libmpich-dev', 'libboost-all-dev','liblapack3',
-                   'libblas-dev', 'liblapack-dev','liblapacke-dev']
+    # Not too old toolsets
+    - os: linux
+      dist: trusty
+      python: 3.6
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-6.0"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-trusty-6.0'
+          packages:
+            - 'g++-7'
+            - 'clang-6.0'
+            - 'libmpich-dev'
 
-  - os: linux
-    compiler: clang
-    env:
-      - COMPILER=clang++-5.0
-      - CXXFLAGS=-std=c++1z
-      - CMAKE_OPTIONS=-DUSE_LAPACK=ON
-    addons:
-      apt:
-        sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-        packages: ['g++-6', 'clang-5.0', 'mpich','libmpich-dev', 'libboost-all-dev',
-                   'liblapack3','libblas-dev', 'liblapack-dev','liblapacke-dev']
+    - os: linux
+      dist: trusty
+      python: 3.6
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-7"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'g++-7'
+              # NOTE: For some reason using libopenmpi-dev here gives errors
+            - 'libmpich-dev'
 
+    # Modern toolsets
+    - os: linux
+      dist: xenial
+      python: 3.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS=-std=c++17"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-xenial-7'
+          packages:
+            - 'clang-7'
+            - 'g++-8'
+            - 'libmpich-dev'
 
-cache:
-  apt: true
-  directories:
-    - $HOME/Library/Caches/Homebrew
+before_install:
+  - |
+     # When Travis starts supporting `addons: brew: packages: [...]` correctly,
+     # this can be move this into the build matrix.
+     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+       brew update
+       brew ls --versions cmake && brew upgrade cmake || brew install cmake
+       brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
+       brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
+     fi
+  - |
+     # Force OS X to use the correct python version. This is only because
+     # Travis' support for `language: python` on OS X is too buggy.
+     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+       PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install $PYTHON
+       # This part is (apparently) quite important! As per the docs it makes
+       # pyenv aware that some executables have been installed/removed. Without it
+       # `pyenv global` won't be able to find the version of Python we're asking for.
+       pyenv rehash
+       # Printing the info about pyenv's python version before and after the change.
+       # We should see something like `system` before and `3.6.0` after.
+       pyenv global
+       pyenv global $PYTHON
+       pyenv global
+       # Manually update the PATH as advised in the pyenv docs.
+       PATH="$(pyenv root)/shims:$PATH"
+       # OS X build have `language: generic` so `TRAVIS_PYTHON_VERSION` is undefined
+       # at first.
+       TRAVIS_PYTHON_VERSION=$PYTHON
+     fi
+  - |
+     if ! which pip; then
+       python -m easy_install pip
+     fi
+  - |
+     # Check that `python` is actually the version we want
+     # Parses `TRAVIS_PYTHON_VERSION` and throws away the patch level as Travis only
+     # saves the major and minor versions.
+     _WE_WANTED=$(echo "$TRAVIS_PYTHON_VERSION" | sed -E 's/([0-9]+\.[0-9]+)($|\.[0-9]+)/\1/')
+     # Ask python itself what its major and minor versions are
+     _WE_GOT=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+     if [[ $_WE_WANTED != $_WE_GOT ]]; then
+       # The `&& false` here is needed to produce the error code indicating failure, because
+       # we don't want to proceed if Python is not installed properly.
+       echo "Something went wrong during python installation: $_WE_WANTED != $_WE_GOT" && false
+     fi
 
+  # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files.
+  # Otherwise we'll run into trouble when trying to use pybind11.
+  - find $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())') -name 'Python.h'
 
-################
-# build script #
-################
+install:
+  - cmake --version
+  - python --version
+  - python -m pip install -U pip
+  - python -m pip --version
+  - python -m easy_install -U setuptools
+  - python -m pip install numpy networkx pytest numdifftools
+  # TODO(twesterhout): Remove the following line when #109 is merged.
+  - python -m pip --no-cache-dir install mpi4py
+  - python -m pytest --version
+  - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
 
 script:
-  # get CMake and Mpi (only for systems with brew - macOS)
-  - |
-     if [[ (-x $(which brew)) ]]; then
-       brew install cmake
-       brew install openmpi
-       brew install --without-python boost
-       brew install lapack
-       brew upgrade cmake
-       brew upgrade openmpi
-       cmake --version
-     fi
-  # make sure CXX is correctly set
-  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  - python -c 'from mpi4py import MPI'
+  - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
+  - python -m pytest --verbose Test/
+  - python -m pytest --verbose --doctest-glob='*.md' Docs/
 
-  # show OS/compiler version
-  - uname -a
-  - $CXX --version
-
-  # compile and execute unit tests
-  - mkdir -p build && cd build
-  - cmake .. ${CMAKE_OPTIONS} -DENABLE_TESTS=ON -DCMAKE_CXX_FLAGS_RELEASE=-O3 && cmake --build . --config Release
-  - ctest -C Release -V -j
-  - cd ..
