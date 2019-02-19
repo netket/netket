@@ -38,7 +38,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 op = nk.optimizer.AdaDelta()
 
 
-spvsd = nk.supervised.supervised(
+spvsd = nk.supervised.Supervised(
     machine=ma,
     optimizer=op,
     batch_size=400,
