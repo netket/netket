@@ -32,20 +32,19 @@ namespace netket {
 void AddSupervisedModule(py::module &m) {
   auto subm = m.def_submodule("supervised");
 
-  py::class_<Supervised>(subm, "Supervised", R"EOF(Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.)EOF")
+  py::class_<Supervised>(
+      subm, "Supervised",
+      R"EOF(Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.)EOF")
       .def(py::init([](MachineType &ma, AbstractOptimizer &op, int batch_size,
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<Eigen::VectorXcd> targets) {
-             return Supervised{ma,
-                               op,
-                               batch_size,
-                               std::move(samples),
+             return Supervised{ma, op, batch_size, std::move(samples),
                                std::move(targets)};
            }),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
            py::arg("optimizer"), py::arg("batch_size"), py::arg("samples"),
            py::arg("targets"),
-	   R"EOF(
+           R"EOF(
            Construct a Supervised object given a machine, an optimizer, batch size and
            data, including samples and targets.
 
@@ -57,15 +56,19 @@ void AddSupervisedModule(py::module &m) {
                targets: The output label, i.e. amplitude of the corresponding basis.
 
            )EOF")
-      .def_property_readonly("loss_log_overlap", &Supervised::GetLogOverlap,
-           R"EOF(double: The current negative log fidelity.)EOF")
-      .def_property_readonly("loss_mse", &Supervised::GetMse,
-           R"EOF(double: The mean square error of amplitudes.)EOF")
-      .def_property_readonly("loss_mse_log", &Supervised::GetMseLog,
-           R"EOF(double: The mean square error of the log of amplitudes.)EOF")
+      .def_property_readonly(
+          "loss_log_overlap", &Supervised::GetLogOverlap,
+          R"EOF(double: The current negative log fidelity.)EOF")
+      .def_property_readonly(
+          "loss_mse", &Supervised::GetMse,
+          R"EOF(double: The mean square error of amplitudes.)EOF")
+      .def_property_readonly(
+          "loss_mse_log", &Supervised::GetMseLog,
+          R"EOF(double: The mean square error of the log of amplitudes.)EOF")
       .def("run", &Supervised::Run, py::arg("n_iter"),
-           py::arg("loss_function") = "Overlap_phi", py::arg("output_prefix") = "output",
-	   py::arg("save_params_every") = 50, R"EOF(
+           py::arg("loss_function") = "Overlap_phi",
+           py::arg("output_prefix") = "output",
+           py::arg("save_params_every") = 50, R"EOF(
            Run supervised learning.
 
            Args:
@@ -75,7 +78,8 @@ void AddSupervisedModule(py::module &m) {
                save_params_every: Frequency to dump wavefunction parameters. The default is 50.
 
            )EOF")
-      .def("advance", &Supervised::Advance, py::arg("loss_function") = "Overlap_phi", R"EOF(
+      .def("advance", &Supervised::Advance,
+           py::arg("loss_function") = "Overlap_phi", R"EOF(
            Run one iteration of supervised learning. This should be helpful for testing and
            having self-defined control sequence in python.
 
