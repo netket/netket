@@ -66,7 +66,38 @@ void AddLattice(py::module& subm) {
           Args:
               site: The site index.
 
-          )EOF");
+          )EOF")
+      .def("site_to_vector", &Lattice::Site2Vector, py::arg("site"), R"EOF(
+        Member function returning the vector of integers corresponding to the site
+        i, where i is an integer. The output vector indicates how many
+        translations of the basis vectors have been performed while building the
+        graph.
+
+          Args:
+              site: The site index (integer)
+
+          )EOF")
+      .def("vector_to_coord", &Lattice::Vector2Coord, py::arg("site_vector"),
+           py::arg("atom_label"), R"EOF(
+        Member function returning the coordinates of the i-th atom in the site
+        labelled by n.
+          Args:
+              site_vector: The site vector (array of integers)
+              atom_label: Label indicating which atom in the unit cell is considered
+
+            )EOF")
+      .def("site_to_coord", &Lattice::Site2Coord, py::arg("site"), R"EOF(
+        Member function returning the coordinates of the k-th lattice site.
+          Args:
+              site: The site index (integer)
+            )EOF")
+      .def("vector_to_site", &Lattice::Vector2Site, py::arg("site_vector"),
+           R"EOF(
+        Member function returning the integer label associated to a graph node,
+        given its vectorial characterizaion.
+            Args:
+                site_vector: The site vector (array of integers)
+            )EOF");
 }
 }  // namespace netket
 #endif

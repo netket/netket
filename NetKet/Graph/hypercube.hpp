@@ -142,11 +142,9 @@ class Hypercube : public AbstractGraph {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const noexcept override {
-    return !pbc_ || length_ % 2 == 0;
-  }
+  bool IsBipartite() const noexcept { return !pbc_ || length_ % 2 == 0; }
 
-  bool IsConnected() const noexcept override { return true; }
+  bool IsConnected() const noexcept { return true; }
 
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const noexcept override { return colors_; }
@@ -229,13 +227,13 @@ class Hypercube : public AbstractGraph {
         // move the if (pbc_) dispath to outside the while loop...
         if (pbc) {
           if (coord[dim] == max_pos) {
-            edges.push_back({site - i * (length - 1), site});
+            edges.push_back({{site - i * (length - 1), site}});
           } else {
-            edges.push_back({site, site + i});
+            edges.push_back({{site, site + i}});
           }
         } else {
           if (coord[dim] != max_pos) {
-            edges.push_back({site, site + i});
+            edges.push_back({{site, site + i}});
           }
         }
       }

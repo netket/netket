@@ -36,13 +36,13 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
 
   // Dimension consistency check #1
   for (int i = 0; i < ndim_; i++) {
-    if (basis_vectors_[i].size() != ndim_) {
+    if (basis_vectors_[i].size() != static_cast<std::size_t>(ndim_)) {
       throw InvalidInputError{
           "Each element of basis_vectors must have ndim components.\n"};
     }
   }
   // Dimension consistency check #2
-  if (extent_.size() != ndim_) {
+  if (extent_.size() != static_cast<std::size_t>(ndim_)) {
     throw InvalidInputError{"Extent must have ndim components.\n"};
   }
 
@@ -55,7 +55,7 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
 
   // Dimension consistency check #3
   for (int i = 0; i < natoms_; i++) {
-    if (atoms_coord_[i].size() != ndim_) {
+    if (atoms_coord_[i].size() != static_cast<std::size_t>(ndim_)) {
       throw InvalidInputError{
           "Each element of atoms_coord must have ndim components.\n"};
     }
@@ -67,7 +67,7 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
   }
 
   // Dimension consistency check #4
-  if (pbc_.size() != ndim_) {
+  if (pbc_.size() != static_cast<std::size_t>(ndim_)) {
     throw InvalidInputError{"Pbc must have ndim components.\n"};
   }
 
@@ -103,8 +103,8 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
   }
   edges_ = BuildEdges();
   symmetrytable_ = BuildSymmetryTable();
-  is_connected_ = ComputeConnected();
-  is_bipartite_ = ComputeBipartite();
+  is_connected_ = IsConnected();
+  is_bipartite_ = IsBipartite();
 
   colors_.reserve(nsites_);
   for (auto const &edge : edges_) {
@@ -126,56 +126,14 @@ std::vector<std::vector<double>> Lattice::BasisVectors() const {
 
 // Graph properties
 std::vector<std::vector<double>> Lattice::Coordinates() const { return R_; }
-std::vector<Lattice::Edge> const &Lattice::Edges() const { return edges_; };
+std::vector<Lattice::Edge> const &Lattice::Edges() const noexcept {
+  return edges_;
+};
 std::vector<std::vector<int>> Lattice::SymmetryTable() const {
   return symmetrytable_;
 };
 const AbstractGraph::ColorMap &Lattice::EdgeColors() const noexcept {
   return colors_;
-}
-
-bool Lattice::ComputeConnected() const {
-  const int start = 0;  // arbitrary node
-  int nvisited = 0;
-  BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
-  return nvisited == Nsites();
-}
-
-bool Lattice::ComputeBipartite() const {
-  bool is_bipartite = true;
-  const int start = 0;  // arbitrary node
-  std::vector<int> colors(Nsites(), -1);
-  const auto adjacency_list =
-      AdjacencyList();  // implicit expression can't have
-                        // access to the Lattice function
-  if (is_connected_) {
-    BreadthFirstSearch(
-        start, [&colors, &adjacency_list, &is_bipartite](int node, int) {
-          if (node == start) colors[node] = 1;
-          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
-            if (!is_bipartite) break;
-            if (colors[adjacency_list[node][j]] == -1) {
-              colors[adjacency_list[node][j]] = 1 - colors[node];
-            } else if (colors[adjacency_list[node][j]] == colors[node]) {
-              is_bipartite = false;
-            }
-          }
-        });
-  } else {
-    BreadthFirstSearch(
-        [&colors, &adjacency_list, &is_bipartite](int node, int, int) {
-          if (node == start) colors[node] = 1;
-          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
-            if (!is_bipartite) break;
-            if (colors[adjacency_list[node][j]] == -1) {
-              colors[adjacency_list[node][j]] = 1 - colors[node];
-            } else if (colors[adjacency_list[node][j]] == colors[node]) {
-              is_bipartite = false;
-            }
-          }
-        });
-  }
-  return is_bipartite;
 }
 
 // Graph sites representations (site = k, vector = n_i, coord = coordinates)
@@ -345,16 +303,7 @@ std::vector<Lattice::Edge> Lattice::BuildEdges() const {
 };
 
 std::vector<std::vector<int>> Lattice::AdjacencyList() const {
-  std::vector<std::vector<int>> adlist(nsites_);
-  for (int k = 0; k < nsites_; k++) {
-    for (std::size_t i = 0; i < edges_.size(); i++) {
-      if (edges_[i][0] == k)
-        adlist[k].push_back(edges_[i][1]);
-      else if (edges_[i][1] == k)
-        adlist[k].push_back(edges_[i][0]);
-    }
-  }
-  return adlist;
+  return detail::AdjacencyListFromEdges(edges_, nsites_);
 }
 
 std::vector<std::vector<int>> Lattice::BuildSymmetryTable() const {
@@ -387,10 +336,6 @@ std::vector<std::vector<int>> Lattice::BuildSymmetryTable() const {
 
   return result;
 };
-
-bool Lattice::IsBipartite() const noexcept { return is_bipartite_; }
-
-bool Lattice::IsConnected() const noexcept { return is_connected_; }
 
 // Generic Utils
 

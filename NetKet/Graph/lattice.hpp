@@ -56,12 +56,10 @@ class Lattice : public AbstractGraph {
    */
   std::vector<std::vector<double>> Coordinates() const;
 
-  std::vector<Edge> const &Edges() const override;
+  std::vector<Edge> const &Edges() const noexcept override;
   std::vector<std::vector<int>> SymmetryTable() const override;
   std::vector<std::vector<int>> AdjacencyList() const override;
   const ColorMap &EdgeColors() const noexcept override;
-  bool IsBipartite() const noexcept override;
-  bool IsConnected() const noexcept override;
 
   // Graph sites representations (site = k, vector = n_i, coord = coordinates)
 
@@ -112,8 +110,6 @@ class Lattice : public AbstractGraph {
 
  private:
   // Graph properties #2
-  bool ComputeConnected() const;
-  bool ComputeBipartite() const;
   std::vector<Edge> BuildEdges() const;
   std::vector<std::vector<int>> BuildSymmetryTable() const;
 

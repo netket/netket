@@ -77,12 +77,11 @@ struct CustomGraphInit {
   using ColorMap = AbstractGraph::ColorMap;
 
   std::vector<std::vector<int>> automorphisms;
-  bool is_bipartite;
 
   auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
       -> std::unique_ptr<CustomGraph> {
     return make_unique<CustomGraph>(std::move(edges), std::move(colors),
-                                    std::move(automorphisms), is_bipartite);
+                                    std::move(automorphisms));
   }
 };
 }  // namespace
@@ -94,16 +93,13 @@ void AddCustomGraph(py::module& subm) {
   py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
       A custom graph, specified by a list of edges and optionally colors.)EOF")
       .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms,
-                       bool const is_bipartite) {
+                       std::vector<std::vector<int>> automorphisms) {
              auto iterator = xs.attr("__iter__")();
-             return WithEdges(
-                 iterator,
-                 CustomGraphInit{std::move(automorphisms), is_bipartite});
+             return WithEdges(iterator,
+                              CustomGraphInit{std::move(automorphisms)});
            }),
            py::arg("edges"),
-           py::arg("automorphisms") = std::vector<std::vector<int>>(),
-           py::arg("is_bipartite") = false, R"EOF(
+           py::arg("automorphisms") = std::vector<std::vector<int>>(), R"EOF(
            Constructs a new graph given a list of edges.
 
            Args:
@@ -117,10 +113,7 @@ void AddCustomGraph(py::module& subm) {
                automorphisms: The automorphisms of the graph, i.e. a List[List[int]]
                    where the inner List[int] is a unique permutation of the
                    graph sites.
-               is_bipartite: Wheter the custom graph is bipartite.
-                   Notice that this is not deduced from the edge
-                   list and it is left to the user to specify
-                   whether the graph is bipartite or not.
+
 
            Examples:
                A 10-site one-dimensional lattice with periodic boundary conditions can be
