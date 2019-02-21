@@ -28,7 +28,7 @@ ForwardIterator min_nonzero_elem(ForwardIterator first, ForwardIterator last) {
   ForwardIterator smallest = first;
   while (++first != last)
     if (*first < *smallest && *first != 0) smallest = first;
-  assert(*smallest != last);
+  assert(smallest != last);
   assert(*smallest != 0 && "There aren't non-zero elements.\n");
   return smallest;
 }
