@@ -13,6 +13,7 @@ data, including samples and targets.
 |samples   |List[numpy.ndarray[float64[m, 1]]]   |The input data, i.e. many-body basis.                         |
 |targets   |List[numpy.ndarray[complex128[m, 1]]]|The output label, i.e. amplitude of the corresponding basis.  |
 
+
 ## Class Methods 
 ### advance
 Run one iteration of supervised learning. This should be helpful for testing and
@@ -21,6 +22,7 @@ having self-defined control sequence in python.
 |  Argument   |      Type       |                         Description                         |
 |-------------|-----------------|-------------------------------------------------------------|
 |loss_function|str='Overlap_phi'|The loss function choosing for learning, Default: Overlap_phi|
+
 
 ### run
 Run supervised learning.
@@ -32,6 +34,7 @@ Run supervised learning.
 |output_prefix    |str='output'     |The output file name, without extension.                     |
 |save_params_every|int=50           |Frequency to dump wavefunction parameters. The default is 50.|
 
+
 ## Properties
 
 |    Property    | Type |                  Description                   |
@@ -39,3 +42,4 @@ Run supervised learning.
 |loss_log_overlap|double| The current negative log fidelity.             |
 |loss_mse        |double| The mean square error of amplitudes.           |
 |loss_mse_log    |double| The mean square error of the log of amplitudes.|
+

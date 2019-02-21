@@ -66,7 +66,6 @@ void AddRbmSpinSymm(py::module &subm) {
                        >>> from netket.machine import RbmSpinSymm
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
-                       >>> from mpi4py import MPI
                        >>> g = Hypercube(length=20, n_dim=1)
                        >>> hi = Spin(s=0.5, total_sz=0, graph=g)
                        >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)

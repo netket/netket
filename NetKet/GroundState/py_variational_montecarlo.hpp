@@ -80,7 +80,6 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
                ```python
                >>> import netket as nk
-               >>> from mpi4py import MPI
                >>> SEED = 3141592
                >>> g = nk.graph.Hypercube(length=8, n_dim=1)
                >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -129,7 +128,6 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
                ```python
                >>> import netket as nk
-               >>> from mpi4py import MPI
                >>> SEED = 3141592
                >>> g = nk.graph.Hypercube(length=8, n_dim=1)
                >>> hi = nk.hilbert.Spin(s=0.5, graph=g)

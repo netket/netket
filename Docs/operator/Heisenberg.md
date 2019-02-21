@@ -8,11 +8,11 @@ Constructs a new ``Heisenberg`` given a hilbert space.
 |--------|----------------------|-----------------------------------|
 |hilbert |netket.hilbert.Hilbert|Hilbert space the operator acts on.|
 
+
 ### Examples
 Constructs a ``Heisenberg`` operator for a 1D system.
 
 ```python
->>> from mpi4py import MPI
 >>> import netket as nk
 >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
@@ -36,8 +36,10 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+
 ## Properties
 
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
+

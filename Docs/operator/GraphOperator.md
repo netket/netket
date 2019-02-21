@@ -14,11 +14,11 @@ desired. If none are specified, the bond operators act on all edges.
 |bondops       |List[List[List[complex]]]=[]|A list of operators that act on the edges of the graph. The default is an empty list. Note that if no bondops are specified, the user must give a list of site operators.|
 |bondops_colors|List[int]=[]                |A list of edge colors, specifying the color each bond operator acts on. The defualt is an empty list.                                                                    |
 
+
 ### Examples
 Constructs a ``BosGraphOperator`` operator for a 2D system.
 
 ```python
->>> from mpi4py import MPI
 >>> import netket as nk
 >>> sigmax = [[0, 1], [1, 0]]
 >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -48,8 +48,10 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+
 ## Properties
 
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
+

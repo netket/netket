@@ -29,7 +29,6 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 
 
 # Optimizer
-# op = nk.optimizer.Sgd(1e-1)
 op = nk.optimizer.AdaDelta()
 
 
@@ -49,9 +48,11 @@ for i in range(n_iter):
     spvsd.advance(loss_function="Overlap_phi")
     overlaps.append(np.exp(-spvsd.loss_log_overlap))
 
-plt.plot(overlaps)
-plt.ylabel('Overlap')
-plt.xlabel('Iteration #')
-plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color='k', label='1')
-plt.title(r'Transverse-field Ising model, $L=' + str(L) + '$')
-plt.show()
+
+if nk.MPI.rank() == 0:
+    plt.plot(overlaps)
+    plt.ylabel('Overlap')
+    plt.xlabel('Iteration #')
+    plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color='k', label='1')
+    plt.title(r'Transverse-field Ising model, $L=' + str(L) + '$')
+    plt.show()

@@ -1,7 +1,7 @@
 # Lattice
 A generic lattice built translating a unit cell and adding edges between nearest neighbours sites. The unit cell can contain
-                             an arbitrary number of atoms, located at arbitrary positions.
-                             Periodic boundary conditions can also be imposed along the desired directions.
+ an arbitrary number of atoms, located at arbitrary positions.
+ Periodic boundary conditions can also be imposed along the desired directions.
 
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
@@ -12,6 +12,7 @@ Constructs a new ``Lattice`` given its side length and the features of the unit 
 |extent       |List[int]           |The number of copies of the unit cell.                                                                                                         |
 |pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=True).|
 |atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                          |
+
 
 ### Examples
 Constructs a rectangular 3X4 lattice with periodic boundaries
@@ -34,11 +35,13 @@ Member function returning the atom label given its site index. The atom label in
 |--------|----|---------------|
 |site    |int |The site index.|
 
+
 ### site_to_coord
 Member function returning the coordinates of the k-th lattice site.
 |Argument|Type|      Description       |
 |--------|----|------------------------|
 |site    |int |The site index (integer)|
+
 
 ### site_to_vector
 Member function returning the vector of integers corresponding to the site
@@ -50,6 +53,7 @@ graph.
 |--------|----|------------------------|
 |site    |int |The site index (integer)|
 
+
 ### vector_to_coord
 Member function returning the coordinates of the i-th atom in the site
 labelled by n.
@@ -58,12 +62,14 @@ labelled by n.
 |site_vector|List[int]|The site vector (array of integers)                       |
 |atom_label |int      |Label indicating which atom in the unit cell is considered|
 
+
 ### vector_to_site
 Member function returning the integer label associated to a graph node,
 given its vectorial characterizaion.
 | Argument  |  Type   |            Description            |
 |-----------|---------|-----------------------------------|
 |site_vector|List[int]|The site vector (array of integers)|
+
 
 ## Properties
 
@@ -79,3 +85,4 @@ given its vectorial characterizaion.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+
