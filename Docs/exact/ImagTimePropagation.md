@@ -12,6 +12,7 @@ a time, and an initial state.
 |t0           |float                                                                                    |The initial time.                                                                               |
 |initial_state|numpy.ndarray[complex128[m, 1]]                                                          |The initial state of the system (when propagation begins.)                                      |
 
+
 ### Examples
 Solving 1D ising model with imagniary time propagation.
 
@@ -47,6 +48,7 @@ iteration.
 |name       |str                     |The name of the observable.                                                                                                                      |
 |matrix_type|str='Sparse'            |The type of matrix used for the observable when creating the matrix wrapper. The default is `Sparse`. The other choices are `Dense` and `Direct`.|
 
+
 ### get_observable_stats
 Calculate and return the value of the operators stored as observables.
 
@@ -61,8 +63,10 @@ Iterate the optimization of the Vmc wavefunction.
 |dt      |float             |Number of iterations performed at a time.|
 |n_iter  |Optional[int]=None|The maximum number of iterations.        |
 
+
 ## Properties
 
 |Property| Type |      Description       |
 |--------|------|------------------------|
 |t       |double| Time in the simulation.|
+

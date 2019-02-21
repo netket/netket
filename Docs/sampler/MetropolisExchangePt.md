@@ -14,6 +14,7 @@ graph, and a number of replicas.
 |d_max     |int=1                 |The maximum graph distance allowed for exchanges.                                                   |
 |n_replicas|int=1                 |The number of replicas used for parallel tempering.                                                 |
 
+
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2, using
 nearest-neighbours exchanges.
@@ -44,12 +45,14 @@ and optionally initializing at random the visible units being sampled.
 |-----------|----------|-----------------------------------------------|
 |init_random|bool=False|If ``True`` the quantum numbers (visible units)|
 
+
 ### seed
 Seeds the random number generator used by the ``Sampler``.
 
 |Argument |Type|                 Description                 |
 |---------|----|---------------------------------------------|
 |base_seed|int |The base seed for the random number generator|
+
 
 ### sweep
 Performs a sampling sweep. Typically a single sweep
@@ -65,3 +68,4 @@ consists of an extensive number of local moves.
 |hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
 |machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
 |visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |
+

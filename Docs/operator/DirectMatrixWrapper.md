@@ -11,6 +11,7 @@ calculated when required.
 |--------|---------------|------------------------------------------|
 |operator|netket.Operator|The operator used to construct the matrix.|
 
+
 ### Examples
 Printing the dimension of a direct matrix wrapper.
 
@@ -36,3 +37,4 @@ Printing the dimension of a direct matrix wrapper.
 |Property |Type|                         Description                         |
 |---------|----|-------------------------------------------------------------|
 |dimension|int | The Hilbert space dimension corresponding to the Hamiltonian|
+

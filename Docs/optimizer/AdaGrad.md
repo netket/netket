@@ -27,6 +27,7 @@ Constructs a new ``AdaGrad`` optimizer.
 |learning_rate|float=0.001|Learning rate $$\eta$$.   |
 |epscut       |float=1e-07|Small $$\epsilon$$ cutoff.|
 
+
 ### Examples
 Simple AdaDelta optimizer.
 

@@ -23,6 +23,7 @@ Constructs a new ``Momentum`` optimizer.
 |learning_rate|float=0.001|The learning rate $$ \eta $$                        |
 |beta         |float=0.9  |Momentum exponential decay rate, should be in [0,1].|
 
+
 ### Examples
 Momentum optimizer.
 

@@ -9,6 +9,7 @@ stored as a sparse Eigen matrix.
 |--------|---------------|------------------------------------------|
 |operator|netket.Operator|The operator used to construct the matrix.|
 
+
 ### Examples
 Printing the dimension of a sparse matrix wrapper.
 
@@ -34,3 +35,4 @@ Printing the dimension of a sparse matrix wrapper.
 |---------|---------------------------|-------------------------------------------------------------|
 |_matrix  |Eigen SparseMatrix Complex | The stored matrix.                                          |
 |dimension|int                        | The Hilbert space dimension corresponding to the Hamiltonian|
+

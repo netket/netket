@@ -13,7 +13,8 @@ data, including samples and targets.
 |samples   |List[numpy.ndarray[float64[m, 1]]]   |The input data, i.e. many-body basis.                         |
 |targets   |List[numpy.ndarray[complex128[m, 1]]]|The output label, i.e. amplitude of the corresponding basis.  |
 
-## Class Methods
+
+## Class Methods 
 ### advance
 Run one iteration of supervised learning. This should be helpful for testing and
 having self-defined control sequence in python.
@@ -41,3 +42,4 @@ Run supervised learning.
 |loss_log_overlap|double| The current negative log fidelity.             |
 |loss_mse        |double| The mean square error of amplitudes.           |
 |loss_mse_log    |double| The mean square error of the log of amplitudes.|
+
