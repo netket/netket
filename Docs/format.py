@@ -3,6 +3,7 @@ import parse as pa
 import extract as ext
 import inspect
 import io
+import re
 
 
 def format_class(cl):
@@ -14,7 +15,7 @@ def format_class(cl):
         return f.getvalue()
 
     # remove excess spaces
-    docs = " ".join(docs.split())
+    docs = re.sub(' +', ' ', docs).strip()
 
     # General high-level class docs
     f.write('# ' + cl.__name__ + '\n')
@@ -119,6 +120,7 @@ def format_properties(properties):
     writer.value_matrix = value_matrix
     writer.stream = f
 
-    f.write('## Properties' + '\n\n')
-    writer.write_table()
+    if(len(properties) > 0):
+        f.write('## Properties' + '\n\n')
+        writer.write_table()
     return f.getvalue()

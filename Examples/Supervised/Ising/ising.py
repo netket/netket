@@ -14,7 +14,6 @@
 
 
 import netket as nk
-from mpi4py import MPI
 from ed import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,11 +29,10 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 
 
 # Optimizer
-# op = nk.optimizer.Sgd(1e-1)
 op = nk.optimizer.AdaDelta()
 
 
-spvsd = nk.supervised.supervised(
+spvsd = nk.supervised.Supervised(
     machine=ma,
     optimizer=op,
     batch_size=400,
@@ -47,12 +45,14 @@ overlaps = []
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE", "Overlap_uni"
 for i in range(n_iter):
-    spvsd.iterate(loss_function="Overlap_phi")
+    spvsd.advance(loss_function="Overlap_phi")
     overlaps.append(np.exp(-spvsd.loss_log_overlap))
 
-plt.plot(overlaps)
-plt.ylabel('Overlap')
-plt.xlabel('Iteration #')
-plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color='k', label='1')
-plt.title(r'Transverse-field Ising model, $L=' + str(L) + '$')
-plt.show()
+
+if nk.MPI.rank() == 0:
+    plt.plot(overlaps)
+    plt.ylabel('Overlap')
+    plt.xlabel('Iteration #')
+    plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color='k', label='1')
+    plt.title(r'Transverse-field Ising model, $L=' + str(L) + '$')
+    plt.show()

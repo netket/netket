@@ -1,5 +1,4 @@
 from __future__ import print_function
-from mpi4py import MPI
 import netket as nk
 import sys
 
@@ -34,8 +33,7 @@ vmc = nk.variational.Vmc(
     diag_shift=0.0,
     method='Sr')
 
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
+mpi_rank = nk.MPI.rank()
 
 for step in vmc.iter(300):
     obs = vmc.get_observable_stats()

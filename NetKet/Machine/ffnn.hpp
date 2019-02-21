@@ -17,9 +17,9 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+#include "Layers/layer.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
-#include "layer.hpp"
 
 #ifndef NETKET_FFNN_HPP
 #define NETKET_FFNN_HPP

@@ -14,13 +14,12 @@
 
 from __future__ import print_function
 
-from mpi4py import MPI
 import netket as nk
 
 
-if MPI.COMM_WORLD.Get_size() > 1:
+if nk.MPI.size() > 1:
     import sys
-    if MPI.COMM_WORLD.Get_rank() == 0:
+    if nk.MPI.rank() == 0:
         print("Error: The exact imaginary time propagation currently only supports one MPI process")
     sys.exit(1)
 
@@ -38,7 +37,8 @@ hamiltonian = nk.operator.Ising(hilbert, h=1.0)
 mat = nk.operator.wrap_as_matrix(hamiltonian)
 
 # create time stepper
-stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
+stepper = nk.dynamics.create_timestepper(
+    mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
 
 # prepare output
 output = nk.output.JsonOutputWriter('test.log', 'test.wf')

@@ -1,5 +1,11 @@
 # RbmSpin
-A fully connected Restricted Boltzmann Machine (RBM). This type of RBM has spin 1/2 hidden units and is defined by: $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$ for arbitrary local quantum numbers $$ s_i $$.
+A fully connected Restricted Boltzmann Machine (RBM). This type of
+ RBM has spin 1/2 hidden units and is defined by:
+
+ $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+ \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+
+ for arbitrary local quantum numbers $$ s_i $$.
 
 ## Class Constructor
 Constructs a new ``RbmSpin`` machine:
@@ -21,7 +27,6 @@ alpha = 2 for a one-dimensional L=20 spin-half system:
 >>> from netket.machine import RbmSpin
 >>> from netket.hilbert import Spin
 >>> from netket.graph import Hypercube
->>> from mpi4py import MPI
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = RbmSpin(hilbert=hi,alpha=2)

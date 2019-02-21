@@ -2,7 +2,7 @@
 Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.
 
 ## Class Constructor
-Constructs a ``VariationalMonteCarlo`` object given a hamiltonian, 
+Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
 sampler, optimizer, and the number of samples.
 
 |        Argument         |                                    Type                                     |                                                                         Description                                                                          |
@@ -25,7 +25,6 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 ```python
 >>> import netket as nk
->>> from mpi4py import MPI
 >>> SEED = 3141592
 >>> g = nk.graph.Hypercube(length=8, n_dim=1)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -35,7 +34,7 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
 >>> sa.seed(SEED)
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
->>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, 
+>>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa,
 ... optimizer=op, n_samples=500)
 >>> print(vmc.machine.n_visible)
 8
@@ -47,13 +46,23 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 ## Class Methods 
 ### add_observable
-Add an observable quantity, that will be calculated at each 
+Add an observable quantity, that will be calculated at each
 iteration.
 
 |Argument|          Type          |            Description             |
 |--------|------------------------|------------------------------------|
 |ob      |netket::AbstractOperator|The operator form of the observable.|
 |ob_name |str                     |The name of the observable.         |
+
+
+### advance
+Perform one or several iteration steps of the VMC calculation. In each step,
+energy and gradient will be estimated via VMC and subsequently, the variational
+parameters will be updated according to the configured method.
+
+|Argument|Type |          Description          |
+|--------|-----|-------------------------------|
+|steps   |int=1|Number of VMC steps to perform.|
 
 
 ### get_observable_stats
@@ -63,7 +72,7 @@ Calculate and return the value of the operators stored as observables.
 
 
 ### iter
-Iterate the optimization of the Vmc wavefunction. 
+Iterate the optimization of the Vmc wavefunction.
 
 |Argument |       Type       |                    Description                     |
 |---------|------------------|----------------------------------------------------|
@@ -88,7 +97,6 @@ Running a simple Vmc calculation.
 
 ```python
 >>> import netket as nk
->>> from mpi4py import MPI
 >>> SEED = 3141592
 >>> g = nk.graph.Hypercube(length=8, n_dim=1)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -98,12 +106,12 @@ Running a simple Vmc calculation.
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
 >>> sa.seed(SEED)
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
->>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, 
+>>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa,
 ... optimizer=op, n_samples=500)
 >>> vmc.run(output_prefix='test', n_iter=1)
 
 
-```               
+```
 
 
 

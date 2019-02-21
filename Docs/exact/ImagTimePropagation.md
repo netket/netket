@@ -2,7 +2,7 @@
 Solving for the ground state of the wavefunction using imaginary time propagation.
 
 ## Class Constructor
-Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper, 
+Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper,
 a time, and an initial state.
 
 |  Argument   |                                          Type                                           |                                          Description                                           |
@@ -17,7 +17,6 @@ a time, and an initial state.
 Solving 1D ising model with imagniary time propagation.
 
 ```python
->>> from mpi4py import MPI
 >>> import netket as nk
 >>> import numpy as np
 >>> L = 20
@@ -39,7 +38,7 @@ Solving 1D ising model with imagniary time propagation.
 
 ## Class Methods 
 ### add_observable
-Add an observable quantity, that will be calculated at each 
+Add an observable quantity, that will be calculated at each
 iteration.
 
 | Argument  |          Type          |                                                                   Description                                                                   |
@@ -56,7 +55,7 @@ Calculate and return the value of the operators stored as observables.
 
 
 ### iter
-Iterate the optimization of the Vmc wavefunction. 
+Iterate the optimization of the Vmc wavefunction.
 
 |Argument|       Type       |               Description               |
 |--------|------------------|-----------------------------------------|

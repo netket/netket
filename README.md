@@ -13,6 +13,7 @@
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
+It is a Python library built on C++ primitives.
 
 
 ## Major Features
@@ -20,38 +21,45 @@ of many-body quantum systems with artificial neural networks and machine learnin
 * Graphs
   * Built-in Graphs
     * Hypercube
+    * General Lattice with arbitrary number of atoms per unit cell
   * Custom Graphs
-    * Any Graph With Given Adjacency Matrix [from input file]
-    * Any Graph With Given Edges [from input file]
+    * Any Graph With Given Adjacency Matrix
+    * Any Graph With Given Edges
   * Symmetries
     * Automorphisms: pre-computed in built-in graphs, available through iGraph for custom graphs
 
-* Hamiltonians
+* Quantum Operators
   * Built-in Hamiltonians
     * Transverse-field Ising
     * Heisenberg
     * Bose-Hubbard
-  * Custom Hamiltonians
-    * General k-local Hamiltonians defined on Graphs
-    * Any k-local Hamiltonian [from input file]
+  * Custom Operators
+    * Any k-local Hamiltonian
+    * General k-local Operator defined on Graphs
 
- * Ground State Solvers  
-   * Stochastic Learning Methods
-     * Gradient Descent
-     * Stochastic Reconfiguration Method
-       * Direct Solver
-       * Iterative Solver for Large Number of Parameters  
-   * Exact Diagonalization
-     * Full Solver
-     * Lanczos Solver
-     * Imaginary-Time Dynamics
+* Variational Monte Carlo   
+  * Stochastic Learning Methods for Ground-State Problems
+    * Gradient Descent
+    * Stochastic Reconfiguration Method
+      * Direct Solver
+      * Iterative Solver for Large Number of Parameters  
 
- * Optimizers
-    * Stochastic Gradient Descent
-    * AdaMax, AdaDelta, AdaGrad, AMSGrad
-    * RMSProp
-    * Momentum
-    * Gradient Clipping
+* Exact Diagonalization
+  * Full Solver
+  * Lanczos Solver
+  * Imaginary-Time Dynamics
+
+* Supervised Learning
+  * Supervised overlap optimization from given data
+
+* Neural-Network Quantum State Tomography
+  * Using arbitrary k-local measurement basis       
+
+* Optimizers
+  * Stochastic Gradient Descent
+  * AdaMax, AdaDelta, AdaGrad, AMSGrad
+  * RMSProp
+  * Momentum
 
 * Machines
   * Restricted Boltzmann Machines
@@ -63,31 +71,34 @@ of many-body quantum systems with artificial neural networks and machine learnin
     * Fully connected layer
     * Convnet layer for arbitrary underlying graph
     * Any Layer Satisfying Prototypes in `AbstractLayer` [extending C++ code]
-  * Jastrow wavefunction
+  * Jastrow States
     * Standard
     * With Permutation Symmetry Using Graph Isomorphisms
+  * Matrix Product States
+    * MPS
+    * Periodic MPS  
   * Custom Machines
     * Any Machine Satisfying Prototypes in `AbstractMachine` [extending C++ code]
 
 * Observables
   * Custom Observables
-    * Any k-local Operator [from input file]
+    * Any k-local Operator
 
 * Sampling
   * Local Metropolis Moves
     * Local Hilbert Space Sampling
-    * Parallel Tempering Versions
   * Hamiltonian Moves
     * Automatic Moves with Hamiltonian Symmetry
-    * Parallel Tempering Versions
   * Custom Sampling
     * Any k-local Stochastic Operator can be used to do Metropolis Sampling
+  * Exact Sampler for small systems  
 
 * Statistics
   * Automatic Estimate of Correlation Times
 
-* I/O
-  * Python/JSON Interface   
+* Interface
+  * Python Library
+  * JSON output  
 
 ## Installation and Usage
 

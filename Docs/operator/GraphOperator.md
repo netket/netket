@@ -19,7 +19,6 @@ desired. If none are specified, the bond operators act on all edges.
 Constructs a ``BosGraphOperator`` operator for a 2D system.
 
 ```python
->>> from mpi4py import MPI
 >>> import netket as nk
 >>> sigmax = [[0, 1], [1, 0]]
 >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -40,9 +39,9 @@ Constructs a ``BosGraphOperator`` operator for a 2D system.
 ## Class Methods 
 ### get_conn
 Member function finding the connected elements of the Operator. Starting
-from a given visible state v, it finds all other visible states v' such 
+from a given visible state v, it finds all other visible states v' such
 that the matrix element O(v,v') is different from zero. In general there
-will be several different connected visible units satisfying this 
+will be several different connected visible units satisfying this
 condition, and they are denoted here v'(k), for k=0,1...N_connected.
 
 |Argument|            Type            |                   Description                    |

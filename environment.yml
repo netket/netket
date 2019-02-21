@@ -1,13 +1,11 @@
 name: mybinder-env
 channels:
   - anaconda
-  - conda-forge
 dependencies:
-  - python
-  - cmake
+  - python=3.5.3
+  - pip
   - scipy
   - numpy
   - matplotlib
-  - openmpi-mpicxx
-  - mpi4py
+  - openmpi
   - pytest-cov

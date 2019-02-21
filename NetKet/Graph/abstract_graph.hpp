@@ -52,7 +52,8 @@ class AbstractGraph {
   virtual int Size() const noexcept = 0;
 
   /**
-  Returns the graph edges.
+  Member function returning the graph edges.
+  @return Graph edges.
   */
   virtual std::vector<Edge> const &Edges() const noexcept = 0;
 
@@ -96,14 +97,16 @@ class AbstractGraph {
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
-  virtual bool IsBipartite() const noexcept = 0;
+  // virtual bool IsBipartite() const noexcept = 0;
+  bool IsBipartite() const noexcept;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
    * every pair of nodes.
    * @return true, if the graph is connected
    */
-  virtual bool IsConnected() const noexcept = 0;
+  // virtual bool IsConnected() const noexcept = 0;
+  bool IsConnected() const noexcept;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling

@@ -73,15 +73,14 @@ class Supervised {
 
  protected:
   // Random number generator with correct seeding for parallel processes
-  default_random_engine& GetRandomEngine() { return engine_.Get(); }
+  default_random_engine &GetRandomEngine() { return engine_.Get(); }
 
  private:
   DistributedRandomEngine engine_;
 
  public:
-  Supervised(AbstractMachine<complex> &psi,
-             AbstractOptimizer &opt, int batchsize,
-             std::vector<Eigen::VectorXd> trainingSamples,
+  Supervised(AbstractMachine<complex> &psi, AbstractOptimizer &opt,
+             int batchsize, std::vector<Eigen::VectorXd> trainingSamples,
              std::vector<Eigen::VectorXcd> trainingTargets)
       : psi_(psi),
         opt_(opt),
@@ -215,7 +214,6 @@ class Supervised {
       grad_num_1_ = grad_num_1_ + std::norm(value / t);
       grad_part_2_ = grad_part_2_ + der * std::conj(value / t);
       grad_num_2_ = grad_num_2_ + std::conj(value / t);
-
     }
 
     SumOnNodes(grad_part_1_);
@@ -262,7 +260,7 @@ class Supervised {
     grad_ /= double(totalnodes_);
   }
 
-  void Iterate(std::string lossFunction) {
+  void Advance(std::string lossFunction) {
     std::vector<Eigen::VectorXd> batchSamples(batchsize_node_);
     std::vector<Eigen::VectorXcd> batchTargets(batchsize_node_);
 
@@ -312,7 +310,7 @@ class Supervised {
   ///                   and testTargets_ and reports on accuracy on those.
   void Run(int n_iter, const std::string &lossFunction = "MSE",
            const std::string &output_prefix = "output",
-	   int save_params_every = 50) {
+           int save_params_every = 50) {
     assert(n_iter > 0);
     assert(save_params_every > 0);
 
@@ -322,15 +320,15 @@ class Supervised {
     if (mynode_ == 0) {
       /// Initializes the output log and wavefunction files
       writer.emplace(output_prefix + ".log", output_prefix + ".wf",
-		     save_params_every);
+                     save_params_every);
     }
 
     opt_.Reset();
     for (int i = 0; i < n_iter; i++) {
-      Iterate(lossFunction);
+      Advance(lossFunction);
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
-      if (writer.has_value()){
+      if (writer.has_value()) {
         json out_data;
         out_data["log_overlap"] = loss_log_overlap_;
         out_data["mse"] = loss_mse_;
@@ -420,13 +418,13 @@ class Supervised {
       num4 += std::norm(t);
     }
 
-    complex complex_log_overlap_ = -(log(num1) + log(num2) - log(num3) - log(num4));
+    complex complex_log_overlap_ =
+        -(log(num1) + log(num2) - log(num3) - log(num4));
     assert(std::abs(complex_log_overlap_.imag()) < 1e-8);
     loss_log_overlap_ = complex_log_overlap_.real();
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
-
 };
 
 }  // namespace netket

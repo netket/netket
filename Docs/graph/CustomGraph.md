@@ -1,5 +1,5 @@
 # CustomGraph
-In addition to built-in graphs, NetKet provides the freedom to define custom graphs, specifying a list of edges.
+A custom graph, specified by a list of edges and optionally colors.
 
 ## Class Constructor
 Constructs a new graph given a list of edges.
@@ -8,7 +8,6 @@ Constructs a new graph given a list of edges.
 |-------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |edges        |iterable          |If `edges` has elements of type `Tuple[int, int]` it is treated as a list of edges. Then each element `(i, j)` means a connection between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also, `edges` should contain no duplicates. If `edges` has elements of type `Tuple[int, int, int]` each element `(i, j, c)` represents an edge between sites `i` and `j` colored into `c`. It is again assumed that `0 <= i <= j` and that there are no duplicate elements in `edges`.|
 |automorphisms|List[List[int]]=[]|The automorphisms of the graph, i.e. a List[List[int]] where the inner List[int] is a unique permutation of the graph sites.                                                                                                                                                                                                                                                                                                                                                         |
-|is_bipartite |bool=False        |Wheter the custom graph is bipartite. Notice that this is not deduced from the edge list and it is left to the user to specify whether the graph is bipartite or not.                                                                                                                                                                                                                                                                                                                |
 
 
 ### Examples

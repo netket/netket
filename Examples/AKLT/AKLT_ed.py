@@ -26,7 +26,6 @@
 
 import numpy as np
 import netket as nk
-from mpi4py import MPI
 
 # Exact ground state energy of AKLT model is zero by construction, see above references.
 

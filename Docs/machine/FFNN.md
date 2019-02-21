@@ -1,5 +1,9 @@
 # FFNN
-A feedforward neural network (FFNN) Machine. This machine is constructed by providing a sequence of layers from the ``layer`` class. Each layer implements a transformation such that the information is transformed sequentially as it moves from the input nodes through the hidden layers and to the output nodes.
+A feedforward neural network (FFNN) Machine. This machine is
+ constructed by providing a sequence of layers from the ``layer``
+ class. Each layer implements a transformation such that the
+ information is transformed sequentially as it moves from the input
+ nodes through the hidden layers and to the output nodes.
 
 ## Class Constructor
 Constructs a new ``FFNN`` machine:
@@ -21,7 +25,6 @@ for a one-dimensional L=20 spin-half system:
 >>> from netket.hilbert import Spin
 >>> from netket.graph import Hypercube
 >>> from netket.machine import FFNN
->>> from mpi4py import MPI
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> layers = (FullyConnected(input_size=20,output_size=20,use_bias=True),Lncosh(input_size=20),SumOutput(input_size=20))

@@ -14,7 +14,6 @@
 import numpy as np
 import networkx as nx
 import netket as nk
-from mpi4py import MPI
 
 #Sigma^z*Sigma^z interactions
 sigmaz = [[1, 0], [0, -1]]

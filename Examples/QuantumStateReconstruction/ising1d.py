@@ -14,7 +14,6 @@
 
 
 import netket as nk
-from mpi4py import MPI
 from load_data import load
 
 

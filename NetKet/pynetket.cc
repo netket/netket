@@ -16,31 +16,37 @@
 #define NETKET_PYNETKET_CC
 
 #include <netket.hpp>
+#include "Utils/mpi_interface.hpp"  // for MPIInitializer
+
 namespace netket {
 using StateType = Complex;
 using MachineType = AbstractMachine<StateType>;
 using LayerType = AbstractLayer<StateType>;
 using SamplerType = AbstractSampler<MachineType>;
-} // namespace netket
+}  // namespace netket
 
 #include "Utils/pybind_helpers.hpp"
 
-#include "Dynamics/pydynamics.hpp"
-#include "Graph/pygraph.hpp"
-#include "GroundState/pyground_state.hpp"
-#include "Hilbert/pyhilbert.hpp"
-#include "Machine/pymachine.hpp"
-#include "Operator/pyoperator.hpp"
-#include "Optimizer/pyoptimizer.hpp"
-#include "Output/pyoutput.hpp"
-#include "Sampler/pysampler.hpp"
-#include "Stats/binning.hpp"
-#include "Stats/pystats.hpp"
-#include "Supervised/pysupervised.hpp"
-#include "Unsupervised/pyunsupervised.hpp"
-#include "Utils/pyutils.hpp"
+#include "Dynamics/py_dynamics.hpp"
+#include "Graph/py_graph.hpp"
+#include "GroundState/py_ground_state.hpp"
+#include "Hilbert/py_hilbert.hpp"
+#include "Machine/py_machine.hpp"
+#include "Operator/py_operator.hpp"
+#include "Optimizer/py_optimizer.hpp"
+#include "Output/py_output.hpp"
+#include "Sampler/py_sampler.hpp"
+#include "Stats/py_stats.hpp"
+#include "Supervised/py_supervised.hpp"
+#include "Unsupervised/py_unsupervised.hpp"
+#include "Utils/py_utils.hpp"
+
 
 namespace netket {
+
+namespace detail {
+static MPIInitializer _do_not_use_me_dummy_{};
+}  // namespace detail
 
 using ode::AddDynamicsModule;
 
@@ -58,8 +64,8 @@ PYBIND11_MODULE(netket, m) {
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);
-} // PYBIND11_MODULE
+}  // PYBIND11_MODULE
 
-} // namespace netket
+}  // namespace netket
 
 #endif

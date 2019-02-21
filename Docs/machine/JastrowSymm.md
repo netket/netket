@@ -1,5 +1,11 @@
 # JastrowSymm
-A Jastrow wavefunction Machine with lattice symmetries.This machine defines the wavefunction as follows: $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$ where $$ W_{ij} $$ are the Jastrow parameters respects the specified symmetries of the lattice.
+A Jastrow wavefunction Machine with lattice symmetries.This machine
+ defines the wavefunction as follows:
+
+ $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
+
+ where $$ W_{ij} $$ are the Jastrow parameters respects the
+ specified symmetries of the lattice.
 
 ## Class Constructor
 Constructs a new ``JastrowSymm`` machine:
@@ -17,7 +23,6 @@ A ``JastrowSymm`` machine for a one-dimensional L=20 spin
 >>> from netket.machine import JastrowSymm
 >>> from netket.hilbert import Spin
 >>> from netket.graph import Hypercube
->>> from mpi4py import MPI
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
 >>> ma = JastrowSymm(hilbert=hi)

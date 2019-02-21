@@ -14,7 +14,6 @@
 
 from __future__ import print_function
 import netket as nk
-from mpi4py import MPI
 
 L = 20
 

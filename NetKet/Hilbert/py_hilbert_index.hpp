@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PYUTILS_HPP
-#define NETKET_PYUTILS_HPP
+#ifndef NETKET_PYHILBERTINDEX_HPP
+#define NETKET_PYHILBERTINDEX_HPP
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -23,28 +22,21 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "all_utils.hpp"
+#include "hilbert_index.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddUtilsModule(py::module &m) {
-  auto subm = m.def_submodule("utils");
+constexpr int HilbertIndex::MaxStates;
 
-  py::class_<netket::default_random_engine>(subm, "RandomEngine")
-      .def(py::init<netket::default_random_engine::result_type>(),
-           py::arg("seed") = netket::default_random_engine::default_seed)
-      .def("Seed", (void (netket::default_random_engine::*)(
-                       netket::default_random_engine::result_type)) &
-                       netket::default_random_engine::seed);
-
-  py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
-
-  py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
-      .def(py::init<>());
+void AddHilbertIndex(py::module &subm) {
+  py::class_<HilbertIndex>(subm, "HilbertIndex")
+      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
+      .def_property_readonly("n_states", &HilbertIndex::NStates)
+      .def("number_to_state", &HilbertIndex::NumberToState)
+      .def("state_to_number", &HilbertIndex::StateToNumber)
+      .def_readonly_static("max_states", &HilbertIndex::MaxStates);
 }
-
 }  // namespace netket
-
 #endif
