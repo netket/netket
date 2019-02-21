@@ -1,4 +1,4 @@
-# supervised
+# Supervised
 Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.
 
 ## Class Constructor
@@ -14,7 +14,7 @@ data, including samples and targets.
 |targets   |List[numpy.ndarray[complex128[m, 1]]]|The output label, i.e. amplitude of the corresponding basis.  |
 
 ## Class Methods 
-### iterate
+### advance
 Run one iteration of supervised learning. This should be helpful for testing and
 having self-defined control sequence in python.
 
