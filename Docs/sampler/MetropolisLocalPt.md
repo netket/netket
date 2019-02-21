@@ -18,7 +18,6 @@ Sampling from a RBM machine in a 1D lattice of spin 1/2
 
 ```python
 >>> import netket as nk
->>> from mpi4py import MPI
 >>>
 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)

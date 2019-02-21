@@ -17,7 +17,6 @@ import netket as nk
 from ed import load_ed_data
 import matplotlib.pyplot as plt
 import numpy as np
-from mpi4py import MPI
 
 L = 10
 
@@ -49,10 +48,8 @@ for i in range(n_iter):
     spvsd.advance(loss_function="Overlap_phi")
     overlaps.append(np.exp(-spvsd.loss_log_overlap))
 
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
 
-if mpi_rank == 0:
+if nk.MPI.rank() == 0:
     plt.plot(overlaps)
     plt.ylabel('Overlap')
     plt.xlabel('Iteration #')

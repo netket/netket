@@ -17,7 +17,6 @@ a time, and an initial state.
 Solving 1D ising model with imagniary time propagation.
 
 ```python
->>> from mpi4py import MPI
 >>> import netket as nk
 >>> import numpy as np
 >>> L = 20

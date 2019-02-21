@@ -132,7 +132,7 @@ setup(
     author_email='netket@netket.org',
     license='Apache 2.0',
     ext_modules=[CMakeExtension('netket')],
-    install_requires=['mpi4py', 'cmake', 'numpy'],
+    install_requires=['cmake', 'numpy'],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
