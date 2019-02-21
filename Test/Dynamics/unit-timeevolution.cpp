@@ -8,7 +8,6 @@
 #include <Eigen/Eigen>
 
 #include "netket.hpp"
-#include "Dynamics/time_evolution.hpp"
 #include "Dynamics/TimeStepper/explicit_time_steppers.hpp"
 #include "Dynamics/TimeStepper/controlled_time_steppers.hpp"
 
@@ -184,9 +183,9 @@ TEST_CASE("Integrators approximately conserve norm when propagating Schroedinger
     using State = Eigen::VectorXcd;
 
     const double sqrt2 = std::sqrt(2.);
-    const std::complex<double> im(0, 1);
+    const Complex im(0, 1);
 
-    const std::complex<double> g(1/sqrt2, 1/sqrt2);
+    const Complex g(1/sqrt2, 1/sqrt2);
 
     const double delta = 1.;
 
@@ -245,12 +244,12 @@ namespace odeint = boost::numeric::odeint;
 TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]")
 {
     using State = Eigen::VectorXcd;
-    using OdeintState = std::vector<std::complex<double>>;
+    using OdeintState = std::vector<Complex>;
 
     const double sqrt2 = std::sqrt(2.);
-    const std::complex<double> im(0, 1);
+    const Complex im(0, 1);
 
-    const std::complex<double> g(1/sqrt2, 1/sqrt2);
+    const Complex g(1/sqrt2, 1/sqrt2);
     const auto gc = std::conj(g);
 
     const double delta = 1.;
@@ -337,78 +336,3 @@ TEST_CASE("Comparison with boost::odeint for Schroedinger eq", "[time-evolution]
     }
 }
 #endif
-
-TEST_CASE("Time evolution driver produces sensible output", "[time-evolution]")
-{
-    json pars;
-
-    pars["Hilbert"]["QuantumNumbers"] = {-1, 1};
-    pars["Hilbert"]["Size"] = 1;
-
-    json observable_json;
-    observable_json["ActingOn"] = {{0}};
-    observable_json["Operators"] = {{{-1, 2}, {2, 1}}};
-
-    pars["Hamiltonian"] = observable_json;
-
-    pars["TimeEvolution"] = {
-            {"StepperType", "Dopri54"},
-            {"OutputFiles", "test_output_%i.log"},
-            {"AbsTol", 1e-9},
-            {"RelTol", 1e-9},
-            {"StartTime", 0.0},
-            {"EndTime", 100.0},
-            {"TimeStep", 1.0}
-    };
-
-    pars["TimeEvolution"]["InitialStates"] = {
-        {{1, 0}, {0, 0}},
-        {{0, 0}, {1, 0}},
-    };
-
-    {
-        Stopwatch watch;
-        RunTimeEvolution(pars);
-        std::cout << "TimeEvolution elapsed: " << watch.elapsed().count() << "us" << std::endl;
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    auto outfiles = std::vector<std::string>{
-            "test_output_0.log",
-            "test_output_1.log"};
-
-    int mpirank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
-    int mpisize;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpisize);
-
-    for(size_t i = mpirank; i < outfiles.size(); i += mpisize)
-    {
-        auto fn = outfiles[i];
-        INFO(fn);
-        std::ifstream fin(fn);
-        CHECK(fin.good());
-
-        std::string line;
-        int pos = 0;
-        while(std::getline(fin, line))
-        {
-            INFO(line);
-            json js = json::parse(line);
-
-            REQUIRE(js.is_object());
-
-            REQUIRE(js.find("Time") != js.end());
-            double time = js["Time"].get<double>();
-            CHECK(Approx(time) == pos);
-
-            REQUIRE(js.find("State") != js.end());
-            REQUIRE(js["State"].size() == 2); // States have Hilbert space dimension
-            using StateType = std::vector<std::complex<double>>;
-            auto state = js["State"].get<StateType>();
-
-            pos++;
-        }
-    }
-}

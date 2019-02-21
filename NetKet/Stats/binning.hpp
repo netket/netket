@@ -19,6 +19,8 @@
 #include <valarray>
 #include <vector>
 
+#include "onlinestat.hpp"
+
 namespace netket {
 
 template <class T>
@@ -41,6 +43,12 @@ class Binning {
   int nproc_;
 
  public:
+  struct Stats {
+    DataType mean;
+    DataType sigma;
+    DataType taucorr;
+  };
+
   explicit Binning(int nbins = 16) { Init(nbins); }
 
   void Init(int nbins) {
@@ -188,7 +196,7 @@ class Binning {
     return EoMeanOp(sigma2);
   }
 
-  json AllStats() const {
+  Stats AllStats() const {
     const auto binned = Binned();
 
     DataType mean = binned.Mean();
@@ -201,12 +209,15 @@ class Binning {
 
     auto tcorr = TauCorr();
 
-    json j;
-    j["Mean"] = mean;
-    j["Sigma"] = eomean;
-    j["Taucorr"] = tcorr;
+    return {mean, eomean, tcorr};
+  }
 
-    return j;
+  template<class Map>
+  void InsertAllStats(Map &dict) const {
+    auto stats = AllStats();
+    dict["Mean"] = stats.mean;
+    dict["Sigma"] = stats.sigma;
+    dict["Taucorr"] = stats.taucorr;
   }
 
   int NvalProc() {

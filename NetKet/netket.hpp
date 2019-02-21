@@ -15,15 +15,14 @@
 #ifndef NETKET_HEADER_HPP
 #define NETKET_HEADER_HPP
 
-#include "Dynamics/time_evolution.hpp"
+#include "common_types.hpp"
+
 #include "Graph/graph.hpp"
 #include "GroundState/ground_state.hpp"
-#include "Hamiltonian/hamiltonian.hpp"
 #include "Headers/welcome.hpp"
 #include "Hilbert/hilbert.hpp"
-#include "Lookup/lookup.hpp"
 #include "Machine/machine.hpp"
-#include "Observable/observable.hpp"
+#include "Operator/operator.hpp"
 #include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"

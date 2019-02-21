@@ -17,86 +17,13 @@
 
 #include <memory>
 #include <set>
+#include "Graph/graph.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"
-#include "next_variation.hpp"
 #include "qubits.hpp"
 #include "spins.hpp"
-
-namespace netket {
-
-class Hilbert : public AbstractHilbert {
-  std::shared_ptr<AbstractHilbert> h_;
-
- public:
-  explicit Hilbert() {}
-
-  explicit Hilbert(const Hilbert &oh) : h_(oh.h_) {}
-
-  explicit Hilbert(const json &pars) { Init(pars); }
-
-  void Init(const json &pars) {
-    CheckInput(pars);
-
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      if (pars["Hilbert"]["Name"] == "Spin") {
-        h_ = std::make_shared<Spin>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Boson") {
-        h_ = std::make_shared<Boson>(pars);
-      } else if (pars["Hilbert"]["Name"] == "Qubit") {
-        h_ = std::make_shared<Qubit>(pars);
-      }
-    } else {
-      h_ = std::make_shared<CustomHilbert>(pars);
-    }
-  }
-
-  void CheckInput(const json &pars)
-  {
-    if (!FieldExists(pars, "Hilbert")) {
-      if (!FieldExists(pars, "Hamiltonian")) {
-        throw InvalidInputError("Not enough information to construct Hilbert space");
-      } else {
-        if (!FieldExists(pars["Hamiltonian"], "Name")) {
-          throw InvalidInputError("Not enough information to construct Hilbert space");
-        }
-      }
-    }
-
-    if (FieldExists(pars["Hilbert"], "Name")) {
-      std::set<std::string> hilberts = {"Spin", "Boson", "Qubit"};
-
-      const auto name = pars["Hilbert"]["Name"];
-
-      if (hilberts.count(name) == 0) {
-        std::stringstream s;
-        s << "Hilbert space type " << name << " not found.";
-        throw InvalidInputError(s.str());
-      }
-    }
-  }
-
-  bool IsDiscrete() const override { return h_->IsDiscrete(); }
-
-  int LocalSize() const override { return h_->LocalSize(); }
-
-  int Size() const override { return h_->Size(); }
-
-  std::vector<double> LocalStates() const override { return h_->LocalStates(); }
-
-  void RandomVals(Eigen::VectorXd &state,
-                  netket::default_random_engine &rgen) const override {
-    return h_->RandomVals(state, rgen);
-  }
-
-  void UpdateConf(Eigen::VectorXd &v, const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const override {
-    return h_->UpdateConf(v, tochange, newconf);
-  }
-};
-}  // namespace netket
 
 #endif

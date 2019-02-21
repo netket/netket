@@ -17,9 +17,8 @@
 
 namespace netket {
 
-template<typename Func>
-void AbstractGraph::BreadthFirstSearch_Impl(int start,
-                                            int max_depth,
+template <typename Func>
+void AbstractGraph::BreadthFirstSearch_Impl(int start, int max_depth,
                                             Func visitor_func,
                                             std::vector<bool> &seen) const {
   assert(start >= 0 && start < Nsites());
@@ -56,7 +55,7 @@ void AbstractGraph::BreadthFirstSearch_Impl(int start,
   }
 }
 
-template<typename Func>
+template <typename Func>
 void AbstractGraph::BreadthFirstSearch(Func visitor_func) const {
   std::vector<bool> seen(Nsites(), false);
   for (int v = 0; v < Nsites(); ++v) {
@@ -70,8 +69,9 @@ void AbstractGraph::BreadthFirstSearch(Func visitor_func) const {
   }
 }
 
-template<typename Func>
-void AbstractGraph::BreadthFirstSearch(int start, int max_depth, Func visitor_func) const {
+template <typename Func>
+void AbstractGraph::BreadthFirstSearch(int start, int max_depth,
+                                       Func visitor_func) const {
   std::vector<bool> seen(Nsites(), false);
   BreadthFirstSearch_Impl(start, max_depth, visitor_func, seen);
 }
@@ -80,9 +80,8 @@ std::vector<int> AbstractGraph::Distances(int root) const {
   std::vector<int> dists(Nsites(), -1);
 
   // Dijkstra's algorithm
-  BreadthFirstSearch(root, [&dists](int node, int depth) {
-    dists[node] = depth;
-  });
+  BreadthFirstSearch(root,
+                     [&dists](int node, int depth) { dists[node] = depth; });
 
   return dists;
 }
@@ -95,6 +94,49 @@ std::vector<std::vector<int>> AbstractGraph::AllDistances() const {
     distances.push_back(Distances(i));
   }
   return distances;
+}
+bool AbstractGraph::IsConnected() const noexcept {
+  const int start = 0;  // arbitrary node
+  int nvisited = 0;
+  BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
+  return nvisited == Nsites();
+}
+
+bool AbstractGraph::IsBipartite() const noexcept {
+  bool is_bipartite = true;
+  const int start = 0;  // arbitrary node
+  std::vector<int> colors(Nsites(), -1);
+  const auto adjacency_list =
+      AdjacencyList();  // implicit expression can't have
+                        // access to the Lattice function
+  if (IsConnected()) {
+    BreadthFirstSearch(
+        start, [&colors, &adjacency_list, &is_bipartite](int node, int) {
+          if (node == start) colors[node] = 1;
+          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
+            if (!is_bipartite) break;
+            if (colors[adjacency_list[node][j]] == -1) {
+              colors[adjacency_list[node][j]] = 1 - colors[node];
+            } else if (colors[adjacency_list[node][j]] == colors[node]) {
+              is_bipartite = false;
+            }
+          }
+        });
+  } else {
+    BreadthFirstSearch(
+        [&colors, &adjacency_list, &is_bipartite](int node, int, int) {
+          if (node == start) colors[node] = 1;
+          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
+            if (!is_bipartite) break;
+            if (colors[adjacency_list[node][j]] == -1) {
+              colors[adjacency_list[node][j]] = 1 - colors[node];
+            } else if (colors[adjacency_list[node][j]] == colors[node]) {
+              is_bipartite = false;
+            }
+          }
+        });
+  }
+  return is_bipartite;
 }
 
 }  // namespace netket

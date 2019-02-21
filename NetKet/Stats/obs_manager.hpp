@@ -21,28 +21,37 @@
 #include <cassert>
 #include <iostream>
 #include <map>
-#include "Utils/random_utils.hpp"
 #include <string>
 #include <type_traits>
 #include <vector>
 
+#include "Utils/random_utils.hpp"
+#include "common_types.hpp"
+
+#include "binning.hpp"
+#include "onlinestat.hpp"
+
 namespace netket {
 
 class ObsManager {
+  // TODO(C++14/17): Maybe replace with variant (or e.g. mpark::variant)? In
+  // C++11 working with variants is (even) less convenient since C++11 does not
+  // support templated lambda functions.
   std::map<std::string, Binning<double>> scalar_real_obs_;
   std::map<std::string, Binning<Eigen::VectorXd>> vector_real_obs_;
 
  public:
-  ObsManager() {}
-  inline void Push(std::string name, const double &data) {
+  ObsManager() = default;
+
+  inline void Push(const std::string &name, const double &data) {
     scalar_real_obs_[name] << data;
   }
 
-  inline void Push(std::string name, const Eigen::VectorXd &data) {
+  inline void Push(const std::string &name, const Eigen::VectorXd &data) {
     vector_real_obs_[name] << data;
   }
 
-  inline void Reset(std::string name) {
+  inline void Reset(const std::string &name) {
     if (scalar_real_obs_.count(name) > 0) {
       scalar_real_obs_[name].Reset();
     } else if (vector_real_obs_.count(name) > 0) {
@@ -52,24 +61,50 @@ class ObsManager {
 
   std::vector<std::string> Names() const {
     std::vector<std::string> names;
-    for (auto it = scalar_real_obs_.begin(); it != scalar_real_obs_.end();
-         ++it) {
-      names.push_back(it->first);
+    names.reserve(Size());
+    for (const auto &kv : scalar_real_obs_) {
+      names.push_back(kv.first);
     }
-    for (auto it = vector_real_obs_.begin(); it != vector_real_obs_.end();
-         ++it) {
-      names.push_back(it->first);
+    for (const auto &kv : vector_real_obs_) {
+      names.push_back(kv.first);
     }
     return names;
   }
 
-  json AllStats(std::string name) const {
-    json j;
+  Index Size() const {
+    return scalar_real_obs_.size() + vector_real_obs_.size();
+  }
+
+  bool Contains(const std::string &name) {
+    return scalar_real_obs_.count(name) > 0 || vector_real_obs_.count(name) > 0;
+  }
+
+  template <class Map>
+  void InsertAllStats(const std::string &name, Map &dict) const {
     if (scalar_real_obs_.count(name) > 0) {
-      j = scalar_real_obs_.at(name).AllStats();
+      scalar_real_obs_.at(name).InsertAllStats(dict);
     } else if (vector_real_obs_.count(name) > 0) {
-      j = vector_real_obs_.at(name).AllStats();
+      vector_real_obs_.at(name).InsertAllStats(dict);
     }
+  }
+
+  template <class Map>
+  void InsertAllStats(Map &dict) const {
+    for (const auto &kv : scalar_real_obs_) {
+      Map subdict;
+      kv.second.InsertAllStats(subdict);
+      dict[kv.first.c_str()] = subdict;
+    }
+    for (const auto &kv : vector_real_obs_) {
+      Map subdict;
+      kv.second.InsertAllStats(subdict);
+      dict[kv.first.c_str()] = subdict;
+    }
+  }
+
+  json AllStatsJson(const std::string &name) const {
+    json j;
+    InsertAllStats(name, j);
     return j;
   }
 };
@@ -78,7 +113,7 @@ void to_json(json &j, const ObsManager &om) {
   auto names = om.Names();
   j = json();
   for (auto name : names) {
-    j[name] = om.AllStats(name);
+    j[name] = om.AllStatsJson(name);
   }
 }
 

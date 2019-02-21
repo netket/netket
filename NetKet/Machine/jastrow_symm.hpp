@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Lookup/lookup.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 
 #ifndef NETKET_JAS_SYMM_HPP
@@ -31,6 +31,12 @@ template <typename T>
 class JastrowSymm : public AbstractMachine<T> {
   using VectorType = typename AbstractMachine<T>::VectorType;
   using MatrixType = typename AbstractMachine<T>::MatrixType;
+  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
+
+  const AbstractHilbert &hilbert_;
+  const AbstractGraph &graph_;
 
   std::vector<std::vector<int>> permtable_;
   int permsize_;
@@ -56,22 +62,24 @@ class JastrowSymm : public AbstractMachine<T> {
   Eigen::MatrixXd DerMatSymm_;
   Eigen::MatrixXi Wtemp_;
 
-  const Hilbert &hilbert_;
-
-  const Graph &graph_;
-
  public:
   using StateType = typename AbstractMachine<T>::StateType;
   using LookupType = typename AbstractMachine<T>::LookupType;
 
-  // Json constructor
-  explicit JastrowSymm(const Graph &graph, const Hilbert &hilbert,
-                       const json &pars)
-      : nv_(hilbert.Size()), hilbert_(hilbert), graph_(graph) {
-    from_json(pars);
+  // constructor
+  explicit JastrowSymm(const AbstractHilbert &hilbert)
+      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
+    Init(graph_);
+
+    SetBareParameters();
   }
 
-  void Init(const Graph &graph) {
+  void Init(const AbstractGraph &graph) {
+    if (nv_ < 2) {
+      throw InvalidInputError(
+          "Cannot construct Jastrow states with less than two visible units");
+    }
+
     permtable_ = graph.SymmetryTable();
     permsize_ = permtable_.size();
 
@@ -80,10 +88,11 @@ class JastrowSymm : public AbstractMachine<T> {
     }
 
     W_.resize(nv_, nv_);
+    W_.setZero();
     thetas_.resize(nv_);
     thetasnew_.resize(nv_);
 
-    nbarepar_ = nv_ * (nv_ - 1) / 2;
+    nbarepar_ = (nv_ * (nv_ - 1)) / 2;
 
     // Constructing the matrix that maps the bare derivatives to the symmetric
     // ones
@@ -96,8 +105,13 @@ class JastrowSymm : public AbstractMachine<T> {
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         for (int l = 0; l < permsize_; l++) {
-          int isymm = permtable_[l % permsize_][i];
-          int jsymm = permtable_[l % permsize_][j];
+          int isymm = permtable_[l][i];
+          int jsymm = permtable_[l][j];
+
+          if (isymm < 0 || isymm >= nv_ || jsymm < 0 || jsymm >= nv_) {
+            std::cerr << "Error in JastrowSymm" << std::endl;
+            std::abort();
+          }
           Wtemp_(isymm, jsymm) = k;
           Wtemp_(jsymm, isymm) = k;
         }  // l
@@ -121,7 +135,12 @@ class JastrowSymm : public AbstractMachine<T> {
 
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
-        Wtemp_(i, j) = params.find(Wtemp_(i, j))->second;
+        if (params.count(Wtemp_(i, j))) {
+          Wtemp_(i, j) = params.find(Wtemp_(i, j))->second;
+        } else {
+          std::cerr << "Error in JastrowSymm" << std::endl;
+          std::abort();
+        }
         Wtemp_(j, i) = Wtemp_(i, j);
       }
     }
@@ -133,7 +152,10 @@ class JastrowSymm : public AbstractMachine<T> {
     for (int i = 0; i < nv_; i++) {
       for (int j = i + 1; j < nv_; j++) {
         int ksymm = Wtemp_(i, j);
-
+        if (ksymm < 1 || ksymm - 1 >= npar_) {
+          std::cerr << "Error in JastrowSymm" << std::endl;
+          std::abort();
+        }
         DerMatSymm_(ksymm - 1, kbare) = 1;
         kbare++;
       }
@@ -159,7 +181,7 @@ class JastrowSymm : public AbstractMachine<T> {
     SetParameters(par);
   }
 
-  void InitLookup(const Eigen::VectorXd &v, LookupType &lt) override {
+  void InitLookup(VisibleConstType v, LookupType &lt) override {
     if (lt.VectorSize() == 0) {
       lt.AddVector(v.size());
     }
@@ -170,7 +192,7 @@ class JastrowSymm : public AbstractMachine<T> {
   }
 
   // same as RBM
-  void UpdateLookup(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
     if (tochange.size() != 0) {
@@ -181,7 +203,7 @@ class JastrowSymm : public AbstractMachine<T> {
     }
   }
 
-  VectorType BareDerLog(const Eigen::VectorXd &v) {
+  VectorType BareDerLog(VisibleConstType v) {
     VectorType der(nbarepar_);
 
     int k = 0;
@@ -196,7 +218,7 @@ class JastrowSymm : public AbstractMachine<T> {
   }
 
   // now unchanged w.r.t. RBM spin symm
-  VectorType DerLog(const Eigen::VectorXd &v) override {
+  VectorType DerLog(VisibleConstType v) override {
     return DerMatSymm_ * BareDerLog(v);
   }
 
@@ -212,7 +234,7 @@ class JastrowSymm : public AbstractMachine<T> {
     return pars;
   }
 
-  void SetParameters(const VectorType &pars) override {
+  void SetParameters(VectorConstRefType pars) override {
     int k = 0;
 
     for (int i = 0; i < npar_; i++) {
@@ -233,18 +255,18 @@ class JastrowSymm : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(const Eigen::VectorXd &v) override { return 0.5 * v.dot(W_ * v); }
+  T LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(const Eigen::VectorXd &v, const LookupType &lt) override {
+  T LogVal(VisibleConstType v, const LookupType &lt) override {
     return 0.5 * v.dot(lt.V(0));
   }
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
-      const Eigen::VectorXd &v, const std::vector<std::vector<int>> &tochange,
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
     const std::size_t nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
@@ -255,13 +277,13 @@ class JastrowSymm : public AbstractMachine<T> {
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
         thetasnew_ = thetas_;
-        Eigen::VectorXd vnew = v;
+        Eigen::VectorXd vnew(v);
 
         for (std::size_t s = 0; s < tochange[k].size(); s++) {
           const int sf = tochange[k][s];
 
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew[sf] = newconf[k][s];
+          vnew(sf) = newconf[k][s];
         }
 
         logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -271,7 +293,7 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(const Eigen::VectorXd &v, const std::vector<int> &tochange,
+  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                const std::vector<double> &newconf,
                const LookupType &lt) override {
     T logvaldiff = 0.;
@@ -279,13 +301,13 @@ class JastrowSymm : public AbstractMachine<T> {
     if (tochange.size() != 0) {
       T logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew = v;
+      Eigen::VectorXd vnew(v);
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
 
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew[sf] = newconf[s];
+        vnew(sf) = newconf[s];
       }
 
       logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
@@ -294,23 +316,24 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiff;
   }
 
-  const Hilbert &GetHilbert() const { return hilbert_; }
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 
   void to_json(json &j) const override {
-    // std::cout << "to json"<< std::endl;
-    j["Machine"]["Name"] = "JastrowSymm";
-    j["Machine"]["Nvisible"] = nv_;
-    j["Machine"]["Wsymm"] = Wsymm_;
+    j["Name"] = "JastrowSymm";
+    j["Nvisible"] = nv_;
+    j["Wsymm"] = Wsymm_;
   }
 
   void from_json(const json &pars) override {
-    if (pars.at("Machine").at("Name") != "JastrowSymm") {
+    if (pars.at("Name") != "JastrowSymm") {
       throw InvalidInputError(
           "Error while constructing JastrowSymm from Json input");
     }
 
-    if (FieldExists(pars["Machine"], "Nvisible")) {
-      nv_ = pars["Machine"]["Nvisible"];
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = pars["Nvisible"];
     }
     if (nv_ != hilbert_.Size()) {
       throw InvalidInputError(
@@ -320,8 +343,8 @@ class JastrowSymm : public AbstractMachine<T> {
 
     Init(graph_);
 
-    if (FieldExists(pars["Machine"], "Wsymm")) {
-      Wsymm_ = pars["Machine"]["Wsymm"];
+    if (FieldExists(pars, "Wsymm")) {
+      Wsymm_ = pars["Wsymm"];
     }
 
     SetBareParameters();

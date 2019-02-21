@@ -15,36 +15,13 @@
 #ifndef NETKET_EXCEPTIONS_HPP
 #define NETKET_EXCEPTIONS_HPP
 
-#include <exception>
-#include <string>
+#include <stdexcept>
 
 namespace netket {
 
-class NetketBaseException : public std::exception
-{
-    std::string message_;
+using InvalidInputError = std::invalid_argument;
+using RuntimeError = std::runtime_error;
 
-public:
-    explicit NetketBaseException(const std::string& message)
-        : message_(message)
-    {
-    }
+}  // namespace netket
 
-    const char* what() const noexcept override
-    {
-        return message_.c_str();
-    }
-};
-
-class InvalidInputError : public NetketBaseException
-{
-public:
-    explicit InvalidInputError(const std::string& message)
-        : NetketBaseException(message)
-    {
-    }
-};
-
-}
-
-#endif // NETKET_EXCEPTIONS_HPP
+#endif  // NETKET_EXCEPTIONS_HPP
