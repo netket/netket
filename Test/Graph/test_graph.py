@@ -133,7 +133,7 @@ def test_adjacency_list():
             assert graph.adjacency_list[i] in neigh
 
 def test_automorphisms():
-    for graph in graphs:
+    for graph in lattices:
         if(graph.is_connected): #for not to have troubles with ig automorphisms
             g = ig.Graph(edges=graph.edges);
             autom = g.get_isomorphisms_vf2()
