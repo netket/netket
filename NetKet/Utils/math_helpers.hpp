@@ -2,6 +2,7 @@
 #define NETKET_MATH_HELPERS_HPP
 
 #include <functional>
+#include <iostream>
 
 namespace netket {
 
@@ -38,13 +39,18 @@ bool RelativelyEqual(double a, double b, double maxRelativeDiff) {
 }
 
 bool CheckProductOverflow(int a, int b) {
-  assert(a > 0 && b > 0);
-  return std::log(a) + std::log(b) > std::log(std::numeric_limits<int>::max());
+  if (a == 0 || b == 0)
+    return false;
+  else
+    return std::log(a) + std::log(b) >
+           std::log(std::numeric_limits<int>::max());
 }
 
 bool CheckSumOverflow(int a, int b) {
-  assert(b > 0);
-  return a > std::numeric_limits<int>::max() - b;
+  if (b < 0)
+    return false;
+  else
+    return a > std::numeric_limits<int>::max() - b;
 }
 
 }  // namespace netket
