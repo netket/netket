@@ -81,6 +81,7 @@ void AddLattice(py::module& subm) {
            py::arg("atom_label"), R"EOF(
         Member function returning the coordinates of the i-th atom in the site
         labelled by n.
+
           Args:
               site_vector: The site vector (array of integers)
               atom_label: Label indicating which atom in the unit cell is considered
@@ -88,6 +89,7 @@ void AddLattice(py::module& subm) {
             )EOF")
       .def("site_to_coord", &Lattice::Site2Coord, py::arg("site"), R"EOF(
         Member function returning the coordinates of the k-th lattice site.
+
           Args:
               site: The site index (integer)
             )EOF")
@@ -95,6 +97,7 @@ void AddLattice(py::module& subm) {
            R"EOF(
         Member function returning the integer label associated to a graph node,
         given its vectorial characterizaion.
+
             Args:
                 site_vector: The site vector (array of integers)
             )EOF");
