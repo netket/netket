@@ -42,14 +42,18 @@ bool CheckProductOverflow(int a, int b) {
   if (a == 0 || b == 0)
     return false;
   else
-    return std::log(a) + std::log(b) >
+    return std::log(std::abs(a)) + std::log(std::abs(b)) >
            std::log(std::numeric_limits<int>::max());
 }
 
 bool CheckSumOverflow(int a, int b) {
-  if (b < 0)
-    return false;
-  else
+  if (b < 0) {
+    if (a >= 0)
+      return false;
+    else {
+      return abs(a) > std::numeric_limits<int>::max() - abs(b);
+    }
+  } else
     return a > std::numeric_limits<int>::max() - b;
 }
 
