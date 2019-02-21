@@ -6,12 +6,12 @@ A generic lattice built translating a unit cell and adding edges between nearest
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
-|  Argument   |        Type        |                                                                  Description                                                                  |
-|-------------|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-|basis_vectors|List[List[float]]   |The basis vectors of the unit cell.                                                                                                            |
-|extent       |List[int]           |The number of copies of the unit cell.                                                                                                         |
-|pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=True).|
-|atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                          |
+|  Argument   |        Type        |                                                                    Description                                                                    |
+|-------------|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+|basis_vectors|List[List[float]]   |The basis vectors of the unit cell.                                                                                                                |
+|extent       |List[int]           |The number of copies of the unit cell.                                                                                                             |
+|pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=``True``).|
+|atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
 
 ### Examples
 Constructs a rectangular 3X4 lattice with periodic boundaries
@@ -37,9 +37,9 @@ Member function returning the atom label given its site index. The atom label in
 ### site_to_coord
 Member function returning the coordinates of the k-th lattice site.
 
-|Argument|Type|      Description       |
-|--------|----|------------------------|
-|site    |int |The site index (integer)|
+|Argument|Type|  Description  |
+|--------|----|---------------|
+|site    |int |The site index.|
 
 ### site_to_vector
 Member function returning the vector of integers corresponding to the site
@@ -47,32 +47,32 @@ i, where i is an integer. The output vector indicates how many
 translations of the basis vectors have been performed while building the
 graph.
 
-|Argument|Type|      Description       |
-|--------|----|------------------------|
-|site    |int |The site index (integer)|
+|Argument|Type|  Description  |
+|--------|----|---------------|
+|site    |int |The site index.|
 
 ### vector_to_coord
 Member function returning the coordinates of the i-th atom in the site
 labelled by n.
 
-| Argument  |  Type   |                       Description                        |
-|-----------|---------|----------------------------------------------------------|
-|site_vector|List[int]|The site vector (array of integers)                       |
-|atom_label |int      |Label indicating which atom in the unit cell is considered|
+| Argument  |  Type   |            Description             |
+|-----------|---------|------------------------------------|
+|site_vector|List[int]|The site vector.                    |
+|atom_label |int      |Which of the atoms in the unit cell.|
 
 ### vector_to_site
 Member function returning the integer label associated to a graph node,
 given its vectorial characterizaion.
 
-| Argument  |  Type   |            Description            |
-|-----------|---------|-----------------------------------|
-|site_vector|List[int]|The site vector (array of integers)|
+| Argument  |  Type   |  Description   |
+|-----------|---------|----------------|
+|site_vector|List[int]|The site vector.|
 
 ## Properties
 
 |   Property   |      Type       |                                                        Description                                                        |
 |--------------|-----------------|---------------------------------------------------------------------------------------------------------------------------|
-|adjacency_list|       list      | The adjacency list of the graph where each node is           represented by an integer in `[0, n_sites)`                  |
+|adjacency_list|       list      | The adjacency list of the graph where each node is           represented by an integer in `[0, n_sites)`.                 |
 |automorphisms |       list[list]| The automorphisms of the graph,           including translation symmetries only.                                          |
 |basis_vectors |       list[list]| The basis vectors of the lattice.                                                                                         |
 |coordinates   |       list[list]| The coordinates of the atoms in the lattice.                                                                              |
