@@ -82,9 +82,13 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
   }
 
   nlatticesites_ = 1;
-  for (int k = 0; k < ndim_; k++) nlatticesites_ *= extent_[k];
+  for (int k = 0; k < ndim_; k++) {
+    if (CheckProductOverflow(nlatticesites_, extent_[k]))
+      throw InvalidInputError{"Extent product overflows!\n"};
+    nlatticesites_ *= extent_[k];
+  }
 
-  // PATHOLOGIC# 2: nlatticesites_=0,1
+  // PATHOLOGIC #2: nlatticesites_=0,1
   if (nlatticesites_ <= 1) {
     throw InvalidInputError{
         "A well-defined lattice must have at least 2 sites.\n"};
@@ -172,7 +176,15 @@ int Lattice::Vector2Site(const std::vector<int> &n) const {
   int k = 0;
   for (int i = 0; i < Ndim(); i++) {
     int base = 1;
-    for (int j = i + 1; j < Ndim(); j++) base *= extent_[j];
+    for (int j = i + 1; j < Ndim(); j++) {
+      if (CheckProductOverflow(base, extent_[j]))
+        throw InvalidInputError{"Extent product overflows!\n"};
+      base *= extent_[j];
+    }
+    if (CheckProductOverflow(base, n[i]))
+      throw InvalidInputError{"Extent product overflows!\n"};
+    if (CheckSumOverflow(k, n[i] * base))
+      throw InvalidInputError{"Sum overflow!\n"};
     k += n[i] * base;
   }
   return k;
@@ -233,7 +245,8 @@ std::vector<std::vector<int>> Lattice::LatticeNeighbours(int iatom) const {
   min_distance = *min_nonzero_elem(distance.begin(), distance.end());
 
   for (std::size_t i = 0; i < distance.size(); i++) {
-    if (RelativelyEqual(distance[i], min_distance, 1.0e-6)) {
+    if (RelativelyEqual(distance[i], min_distance,
+                        100. * std::numeric_limits<double>::epsilon())) {
       std::vector<int> temp;
       temp = neighbours_matrix_in[i / natoms_];
       temp.push_back(i % natoms_);
