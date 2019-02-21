@@ -127,10 +127,10 @@ def test_adjacency_list():
         for edge in graph.edges:
             g.add_edge(edge[0], edge[1])
         for i in range(graph.n_sites):
-            neigh.append(list(g.neighbors(i)))
+            neigh.append(set(g.neighbors(i)))
         dim=len(neigh)
         for i in range(dim):
-            assert graph.adjacency_list[i] in neigh
+            assert set(graph.adjacency_list[i]) in neigh
 
 def test_automorphisms():
     for graph in lattices:
