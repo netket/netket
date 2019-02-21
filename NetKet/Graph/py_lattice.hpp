@@ -39,7 +39,7 @@ void AddLattice(py::module& subm) {
                                  extent: The number of copies of the unit cell.
                                  pbc: If ``True`` then the constructed lattice
                                      will have periodic boundary conditions, otherwise
-                                     open boundary conditions are imposed (default=True).
+                                     open boundary conditions are imposed (default=``True``).
                                  atoms_coord: The coordinates of different atoms in the unit cell (default=one atom at the origin).
 
                              Examples:
@@ -74,7 +74,7 @@ void AddLattice(py::module& subm) {
         graph.
 
           Args:
-              site: The site index (integer)
+              site: The site index.
 
           )EOF")
       .def("vector_to_coord", &Lattice::Vector2Coord, py::arg("site_vector"),
@@ -83,15 +83,15 @@ void AddLattice(py::module& subm) {
         labelled by n.
 
           Args:
-              site_vector: The site vector (array of integers)
-              atom_label: Label indicating which atom in the unit cell is considered
+              site_vector: The site vector.
+              atom_label: Which of the atoms in the unit cell.
 
             )EOF")
       .def("site_to_coord", &Lattice::Site2Coord, py::arg("site"), R"EOF(
         Member function returning the coordinates of the k-th lattice site.
 
           Args:
-              site: The site index (integer)
+              site: The site index.
             )EOF")
       .def("vector_to_site", &Lattice::Vector2Site, py::arg("site_vector"),
            R"EOF(
@@ -99,7 +99,7 @@ void AddLattice(py::module& subm) {
         given its vectorial characterizaion.
 
             Args:
-                site_vector: The site vector (array of integers)
+                site_vector: The site vector.
             )EOF");
 }
 }  // namespace netket
