@@ -8,7 +8,6 @@ Constructs a new ``Qubit`` given a graph.
 |--------|------------------|------------------------------|
 |graph   |netket.graph.Graph|Graph representation of sites.|
 
-
 ### Examples
 Simple qubit hilbert space.
 
@@ -32,7 +31,6 @@ Member function generating uniformely distributed local random states.
 |--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 |state   |numpy.ndarray[float64[m, 1], flags.writeable]                                                                                                                    |A reference to a visible configuration, in output this contains the random state.|
 |rgen    |std::__1::mersenne_twister_engine<unsigned int, 32ul, 624ul, 397ul, 31ul, 2567483615u, 11ul, 4294967295u, 7ul, 2636928640u, 15ul, 4022730752u, 18ul, 1812433253u>|The random number generator.                                                     |
-
 
 ### Examples
 Test that a new random state is a possible state for the hilbert
@@ -63,7 +61,6 @@ where the local changes have been done.
 |to_change|List[int]                                    |A list of which qunatum numbers will be modified.         |
 |new_conf |List[float]                                  |Contains the value that those quantum numbers should take.|
 
-
 ## Properties
 
 |  Property  |   Type    |                        Description                        |
@@ -72,4 +69,3 @@ where the local changes have been done.
 |local_size  |int        | Size of the local hilbert space.                          |
 |local_states|list[float]| List of discreet local quantum numbers.                   |
 |size        |int        | The number of visible units needed to describe the system.|
-

@@ -78,7 +78,7 @@ void AddSupervisedModule(py::module &m) {
                save_params_every: Frequency to dump wavefunction parameters. The default is 50.
 
            )EOF")
-      .def("iterate", &Supervised::Iterate,
+      .def("advance", &Supervised::Advance,
            py::arg("loss_function") = "Overlap_phi", R"EOF(
            Run one iteration of supervised learning. This should be helpful for testing and
            having self-defined control sequence in python.

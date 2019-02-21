@@ -11,7 +11,6 @@ and (if specified) a coupling constant.
 |h       |float                 |The strength of the transverse field.        |
 |J       |float=1.0             |The strength of the coupling. Default is 1.0.|
 
-
 ### Examples
 Constructs an ``Ising`` operator for a 1D system.
 
@@ -40,10 +39,8 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
-
 ## Properties
 
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
-

@@ -157,6 +157,16 @@ void AddVariationalMonteCarloModule(py::module &m) {
                    1.
 
            )EOF")
+      .def("advance", &VariationalMonteCarlo::Advance, py::arg("steps") = 1,
+           R"EOF(
+           Perform one or several iteration steps of the VMC calculation. In each step,
+           energy and gradient will be estimated via VMC and subsequently, the variational
+           parameters will be updated according to the configured method.
+
+           Args:
+               steps: Number of VMC steps to perform.
+
+           )EOF")
       .def("get_observable_stats",
            [](VariationalMonteCarlo &self) {
              py::dict data;

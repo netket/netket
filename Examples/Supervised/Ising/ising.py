@@ -46,7 +46,7 @@ overlaps = []
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE", "Overlap_uni"
 for i in range(n_iter):
-    spvsd.iterate(loss_function="Overlap_phi")
+    spvsd.advance(loss_function="Overlap_phi")
     overlaps.append(np.exp(-spvsd.loss_log_overlap))
 
 comm = MPI.COMM_WORLD
