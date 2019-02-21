@@ -12,17 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GRAPH_HPP
-#define NETKET_GRAPH_HPP
+#ifndef NETKET_ARRAYSEARCH_HPP
+#define NETKET_ARRAYSEARCH_HPP
 
-#include <array>
-#include <unordered_map>
-#include <vector>
-#include "Utils/json_utils.hpp"
-#include "Utils/memory_utils.hpp"
-#include "abstract_graph.hpp"
-#include "custom_graph.hpp"
-#include "hypercube.hpp"
-#include "lattice.hpp"
+namespace netket {
+
+/**
+  Returns the smallest non zero element of an array.
+*/
+template <class ForwardIterator>
+ForwardIterator min_nonzero_elem(ForwardIterator first, ForwardIterator last) {
+  if (first == last)
+    throw RuntimeError{"Error: first and last iterator are the same.\n"};
+
+  ForwardIterator smallest = first;
+  while (++first != last)
+    if (*first < *smallest && *first != 0) smallest = first;
+  assert(smallest != last);
+  assert(*smallest != 0 && "There aren't non-zero elements.\n");
+  return smallest;
+}
+
+}  // namespace netket
 
 #endif

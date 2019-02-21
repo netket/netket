@@ -146,7 +146,7 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy networkx pytest numdifftools
+  - python -m pip install numpy networkx pytest numdifftools python-igraph
   # TODO(twesterhout): Remove the following line when #109 is merged.
   - python -m pip --no-cache-dir install mpi4py
   - python -m pytest --version
@@ -157,4 +157,3 @@ script:
   - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --verbose Test/
   - python -m pytest --verbose --doctest-glob='*.md' Docs/
-

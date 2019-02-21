@@ -51,7 +51,7 @@ inline std::size_t LengthHint(py::iterator x) {
 // itself is a questionable concept.
 inline AbstractGraph::Edge MakeEdge(int const x, int const y) noexcept {
   using Edge = AbstractGraph::Edge;
-  return (x < y) ? Edge{x, y} : Edge{y, x};
+  return (x < y) ? Edge{{x, y}} : Edge{{y, x}};
 }
 
 /// Converts a Python iterable to a list of edges. An exception is thrown if the
@@ -106,6 +106,7 @@ inline AbstractGraph::ColorMap Iterable2ColorMap(py::iterator x) {
 
 #include "py_custom_graph.hpp"
 #include "py_hypercube.hpp"
+#include "py_lattice.hpp"
 
 namespace netket {
 void AddGraphModule(py::module& m) {
@@ -145,6 +146,7 @@ void AddGraphModule(py::module& m) {
 
   AddHypercube(subm);
   AddCustomGraph(subm);
+  AddLattice(subm);
 }
 
 }  // namespace netket

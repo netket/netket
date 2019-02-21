@@ -30,7 +30,6 @@ Constructs a new ``AmsGrad`` optimizer.
 |beta2        |float=0.999|Second exponential decay rate.|
 |epscut       |float=1e-07|Small epsilon cutoff.         |
 
-
 ### Examples
 Simple AmsGrad optimizer.
 

@@ -95,6 +95,49 @@ std::vector<std::vector<int>> AbstractGraph::AllDistances() const {
   }
   return distances;
 }
+bool AbstractGraph::IsConnected() const noexcept {
+  const int start = 0;  // arbitrary node
+  int nvisited = 0;
+  BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
+  return nvisited == Nsites();
+}
+
+bool AbstractGraph::IsBipartite() const noexcept {
+  bool is_bipartite = true;
+  const int start = 0;  // arbitrary node
+  std::vector<int> colors(Nsites(), -1);
+  const auto adjacency_list =
+      AdjacencyList();  // implicit expression can't have
+                        // access to the Lattice function
+  if (IsConnected()) {
+    BreadthFirstSearch(
+        start, [&colors, &adjacency_list, &is_bipartite](int node, int) {
+          if (node == start) colors[node] = 1;
+          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
+            if (!is_bipartite) break;
+            if (colors[adjacency_list[node][j]] == -1) {
+              colors[adjacency_list[node][j]] = 1 - colors[node];
+            } else if (colors[adjacency_list[node][j]] == colors[node]) {
+              is_bipartite = false;
+            }
+          }
+        });
+  } else {
+    BreadthFirstSearch(
+        [&colors, &adjacency_list, &is_bipartite](int node, int, int) {
+          if (node == start) colors[node] = 1;
+          for (std::size_t j = 0; j < adjacency_list[node].size(); j++) {
+            if (!is_bipartite) break;
+            if (colors[adjacency_list[node][j]] == -1) {
+              colors[adjacency_list[node][j]] = 1 - colors[node];
+            } else if (colors[adjacency_list[node][j]] == colors[node]) {
+              is_bipartite = false;
+            }
+          }
+        });
+  }
+  return is_bipartite;
+}
 
 }  // namespace netket
 #endif

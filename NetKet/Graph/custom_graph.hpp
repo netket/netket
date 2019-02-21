@@ -43,11 +43,9 @@ class CustomGraph : public AbstractGraph {
  public:
   CustomGraph(std::vector<Edge> edges, ColorMap colors = ColorMap(),
               std::vector<std::vector<int>> automorphisms =
-                  std::vector<std::vector<int>>(),
-              bool isbipartite = false)
+                  std::vector<std::vector<int>>())
       : edges_{std::move(edges)},
         eclist_{std::move(colors)},
-        is_bipartite_{isbipartite},
         automorphisms_{std::move(automorphisms)} {
     n_sites_ = CheckEdges();
     if (n_sites_ == 0) {
@@ -68,7 +66,8 @@ class CustomGraph : public AbstractGraph {
       std::iota(std::begin(automorphisms_.front()),
                 std::end(automorphisms_.front()), 0);
     }
-    is_connected_ = ComputeConnected();
+    is_connected_ = IsConnected();
+    is_bipartite_ = IsBipartite();
   }
 
   /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.
@@ -169,20 +168,8 @@ class CustomGraph : public AbstractGraph {
     return detail::AdjacencyListFromEdges(Edges(), Nsites());
   }
 
-  bool IsBipartite() const noexcept override { return is_bipartite_; }
-
-  bool IsConnected() const noexcept override { return is_connected_; }
-
   // Returns map of the edge and its respective color
   const ColorMap &EdgeColors() const noexcept override { return eclist_; }
-
- private:
-  bool ComputeConnected() const {
-    const int start = 0;  // arbitrary node
-    int nvisited = 0;
-    BreadthFirstSearch(start, [&nvisited](int, int) { ++nvisited; });
-    return nvisited == Nsites();
-  }
 };
 
 }  // namespace netket
