@@ -36,6 +36,7 @@ Member function returning the atom label given its site index. The atom label in
 
 ### site_to_coord
 Member function returning the coordinates of the k-th lattice site.
+
 |Argument|Type|      Description       |
 |--------|----|------------------------|
 |site    |int |The site index (integer)|
@@ -53,6 +54,7 @@ graph.
 ### vector_to_coord
 Member function returning the coordinates of the i-th atom in the site
 labelled by n.
+
 | Argument  |  Type   |                       Description                        |
 |-----------|---------|----------------------------------------------------------|
 |site_vector|List[int]|The site vector (array of integers)                       |
@@ -61,6 +63,7 @@ labelled by n.
 ### vector_to_site
 Member function returning the integer label associated to a graph node,
 given its vectorial characterizaion.
+
 | Argument  |  Type   |            Description            |
 |-----------|---------|-----------------------------------|
 |site_vector|List[int]|The site vector (array of integers)|
@@ -79,3 +82,4 @@ given its vectorial characterizaion.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+
