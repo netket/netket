@@ -39,7 +39,7 @@ Constructs a new `Hypercube` given its side length and edge coloring.
 
 |   Property   |      Type       |                                                        Description                                                        |
 |--------------|-----------------|---------------------------------------------------------------------------------------------------------------------------|
-|adjacency_list|       list      | The adjacency list of the graph where each node is           represented by an integer in `[0, n_sites)`                  |
+|adjacency_list|       list      | The adjacency list of the graph where each node is           represented by an integer in `[0, n_sites)`.                 |
 |automorphisms |       list[list]| The automorphisms of the graph,           including translation symmetries only.                                          |
 |distances     |       list[list]| The distances between the nodes. The fact that some node           may not be reachable from another is represented by -1.|
 |edges         |       list      | The graph edges.                                                                                                          |
