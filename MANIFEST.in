@@ -1,0 +1,5 @@
+include CMakeLists.txt
+recursive-include CMakeModules *
+include LICENSE
+recursive-include NetKet *
+recursive-include External *

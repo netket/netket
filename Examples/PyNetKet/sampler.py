@@ -14,9 +14,6 @@
 
 from __future__ import print_function
 import netket as nk
-import networkx as nx
-import numpy as np
-import scipy.sparse as sparse
 
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=4, n_dim=1)
@@ -34,6 +31,6 @@ ma.init_random_parameters(seed=1234, sigma=0.1)
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
 sa.reset(True)
-print(sa.get_visible())
+print(sa.visible)
 sa.sweep()
-print(sa.get_visible())
+print(sa.visible)
