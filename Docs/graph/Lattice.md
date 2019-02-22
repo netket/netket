@@ -3,7 +3,8 @@ A generic lattice built translating a unit cell and adding edges between nearest
                              The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
                              Each atom is located at an arbitrary position and is labelled by an integer number,
                              meant to distinguish between the different atoms within the unit cell.
-                             Periodic boundary conditions can also be imposed along the desired directions.\n
+                             Periodic boundary conditions can also be imposed along the desired directions.
+                             
                              There are three different ways to refer to the lattice sites. A site can be labelled
                              by a simple integer number (the site index), by its coordinates (actual position in space),
                              or by a set of integers (the site vector), which indicates how many
@@ -33,7 +34,7 @@ Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 
 
-## Class Methods
+## Class Methods 
 ### atom_label
 Member function returning the atom label indicating which of the unit cell atoms is located at a given a site index.
 
@@ -102,3 +103,4 @@ Member function returning the site index corresponding to a given site vector.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+
