@@ -128,7 +128,7 @@ void AddGraphModule(py::module& m) {
       .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
                              R"EOF(
       list: The adjacency list of the graph where each node is
-          represented by an integer in `[0, n_sites)`)EOF")
+          represented by an integer in `[0, n_sites)`.)EOF")
       .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
                              R"EOF(
       bool: Whether the graph is bipartite.)EOF")

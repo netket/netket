@@ -22,8 +22,8 @@ while(True):
     overlap = np.exp(-np.array(log_overlap))
 
     J2 = 0.4
-    plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
     plt.subplot(2, 1, 1)
+    plt.title(r'$J_1 J_2$ model, $J_2=' + str(J2) + '$')
     plt.ylabel('Overlap = F')
     plt.xlabel('Iteration #')
 
