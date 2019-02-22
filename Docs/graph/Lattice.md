@@ -1,7 +1,17 @@
 # Lattice
-A generic lattice built translating a unit cell and adding edges between nearest neighbours sites. The unit cell can contain
-                             an arbitrary number of atoms, located at arbitrary positions.
+A generic lattice built translating a unit cell and adding edges between nearest neighbours sites.
+                             The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
+                             Each atom is located at an arbitrary position and is labelled by an integer number,
+                             meant to distinguish between the different atoms within the unit cell.
                              Periodic boundary conditions can also be imposed along the desired directions.
+
+                             There are three different ways to refer to the lattice sites. A site can be labelled
+                             by a simple integer number (the site index), by its coordinates (actual position in space),
+                             or by a set of integers (the site vector), which indicates how many
+                             translations of each basis vectors have been performed while building the
+                             graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.
+
+                             .
 
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
@@ -14,7 +24,7 @@ Constructs a new ``Lattice`` given its side length and the features of the unit 
 |atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
 
 ### Examples
-Constructs a rectangular 3X4 lattice with periodic boundaries
+Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 ```python
 >>> from netket.graph import Lattice
@@ -26,34 +36,48 @@ Constructs a rectangular 3X4 lattice with periodic boundaries
 
 
 
-## Class Methods 
+## Class Methods
 ### atom_label
-Member function returning the atom label given its site index. The atom label indicates to which sublattice the atom belongs.
+Member function returning the atom label given a site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
 |site    |int |The site index.|
 
 ### site_to_coord
-Member function returning the coordinates of the k-th lattice site.
+Member function returning the coordinates of a given site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
 |site    |int |The site index.|
 
 ### site_to_vector
-Member function returning the vector of integers corresponding to the site
-i, where i is an integer. The output vector indicates how many
-translations of the basis vectors have been performed while building the
-graph.
+Member function returning the site vector corresponding to a given site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
 |site    |int |The site index.|
 
+### Examples
+Constructs a square 2X2 lattice without periodic boundary conditions and prints the site vectors corresponding to given site indices.
+
+```python
+ >>> from netket.graph import Lattice
+ >>> g=Lattice(basis_vectors=[[1.,0.],[0.,1.]], extent=[2,2], pbc=[0,0])
+ >>> print(g.site_to_vector(0))
+ [0,0]
+ >>> print(g.site_to_vector(1))
+ [0,1]
+ >>> print(g.site_to_vector(2))
+ [1,0]
+ >>>print(g.site_to_vector(3))
+ [1,1]
+
+  ```
+
 ### vector_to_coord
-Member function returning the coordinates of the i-th atom in the site
-labelled by n.
+Member function returning the coordinates of a given atom characterized by a
+given site vector.
 
 | Argument  |  Type   |            Description             |
 |-----------|---------|------------------------------------|
@@ -61,8 +85,7 @@ labelled by n.
 |atom_label |int      |Which of the atoms in the unit cell.|
 
 ### vector_to_site
-Member function returning the integer label associated to a graph node,
-given its vectorial characterizaion.
+Member function returning the site index corresponding to a given site vector.
 
 | Argument  |  Type   |  Description   |
 |-----------|---------|----------------|
@@ -82,4 +105,3 @@ given its vectorial characterizaion.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
-
