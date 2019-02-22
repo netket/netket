@@ -92,7 +92,7 @@ void AddLattice(py::module& subm) {
                [0,1]
                >>> print(g.site_to_vector(2))
                [1,0]
-               >>>print(g.site_to_vector(3))
+               >>> print(g.site_to_vector(3))
                [1,1]
 
                 ```

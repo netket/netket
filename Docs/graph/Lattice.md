@@ -1,14 +1,14 @@
 # Lattice
 A generic lattice built translating a unit cell and adding edges between nearest neighbours sites.
-                             The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
-                             Each atom is located at an arbitrary position and is labelled by an integer number,
-                             meant to distinguish between the different atoms within the unit cell.
-                             Periodic boundary conditions can also be imposed along the desired directions.
-                             There are three different ways to refer to the lattice sites. A site can be labelled
-                             by a simple integer number (the site index), by its coordinates (actual position in space),
-                             or by a set of integers (the site vector), which indicates how many
-                             translations of each basis vectors have been performed while building the
-                             graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.
+ The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
+ Each atom is located at an arbitrary position and is labelled by an integer number,
+ meant to distinguish between the different atoms within the unit cell.
+ Periodic boundary conditions can also be imposed along the desired directions.
+ There are three different ways to refer to the lattice sites. A site can be labelled
+ by a simple integer number (the site index), by its coordinates (actual position in space),
+ or by a set of integers (the site vector), which indicates how many
+ translations of each basis vectors have been performed while building the
+ graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.
 
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
@@ -19,7 +19,6 @@ Constructs a new ``Lattice`` given its side length and the features of the unit 
 |extent       |List[int]           |The number of copies of the unit cell.                                                                                                             |
 |pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=``True``).|
 |atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
-
 
 ### Examples
 Constructs a rectangular 3X4 lattice with periodic boundary conditions.
@@ -34,7 +33,7 @@ Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 
 
-## Class Methods
+## Class Methods 
 ### atom_label
 Member function returning the atom label indicating which of the unit cell atoms is located at a given a site index.
 
@@ -42,14 +41,12 @@ Member function returning the atom label indicating which of the unit cell atoms
 |--------|----|---------------|
 |site    |int |The site index.|
 
-
 ### site_to_coord
 Member function returning the coordinates of a given site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
 |site    |int |The site index.|
-
 
 ### site_to_vector
 Member function returning the site vector corresponding to a given site index.
@@ -70,11 +67,10 @@ Constructs a square 2X2 lattice without periodic boundary conditions and prints 
  [0,1]
  >>> print(g.site_to_vector(2))
  [1,0]
- >>>print(g.site_to_vector(3))
+ >>> print(g.site_to_vector(3))
  [1,1]
 
   ```
-
 
 ### vector_to_coord
 Member function returning the coordinates of a given atom characterized by a
@@ -85,14 +81,12 @@ given site vector.
 |site_vector|List[int]|The site vector.                    |
 |atom_label |int      |Which of the atoms in the unit cell.|
 
-
 ### vector_to_site
 Member function returning the site index corresponding to a given site vector.
 
 | Argument  |  Type   |  Description   |
 |-----------|---------|----------------|
 |site_vector|List[int]|The site vector.|
-
 
 ## Properties
 
@@ -108,3 +102,4 @@ Member function returning the site index corresponding to a given site vector.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+
