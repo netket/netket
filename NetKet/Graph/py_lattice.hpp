@@ -86,14 +86,14 @@ void AddLattice(py::module& subm) {
               ```python
                >>> from netket.graph import Lattice
                >>> g=Lattice(basis_vectors=[[1.,0.],[0.,1.]], extent=[2,2], pbc=[0,0])
-               >>> print(g.site_to_vector(0))
-               [0,0]
-               >>> print(g.site_to_vector(1))
-               [0,1]
-               >>> print(g.site_to_vector(2))
-               [1,0]
-               >>> print(g.site_to_vector(3))
-               [1,1]
+               >>> print(list(map(int,g.site_to_vector(0))))
+               [0, 0]
+               >>> print(list(map(int,g.site_to_vector(1))))
+               [0, 1]
+               >>> print(list(map(int,g.site_to_vector(2))))
+               [1, 0]
+               >>> print(list(map(int,g.site_to_vector(3))))
+               [1, 1]
 
                 ```
             )EOF")
