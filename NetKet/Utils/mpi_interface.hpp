@@ -181,6 +181,20 @@ inline void SumOnNodes(Eigen::VectorXcd &val, Eigen::VectorXcd &sum,
                 comm);
 }
 
+struct MPIHelpers {
+  static int MPIRank() {
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    return rank;
+  }
+
+  static int MPISize() {
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    return size;
+  }
+};
+
 namespace detail {
 struct MPIInitializer {
   MPIInitializer() {
@@ -216,6 +230,7 @@ struct MPIInitializer {
  private:
   bool have_initialized_;
 };
+
 }  // namespace detail
 
 }  // namespace netket

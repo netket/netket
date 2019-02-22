@@ -1,6 +1,6 @@
 # Hypercube
 A hypercube lattice of side L in d dimensions.
-         Periodic boundary conditions can also be imposed.
+ Periodic boundary conditions can also be imposed.
 
 ## Class Constructor [1]
 Constructs a new ``Hypercube`` given its side length and dimension.
@@ -10,6 +10,7 @@ Constructs a new ``Hypercube`` given its side length and dimension.
 |length  |int      |Side length of the hypercube. It must always be >=1, but if ``pbc==True`` then the minimal valid length is 3.                     |
 |n_dim   |int=1    |Dimension of the hypercube. It must be at least 1.                                                                                |
 |pbc     |bool=True|If ``True`` then the constructed hypercube will have periodic boundary conditions, otherwise open boundary conditions are imposed.|
+
 
 ### Examples
 A 10x10 square lattice with periodic boundary conditions can be
@@ -31,6 +32,7 @@ Constructs a new `Hypercube` given its side length and edge coloring.
 |--------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |length  |int     |Side length of the hypercube. It must always be >=3 if the hypercube has periodic boundary conditions and >=1 otherwise.                                                     |
 |colors  |iterable|Edge colors, must be an iterable of `Tuple[int, int, int]` where each element `(i, j, c) represents an edge `i <-> j` of color `c`. Colors must be assigned to **all** edges.|
+
 
 ## Class Methods 
 ## Properties

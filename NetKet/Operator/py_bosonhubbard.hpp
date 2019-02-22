@@ -49,7 +49,6 @@ void AddBoseHubbard(py::module &subm) {
                Constructs a ``BoseHubbard`` operator for a 2D system.
 
                ```python
-               >>> from mpi4py import MPI
                >>> import netket as nk
                >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
                >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)

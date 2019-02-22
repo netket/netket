@@ -35,7 +35,7 @@ void AddUtilsModule(py::module &m) {
   py::class_<netket::default_random_engine>(subm, "RandomEngine")
       .def(py::init<netket::default_random_engine::result_type>(),
            py::arg("seed") = netket::default_random_engine::default_seed)
-      .def("Seed", (void (netket::default_random_engine::*)(
+      .def("seed", (void (netket::default_random_engine::*)(
                        netket::default_random_engine::result_type)) &
                        netket::default_random_engine::seed);
 
@@ -43,6 +43,12 @@ void AddUtilsModule(py::module &m) {
 
   py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
       .def(py::init<>());
+
+  py::class_<MPIHelpers>(m, "MPI")
+      .def("rank", &MPIHelpers::MPIRank,
+           R"EOF(int: The MPI rank for the current process.  )EOF")
+      .def("size", &MPIHelpers::MPISize,
+           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
 }
 
 }  // namespace netket

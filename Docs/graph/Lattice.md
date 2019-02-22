@@ -20,6 +20,7 @@ Constructs a new ``Lattice`` given its side length and the features of the unit 
 |pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=``True``).|
 |atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
 
+
 ### Examples
 Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
@@ -33,7 +34,7 @@ Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 
 
-## Class Methods 
+## Class Methods
 ### atom_label
 Member function returning the atom label indicating which of the unit cell atoms is located at a given a site index.
 
@@ -41,12 +42,14 @@ Member function returning the atom label indicating which of the unit cell atoms
 |--------|----|---------------|
 |site    |int |The site index.|
 
+
 ### site_to_coord
 Member function returning the coordinates of a given site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
 |site    |int |The site index.|
+
 
 ### site_to_vector
 Member function returning the site vector corresponding to a given site index.
@@ -72,6 +75,7 @@ Constructs a square 2X2 lattice without periodic boundary conditions and prints 
 
   ```
 
+
 ### vector_to_coord
 Member function returning the coordinates of a given atom characterized by a
 given site vector.
@@ -81,12 +85,14 @@ given site vector.
 |site_vector|List[int]|The site vector.                    |
 |atom_label |int      |Which of the atoms in the unit cell.|
 
+
 ### vector_to_site
 Member function returning the site index corresponding to a given site vector.
 
 | Argument  |  Type   |  Description   |
 |-----------|---------|----------------|
 |site_vector|List[int]|The site vector.|
+
 
 ## Properties
 
@@ -102,4 +108,3 @@ Member function returning the site index corresponding to a given site vector.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
-

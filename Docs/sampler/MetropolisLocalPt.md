@@ -1,7 +1,7 @@
 # MetropolisLocalPt
 This sampler performs parallel-tempering
-    moves in addition to the local moves implemented in `MetropolisLocal`.
-    The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+ moves in addition to the local moves implemented in `MetropolisLocal`.
+ The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
 
 ## Class Constructor
 Constructs a new ``MetropolisLocalPt`` sampler given a machine
@@ -12,12 +12,12 @@ and the number of replicas.
 |machine   |netket.machine.Machine|A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^2$$.|
 |n_replicas|int=1                 |The number of replicas used for parallel tempering.                                                 |
 
+
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2
 
 ```python
 >>> import netket as nk
->>> from mpi4py import MPI
 >>>
 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
@@ -43,12 +43,14 @@ and optionally initializing at random the visible units being sampled.
 |-----------|----------|-----------------------------------------------|
 |init_random|bool=False|If ``True`` the quantum numbers (visible units)|
 
+
 ### seed
 Seeds the random number generator used by the ``Sampler``.
 
 |Argument |Type|                 Description                 |
 |---------|----|---------------------------------------------|
 |base_seed|int |The base seed for the random number generator|
+
 
 ### sweep
 Performs a sampling sweep. Typically a single sweep
@@ -64,3 +66,4 @@ consists of an extensive number of local moves.
 |hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
 |machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
 |visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |
+

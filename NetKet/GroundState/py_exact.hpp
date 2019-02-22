@@ -55,7 +55,6 @@ void AddExactModule(py::module &m) {
                Solving 1D ising model with imagniary time propagation.
 
                ```python
-               >>> from mpi4py import MPI
                >>> import netket as nk
                >>> import numpy as np
                >>> L = 20
@@ -162,7 +161,6 @@ void AddExactModule(py::module &m) {
 
                   ```python
                   >>> import netket as nk
-                  >>> from mpi4py import MPI
                   >>> first_n=3
                   >>> g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
                   >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -193,7 +191,6 @@ void AddExactModule(py::module &m) {
 
                   ```python
                   >>> import netket as nk
-                  >>> from mpi4py import MPI
                   >>> first_n=3
                   >>> g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
                   >>> hi = nk.hilbert.Spin(s=0.5, graph=g)

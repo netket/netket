@@ -147,13 +147,10 @@ install:
   - python -m pip --version
   - python -m easy_install -U setuptools
   - python -m pip install numpy networkx pytest numdifftools python-igraph
-  # TODO(twesterhout): Remove the following line when #109 is merged.
-  - python -m pip --no-cache-dir install mpi4py
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
 
 script:
-  - python -c 'from mpi4py import MPI'
-  - python -c 'from mpi4py import MPI; import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
+  - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --verbose Test/
   - python -m pytest --verbose --doctest-glob='*.md' Docs/

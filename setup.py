@@ -126,13 +126,13 @@ class CMakeBuild(build_ext):
 
 setup(
     name='netket',
-    version='2.0a1',
+    version='2.0b1',
     author='Giuseppe Carleo et al.',
     url='http://github.com/netket/netket',
     author_email='netket@netket.org',
     license='Apache 2.0',
     ext_modules=[CMakeExtension('netket')],
-    install_requires=['mpi4py', 'cmake', 'numpy'],
+    install_requires=['cmake', 'numpy'],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
