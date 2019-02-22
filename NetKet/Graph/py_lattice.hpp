@@ -27,15 +27,12 @@ void AddLattice(py::module& subm) {
                              The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
                              Each atom is located at an arbitrary position and is labelled by an integer number,
                              meant to distinguish between the different atoms within the unit cell.
-                             Periodic boundary conditions can also be imposed along the desired directions.
-
+                             Periodic boundary conditions can also be imposed along the desired directions.\n
                              There are three different ways to refer to the lattice sites. A site can be labelled
                              by a simple integer number (the site index), by its coordinates (actual position in space),
                              or by a set of integers (the site vector), which indicates how many
                              translations of each basis vectors have been performed while building the
-                             graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.
-
-                             .)EOF")
+                             graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.)EOF")
       .def(py::init<std::vector<std::vector<double>>, std::vector<int>,
                     std::vector<bool>, std::vector<std::vector<double>>>(),
            py::arg("basis_vectors"), py::arg("extent"),
@@ -71,7 +68,7 @@ void AddLattice(py::module& subm) {
       .def_property_readonly("basis_vectors", &Lattice::BasisVectors, R"EOF(
       list[list]: The basis vectors of the lattice.)EOF")
       .def("atom_label", &Lattice::AtomLabel, py::arg("site"), R"EOF(
-          Member function returning the atom label given a site index.
+          Member function returning the atom label indicating which of the unit cell atoms is located at a given a site index.
 
           Args:
               site: The site index.
