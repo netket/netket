@@ -4,7 +4,6 @@ A generic lattice built translating a unit cell and adding edges between nearest
                              Each atom is located at an arbitrary position and is labelled by an integer number,
                              meant to distinguish between the different atoms within the unit cell.
                              Periodic boundary conditions can also be imposed along the desired directions.
-                             
                              There are three different ways to refer to the lattice sites. A site can be labelled
                              by a simple integer number (the site index), by its coordinates (actual position in space),
                              or by a set of integers (the site vector), which indicates how many
