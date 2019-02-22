@@ -11,8 +11,6 @@ A generic lattice built translating a unit cell and adding edges between nearest
                              translations of each basis vectors have been performed while building the
                              graph. The i-th component refers to translations along the i-th ``basis_vector`` direction.
 
-                             .
-
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
@@ -36,9 +34,9 @@ Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 
 
-## Class Methods
+## Class Methods 
 ### atom_label
-Member function returning the atom label given a site index.
+Member function returning the atom label indicating which of the unit cell atoms is located at a given a site index.
 
 |Argument|Type|  Description  |
 |--------|----|---------------|
@@ -105,3 +103,4 @@ Member function returning the site index corresponding to a given site vector.
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_dim         |       int       | The dimension of the lattice.                                                                                             |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+
