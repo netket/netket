@@ -23,9 +23,8 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisHop(py::module &subm) {
-  using DerSampler = MetropolisHop<MachineType>;
-  py::class_<DerSampler, SamplerType>(subm, "MetropolisHop")
-      .def(py::init<MachineType &, int>(), py::keep_alive<1, 3>(),
+  py::class_<MetropolisHop, AbstractSampler>(subm, "MetropolisHop")
+      .def(py::init<AbstractMachine &, int>(), py::keep_alive<1, 3>(),
            py::arg("machine"), py::arg("d_max") = 1);
 }
 }  // namespace netket

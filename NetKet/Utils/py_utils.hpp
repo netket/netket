@@ -41,7 +41,7 @@ void AddUtilsModule(py::module &m) {
 
   py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
 
-  py::class_<Lookup<std::complex<double>>>(m, "LookupComplex")
+  py::class_<Lookup<Complex>>(m, "LookupComplex")
       .def(py::init<>());
 
   py::class_<MPIHelpers>(m, "MPI")

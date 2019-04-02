@@ -1,4 +1,5 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018 The Simons Foundation, Inc. - All
+// Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,17 +27,10 @@
 
 namespace netket {
 
-template <typename T>
-class FFNN : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class FFNN : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
-  std::vector<AbstractLayer<T> *> layers_;  // Pointers to hidden layers
+  std::vector<AbstractLayer *> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
   int depth_;
@@ -47,16 +41,13 @@ class FFNN : public AbstractMachine<T> {
 
   std::vector<std::vector<int>> changed_nodes_;
   std::vector<VectorType> new_output_;
-  typename AbstractMachine<T>::LookupType ltnew_;
+  LookupType ltnew_;
 
-  std::unique_ptr<SumOutput<T>> sum_output_layer_;
+  std::unique_ptr<SumOutput> sum_output_layer_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   explicit FFNN(const AbstractHilbert &hilbert,
-                std::vector<AbstractLayer<T> *> layers)
+                std::vector<AbstractLayer *> layers)
       : hilbert_(hilbert), layers_(std::move(layers)), nv_(hilbert.Size()) {
     Init();
   }
@@ -79,7 +70,7 @@ class FFNN : public AbstractMachine<T> {
     if (layersizes_.back() != 1) {
       nlayer_ += 1;
 
-      sum_output_layer_ = netket::make_unique<SumOutput<T>>(layersizes_.back());
+      sum_output_layer_ = netket::make_unique<SumOutput>(layersizes_.back());
       layers_.push_back(sum_output_layer_.get());
       layersizes_.push_back(1);
     }
@@ -211,14 +202,14 @@ class FFNN : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(VisibleConstType v) override {
+  Complex LogVal(VisibleConstType v) override {
     LookupType lt;
     InitLookup(v, lt);
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
 
-  T LogVal(VisibleConstType /*v*/, const LookupType &lt) override {
+  Complex LogVal(VisibleConstType /*v*/, const LookupType &lt) override {
     assert(nlayer_ > 0);
     return (lt.V(nlayer_ - 1))(0);
   }
@@ -265,7 +256,7 @@ class FFNN : public AbstractMachine<T> {
     VectorType logvaldiffs = VectorType::Zero(nconn);
     LookupType lt;
     InitLookup(v, lt);
-    T current_val = LogVal(v, lt);
+    auto current_val = LogVal(v, lt);
 
     for (int k = 0; k < nconn; ++k) {
       logvaldiffs(k) = 0;
@@ -279,9 +270,9 @@ class FFNN : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
     if (tochange.size() != 0) {
       LookupType ltnew = lt;
       UpdateLookup(v, tochange, newconf, ltnew);

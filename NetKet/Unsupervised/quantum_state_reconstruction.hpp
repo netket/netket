@@ -34,14 +34,11 @@
 namespace netket {
 
 class QuantumStateReconstruction {
-  using GsType = std::complex<double>;
-  using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
-                                Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
-                                Eigen::Dynamic, Eigen::Dynamic>;
+  using VectorT = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
+  using MatrixT = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
 
-  AbstractSampler<AbstractMachine<GsType>> &sampler_;
-  AbstractMachine<GsType> &psi_;
+  AbstractSampler &sampler_;
+  AbstractMachine &psi_;
   const AbstractHilbert &hilbert_;
   AbstractOptimizer &opt_;
 
@@ -49,7 +46,7 @@ class QuantumStateReconstruction {
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   MatrixT Ok_;
   VectorT Okmean_;
@@ -84,9 +81,8 @@ class QuantumStateReconstruction {
   std::vector<int> trainingBases_;
 
  public:
-  QuantumStateReconstruction(AbstractSampler<AbstractMachine<GsType>> &sampler,
-                             AbstractOptimizer &opt, int batchsize,
-                             int nsamples, int niter_opt,
+  QuantumStateReconstruction(AbstractSampler &sampler, AbstractOptimizer &opt,
+                             int batchsize, int nsamples, int niter_opt,
                              std::vector<AbstractOperator *> rotations,
                              std::vector<Eigen::VectorXd> trainingSamples,
                              std::vector<int> trainingBases,
@@ -215,7 +211,7 @@ class QuantumStateReconstruction {
 
     assert(mel_.size() == std::size_t(logvaldiffs.size()));
 
-    std::complex<double> obval = 0;
+    Complex obval = 0;
 
     for (int i = 0; i < logvaldiffs.size(); i++) {
       obval += mel_[i] * std::exp(logvaldiffs(i));
@@ -262,7 +258,7 @@ class QuantumStateReconstruction {
   // basis identified by b_index
   void RotateGradient(int b_index, const Eigen::VectorXd &state,
                       Eigen::VectorXcd &rotated_gradient) {
-    std::complex<double> den;
+    Complex den;
     Eigen::VectorXcd num;
     Eigen::VectorXd v(psi_.Nvisible());
     rotations_[b_index]->FindConn(state, mel_, connectors_, newconfs_);

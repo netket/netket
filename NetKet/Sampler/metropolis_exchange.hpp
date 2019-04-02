@@ -25,9 +25,8 @@
 namespace netket {
 
 // Metropolis sampling generating local exchanges
-template <class WfType>
-class MetropolisExchange: public AbstractSampler<WfType> {
-  WfType &psi_;
+class MetropolisExchange : public AbstractSampler {
+  AbstractMachine &psi_;
 
   const AbstractHilbert &hilbert_;
 
@@ -47,10 +46,10 @@ class MetropolisExchange: public AbstractSampler<WfType> {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  typename WfType::LookupType lt_;
+  typename AbstractMachine::LookupType lt_;
 
  public:
-  MetropolisExchange(const AbstractGraph &graph, WfType &psi, int dmax = 1)
+  MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
@@ -139,7 +138,7 @@ class MetropolisExchange: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &GetMachine() noexcept override { return psi_; }
+  AbstractMachine &GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;

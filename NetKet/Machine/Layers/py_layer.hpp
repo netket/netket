@@ -25,21 +25,21 @@ namespace netket {
 void AddLayerModule(py::module &m) {
   auto subm = m.def_submodule("layer");
 
-  py::class_<LayerType>(subm, "Layer")
+  py::class_<AbstractLayer>(subm, "Layer")
       .def_property_readonly(
-          "n_input", &LayerType::Ninput,
+          "n_input", &AbstractLayer::Ninput,
           R"EOF(int: The number of inputs into the layer.)EOF")
       .def_property_readonly(
-          "n_output", &LayerType::Noutput,
+          "n_output", &AbstractLayer::Noutput,
           R"EOF(int: The number of outputs from the layer.)EOF")
       .def_property_readonly(
-          "n_par", &LayerType::Npar,
+          "n_par", &AbstractLayer::Npar,
           R"EOF(int: The number parameters within the layer.)EOF")
-      .def_property("parameters", &LayerType::GetParameters,
-                    &LayerType::SetParameters,
+      .def_property("parameters", &AbstractLayer::GetParameters,
+                    &AbstractLayer::SetParameters,
                     R"EOF(list: List containing the parameters within the layer.
             Readable and writable)EOF")
-      .def("init_random_parameters", &LayerType::InitRandomPars,
+      .def("init_random_parameters", &AbstractLayer::InitRandomPars,
            py::arg("seed") = 1234, py::arg("sigma") = 0.1, R"EOF(
         Member function to initialise layer parameters.
 
@@ -51,8 +51,8 @@ void AddLayerModule(py::module &m) {
   // TODO add more methods
 
   {
-    using DerType = FullyConnected<StateType>;
-    py::class_<DerType, LayerType>(subm, "FullyConnected", R"EOF(
+    using DerType = FullyConnected;
+    py::class_<DerType, AbstractLayer>(subm, "FullyConnected", R"EOF(
              A fully connected feedforward layer. This layer implements the
              transformation from a m-dimensional input vector
              $$ \boldsymbol{v}_n $$ to a n-dimensional output vector
@@ -90,8 +90,8 @@ void AddLayerModule(py::module &m) {
              )EOF");
   }
   {
-    using DerType = ConvolutionalHypercube<StateType>;
-    py::class_<DerType, LayerType>(subm, "ConvolutionalHypercube", R"EOF(
+    using DerType = ConvolutionalHypercube;
+    py::class_<DerType, AbstractLayer>(subm, "ConvolutionalHypercube", R"EOF(
              A convolutional feedforward layer for hypercubes. This layer works
              only for the ``Hypercube`` graph defined in ``graph``. This layer
              implements the standard convolution with periodic boundary
@@ -126,8 +126,8 @@ void AddLayerModule(py::module &m) {
              )EOF");
   }
   {
-    using DerType = SumOutput<StateType>;
-    py::class_<DerType, LayerType>(subm, "SumOutput", R"EOF(
+    using DerType = SumOutput;
+    py::class_<DerType, AbstractLayer>(subm, "SumOutput", R"EOF(
              A feedforward layer which sums the inputs to give a single output.)EOF")
         .def(py::init<int>(), py::arg("input_size"), R"EOF(
         Constructs a new ``SumOutput`` layer.
@@ -148,8 +148,8 @@ void AddLayerModule(py::module &m) {
         )EOF");
   }
   {
-    using DerType = Activation<StateType, Lncosh>;
-    py::class_<DerType, LayerType>(subm, "Lncosh", R"EOF(
+    using DerType = Activation<Lncosh>;
+    py::class_<DerType, AbstractLayer>(subm, "Lncosh", R"EOF(
              An activation layer which applies Lncosh to each input.)EOF")
         .def(py::init<int>(), py::arg("input_size"), R"EOF(
         Constructs a new ``Lncosh`` activation layer.
@@ -171,8 +171,8 @@ void AddLayerModule(py::module &m) {
         )EOF");
   }
   {
-    using DerType = Activation<StateType, Tanh>;
-    py::class_<DerType, LayerType>(subm, "Tanh", R"EOF(
+    using DerType = Activation<Tanh>;
+    py::class_<DerType, AbstractLayer>(subm, "Tanh", R"EOF(
              An activation layer which applies Tanh to each input.)EOF")
         .def(py::init<int>(), py::arg("input_size"), R"EOF(
         Constructs a new ``Tanh`` activation layer.
@@ -194,8 +194,8 @@ void AddLayerModule(py::module &m) {
         )EOF");
   }
   {
-    using DerType = Activation<StateType, Relu>;
-    py::class_<DerType, LayerType>(subm, "Relu", R"EOF(
+    using DerType = Activation<Relu>;
+    py::class_<DerType, AbstractLayer>(subm, "Relu", R"EOF(
              An activation layer which applies ReLu to each input.)EOF")
         .def(py::init<int>(), py::arg("input_size"), R"EOF(
         Constructs a new ``Relu`` activation layer.
@@ -212,7 +212,7 @@ void AddLayerModule(py::module &m) {
             >>> l=Relu(input_size=10)
             >>> print(l.n_par)
             0
-            
+
             ```
         )EOF");
   }

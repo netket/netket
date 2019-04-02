@@ -16,17 +16,6 @@
 #define NETKET_PYNETKET_CC
 
 #include <netket.hpp>
-#include "Utils/mpi_interface.hpp"  // for MPIInitializer
-
-namespace netket {
-using StateType = Complex;
-using MachineType = AbstractMachine<StateType>;
-using LayerType = AbstractLayer<StateType>;
-using SamplerType = AbstractSampler<MachineType>;
-}  // namespace netket
-
-#include "Utils/pybind_helpers.hpp"
-
 #include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
 #include "GroundState/py_ground_state.hpp"
@@ -39,8 +28,9 @@ using SamplerType = AbstractSampler<MachineType>;
 #include "Stats/py_stats.hpp"
 #include "Supervised/py_supervised.hpp"
 #include "Unsupervised/py_unsupervised.hpp"
+#include "Utils/mpi_interface.hpp"  // for MPIInitializer
 #include "Utils/py_utils.hpp"
-
+#include "Utils/pybind_helpers.hpp"
 
 namespace netket {
 

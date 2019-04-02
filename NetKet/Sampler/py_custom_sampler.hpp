@@ -23,8 +23,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddCustomSampler(py::module &subm) {
-  using DerSampler = CustomSampler<MachineType>;
-  py::class_<DerSampler, SamplerType>(subm, "CustomSampler", R"EOF(
+  py::class_<CustomSampler, AbstractSampler>(subm, "CustomSampler", R"EOF(
     Custom Sampler, where transition operators are specified by the user.
     For the moment, this functionality is limited to transition operators which
     are sums of $$k$$-local operators:
@@ -50,7 +49,7 @@ void AddCustomSampler(py::module &subm) {
     $$ |m\rangle $$ is given by
     $$ \langle n|  M_i | m \rangle $$.
     )EOF")
-      .def(py::init<MachineType &, const LocalOperator &,
+      .def(py::init<AbstractMachine &, const LocalOperator &,
                     const std::vector<double> &>(),
            py::keep_alive<1, 2>(), py::arg("machine"),
            py::arg("move_operators"),

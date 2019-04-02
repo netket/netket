@@ -26,14 +26,7 @@
 namespace netket {
 
 // Rbm with permutation symmetries
-template <typename T>
-class RbmSpinSymm : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class RbmSpinSymm : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   const AbstractGraph &graph_;
@@ -65,7 +58,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
   // visible units bias
   VectorType a_;
 
-  T asymm_;
+  Complex asymm_;
 
   // hidden units bias
   VectorType b_;
@@ -83,9 +76,6 @@ class RbmSpinSymm : public AbstractMachine<T> {
   bool useb_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   explicit RbmSpinSymm(const AbstractHilbert &hilbert, int alpha = 0,
                        bool usea = true, bool useb = true)
       : hilbert_(hilbert),
@@ -230,7 +220,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
       }
     }
 
-    RbmSpin<T>::tanh(W_.transpose() * v + b_, lnthetas_);
+    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
@@ -328,16 +318,16 @@ class RbmSpinSymm : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(VisibleConstType v) override {
-    RbmSpin<T>::lncosh(W_.transpose() * v + b_, lnthetas_);
+  Complex LogVal(VisibleConstType v) override {
+    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
   }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(VisibleConstType v, const LookupType &lt) override {
-    RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
+    RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
   }
@@ -351,9 +341,9 @@ class RbmSpinSymm : public AbstractMachine<T> {
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
     thetas_ = (W_.transpose() * v + b_);
-    RbmSpin<T>::lncosh(thetas_, lnthetas_);
+    RbmSpin::lncosh(thetas_, lnthetas_);
 
-    T logtsum = lnthetas_.sum();
+    Complex logtsum = lnthetas_.sum();
 
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
@@ -367,7 +357,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
           thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
         }
 
-        RbmSpin<T>::lncosh(thetasnew_, lnthetasnew_);
+        RbmSpin::lncosh(thetasnew_, lnthetasnew_);
         logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
       }
     }
@@ -377,13 +367,13 @@ class RbmSpinSymm : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
-    T logvaldiff = 0.;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
+    Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-      RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
+      RbmSpin::lncosh(lt.V(0), lnthetas_);
 
       thetasnew_ = lt.V(0);
 
@@ -395,7 +385,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
         thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
       }
 
-      RbmSpin<T>::lncosh(thetasnew_, lnthetasnew_);
+      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
       logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
     }
     return logvaldiff;
@@ -440,7 +430,7 @@ class RbmSpinSymm : public AbstractMachine<T> {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars, "asymm")) {
-      asymm_ = pars["asymm"].get<T>();
+      asymm_ = pars["asymm"].get<Complex>();
     } else {
       asymm_ = 0;
     }

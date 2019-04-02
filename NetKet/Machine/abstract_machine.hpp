@@ -28,13 +28,11 @@ namespace netket {
   This class prototypes the methods needed
   by a class satisfying the Machine concept.
 */
-template <typename T>
 class AbstractMachine {
  public:
-  using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
-  using StateType = T;
-  using LookupType = Lookup<T>;
+  using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
+  using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
+  using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
@@ -76,7 +74,7 @@ class AbstractMachine {
   @param v a constant reference to a visible configuration.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(VisibleConstType v) = 0;
+  virtual Complex LogVal(VisibleConstType v) = 0;
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -87,7 +85,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual T LogVal(VisibleConstType v, const LookupType &lt) = 0;
+  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) = 0;
 
   /**
   Member function initializing the look-up tables.
@@ -153,9 +151,9 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return The value of log(Psi(v')) - log(Psi(v))
   */
-  virtual T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
-                       const std::vector<double> &newconf,
-                       const LookupType &lt) = 0;
+  virtual Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
+                             const std::vector<double> &newconf,
+                             const LookupType &lt) = 0;
 
   /**
   Member function computing the derivative of the logarithm of the wave function

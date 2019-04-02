@@ -30,7 +30,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddRbmMultival(py::module &subm) {
-  py::class_<RbmMultival<StateType>, MachineType>(subm, "RbmMultiVal", R"EOF(
+  py::class_<RbmMultival, AbstractMachine>(subm, "RbmMultiVal", R"EOF(
              A fully connected Restricted Boltzmann Machine for handling larger
              local Hilbert spaces.)EOF")
       .def(py::init<const AbstractHilbert &, int, int, bool, bool>(),

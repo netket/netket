@@ -26,9 +26,8 @@
 namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
-template <class WfType>
-class MetropolisLocal: public AbstractSampler<WfType> {
-  WfType& psi_;
+class MetropolisLocal : public AbstractSampler {
+  AbstractMachine& psi_;
 
   const AbstractHilbert& hilbert_;
 
@@ -45,13 +44,13 @@ class MetropolisLocal: public AbstractSampler<WfType> {
   int totalnodes_;
 
   // Look-up tables
-  typename WfType::LookupType lt_;
+  typename AbstractMachine::LookupType lt_;
 
   int nstates_;
   std::vector<double> localstates_;
 
  public:
-  explicit MetropolisLocal(WfType& psi)
+  explicit MetropolisLocal(AbstractMachine& psi)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init();
   }
@@ -153,7 +152,7 @@ class MetropolisLocal: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
-  WfType& GetMachine() noexcept override { return psi_; }
+  AbstractMachine& GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert& GetHilbert() const noexcept override {
     return hilbert_;

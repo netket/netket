@@ -26,9 +26,8 @@ namespace netket {
 
 // Metropolis sampling generating local changes
 // Parallel tempering is also used
-template <class WfType>
-class MetropolisLocalPt: public AbstractSampler<WfType> {
-  WfType& psi_;
+class MetropolisLocalPt : public AbstractSampler {
+  AbstractMachine& psi_;
 
   const AbstractHilbert& hilbert_;
 
@@ -49,7 +48,7 @@ class MetropolisLocalPt: public AbstractSampler<WfType> {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  std::vector<typename WfType::LookupType> lt_;
+  std::vector<typename AbstractMachine::LookupType> lt_;
 
   int nrep_;
 
@@ -60,7 +59,7 @@ class MetropolisLocalPt: public AbstractSampler<WfType> {
 
  public:
   // Constructor with one replica by default
-  explicit MetropolisLocalPt(WfType& psi, int nreplicas = 1)
+  explicit MetropolisLocalPt(AbstractMachine& psi, int nreplicas = 1)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
@@ -224,7 +223,7 @@ class MetropolisLocalPt: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  WfType& GetMachine() noexcept override { return psi_; }
+  AbstractMachine& GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert& GetHilbert() const noexcept override {
     return hilbert_;
