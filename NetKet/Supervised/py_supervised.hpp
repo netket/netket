@@ -35,7 +35,7 @@ void AddSupervisedModule(py::module &m) {
   py::class_<Supervised>(
       subm, "Supervised",
       R"EOF(Supervised learning scheme to learn data, i.e. the given state, by stochastic gradient descent with log overlap loss or MSE loss.)EOF")
-      .def(py::init([](MachineType &ma, AbstractOptimizer &op, int batch_size,
+      .def(py::init([](AbstractMachine &ma, AbstractOptimizer &op, int batch_size,
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<Eigen::VectorXcd> targets) {
              return Supervised{ma, op, batch_size, std::move(samples),

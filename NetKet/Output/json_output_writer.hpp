@@ -110,8 +110,7 @@ class JsonOutputWriter {
   // Member functions functions for saving the state.
   // The first overload works for classes inheriting from AbstractMachine, the
   // second one for Eigen matrices.
-  template <typename T>
-  void SaveState_Impl(std::ofstream& stream, const AbstractMachine<T>& state) {
+  void SaveState_Impl(std::ofstream& stream, const AbstractMachine& state) {
     state.Save(stream);
   }
 

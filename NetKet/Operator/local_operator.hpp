@@ -39,7 +39,7 @@ namespace netket {
 
 class LocalOperator : public AbstractOperator {
  public:
-  using MelType = std::complex<double>;
+  using MelType = Complex;
   using MatType = std::vector<std::vector<MelType>>;
   using SiteType = std::vector<int>;
   using MapType = std::map<std::vector<double>, int>;
@@ -186,7 +186,7 @@ class LocalOperator : public AbstractOperator {
     }
   }
 
-  void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     assert(v.size() == hilbert_.Size());
@@ -223,7 +223,7 @@ class LocalOperator : public AbstractOperator {
 
   // FindConn for a specific operator
   void FindConn(std::size_t opn, VectorConstRefType v,
-                std::vector<std::complex<double>> &mel,
+                std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const {
     assert(opn < mat_.size() && opn >= 0);

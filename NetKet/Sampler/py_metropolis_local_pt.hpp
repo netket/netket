@@ -23,13 +23,13 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisLocalPt(py::module &subm) {
-  using DerSampler = MetropolisLocalPt<MachineType>;
-  py::class_<DerSampler, SamplerType>(subm, "MetropolisLocalPt", R"EOF(
+  py::class_<MetropolisLocalPt, AbstractSampler>(subm, "MetropolisLocalPt",
+                                                 R"EOF(
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
     The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
       )EOF")
-      .def(py::init<MachineType &, int>(), py::keep_alive<1, 2>(),
+      .def(py::init<AbstractMachine &, int>(), py::keep_alive<1, 2>(),
            py::arg("machine"), py::arg("n_replicas") = 1, R"EOF(
              Constructs a new ``MetropolisLocalPt`` sampler given a machine
              and the number of replicas.

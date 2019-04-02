@@ -26,22 +26,14 @@
 
 namespace netket {
 
-template <typename T, typename A>
-class Activation : public AbstractLayer<T> {
-  using VectorType = typename AbstractLayer<T>::VectorType;
-  using MatrixType = typename AbstractLayer<T>::MatrixType;
-  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
-
+template <typename A>
+class Activation : public AbstractLayer {
   A activation_;  // activation
   int size_;      // size_ = input size = output size
 
   std::string name_;
 
  public:
-  using StateType = typename AbstractLayer<T>::StateType;
-  using LookupType = typename AbstractLayer<T>::LookupType;
-
   /// Constructor
   Activation(const int input_size) : activation_(), size_(input_size) {
     Init();
