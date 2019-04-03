@@ -37,7 +37,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, SamplerType &,
                     AbstractOptimizer &, int, int, int, const std::string &,
-                    double, bool, bool, bool>(),
+                    double, bool, bool, bool, bool>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
            py::arg("optimizer"), py::arg("n_samples"),
@@ -45,6 +45,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("rescale_shift") = false,
            py::arg("use_iterative") = false, py::arg("use_cholesky") = true,
+           py::arg("use_real_sr") = false,
            R"EOF(
            Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
            sampler, optimizer, and the number of samples.

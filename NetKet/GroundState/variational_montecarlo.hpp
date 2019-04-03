@@ -85,6 +85,8 @@ class VariationalMonteCarlo {
 
   bool use_cholesky_;
 
+  bool use_real_sr_;
+
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
@@ -146,19 +148,20 @@ class VariationalMonteCarlo {
                         int discarded_samples_on_init = 0,
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool rescale_shift = false,
-                        bool use_iterative = false, bool use_cholesky = true)
+                        bool use_iterative = false, bool use_cholesky = true,
+                        bool use_real_sr = false)
       : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
         elocvar_(0.) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
-         diag_shift, rescale_shift, use_iterative, use_cholesky);
+         diag_shift, rescale_shift, use_iterative, use_cholesky, use_real_sr);
   }
 
   void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
             const std::string &method, double diagshift, bool rescale_shift,
-            bool use_iterative, bool use_cholesky) {
+            bool use_iterative, bool use_cholesky, bool use_real_sr) {
     npar_ = psi_.Npar();
 
     opt_.Init(psi_.GetParameters());
@@ -186,7 +189,8 @@ class VariationalMonteCarlo {
     if (method == "Gd") {
       dosr_ = false;
     } else {
-      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky);
+      setSrParameters(diagshift, rescale_shift, use_iterative, use_cholesky,
+                      use_real_sr);
     }
 
     if (dosr_) {
@@ -379,70 +383,129 @@ class VariationalMonteCarlo {
     auto pars = psi_.GetParameters();
 
     if (dosr_) {
-      const int nsamp = vsamp_.rows();
+      if (!use_real_sr_) {
+        const int nsamp = vsamp_.rows();
 
-      Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
-      SumOnNodes(b);
-      b /= double(nsamp * totalnodes_);
+        Eigen::VectorXcd b = Ok_.adjoint() * elocs_;
+        SumOnNodes(b);
+        b /= double(nsamp * totalnodes_);
+        if (!use_iterative_) {
+          // Explicit construction of the S matrix
+          Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
+          SumOnNodes(S);
+          S /= double(nsamp * totalnodes_);
 
-      if (!use_iterative_) {
-        // Explicit construction of the S matrix
-        Eigen::MatrixXcd S = Ok_.adjoint() * Ok_;
-        SumOnNodes(S);
-        S /= double(nsamp * totalnodes_);
+          // Adding diagonal shift
+          S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
+               sr_diag_shift_;
 
-        // Adding diagonal shift
-        S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
-             sr_diag_shift_;
+          Eigen::VectorXcd deltaP;
+          if (use_cholesky_ == false) {
+            Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(),
+                                                             S.cols());
+            qr.setThreshold(1.0e-6);
+            qr.compute(S);
+            deltaP = qr.solve(b);
+          } else {
+            Eigen::LLT<Eigen::MatrixXcd> llt(S.rows());
+            llt.compute(S);
+            deltaP = llt.solve(b);
+          }
+          // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
+          // ComputeThinV).solve(b);
 
-        Eigen::VectorXcd deltaP;
-        if (use_cholesky_ == false) {
-          Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(S.rows(), S.cols());
-          qr.setThreshold(1.0e-6);
-          qr.compute(S);
-          deltaP = qr.solve(b);
+          assert(deltaP.size() == grad_.size());
+          grad_ = deltaP;
+
+          if (sr_rescale_shift_) {
+            Complex nor = (deltaP.dot(S * deltaP));
+            grad_ /= std::sqrt(nor.real());
+          }
+
         } else {
-          Eigen::LLT<Eigen::MatrixXcd> llt(S.rows());
-          llt.compute(S);
-          deltaP = llt.solve(b);
+          Eigen::ConjugateGradient<MatrixReplacement<Complex>,
+                                   Eigen::Lower | Eigen::Upper,
+                                   Eigen::IdentityPreconditioner>
+              it_solver;
+          // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
+          // it_solver;
+          it_solver.setTolerance(1.0e-3);
+          MatrixReplacement<Complex> S;
+          S.attachMatrix(Eigen::MatrixXcd(Ok_.adjoint() * Ok_));
+          S.setShift(sr_diag_shift_);
+          S.setScale(1. / double(nsamp * totalnodes_));
+
+          it_solver.compute(S);
+          auto deltaP = it_solver.solve(b);
+
+          grad_ = deltaP;
+          if (sr_rescale_shift_) {
+            auto nor = deltaP.dot(S * deltaP);
+            grad_ /= std::sqrt(nor.real());
+          }
+          MPI_Barrier(MPI_COMM_WORLD);
         }
-        // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
-        // ComputeThinV).solve(b);
-
-        assert(deltaP.size() == grad_.size());
-        grad_ = deltaP;
-
-        if (sr_rescale_shift_) {
-          Complex nor = (deltaP.dot(S * deltaP));
-          grad_ /= std::sqrt(nor.real());
-        }
-
       } else {
-        Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
-                                 Eigen::IdentityPreconditioner>
-            it_solver;
-        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-        // it_solver;
-        it_solver.setTolerance(1.0e-3);
-        MatrixReplacement S;
-        S.attachMatrix(Ok_);
-        S.setShift(sr_diag_shift_);
-        S.setScale(1. / double(nsamp * totalnodes_));
+        const int nsamp = vsamp_.rows();
 
-        it_solver.compute(S);
-        auto deltaP = it_solver.solve(b);
+        Eigen::VectorXd b = (Ok_.adjoint() * elocs_).real();
+        SumOnNodes(b);
+        b /= double(nsamp * totalnodes_);
+        if (!use_iterative_) {
+          // Explicit construction of the S matrix
+          Eigen::MatrixXd S = (Ok_.adjoint() * Ok_).real();
+          SumOnNodes(S);
+          S /= double(nsamp * totalnodes_);
 
-        grad_ = deltaP;
-        if (sr_rescale_shift_) {
-          auto nor = deltaP.dot(S * deltaP);
-          grad_ /= std::sqrt(nor.real());
+          // Adding diagonal shift
+          S += Eigen::MatrixXd::Identity(pars.size(), pars.size()) *
+               sr_diag_shift_;
+
+          Eigen::VectorXcd deltaP;
+          if (use_cholesky_ == false) {
+            Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr(S.rows(), S.cols());
+            qr.setThreshold(1.0e-6);
+            qr.compute(S);
+            deltaP = qr.solve(b);
+          } else {
+            Eigen::LLT<Eigen::MatrixXd> llt(S.rows());
+            llt.compute(S);
+            deltaP = llt.solve(b);
+          }
+          // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
+          // ComputeThinV).solve(b);
+
+          assert(deltaP.size() == grad_.size());
+          grad_ = deltaP;
+
+          if (sr_rescale_shift_) {
+            Complex nor = (deltaP.dot(S * deltaP));
+            grad_ /= std::sqrt(nor.real());
+          }
+
+        } else {
+          Eigen::ConjugateGradient<MatrixReplacement<double>,
+                                   Eigen::Lower | Eigen::Upper,
+                                   Eigen::IdentityPreconditioner>
+              it_solver;
+          // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
+          // it_solver;
+          it_solver.setTolerance(1.0e-3);
+          MatrixReplacement<double> S;
+          S.attachMatrix(Eigen::MatrixXd((Ok_.adjoint() * Ok_).real()));
+          S.setShift(sr_diag_shift_);
+          S.setScale(1. / double(nsamp * totalnodes_));
+
+          it_solver.compute(S);
+          auto deltaP = it_solver.solve(b);
+
+          grad_ = deltaP;
+          if (sr_rescale_shift_) {
+            double nor = deltaP.dot(S * deltaP);
+            grad_ /= std::sqrt(nor);
+          }
+          MPI_Barrier(MPI_COMM_WORLD);
         }
-
-        // if(mynode_==0){
-        //   std::cerr<<it_solver.iterations()<<"
-        //   "<<it_solver.error()<<std::endl;
-        // }
-        MPI_Barrier(MPI_COMM_WORLD);
       }
     }
 
@@ -455,12 +518,14 @@ class VariationalMonteCarlo {
   }
 
   void setSrParameters(double diagshift = 0.01, bool rescale_shift = false,
-                       bool use_iterative = false, bool use_cholesky = true) {
+                       bool use_iterative = false, bool use_cholesky = true,
+                       bool use_real_sr = false) {
     sr_diag_shift_ = diagshift;
     sr_rescale_shift_ = rescale_shift;
     use_iterative_ = use_iterative;
     dosr_ = true;
     use_cholesky_ = use_cholesky;
+    use_real_sr_ = use_real_sr;
   }
 
   AbstractMachine<Complex> &GetMachine() { return psi_; }
