@@ -51,7 +51,7 @@ class MatrixReplacement
 
  public:
   // Required typedefs, constants, and method:
-  typedef std::complex<double> Scalar;
+  typedef Complex Scalar;
   typedef double RealScalar;
   typedef int StorageIndex;
   enum {

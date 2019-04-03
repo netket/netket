@@ -24,9 +24,8 @@
 namespace netket {
 
 // Metropolis sampling generating local hoppings
-template <class WfType>
-class MetropolisHop: public AbstractSampler<WfType> {
-  WfType &psi_;
+class MetropolisHop : public AbstractSampler {
+  AbstractMachine &psi_;
 
   const AbstractHilbert &hilbert_;
 
@@ -46,13 +45,13 @@ class MetropolisHop: public AbstractSampler<WfType> {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  typename WfType::LookupType lt_;
+  typename AbstractMachine::LookupType lt_;
 
   int nstates_;
   std::vector<double> localstates_;
 
  public:
-  MetropolisHop(WfType &psi, int dmax = 1)
+  MetropolisHop(AbstractMachine &psi, int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(hilbert_.GetGraph(), dmax);
   }
@@ -178,7 +177,7 @@ class MetropolisHop: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &GetMachine() noexcept override { return psi_; }
+  AbstractMachine &GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;

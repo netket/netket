@@ -23,13 +23,14 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisHamiltonianPt(py::module &subm) {
-  using DerSampler = MetropolisHamiltonianPt<MachineType, AbstractOperator>;
-  py::class_<DerSampler, SamplerType>(subm, "MetropolisHamiltonianPt", R"EOF(
+  using DerSampler = MetropolisHamiltonianPt<AbstractOperator>;
+  py::class_<DerSampler, AbstractSampler>(subm, "MetropolisHamiltonianPt",
+                                          R"EOF(
     This sampler performs parallel-tempering moves in addition to
     the local moves implemented in `MetropolisHamiltonian`.
     The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
     )EOF")
-      .def(py::init<MachineType &, AbstractOperator &, int>(),
+      .def(py::init<AbstractMachine &, AbstractOperator &, int>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
            py::arg("hamiltonian"), py::arg("n_replicas"), R"EOF(
              Constructs a new ``MetropolisHamiltonianPt`` sampler given a machine,

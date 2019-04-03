@@ -34,13 +34,7 @@ namespace netket {
  Important: In order for this to work correctly, VectorType and MatrixType must
  be column major.
  */
-template <typename T>
-class ConvolutionalHypercube : public AbstractLayer<T> {
-  using VectorType = typename AbstractLayer<T>::VectorType;
-  using MatrixType = typename AbstractLayer<T>::MatrixType;
-  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
-
+class ConvolutionalHypercube : public AbstractLayer {
   static_assert(!MatrixType::IsRowMajor, "MatrixType must be column-major");
 
   bool usebias_;  // boolean to turn or off bias
@@ -74,9 +68,6 @@ class ConvolutionalHypercube : public AbstractLayer<T> {
   MatrixType flipped_kernels_;
 
  public:
-  using StateType = typename AbstractLayer<T>::StateType;
-  using LookupType = typename AbstractLayer<T>::LookupType;
-
   /// Constructor
   ConvolutionalHypercube(const int length, const int dim,
                          const int input_channels, const int output_channels,

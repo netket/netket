@@ -29,9 +29,8 @@
 namespace netket {
 
 // Metropolis sampling using custom moves provided by user
-template <class WfType>
-class CustomSampler: public AbstractSampler<WfType> {
-  WfType &psi_;
+class CustomSampler : public AbstractSampler {
+  AbstractMachine &psi_;
   const AbstractHilbert &hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
@@ -49,17 +48,17 @@ class CustomSampler: public AbstractSampler<WfType> {
   int totalnodes_;
 
   // Look-up tables
-  typename WfType::LookupType lt_;
+  typename AbstractMachine::LookupType lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   int nstates_;
   std::vector<double> localstates_;
 
  public:
-  CustomSampler(WfType &psi, const LocalOperator &move_operators,
+  CustomSampler(AbstractMachine &psi, const LocalOperator &move_operators,
                 const std::vector<double> &move_weights = {})
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
@@ -159,7 +158,7 @@ class CustomSampler: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  WfType &GetMachine() noexcept override { return psi_; }
+  AbstractMachine &GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;

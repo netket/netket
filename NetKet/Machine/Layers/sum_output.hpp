@@ -28,13 +28,7 @@
 
 namespace netket {
 
-template <typename T>
-class SumOutput : public AbstractLayer<T> {
-  using VectorType = typename AbstractLayer<T>::VectorType;
-  using MatrixType = typename AbstractLayer<T>::MatrixType;
-  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
-
+class SumOutput : public AbstractLayer {
   int in_size_;   // input size: should be multiple of no. of sites
   int out_size_;  // output size: should be multiple of no. of sites
 
@@ -43,9 +37,6 @@ class SumOutput : public AbstractLayer<T> {
   std::string name_;
 
  public:
-  using StateType = typename AbstractLayer<T>::StateType;
-  using LookupType = typename AbstractLayer<T>::LookupType;
-
   /// Constructor
   explicit SumOutput(int in_size) : in_size_(in_size) {
     out_size_ = 1;

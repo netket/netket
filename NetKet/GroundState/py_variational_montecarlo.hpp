@@ -35,7 +35,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
-      .def(py::init<const AbstractOperator &, SamplerType &,
+      .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
                     double, bool, bool, bool, bool>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),

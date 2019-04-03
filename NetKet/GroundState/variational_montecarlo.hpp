@@ -46,14 +46,12 @@ namespace netket {
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
   using GsType = Complex;
-  using VectorT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
-                                Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<typename AbstractMachine<GsType>::StateType,
-                                Eigen::Dynamic, Eigen::Dynamic>;
+  using VectorT = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
+  using MatrixT = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
 
   const AbstractOperator &ham_;
-  AbstractSampler<AbstractMachine<GsType>> &sampler_;
-  AbstractMachine<GsType> &psi_;
+  AbstractSampler &sampler_;
+  AbstractMachine &psi_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -142,9 +140,8 @@ class VariationalMonteCarlo {
   };
 
   VariationalMonteCarlo(const AbstractOperator &hamiltonian,
-                        AbstractSampler<AbstractMachine<GsType>> &sampler,
-                        AbstractOptimizer &optimizer, int nsamples,
-                        int discarded_samples = -1,
+                        AbstractSampler &sampler, AbstractOptimizer &optimizer,
+                        int nsamples, int discarded_samples = -1,
                         int discarded_samples_on_init = 0,
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool rescale_shift = false,
@@ -528,7 +525,7 @@ class VariationalMonteCarlo {
     use_real_sr_ = use_real_sr;
   }
 
-  AbstractMachine<Complex> &GetMachine() { return psi_; }
+  AbstractMachine &GetMachine() { return psi_; }
   const ObsManager &GetObsManager() const { return obsmanager_; }
 };
 

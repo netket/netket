@@ -1,4 +1,5 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018 The Simons Foundation, Inc. - All
+// Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,14 +28,7 @@
 namespace netket {
 
 // Jastrow with permutation symmetries
-template <typename T>
-class JastrowSymm : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class JastrowSymm : public AbstractMachine {
   const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
@@ -63,9 +57,6 @@ class JastrowSymm : public AbstractMachine<T> {
   Eigen::MatrixXi Wtemp_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   // constructor
   explicit JastrowSymm(const AbstractHilbert &hilbert)
       : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
@@ -250,21 +241,21 @@ class JastrowSymm : public AbstractMachine<T> {
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = Wsymm_(Wtemp_(i, j) - 1, 0);
         W_(j, i) = W_(i, j);  // create the lover triangle
-        W_(i, i) = T(0);
+        W_(i, i) = Complex(0);
       }
     }
   }
 
-  T LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
+  Complex LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(VisibleConstType v, const LookupType &lt) override {
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
     return 0.5 * v.dot(lt.V(0));
   }
 
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
+  // Difference between logarithms of values, when one or more visible
+  // variables are being flipped
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
@@ -272,7 +263,7 @@ class JastrowSymm : public AbstractMachine<T> {
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
     thetas_ = (W_.transpose() * v);
-    T logtsum = 0.5 * v.dot(thetas_);
+    Complex logtsum = 0.5 * v.dot(thetas_);
 
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
@@ -293,13 +284,13 @@ class JastrowSymm : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
-    T logvaldiff = 0.;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
+    Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-      T logtsum = 0.5 * v.dot(lt.V(0));
+      Complex logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
       Eigen::VectorXd vnew(v);
 

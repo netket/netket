@@ -26,14 +26,7 @@ namespace netket {
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
  *
  */
-template <typename T>
-class RbmSpin : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class RbmSpin : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   // number of visible units
@@ -63,9 +56,6 @@ class RbmSpin : public AbstractMachine<T> {
   bool useb_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
                    int alpha = 0, bool usea = true, bool useb = true)
       : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
@@ -222,7 +212,7 @@ class RbmSpin : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(VisibleConstType v) override {
+  Complex LogVal(VisibleConstType v) override {
     RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -230,7 +220,7 @@ class RbmSpin : public AbstractMachine<T> {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(VisibleConstType v, const LookupType &lt) override {
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
     RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
@@ -247,7 +237,7 @@ class RbmSpin : public AbstractMachine<T> {
     thetas_ = (W_.transpose() * v + b_);
     RbmSpin::lncosh(thetas_, lnthetas_);
 
-    T logtsum = lnthetas_.sum();
+    Complex logtsum = lnthetas_.sum();
 
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
@@ -271,10 +261,10 @@ class RbmSpin : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
-    T logvaldiff = 0.;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
+    Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
       RbmSpin::lncosh(lt.V(0), lnthetas_);
@@ -308,13 +298,12 @@ class RbmSpin : public AbstractMachine<T> {
   // ln(cos(x)) for std::complex argument
   // the modulus is computed by means of the previously defined function
   // for real argument
-  inline static std::complex<double> lncosh(std::complex<double> x) {
+  inline static Complex lncosh(Complex x) {
     const double xr = x.real();
     const double xi = x.imag();
 
-    std::complex<double> res = RbmSpin::lncosh(xr);
-    res += std::log(
-        std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
+    Complex res = RbmSpin::lncosh(xr);
+    res += std::log(Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
 
     return res;
   }

@@ -31,13 +31,13 @@ void RandomGaussian(Eigen::Matrix<double, Eigen::Dynamic, 1> &par, int seed,
   }
 }
 
-void RandomGaussian(Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> &par,
+void RandomGaussian(Eigen::Matrix<Complex, Eigen::Dynamic, 1> &par,
                     int seed, double sigma) {
   std::default_random_engine generator(seed);
   std::normal_distribution<double> distribution(0, sigma);
   for (int i = 0; i < par.size(); i++) {
     par(i) =
-        std::complex<double>(distribution(generator), distribution(generator));
+        Complex(distribution(generator), distribution(generator));
   }
 }
 

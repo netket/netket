@@ -30,7 +30,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddRbmSpinSymm(py::module &subm) {
-  py::class_<RbmSpinSymm<StateType>, MachineType>(subm, "RbmSpinSymm", R"EOF(
+  py::class_<RbmSpinSymm, AbstractMachine>(subm, "RbmSpinSymm", R"EOF(
              A fully connected Restricted Boltzmann Machine with lattice
              symmetries. This type of RBM has spin 1/2 hidden units and is
              defined by:

@@ -25,9 +25,9 @@
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
-template <class WfType, class H>
-class MetropolisHamiltonian : public AbstractSampler<WfType> {
-  WfType &psi_;
+template <class H>
+class MetropolisHamiltonian : public AbstractSampler {
+  AbstractMachine &psi_;
 
   const AbstractHilbert &hilbert_;
 
@@ -46,20 +46,20 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
   int totalnodes_;
 
   // Look-up tables
-  typename WfType::LookupType lt_;
+  typename AbstractMachine::LookupType lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   std::vector<std::vector<int>> tochange1_;
   std::vector<std::vector<double>> newconfs1_;
-  std::vector<std::complex<double>> mel1_;
+  std::vector<Complex> mel1_;
 
   Eigen::VectorXd v1_;
 
  public:
-  MetropolisHamiltonian(WfType &psi, H &hamiltonian)
+  MetropolisHamiltonian(AbstractMachine &psi, H &hamiltonian)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
@@ -160,7 +160,7 @@ class MetropolisHamiltonian : public AbstractSampler<WfType> {
     return hilbert_;
   }
 
-  WfType &GetMachine() noexcept override { return psi_; }
+  AbstractMachine &GetMachine() noexcept override { return psi_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
