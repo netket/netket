@@ -1,10 +1,12 @@
 #ifndef NETKET_COMMON_TYPES_HPP
 #define NETKET_COMMON_TYPES_HPP
 /**
- * This header contains standard type aliases to be used throughout the NetKet codebase.
+ * This header contains standard type aliases to be used throughout the NetKet
+ * codebase.
  */
 
 #include <complex>
+#include <cstddef>
 
 namespace netket {
 

@@ -21,7 +21,6 @@
 
 namespace netket {
 
-template <class WfType>
 class AbstractSampler {
  public:
   virtual void Reset(bool initrandom = false) = 0;
@@ -32,7 +31,7 @@ class AbstractSampler {
 
   virtual void SetVisible(const Eigen::VectorXd& v) = 0;
 
-  virtual WfType& GetMachine() noexcept = 0;
+  virtual AbstractMachine& GetMachine() noexcept = 0;
 
   virtual Eigen::VectorXd Acceptance() const = 0;
 

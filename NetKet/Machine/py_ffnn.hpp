@@ -31,17 +31,15 @@ namespace netket {
 
 void AddFFNN(py::module &subm) {
   {
-    using DerMachine = FFNN<StateType>;
-    py::class_<DerMachine, MachineType>(subm, "FFNN", R"EOF(
+    py::class_<FFNN, AbstractMachine>(subm, "FFNN", R"EOF(
              A feedforward neural network (FFNN) Machine. This machine is
              constructed by providing a sequence of layers from the ``layer``
              class. Each layer implements a transformation such that the
              information is transformed sequentially as it moves from the input
              nodes through the hidden layers and to the output nodes.)EOF")
         .def(py::init([](AbstractHilbert const &hi, py::tuple tuple) {
-               auto layers =
-                   py::cast<std::vector<AbstractLayer<StateType> *>>(tuple);
-               return DerMachine{hi, std::move(layers)};
+               auto layers = py::cast<std::vector<AbstractLayer *>>(tuple);
+               return FFNN{hi, std::move(layers)};
              }),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
              py::arg("layers"),

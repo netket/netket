@@ -25,9 +25,9 @@
 namespace netket {
 
 // Metropolis sampling generating transitions using the Hamiltonian
-template <class WfType, class H>
-class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
-  WfType &psi_;
+template <class H>
+class MetropolisHamiltonianPt : public AbstractSampler {
+  AbstractMachine &psi_;
 
   const AbstractHilbert &hilbert_;
 
@@ -50,18 +50,18 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
   int totalnodes_;
 
   // Look-up tables
-  std::vector<typename WfType::LookupType> lt_;
+  std::vector<typename AbstractMachine::LookupType> lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   std::vector<std::vector<int>> tochange1_;
   std::vector<std::vector<double>> newconfs1_;
-  std::vector<std::complex<double>> mel1_;
+  std::vector<Complex> mel1_;
 
  public:
-  MetropolisHamiltonianPt(WfType &psi, H &hamiltonian, int nrep)
+  MetropolisHamiltonianPt(AbstractMachine &psi, H &hamiltonian, int nrep)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         hamiltonian_(hamiltonian),
@@ -220,7 +220,7 @@ class MetropolisHamiltonianPt : public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  WfType &GetMachine() noexcept override { return psi_; }
+  AbstractMachine &GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;

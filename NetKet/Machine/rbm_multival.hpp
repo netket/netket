@@ -28,14 +28,7 @@ namespace netket {
 
 // Restricted Boltzman Machine wave function
 // for generic (finite) local hilbert space
-template <typename T>
-class RbmMultival : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class RbmMultival : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   // number of visible units
@@ -75,9 +68,6 @@ class RbmMultival : public AbstractMachine<T> {
   std::map<double, int> confindex_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   explicit RbmMultival(const AbstractHilbert &hilbert, int nhidden = 0,
                        int alpha = 0, bool usea = true, bool useb = true)
       : hilbert_(hilbert),
@@ -195,7 +185,7 @@ class RbmMultival : public AbstractMachine<T> {
       }
     }
 
-    RbmSpin<T>::tanh(thetas_, lnthetas_);
+    RbmSpin::tanh(thetas_, lnthetas_);
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
@@ -266,17 +256,17 @@ class RbmMultival : public AbstractMachine<T> {
   }
 
   // Value of the logarithm of the wave-function
-  T LogVal(VisibleConstType v) override {
+  Complex LogVal(VisibleConstType v) override {
     ComputeTheta(v, thetas_);
-    RbmSpin<T>::lncosh(thetas_, lnthetas_);
+    RbmSpin::lncosh(thetas_, lnthetas_);
 
     return (vtilde_.dot(a_) + lnthetas_.sum());
   }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(VisibleConstType v, const LookupType &lt) override {
-    RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
+    RbmSpin::lncosh(lt.V(0), lnthetas_);
 
     ComputeVtilde(v, vtilde_);
     return (vtilde_.dot(a_) + lnthetas_.sum());
@@ -291,9 +281,9 @@ class RbmMultival : public AbstractMachine<T> {
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
     ComputeTheta(v, thetas_);
-    RbmSpin<T>::lncosh(thetas_, lnthetas_);
+    RbmSpin::lncosh(thetas_, lnthetas_);
 
-    T logtsum = lnthetas_.sum();
+    Complex logtsum = lnthetas_.sum();
 
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
@@ -311,7 +301,7 @@ class RbmMultival : public AbstractMachine<T> {
           thetasnew_ += W_.row(ls_ * sf + newtilde);
         }
 
-        RbmSpin<T>::lncosh(thetasnew_, lnthetasnew_);
+        RbmSpin::lncosh(thetasnew_, lnthetasnew_);
         logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
       }
     }
@@ -321,13 +311,13 @@ class RbmMultival : public AbstractMachine<T> {
   // Difference between logarithms of values, when one or more visible variables
   // are being changed Version using pre-computed look-up tables for efficiency
   // on a small number of local changes
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
-    T logvaldiff = 0.;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
+    Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-      RbmSpin<T>::lncosh(lt.V(0), lnthetas_);
+      RbmSpin::lncosh(lt.V(0), lnthetas_);
 
       thetasnew_ = lt.V(0);
 
@@ -343,7 +333,7 @@ class RbmMultival : public AbstractMachine<T> {
         thetasnew_ += W_.row(ls_ * sf + newtilde);
       }
 
-      RbmSpin<T>::lncosh(thetasnew_, lnthetasnew_);
+      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
       logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
     }
     return logvaldiff;

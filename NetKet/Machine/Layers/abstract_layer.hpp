@@ -26,15 +26,14 @@ namespace netket {
 /**
   Abstract class for Neural Network layer.
 */
-template <typename T>
 class AbstractLayer {
  public:
-  using VectorType = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-  using MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
-  using StateType = T;
-  using LookupType = std::vector<VectorType>;
-  using VectorRefType = Eigen::Ref<VectorType>;
-  using VectorConstRefType = Eigen::Ref<const VectorType>;
+  using VectorType = AbstractMachine::VectorType;
+  using MatrixType = AbstractMachine::MatrixType;
+  using LookupType = AbstractMachine::LookupType;
+  using VectorRefType = AbstractMachine::VectorRefType;
+  using VectorConstRefType = AbstractMachine::VectorConstRefType;
+  using VisibleConstType = AbstractMachine::VisibleConstType;
 
   /**
   Member function returning the name of the layer.

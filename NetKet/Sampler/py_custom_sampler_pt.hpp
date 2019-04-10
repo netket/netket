@@ -23,9 +23,8 @@ namespace py = pybind11;
 namespace netket {
 
 void AddCustomSamplerPt(py::module &subm) {
-  using DerSampler = CustomSamplerPt<MachineType>;
-  py::class_<DerSampler, SamplerType>(subm, "CustomSamplerPt")
-      .def(py::init<MachineType &, const LocalOperator &,
+  py::class_<CustomSamplerPt, AbstractSampler>(subm, "CustomSamplerPt")
+      .def(py::init<AbstractMachine &, const LocalOperator &,
                     const std::vector<double> &, int>(),
            py::keep_alive<1, 2>(), py::arg("machine"),
            py::arg("move_operators"),

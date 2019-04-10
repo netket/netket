@@ -30,13 +30,12 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMpsPeriodic(py::module &subm) {
-  py::class_<MPSPeriodic<StateType, false>, MachineType>(subm, "MPSPeriodic")
+  py::class_<MPSPeriodic<false>, AbstractMachine>(subm, "MPSPeriodic")
       .def(py::init<const AbstractHilbert &, double, int>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("bond_dim"),
            py::arg("symperiod") = -1);
 
-  py::class_<MPSPeriodic<StateType, true>, MachineType>(subm,
-                                                        "MPSPeriodicDiagonal")
+  py::class_<MPSPeriodic<true>, AbstractMachine>(subm, "MPSPeriodicDiagonal")
       .def(py::init<const AbstractHilbert &, double, int>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("bond_dim"),
            py::arg("symperiod") = -1);

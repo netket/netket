@@ -33,9 +33,7 @@
 namespace netket {
 
 class Supervised {
-  using complex = std::complex<double>;
-
-  AbstractMachine<complex> &psi_;
+  AbstractMachine &psi_;
   AbstractOptimizer &opt_;
 
   // Total batchsize
@@ -53,8 +51,8 @@ class Supervised {
   Eigen::VectorXcd grad_;
   Eigen::VectorXcd grad_part_1_;
   Eigen::VectorXcd grad_part_2_;
-  complex grad_num_1_;
-  complex grad_num_2_;
+  Complex grad_num_1_;
+  Complex grad_num_2_;
 
   // Training samples and targets
   std::vector<Eigen::VectorXd> trainingSamples_;
@@ -79,8 +77,8 @@ class Supervised {
   DistributedRandomEngine engine_;
 
  public:
-  Supervised(AbstractMachine<complex> &psi, AbstractOptimizer &opt,
-             int batchsize, std::vector<Eigen::VectorXd> trainingSamples,
+  Supervised(AbstractMachine &psi, AbstractOptimizer &opt, int batchsize,
+             std::vector<Eigen::VectorXd> trainingSamples,
              std::vector<Eigen::VectorXcd> trainingTargets)
       : psi_(psi),
         opt_(opt),
@@ -132,7 +130,7 @@ class Supervised {
     double max_log_psi = 0;
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogVal(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -144,11 +142,11 @@ class Supervised {
       Eigen::VectorXd sample(batchSamples[i]);
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
-      complex t(target[0].real(), target[0].imag());
+      Complex t(target[0].real(), target[0].imag());
       // Undo log
       t = exp(t);
 
-      complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogVal(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
@@ -185,7 +183,7 @@ class Supervised {
     double max_log_psi = -std::numeric_limits<double>::infinity();
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogVal(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -197,11 +195,11 @@ class Supervised {
       Eigen::VectorXd sample(batchSamples[i]);
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
-      complex t = target[0];
+      Complex t = target[0];
       // Undo log
       t = exp(t);
 
-      complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogVal(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
@@ -240,11 +238,11 @@ class Supervised {
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract complex value of log(config)
       Eigen::VectorXd sample(batchSamples[i]);
-      complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogVal(sample));
 
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
-      complex t(target[0].real(), target[0].imag());
+      Complex t(target[0].real(), target[0].imag());
 
       // Compute derivative of log(psi)
       auto partial_gradient = psi_.DerLog(sample);
@@ -364,10 +362,10 @@ class Supervised {
     double mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
-      complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogVal(sample));
 
       Eigen::VectorXcd target = trainingTargets_[i];
-      complex t(target[0].real(), target[0].imag());
+      Complex t(target[0].real(), target[0].imag());
 
       mse_log += 0.5 * std::norm(value - t);
       mse += 0.5 * std::norm(exp(value) - exp(t));
@@ -385,10 +383,10 @@ class Supervised {
     const int numSamples = trainingSamples_.size();
 
     // Allocate vectors for storing the derivatives ...
-    complex num1(0.0, 0.0);
-    complex num2(0.0, 0.0);
-    complex num3(0.0, 0.0);
-    complex num4(0.0, 0.0);
+    Complex num1(0.0, 0.0);
+    Complex num2(0.0, 0.0);
+    Complex num3(0.0, 0.0);
+    Complex num4(0.0, 0.0);
 
     Eigen::VectorXcd logpsi(numSamples);
     double max_log_psi = -std::numeric_limits<double>::infinity();
@@ -406,10 +404,10 @@ class Supervised {
       // And the corresponding target
       Eigen::VectorXcd target(trainingTargets_[i]);
 
-      // Cast value and target to std::complex<double> and undo logs
-      complex value(psi_.LogVal(sample));
+      // Cast value and target to Complex and undo logs
+      Complex value(psi_.LogVal(sample));
       value = exp(value - max_log_psi);
-      complex t(target[0].real(), target[0].imag());
+      Complex t(target[0].real(), target[0].imag());
       t = exp(t);
 
       num1 += std::conj(value) * t;
@@ -418,7 +416,7 @@ class Supervised {
       num4 += std::norm(t);
     }
 
-    complex complex_log_overlap_ =
+    Complex complex_log_overlap_ =
         -(log(num1) + log(num2) - log(num3) - log(num4));
     assert(std::abs(complex_log_overlap_.imag()) < 1e-8);
     loss_log_overlap_ = complex_log_overlap_.real();

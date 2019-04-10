@@ -28,14 +28,7 @@ namespace netket {
 /** Jastrow machine class.
  *
  */
-template <typename T>
-class Jastrow : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+class Jastrow : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   // number of visible units
@@ -52,9 +45,6 @@ class Jastrow : public AbstractMachine<T> {
   VectorType thetasnew_;
 
  public:
-  using StateType = typename AbstractMachine<T>::StateType;
-  using LookupType = typename AbstractMachine<T>::LookupType;
-
   // constructor
   explicit Jastrow(const AbstractHilbert &hilbert)
       : hilbert_(hilbert), nv_(hilbert.Size()) {
@@ -110,7 +100,7 @@ class Jastrow : public AbstractMachine<T> {
     int k = 0;
 
     for (int i = 0; i < nv_; i++) {
-      W_(i, i) = T(0.);
+      W_(i, i) = Complex(0.);
       for (int j = i + 1; j < nv_; j++) {
         W_(i, j) = pars(k);
         W_(j, i) = W_(i, j);  // create the lower triangle
@@ -142,11 +132,11 @@ class Jastrow : public AbstractMachine<T> {
     }
   }
 
-  T LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
+  Complex LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  T LogVal(VisibleConstType v, const LookupType &lt) override {
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
     return 0.5 * v.dot(lt.V(0));
   }
 
@@ -159,7 +149,7 @@ class Jastrow : public AbstractMachine<T> {
     VectorType logvaldiffs = VectorType::Zero(nconn);
 
     thetas_ = (W_.transpose() * v);
-    T logtsum = 0.5 * v.dot(thetas_);
+    Complex logtsum = 0.5 * v.dot(thetas_);
 
     for (std::size_t k = 0; k < nconn; k++) {
       if (tochange[k].size() != 0) {
@@ -179,13 +169,13 @@ class Jastrow : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
-    T logvaldiff = 0.;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
+    Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-      T logtsum = 0.5 * v.dot(lt.V(0));
+      Complex logtsum = 0.5 * v.dot(lt.V(0));
       thetasnew_ = lt.V(0);
       Eigen::VectorXd vnew(v);
 

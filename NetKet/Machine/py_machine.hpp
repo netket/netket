@@ -40,15 +40,15 @@ namespace netket {
 void AddMachineModule(py::module &m) {
   auto subm = m.def_submodule("machine");
 
-  py::class_<MachineType>(subm, "Machine")
+  py::class_<AbstractMachine>(subm, "Machine")
       .def_property_readonly(
-          "n_par", &MachineType::Npar,
+          "n_par", &AbstractMachine::Npar,
           R"EOF(int: The number of parameters in the machine.)EOF")
-      .def_property("parameters", &MachineType::GetParameters,
-                    &MachineType::SetParameters,
+      .def_property("parameters", &AbstractMachine::GetParameters,
+                    &AbstractMachine::SetParameters,
                     R"EOF(list: List containing the parameters within the layer.
             Read and write)EOF")
-      .def("init_random_parameters", &MachineType::InitRandomPars,
+      .def("init_random_parameters", &AbstractMachine::InitRandomPars,
            py::arg("seed") = 1234, py::arg("sigma") = 0.1,
            R"EOF(
              Member function to initialise machine parameters.
@@ -59,8 +59,8 @@ void AddMachineModule(py::module &m) {
                      parameters are drawn.
            )EOF")
       .def("log_val",
-           (StateType(MachineType::*)(MachineType::VisibleConstType)) &
-               MachineType::LogVal,
+           (Complex(AbstractMachine::*)(AbstractMachine::VisibleConstType)) &
+               AbstractMachine::LogVal,
            py::arg("v"),
            R"EOF(
                  Member function to obtain log value of machine given an input
@@ -70,11 +70,11 @@ void AddMachineModule(py::module &m) {
                      v: Input vector to machine.
            )EOF")
       .def("log_val_diff",
-           (MachineType::VectorType(MachineType::*)(
-               MachineType::VisibleConstType,
+           (AbstractMachine::VectorType(AbstractMachine::*)(
+               AbstractMachine::VisibleConstType,
                const std::vector<std::vector<int>> &,
                const std::vector<std::vector<double>> &)) &
-               MachineType::LogValDiff,
+               AbstractMachine::LogValDiff,
            py::arg("v"), py::arg("tochange"), py::arg("newconf"),
            R"EOF(
                  Member function to obtain difference in log value of machine
@@ -88,9 +88,9 @@ void AddMachineModule(py::module &m) {
                          indices specified in tochange
            )EOF")
       .def("der_log",
-           (MachineType::VectorType(MachineType::*)(
-               MachineType::VisibleConstType)) &
-               MachineType::DerLog,
+           (AbstractMachine::VectorType(AbstractMachine::*)(
+               AbstractMachine::VisibleConstType)) &
+               AbstractMachine::DerLog,
            py::arg("v"),
            R"EOF(
                  Member function to obtain the derivatives of log value of
@@ -100,14 +100,14 @@ void AddMachineModule(py::module &m) {
                      v: Input vector to machine.
            )EOF")
       .def_property_readonly(
-          "n_visible", &MachineType::Nvisible,
+          "n_visible", &AbstractMachine::Nvisible,
           R"EOF(int: The number of inputs into the machine aka visible units in
             the case of Restricted Boltzmann Machines.)EOF")
       .def_property_readonly(
-          "hilbert", &MachineType::GetHilbert,
+          "hilbert", &AbstractMachine::GetHilbert,
           R"EOF(netket.hilbert.Hilbert: The hilbert space object of the system.)EOF")
       .def("save",
-           [](const MachineType &a, std::string filename) {
+           [](const AbstractMachine &a, std::string filename) {
              json j;
              a.to_json(j);
              std::ofstream filewf(filename);
@@ -122,7 +122,7 @@ void AddMachineModule(py::module &m) {
                      filename: name of file to save parameters to.
            )EOF")
       .def("load",
-           [](MachineType &a, std::string filename) {
+           [](AbstractMachine &a, std::string filename) {
              std::ifstream filewf(filename);
              if (filewf.is_open()) {
                json j;
