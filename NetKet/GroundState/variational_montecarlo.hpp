@@ -62,8 +62,7 @@ class VariationalMonteCarlo {
 
   Eigen::MatrixXd vsamp_;
 
-  Eigen::VectorXd grad_;
-  Eigen::VectorXd gradprev_;
+  Eigen::VectorXcd grad_;
 
   int totalnodes_;
   int mynode_;
@@ -156,12 +155,13 @@ class VariationalMonteCarlo {
             const std::string &method, double diagshift, bool use_iterative,
             bool use_cholesky) {
     npar_ = psi_.Npar();
-    is_holomorphic_ = true;
-    if (is_holomorphic_) {
-      npar_ *= 2;
-    }
+    is_holomorphic_ = psi_.IsHolomorphic();
 
-    opt_.Init(Eigen::VectorXd(npar_));
+    if (is_holomorphic_) {
+      opt_.Init(Eigen::VectorXd(2 * npar_));
+    } else {
+      opt_.Init(Eigen::VectorXd(npar_));
+    }
 
     grad_.resize(npar_);
     Okmean_.resize(npar_);
@@ -250,15 +250,9 @@ class VariationalMonteCarlo {
 
     for (int i = 0; i < nsamp; i++) {
       elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
-      const Eigen::VectorXcd Oval = psi_.DerLog(vsamp_.row(i));
-
-      if (is_holomorphic_) {
-        Ok_.row(i).head(npar_ / 2) = Oval;
-        Ok_.row(i).tail(npar_ / 2) = I_ * Oval;
-      } else {
-        Ok_.row(i) = Oval;
-      }
       obsmanager_.Push("Energy", elocs_(i).real());
+
+      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
     }
 
     elocmean_ = elocs_.mean();
@@ -277,7 +271,7 @@ class VariationalMonteCarlo {
       obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
     }
 
-    grad_ = (Ok_.adjoint() * elocs_).real();
+    grad_ = (Ok_.adjoint() * elocs_);
 
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
@@ -367,32 +361,34 @@ class VariationalMonteCarlo {
   }
 
   void UpdateParameters() {
-    Eigen::VectorXd pars(npar_);
+    auto pars = psi_.GetParameters();
 
-    if (is_holomorphic_) {
-      const auto psipar = psi_.GetParameters();
-      pars.head(npar_ / 2) = psipar.real();
-      pars.tail(npar_ / 2) = psipar.imag();
-    } else {
-      pars = psi_.GetParameters().real();
-    }
-    Eigen::VectorXd deltap(npar_);
+    Eigen::VectorXcd deltap(npar_);
 
     if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap);
+      sr_.ComputeUpdate(Ok_, grad_, deltap, is_holomorphic_);
     } else {
       deltap = grad_;
     }
 
-    opt_.Update(deltap, pars);
+    if (is_holomorphic_) {
+      Eigen::VectorXd deltap_real(2 * npar_);
+      deltap_real << deltap.real(), deltap.imag();
+      Eigen::VectorXd parst(2 * npar_);
+      parst << pars.real(), pars.imag();
+      opt_.Update(deltap_real, parst);
+      pars.real() = parst.head(npar_);
+      pars.imag() = parst.tail(npar_);
+    } else {
+      Eigen::VectorXd deltap_real = deltap.real();
+      Eigen::VectorXd parst = pars.real();
+      opt_.Update(deltap, parst);
+      pars.real() = parst;
+    }
+
     SendToAll(pars);
 
-    if (is_holomorphic_) {
-      const auto psipar = pars.head(npar_ / 2) + I_ * pars.tail(npar_ / 2);
-      psi_.SetParameters(psipar);
-    } else {
-      psi_.SetParameters(Eigen::VectorXcd(pars));
-    }
+    psi_.SetParameters(pars);
 
     MPI_Barrier(MPI_COMM_WORLD);
   }

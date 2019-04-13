@@ -164,6 +164,8 @@ class AbstractMachine {
   */
   virtual VectorType DerLog(VisibleConstType v) = 0;
 
+  virtual bool IsHolomorphic() { return true; }
+
   virtual void to_json(json &j) const = 0;
   virtual void from_json(const json &j) = 0;
 

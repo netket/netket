@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,62 +39,93 @@ class SR {
 
   bool use_cholesky_;
 
-  Eigen::MatrixXd S_;
+  Eigen::MatrixXd Sreal_;
+  Eigen::MatrixXcd Scomplex_;
 
  public:
   SR() { setDefaultParameters(); }
 
   void ComputeUpdate(const Eigen::Ref<const Eigen::MatrixXcd> Oks,
-                     const Eigen::Ref<const Eigen::VectorXd> grad,
-                     Eigen::Ref<Eigen::VectorXd> deltaP) {
+                     const Eigen::Ref<const Eigen::VectorXcd> grad,
+                     Eigen::Ref<Eigen::VectorXcd> deltaP, bool is_holomorphic) {
     double nsamp = Oks.rows();
 
     SumOnNodes(nsamp);
     auto npar = grad.size();
+    if (is_holomorphic) {
+      if (!use_iterative_) {
+        // Explicit construction of the S matrix
+        Scomplex_.resize(npar, npar);
+        Scomplex_ = (Oks.adjoint() * Oks);
+        SumOnNodes(Scomplex_);
+        Scomplex_ /= nsamp;
 
-    if (!use_iterative_) {
-      // Explicit construction of the S matrix
-      S_.resize(npar, npar);
-      S_ = (Oks.adjoint() * Oks).real();
-      SumOnNodes(S_);
-      S_ /= nsamp;
+        // Adding diagonal shift
+        Scomplex_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
 
-      // Adding diagonal shift
-      S_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
-
-      if (use_cholesky_ == false) {
-        Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr(npar, npar);
-        qr.setThreshold(1.0e-6);
-        qr.compute(S_);
-        deltaP = qr.solve(grad);
+        if (use_cholesky_ == false) {
+          Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(npar, npar);
+          qr.setThreshold(1.0e-6);
+          qr.compute(Scomplex_);
+          deltaP = qr.solve(grad);
+        } else {
+          Eigen::LLT<Eigen::MatrixXcd> llt(npar);
+          llt.compute(Scomplex_);
+          deltaP = llt.solve(grad);
+        }
       } else {
-        Eigen::LLT<Eigen::MatrixXd> llt(npar);
-        llt.compute(S_);
-        deltaP = llt.solve(grad);
+        Eigen::ConjugateGradient<SrMatrixComplex, Eigen::Lower | Eigen::Upper,
+                                 Eigen::IdentityPreconditioner>
+            it_solver;
+        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
+        // it_solver;
+        it_solver.setTolerance(1.0e-3);
+        SrMatrixComplex S;
+        S.attachMatrix(Oks);
+        S.setShift(sr_diag_shift_);
+        S.setScale(1. / nsamp);
+
+        it_solver.compute(S);
+        deltaP = it_solver.solve(grad);
+        MPI_Barrier(MPI_COMM_WORLD);
       }
-      // Eigen::VectorXcd deltaP=S.jacobiSvd(ComputeThinU |
-      // ComputeThinV).solve(b);
-
     } else {
-      Eigen::ConjugateGradient<MatrixReplacement, Eigen::Lower | Eigen::Upper,
-                               Eigen::IdentityPreconditioner>
-          it_solver;
-      // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-      // it_solver;
-      it_solver.setTolerance(1.0e-3);
-      MatrixReplacement S;
-      S.attachMatrix(Oks);
-      S.setShift(sr_diag_shift_);
-      S.setScale(1. / nsamp);
+      if (!use_iterative_) {
+        // Explicit construction of the S matrix
+        Sreal_.resize(npar, npar);
+        Sreal_ = (Oks.adjoint() * Oks).real();
+        SumOnNodes(Sreal_);
+        Sreal_ /= nsamp;
 
-      it_solver.compute(S);
-      deltaP = it_solver.solve(grad);
+        // Adding diagonal shift
+        Sreal_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
 
-      // if(mynode_==0){
-      //   std::cerr<<it_solver.iterations()<<"
-      //   "<<it_solver.error()<<std::endl;
-      // }
-      MPI_Barrier(MPI_COMM_WORLD);
+        if (use_cholesky_ == false) {
+          Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr(npar, npar);
+          qr.setThreshold(1.0e-6);
+          qr.compute(Sreal_);
+          deltaP.real() = qr.solve(grad.real());
+        } else {
+          Eigen::LLT<Eigen::MatrixXd> llt(npar);
+          llt.compute(Sreal_);
+          deltaP.real() = llt.solve(grad.real());
+        }
+      } else {
+        Eigen::ConjugateGradient<SrMatrixReal, Eigen::Lower | Eigen::Upper,
+                                 Eigen::IdentityPreconditioner>
+            it_solver;
+        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
+        // it_solver;
+        it_solver.setTolerance(1.0e-3);
+        SrMatrixReal S;
+        S.attachMatrix(Oks);
+        S.setShift(sr_diag_shift_);
+        S.setScale(1. / nsamp);
+
+        it_solver.compute(S);
+        deltaP.real() = it_solver.solve(grad.real());
+        MPI_Barrier(MPI_COMM_WORLD);
+      }
     }
   }
 
@@ -120,7 +151,7 @@ class SR {
       }
     }
   }
-};
+};  // namespace netket
 
 }  // namespace netket
 

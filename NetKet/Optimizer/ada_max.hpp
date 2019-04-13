@@ -53,17 +53,6 @@ class AdaMax : public AbstractOptimizer {
     PrintParameters();
   }
 
-  // TODO remove
-  // Json constructor
-  explicit AdaMax(const json &pars) : I_(0, 1) {
-    npar_ = -1;
-    niter_ = 0;
-    niter_reset_ = -1;
-
-    from_json(pars);
-    PrintParameters();
-  }
-
   void PrintParameters() {
     InfoMessage() << "Adamax optimizer initialized with these parameters :"
                   << std::endl;
