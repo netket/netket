@@ -18,15 +18,16 @@
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
 
-#ifndef NETKET_RBM_SPIN_HPP
-#define NETKET_RBM_SPIN_HPP
+#ifndef NETKET_RBM_SPIN_REAL_HPP
+#define NETKET_RBM_SPIN_REAL_HPP
 
 namespace netket {
 
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
+and real-valued weights
  *
  */
-class RbmSpin : public AbstractMachine {
+class RbmSpinReal : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   // number of visible units
@@ -39,25 +40,25 @@ class RbmSpin : public AbstractMachine {
   int npar_;
 
   // weights
-  MatrixType W_;
+  RealMatrixType W_;
 
   // visible units bias
-  VectorType a_;
+  RealVectorType a_;
 
   // hidden units bias
-  VectorType b_;
+  RealVectorType b_;
 
-  VectorType thetas_;
-  VectorType lnthetas_;
-  VectorType thetasnew_;
-  VectorType lnthetasnew_;
+  RealVectorType thetas_;
+  RealVectorType lnthetas_;
+  RealVectorType thetasnew_;
+  RealVectorType lnthetasnew_;
 
   bool usea_;
   bool useb_;
 
  public:
-  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
-                   int alpha = 0, bool usea = true, bool useb = true)
+  explicit RbmSpinReal(const AbstractHilbert &hilbert, int nhidden = 0,
+                       int alpha = 0, bool usea = true, bool useb = true)
       : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
     nh_ = std::max(nhidden, alpha * nv_);
 
@@ -88,7 +89,7 @@ class RbmSpin : public AbstractMachine {
       b_.setZero();
     }
 
-    InfoMessage() << "RBM Initizialized with nvisible = " << nv_
+    InfoMessage() << "Real-valued RBM Initizialized with nvisible = " << nv_
                   << " and nhidden = " << nh_ << std::endl;
     InfoMessage() << "Using visible bias = " << usea_ << std::endl;
     InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
@@ -101,11 +102,11 @@ class RbmSpin : public AbstractMachine {
   int Npar() const override { return npar_; }
 
   void InitRandomPars(int seed, double sigma) override {
-    VectorType par(npar_);
+    RealVectorType par(npar_);
 
     netket::RandomGaussian(par, seed, sigma);
 
-    SetParameters(par);
+    SetParameters(VectorType(par));
   }
 
   void InitLookup(VisibleConstType v, LookupType &lt) override {
@@ -192,20 +193,20 @@ class RbmSpin : public AbstractMachine {
 
     if (usea_) {
       for (; k < nv_; k++) {
-        a_(k) = pars(k);
+        a_(k) = std::real(pars(k));
       }
     }
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
-        b_(p) = pars(k);
+        b_(p) = std::real(pars(k));
         k++;
       }
     }
 
     for (int i = 0; i < nv_; i++) {
       for (int j = 0; j < nh_; j++) {
-        W_(i, j) = pars(k);
+        W_(i, j) = std::real(pars(k));
         k++;
       }
     }
@@ -221,7 +222,7 @@ class RbmSpin : public AbstractMachine {
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
   Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    RbmSpin::lncosh(lt.V(0), lnthetas_);
+    RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
 
     return (v.dot(a_) + lnthetas_.sum());
   }
@@ -267,9 +268,9 @@ class RbmSpin : public AbstractMachine {
     Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
-      RbmSpin::lncosh(lt.V(0), lnthetas_);
+      RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
 
-      thetasnew_ = lt.V(0);
+      thetasnew_ = lt.V(0).real();
 
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
@@ -295,49 +296,12 @@ class RbmSpin : public AbstractMachine {
     }
   }
 
-  // ln(cos(x)) for std::complex argument
-  // the modulus is computed by means of the previously defined function
-  // for real argument
-  inline static Complex lncosh(Complex x) {
-    const double xr = x.real();
-    const double xi = x.imag();
-
-    Complex res = RbmSpin::lncosh(xr);
-    res += std::log(Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
-
-    return res;
-  }
-
-  static void tanh(VectorConstRefType x, VectorType &y) {
-    assert(y.size() >= x.size());
-    y = Eigen::tanh(x.array());
-  }
-
-  static void tanh(RealVectorConstRefType x, RealVectorType &y) {
-    assert(y.size() >= x.size());
-    y = Eigen::tanh(x.array());
-  }
-
-  static void lncosh(VectorConstRefType x, VectorType &y) {
-    assert(y.size() >= x.size());
-    for (int i = 0; i < x.size(); i++) {
-      y(i) = lncosh(x(i));
-    }
-  }
-
-  static void lncosh(RealVectorConstRefType x, RealVectorType &y) {
-    assert(y.size() >= x.size());
-    for (int i = 0; i < x.size(); i++) {
-      y(i) = lncosh(x(i));
-    }
-  }
-
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
 
   void to_json(json &j) const override {
-    j["Name"] = "RbmSpin";
+    j["Name"] = "RbmSpinReal";
     j["Nvisible"] = nv_;
     j["Nhidden"] = nh_;
     j["UseVisibleBias"] = usea_;
@@ -349,9 +313,9 @@ class RbmSpin : public AbstractMachine {
 
   void from_json(const json &pars) override {
     std::string name = FieldVal<std::string>(pars, "Name");
-    if (name != "RbmSpin") {
+    if (name != "RbmSpinReal") {
       throw InvalidInputError(
-          "Error while constructing RbmSpin from input parameters");
+          "Error while constructing RbmSpinReal from input parameters");
     }
 
     if (FieldExists(pars, "Nvisible")) {
@@ -376,20 +340,22 @@ class RbmSpin : public AbstractMachine {
 
     // Loading parameters, if defined in the input
     if (FieldExists(pars, "a")) {
-      a_ = FieldVal<VectorType>(pars, "a");
+      a_ = FieldVal<RealVectorType>(pars, "a");
     } else {
       a_.setZero();
     }
 
     if (FieldExists(pars, "b")) {
-      b_ = FieldVal<VectorType>(pars, "b");
+      b_ = FieldVal<RealVectorType>(pars, "b");
     } else {
       b_.setZero();
     }
     if (FieldExists(pars, "W")) {
-      W_ = FieldVal<MatrixType>(pars, "W");
+      W_ = FieldVal<RealMatrixType>(pars, "W");
     }
   }
+
+  bool IsHolomorphic() override { return false; }
 };
 
 }  // namespace netket

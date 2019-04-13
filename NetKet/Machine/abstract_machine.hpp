@@ -36,6 +36,9 @@ class AbstractMachine {
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
+  using RealVectorType = Eigen::Matrix<double, Eigen::Dynamic, 1>;
+  using RealMatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+  using RealVectorConstRefType = Eigen::Ref<const RealVectorType>;
 
   /**
   Member function returning the number of variational parameters.

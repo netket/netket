@@ -27,5 +27,6 @@
 #include "mps_periodic.hpp"
 #include "rbm_multival.hpp"
 #include "rbm_spin.hpp"
+#include "rbm_spin_real.hpp"
 #include "rbm_spin_symm.hpp"
 #endif

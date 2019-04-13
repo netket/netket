@@ -31,6 +31,7 @@
 #include "py_mps_periodic.hpp"
 #include "py_rbm_multival.hpp"
 #include "py_rbm_spin.hpp"
+#include "py_rbm_spin_real.hpp"
 #include "py_rbm_spin_symm.hpp"
 
 namespace py = pybind11;
@@ -142,6 +143,7 @@ void AddMachineModule(py::module &m) {
   AddRbmSpin(subm);
   AddRbmSpinSymm(subm);
   AddRbmMultival(subm);
+  AddRbmSpinReal(subm);
   AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
