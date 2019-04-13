@@ -36,7 +36,7 @@ namespace internal {
 // MatrixReplacement looks-like a SparseMatrix, so let's inherits its traits:
 template <>
 struct traits<netket::MatrixReplacement>
-    : public Eigen::internal::traits<Eigen::SparseMatrix<netket::Complex>> {};
+    : public Eigen::internal::traits<Eigen::SparseMatrix<double>> {};
 }  // namespace internal
 }  // namespace Eigen
 
@@ -46,7 +46,7 @@ namespace netket {
 class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
  public:
   // Required typedefs, constants, and method:
-  typedef Complex Scalar;
+  typedef double Scalar;
   typedef double RealScalar;
   typedef int StorageIndex;
   enum {
@@ -65,7 +65,7 @@ class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
   // Custom API:
   MatrixReplacement() : shift_(0), scale_(1) {}
   void attachMatrix(const Eigen::MatrixXcd &mat) { mp_mat_ = mat; }
-  void attachMatrix(const Eigen::MatrixXd &mat) { mp_mat_ = mat; }
+
   void setShift(double shift) { shift_ = shift; }
   Eigen::MatrixXcd const &my_matrix() const { return mp_mat_; }
   double shift() const { return shift_; }
@@ -96,8 +96,10 @@ struct generic_product_impl<netket::MatrixReplacement, Rhs, SparseShape,
                             const Rhs &rhs, const Scalar &alpha) {
     // This method should implement "dst += alpha * lhs * rhs" inplace,
 
-    auto vtilde = lhs.my_matrix() * rhs;
-    Eigen::VectorXcd res = lhs.my_matrix().adjoint() * vtilde;
+    auto vtilder = lhs.my_matrix().real() * rhs;
+    auto vtildei = lhs.my_matrix().imag() * rhs;
+    Eigen::VectorXd res = lhs.my_matrix().transpose().real() * vtilder;
+    res += lhs.my_matrix().transpose().imag() * vtildei;
     netket::SumOnNodes(res);
 
     double nor = lhs.getScale();
