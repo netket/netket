@@ -91,7 +91,7 @@ class QuantumStateReconstruction {
       int nsamples, std::vector<AbstractOperator *> rotations,
       std::vector<Eigen::VectorXd> trainingSamples,
       std::vector<int> trainingBases, int ndiscardedsamples = -1,
-      int discarded_samples_on_init = 0, const std::string &method = "Sr",
+      int discarded_samples_on_init = 0, const std::string &method = "Gd",
       double diag_shift = 0.01, bool use_iterative = false,
       bool use_cholesky = true)
       : sampler_(sampler),

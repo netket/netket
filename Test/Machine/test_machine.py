@@ -21,6 +21,10 @@ machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
     hilbert=hi, alpha=2)
 
+machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=1)
+
+machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
+
 machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
@@ -74,6 +78,7 @@ machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(
     hilbert=hi)
 machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
+
 np.random.seed(12346)
 
 
@@ -89,7 +94,10 @@ def test_set_get_parameters():
         npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
         machine.parameters = randpars
-        assert(np.array_equal(machine.parameters, randpars))
+        if(machine.is_holomorphic):
+            assert(np.array_equal(machine.parameters, randpars))
+        else:
+            assert(np.array_equal(machine.parameters.real, randpars.real))
 
 
 def test_save_load_parameters(tmpdir):
@@ -109,7 +117,10 @@ def test_save_load_parameters(tmpdir):
         machine.load(filename)
         os.remove(filename)
         os.rmdir(fn.dirname)
-        assert(np.array_equal(machine.parameters, randpars))
+        if(machine.is_holomorphic):
+            assert(np.array_equal(machine.parameters, randpars))
+        else:
+            assert(np.array_equal(machine.parameters.real, randpars.real))
 
 
 import numdifftools as nd

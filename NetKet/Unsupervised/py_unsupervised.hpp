@@ -60,7 +60,7 @@ void AddUnsupervisedModule(py::module &m) {
            py::arg("batch_size"), py::arg("n_samples"), py::arg("rotations"),
            py::arg("samples"), py::arg("bases"),
            py::arg("discarded_samples") = -1,
-           py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
+           py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Gd",
            py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
            py::arg("use_cholesky") = true)
       .def("add_observable", &QuantumStateReconstruction::AddObservable,
