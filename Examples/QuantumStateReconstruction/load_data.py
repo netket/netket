@@ -17,6 +17,7 @@ import math as m
 import netket.operator as op
 import netket.graph as gr
 import netket.hilbert as hs
+import netket.exact as exact
 
 
 def load(path_to_samples, path_to_bases):
@@ -47,9 +48,9 @@ def load(path_to_samples, path_to_bases):
         training_samples.append(tsamples[index_list[i]].tolist())
 
     U_X = (1. / (m.sqrt(2)) *
-           np.asarray([[1., 1.], [1., -1.]])).tolist()
+           np.asarray([[1., 1.], [1., -1.]]))
     U_Y = (1. / (m.sqrt(2)) *
-           np.asarray([[1., -1j], [1., 1j]])).tolist()
+           np.asarray([[1., -1j], [1., 1j]]))
 
     rotations = []
 
@@ -70,4 +71,28 @@ def load(path_to_samples, path_to_bases):
             b_index += 1
         training_bases.append(b_index)
 
-    return hi, tuple(rotations), training_samples, training_bases
+    sigmax = np.asarray([[0, 1], [1, 0]])
+    sigmaz = np.asarray([[1, 0], [0, -1]])
+
+    mszsz = (np.kron(sigmaz, sigmaz))
+
+    operators = []
+    sites = []
+
+    for i in range(N):
+        # \sum_i sigma^x(i)
+        operators.append(-sigmax)
+        sites.append([i])
+        # \sum_i sigma^z(i)*sigma^z(i+1)
+
+        if(i != N - 1):
+            operators.append(-mszsz)
+            sites.append([i, (i + 1)])
+
+    ha = op.LocalOperator(hi, operators, sites)
+    # res = exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
+
+    # Print eigenvalues
+    # print("eigenvalues:", res.eigenvalues)
+
+    return hi, tuple(rotations), training_samples, training_bases, ha

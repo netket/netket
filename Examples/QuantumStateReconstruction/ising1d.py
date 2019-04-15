@@ -21,12 +21,12 @@ path_to_samples = 'ising1d_train_samples.txt'
 path_to_bases = 'ising1d_train_bases.txt'
 
 # Load the data
-hi, rotations, training_samples, training_bases = load(
+hi, rotations, training_samples, training_bases, ha = load(
     path_to_samples, path_to_bases)
 
 # Machine
-ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.001)
+ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma)
@@ -34,20 +34,17 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 # Optimizer
 op = nk.optimizer.AdaDelta()
 
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
-
 # Quantum State Reconstruction
 qst = nk.unsupervised.Qsr(
     sampler=sa,
     optimizer=op,
     batch_size=1000,
-    n_samples=10000,
-    niter_opt=10000,
+    n_samples=1000,
     rotations=rotations,
-    output_file="output",
     samples=training_samples,
-    bases=training_bases)
+    bases=training_bases,
+    method='Gd')
 
 qst.add_observable(ha, "Energy")
 
-qst.run()
+qst.run(n_iter=10000, output_prefix="output")

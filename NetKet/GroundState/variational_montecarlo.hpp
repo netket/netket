@@ -87,8 +87,6 @@ class VariationalMonteCarlo {
   // whether the wave-function is analytical or not
   bool is_holomorphic_;
 
-  const Complex I_;
-
  public:
   class Iterator {
    public:
@@ -145,14 +143,13 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
-        elocvar_(0.),
-        I_(0, 1) {
+        elocvar_(0.) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
          diag_shift, use_iterative, use_cholesky);
   }
 
   void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
-            const std::string &method, double diagshift, bool use_iterative,
+            const std::string &method, double diag_shift, bool use_iterative,
             bool use_cholesky) {
     npar_ = psi_.Npar();
     is_holomorphic_ = psi_.IsHolomorphic();
@@ -185,7 +182,7 @@ class VariationalMonteCarlo {
       dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      setSrParameters(diagshift, use_iterative, use_cholesky);
+      setSrParameters(diag_shift, use_iterative, use_cholesky);
     }
 
     InfoMessage() << "Variational Monte Carlo running on " << totalnodes_
@@ -341,6 +338,7 @@ class VariationalMonteCarlo {
       writer.emplace(output_prefix + ".log", output_prefix + ".wf",
                      save_params_every);
     }
+    opt_.Reset();
 
     for (const auto step : Iterate(n_iter, step_size)) {
       ComputeObservables();
@@ -393,10 +391,10 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void setSrParameters(double diagshift = 0.01, bool use_iterative = false,
+  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
                        bool use_cholesky = true) {
     dosr_ = true;
-    sr_.setParameters(diagshift, use_iterative, use_cholesky);
+    sr_.setParameters(diag_shift, use_iterative, use_cholesky);
   }
 
   AbstractMachine &GetMachine() { return psi_; }
