@@ -70,12 +70,16 @@ class RbmSpinPhase : public AbstractMachine {
   bool usea_;
   bool useb_;
 
-  static constexpr Complex I_ = (0, 1);
+  const Complex I_;
 
  public:
   explicit RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0,
                         int alpha = 0, bool usea = true, bool useb = true)
-      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
+      : hilbert_(hilbert),
+        nv_(hilbert.Size()),
+        usea_(usea),
+        useb_(useb),
+        I_(0, 1) {
     nh_ = std::max(nhidden, alpha * nv_);
 
     Init();
