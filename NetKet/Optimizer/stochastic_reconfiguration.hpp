@@ -36,8 +36,8 @@ namespace netket {
 class SR {
   double sr_diag_shift_;
   bool use_iterative_;
-
   bool use_cholesky_;
+  bool is_holomorphic_;
 
   Eigen::MatrixXd Sreal_;
   Eigen::MatrixXcd Scomplex_;
@@ -47,12 +47,12 @@ class SR {
 
   void ComputeUpdate(const Eigen::Ref<const Eigen::MatrixXcd> Oks,
                      const Eigen::Ref<const Eigen::VectorXcd> grad,
-                     Eigen::Ref<Eigen::VectorXcd> deltaP, bool is_holomorphic) {
+                     Eigen::Ref<Eigen::VectorXcd> deltaP) {
     double nsamp = Oks.rows();
 
     SumOnNodes(nsamp);
     auto npar = grad.size();
-    if (is_holomorphic) {
+    if (is_holomorphic_) {
       if (!use_iterative_) {
         // Explicit construction of the S matrix
         Scomplex_.resize(npar, npar);
@@ -109,6 +109,7 @@ class SR {
           Eigen::LLT<Eigen::MatrixXd> llt(npar);
           llt.compute(Sreal_);
           deltaP.real() = llt.solve(grad.real());
+          deltaP.imag().setZero();
         }
       } else {
         Eigen::ConjugateGradient<SrMatrixReal, Eigen::Lower | Eigen::Upper,
@@ -124,6 +125,7 @@ class SR {
 
         it_solver.compute(S);
         deltaP.real() = it_solver.solve(grad.real());
+        deltaP.imag().setZero();
         MPI_Barrier(MPI_COMM_WORLD);
       }
     }
@@ -133,13 +135,15 @@ class SR {
     sr_diag_shift_ = 0.01;
     use_iterative_ = false;
     use_cholesky_ = true;
+    is_holomorphic_ = true;
   }
 
   void setParameters(double diagshift = 0.01, bool use_iterative = false,
-                     bool use_cholesky = true) {
+                     bool use_cholesky = true, bool is_holomorphic = true) {
     sr_diag_shift_ = diagshift;
     use_iterative_ = use_iterative;
     use_cholesky_ = use_cholesky;
+    is_holomorphic_ = is_holomorphic;
 
     InfoMessage() << "Using the Stochastic reconfiguration method" << std::endl;
 

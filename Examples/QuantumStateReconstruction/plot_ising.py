@@ -24,7 +24,7 @@ while(True):
         sigma.append(iteration["Energy"]["Sigma"])
 
     nres = len(iters)
-    cut = 60
+    cut = 100
     if(nres > cut):
 
         fitx = iters[-cut:-1]

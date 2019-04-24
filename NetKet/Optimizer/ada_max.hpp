@@ -40,12 +40,10 @@ class AdaMax : public AbstractOptimizer {
 
   double epscut_;
 
-  const Complex I_;
-
  public:
   explicit AdaMax(double alpha = 0.001, double beta1 = 0.9,
                   double beta2 = 0.999, double epscut = 1.0e-7)
-      : alpha_(alpha), beta1_(beta1), beta2_(beta2), epscut_(epscut), I_(0, 1) {
+      : alpha_(alpha), beta1_(beta1), beta2_(beta2), epscut_(epscut) {
     npar_ = -1;
     niter_ = 0;
     niter_reset_ = -1;
@@ -62,23 +60,16 @@ class AdaMax : public AbstractOptimizer {
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
+  void Init(int npar) override {
+    npar_ = npar;
     ut_.setZero(npar_);
     mt_.setZero(npar_);
 
     niter_ = 0;
   }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    ut_.setZero(npar_);
-    mt_.setZero(npar_);
-
-    niter_ = 0;
-  }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     mt_ = beta1_ * mt_ + (1. - beta1_) * grad;
@@ -99,39 +90,6 @@ class AdaMax : public AbstractOptimizer {
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
-
-    for (int i = 0; i < pars.size(); i++) {
-      mt_(2 * i) = beta1_ * mt_(2 * i) + (1. - beta1_) * grad(i).real();
-      mt_(2 * i + 1) = beta1_ * mt_(2 * i + 1) + (1. - beta1_) * grad(i).imag();
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      ut_(2 * i) = std::max(
-          std::max(std::abs(grad(i).real()), beta2_ * ut_(2 * i)), epscut_);
-      ut_(2 * i + 1) = std::max(
-          std::max(std::abs(grad(i).imag()), beta2_ * ut_(2 * i + 1)), epscut_);
-    }
-
-    niter_ += 1.;
-    if (niter_reset_ > 0) {
-      if (niter_ > niter_reset_) {
-        niter_ = 1;
-      }
-    }
-
-    double eta = alpha_ / (1. - std::pow(beta1_, niter_));
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta * mt_(2 * i) / ut_(2 * i);
-      pars(i) -= eta * I_ * mt_(2 * i + 1) / ut_(2 * i + 1);
-    }
-  }
-
   void Reset() override {
     ut_ = Eigen::VectorXd::Zero(npar_);
     mt_ = Eigen::VectorXd::Zero(npar_);
@@ -139,19 +97,6 @@ class AdaMax : public AbstractOptimizer {
   }
 
   void SetResetEvery(double niter_reset) { niter_reset_ = niter_reset; }
-
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-
-    alpha_ = FieldOrDefaultVal(pars[section], "Alpha", 0.001);
-    beta1_ = FieldOrDefaultVal(pars[section], "Beta1", 0.9);
-    beta2_ = FieldOrDefaultVal(pars[section], "Beta2", 0.999);
-    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
-  }
 };
 
 }  // namespace netket

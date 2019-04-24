@@ -32,19 +32,19 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.AdaDelta()
+op = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Quantum State Reconstruction
 qst = nk.unsupervised.Qsr(
     sampler=sa,
     optimizer=op,
-    batch_size=1000,
-    n_samples=1000,
+    batch_size=4000,
+    n_samples=4000,
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method='Gd')
+    method='Sr')
 
 qst.add_observable(ha, "Energy")
 
-qst.run(n_iter=10000, output_prefix="output")
+qst.run(n_iter=500, output_prefix="output")

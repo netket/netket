@@ -37,22 +37,12 @@ class AMSGrad : public AbstractOptimizer {
 
   double epscut_;
 
-  const Complex I_;
-
  public:
   explicit AMSGrad(double eta = 0.001, double beta1 = 0.9, double beta2 = 0.999,
                    double epscut = 1.0e-7)
-      : eta_(eta), beta1_(beta1), beta2_(beta2), epscut_(epscut), I_(0, 1) {
+      : eta_(eta), beta1_(beta1), beta2_(beta2), epscut_(epscut) {
     npar_ = -1;
 
-    PrintParameters();
-  }
-
-  // TODO remove
-  // Json constructor
-  explicit AMSGrad(const json &pars) : I_(0, 1) {
-    npar_ = -1;
-    from_json(pars);
     PrintParameters();
   }
 
@@ -65,19 +55,14 @@ class AMSGrad : public AbstractOptimizer {
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
+  void Init(int npar) override {
+    npar_ = npar;
     mt_.setZero(npar_);
     vt_.setZero(npar_);
   }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    mt_.setZero(npar_);
-    vt_.setZero(npar_);
-  }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     mt_ = beta1_ * mt_ + (1. - beta1_) * grad;
@@ -92,50 +77,9 @@ class AMSGrad : public AbstractOptimizer {
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
-
-    for (int i = 0; i < pars.size(); i++) {
-      mt_(2 * i) = beta1_ * mt_(2 * i) + (1. - beta1_) * grad(i).real();
-      mt_(2 * i + 1) = beta1_ * mt_(2 * i + 1) + (1. - beta1_) * grad(i).imag();
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      vt_(2 * i) =
-          std::max(vt_(2 * i), beta2_ * vt_(2 * i) +
-                                   (1 - beta2_) * std::pow(grad(i).real(), 2));
-      vt_(2 * i + 1) = std::max(
-          vt_(2 * i + 1),
-          beta2_ * vt_(2 * i + 1) + (1 - beta2_) * std::pow(grad(i).imag(), 2));
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * mt_(2 * i) / (std::sqrt(vt_(2 * i)) + epscut_);
-      pars(i) -=
-          eta_ * I_ * mt_(2 * i + 1) / (std::sqrt(vt_(2 * i + 1)) + epscut_);
-    }
-  }
-
   void Reset() override {
     mt_ = Eigen::VectorXd::Zero(npar_);
     vt_ = Eigen::VectorXd::Zero(npar_);
-  }
-
-  // TODO remove
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    beta1_ = FieldOrDefaultVal(pars[section], "Beta1", 0.9);
-    beta2_ = FieldOrDefaultVal(pars[section], "Beta2", 0.999);
-    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
   }
 };
 

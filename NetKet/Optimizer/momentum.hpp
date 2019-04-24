@@ -33,21 +33,10 @@ class Momentum : public AbstractOptimizer {
 
   Eigen::VectorXd mt_;
 
-  const Complex I_;
-
  public:
   explicit Momentum(double eta = 0.001, double beta = 0.9)
-      : eta_(eta), beta_(beta), I_(0, 1) {
+      : eta_(eta), beta_(beta) {
     npar_ = -1;
-    PrintParameters();
-  }
-
-  // TODO remove
-  // Json constructor
-  explicit Momentum(const json &pars) : I_(0, 1) {
-    npar_ = -1;
-
-    from_json(pars);
     PrintParameters();
   }
 
@@ -58,17 +47,13 @@ class Momentum : public AbstractOptimizer {
     InfoMessage() << "Beta = " << beta_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
+  void Init(int npar) override {
+    npar_ = npar;
     mt_.setZero(npar_);
   }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    mt_.setZero(npar_);
-  }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     mt_ = beta_ * mt_ + (1. - beta_) * grad;
@@ -78,36 +63,7 @@ class Momentum : public AbstractOptimizer {
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
-
-    for (int i = 0; i < pars.size(); i++) {
-      mt_(2 * i) = beta_ * mt_(2 * i) + (1. - beta_) * grad(i).real();
-      mt_(2 * i + 1) = beta_ * mt_(2 * i + 1) + (1. - beta_) * grad(i).imag();
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * mt_(2 * i);
-      pars(i) -= eta_ * I_ * mt_(2 * i + 1);
-    }
-  }
-
   void Reset() override { mt_ = Eigen::VectorXd::Zero(npar_); }
-
-  // TODO remove
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
-  }
 };
 
 }  // namespace netket

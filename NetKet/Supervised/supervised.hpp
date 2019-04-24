@@ -74,9 +74,6 @@ class Supervised {
   std::uniform_int_distribution<int> distribution_uni_;
   std::discrete_distribution<> distribution_phi_;
 
-  // whether the wave-function is analytical or not
-  bool is_holomorphic_;
-
   MatrixT Ok_;
 
  protected:
@@ -98,13 +95,7 @@ class Supervised {
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
 
-    is_holomorphic_ = psi_.IsHolomorphic();
-
-    if (is_holomorphic_) {
-      opt_.Init(Eigen::VectorXd(2 * npar_));
-    } else {
-      opt_.Init(Eigen::VectorXd(npar_));
-    }
+    opt_.Init(npar_, psi_.IsHolomorphic());
 
     grad_.resize(npar_);
     grad_part_1_.resize(npar_);
@@ -381,31 +372,15 @@ class Supervised {
     Eigen::VectorXcd deltap(npar_);
 
     if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap, is_holomorphic_);
+      sr_.ComputeUpdate(Ok_, grad_, deltap);
     } else {
       deltap = grad_;
     }
 
-    if (is_holomorphic_) {
-      Eigen::VectorXd deltap_real(2 * npar_);
-      deltap_real << deltap.real(), deltap.imag();
-      Eigen::VectorXd parst(2 * npar_);
-      parst << pars.real(), pars.imag();
-      opt_.Update(deltap_real, parst);
-      pars.real() = parst.head(npar_);
-      pars.imag() = parst.tail(npar_);
-    } else {
-      Eigen::VectorXd deltap_real = deltap.real();
-      Eigen::VectorXd parst = pars.real();
-      opt_.Update(deltap, parst);
-      pars.real() = parst;
-    }
-
+    opt_.Update(deltap, pars);
     SendToAll(pars);
 
     psi_.SetParameters(pars);
-
-    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   void ComputeLosses() {
@@ -487,7 +462,8 @@ class Supervised {
   void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
                        bool use_cholesky = true) {
     dosr_ = true;
-    sr_.setParameters(diag_shift, use_iterative, use_cholesky);
+    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
+                      psi_.IsHolomorphic());
   }
 };
 
