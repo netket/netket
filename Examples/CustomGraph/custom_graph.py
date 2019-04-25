@@ -12,70 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from __future__ import print_function
-import json
+import netket as nk
 import networkx as nx
-
-
-pars = {}
-
-
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-}
 
 # defining a custom graph
 # here we use networkx to generate a star graph
-# and pass its edges list to NetKet
-G = nx.star_graph(10)
-pars['Graph'] = {
-    'Edges': list(G.edges),
-}
+# and pass its edges list to NetKet custom graph
+gnx = nx.star_graph(10)
+g = nk.graph.CustomGraph(list(gnx.edges))
 
-# defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Ising',
-    'h': 1.0,
-}
+# Hilbert space of spins on the graph
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpin',
-    'Alpha': 1.0,
-}
+# Ising spin hamiltonian
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
-}
+# RBM Spin Machine
+ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the Optimizer
-# here we use the Stochastic Gradient Descent
-pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.05,
-}
+# Metropolis Local Sampling
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 1000,
-    'Diagshift': 0.5,
-    'UseIterative': False,
-    'OutputFile': "test",
-}
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
-json_file = "custom_graph.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method='Sr')
 
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run(output_prefix='test', n_iter=500)

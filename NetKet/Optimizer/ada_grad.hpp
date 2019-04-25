@@ -34,21 +34,11 @@ class AdaGrad : public AbstractOptimizer {
 
   double epscut_;
 
-  const Complex I_;
-
  public:
   explicit AdaGrad(double eta = 0.001, double epscut = 1.0e-7)
-      : eta_(eta), epscut_(epscut), I_(0, 1) {
+      : eta_(eta), epscut_(epscut) {
     npar_ = -1;
 
-    PrintParameters();
-  }
-
-  // Json constructor
-  explicit AdaGrad(const json &pars) : I_(0, 1) {
-    npar_ = -1;
-
-    from_json(pars);
     PrintParameters();
   }
 
@@ -59,17 +49,13 @@ class AdaGrad : public AbstractOptimizer {
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
+  void Init(int npar) override {
+    npar_ = npar;
     Gt_.setZero(npar_);
   }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    Gt_.setZero(npar_);
-  }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     Gt_ += grad.cwiseAbs2();
@@ -79,36 +65,7 @@ class AdaGrad : public AbstractOptimizer {
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
-
-    for (int i = 0; i < pars.size(); i++) {
-      Gt_(2 * i) += std::pow(grad(i).real(), 2);
-      Gt_(2 * i + 1) += std::pow(grad(i).imag(), 2);
-    }
-
-    for (int i = 0; i < pars.size(); i++) {
-      pars(i) -= eta_ * grad(i).real() / std::sqrt(Gt_(2 * i) + epscut_);
-      pars(i) -=
-          eta_ * I_ * grad(i).imag() / std::sqrt(Gt_(2 * i + 1) + epscut_);
-    }
-  }
-
   void Reset() override { Gt_ = Eigen::VectorXd::Zero(npar_); }
-
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
-  }
 };
 
 }  // namespace netket

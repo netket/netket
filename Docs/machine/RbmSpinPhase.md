@@ -1,38 +1,38 @@
-# RbmSpinSymm
-A fully connected Restricted Boltzmann Machine with lattice
- symmetries. This type of RBM has spin 1/2 hidden units and is
- defined by:
+# RbmSpinPhase
+A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
+ In this case, two RBMs are taken to parameterize, respectively, phase
+ and amplitude of the wave-function.
+ This type of RBM has spin 1/2 hidden units and is defined by:
 
- $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
- \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+ $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+ \left(\sum_i^N W_{ij} s_i + b_j \right) $$
 
- for arbitrary local quantum numbers $$ s_i $$. However, the weights
- ($$ W_{ij} $$) and biases ($$ a_i $$, $$ b_i $$) respects the
- specified symmetries of the lattice.
+ for arbitrary local quantum numbers $$ s_i $$.
 
 ## Class Constructor
-Constructs a new ``RbmSpinSymm`` machine:
+Constructs a new ``RbmSpinPhase`` machine:
 
 |    Argument    |         Type         |                                 Description                                  |
 |----------------|----------------------|------------------------------------------------------------------------------|
 |hilbert         |netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
+|n_hidden        |int=0                 |Number of hidden units.                                                       |
 |alpha           |int=0                 |Hidden unit density.                                                          |
 |use_visible_bias|bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
 |use_hidden_bias |bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
 
 ### Examples
-A ``RbmSpinSymm`` machine with hidden unit density
+A ``RbmSpinPhase`` machine with hidden unit density
 alpha = 2 for a one-dimensional L=20 spin-half system:
 
 ```python
->>> from netket.machine import RbmSpinSymm
+>>> from netket.machine import RbmSpinPhase
 >>> from netket.hilbert import Spin
 >>> from netket.graph import Hypercube
 >>> g = Hypercube(length=20, n_dim=1)
 >>> hi = Spin(s=0.5, total_sz=0, graph=g)
->>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
+>>> ma = RbmSpinPhase(hilbert=hi,alpha=2)
 >>> print(ma.n_par)
-43
+1720
 
 ```
 

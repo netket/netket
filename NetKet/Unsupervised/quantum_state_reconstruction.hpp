@@ -41,6 +41,8 @@ class QuantumStateReconstruction {
   AbstractMachine &psi_;
   const AbstractHilbert &hilbert_;
   AbstractOptimizer &opt_;
+  SR sr_;
+  bool dosr_;
 
   std::vector<AbstractOperator *> rotations_;
 
@@ -56,7 +58,7 @@ class QuantumStateReconstruction {
   Eigen::VectorXcd rotated_grad_;
 
   // This optional will contain a value iff the MPI rank is 0.
-  nonstd::optional<JsonOutputWriter> output_;
+  nonstd::optional<JsonOutputWriter> writer_;
 
   int totalnodes_;
   int mynode_;
@@ -71,24 +73,23 @@ class QuantumStateReconstruction {
   int nsamples_node_;
   int ninitsamples_;
   int ndiscardedsamples_;
-  int niter_opt_;
 
   int npar_;
 
-  netket::default_random_engine rgen_;
+  DistributedRandomEngine engine_;
 
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
 
  public:
-  QuantumStateReconstruction(AbstractSampler &sampler, AbstractOptimizer &opt,
-                             int batchsize, int nsamples, int niter_opt,
-                             std::vector<AbstractOperator *> rotations,
-                             std::vector<Eigen::VectorXd> trainingSamples,
-                             std::vector<int> trainingBases,
-                             std::string output_file,
-                             int ndiscardedsamples = -1,
-                             int discarded_samples_on_init = 0)
+  QuantumStateReconstruction(
+      AbstractSampler &sampler, AbstractOptimizer &opt, int batchsize,
+      int nsamples, std::vector<AbstractOperator *> rotations,
+      std::vector<Eigen::VectorXd> trainingSamples,
+      std::vector<int> trainingBases, int ndiscardedsamples = -1,
+      int discarded_samples_on_init = 0, const std::string &method = "Gd",
+      double diag_shift = 0.01, bool use_iterative = false,
+      bool use_cholesky = true)
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         hilbert_(psi_.GetHilbert()),
@@ -98,7 +99,7 @@ class QuantumStateReconstruction {
         trainingBases_(trainingBases) {
     npar_ = psi_.Npar();
 
-    opt_.Init(psi_.GetParameters());
+    opt_.Init(npar_, psi_.IsHolomorphic());
 
     grad_.resize(npar_);
     rotated_grad_.resize(npar_);
@@ -122,18 +123,23 @@ class QuantumStateReconstruction {
       ndiscardedsamples_ = ndiscardedsamples;
     }
 
-    niter_opt_ = niter_opt;
+    if (method == "Gd") {
+      dosr_ = false;
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
+    } else {
+      setSrParameters(diag_shift, use_iterative, use_cholesky);
+    }
 
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
                   << " processes" << std::endl;
-    InitOutput(output_file);
 
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void InitOutput(std::string filebase) {
+  void InitOutput(std::string output_prefix, Index save_params_every) {
     if (mynode_ == 0) {
-      output_ = JsonOutputWriter(filebase + ".log", filebase + ".wf", 1);
+      writer_.emplace(output_prefix + ".log", output_prefix + ".wf",
+                      save_params_every);
     }
   }
 
@@ -169,10 +175,6 @@ class QuantumStateReconstruction {
                 std::vector<int> &batchBases) {
     Eigen::VectorXcd der(psi_.Npar());
 
-    for (const auto &obname : obsnames_) {
-      obsmanager_.Reset(obname);
-    }
-
     // Positive phase driven by data
     const int ndata = batchsize_node_;
     Ok_.resize(ndata, psi_.Npar());
@@ -184,16 +186,13 @@ class QuantumStateReconstruction {
 
     // Negative phase driven by the machine
     Sample();
+    ComputeObservables();
 
     const int nsamp = vsamp_.rows();
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
       Ok_.row(i) = psi_.DerLog(vsamp_.row(i)).conjugate();
-
-      for (std::size_t on = 0; on < obs_.size(); on++) {
-        obsmanager_.Push(obsnames_[on], ObSamp(*obs_[on], vsamp_.row(i)));
-      }
     }
     grad_ += 2.0 * (Ok_.colwise().mean());
 
@@ -202,7 +201,21 @@ class QuantumStateReconstruction {
     grad_ /= double(totalnodes_);
   }
 
-  double ObSamp(AbstractOperator &ob, const Eigen::VectorXd &v) {
+  void ComputeObservables() {
+    const Index nsamp = vsamp_.rows();
+    for (const auto &obname : obsnames_) {
+      obsmanager_.Reset(obname);
+    }
+    for (Index i_samp = 0; i_samp < nsamp; ++i_samp) {
+      for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
+        const auto &op = obs_[i_obs];
+        const auto &name = obsnames_[i_obs];
+        obsmanager_.Push(name, ObsLocValue(*op, vsamp_.row(i_samp)).real());
+      }
+    }
+  }
+
+  Complex ObsLocValue(const AbstractOperator &ob, const Eigen::VectorXd &v) {
     ob.FindConn(v, mel_, connectors_, newconfs_);
 
     assert(connectors_.size() == mel_.size());
@@ -217,26 +230,32 @@ class QuantumStateReconstruction {
       obval += mel_[i] * std::exp(logvaldiffs(i));
     }
 
-    return obval.real();
+    return obval;
   }
 
-  void Run() {
+  void Run(const std::string &output_prefix, Index n_iter, Index step_size = 1,
+           Index save_params_every = 50) {
+    assert(n_iter > 0);
+    assert(step_size > 0);
+    assert(save_params_every > 0);
+
     std::vector<Eigen::VectorXd> batchSamples;
     std::vector<int> batchBases;
     opt_.Reset();
+    InitOutput(output_prefix, save_params_every);
 
     InitSweeps();
     std::uniform_int_distribution<int> distribution(
         0, trainingSamples_.size() - 1);
 
-    for (int i = 0; i < niter_opt_; i++) {
+    for (Index i = 0; i < n_iter; i += step_size) {
       int index;
       batchSamples.resize(batchsize_node_);
       batchBases.resize(batchsize_node_);
 
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
-        index = distribution(rgen_);
+        index = distribution(engine_.Get());
         batchSamples[k] = trainingSamples_[index];
         batchBases[k] = trainingBases_[index];
       }
@@ -248,10 +267,19 @@ class QuantumStateReconstruction {
 
   void UpdateParameters() {
     auto pars = psi_.GetParameters();
-    opt_.Update(grad_, pars);
+
+    Eigen::VectorXcd deltap(npar_);
+
+    if (dosr_) {
+      sr_.ComputeUpdate(Ok_, grad_, deltap);
+    } else {
+      deltap = grad_;
+    }
+
+    opt_.Update(deltap, pars);
     SendToAll(pars);
+
     psi_.SetParameters(pars);
-    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   // Evaluate the gradient for a given visible state, in the
@@ -280,18 +308,25 @@ class QuantumStateReconstruction {
     rotated_gradient = (num / den);
   }
 
-  void PrintOutput(int i) {
+  void PrintOutput(Index i) {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
     obs_data["Acceptance"] = sampler_.Acceptance();
 
-    if (output_.has_value()) {  // output_.has_value() iff the MPI rank is 0, so
+    if (writer_.has_value()) {  // writer_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once
-      output_->WriteLog(i, obs_data);
-      output_->WriteState(i, psi_);
+      writer_->WriteLog(i, obs_data);
+      writer_->WriteState(i, psi_);
     }
     MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
+                       bool use_cholesky = true) {
+    dosr_ = true;
+    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
+                      psi_.IsHolomorphic());
   }
 };
 

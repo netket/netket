@@ -12,25 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
 import netket as nk
 
-# Constructing a 1d lattice
-g = nk.graph.Hypercube(length=4, n_dim=1)
+# 1D Lattice
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
-# Hilbert space of spins from given graph
+# Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-# Hamiltonian
+# Ising spin hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# Machine
-ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.1)
+# RBM Spin Machine
+ma = nk.machine.RbmSpinReal(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# Sampler
+# Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma)
-sa.reset(True)
-print(sa.visible)
-sa.sweep()
-print(sa.visible)
+
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.1)
+
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method='Sr')
+
+gs.run(output_prefix='test', n_iter=300)

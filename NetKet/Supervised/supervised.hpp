@@ -33,8 +33,13 @@
 namespace netket {
 
 class Supervised {
+  using MatrixT = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
+
   AbstractMachine &psi_;
   AbstractOptimizer &opt_;
+
+  SR sr_;
+  bool dosr_;
 
   // Total batchsize
   int batchsize_;
@@ -69,6 +74,8 @@ class Supervised {
   std::uniform_int_distribution<int> distribution_uni_;
   std::discrete_distribution<> distribution_phi_;
 
+  MatrixT Ok_;
+
  protected:
   // Random number generator with correct seeding for parallel processes
   default_random_engine &GetRandomEngine() { return engine_.Get(); }
@@ -79,14 +86,16 @@ class Supervised {
  public:
   Supervised(AbstractMachine &psi, AbstractOptimizer &opt, int batchsize,
              std::vector<Eigen::VectorXd> trainingSamples,
-             std::vector<Eigen::VectorXcd> trainingTargets)
+             std::vector<Eigen::VectorXcd> trainingTargets,
+             const std::string &method = "Gd", double diag_shift = 0.01,
+             bool use_iterative = false, bool use_cholesky = true)
       : psi_(psi),
         opt_(opt),
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
 
-    opt_.Init(psi_.GetParameters());
+    opt_.Init(npar_, psi_.IsHolomorphic());
 
     grad_.resize(npar_);
     grad_part_1_.resize(npar_);
@@ -109,6 +118,13 @@ class Supervised {
     }
     distribution_phi_ = std::discrete_distribution<>(
         trainingTarget_values_.begin(), trainingTarget_values_.end());
+
+    if (method == "Gd") {
+      dosr_ = false;
+      InfoMessage() << "Using a gradient-descent based method" << std::endl;
+    } else {
+      setSrParameters(diag_shift, use_iterative, use_cholesky);
+    }
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
                   << " processes" << std::endl;
@@ -136,6 +152,8 @@ class Supervised {
       }
     }
 
+    Ok_.resize(batchsize_node_, psi_.Npar());
+
     // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract log(config)
@@ -153,6 +171,8 @@ class Supervised {
 
       // Compute derivative of log
       auto der = psi_.DerLog(sample);
+      Ok_.row(i) = der;
+
       der = der.conjugate();
 
       grad_part_1_ = grad_part_1_ + der * pow(abs(value), 2);
@@ -189,6 +209,8 @@ class Supervised {
       }
     }
 
+    Ok_.resize(batchsize_node_, psi_.Npar());
+
     // For each sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract log(config)
@@ -206,6 +228,7 @@ class Supervised {
 
       // Compute derivative of log
       auto der = psi_.DerLog(sample);
+      Ok_.row(i) = der;
       der = der.conjugate();
 
       grad_part_1_ = grad_part_1_ + der * std::norm(value / t);
@@ -234,6 +257,8 @@ class Supervised {
     // ... and zero it out
     der.setZero(psi_.Npar());
 
+    Ok_.resize(batchsize_node_, psi_.Npar());
+
     // Foreach sample in the batch
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract complex value of log(config)
@@ -246,6 +271,7 @@ class Supervised {
 
       // Compute derivative of log(psi)
       auto partial_gradient = psi_.DerLog(sample);
+      Ok_.row(i) = partial_gradient;
 
       // MSE loss
       der = der + (partial_gradient.conjugate()) * (value - t);
@@ -342,10 +368,19 @@ class Supervised {
   /// Updates the machine parameters with the current gradient
   void UpdateParameters() {
     auto pars = psi_.GetParameters();
-    opt_.Update(grad_, pars);
+
+    Eigen::VectorXcd deltap(npar_);
+
+    if (dosr_) {
+      sr_.ComputeUpdate(Ok_, grad_, deltap);
+    } else {
+      deltap = grad_;
+    }
+
+    opt_.Update(deltap, pars);
     SendToAll(pars);
+
     psi_.SetParameters(pars);
-    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   void ComputeLosses() {
@@ -423,6 +458,13 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
+
+  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
+                       bool use_cholesky = true) {
+    dosr_ = true;
+    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
+                      psi_.IsHolomorphic());
+  }
 };
 
 }  // namespace netket

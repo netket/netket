@@ -33,34 +33,41 @@ void AddUnsupervisedModule(py::module &m) {
   auto subm = m.def_submodule("unsupervised");
 
   py::class_<QuantumStateReconstruction>(subm, "Qsr")
-      .def(
-          py::init([](AbstractSampler &sa, AbstractOptimizer &op,
-                      int batch_size, int n_samples, int niter_opt,
-                      py::tuple rotations, std::vector<Eigen::VectorXd> samples,
-                      std::vector<int> bases, std::string output_file,
-                      int discarded_samples, int discarded_samples_on_init) {
-            auto rots = py::cast<std::vector<AbstractOperator *>>(rotations);
-            return QuantumStateReconstruction{sa,
-                                              op,
-                                              batch_size,
-                                              n_samples,
-                                              niter_opt,
-                                              std::move(rots),
-                                              std::move(samples),
-                                              std::move(bases),
-                                              output_file,
-                                              discarded_samples,
-                                              discarded_samples_on_init};
-          }),
-          py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
-          py::keep_alive<1, 7>(), py::arg("sampler"), py::arg("optimizer"),
-          py::arg("batch_size"), py::arg("n_samples"), py::arg("niter_opt"),
-          py::arg("rotations"), py::arg("samples"), py::arg("bases"),
-          py::arg("output_file"), py::arg("discarded_samples") = -1,
-          py::arg("discarded_samples_on_init") = 0)
+      .def(py::init([](AbstractSampler &sa, AbstractOptimizer &op,
+                       int batch_size, int n_samples, py::tuple rotations,
+                       std::vector<Eigen::VectorXd> samples,
+                       std::vector<int> bases, int discarded_samples,
+                       int discarded_samples_on_init, const std::string &method,
+                       double diag_shift = 0.01, bool use_iterative = false,
+                       bool use_cholesky = true) {
+             auto rots = py::cast<std::vector<AbstractOperator *>>(rotations);
+             return QuantumStateReconstruction{sa,
+                                               op,
+                                               batch_size,
+                                               n_samples,
+                                               std::move(rots),
+                                               std::move(samples),
+                                               std::move(bases),
+                                               discarded_samples,
+                                               discarded_samples_on_init,
+                                               method,
+                                               diag_shift,
+                                               use_iterative,
+                                               use_cholesky};
+           }),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+           py::keep_alive<1, 7>(), py::arg("sampler"), py::arg("optimizer"),
+           py::arg("batch_size"), py::arg("n_samples"), py::arg("rotations"),
+           py::arg("samples"), py::arg("bases"),
+           py::arg("discarded_samples") = -1,
+           py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Gd",
+           py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
+           py::arg("use_cholesky") = true)
       .def("add_observable", &QuantumStateReconstruction::AddObservable,
            py::keep_alive<1, 2>())
-      .def("run", &QuantumStateReconstruction::Run);
+      .def("run", &QuantumStateReconstruction::Run, py::arg("output_prefix"),
+           py::arg("n_iter"), py::arg("step_size") = 1,
+           py::arg("save_params_every") = 50);
 }
 
 }  // namespace netket

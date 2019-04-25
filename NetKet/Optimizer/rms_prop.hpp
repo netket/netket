@@ -35,22 +35,11 @@ class RMSProp : public AbstractOptimizer {
 
   double epscut_;
 
-  const Complex I_;
-
  public:
   explicit RMSProp(double eta = 0.001, double beta = 0.9,
                    double epscut = 1.0e-7)
-      : eta_(eta), beta_(beta), epscut_(epscut), I_(0, 1) {
+      : eta_(eta), beta_(beta), epscut_(epscut) {
     npar_ = -1;
-    PrintParameters();
-  }
-
-  // TODO remove
-  // Json constructor
-  explicit RMSProp(const json &pars) : I_(0, 1) {
-    npar_ = -1;
-
-    from_json(pars);
     PrintParameters();
   }
 
@@ -62,17 +51,13 @@ class RMSProp : public AbstractOptimizer {
     InfoMessage() << "Epscut = " << epscut_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override {
-    npar_ = pars.size();
+  void Init(int npar) override {
+    npar_ = npar;
     st_.setZero(npar_);
   }
 
-  void Init(const Eigen::VectorXcd &pars) override {
-    npar_ = 2 * pars.size();
-    st_.setZero(npar_);
-  }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     st_ = beta_ * st_ + (1. - beta_) * grad.cwiseAbs2();
@@ -82,37 +67,7 @@ class RMSProp : public AbstractOptimizer {
     }
   }
 
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    assert(npar_ == 2 * pars.size());
-
-    for (int i = 0; i < pars.size(); i++) {
-      st_(2 * i) =
-          beta_ * st_(2 * i) + (1. - beta_) * std::pow(grad(i).real(), 2);
-      st_(2 * i + 1) =
-          beta_ * st_(2 * i + 1) + (1. - beta_) * std::pow(grad(i).imag(), 2);
-      pars(i) -= eta_ * grad(i).real() / (std::sqrt(st_(2 * i)) + epscut_);
-      pars(i) -=
-          eta_ * I_ * grad(i).imag() / (std::sqrt(st_(2 * i + 1)) + epscut_);
-    }
-  }
-
   void Reset() override { st_ = Eigen::VectorXd::Zero(npar_); }
-
-  // TODO remove
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-    eta_ = FieldOrDefaultVal(pars[section], "LearningRate", 0.001);
-    beta_ = FieldOrDefaultVal(pars[section], "Beta", 0.9);
-    epscut_ = FieldOrDefaultVal(pars[section], "Epscut", 1.0e-7);
-  }
 };
 
 }  // namespace netket

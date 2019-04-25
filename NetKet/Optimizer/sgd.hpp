@@ -43,15 +43,6 @@ class Sgd : public AbstractOptimizer {
     PrintParameters();
   }
 
-  // TODO remove
-  // Json constructor
-  explicit Sgd(const json &pars) {
-    npar_ = -1;
-
-    from_json(pars);
-    PrintParameters();
-  }
-
   void PrintParameters() {
     InfoMessage() << "Sgd optimizer initialized with these parameters :"
                   << std::endl;
@@ -60,28 +51,15 @@ class Sgd : public AbstractOptimizer {
     InfoMessage() << "Decay Factor = " << decay_factor_ << std::endl;
   }
 
-  void Init(const Eigen::VectorXd &pars) override { npar_ = pars.size(); }
+  void Init(int npar) override { npar_ = npar; }
 
-  void Init(const Eigen::VectorXcd &pars) override { npar_ = 2 * pars.size(); }
-
-  void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) override {
+  void Update(const Eigen::VectorXd &grad,
+              Eigen::Ref<Eigen::VectorXd> pars) override {
     assert(npar_ > 0);
 
     eta_ *= decay_factor_;
 
     for (int i = 0; i < npar_; i++) {
-      pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
-    }
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) override {
-    Update(Eigen::VectorXd(grad.real()), pars);
-  }
-
-  void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) override {
-    eta_ *= decay_factor_;
-
-    for (int i = 0; i < pars.size(); i++) {
       pars(i) = pars(i) - (grad(i) + l2reg_ * pars(i)) * eta_;
     }
   }
@@ -92,18 +70,6 @@ class Sgd : public AbstractOptimizer {
   }
 
   void Reset() override {}
-
-  void from_json(const json &pars) {
-    // DEPRECATED (to remove for v2.0.0)
-    std::string section = "Optimizer";
-    if (!FieldExists(pars, section)) {
-      section = "Learning";
-    }
-
-    eta_ = FieldVal(pars[section], "LearningRate");
-    l2reg_ = FieldOrDefaultVal(pars[section], "L2Reg", 0.0);
-    SetDecayFactor(FieldOrDefaultVal(pars[section], "DecayFactor", 1.0));
-  }
 };
 
 }  // namespace netket

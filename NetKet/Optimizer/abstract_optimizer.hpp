@@ -22,15 +22,48 @@
 namespace netket {
 
 class AbstractOptimizer {
-public:
-  virtual void Init(const Eigen::VectorXd &pars) = 0;
-  virtual void Init(const Eigen::VectorXcd &pars) = 0;
-  virtual void Update(const Eigen::VectorXd &grad, Eigen::VectorXd &pars) = 0;
-  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXd &pars) = 0;
-  virtual void Update(const Eigen::VectorXcd &grad, Eigen::VectorXcd &pars) = 0;
+ public:
+  virtual void Init(int npar) = 0;
+
+  virtual void Update(const Eigen::VectorXd &grad,
+                      Eigen::Ref<Eigen::VectorXd> pars) = 0;
+
   virtual void Reset() = 0;
+
+  void Init(int npar, bool is_holomorphic) {
+    is_holomorphic_ = is_holomorphic;
+
+    if (is_holomorphic) {
+      Init(2 * npar);
+    } else {
+      Init(npar);
+    }
+  }
+
+  virtual void Update(const Eigen::VectorXcd &grad,
+                      Eigen::Ref<Eigen::VectorXcd> pars) {
+    auto npar = pars.size();
+
+    if (is_holomorphic_) {
+      Eigen::VectorXd gradr(2 * npar);
+      gradr << grad.real(), grad.imag();
+      Eigen::VectorXd parsr(2 * npar);
+      parsr << pars.real(), pars.imag();
+      Update(gradr, parsr);
+      pars.real() = parsr.head(npar);
+      pars.imag() = parsr.tail(npar);
+    } else {
+      Eigen::VectorXd pp(pars.real());
+      Update(grad.real(), pp);
+      pars.real() = pp;
+    }
+  }
+
   virtual ~AbstractOptimizer() {}
+
+ private:
+  bool is_holomorphic_;
 };
-} // namespace netket
+}  // namespace netket
 
 #endif
