@@ -27,13 +27,7 @@
 
 namespace netket {
 
-template <typename T>
-class FullyConnected : public AbstractLayer<T> {
-  using VectorType = typename AbstractLayer<T>::VectorType;
-  using MatrixType = typename AbstractLayer<T>::MatrixType;
-  using VectorRefType = typename AbstractLayer<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractLayer<T>::VectorConstRefType;
-
+class FullyConnected : public AbstractLayer {
   bool usebias_;
 
   int in_size_;        // input size
@@ -49,9 +43,6 @@ class FullyConnected : public AbstractLayer<T> {
   std::size_t scalar_bytesize_;
 
  public:
-  using StateType = typename AbstractLayer<T>::StateType;
-  using LookupType = typename AbstractLayer<T>::LookupType;
-
   /// Constructor
   FullyConnected(const int input_size, const int output_size,
                  const bool use_bias = false)
@@ -60,7 +51,7 @@ class FullyConnected : public AbstractLayer<T> {
   }
 
   void Init() {
-    scalar_bytesize_ = sizeof(std::complex<double>);
+    scalar_bytesize_ = sizeof(Complex);
 
     weight_.resize(in_size_, out_size_);
     bias_.resize(out_size_);

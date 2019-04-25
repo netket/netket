@@ -30,7 +30,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddJastrow(py::module &subm) {
-  py::class_<Jastrow<StateType>, MachineType>(subm, "Jastrow", R"EOF(
+  py::class_<Jastrow, AbstractMachine>(subm, "Jastrow", R"EOF(
            A Jastrow wavefunction Machine. This machine defines the following
            wavefunction:
 

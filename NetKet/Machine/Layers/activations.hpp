@@ -28,7 +28,7 @@ namespace netket {
 */
 class AbstractActivation {
  public:
-  using VectorType = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+  using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
 
@@ -56,13 +56,13 @@ inline double lncosh(double x) {
 // ln(cos(x)) for std::complex argument
 // the modulus is computed by means of the previously defined function
 // for real argument
-inline std::complex<double> lncosh(std::complex<double> x) {
+inline Complex lncosh(Complex x) {
   const double xr = x.real();
   const double xi = x.imag();
 
-  std::complex<double> res = lncosh(xr);
+  Complex res = lncosh(xr);
   res += std::log(
-      std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
+      Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
 
   return res;
 }

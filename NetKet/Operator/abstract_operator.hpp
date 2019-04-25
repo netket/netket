@@ -15,12 +15,12 @@
 #ifndef NETKET_ABSTRACT_OPERATOR_HPP
 #define NETKET_ABSTRACT_OPERATOR_HPP
 
-#include "Hilbert/hilbert.hpp"
 #include <Eigen/Dense>
 #include <complex>
 #include <nonstd/span.hpp>
 #include <tuple>
 #include <vector>
+#include "Hilbert/hilbert.hpp"
 
 namespace netket {
 /**
@@ -29,7 +29,7 @@ namespace netket {
  */
 struct ConnectorRef {
   /// The matrix element H(v,v')
-  std::complex<double> mel;
+  Complex mel;
   /// The indices at which v needs to be changed to obtain v'
   nonstd::span<const int> tochange;
   /// The new values such that
@@ -46,11 +46,11 @@ struct ConnectorRef {
    own class from this class.
 */
 class AbstractOperator {
-public:
+ public:
   using VectorType = Eigen::VectorXd;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
-  using MelType = std::vector<std::complex<double>>;
+  using MelType = std::vector<Complex>;
   using ConnectorsType = std::vector<std::vector<int>>;
   using NewconfsType = std::vector<std::vector<double>>;
 
@@ -75,9 +75,9 @@ public:
 
   using ConnCallback = std::function<void(ConnectorRef)>;
 
-  virtual std::tuple<MelType, ConnectorsType, NewconfsType>
-  GetConn(VectorConstRefType v) const {
-    std::vector<std::complex<double>> mel;
+  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
+      VectorConstRefType v) const {
+    std::vector<Complex> mel;
     std::vector<std::vector<int>> connectors;
     std::vector<std::vector<double>> newconfs;
     FindConn(v, mel, connectors, newconfs);
@@ -107,7 +107,7 @@ public:
 
 void AbstractOperator::ForEachConn(VectorConstRefType v,
                                    ConnCallback callback) const {
-  std::vector<std::complex<double>> weights;
+  std::vector<Complex> weights;
   std::vector<std::vector<int>> connectors;
   std::vector<std::vector<double>> newconfs;
 
@@ -119,6 +119,6 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
-} // namespace netket
+}  // namespace netket
 
 #endif

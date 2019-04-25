@@ -46,7 +46,7 @@ namespace netket {
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
 
-  py::class_<SamplerType>(subm, "Sampler", R"EOF(
+  py::class_<AbstractSampler>(subm, "Sampler", R"EOF(
     NetKet implements generic sampling routines to be used in conjunction with
     suitable variational states, the `Machines`.
     A `Sampler` generates quantum numbers distributed according to the square modulus
@@ -61,7 +61,7 @@ void AddSamplerModule(py::module &m) {
 
     $$T( \mathbf{s} \rightarrow \mathbf{s}^\prime) .$$
     )EOF")
-      .def("seed", &SamplerType::Seed, py::arg("base_seed"), R"EOF(
+      .def("seed", &AbstractSampler::Seed, py::arg("base_seed"), R"EOF(
       Seeds the random number generator used by the ``Sampler``.
 
       Args:
@@ -69,7 +69,8 @@ void AddSamplerModule(py::module &m) {
           used by the sampler. Each MPI node is guarantueed to be initialized
           with a distinct seed.
       )EOF")
-      .def("reset", &SamplerType::Reset, py::arg("init_random") = false, R"EOF(
+      .def("reset", &AbstractSampler::Reset, py::arg("init_random") = false,
+           R"EOF(
       Resets the state of the sampler, including the acceptance rate statistics
       and optionally initializing at random the visible units being sampled.
 
@@ -77,20 +78,21 @@ void AddSamplerModule(py::module &m) {
           init_random: If ``True`` the quantum numbers (visible units)
           are initialized at random, otherwise their value is preserved.
       )EOF")
-      .def("sweep", &SamplerType::Sweep, R"EOF(
+      .def("sweep", &AbstractSampler::Sweep, R"EOF(
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
-      .def_property("visible", &SamplerType::Visible, &SamplerType::SetVisible,
+      .def_property("visible", &AbstractSampler::Visible,
+                    &AbstractSampler::SetVisible,
                     R"EOF(
                       numpy.array: The quantum numbers being sampled,
                        and distributed according to $$|\Psi(v)|^2$$ )EOF")
-      .def_property_readonly("acceptance", &SamplerType::Acceptance, R"EOF(
+      .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
         numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.  )EOF")
-      .def_property_readonly("hilbert", &SamplerType::GetHilbert, R"EOF(
+      .def_property_readonly("hilbert", &AbstractSampler::GetHilbert, R"EOF(
         netket.hilbert: The Hilbert space used for the sampling.  )EOF")
-      .def_property_readonly("machine", &SamplerType::GetMachine, R"EOF(
+      .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF");
 
   AddMetropolisLocal(subm);

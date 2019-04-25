@@ -36,8 +36,7 @@ namespace internal {
 // MatrixReplacement looks-like a SparseMatrix, so let's inherits its traits:
 template <>
 struct traits<netket::MatrixReplacement>
-    : public Eigen::internal::traits<
-          Eigen::SparseMatrix<std::complex<double>>> {};
+    : public Eigen::internal::traits<Eigen::SparseMatrix<netket::Complex>> {};
 }  // namespace internal
 }  // namespace Eigen
 
@@ -47,7 +46,7 @@ namespace netket {
 class MatrixReplacement : public Eigen::EigenBase<netket::MatrixReplacement> {
  public:
   // Required typedefs, constants, and method:
-  typedef std::complex<double> Scalar;
+  typedef Complex Scalar;
   typedef double RealScalar;
   typedef int StorageIndex;
   enum {

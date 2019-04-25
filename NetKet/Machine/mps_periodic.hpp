@@ -25,14 +25,8 @@
 
 namespace netket {
 
-template <typename T, bool diag>
-class MPSPeriodic : public AbstractMachine<T> {
-  using VectorType = typename AbstractMachine<T>::VectorType;
-  using MatrixType = typename AbstractMachine<T>::MatrixType;
-  using VectorRefType = typename AbstractMachine<T>::VectorRefType;
-  using VectorConstRefType = typename AbstractMachine<T>::VectorConstRefType;
-  using VisibleConstType = typename AbstractMachine<T>::VisibleConstType;
-
+template <bool diag>
+class MPSPeriodic : public AbstractMachine {
   const AbstractHilbert &hilbert_;
 
   // Number of sites
@@ -68,9 +62,6 @@ class MPSPeriodic : public AbstractMachine<T> {
   MatrixType identity_mat_;
 
  public:
-  using StateType = T;
-  using LookupType = Lookup<T>;
-
   explicit MPSPeriodic(const AbstractHilbert &hilbert, double bond_dim,
                        int symperiod = -1)
       : hilbert_(hilbert),
@@ -93,7 +84,7 @@ class MPSPeriodic : public AbstractMachine<T> {
     return m1 * m2;
   }
 
-  inline T trace(const MatrixType &m) const {
+  inline Complex trace(const MatrixType &m) const {
     if (diag) {
       return m.sum();
     }
@@ -103,14 +94,14 @@ class MPSPeriodic : public AbstractMachine<T> {
   inline void setparamsident(MatrixType &m, VectorConstRefType pars) const {
     if (diag) {
       for (int i = 0; i < D_; i++) {
-        m(i, 0) = T(1, 0) + pars(i);
+        m(i, 0) = Complex(1, 0) + pars(i);
       }
     } else {
       for (int i = 0; i < D_; i++) {
         for (int j = 0; j < D_; j++) {
           m(i, j) = pars(i * D_ + j);
           if (i == j) {
-            m(i, j) += T(1, 0);
+            m(i, j) += Complex(1, 0);
           }
         }
       }
@@ -401,11 +392,11 @@ class MPSPeriodic : public AbstractMachine<T> {
     return c;
   }
 
-  T LogVal(VisibleConstType v) override {
+  Complex LogVal(VisibleConstType v) override {
     return std::log(trace(mps_contraction(v, 0, N_)));
   }
 
-  T LogVal(VisibleConstType /* v */, const LookupType &lt) override {
+  Complex LogVal(VisibleConstType /* v */, const LookupType &lt) override {
     return std::log(trace(lt.M(Nleaves_ - 1)));
   }
 
@@ -416,7 +407,7 @@ class MPSPeriodic : public AbstractMachine<T> {
 
     std::vector<std::size_t> sorted_ind;
     VectorType logvaldiffs = VectorType::Zero(nconn);
-    StateType current_psi = trace(mps_contraction(v, 0, N_));
+    Complex current_psi = trace(mps_contraction(v, 0, N_));
     MatrixType new_prods(D_, Dsec_);
 
     for (std::size_t k = 0; k < nconn; k++) {
@@ -451,13 +442,13 @@ class MPSPeriodic : public AbstractMachine<T> {
     return logvaldiffs;
   }
 
-  T LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
-               const std::vector<double> &newconf,
-               const LookupType &lt) override {
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override {
     // Assumes number of levels > 1 (?)
     std::size_t nflip = toflip.size();
     if (nflip <= 0) {
-      return T(0, 0);
+      return Complex(0, 0);
     }
 
     MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);

@@ -29,9 +29,8 @@
 namespace netket {
 
 // Metropolis sampling using custom moves provided by user
-template <class WfType>
-class CustomSamplerPt: public AbstractSampler<WfType> {
-  WfType& psi_;
+class CustomSamplerPt : public AbstractSampler {
+  AbstractMachine& psi_;
   const AbstractHilbert& hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
@@ -49,11 +48,11 @@ class CustomSamplerPt: public AbstractSampler<WfType> {
   int totalnodes_;
 
   // Look-up tables
-  std::vector<typename WfType::LookupType> lt_;
+  std::vector<typename AbstractMachine::LookupType> lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
-  std::vector<std::complex<double>> mel_;
+  std::vector<Complex> mel_;
 
   int nstates_;
   std::vector<double> localstates_;
@@ -62,7 +61,7 @@ class CustomSamplerPt: public AbstractSampler<WfType> {
   std::vector<double> beta_;
 
  public:
-  CustomSamplerPt(WfType& psi, const LocalOperator& move_operators,
+  CustomSamplerPt(AbstractMachine& psi, const LocalOperator& move_operators,
                   const std::vector<double>& move_weights = {},
                   int nreplicas = 1)
       : psi_(psi),
@@ -74,7 +73,7 @@ class CustomSamplerPt: public AbstractSampler<WfType> {
   }
 
   void Init(const std::vector<double>& move_weights) {
-    CustomSampler<WfType>::CheckMoveOperators(move_operators_);
+    CustomSampler::CheckMoveOperators(move_operators_);
 
     if (hilbert_.Size() != move_operators_.GetHilbert().Size()) {
       throw InvalidInputError(
@@ -224,7 +223,7 @@ class CustomSamplerPt: public AbstractSampler<WfType> {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  WfType& GetMachine() noexcept override { return psi_; }
+  AbstractMachine& GetMachine() noexcept override { return psi_; }
 
   const AbstractHilbert& GetHilbert() const noexcept override {
     return hilbert_;

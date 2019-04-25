@@ -39,8 +39,6 @@ spvsd = nk.supervised.Supervised(
 
 n_iter = 4000
 
-overlaps = []
-
 # Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
 spvsd.run(n_iter=n_iter, loss_function="Overlap_phi",
           output_prefix='output', save_params_every=50)

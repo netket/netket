@@ -30,7 +30,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddJastrowSymm(py::module &subm) {
-  py::class_<JastrowSymm<StateType>, MachineType>(subm, "JastrowSymm", R"EOF(
+  py::class_<JastrowSymm, AbstractMachine>(subm, "JastrowSymm", R"EOF(
            A Jastrow wavefunction Machine with lattice symmetries.This machine
            defines the wavefunction as follows:
 
