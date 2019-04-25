@@ -170,6 +170,12 @@ class RbmSpinPhase : public AbstractMachine {
   }
 
   VectorType DerLog(VisibleConstType v) override {
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    return DerLog(v, ltnew);
+  }
+
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
     VectorType der(npar_);
 
     int k = 0;
@@ -181,8 +187,8 @@ class RbmSpinPhase : public AbstractMachine {
       }
     }
 
-    RbmSpin::tanh(W1_.transpose() * v + b1_, lnthetas1_);
-    RbmSpin::tanh(W2_.transpose() * v + b2_, lnthetas2_);
+    RbmSpin::tanh(lt.V(0).real(), lnthetas1_);
+    RbmSpin::tanh(lt.V(1).real(), lnthetas2_);
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {

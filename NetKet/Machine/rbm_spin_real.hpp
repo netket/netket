@@ -132,6 +132,12 @@ class RbmSpinReal : public AbstractMachine {
   }
 
   VectorType DerLog(VisibleConstType v) override {
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    return DerLog(v, ltnew);
+  }
+
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
     VectorType der(npar_);
 
     int k = 0;
@@ -142,7 +148,7 @@ class RbmSpinReal : public AbstractMachine {
       }
     }
 
-    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    RbmSpin::tanh(lt.V(0).real(), lnthetas_);
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
@@ -227,8 +233,8 @@ class RbmSpinReal : public AbstractMachine {
     return (v.dot(a_) + lnthetas_.sum());
   }
 
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
+  // Difference between logarithms of values, when one or more visible
+  // variables are being flipped
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
@@ -259,9 +265,9 @@ class RbmSpinReal : public AbstractMachine {
     return logvaldiffs;
   }
 
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped Version using pre-computed look-up tables for efficiency
-  // on a small number of spin flips
+  // Difference between logarithms of values, when one or more visible
+  // variables are being flipped Version using pre-computed look-up tables for
+  // efficiency on a small number of spin flips
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override {
