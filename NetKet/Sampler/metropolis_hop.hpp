@@ -183,6 +183,10 @@ class MetropolisHop : public AbstractSampler {
     return hilbert_;
   }
 
+  AbstractMachine::VectorType DerLogVisible() override {
+    return psi_.DerLog(v_, lt_);
+  }
+
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
     for (int i = 0; i < 1; i++) {

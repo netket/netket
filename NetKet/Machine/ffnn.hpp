@@ -215,14 +215,14 @@ class FFNN : public AbstractMachine {
   }
 
   VectorType DerLog(VisibleConstType v) override {
-    VectorType der(npar_);
     LookupType ltnew;
     InitLookup(v, ltnew);
-    DerLog(v, der, ltnew);
-    return der;
+    return DerLog(v, ltnew);
   }
 
-  void DerLog(VisibleConstType v, VectorRefType der, const LookupType &lt) {
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
+    VectorType der(npar_);
+
     int start_idx = npar_;
     int num_of_pars;
     // Backpropagation
@@ -247,6 +247,7 @@ class FFNN : public AbstractMachine {
       // Only 1 layer
       layers_[0]->Backprop(v, lt.V(0), din_.back(), din_[0], der);
     }
+    return der;
   }
 
   VectorType LogValDiff(

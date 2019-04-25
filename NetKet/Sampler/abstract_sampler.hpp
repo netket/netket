@@ -37,6 +37,12 @@ class AbstractSampler {
 
   virtual const AbstractHilbert& GetHilbert() const noexcept = 0;
 
+  // Computes the derivative of the machine on the current visible
+  // Using the lookUp tables if possible
+  virtual AbstractMachine::VectorType DerLogVisible() {
+    return GetMachine().DerLog(Visible());
+  }
+
   virtual ~AbstractSampler() {}
 
   void Seed(DistributedRandomEngine::ResultType base_seed) {

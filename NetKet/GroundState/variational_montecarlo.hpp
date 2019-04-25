@@ -204,10 +204,12 @@ class VariationalMonteCarlo {
     }
 
     vsamp_.resize(nsamples_node_, psi_.Nvisible());
+    Ok_.resize(nsamples_node_, npar_);
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
       vsamp_.row(i) = sampler_.Visible();
+      Ok_.row(i) = sampler_.DerLogVisible();
     }
   }
 
@@ -235,13 +237,10 @@ class VariationalMonteCarlo {
 
     const int nsamp = vsamp_.rows();
     elocs_.resize(nsamp);
-    Ok_.resize(nsamp, npar_);
 
     for (int i = 0; i < nsamp; i++) {
       elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
-
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
     }
 
     elocmean_ = elocs_.mean();
