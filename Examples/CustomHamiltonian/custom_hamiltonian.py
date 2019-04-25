@@ -12,81 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
-import json
+import netket as nk
 import numpy as np
 
-sigmax = [[0, 1], [1, 0]]
-sigmaz = [[1, 0], [0, -1]]
-
-mszsz = (np.kron(sigmaz, sigmaz)).tolist()
-
-# Now we define the local operators of our hamiltonian
-# And the sites on which they act
-# Notice that the Transverse-Field Ising model as defined here has sign problem
-operators = []
-sites = []
+# 1D Lattice
 L = 20
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+
+# Hilbert space of spins on the graph
+hi = nk.hilbert.Spin(s=0.5, graph=g)
+
+
+# Defining the Ising hamiltonian (with sign problem here)
+# Using local operators
+sx = [[0, 1], [1, 0]]
+sz = [[1, 0], [0, -1]]
+
+ha = nk.operator.LocalOperator(hi)
+
 for i in range(L):
-    # \sum_i sigma^x(i)
-    operators.append(sigmax)
-    sites.append([i])
-    # \sum_i sigma^z(i)*sigma^z(i+1)
-    operators.append(mszsz)
-    sites.append([i, (i + 1) % L])
-
-pars = {}
+    ha += nk.operator.LocalOperator(hi, sx, [i])
+    ha += nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
 
 
-# first we choose a hilbert space for our custom hamiltonian
-pars['Hilbert'] = {
-    'QuantumNumbers': [1, -1],
-}
+# RBM Spin Machine
+ma = nk.machine.RbmSpinPhase(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the graph
-pars['Graph'] = {
-    'Name': 'Custom',
-    'Size': L,
-}
+# Metropolis Local Sampling
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
-# defining a custom hamiltonian
-pars['Hamiltonian'] = {
-    'Operators': operators,
-    'ActingOn': sites,
-}
+# Optimizer
+op = nk.optimizer.AdaDelta()
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpin',
-    'Alpha': 1,
-}
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=300,
+    diag_shift=0.1,
+    use_iterative=True,
+    method='Sr')
 
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
-}
-
-# defining the Optimizer
-# here we use AdaMax
-pars['Optimizer'] = {
-    'Name': 'AdaMax',
-}
-
-# defining the GroundState method
-# here we use a Gradient Descent with AdaMax
-pars['GroundState'] = {
-    'Method': 'Gd',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 40000,
-    'OutputFile': "test",
-}
-
-json_file = "custom_hamiltonian.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run(output_prefix='test', n_iter=3000)
