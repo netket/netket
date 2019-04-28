@@ -178,92 +178,79 @@ class RbmSpinPhase : public AbstractMachine {
   VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
     VectorType der(npar_);
 
-    int k = 0;
+    const int impar = npar_ / 2;
 
     if (usea_) {
-      for (; k < nv_; k++) {
-        der(k) = v(k);
-        der(k + npar_ / 2) = I_ * v(k);
-      }
+      der.head(nv_) = v;
+      der.segment(impar, nv_) = I_ * v;
     }
 
     RbmSpin::tanh(lt.V(0).real(), lnthetas1_);
     RbmSpin::tanh(lt.V(1).real(), lnthetas2_);
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        der(k) = lnthetas1_(p);
-        der(k + npar_ / 2) = I_ * lnthetas2_(p);
-        k++;
-      }
+      der.segment(usea_ * nv_, nh_) = lnthetas1_;
+      der.segment(impar + usea_ * nv_, nh_) = I_ * lnthetas2_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        der(k) = lnthetas1_(j) * v(i);
-        der(k + npar_ / 2) = I_ * lnthetas2_(j) * v(i);
-        k++;
-      }
-    }
+    const int initw = nv_ * usea_ + nh_ * useb_;
+
+    MatrixType wder = (v * lnthetas1_.transpose());
+    der.segment(initw, nv_ * nh_) =
+        Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
+
+    wder = (v * lnthetas2_.transpose());
+    der.segment(impar + initw, nv_ * nh_) =
+        I_ * Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
+
     return der;
   }
 
   VectorType GetParameters() override {
     VectorType pars(npar_);
 
-    int k = 0;
+    const int impar = npar_ / 2;
 
     if (usea_) {
-      for (; k < nv_; k++) {
-        pars(k) = a1_(k);
-        pars(k + npar_ / 2) = a2_(k);
-      }
+      pars.head(nv_) = a1_;
+      pars.segment(impar, nv_) = a2_;
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        pars(k) = b1_(p);
-        pars(k + npar_ / 2) = b2_(p);
-        k++;
-      }
+      pars.segment(nv_ * usea_, nh_) = b1_;
+      pars.segment(impar + nv_ * usea_, nh_) = b2_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        pars(k) = W1_(i, j);
-        pars(k + npar_ / 2) = W2_(i, j);
-        k++;
-      }
-    }
+    const int initw = nv_ * usea_ + nh_ * useb_;
+
+    pars.segment(initw, nv_ * nh_) =
+        Eigen::Map<RealVectorType>(W1_.data(), nv_ * nh_);
+    pars.segment(impar + initw, nv_ * nh_) =
+        Eigen::Map<RealVectorType>(W2_.data(), nv_ * nh_);
 
     return pars;
   }
 
   void SetParameters(VectorConstRefType pars) override {
-    int k = 0;
+    const int impar = npar_ / 2;
 
     if (usea_) {
-      for (; k < nv_; k++) {
-        a1_(k) = std::real(pars(k));
-        a2_(k) = std::real(pars(k + npar_ / 2));
-      }
+      a1_ = pars.head(nv_).real();
+      a2_ = pars.segment(impar, nv_).real();
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        b1_(p) = std::real(pars(k));
-        b2_(p) = std::real(pars(k + npar_ / 2));
-        k++;
-      }
+      b1_ = pars.segment(usea_ * nv_, nh_).real();
+      b2_ = pars.segment(impar + usea_ * nv_, nh_).real();
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        W1_(i, j) = std::real(pars(k));
-        W2_(i, j) = std::real(pars(k + npar_ / 2));
-        k++;
-      }
-    }
+    const int initw = nv_ * usea_ + nh_ * useb_;
+
+    VectorType Wpars = pars.segment(initw, nv_ * nh_);
+    W1_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_).real();
+
+    Wpars = pars.segment(impar + initw, nv_ * nh_);
+    W2_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_).real();
   }
 
   // Value of the logarithm of the wave-function
