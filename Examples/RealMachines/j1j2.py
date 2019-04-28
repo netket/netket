@@ -1,4 +1,4 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ mszsz = (np.kron(sigmaz, sigmaz))
 exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
 # Couplings J1 and J2
-J = [1, 0.6]
+J = [1, 0.5]
 
 L = 20
 
