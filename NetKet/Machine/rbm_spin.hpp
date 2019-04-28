@@ -142,18 +142,15 @@ class RbmSpin : public AbstractMachine {
     int k = 0;
 
     if (usea_) {
-      for (; k < nv_; k++) {
-        der(k) = v(k);
-      }
+      der.head(nv_) = v;
+      k += nv_;
     }
 
     RbmSpin::tanh(lt.V(0), lnthetas_);
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        der(k) = lnthetas_(p);
-        k++;
-      }
+      der.segment(k, nh_) = lnthetas_;
+      k += nh_;
     }
 
     for (int i = 0; i < nv_; i++) {
@@ -162,6 +159,9 @@ class RbmSpin : public AbstractMachine {
         k++;
       }
     }
+
+    // TODO find out how to make this work
+    // der.tail(nv_ * nh_) = (v * lnthetas_).array();
     return der;
   }
 
@@ -171,16 +171,13 @@ class RbmSpin : public AbstractMachine {
     int k = 0;
 
     if (usea_) {
-      for (; k < nv_; k++) {
-        pars(k) = a_(k);
-      }
+      pars.head(nv_) = a_;
+      k += nv_;
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        pars(k) = b_(p);
-        k++;
-      }
+      pars.segment(k, nh_) = b_;
+      k += nh_;
     }
 
     for (int i = 0; i < nv_; i++) {
