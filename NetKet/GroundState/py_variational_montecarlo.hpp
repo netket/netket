@@ -37,12 +37,13 @@ void AddVariationalMonteCarloModule(py::module &m) {
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
-                    double, bool, bool>(),
+                    const std::string &, double, bool, bool>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
            py::arg("optimizer"), py::arg("n_samples"),
            py::arg("discarded_samples") = -1,
-           py::arg("discarded_samples_on_init") = 0, py::arg("method") = "Sr",
+           py::arg("discarded_samples_on_init") = 0,
+           py::arg("target") = "energy", py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
            py::arg("use_cholesky") = true,
            R"EOF(
@@ -62,9 +63,11 @@ void AddVariationalMonteCarloModule(py::module &m) {
                discarded_samples_on_init: Number of sweeps to be discarded in
                    the first step of optimization, at the beginning of the
                    sampling. The default is 0.
+               target: The chosen target to minimize.
+                   Possible choices are `energy`, and `variance`.
                method: The chosen method to learn the parameters of the
                    wave-function. Possible choices are `Gd` (Regular Gradient descent),
-                   and `Sr` (Stochastic reconfiguration a.k.a. natural gradient). 
+                   and `Sr` (Stochastic reconfiguration a.k.a. natural gradient).
                diag_shift: The regularization parameter in stochastic
                    reconfiguration. The default is 0.01.
                use_iterative: Whether to use the iterative solver in the Sr

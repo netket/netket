@@ -182,10 +182,10 @@ class AbstractMachine {
   }
 
   /**
-  Member function computing the derivative of the logarithm of the wave function
-  at an update visible state v', given the current value at v.
-  Specialized versions use the look-up tables to speed-up the
-  calculation, otherwise it is computed from scratch.
+  Member function computing O_k(v'), the derivative of
+  the logarithm of the wave function at an update visible state v', given the
+  current value at v. Specialized versions use the look-up tables to speed-up
+  the calculation, otherwise it is computed from scratch.
   @param v a constant reference to the current visible configuration.
   @param tochange a constant reference to a vector containing the indeces of the
   units to be modified.
@@ -197,8 +197,7 @@ class AbstractMachine {
   */
   virtual VectorType DerLogChanged(VisibleConstType v,
                                    const std::vector<int> &tochange,
-                                   const std::vector<double> &newconf,
-                                   const LookupType & /*lt*/) {
+                                   const std::vector<double> &newconf) {
     VisibleType vp(v);
     GetHilbert().UpdateConf(vp, tochange, newconf);
     return DerLog(vp);
