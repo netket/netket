@@ -1,0 +1,56 @@
+import netket.exact as exact
+import netket.hilbert as hs
+import netket.operator as op
+import netket.graph as gr
+import math as ma
+import numpy as np
+
+
+def build_rotation(hi, basis):
+    localop = op.LocalOperator(hi, 1.0)
+    U_X = (1. / (ma.sqrt(2)) * np.asarray([[1., 1.], [1., -1.]]))
+    U_Y = (1. / (ma.sqrt(2)) * np.asarray([[1., -1j], [1., 1j]]))
+
+    N = hi.size
+
+    assert(len(basis) == hi.size)
+
+    for j in range(hi.size):
+        if (basis[j] == 'X'):
+            localop *= op.LocalOperator(hi, U_X, [j])
+        if (basis[j] == 'Y'):
+            localop *= op.LocalOperator(hi, U_Y, [j])
+    return localop
+
+
+def generate(N, n_basis=20, n_shots=1000, seed=1234):
+    g = gr.Hypercube(length=N, n_dim=1)
+    hi = hs.Spin(g, s=0.5)
+    hind = hs.HilbertIndex(hi)
+    ha = op.Ising(hilbert=hi, h=1)
+    res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
+
+    dmw = op.DirectMatrixWrapper(ha)
+
+    psi = res.eigenvectors[0]
+
+    rotations = []
+    training_samples = []
+    training_bases = []
+
+    np.random.seed(seed)
+
+    for m in range(n_basis):
+        basis = np.random.choice(list('XY' + 'Z' * N), size=N)
+        rotations.append(build_rotation(hi, basis))
+        dmw = op.DirectMatrixWrapper(rotations[-1])
+        psir = dmw.apply(psi)
+
+        rand_n = np.random.choice(hind.n_states, p=np.square(
+            np.absolute(psir)), size=n_shots)
+
+        for rn in rand_n:
+            training_samples.append(hind.number_to_state(rn))
+        training_bases += [m] * n_shots
+
+    return hi, tuple(rotations), training_samples, training_bases, ha

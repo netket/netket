@@ -14,15 +14,13 @@
 
 
 import netket as nk
-from load_data import load
+from generate_data import generate
 
-
-path_to_samples = 'ising1d_train_samples.txt'
-path_to_bases = 'ising1d_train_bases.txt'
 
 # Load the data
-hi, rotations, training_samples, training_bases, ha = load(
-    path_to_samples, path_to_bases)
+N = 10
+hi, rotations, training_samples, training_bases, ha = generate(
+    N, n_basis=40, n_shots=1000)
 
 # Machine
 ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
@@ -32,19 +30,19 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.01)
+op = nk.optimizer.AdaDelta()
 
 # Quantum State Reconstruction
 qst = nk.unsupervised.Qsr(
     sampler=sa,
     optimizer=op,
-    batch_size=4000,
-    n_samples=4000,
+    batch_size=1000,
+    n_samples=1000,
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method='Sr')
+    method='Gd')
 
 qst.add_observable(ha, "Energy")
 
-qst.run(n_iter=500, output_prefix="output")
+qst.run(n_iter=1000, output_prefix="output")
