@@ -20,7 +20,7 @@ from generate_data import generate
 # Load the data
 N = 10
 hi, rotations, training_samples, training_bases, ha = generate(
-    N, n_basis=40, n_shots=1000)
+    N, n_basis=2 * N, n_shots=3000)
 
 # Machine
 ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
@@ -41,8 +41,8 @@ qst = nk.unsupervised.Qsr(
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method='Gd')
+    method='Sr')
 
 qst.add_observable(ha, "Energy")
 
-qst.run(n_iter=1000, output_prefix="output")
+qst.run(n_iter=2000, output_prefix="output")

@@ -30,8 +30,6 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
     ha = op.Ising(hilbert=hi, h=1)
     res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
 
-    dmw = op.DirectMatrixWrapper(ha)
-
     psi = res.eigenvectors[0]
 
     rotations = []
@@ -41,10 +39,11 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
     np.random.seed(seed)
 
     for m in range(n_basis):
-        basis = np.random.choice(list('XY' + 'Z' * N), size=N)
-        rotations.append(build_rotation(hi, basis))
-        dmw = op.DirectMatrixWrapper(rotations[-1])
-        psir = dmw.apply(psi)
+        basis = np.random.choice(list('XYZ'), size=N, p=[
+                                 1. / N, 1. / N, (N - 2.) / N])
+
+        rotation = build_rotation(hi, basis)
+        psir = rotation.asmatrix().dot(psi)
 
         rand_n = np.random.choice(hind.n_states, p=np.square(
             np.absolute(psir)), size=n_shots)
@@ -52,5 +51,7 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
         for rn in rand_n:
             training_samples.append(hind.number_to_state(rn))
         training_bases += [m] * n_shots
+
+        rotations.append(rotation)
 
     return hi, tuple(rotations), training_samples, training_bases, ha

@@ -56,7 +56,31 @@ void AddOperatorModule(py::module &m) {
        )EOF")
       .def_property_readonly(
           "hilbert", &AbstractOperator::GetHilbert,
-          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF");
+          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
+      .def("sparse_matrix",
+           [](const AbstractOperator &wrapped) {
+             return SparseMatrixWrapper<>(wrapped).GetMatrix();
+           },
+           R"EOF(
+         Returns a sparse matrix representation of the given operator.
+         Notice that in general the size of the wrapped matrix is exponential in
+         the number of quantum numbers, and this operation should be performed
+         only on small operators.
+
+         )EOF")
+      .def("asmatrix",
+           [](const AbstractOperator &wrapped, const std::string &type) {
+             return CreateMatrixWrapper(wrapped, type);
+           },
+           py::arg("type") = "direct", R"EOF(
+         Returns a matrix wrapper for the given operator. Notice that in general
+         the size of the wrapped matrix is exponential in the number of quantum
+         numbers, and this operation should be performed only on small operators.
+
+         Args:
+             type: Either dense, sparse, or direct.
+
+         )EOF");
 
   AddIsing(subm);
   AddHeisenberg(subm);

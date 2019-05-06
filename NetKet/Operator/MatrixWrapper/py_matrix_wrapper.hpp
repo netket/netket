@@ -38,6 +38,8 @@ void AddMatrixWrapper(py::module &subm) {
   vector of (complex) coefficients representing the quantum state. Should be
   Eigen::VectorXcd or a compatible type.)EOF")
       .def("apply", &AbstractMatrixWrapper<>::Apply, py::arg("state"))
+      .def("dot", &AbstractMatrixWrapper<>::Apply, py::arg("state"))
+      .def("matmul", &AbstractMatrixWrapper<>::Apply, py::arg("state"))
       .def_property_readonly(
           "dimension", &AbstractMatrixWrapper<>::Dimension,
           R"EOF(int : The Hilbert space dimension corresponding to the Hamiltonian)EOF");
@@ -47,7 +49,7 @@ void AddMatrixWrapper(py::module &subm) {
   AddDirectMatrixWrapper(subm);
 
   subm.def("wrap_as_matrix", &CreateMatrixWrapper<>, py::arg("operator"),
-           py::arg("type") = "Sparse");
+           py::arg("type") = "sparse");
 }
 
 }  // namespace netket

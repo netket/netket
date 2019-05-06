@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+from scipy.sparse.linalg import eigs
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=16, n_dim=1, pbc=True)
@@ -23,14 +24,19 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 # Ising spin hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# Perform Lanczos Exact Diagonalization to get lowest three eigenvalues 
+# Use scipy sparse diagonalization
+vals, vecs = eigs(ha.sparse_matrix(), k=3, which='SR')
+print("eigenvalues with scipy sparse:", vals.real)
+
+# Use internal Lanczos Solver Instead
+# Perform Lanczos Exact Diagonalization to get lowest three eigenvalues
 res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
 
 # Print eigenvalues
-print("eigenvalues:", res.eigenvalues)
+print("eigenvalues with internal solver:", res.eigenvalues)
 
-# Compute energy of ground state
+# # Compute energy of ground state
 print("g.s. energy:", res.mean(ha, 0))
-
-# Compute energy of first excited state
+#
+# # Compute energy of first excited state
 print("first excited energy:", res.mean(ha, 1))

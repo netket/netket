@@ -33,7 +33,7 @@ class ImagTimePropagation {
 
   void AddObservable(const AbstractOperator& observable,
                      const std::string& name,
-                     const std::string& matrix_type = "Sparse") {
+                     const std::string& matrix_type = "sparse") {
     auto wrapper = CreateMatrixWrapper(observable, matrix_type);
     observables_.emplace_back(name, std::move(wrapper));
   }
