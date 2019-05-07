@@ -16,7 +16,7 @@ import netket as nk
 from scipy.sparse.linalg import eigs
 
 # 1D Lattice
-g = nk.graph.Hypercube(length=16, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=14, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -33,10 +33,10 @@ print("eigenvalues with scipy sparse:", vals.real)
 res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
 
 # Print eigenvalues
-print("eigenvalues with internal solver:", res.eigenvalues)
+print("\neigenvalues with internal solver:", res.eigenvalues)
 
-# # Compute energy of ground state
-print("g.s. energy:", res.mean(ha, 0))
-#
-# # Compute energy of first excited state
-print("first excited energy:", res.mean(ha, 1))
+# Compute energy of ground state
+print("\ng.s. energy:", res.mean(ha, 0))
+
+# Compute energy of first excited state
+print("\nfirst excited energy:", res.mean(ha, 1))
