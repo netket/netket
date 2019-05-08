@@ -16,7 +16,7 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(
-    hilbert=hi, alpha=1)
+    hilbert=hi, alpha=2)
 
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
     hilbert=hi, alpha=2)

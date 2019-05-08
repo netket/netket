@@ -131,84 +131,58 @@ class RbmSpin : public AbstractMachine {
   }
 
   VectorType DerLog(VisibleConstType v) override {
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    return DerLog(v, ltnew);
+  }
+
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
     VectorType der(npar_);
 
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        der(k) = v(k);
-      }
+      der.head(nv_) = v;
     }
 
-    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    RbmSpin::tanh(lt.V(0), lnthetas_);
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        der(k) = lnthetas_(p);
-        k++;
-      }
+      der.segment(usea_ * nv_, nh_) = lnthetas_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        der(k) = lnthetas_(j) * v(i);
-        k++;
-      }
-    }
+    MatrixType wder = (v * lnthetas_.transpose());
+    der.tail(nv_ * nh_) = Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
+
     return der;
   }
 
   VectorType GetParameters() override {
     VectorType pars(npar_);
 
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        pars(k) = a_(k);
-      }
+      pars.head(nv_) = a_;
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        pars(k) = b_(p);
-        k++;
-      }
+      pars.segment(usea_ * nv_, nh_) = b_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        pars(k) = W_(i, j);
-        k++;
-      }
-    }
+    pars.tail(nv_ * nh_) = Eigen::Map<VectorType>(W_.data(), nv_ * nh_);
 
     return pars;
   }
 
   void SetParameters(VectorConstRefType pars) override {
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        a_(k) = pars(k);
-      }
+      a_ = pars.head(nv_);
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        b_(p) = pars(k);
-        k++;
-      }
+      b_ = pars.segment(usea_ * nv_, nh_);
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        W_(i, j) = pars(k);
-        k++;
-      }
-    }
+    VectorType Wpars = pars.tail(nv_ * nh_);
+
+    W_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_);
   }
 
   // Value of the logarithm of the wave-function

@@ -132,84 +132,58 @@ class RbmSpinReal : public AbstractMachine {
   }
 
   VectorType DerLog(VisibleConstType v) override {
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    return DerLog(v, ltnew);
+  }
+
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
     VectorType der(npar_);
 
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        der(k) = v(k);
-      }
+      der.head(nv_) = v;
     }
 
-    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    RbmSpin::tanh(lt.V(0).real(), lnthetas_);
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        der(k) = lnthetas_(p);
-        k++;
-      }
+      der.segment(usea_ * nv_, nh_) = lnthetas_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        der(k) = lnthetas_(j) * v(i);
-        k++;
-      }
-    }
+    MatrixType wder = (v * lnthetas_.transpose());
+    der.tail(nv_ * nh_) = Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
+
     return der;
   }
 
   VectorType GetParameters() override {
     VectorType pars(npar_);
 
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        pars(k) = a_(k);
-      }
+      pars.head(nv_) = a_;
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        pars(k) = b_(p);
-        k++;
-      }
+      pars.segment(usea_ * nv_, nh_) = b_;
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        pars(k) = W_(i, j);
-        k++;
-      }
-    }
+    pars.tail(nv_ * nh_) = Eigen::Map<RealVectorType>(W_.data(), nv_ * nh_);
 
     return pars;
   }
 
   void SetParameters(VectorConstRefType pars) override {
-    int k = 0;
-
     if (usea_) {
-      for (; k < nv_; k++) {
-        a_(k) = std::real(pars(k));
-      }
+      a_ = pars.head(nv_).real();
     }
 
     if (useb_) {
-      for (int p = 0; p < nh_; p++) {
-        b_(p) = std::real(pars(k));
-        k++;
-      }
+      b_ = pars.segment(usea_ * nv_, nh_).real();
     }
 
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nh_; j++) {
-        W_(i, j) = std::real(pars(k));
-        k++;
-      }
-    }
+    VectorType Wpars = pars.tail(nv_ * nh_);
+
+    W_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_).real();
   }
 
   // Value of the logarithm of the wave-function
@@ -227,8 +201,8 @@ class RbmSpinReal : public AbstractMachine {
     return (v.dot(a_) + lnthetas_.sum());
   }
 
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
+  // Difference between logarithms of values, when one or more visible
+  // variables are being flipped
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
@@ -259,9 +233,9 @@ class RbmSpinReal : public AbstractMachine {
     return logvaldiffs;
   }
 
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped Version using pre-computed look-up tables for efficiency
-  // on a small number of spin flips
+  // Difference between logarithms of values, when one or more visible
+  // variables are being flipped Version using pre-computed look-up tables for
+  // efficiency on a small number of spin flips
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override {

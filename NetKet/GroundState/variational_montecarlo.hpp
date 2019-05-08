@@ -59,6 +59,8 @@ class VariationalMonteCarlo {
   Eigen::VectorXcd elocs_;
   MatrixT Ok_;
   VectorT Okmean_;
+  MatrixT elocsder_;
+  VectorT elocsdermean_;
 
   Eigen::MatrixXd vsamp_;
 
@@ -83,6 +85,8 @@ class VariationalMonteCarlo {
   Complex elocmean_;
   double elocvar_;
   int npar_;
+
+  const std::string target_;
 
  public:
   class Iterator {
@@ -133,6 +137,7 @@ class VariationalMonteCarlo {
                         AbstractSampler &sampler, AbstractOptimizer &optimizer,
                         int nsamples, int discarded_samples = -1,
                         int discarded_samples_on_init = 0,
+                        const std::string &target = "energy",
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool use_iterative = false,
                         bool use_cholesky = true)
@@ -140,7 +145,8 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
-        elocvar_(0.) {
+        elocvar_(0.),
+        target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
          diag_shift, use_iterative, use_cholesky);
   }
@@ -177,6 +183,11 @@ class VariationalMonteCarlo {
       setSrParameters(diag_shift, use_iterative, use_cholesky);
     }
 
+    if (target_ != "energy" && target_ != "variance") {
+      InvalidInputError(
+          "Target minimization should be either energy or variance\n");
+    }
+
     InfoMessage() << "Variational Monte Carlo running on " << totalnodes_
                   << " processes" << std::endl;
 
@@ -204,10 +215,12 @@ class VariationalMonteCarlo {
     }
 
     vsamp_.resize(nsamples_node_, psi_.Nvisible());
+    Ok_.resize(nsamples_node_, npar_);
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
       vsamp_.row(i) = sampler_.Visible();
+      Ok_.row(i) = sampler_.DerLogVisible();
     }
   }
 
@@ -235,13 +248,10 @@ class VariationalMonteCarlo {
 
     const int nsamp = vsamp_.rows();
     elocs_.resize(nsamp);
-    Ok_.resize(nsamp, npar_);
 
     for (int i = 0; i < nsamp; i++) {
       elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
       obsmanager_.Push("Energy", elocs_(i).real());
-
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i));
     }
 
     elocmean_ = elocs_.mean();
@@ -260,8 +270,22 @@ class VariationalMonteCarlo {
       obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
     }
 
-    grad_ = (Ok_.adjoint() * elocs_);
+    if (target_ == "energy") {
+      grad_ = (Ok_.adjoint() * elocs_);
+    } else if (target_ == "variance") {
+      elocsder_.resize(nsamp, npar_);
+      elocsdermean_.resize(npar_);
 
+      for (int i = 0; i < nsamp; i++) {
+        elocsder_.row(i) = ElocDer(vsamp_.row(i));
+      }
+      elocsdermean_ = elocsder_.colwise().mean();
+      SumOnNodes(elocsdermean_);
+      elocsdermean_ /= double(totalnodes_);
+      elocsder_ = elocsder_.rowwise() - elocsdermean_.transpose();
+
+      grad_ = elocsder_.adjoint() * elocs_;
+    }
     // Summing the gradient over the nodes
     SumOnNodes(grad_);
     grad_ /= double(totalnodes_ * nsamp);
@@ -291,6 +315,29 @@ class VariationalMonteCarlo {
     }
 
     return obval;
+  }
+
+  VectorT ElocDer(const Eigen::VectorXd &v) {
+    VectorT eder(npar_);
+    eder.setZero();
+
+    ham_.FindConn(v, mel_, connectors_, newconfs_);
+
+    assert(connectors_.size() == mel_.size());
+
+    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
+
+    assert(mel_.size() == std::size_t(logvaldiffs.size()));
+
+    auto ok = psi_.DerLog(v);
+
+    for (int i = 0; i < logvaldiffs.size(); i++) {
+      const auto melval = mel_[i] * std::exp(logvaldiffs(i));
+      eder += melval * psi_.DerLogChanged(v, connectors_[i], newconfs_[i]);
+      eder -= melval * ok;
+    }
+
+    return eder;
   }
 
   double ElocMean() { return elocmean_.real(); }
@@ -378,7 +425,7 @@ class VariationalMonteCarlo {
 
   AbstractMachine &GetMachine() { return psi_; }
   const ObsManager &GetObsManager() const { return obsmanager_; }
-};
+};  // namespace netket
 
 }  // namespace netket
 

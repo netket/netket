@@ -24,14 +24,15 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpinReal(alpha=4, hilbert=hi)
+# Paremeterizing phase and amplitude separately
+ma = nk.machine.RbmSpinPhase(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optimizer.AdaMax()
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
@@ -40,6 +41,6 @@ gs = nk.variational.Vmc(
     optimizer=op,
     n_samples=1000,
     diag_shift=0.1,
-    method='Gd')
+    method='Sr')
 
 gs.run(output_prefix='test', n_iter=300)
