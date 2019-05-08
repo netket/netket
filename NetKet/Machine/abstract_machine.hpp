@@ -36,6 +36,7 @@ class AbstractMachine {
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
+  using VisibleType = Eigen::VectorXd;
   using RealVectorType = Eigen::Matrix<double, Eigen::Dynamic, 1>;
   using RealMatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
   using RealVectorConstRefType = Eigen::Ref<const RealVectorType>;
@@ -154,7 +155,8 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return The value of log(Psi(v')) - log(Psi(v))
   */
-  virtual Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
+  virtual Complex LogValDiff(VisibleConstType v,
+                             const std::vector<int> &tochange,
                              const std::vector<double> &newconf,
                              const LookupType &lt) = 0;
 
@@ -166,6 +168,40 @@ class AbstractMachine {
   set of parameters.
   */
   virtual VectorType DerLog(VisibleConstType v) = 0;
+
+  /**
+  Member function computing the derivative of the logarithm of the wave function
+  for a given visible vector. This specialized version, if implemented, should
+  make use of the Lookup table to speed up the calculation.
+  @param v a constant reference to a visible configuration.
+  @return Derivatives of the logarithm of the wave function with respect to the
+  set of parameters.
+  */
+  virtual VectorType DerLog(VisibleConstType v, const LookupType & /*lt*/) {
+    return DerLog(v);
+  }
+
+  /**
+  Member function computing O_k(v'), the derivative of
+  the logarithm of the wave function at an update visible state v', given the
+  current value at v. Specialized versions use the look-up tables to speed-up
+  the calculation, otherwise it is computed from scratch.
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the indeces of the
+  units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
+  visible state.
+  @param lt a constant eference to the look-up table.
+  @return The value of DerLog(v')
+  */
+  virtual VectorType DerLogChanged(VisibleConstType v,
+                                   const std::vector<int> &tochange,
+                                   const std::vector<double> &newconf) {
+    VisibleType vp(v);
+    GetHilbert().UpdateConf(vp, tochange, newconf);
+    return DerLog(vp);
+  }
 
   virtual bool IsHolomorphic() { return true; }
 

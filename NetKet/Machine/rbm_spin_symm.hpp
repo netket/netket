@@ -210,6 +210,12 @@ class RbmSpinSymm : public AbstractMachine {
   }
 
   VectorType BareDerLog(VisibleConstType v) {
+    LookupType ltnew;
+    InitLookup(v, ltnew);
+    return BareDerLog(v, ltnew);
+  }
+
+  VectorType BareDerLog(VisibleConstType v, const LookupType &lt) {
     VectorType der(nbarepar_);
 
     int k = 0;
@@ -220,7 +226,7 @@ class RbmSpinSymm : public AbstractMachine {
       }
     }
 
-    RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
+    RbmSpin::tanh(lt.V(0), lnthetas_);
 
     if (useb_) {
       for (int p = 0; p < nh_; p++) {
@@ -240,6 +246,10 @@ class RbmSpinSymm : public AbstractMachine {
 
   VectorType DerLog(VisibleConstType v) override {
     return DerMatSymm_ * BareDerLog(v);
+  }
+
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
+    return DerMatSymm_ * BareDerLog(v, lt);
   }
 
   VectorType GetParameters() override {

@@ -226,6 +226,10 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     return hilbert_;
   }
 
+  AbstractMachine::VectorType DerLogVisible() override {
+    return psi_.DerLog(v_[0], lt_[0]);
+  }
+
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
     for (int i = 0; i < acc.size(); i++) {

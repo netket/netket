@@ -49,7 +49,8 @@ class MetropolisExchange : public AbstractSampler {
   typename AbstractMachine::LookupType lt_;
 
  public:
-  MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi, int dmax = 1)
+  MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi,
+                     int dmax = 1)
       : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
     Init(graph, dmax);
   }
@@ -142,6 +143,10 @@ class MetropolisExchange : public AbstractSampler {
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
+  }
+
+  AbstractMachine::VectorType DerLogVisible() override {
+    return psi_.DerLog(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {
