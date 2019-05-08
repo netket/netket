@@ -34,7 +34,7 @@ hilbert = nk.hilbert.Spin(graph, 0.5)
 
 # defining the hamiltonian and wrap it as matrix
 hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-mat = nk.operator.wrap_as_matrix(hamiltonian)
+mat = hamiltonian.to_matrix(type='sparse')
 
 # create time stepper
 stepper = nk.dynamics.create_timestepper(

@@ -61,7 +61,7 @@ void AddExactModule(py::module &m) {
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
                >>> hilbert = nk.hilbert.Spin(graph, 0.5)
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-               >>> mat = nk.operator.wrap_as_matrix(hamiltonian)
+               >>> mat = hamiltonian.to_matrix('sparse')
                >>> stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
                >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
                >>> psi0 = np.random.rand(mat.dimension)
@@ -74,7 +74,7 @@ void AddExactModule(py::module &m) {
            )EOF")
       .def("add_observable", &ImagTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
-           py::arg("matrix_type") = "Sparse", R"EOF(
+           py::arg("matrix_type") = "sparse", R"EOF(
            Add an observable quantity, that will be calculated at each
            iteration.
 
@@ -82,8 +82,8 @@ void AddExactModule(py::module &m) {
                observable: The operator form of the observable.
                name: The name of the observable.
                matrix_type: The type of matrix used for the observable when
-                   creating the matrix wrapper. The default is `Sparse`. The
-                   other choices are `Dense` and `Direct`.
+                   creating the matrix wrapper. The default is `sparse`. The
+                   other choices are `dense` and `direct`.
 
            )EOF")
       .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),

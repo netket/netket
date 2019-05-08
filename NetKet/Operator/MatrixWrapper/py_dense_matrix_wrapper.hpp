@@ -56,7 +56,7 @@ void AddDenseMatrixWrapper(py::module &subm) {
             ```
 
       )EOF")
-      .def_property_readonly("_matrix", &DenseMatrixWrapper<>::GetMatrix,
+      .def_property_readonly("data", &DenseMatrixWrapper<>::GetMatrix,
                              R"EOF(Eigen MatrixXcd : The stored matrix.)EOF");
 }
 
