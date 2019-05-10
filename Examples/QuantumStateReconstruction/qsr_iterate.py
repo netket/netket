@@ -15,7 +15,9 @@
 
 import netket as nk
 from generate_data import generate
+import sys
 
+mpi_rank = nk.MPI.rank()
 
 # Load the data
 N = 10
@@ -45,4 +47,14 @@ qst = nk.unsupervised.Qsr(
 
 qst.add_observable(ha, "Energy")
 
-qst.run(n_iter=2000, output_prefix="output")
+
+for step in qst.iter(200, 100):
+    obs = qst.get_observable_stats()
+    if (mpi_rank == 0):
+        print("step={}".format(step))
+        print("acceptance={}".format(list(sa.acceptance)))
+        print("observables={}\n".format(obs))
+        # Print output to the console immediately
+        sys.stdout.flush()
+        # Save current parameters to file
+        ma.save('test.wf')

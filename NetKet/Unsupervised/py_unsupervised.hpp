@@ -67,7 +67,43 @@ void AddUnsupervisedModule(py::module &m) {
            py::keep_alive<1, 2>())
       .def("run", &QuantumStateReconstruction::Run, py::arg("output_prefix"),
            py::arg("n_iter"), py::arg("step_size") = 1,
-           py::arg("save_params_every") = 50);
+           py::arg("save_params_every") = 50)
+      .def("iter", &QuantumStateReconstruction::Iterate,
+           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1, R"EOF(
+                      Iterate the optimization of the wavefunction.
+
+                      Args:
+                          n_iter: The maximum number of iterations.
+                          step_size: Number of iterations performed at a time. Default is
+                              1.
+
+                      )EOF")
+      .def("advance", &QuantumStateReconstruction::Advance,
+           py::arg("steps") = 1,
+           R"EOF(
+                      Perform one or several iteration steps of the Qsr calculation. In each step,
+                      the gradient will be estimated via negative and positive phase and subsequently,
+                      the variational parameters will be updated according to the configured method.
+
+                      Args:
+                          steps: Number of optimization steps to perform.
+
+                      )EOF")
+      .def("get_observable_stats",
+           [](QuantumStateReconstruction &self) {
+             py::dict data;
+             self.ComputeObservables();
+             self.GetObsManager().InsertAllStats(data);
+             return data;
+           },
+           R"EOF(
+                   Calculate and return the value of the operators stored as observables.
+
+                 )EOF");
+  py::class_<QuantumStateReconstruction::Iterator>(subm, "QsrIterator")
+      .def("__iter__", [](QuantumStateReconstruction::Iterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
 }
 
 }  // namespace netket

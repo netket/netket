@@ -5,7 +5,7 @@ import json
 plt.ion()
 
 # N=10
-exact = -12.784906442999327
+exact = -12.38148999965479
 
 
 while(True):
