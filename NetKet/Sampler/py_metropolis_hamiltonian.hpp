@@ -48,8 +48,9 @@ void AddMetropolisHamiltonian(py::module &subm) {
 
              Args:
                  machine: A machine used for the sampling.
-                      The probability distribution being sampled
-                      from is $$|\Psi(s)|^2$$.
+                          The probability distribution being sampled
+                          from is $$|\Psi(s)|^p$$, where the order of the norm,
+                          $$p$$, is either 2 (default) or 1.
                  hamiltonian: The operator used to perform off-diagonal transition.
 
              Examples:

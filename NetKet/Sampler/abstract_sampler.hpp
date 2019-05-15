@@ -25,7 +25,7 @@ class AbstractSampler {
  public:
   virtual void Reset(bool initrandom = false) = 0;
 
-  virtual void Sweep() = 0;
+  virtual void Sweep(int machine_norm = 2) = 0;
 
   virtual Eigen::VectorXd Visible() = 0;
 
@@ -48,6 +48,17 @@ class AbstractSampler {
   void Seed(DistributedRandomEngine::ResultType base_seed) {
     engine_.Seed(base_seed);
     this->Reset(true);
+  }
+
+  double MachineNorm(const Complex& val, int order) const {
+    if (order == 2) {
+      return std::norm(val);
+    } else if (order == 1) {
+      return std::abs(val);
+    } else {
+      throw InvalidInputError("Order in MachineNorm should be either 1 or 2");
+      return 1.0;
+    }
   }
 
  protected:

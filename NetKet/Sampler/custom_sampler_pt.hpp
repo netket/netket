@@ -142,7 +142,7 @@ class CustomSamplerPt : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(2 * nrep_);
   }
 
-  void LocalSweep(int rep) {
+  void LocalSweep(int rep, int machine_norm) {
     std::discrete_distribution<int> disc_dist(operatorsweights_.begin(),
                                               operatorsweights_.end());
     std::uniform_real_distribution<double> distu;
@@ -160,9 +160,11 @@ class CustomSamplerPt : public AbstractSampler {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      double ratio = std::norm(std::exp(
-          beta_[rep] * psi_.LogValDiff(v_[rep], tochange_[exit_state],
-                                       newconfs_[exit_state], lt_[rep])));
+      auto explo = std::exp(beta_[rep] *
+                            psi_.LogValDiff(v_[rep], tochange_[exit_state],
+                                            newconfs_[exit_state], lt_[rep]));
+
+      double ratio = MachineNorm(explo, machine_norm);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
@@ -176,10 +178,10 @@ class CustomSamplerPt : public AbstractSampler {
     }
   }
 
-  void Sweep() override {
+  void Sweep(int machine_norm) override {
     // First we do local sweeps
     for (int i = 0; i < nrep_; i++) {
-      LocalSweep(i);
+      LocalSweep(i, machine_norm);
     }
 
     // Temperature exchanges

@@ -104,7 +104,7 @@ class MetropolisHop : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep() override {
+  void Sweep(int machine_norm) override {
     std::vector<int> tochange(2);
     std::vector<double> newconf(2);
     std::vector<int> newstates(2);
@@ -141,7 +141,7 @@ class MetropolisHop : public AbstractSampler {
       }
 
       const auto lvd = psi_.LogValDiff(v_, tochange, newconf, lt_);
-      double ratio = std::norm(std::exp(lvd));
+      double ratio = MachineNorm(std::exp(lvd), machine_norm);
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_);

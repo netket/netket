@@ -49,10 +49,11 @@ void AddSamplerModule(py::module &m) {
   py::class_<AbstractSampler>(subm, "Sampler", R"EOF(
     NetKet implements generic sampling routines to be used in conjunction with
     suitable variational states, the `Machines`.
-    A `Sampler` generates quantum numbers distributed according to the square modulus
-    of the wave-function:
+    A `Sampler` generates quantum numbers distributed according to:
 
-    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.$$
+    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^p,$$
+
+    where the order of the norm, $$p$$, can be chosen to be either 1 or 2.
 
     The samplers typically transit from the current set of quantum numbers
     $$\mathbf{s} = s_1 \dots s_N$$ to another set
@@ -78,9 +79,14 @@ void AddSamplerModule(py::module &m) {
           init_random: If ``True`` the quantum numbers (visible units)
           are initialized at random, otherwise their value is preserved.
       )EOF")
-      .def("sweep", &AbstractSampler::Sweep, R"EOF(
+      .def("sweep", &AbstractSampler::Sweep, py::arg("ord") = 2, R"EOF(
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
+
+      Args:
+          norm_order: Either 1 or 2, this is the order of the norm used in the sampling,
+                i.e. samples are generated according to
+                $$|\Psi(s_1\dots s_N) | ^ord$$
       )EOF")
       .def_property("visible", &AbstractSampler::Visible,
                     &AbstractSampler::SetVisible,

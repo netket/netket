@@ -52,13 +52,16 @@ class ExactSampler : public AbstractSampler {
   std::vector<Complex> logpsivals_;
   std::vector<double> psivals_;
 
+  int psinorm_;
+
  public:
   explicit ExactSampler(AbstractMachine& psi)
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
         hilbert_index_(hilbert_),
-        dim_(hilbert_index_.NStates()) {
+        dim_(hilbert_index_.NStates()),
+        psinorm_(2) {
     Init();
   }
 
@@ -99,7 +102,7 @@ class ExactSampler : public AbstractSampler {
     }
 
     for (int i = 0; i < dim_; ++i) {
-      psivals_[i] = std::norm(std::exp(logpsivals_[i] - logmax));
+      psivals_[i] = MachineNorm(std::exp(logpsivals_[i] - logmax), psinorm_);
     }
 
     dist_ = std::discrete_distribution<int>(psivals_.begin(), psivals_.end());
@@ -108,7 +111,12 @@ class ExactSampler : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep() override {
+  void Sweep(int machine_norm) override {
+    if (machine_norm != psinorm_) {
+      psinorm_ = machine_norm;
+      Reset(true);
+    }
+
     int newstate = dist_(this->GetRandomEngine());
     v_ = hilbert_index_.NumberToState(newstate);
 

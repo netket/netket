@@ -123,29 +123,28 @@ def test_correct_sampling():
 
         n_samples = max(10 * n_states, 10000)
 
-        hist_samp = np.zeros(n_states)
-        # fill in the histogram for sampler
-        for sw in range(n_samples):
-            sa.sweep()
-            visible = sa.visible
-            hist_samp[hilb_index.state_to_number(visible)] += 1
+        for ord in (1, 2):
 
-        hist_exsamp = np.zeros(n_states)
-        sa = nk.sampler.ExactSampler(machine=ma)
-        # fill in histogram for exact sampler
-        for sw in range(n_samples):
-            sa.sweep()
-            visible = sa.visible
-            hist_exsamp[hilb_index.state_to_number(visible)] += 1
+            hist_samp = np.zeros(n_states)
+            # fill in the histogram for sampler
+            for sw in range(n_samples):
+                sa.sweep(ord)
+                visible = sa.visible
+                hist_samp[hilb_index.state_to_number(visible)] += 1
 
-        print(hist_exsamp)
-        print(hist_samp)
+            hist_exsamp = np.zeros(n_states)
+            sa = nk.sampler.ExactSampler(machine=ma)
+            # fill in histogram for exact sampler
+            for sw in range(n_samples):
+                sa.sweep(ord)
+                visible = sa.visible
+                hist_exsamp[hilb_index.state_to_number(visible)] += 1
 
-        # now test that histograms are close in norm
-        delta = hist_samp - hist_exsamp
-        z = np.sum(delta * delta - hist_exsamp - hist_samp)
-        z = np.sqrt(np.abs(z)) / float(n_samples)
+            # now test that histograms are close in norm
+            delta = hist_samp - hist_exsamp
+            z = np.sum(delta * delta - hist_exsamp - hist_samp)
+            z = np.sqrt(np.abs(z)) / float(n_samples)
 
-        eps = np.sqrt(1. / float(n_samples))
+            eps = np.sqrt(1. / float(n_samples))
 
-        assert(z == approx(0., rel=5 * eps, abs=5 * eps))
+            assert(z == approx(0., rel=10 * eps, abs=10 * eps))

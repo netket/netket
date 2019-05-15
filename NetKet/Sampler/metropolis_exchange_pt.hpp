@@ -122,7 +122,7 @@ class MetropolisExchangePt : public AbstractSampler {
   }
 
   // Exchange sweep at given temperature
-  void LocalExchangeSweep(int rep) {
+  void LocalExchangeSweep(int rep, int machine_norm) {
     std::vector<int> tochange(2);
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distcl(0, clusters_.size() - 1);
@@ -143,9 +143,9 @@ class MetropolisExchangePt : public AbstractSampler {
         newconf[0] = v_[rep](sj);
         newconf[1] = v_[rep](si);
 
-        double ratio = std::norm(
-            std::exp(beta_[rep] *
-                     psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep])));
+        auto explo = std::exp(
+            beta_[rep] * psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]));
+        double ratio = MachineNorm(explo, machine_norm);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_(rep) += 1;
@@ -158,10 +158,10 @@ class MetropolisExchangePt : public AbstractSampler {
     }
   }
 
-  void Sweep() override {
+  void Sweep(int machine_norm) override {
     // First we do local exchange sweeps
     for (int i = 0; i < nrep_; i++) {
-      LocalExchangeSweep(i);
+      LocalExchangeSweep(i, machine_norm);
     }
 
     // Tempearture exchanges

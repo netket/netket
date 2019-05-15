@@ -37,7 +37,8 @@ void AddMetropolisLocalPt(py::module &subm) {
              Args:
                  machine: A machine used for the sampling.
                       The probability distribution being sampled
-                      from is $$|\Psi(s)|^2$$.
+                      from is $$|\Psi(s)|^p$$, where the order of the norm,
+                      $$p$$, is either 2 (default) or 1.
                  n_replicas: The number of replicas used for parallel tempering.
 
              Examples:
