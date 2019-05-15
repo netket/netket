@@ -84,7 +84,7 @@ void AddSamplerModule(py::module &m) {
       consists of an extensive number of local moves.
 
       Args:
-          norm_order: Either 1 or 2, this is the order of the norm used in the sampling,
+          ord: Either 1 or 2, this is the order of the norm used in the sampling,
                 i.e. samples are generated according to
                 $$|\Psi(s_1\dots s_N) | ^ord$$
       )EOF")

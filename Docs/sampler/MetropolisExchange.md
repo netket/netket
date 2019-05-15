@@ -24,12 +24,11 @@ This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s
 Constructs a new ``MetropolisExchange`` sampler given a machine and a
 graph.
 
-|Argument|         Type         |                                            Description                                             |
-|--------|----------------------|----------------------------------------------------------------------------------------------------|
-|machine |netket.machine.Machine|A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^2$$.|
-|graph   |netket.graph.Graph    |A graph used to define the distances among the degrees of freedom being sampled.                    |
-|d_max   |int=1                 |The maximum graph distance allowed for exchanges.                                                   |
-
+|Argument|         Type         |                                                                            Description                                                                             |
+|--------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|machine |netket.machine.Machine|A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^p$$, where the order of the norm, $$p$$, is either 2 (default) or 1.|
+|graph   |netket.graph.Graph    |A graph used to define the distances among the degrees of freedom being sampled.                                                                                    |
+|d_max   |int=1                 |The maximum graph distance allowed for exchanges.                                                                                                                   |
 
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -62,7 +61,6 @@ and optionally initializing at random the visible units being sampled.
 |-----------|----------|-----------------------------------------------|
 |init_random|bool=False|If ``True`` the quantum numbers (visible units)|
 
-
 ### seed
 Seeds the random number generator used by the ``Sampler``.
 
@@ -70,12 +68,13 @@ Seeds the random number generator used by the ``Sampler``.
 |---------|----|---------------------------------------------|
 |base_seed|int |The base seed for the random number generator|
 
-
 ### sweep
 Performs a sampling sweep. Typically a single sweep
 consists of an extensive number of local moves.
 
-
+|Argument|Type |                                                               Description                                                               |
+|--------|-----|-----------------------------------------------------------------------------------------------------------------------------------------|
+|ord     |int=2|Either 1 or 2, this is the order of the norm used in the sampling, i.e. samples are generated according to $$\|\Psi(s_1\dots s_N) \| ^ord$$|
 
 ## Properties
 
@@ -85,4 +84,3 @@ consists of an extensive number of local moves.
 |hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
 |machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
 |visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |
-
