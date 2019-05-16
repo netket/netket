@@ -19,7 +19,7 @@ from generate_data import generate
 
 # Load the data
 N = 10
-hi, rotations, training_samples, training_bases, ha = generate(
+hi, rotations, training_samples, training_bases, ha, psi = generate(
     N, n_basis=2 * N, n_shots=500)
 
 # Machine

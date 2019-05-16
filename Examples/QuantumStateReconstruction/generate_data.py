@@ -31,7 +31,6 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
     res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
 
     psi = res.eigenvectors[0]
-    print(res.eigenvalues)
 
     rotations = []
     training_samples = []
@@ -44,7 +43,7 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
                                  1. / N, 1. / N, (N - 2.) / N])
 
         rotation = build_rotation(hi, basis)
-        psir = rotation.asmatrix().dot(psi)
+        psir = rotation.to_sparse().dot(psi)
 
         rand_n = np.random.choice(hind.n_states, p=np.square(
             np.absolute(psir)), size=n_shots)
@@ -55,4 +54,4 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
 
         rotations.append(rotation)
 
-    return hi, tuple(rotations), training_samples, training_bases, ha
+    return hi, tuple(rotations), training_samples, training_bases, ha, psi

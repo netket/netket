@@ -22,6 +22,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <complex>
+#include <limits>
 #include <vector>
 #include "Layers/py_layer.hpp"
 #include "abstract_machine.hpp"
@@ -143,7 +144,38 @@ void AddMachineModule(py::module &m) {
 
                  Args:
                      filename: name of file to load parameters from.
-           )EOF");
+           )EOF")
+      .def("to_array",
+           [](AbstractMachine &self) -> AbstractMachine::VectorType {
+             HilbertIndex hind(self.GetHilbert());
+             AbstractMachine::VectorType vals(hind.NStates());
+
+             double maxlog = std::numeric_limits<double>::lowest();
+
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogVal(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
+
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
+
+             vals /= vals.norm();
+             return vals;
+           },
+           R"EOF(
+                Returns a numpy array representation of the machine.
+                The returned array is normalized to 1 in L2 norm.
+                Note that, in general, the size of the array is exponential
+                in the number of quantum numbers, and this operation should thus
+                only be performed for low-dimensional Hilbert spaces.
+
+                This method requires an indexable Hilbert space.
+              )EOF");
 
   AddRbmSpin(subm);
   AddRbmSpinSymm(subm);
