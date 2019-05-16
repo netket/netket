@@ -25,7 +25,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # Use scipy sparse diagonalization
-vals, vecs = eigs(ha.to_matrix('sparse').data, k=3, which='SR')
+vals, vecs = eigs(ha.to_sparse(), k=3, which='SR')
 print("eigenvalues with scipy sparse:", vals.real)
 
 # Use internal Lanczos Solver Instead
@@ -36,7 +36,7 @@ res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
 print("\neigenvalues with internal solver:", res.eigenvalues)
 
 # Compute energy of ground state
-print("\ng.s. energy:", res.mean(ha, 0))
+print("\ng.s. energy:", res.mean(ha, 0).real)
 
 # Compute energy of first excited state
-print("\nfirst excited energy:", res.mean(ha, 1))
+print("\nfirst excited energy:", res.mean(ha, 1).real)

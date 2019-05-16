@@ -31,14 +31,14 @@ graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
 
 # defining the hilbert space
 hilbert = nk.hilbert.Spin(graph, 0.5)
+hilbert_index = nk.hilbert.HilbertIndex(hilbert)
 
 # defining the hamiltonian and wrap it as matrix
 hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-mat = hamiltonian.to_matrix(type='sparse')
 
 # create time stepper
 stepper = nk.dynamics.create_timestepper(
-    mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
+    hilbert_index.n_states, rel_tol=1e-10, abs_tol=1e-10)
 
 # prepare output
 output = nk.output.JsonOutputWriter('test.log', 'test.wf')
@@ -46,10 +46,10 @@ output = nk.output.JsonOutputWriter('test.log', 'test.wf')
 # run from random initial state (does not need to be normalized, this is done
 # by the driver)
 import numpy as np
-psi0 = np.random.rand(mat.dimension)
+psi0 = np.random.rand(hilbert_index.n_states)
 
 # create ground state driver
-driver = nk.exact.ImagTimePropagation(mat, stepper, t0=0, initial_state=psi0)
+driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
 
 # add observable (TODO: more interesting observable)
 driver.add_observable(hamiltonian, 'Hamiltonian')

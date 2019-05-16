@@ -35,11 +35,12 @@ void AddExactModule(py::module &m) {
   py::class_<ImagTimePropagation>(
       m_exact, "ImagTimePropagation",
       R"EOF(Solving for the ground state of the wavefunction using imaginary time propagation.)EOF")
-      .def(py::init<ImagTimePropagation::Matrix &,
-                    ImagTimePropagation::Stepper &, double,
-                    ImagTimePropagation::StateVector>(),
-           py::arg("hamiltonian"), py::arg("stepper"), py::arg("t0"),
-           py::arg("initial_state"), R"EOF(
+      .def(py::init<const AbstractOperator &, ImagTimePropagation::Stepper &,
+                    double, ImagTimePropagation::StateVector,
+                    const std::string &>(),
+           py::keep_alive<1, 2>(), py::arg("hamiltonian"), py::arg("stepper"),
+           py::arg("t0"), py::arg("initial_state"),
+           py::arg("matrix_type") = "sparse", R"EOF(
            Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper,
            a time, and an initial state.
 
@@ -50,6 +51,9 @@ void AddExactModule(py::module &m) {
                t0: The initial time.
                initial_state: The initial state of the system (when propagation
                    begins.)
+               matrix_type: The type of matrix used for the Hamiltonian when
+                   creating the matrix wrapper. The default is `sparse`. The
+                   other choices are `dense` and `direct`.
 
            Examples:
                Solving 1D ising model with imagniary time propagation.
@@ -60,12 +64,12 @@ void AddExactModule(py::module &m) {
                >>> L = 20
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
                >>> hilbert = nk.hilbert.Spin(graph, 0.5)
+               >>> idx = nk.hilbert.HilbertIndex(hilbert)
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-               >>> mat = hamiltonian.to_matrix('sparse')
-               >>> stepper = nk.dynamics.create_timestepper(mat.dimension, rel_tol=1e-10, abs_tol=1e-10)
+               >>> stepper = nk.dynamics.create_timestepper(idx.n_states, rel_tol=1e-10, abs_tol=1e-10)
                >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
-               >>> psi0 = np.random.rand(mat.dimension)
-               >>> driver = nk.exact.ImagTimePropagation(mat, stepper, t0=0, initial_state=psi0)
+               >>> psi0 = np.random.rand(idx.n_states)
+               >>> driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
                >>> driver.add_observable(hamiltonian, 'Hamiltonian')
                >>> for step in driver.iter(dt=0.05, n_iter=2):
                ...     obs = driver.get_observable_stats()
