@@ -47,9 +47,6 @@ void AddMatrixWrapper(py::module &subm) {
   AddSparseMatrixWrapper(subm);
   AddDenseMatrixWrapper(subm);
   AddDirectMatrixWrapper(subm);
-
-  subm.def("wrap_as_matrix", &CreateMatrixWrapper<>, py::arg("operator"),
-           py::arg("type") = "sparse");
 }
 
 }  // namespace netket

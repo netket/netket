@@ -25,7 +25,6 @@ Constructs a new ``Sgd`` optimizer.
 |l2_reg       |float=0  |The amount of $$ L_2 $$ regularization.|
 |decay_factor |float=1.0|The decay factor $$ \gamma $$.         |
 
-
 ### Examples
 Simple SGD optimizer.
 
