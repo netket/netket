@@ -47,10 +47,10 @@ void AddMetropolisHamiltonian(py::module &subm) {
              and a Hamiltonian operator (or in general an arbitrary Operator).
 
              Args:
-                 machine: A machine used for the sampling.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
                           The probability distribution being sampled
-                          from is $$|\Psi(s)|^p$$, where the order of the norm,
-                          $$p$$, is either 2 (default) or 1.
+                          from is $$F(\Psi(s))$$, where the function
+                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  hamiltonian: The operator used to perform off-diagonal transition.
 
              Examples:

@@ -116,7 +116,7 @@ class MetropolisLocalPt : public AbstractSampler {
   }
 
   // Exchange sweep at given temperature
-  void LocalSweep(int rep, int machine_norm) {
+  void LocalSweep(int rep) {
     std::vector<int> tochange(1);
     std::vector<double> newconf(1);
 
@@ -142,7 +142,7 @@ class MetropolisLocalPt : public AbstractSampler {
       }
 
       const auto lvd = psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
-      double ratio = MachineNorm(std::exp(beta_[rep] * lvd), machine_norm);
+      double ratio = machine_func_(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_[rep]);
@@ -176,10 +176,10 @@ class MetropolisLocalPt : public AbstractSampler {
     }
   }
 
-  void Sweep(int machine_norm) override {
+  void Sweep() override {
     // First we do local sweeps
     for (int i = 0; i < nrep_; i++) {
-      LocalSweep(i, machine_norm);
+      LocalSweep(i);
     }
 
     // Tempearture exchanges

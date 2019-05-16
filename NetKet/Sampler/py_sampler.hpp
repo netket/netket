@@ -18,6 +18,7 @@
 #include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
@@ -51,9 +52,9 @@ void AddSamplerModule(py::module &m) {
     suitable variational states, the `Machines`.
     A `Sampler` generates quantum numbers distributed according to:
 
-    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^p,$$
+    $$P(s_1\dots s_N) = F(\Psi(s_1\dots s_N)),$$
 
-    where the order of the norm, $$p$$, can be chosen to be either 1 or 2.
+    where F is an arbitrary function. By default F(X)=|X|^2.
 
     The samplers typically transit from the current set of quantum numbers
     $$\mathbf{s} = s_1 \dots s_N$$ to another set
@@ -79,27 +80,28 @@ void AddSamplerModule(py::module &m) {
           init_random: If ``True`` the quantum numbers (visible units)
           are initialized at random, otherwise their value is preserved.
       )EOF")
-      .def("sweep", &AbstractSampler::Sweep, py::arg("ord") = 2, R"EOF(
+      .def("sweep", &AbstractSampler::Sweep, R"EOF(
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
-
-      Args:
-          ord: Either 1 or 2, this is the order of the norm used in the sampling,
-                i.e. samples are generated according to
-                $$|\Psi(s_1\dots s_N) | ^ord$$
       )EOF")
       .def_property("visible", &AbstractSampler::Visible,
                     &AbstractSampler::SetVisible,
                     R"EOF(
                       numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$|\Psi(v)|^2$$ )EOF")
+                       and distributed according to $$F(\Psi(v))$$ )EOF")
       .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
         numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.  )EOF")
       .def_property_readonly("hilbert", &AbstractSampler::GetHilbert, R"EOF(
         netket.hilbert: The Hilbert space used for the sampling.  )EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
-        netket.machine: The machine used for the sampling.  )EOF");
+        netket.machine: The machine used for the sampling.  )EOF")
+      .def_property("machine_func", &AbstractSampler::GetMachineFunc,
+                    &AbstractSampler::SetMachineFunc,
+                    R"EOF(
+                          function(complex): The function to be used for sampling.
+                                       by default $$|\Psi(x)|^2$$ is sampled,
+                                       however in general $$F(\Psi(v))$$  )EOF");
 
   AddMetropolisLocal(subm);
   AddMetropolisLocalPt(subm);

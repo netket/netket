@@ -117,7 +117,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(2 * nrep_);
   }
 
-  void LocalSweep(int rep, int machine_norm) {
+  void LocalSweep(int rep) {
     for (int i = 0; i < nv_; i++) {
       hamiltonian_.FindConn(v_[rep], mel_, tochange_, newconfs_);
 
@@ -139,8 +139,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       const auto lvd =
           psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
-      double ratio =
-          MachineNorm(std::exp(beta_[rep] * lvd), machine_norm) * w1 / w2;
+      double ratio = machine_func_(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_[rep]);
@@ -174,10 +173,10 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     }
   }
 
-  void Sweep(int machine_norm) override {
+  void Sweep() override {
     // First we do local exchange sweeps
     for (int i = 0; i < nrep_; i++) {
-      LocalSweep(i, machine_norm);
+      LocalSweep(i);
     }
 
     // Tempearture exchanges

@@ -120,7 +120,7 @@ class CustomSampler : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep(int machine_norm) override {
+  void Sweep() override {
     std::discrete_distribution<int> disc_dist(operatorsweights_.begin(),
                                               operatorsweights_.end());
     std::uniform_real_distribution<double> distu;
@@ -142,7 +142,7 @@ class CustomSampler : public AbstractSampler {
 
       auto exlog = std::exp(psi_.LogValDiff(v_, tochange_[exit_state],
                                             newconfs_[exit_state], lt_));
-      double ratio = MachineNorm(exlog, machine_norm);
+      double ratio = machine_func_(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {

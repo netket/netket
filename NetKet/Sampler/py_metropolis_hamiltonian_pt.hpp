@@ -38,10 +38,10 @@ void AddMetropolisHamiltonianPt(py::module &subm) {
              number of replicas.
 
              Args:
-                 machine: A machine used for the sampling.
-                      The probability distribution being sampled
-                      from is $$|\Psi(s)|^p$$, where the order of the norm,
-                      $$p$$, is either 2 (default) or 1.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
+                        The probability distribution being sampled
+                        from is $$F(\Psi(s))$$, where the function
+                        $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  hamiltonian: The operator used to perform off-diagonal transition.
                  n_replicas: The number of replicas used for parallel tempering.
 

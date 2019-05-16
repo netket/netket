@@ -34,10 +34,10 @@ void AddCustomSamplerPt(py::module &subm) {
              stochastic move (transition) operators.
 
              Args:
-                 machine: A machine used for the sampling.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
                       The probability distribution being sampled
-                      from is $$|\Psi(s)|^p$$, where the order of the norm,
-                      $$p$$, is either 2 (default) or 1.
+                      from is $$F(\Psi(s))$$, where the function
+                      $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  move_operators: The stochastic `LocalOperator`
                       $$\mathcal{M}= \sum_i M_i$$ used for transitions.
                  move_weights: For each $$ i $$, the probability to pick one of

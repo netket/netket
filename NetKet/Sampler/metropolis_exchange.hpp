@@ -102,7 +102,7 @@ class MetropolisExchange : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep(int machine_norm) override {
+  void Sweep() override {
     std::vector<int> tochange(2);
     std::uniform_real_distribution<double> distu;
     std::uniform_int_distribution<int> distcl(0, clusters_.size() - 1);
@@ -124,7 +124,7 @@ class MetropolisExchange : public AbstractSampler {
 
         auto explo = std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_));
 
-        double ratio = MachineNorm(explo, machine_norm);
+        double ratio = machine_func_(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;

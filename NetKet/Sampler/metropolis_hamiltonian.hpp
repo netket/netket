@@ -98,7 +98,7 @@ class MetropolisHamiltonian : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep(int machine_norm) override {
+  void Sweep() override {
     for (int i = 0; i < nv_; i++) {
       hamiltonian_.FindConn(v_, mel_, tochange_, newconfs_);
 
@@ -119,7 +119,7 @@ class MetropolisHamiltonian : public AbstractSampler {
       double w2 = tochange1_.size();
 
       const auto lvd = psi_.LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
-      double ratio = MachineNorm(std::exp(lvd), machine_norm) * w1 / w2;
+      double ratio = machine_func_(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_);

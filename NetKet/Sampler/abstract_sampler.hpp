@@ -15,6 +15,7 @@
 #ifndef NETKET_ABSTRACTSAMPLER_HPP
 #define NETKET_ABSTRACTSAMPLER_HPP
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include "Hilbert/abstract_hilbert.hpp"
@@ -25,7 +26,7 @@ class AbstractSampler {
  public:
   virtual void Reset(bool initrandom = false) = 0;
 
-  virtual void Sweep(int machine_norm = 2) = 0;
+  virtual void Sweep() = 0;
 
   virtual Eigen::VectorXd Visible() = 0;
 
@@ -50,19 +51,31 @@ class AbstractSampler {
     this->Reset(true);
   }
 
-  double MachineNorm(const Complex& val, int order) const {
-    if (order == 2) {
-      return std::norm(val);
-    } else if (order == 1) {
-      return std::abs(val);
-    } else {
-      throw InvalidInputError("Order in MachineNorm should be either 1 or 2");
-      return 1.0;
-    }
+  void SetMachineFunc(std::function<double(Complex)> machine_func) {
+    machine_func_.Set(machine_func);
   }
+  std::function<double(Complex)> GetMachineFunc() { machine_func_.Get(); }
+
+  class MachineFunc {
+   private:
+    std::function<double(const Complex)> mf_;
+
+   public:
+    MachineFunc() {
+      // By default, the 2-norm is used for sampling
+      mf_ = static_cast<double (*)(const Complex&)>(&std::norm);
+    }
+    double operator()(const Complex& c) { return mf_(c); }
+
+    void Set(std::function<double(Complex)> machine_func) {
+      mf_ = machine_func;
+    }
+    std::function<double(Complex)> Get() { return mf_; }
+  };
 
  protected:
   default_random_engine& GetRandomEngine() { return engine_.Get(); }
+  MachineFunc machine_func_;
 
  private:
   DistributedRandomEngine engine_;

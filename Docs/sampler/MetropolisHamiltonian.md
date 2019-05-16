@@ -18,10 +18,10 @@ Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Opera
 Constructs a new ``MetropolisHamiltonian`` sampler given a machine
 and a Hamiltonian operator (or in general an arbitrary Operator).
 
-| Argument  |         Type         |                                                                            Description                                                                             |
-|-----------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|machine    |netket.machine.Machine|A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^p$$, where the order of the norm, $$p$$, is either 2 (default) or 1.|
-|hamiltonian|netket.Operator       |The operator used to perform off-diagonal transition.                                                                                                               |
+| Argument  |         Type         |                                                                                     Description                                                                                     |
+|-----------|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|machine    |netket.machine.Machine|A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
+|hamiltonian|netket.Operator       |The operator used to perform off-diagonal transition.                                                                                                                                |
 
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2
@@ -65,15 +65,14 @@ Seeds the random number generator used by the ``Sampler``.
 Performs a sampling sweep. Typically a single sweep
 consists of an extensive number of local moves.
 
-|Argument|Type |                                                               Description                                                               |
-|--------|-----|-----------------------------------------------------------------------------------------------------------------------------------------|
-|ord     |int=2|Either 1 or 2, this is the order of the norm used in the sampling, i.e. samples are generated according to $$\|\Psi(s_1\dots s_N) \| ^ord$$|
+
 
 ## Properties
 
-| Property |               Type               |                                                        Description                                                        |
-|----------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-|acceptance|         numpy.array              | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.  |
-|hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
-|machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
-|visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |
+|  Property  |                    Type                    |                                                                                          Description                                                                                          |
+|------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|acceptance  |         numpy.array                        | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.                                                                      |
+|hilbert     |         netket.hilbert                     | The Hilbert space used for the sampling.                                                                                                                                                      |
+|machine     |         netket.machine                     | The machine used for the sampling.                                                                                                                                                            |
+|machine_func|                           function(complex)| The function to be used for sampling.                                        by default $$\|\Psi(x)\|^2$$ is sampled,                                        however in general $$F(\Psi(v))$$  |
+|visible     |                       numpy.array          | The quantum numbers being sampled,                        and distributed according to $$F(\Psi(v))$$                                                                                         |
