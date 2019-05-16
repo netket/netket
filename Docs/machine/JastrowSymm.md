@@ -81,6 +81,17 @@ Member function to save the machine parameters.
 |--------|----|-----------------------------------|
 |filename|str |name of file to save parameters to.|
 
+### to_array
+Returns a numpy array representation of the machine.
+The returned array is normalized to 1 in L2 norm.
+Note that, in general, the size of the array is exponential
+in the number of quantum numbers, and this operation should thus
+only be performed for low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
 ## Properties
 
 |   Property   |         Type         |                                                   Description                                                    |
