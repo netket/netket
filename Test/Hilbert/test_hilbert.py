@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import netket as nk
 import networkx as nx
 import numpy as np
@@ -130,9 +131,8 @@ def test_hilbert_index():
         if hi.size * np.log(hi.local_size) < log_max_states:
             assert hi.is_indexable
 
-            for k in range(hi.index.n_states):
-                state = hi.index.number_to_state(k)
-                assert (hi.index.state_to_number(state) == k)
+            for k, state in enumerate(hi.index.states()):
+                assert hi.index.state_to_number(state) == k
         else:
             assert not hi.is_indexable
 
@@ -147,3 +147,12 @@ def test_hilbert_index():
                 m2 = op.to_sparse()
             with pytest.raises(RuntimeError):
                 dw = nk.operator.DirectMatrixWrapper(op)
+
+def test_state_iteration():
+    g = nk.graph.Hypercube(10, 1)
+    hilbert = nk.hilbert.Spin(g, s=0.5)
+
+    reference = [np.array(el) for el in itertools.product([-1., 1.], repeat=10)]
+
+    for state, ref in zip(hilbert.index.states(), reference):
+        assert np.allclose(state, ref)

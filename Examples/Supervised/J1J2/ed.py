@@ -60,12 +60,11 @@ def load_ed_data(L, J2=0.4):
 
     tsamples = []
 
-    for i in range(hi.index.n_states):
-        visible = hi.index.number_to_state(i)
+    for i, state in enumerate(hi.index.states()):
         # only pick zero-magnetization states
-        mag = np.sum(visible)
+        mag = np.sum(state)
         if(np.abs(mag) < 1.0e-4):
-            tsamples.append(visible.tolist())
+            tsamples.append(state.tolist())
             ttargets.append([np.log(res.eigenvectors[0][i])])
 
     return hi, tsamples, ttargets

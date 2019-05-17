@@ -83,10 +83,10 @@ class HilbertIndex {
   }
 
   // converts an integer into a vector of quantum numbers
-  Eigen::VectorXd NumberToState(std::size_t i) const {
+  Eigen::VectorXd NumberToState(int i) const {
     Eigen::VectorXd result = Eigen::VectorXd::Constant(size_, localstates_[0]);
 
-    std::size_t ip = i;
+    int ip = i;
 
     int k = size_ - 1;
 
@@ -110,6 +110,38 @@ class HilbertIndex {
   std::map<double, int> statenumber_;
   std::vector<std::size_t> basis_;
   int nstates_;
+};
+
+class StateIterator {
+ public:
+  // typedefs required for iterators
+  using iterator_category = std::input_iterator_tag;
+  using difference_type = Index;
+  using value_type = Eigen::VectorXd;
+  using pointer_type = Eigen::VectorXd *;
+  using reference_type = Eigen::VectorXd &;
+
+  explicit StateIterator(const HilbertIndex &index) : i_(0), index_(index) {}
+
+  value_type operator*() const { return index_.NumberToState(i_); }
+
+  StateIterator &operator++() {
+    ++i_;
+    return *this;
+  }
+
+  // TODO(C++17): Replace with comparison to special Sentinel type, since
+  // C++17 allows end() to return a different type from begin().
+  bool operator!=(const StateIterator &) { return i_ < index_.NStates(); }
+  // pybind11::make_iterator requires operator==
+  bool operator==(const StateIterator &other) { return !(*this != other); }
+
+  StateIterator begin() const { return *this; }
+  StateIterator end() const { return *this; }
+
+ private:
+  int i_;
+  const HilbertIndex &index_;
 };
 
 }  // namespace netket
