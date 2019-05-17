@@ -40,6 +40,17 @@ void AddHilbertModule(py::module &m) {
       .def_property_readonly(
           "is_discrete", &AbstractHilbert::IsDiscrete,
           R"EOF(bool: Whether the hilbert space is discrete.)EOF")
+      .def_property_readonly("is_indexable", &AbstractHilbert::IsIndexable,
+                             R"EOF(
+       We call a Hilbert space indexable if and only if the total Hilbert space
+       dimension can be represented by an index of type int.
+
+       Returns:
+           bool: Whether the Hilbert space is indexable.)EOF")
+      .def_property_readonly("index", &AbstractHilbert::Index,
+                             R"EOF(
+       HilbertIndex: An object containing information on the states of an
+               indexable Hilbert space)EOF")
       .def_property_readonly("local_size", &AbstractHilbert::LocalSize,
                              R"EOF(int: Size of the local hilbert space.)EOF")
       .def_property_readonly(

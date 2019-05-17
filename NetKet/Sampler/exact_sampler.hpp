@@ -43,7 +43,7 @@ class ExactSampler : public AbstractSampler {
   int mynode_;
   int totalnodes_;
 
-  const HilbertIndex hilbert_index_;
+  const HilbertIndex &hilbert_index_;
 
   const int dim_;
 
@@ -57,7 +57,7 @@ class ExactSampler : public AbstractSampler {
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        hilbert_index_(hilbert_),
+        hilbert_index_(hilbert_.Index()),
         dim_(hilbert_index_.NStates()) {
     Init();
   }

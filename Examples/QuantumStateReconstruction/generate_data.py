@@ -26,7 +26,7 @@ def build_rotation(hi, basis):
 def generate(N, n_basis=20, n_shots=1000, seed=1234):
     g = gr.Hypercube(length=N, n_dim=1, pbc=False)
     hi = hs.Spin(g, s=0.5)
-    hind = hs.HilbertIndex(hi)
+    hind = hs.index
     ha = op.Ising(hilbert=hi, h=1)
     res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
 

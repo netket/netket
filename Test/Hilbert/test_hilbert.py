@@ -15,6 +15,7 @@
 import netket as nk
 import networkx as nx
 import numpy as np
+import pytest
 
 hilberts = {}
 
@@ -118,7 +119,7 @@ def test_random_states():
 
 
 #TODO (jamesETsmith)
-def test_mapping():
+def test_hilbert_index():
     """"""
 
     for name, hi in hilberts.items():
@@ -127,8 +128,22 @@ def test_mapping():
 
         log_max_states = np.log(nk.hilbert.HilbertIndex.max_states)
         if hi.size * np.log(hi.local_size) < log_max_states:
-            hilb_index = nk.hilbert.HilbertIndex(hi)
+            assert hi.is_indexable
 
-            for k in range(hilb_index.n_states):
-                state = hilb_index.number_to_state(k)
-                assert (hilb_index.state_to_number(state) == k)
+            for k in range(hi.index.n_states):
+                state = hi.index.number_to_state(k)
+                assert (hi.index.state_to_number(state) == k)
+        else:
+            assert not hi.is_indexable
+
+            with pytest.raises(RuntimeError):
+                index = hi.index
+
+            op = nk.operator.Heisenberg(hi)
+
+            with pytest.raises(RuntimeError):
+                m1 = op.to_dense()
+            with pytest.raises(RuntimeError):
+                m2 = op.to_sparse()
+            with pytest.raises(RuntimeError):
+                dw = nk.operator.DirectMatrixWrapper(op)

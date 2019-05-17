@@ -59,10 +59,9 @@ def load_ed_data(L, J2=0.4):
     ttargets = []
 
     tsamples = []
-    hind = nk.hilbert.HilbertIndex(hi)
 
-    for i in range(hind.n_states):
-        visible = hind.number_to_state(i)
+    for i in range(hi.index.n_states):
+        visible = hi.index.number_to_state(i)
         # only pick zero-magnetization states
         mag = np.sum(visible)
         if(np.abs(mag) < 1.0e-4):

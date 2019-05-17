@@ -24,37 +24,20 @@
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/next_variation.hpp"
 
 namespace netket {
 
 class HilbertIndex {
-  const std::vector<double> localstates_;
-
-  const int localsize_;
-
-  const int size_;
-
-  std::map<double, int> statenumber_;
-
-  std::vector<std::size_t> basis_;
-
-  int nstates_;
-
  public:
-  explicit HilbertIndex(const AbstractHilbert &hilbert)
-      : localstates_(hilbert.LocalStates()),
-        localsize_(hilbert.LocalSize()),
-        size_(hilbert.Size()) {
+  HilbertIndex(std::vector<double> localstates, int local_size, int size)
+      : localstates_(std::move(localstates)),
+        localsize_(local_size),
+        size_(size) {
     Init();
   }
 
   void Init() {
-    if (size_ * std::log(localsize_) > std::log(MaxStates)) {
-      throw InvalidInputError("Hilbert space is too large to be indexed");
-    }
-
     nstates_ = std::pow(localsize_, size_);
 
     std::size_t ba = 1;
@@ -116,9 +99,17 @@ class HilbertIndex {
     return result;
   }
 
-  std::size_t NStates() const { return nstates_; }
+  int NStates() const { return nstates_; }
 
   constexpr static int MaxStates = std::numeric_limits<int>::max() - 1;
+
+ private:
+  const std::vector<double> localstates_;
+  const int localsize_;
+  const int size_;
+  std::map<double, int> statenumber_;
+  std::vector<std::size_t> basis_;
+  int nstates_;
 };
 
 }  // namespace netket

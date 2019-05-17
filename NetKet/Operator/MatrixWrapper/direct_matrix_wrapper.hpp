@@ -34,13 +34,13 @@ namespace netket {
 template <class State = Eigen::VectorXcd>
 class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
   const AbstractOperator& operator_;
-  HilbertIndex hilbert_index_;
-  size_t dim_;
+  const HilbertIndex& hilbert_index_;
+  int dim_;
 
  public:
   explicit DirectMatrixWrapper(const AbstractOperator& the_operator)
       : operator_(the_operator),
-        hilbert_index_(the_operator.GetHilbert()),
+        hilbert_index_(the_operator.GetHilbert().Index()),
         dim_(hilbert_index_.NStates()) {}
 
   State Apply(const State& state) const override {
