@@ -147,7 +147,7 @@ void AddMachineModule(py::module &m) {
            )EOF")
       .def("to_array",
            [](AbstractMachine &self) -> AbstractMachine::VectorType {
-             HilbertIndex hind(self.GetHilbert());
+             const auto &hind = self.GetHilbert().Index();
              AbstractMachine::VectorType vals(hind.NStates());
 
              double maxlog = std::numeric_limits<double>::lowest();
