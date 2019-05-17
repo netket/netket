@@ -47,7 +47,7 @@ void AddHilbertModule(py::module &m) {
 
        Returns:
            bool: Whether the Hilbert space is indexable.)EOF")
-      .def_property_readonly("index", &AbstractHilbert::Index,
+      .def_property_readonly("index", &AbstractHilbert::GetIndex,
                              R"EOF(
        HilbertIndex: An object containing information on the states of an
                indexable Hilbert space)EOF")

@@ -51,7 +51,7 @@ class AbstractHilbert {
     return Size() * std::log(LocalSize()) <= log_max;
   }
 
-  const HilbertIndex &Index() const {
+  const HilbertIndex &GetIndex() const {
     if (!index_.has_value()) {
       if (!IsIndexable()) {
         throw std::runtime_error("Hilbert space is too large to be indexed");

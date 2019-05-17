@@ -57,7 +57,7 @@ class ExactSampler : public AbstractSampler {
       : psi_(psi),
         hilbert_(psi.GetHilbert()),
         nv_(hilbert_.Size()),
-        hilbert_index_(hilbert_.Index()),
+        hilbert_index_(hilbert_.GetIndex()),
         dim_(hilbert_index_.NStates()) {
     Init();
   }
