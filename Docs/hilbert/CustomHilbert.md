@@ -65,9 +65,11 @@ where the local changes have been done.
 
 ## Properties
 
-|  Property  |   Type    |                        Description                        |
-|------------|-----------|-----------------------------------------------------------|
-|is_discrete |bool       | Whether the hilbert space is discrete.                    |
-|local_size  |int        | Size of the local hilbert space.                          |
-|local_states|list[float]| List of discreet local quantum numbers.                   |
-|size        |int        | The number of visible units needed to describe the system.|
+|  Property  |                                                                            Type                                                                            |                                        Description                                         |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+|index       |        HilbertIndex                                                                                                                                        | An object containing information on the states of an                indexable Hilbert space|
+|is_discrete |bool                                                                                                                                                        | Whether the hilbert space is discrete.                                                     |
+|is_indexable|        We call a Hilbert space indexable if and only if the total Hilbert space        dimension can be represented by an index of type int.        Returns|            bool: Whether the Hilbert space is indexable.                                   |
+|local_size  |int                                                                                                                                                         | Size of the local hilbert space.                                                           |
+|local_states|list[float]                                                                                                                                                 | List of discreet local quantum numbers.                                                    |
+|size        |int                                                                                                                                                         | The number of visible units needed to describe the system.                                 |
