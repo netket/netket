@@ -49,7 +49,7 @@ qst = nk.unsupervised.Qsr(
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(2000, 100):
+for step in qst.iter(4000, 100):
     obs = qst.get_observable_stats()
     if (mpi_rank == 0):
         print("step={}".format(step))
@@ -59,7 +59,13 @@ for step in qst.iter(2000, 100):
         # Compute fidelity with exact state
         psima = ma.to_array()
         fidelity = np.abs(np.vdot(psima, psi))
-        print("fidelity={}\n".format(fidelity))
+        print("fidelity={}".format(fidelity))
+
+        # Compute NLL on training data
+        nll = qst.nll(rotations=rotations,
+                      samples=training_samples,
+                      bases=training_bases)
+        print("negative log likelihood={}".format(nll))
 
         # Print output to the console immediately
         sys.stdout.flush()

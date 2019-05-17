@@ -405,6 +405,34 @@ class QuantumStateReconstruction {
   }
 
   const ObsManager &GetObsManager() const { return obsmanager_; }
+
+  // Computes the NNLL on a given set of test samples
+  double NegativeLogLikelihood(std::vector<AbstractOperator *> rotations,
+                               std::vector<Eigen::VectorXd> testSamples,
+                               std::vector<int> trainingBases) {
+    double nnll = 0;
+
+    for (std::size_t i = 0; i < testSamples.size(); i++) {
+      const auto state = testSamples[i];
+      const std::size_t b_index = trainingBases[i];
+
+      rotations[b_index]->FindConn(state, mel_, connectors_, newconfs_);
+
+      const auto nconn = connectors_.size();
+
+      auto logvaldiffs = psi_.LogValDiff(state, connectors_, newconfs_);
+
+      Complex ratio = 0.;
+
+      for (std::size_t k = 0; k < nconn; k++) {
+        ratio += mel_[k] * std::exp(logvaldiffs(k));
+      }
+
+      nnll -= std::norm(ratio);
+      nnll -= 2. * std::real(psi_.LogVal(state));
+    }
+    return nnll / double(testSamples.size());
+  }
 };
 
 }  // namespace netket

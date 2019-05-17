@@ -99,7 +99,18 @@ void AddUnsupervisedModule(py::module &m) {
            R"EOF(
                    Calculate and return the value of the operators stored as observables.
 
-                 )EOF");
+                 )EOF")
+      .def("nll", &QuantumStateReconstruction::NegativeLogLikelihood,
+           py::arg("rotations"), py::arg("samples"), py::arg("bases"),
+           R"EOF(
+             Iterate the optimization of the wavefunction.
+
+             Args:
+             rotations: Vector of rotations corresponding to the basis rotations.
+             samples: Vector of samples.
+             bases: Which bases the samples correspond to.
+
+                                 )EOF");
   py::class_<QuantumStateReconstruction::Iterator>(subm, "QsrIterator")
       .def("__iter__", [](QuantumStateReconstruction::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());
