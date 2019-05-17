@@ -51,26 +51,28 @@ class AbstractSampler {
     this->Reset(true);
   }
 
-  void SetMachineFunc(std::function<double(Complex)> machine_func) {
+  void SetMachineFunc(std::function<double(const Complex&)> machine_func) {
     machine_func_.Set(machine_func);
   }
-  std::function<double(Complex)> GetMachineFunc() { machine_func_.Get(); }
+  std::function<double(const Complex&)> GetMachineFunc() {
+    return machine_func_.Get();
+  }
 
   class MachineFunc {
    private:
-    std::function<double(const Complex)> mf_;
+    std::function<double(const Complex&)> mf_;
 
    public:
     MachineFunc() {
-      // By default, the 2-norm is used for sampling
+      // By default, the L2-norm is used for sampling
       mf_ = static_cast<double (*)(const Complex&)>(&std::norm);
     }
     double operator()(const Complex& c) { return mf_(c); }
 
-    void Set(std::function<double(Complex)> machine_func) {
+    void Set(std::function<double(const Complex&)> machine_func) {
       mf_ = machine_func;
     }
-    std::function<double(Complex)> Get() { return mf_; }
+    std::function<double(const Complex&)> Get() { return mf_; }
   };
 
  protected:

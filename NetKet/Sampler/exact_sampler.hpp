@@ -134,7 +134,7 @@ class ExactSampler : public AbstractSampler {
     return acc;
   }
 
-  void SetMachineFunc(std::function<double(Complex)> machine_func) {
+  void SetMachineFunc(std::function<double(const Complex&)> machine_func) {
     machine_func_.Set(machine_func);
     Reset(true);
   }
