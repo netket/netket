@@ -31,7 +31,7 @@ graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
 
 # defining the hilbert space
 hilbert = nk.hilbert.Spin(graph, 0.5)
-n_states = hilbert.index.n_states
+n_states = hilbert.n_states
 
 # defining the hamiltonian and wrap it as matrix
 hamiltonian = nk.operator.Ising(hilbert, h=1.0)

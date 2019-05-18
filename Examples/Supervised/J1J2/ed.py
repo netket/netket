@@ -60,7 +60,7 @@ def load_ed_data(L, J2=0.4):
 
     tsamples = []
 
-    for i, state in enumerate(hi.index.states()):
+    for i, state in enumerate(hi.states()):
         # only pick zero-magnetization states
         mag = np.sum(state)
         if(np.abs(mag) < 1.0e-4):

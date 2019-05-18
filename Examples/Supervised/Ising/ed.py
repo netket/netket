@@ -33,7 +33,7 @@ def load_ed_data(L):
     ttargets = []
 
     tsamples = []
-    for i, state in enumerate(hi.index.states()):
+    for i, state in enumerate(hi.states()):
         tsamples.append(state.tolist())
         ttargets.append([np.log(res.eigenvectors[0][i])])
 

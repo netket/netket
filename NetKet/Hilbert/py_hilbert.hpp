@@ -25,7 +25,6 @@
 #include "abstract_hilbert.hpp"
 #include "py_bosons.hpp"
 #include "py_custom_hilbert.hpp"
-#include "py_hilbert_index.hpp"
 #include "py_qubits.hpp"
 #include "py_spins.hpp"
 
@@ -33,34 +32,38 @@ namespace py = pybind11;
 
 namespace netket {
 
+constexpr int HilbertIndex::MaxStates;
+
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
 
-  py::class_<AbstractHilbert>(subm, "Hilbert")
-      .def_property_readonly(
-          "is_discrete", &AbstractHilbert::IsDiscrete,
-          R"EOF(bool: Whether the hilbert space is discrete.)EOF")
-      .def_property_readonly("is_indexable", &AbstractHilbert::IsIndexable,
-                             R"EOF(
+  auto hilbert_class =
+      py::class_<AbstractHilbert>(subm, "Hilbert")
+          .def_property_readonly(
+              "is_discrete", &AbstractHilbert::IsDiscrete,
+              R"EOF(bool: Whether the hilbert space is discrete.)EOF")
+          .def_property_readonly("is_indexable", &AbstractHilbert::IsIndexable,
+                                 R"EOF(
        We call a Hilbert space indexable if and only if the total Hilbert space
        dimension can be represented by an index of type int.
 
        Returns:
            bool: Whether the Hilbert space is indexable.)EOF")
-      .def_property_readonly("index", &AbstractHilbert::GetIndex,
-                             R"EOF(
+          .def_property_readonly("index", &AbstractHilbert::GetIndex,
+                                 R"EOF(
        HilbertIndex: An object containing information on the states of an
                indexable Hilbert space)EOF")
-      .def_property_readonly("local_size", &AbstractHilbert::LocalSize,
-                             R"EOF(int: Size of the local hilbert space.)EOF")
-      .def_property_readonly(
-          "size", &AbstractHilbert::Size,
-          R"EOF(int: The number of visible units needed to describe the system.)EOF")
-      .def_property_readonly(
-          "local_states", &AbstractHilbert::LocalStates,
-          R"EOF(list[float]: List of discreet local quantum numbers.)EOF")
-      .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
-           py::arg("rgen"), R"EOF(
+          .def_property_readonly(
+              "local_size", &AbstractHilbert::LocalSize,
+              R"EOF(int: Size of the local hilbert space.)EOF")
+          .def_property_readonly(
+              "size", &AbstractHilbert::Size,
+              R"EOF(int: The number of visible units needed to describe the system.)EOF")
+          .def_property_readonly(
+              "local_states", &AbstractHilbert::LocalStates,
+              R"EOF(list[float]: List of discreet local quantum numbers.)EOF")
+          .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
+               py::arg("rgen"), R"EOF(
        Member function generating uniformely distributed local random states.
 
        Args:
@@ -85,8 +88,8 @@ void AddHilbertModule(py::module &m) {
 
            ```
        )EOF")
-      .def("update_conf", &AbstractHilbert::UpdateConf, py::arg("v"),
-           py::arg("to_change"), py::arg("new_conf"), R"EOF(
+          .def("update_conf", &AbstractHilbert::UpdateConf, py::arg("v"),
+               py::arg("to_change"), py::arg("new_conf"), R"EOF(
       Member function updating a visible configuration using the information on
       where the local changes have been done.
 
@@ -97,11 +100,49 @@ void AddHilbertModule(py::module &m) {
 
       )EOF");
 
+  // Add HilbertIndex methods. For convenience, they are provided as methods on
+  // the Hilbert space directly.
+  hilbert_class
+      .def_property_readonly(
+          "n_states",
+          [](const AbstractHilbert &self) { return self.GetIndex().NStates(); },
+          R"EOF(int: The total dimension of the many-body Hilbert space.
+                Throws an exception iff the space is not indexable.)EOF")
+      .def("number_to_state",
+           [](const AbstractHilbert &self, int i) {
+             return self.GetIndex().NumberToState(i);
+           },
+           py::arg("i"),
+           R"EOF(
+           Returns the visible configuration corresponding to the i-th basis state
+           for input i. Throws an exception iff the space is not indexable.
+      )EOF")
+      .def("state_to_number",
+           [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
+             return self.GetIndex().StateToNumber(conf);
+           },
+           py::arg("conf"),
+           R"EOF(Returns index of the given many-body configuration.
+                Throws an exception iff the space is not indexable.)EOF")
+      .def(
+          "states",
+          [](const AbstractHilbert &self) {
+            return StateIterator(self.GetIndex());
+          },
+          R"EOF(Returns an iterator over all valid configurations of the Hilbert space.
+                 Throws an exception iff the space is not indexable.)EOF");
+
+  subm.attr("max_states") = HilbertIndex::MaxStates;
+
+  py::class_<StateIterator>(subm, "_StateIterator")
+      .def("__iter__", [](StateIterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
+
   AddSpins(subm);
   AddBosons(subm);
   AddQubits(subm);
   AddCustomHilbert(subm);
-  AddHilbertIndex(subm);
 }
 
 }  // namespace netket

@@ -64,7 +64,7 @@ void AddExactModule(py::module &m) {
                >>> L = 20
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
                >>> hilbert = nk.hilbert.Spin(graph, 0.5)
-               >>> n_states = hilbert.index.n_states
+               >>> n_states = hilbert.n_states
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
                >>> stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
                >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')

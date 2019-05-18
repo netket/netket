@@ -28,20 +28,6 @@ namespace py = pybind11;
 
 namespace netket {
 
-constexpr int HilbertIndex::MaxStates;
 
-void AddHilbertIndex(py::module &subm) {
-  py::class_<HilbertIndex>(subm, "HilbertIndex")
-      .def_property_readonly("n_states", &HilbertIndex::NStates)
-      .def("number_to_state", &HilbertIndex::NumberToState)
-      .def("state_to_number", &HilbertIndex::StateToNumber)
-      .def("states", [](HilbertIndex &self) { return StateIterator(self); })
-      .def_readonly_static("max_states", &HilbertIndex::MaxStates);
-
-  py::class_<StateIterator>(subm, "_StateIterator")
-      .def("__iter__", [](StateIterator &self) {
-        return py::make_iterator(self.begin(), self.end());
-      });
-}
 }  // namespace netket
 #endif

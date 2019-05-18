@@ -127,17 +127,17 @@ def test_hilbert_index():
         assert (hi.size > 0)
         assert (hi.local_size > 0)
 
-        log_max_states = np.log(nk.hilbert.HilbertIndex.max_states)
+        log_max_states = np.log(nk.hilbert.max_states)
         if hi.size * np.log(hi.local_size) < log_max_states:
             assert hi.is_indexable
 
-            for k, state in enumerate(hi.index.states()):
-                assert hi.index.state_to_number(state) == k
+            for k, state in enumerate(hi.states()):
+                assert hi.state_to_number(state) == k
         else:
             assert not hi.is_indexable
 
             with pytest.raises(RuntimeError):
-                index = hi.index
+                hi.n_states
 
             op = nk.operator.Heisenberg(hi)
 
@@ -154,5 +154,5 @@ def test_state_iteration():
 
     reference = [np.array(el) for el in itertools.product([-1., 1.], repeat=10)]
 
-    for state, ref in zip(hilbert.index.states(), reference):
+    for state, ref in zip(hilbert.states(), reference):
         assert np.allclose(state, ref)

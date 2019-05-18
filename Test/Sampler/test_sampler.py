@@ -118,7 +118,7 @@ def test_correct_sampling():
         hi = sa.hilbert
         ma = sa.machine
 
-        n_states = hi.index.n_states
+        n_states = hi.n_states
 
         n_samples = max(10 * n_states, 10000)
 
@@ -127,7 +127,7 @@ def test_correct_sampling():
         for sw in range(n_samples):
             sa.sweep()
             visible = sa.visible
-            hist_samp[hi.index.state_to_number(visible)] += 1
+            hist_samp[hi.state_to_number(visible)] += 1
 
         hist_exsamp = np.zeros(n_states)
         sa = nk.sampler.ExactSampler(machine=ma)
@@ -135,7 +135,7 @@ def test_correct_sampling():
         for sw in range(n_samples):
             sa.sweep()
             visible = sa.visible
-            hist_exsamp[hi.index.state_to_number(visible)] += 1
+            hist_exsamp[hi.state_to_number(visible)] += 1
 
         print(hist_exsamp)
         print(hist_samp)
