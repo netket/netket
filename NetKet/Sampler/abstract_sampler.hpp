@@ -51,10 +51,12 @@ class AbstractSampler {
     this->Reset(true);
   }
 
-  void SetMachineFunc(std::function<double(const Complex&)> machine_func) {
+  virtual void SetMachineFunc(
+      std::function<double(const Complex&)> machine_func) {
     machine_func_.Set(machine_func);
   }
-  std::function<double(const Complex&)> GetMachineFunc() {
+
+  virtual std::function<double(const Complex&)> GetMachineFunc() {
     return machine_func_.Get();
   }
 
