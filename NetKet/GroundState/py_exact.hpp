@@ -64,11 +64,11 @@ void AddExactModule(py::module &m) {
                >>> L = 20
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
                >>> hilbert = nk.hilbert.Spin(graph, 0.5)
-               >>> idx = nk.hilbert.HilbertIndex(hilbert)
+               >>> n_states = hilbert.n_states
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-               >>> stepper = nk.dynamics.create_timestepper(idx.n_states, rel_tol=1e-10, abs_tol=1e-10)
+               >>> stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
                >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
-               >>> psi0 = np.random.rand(idx.n_states)
+               >>> psi0 = np.random.rand(n_states)
                >>> driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
                >>> driver.add_observable(hamiltonian, 'Hamiltonian')
                >>> for step in driver.iter(dt=0.05, n_iter=2):

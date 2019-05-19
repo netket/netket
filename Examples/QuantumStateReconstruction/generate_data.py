@@ -26,7 +26,6 @@ def build_rotation(hi, basis):
 def generate(N, n_basis=20, n_shots=1000, seed=1234):
     g = gr.Hypercube(length=N, n_dim=1, pbc=False)
     hi = hs.Spin(g, s=0.5)
-    hind = hs.HilbertIndex(hi)
     ha = op.Ising(hilbert=hi, h=1)
     res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
 
@@ -45,11 +44,11 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
         rotation = build_rotation(hi, basis)
         psir = rotation.to_sparse().dot(psi)
 
-        rand_n = np.random.choice(hind.n_states, p=np.square(
+        rand_n = np.random.choice(hi.n_states, p=np.square(
             np.absolute(psir)), size=n_shots)
 
         for rn in rand_n:
-            training_samples.append(hind.number_to_state(rn))
+            training_samples.append(hi.number_to_state(rn))
         training_bases += [m] * n_shots
 
         rotations.append(rotation)

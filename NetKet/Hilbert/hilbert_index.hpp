@@ -24,37 +24,20 @@
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/next_variation.hpp"
 
 namespace netket {
 
 class HilbertIndex {
-  const std::vector<double> localstates_;
-
-  const int localsize_;
-
-  const int size_;
-
-  std::map<double, int> statenumber_;
-
-  std::vector<std::size_t> basis_;
-
-  int nstates_;
-
  public:
-  explicit HilbertIndex(const AbstractHilbert &hilbert)
-      : localstates_(hilbert.LocalStates()),
-        localsize_(hilbert.LocalSize()),
-        size_(hilbert.Size()) {
+  HilbertIndex(std::vector<double> localstates, int local_size, int size)
+      : localstates_(std::move(localstates)),
+        localsize_(local_size),
+        size_(size) {
     Init();
   }
 
   void Init() {
-    if (size_ * std::log(localsize_) > std::log(MaxStates)) {
-      throw InvalidInputError("Hilbert space is too large to be indexed");
-    }
-
     nstates_ = std::pow(localsize_, size_);
 
     std::size_t ba = 1;
@@ -100,10 +83,10 @@ class HilbertIndex {
   }
 
   // converts an integer into a vector of quantum numbers
-  Eigen::VectorXd NumberToState(std::size_t i) const {
+  Eigen::VectorXd NumberToState(int i) const {
     Eigen::VectorXd result = Eigen::VectorXd::Constant(size_, localstates_[0]);
 
-    std::size_t ip = i;
+    int ip = i;
 
     int k = size_ - 1;
 
@@ -116,9 +99,49 @@ class HilbertIndex {
     return result;
   }
 
-  std::size_t NStates() const { return nstates_; }
+  int NStates() const { return nstates_; }
 
   constexpr static int MaxStates = std::numeric_limits<int>::max() - 1;
+
+ private:
+  const std::vector<double> localstates_;
+  const int localsize_;
+  const int size_;
+  std::map<double, int> statenumber_;
+  std::vector<std::size_t> basis_;
+  int nstates_;
+};
+
+class StateIterator {
+ public:
+  // typedefs required for iterators
+  using iterator_category = std::input_iterator_tag;
+  using difference_type = Index;
+  using value_type = Eigen::VectorXd;
+  using pointer_type = Eigen::VectorXd *;
+  using reference_type = Eigen::VectorXd &;
+
+  explicit StateIterator(const HilbertIndex &index) : i_(0), index_(index) {}
+
+  value_type operator*() const { return index_.NumberToState(i_); }
+
+  StateIterator &operator++() {
+    ++i_;
+    return *this;
+  }
+
+  // TODO(C++17): Replace with comparison to special Sentinel type, since
+  // C++17 allows end() to return a different type from begin().
+  bool operator!=(const StateIterator &) { return i_ < index_.NStates(); }
+  // pybind11::make_iterator requires operator==
+  bool operator==(const StateIterator &other) { return !(*this != other); }
+
+  StateIterator begin() const { return *this; }
+  StateIterator end() const { return *this; }
+
+ private:
+  int i_;
+  const HilbertIndex &index_;
 };
 
 }  // namespace netket
