@@ -24,6 +24,8 @@ namespace netket {
 
 class AbstractSampler {
  public:
+  using MachineFunction = std::function<double(const Complex&)>;
+
   virtual void Reset(bool initrandom = false) = 0;
 
   virtual void Sweep() = 0;
@@ -51,35 +53,27 @@ class AbstractSampler {
     this->Reset(true);
   }
 
-  virtual void SetMachineFunc(
-      std::function<double(const Complex&)> machine_func) {
-    machine_func_.Set(machine_func);
+  virtual void SetMachineFunc(MachineFunction machine_func) {
+    if (!machine_func) {
+      throw RuntimeError{"Invalid machine function in Sampler"};
+    }
+
+    machine_func_ = std::move(machine_func);
   }
 
-  virtual std::function<double(const Complex&)> GetMachineFunc() {
-    return machine_func_.Get();
+  const MachineFunction& GetMachineFunc() const noexcept {
+    return machine_func_;
   }
-
-  class MachineFunc {
-   private:
-    std::function<double(const Complex&)> mf_;
-
-   public:
-    MachineFunc() {
-      // By default, the L2-norm is used for sampling
-      mf_ = static_cast<double (*)(const Complex&)>(&std::norm);
-    }
-    double operator()(const Complex& c) { return mf_(c); }
-
-    void Set(std::function<double(const Complex&)> machine_func) {
-      mf_ = machine_func;
-    }
-    std::function<double(const Complex&)> Get() { return mf_; }
-  };
 
  protected:
+  MachineFunction machine_func_;
+
+  AbstractSampler() {
+    // Default initialization for the machine function to be sampled from
+    machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
+  }
+
   default_random_engine& GetRandomEngine() { return engine_.Get(); }
-  MachineFunc machine_func_;
 
  private:
   DistributedRandomEngine engine_;

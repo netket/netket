@@ -134,8 +134,11 @@ class ExactSampler : public AbstractSampler {
     return acc;
   }
 
-  void SetMachineFunc(std::function<double(const Complex&)> machine_func) {
-    machine_func_.Set(machine_func);
+  void SetMachineFunc(MachineFunction machine_func) override {
+    if (!machine_func) {
+      throw RuntimeError{"Invalid machine function in Sampler"};
+    }
+    machine_func_ = std::move(machine_func);
     Reset(true);
   }
 };
