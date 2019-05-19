@@ -82,12 +82,12 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 np.random.seed(12346)
 
 
-def same_derivatives(der_log, num_der_log):
+def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert(np.max(np.real(der_log - num_der_log))
-           == approx(0., rel=1e-4, abs=1e-4))
+           == approx(0., rel=eps, abs=eps))
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert(
-        np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(0., rel=4e-4, abs=4e-4))
+        np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(0., rel=eps, abs=eps))
 
 
 def log_val_f(par, machine, v):
