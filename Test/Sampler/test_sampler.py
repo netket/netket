@@ -143,7 +143,7 @@ def test_correct_sampling():
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
-                hist_samp[hilb_index.state_to_number(visible)] += 1
+                hist_samp[hi.state_to_number(visible)] += 1
 
             hist_exsamp = np.zeros(n_states)
 
@@ -157,7 +157,7 @@ def test_correct_sampling():
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
-                hist_exsamp[hilb_index.state_to_number(visible)] += 1
+                hist_exsamp[hi.state_to_number(visible)] += 1
 
             # now test that histograms are close in norm
             delta = hist_samp - hist_exsamp
