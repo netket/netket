@@ -175,7 +175,35 @@ void AddMachineModule(py::module &m) {
                 only be performed for low-dimensional Hilbert spaces.
 
                 This method requires an indexable Hilbert space.
-              )EOF");
+              )EOF")
+      .def("log_norm",
+           [](AbstractMachine &self) -> double {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
+
+             double maxlog = std::numeric_limits<double>::lowest();
+
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogVal(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
+
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
+
+             return std::log(vals.norm()) + 2. * maxlog;
+           },
+           R"EOF(
+                Returns the log of the L2 norm of the wave-function.
+                This operation is a brute-force calculation, and should thus
+                only be performed for low-dimensional Hilbert spaces.
+
+                This method requires an indexable Hilbert space.
+                )EOF");
 
   AddRbmSpin(subm);
   AddRbmSpinSymm(subm);

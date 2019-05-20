@@ -102,15 +102,23 @@ void AddUnsupervisedModule(py::module &m) {
                  )EOF")
       .def("nll", &QuantumStateReconstruction::NegativeLogLikelihood,
            py::arg("rotations"), py::arg("samples"), py::arg("bases"),
+           py::arg("log_norm") = 0,
            R"EOF(
-             Iterate the optimization of the wavefunction.
+             Negative log-likelihood, $$\langle log(|Psi_b(x)|^2) \rangle$$,
+             where the average is over the given samples, and $b$ denotes
+             the given bases associated to the samples.
 
              Args:
              rotations: Vector of rotations corresponding to the basis rotations.
              samples: Vector of samples.
              bases: Which bases the samples correspond to.
-
-                                 )EOF");
+             lognorm: This should be $$ log \sum_x |\Psi(x)|^2 $$. Notice that
+                      if the probability disitribution is not normalized,
+                      (i.e. log_norm \neq 0), a user-supplied log_norm must be
+                      provided, otherwise there is no guarantuee that the
+                      negative log-likelihood computed here is a meaningful
+                      quantity.
+                  )EOF");
   py::class_<QuantumStateReconstruction::Iterator>(subm, "QsrIterator")
       .def("__iter__", [](QuantumStateReconstruction::Iterator &self) {
         return py::make_iterator(self.begin(), self.end());

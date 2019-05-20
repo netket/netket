@@ -409,7 +409,7 @@ class QuantumStateReconstruction {
   // Computes the NNLL on a given set of test samples
   double NegativeLogLikelihood(std::vector<AbstractOperator *> rotations,
                                std::vector<Eigen::VectorXd> testSamples,
-                               std::vector<int> trainingBases) {
+                               std::vector<int> trainingBases, double lognorm) {
     double nnll = 0;
 
     for (std::size_t i = 0; i < testSamples.size(); i++) {
@@ -431,7 +431,9 @@ class QuantumStateReconstruction {
       nnll -= std::norm(ratio);
       nnll -= 2. * std::real(psi_.LogVal(state));
     }
-    return nnll / double(testSamples.size());
+    nnll /= double(testSamples.size());
+
+    return nnll + lognorm;
   }
 };
 

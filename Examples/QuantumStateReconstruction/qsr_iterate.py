@@ -64,7 +64,8 @@ for step in qst.iter(4000, 100):
         # Compute NLL on training data
         nll = qst.nll(rotations=rotations,
                       samples=training_samples,
-                      bases=training_bases)
+                      bases=training_bases,
+                      log_norm=ma.log_norm())
         print("negative log likelihood={}".format(nll))
 
         # Print output to the console immediately
