@@ -160,9 +160,11 @@ class CustomSamplerPt : public AbstractSampler {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      double ratio = std::norm(std::exp(
-          beta_[rep] * psi_.LogValDiff(v_[rep], tochange_[exit_state],
-                                       newconfs_[exit_state], lt_[rep])));
+      auto explo = std::exp(beta_[rep] *
+                            psi_.LogValDiff(v_[rep], tochange_[exit_state],
+                                            newconfs_[exit_state], lt_[rep]));
+
+      double ratio = this->GetMachineFunc()(explo);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {

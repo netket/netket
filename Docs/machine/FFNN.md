@@ -59,6 +59,15 @@ Member function to load machine parameters from a json file.
 |--------|----|-------------------------------------|
 |filename|str |name of file to load parameters from.|
 
+### log_norm
+Returns the log of the L2 norm of the wave-function.
+This operation is a brute-force calculation, and should thus
+only be performed for low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
 ### log_val
 Member function to obtain log value of machine given an input
 vector.

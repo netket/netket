@@ -99,7 +99,7 @@ class ExactSampler : public AbstractSampler {
     }
 
     for (int i = 0; i < dim_; ++i) {
-      psivals_[i] = std::norm(std::exp(logpsivals_[i] - logmax));
+      psivals_[i] = this->GetMachineFunc()(std::exp(logpsivals_[i] - logmax));
     }
 
     dist_ = std::discrete_distribution<int>(psivals_.begin(), psivals_.end());
@@ -132,6 +132,11 @@ class ExactSampler : public AbstractSampler {
       acc(i) /= moves_(i);
     }
     return acc;
+  }
+
+  void SetMachineFunc(MachineFunction machine_func) override {
+    AbstractSampler::SetMachineFunc(machine_func);
+    Reset(true);
   }
 };
 

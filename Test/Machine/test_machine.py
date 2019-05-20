@@ -82,9 +82,33 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 np.random.seed(12346)
 
 
+def same_derivatives(der_log, num_der_log, eps=1.0e-6):
+    assert(np.max(np.real(der_log - num_der_log))
+           == approx(0., rel=eps, abs=eps))
+    # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+    assert(
+        np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(0., rel=eps, abs=eps))
+
+
 def log_val_f(par, machine, v):
     machine.parameters = np.copy(par)
     return machine.log_val(v)
+
+
+def central_diff_grad(func, x, eps, *args):
+    grad = np.zeros(len(x), dtype=complex)
+    epsd = np.zeros(len(x), dtype=complex)
+    epsd[0] = eps
+    for i in range(len(x)):
+        grad[i] = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args)) / eps
+        epsd = np.roll(epsd, 1)
+    return grad
+
+
+def check_holomorphic(func, x, eps, *args):
+    gr = central_diff_grad(func, x, eps, *args)
+    gi = central_diff_grad(func, x, eps * 1.0j, *args)
+    same_derivatives(gr, gi)
 
 
 def test_set_get_parameters():
@@ -123,12 +147,6 @@ def test_save_load_parameters(tmpdir):
             assert(np.array_equal(machine.parameters.real, randpars.real))
 
 
-import numdifftools as nd
-# Ignoring warnings from numdifftools
-
-
-@pytest.mark.filterwarnings("ignore:`factorial` is deprecated:DeprecationWarning")
-@pytest.mark.filterwarnings("ignore:internal gelsd driver lwork query error:RuntimeWarning")
 def test_log_derivative():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
@@ -152,14 +170,15 @@ def test_log_derivative():
             if("Jastrow" in name):
                 assert(np.max(np.imag(der_log)) == approx(0.))
 
-            grad = (nd.Gradient(log_val_f, step=1.0e-8))
-            num_der_log = grad(randpars, machine, v)
+            num_der_log = central_diff_grad(
+                log_val_f, randpars, 1.0e-8, machine, v)
 
-            assert(np.max(np.real(der_log - num_der_log))
-                   == approx(0., rel=1e-4, abs=1e-4))
-            # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-            assert(
-                np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(0., rel=4e-4, abs=4e-4))
+            same_derivatives(der_log, num_der_log)
+
+            # Check if machine is correctly set to be holomorphic
+            # The check is done only on smaller subset of parameters, for speed
+            if(i % 10 == 0 and machine.is_holomorphic):
+                check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
 
 
 def test_log_val_diff():

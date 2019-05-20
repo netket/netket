@@ -35,9 +35,10 @@ void AddMetropolisLocalPt(py::module &subm) {
              and the number of replicas.
 
              Args:
-                 machine: A machine used for the sampling.
-                      The probability distribution being sampled
-                      from is $$|\Psi(s)|^2$$.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
+                          The probability distribution being sampled
+                          from is $$F(\Psi(s))$$, where the function
+                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  n_replicas: The number of replicas used for parallel tempering.
 
              Examples:

@@ -50,9 +50,10 @@ void AddMetropolisLocal(py::module &subm) {
              Constructs a new ``MetropolisLocal`` sampler given a machine.
 
              Args:
-                 machine: A machine used for the sampling.
-                      The probability distribution being sampled
-                      from is $$|\Psi(s)|^2$$.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
+                          The probability distribution being sampled
+                          from is $$F(\Psi(s))$$, where the function
+                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2

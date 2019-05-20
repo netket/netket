@@ -15,6 +15,7 @@
 #ifndef NETKET_ABSTRACTSAMPLER_HPP
 #define NETKET_ABSTRACTSAMPLER_HPP
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include "Hilbert/abstract_hilbert.hpp"
@@ -23,6 +24,8 @@ namespace netket {
 
 class AbstractSampler {
  public:
+  using MachineFunction = std::function<double(const Complex&)>;
+
   virtual void Reset(bool initrandom = false) = 0;
 
   virtual void Sweep() = 0;
@@ -50,11 +53,29 @@ class AbstractSampler {
     this->Reset(true);
   }
 
+  virtual void SetMachineFunc(MachineFunction machine_func) {
+    if (!machine_func) {
+      throw RuntimeError{"Invalid machine function in Sampler"};
+    }
+
+    machine_func_ = std::move(machine_func);
+  }
+
+  const MachineFunction& GetMachineFunc() const noexcept {
+    return machine_func_;
+  }
+
  protected:
+  AbstractSampler() {
+    // Default initialization for the machine function to be sampled from
+    machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
+  }
+
   default_random_engine& GetRandomEngine() { return engine_.Get(); }
 
  private:
   DistributedRandomEngine engine_;
+  MachineFunction machine_func_;
 };
 
 }  // namespace netket

@@ -53,9 +53,10 @@ void AddMetropolisExchange(py::module &subm) {
              graph.
 
              Args:
-                 machine: A machine used for the sampling.
-                      The probability distribution being sampled
-                      from is $$|\Psi(s)|^2$$.
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
+                          The probability distribution being sampled
+                          from is $$F(\Psi(s))$$, where the function
+                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  graph: A graph used to define the distances among the degrees
                         of freedom being sampled.
                  d_max: The maximum graph distance allowed for exchanges.
