@@ -164,7 +164,7 @@ class CustomSamplerPt : public AbstractSampler {
                             psi_.LogValDiff(v_[rep], tochange_[exit_state],
                                             newconfs_[exit_state], lt_[rep]));
 
-      double ratio = machine_func_(explo);
+      double ratio = this->GetMachineFunc()(explo);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {

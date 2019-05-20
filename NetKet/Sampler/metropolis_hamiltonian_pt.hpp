@@ -139,7 +139,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       const auto lvd =
           psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
-      double ratio = machine_func_(std::exp(beta_[rep] * lvd)) * w1 / w2;
+      double ratio =
+          this->GetMachineFunc()(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_[rep]);

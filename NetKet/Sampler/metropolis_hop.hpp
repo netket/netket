@@ -141,7 +141,7 @@ class MetropolisHop : public AbstractSampler {
       }
 
       const auto lvd = psi_.LogValDiff(v_, tochange, newconf, lt_);
-      double ratio = machine_func_(std::exp(lvd));
+      double ratio = this->GetMachineFunc()(std::exp(lvd));
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_);

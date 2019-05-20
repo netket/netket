@@ -142,7 +142,7 @@ class CustomSampler : public AbstractSampler {
 
       auto exlog = std::exp(psi_.LogValDiff(v_, tochange_[exit_state],
                                             newconfs_[exit_state], lt_));
-      double ratio = machine_func_(exlog);
+      double ratio = this->GetMachineFunc()(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {

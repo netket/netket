@@ -142,7 +142,7 @@ class MetropolisLocalPt : public AbstractSampler {
       }
 
       const auto lvd = psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
-      double ratio = machine_func_(std::exp(beta_[rep] * lvd));
+      double ratio = this->GetMachineFunc()(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
       const auto psival1 = psi_.LogVal(v_[rep]);

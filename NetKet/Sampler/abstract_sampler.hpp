@@ -66,8 +66,6 @@ class AbstractSampler {
   }
 
  protected:
-  MachineFunction machine_func_;
-
   AbstractSampler() {
     // Default initialization for the machine function to be sampled from
     machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
@@ -77,6 +75,7 @@ class AbstractSampler {
 
  private:
   DistributedRandomEngine engine_;
+  MachineFunction machine_func_;
 };
 
 }  // namespace netket
