@@ -18,6 +18,7 @@
 #include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
@@ -49,10 +50,11 @@ void AddSamplerModule(py::module &m) {
   py::class_<AbstractSampler>(subm, "Sampler", R"EOF(
     NetKet implements generic sampling routines to be used in conjunction with
     suitable variational states, the `Machines`.
-    A `Sampler` generates quantum numbers distributed according to the square modulus
-    of the wave-function:
+    A `Sampler` generates quantum numbers distributed according to:
 
-    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N) | ^2.$$
+    $$P(s_1\dots s_N) = F(\Psi(s_1\dots s_N)),$$
+
+    where F is an arbitrary function. By default F(X)=|X|^2.
 
     The samplers typically transit from the current set of quantum numbers
     $$\mathbf{s} = s_1 \dots s_N$$ to another set
@@ -86,14 +88,20 @@ void AddSamplerModule(py::module &m) {
                     &AbstractSampler::SetVisible,
                     R"EOF(
                       numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$|\Psi(v)|^2$$ )EOF")
+                       and distributed according to $$F(\Psi(v))$$ )EOF")
       .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
         numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.  )EOF")
       .def_property_readonly("hilbert", &AbstractSampler::GetHilbert, R"EOF(
         netket.hilbert: The Hilbert space used for the sampling.  )EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
-        netket.machine: The machine used for the sampling.  )EOF");
+        netket.machine: The machine used for the sampling.  )EOF")
+      .def_property("machine_func", &AbstractSampler::GetMachineFunc,
+                    &AbstractSampler::SetMachineFunc,
+                    R"EOF(
+                          function(complex): The function to be used for sampling.
+                                       by default $$|\Psi(x)|^2$$ is sampled,
+                                       however in general $$F(\Psi(v))$$  )EOF");
 
   AddMetropolisLocal(subm);
   AddMetropolisLocalPt(subm);

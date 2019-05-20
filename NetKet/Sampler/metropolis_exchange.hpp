@@ -122,8 +122,9 @@ class MetropolisExchange : public AbstractSampler {
         newconf[0] = v_(sj);
         newconf[1] = v_(si);
 
-        double ratio =
-            std::norm(std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_)));
+        auto explo = std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_));
+
+        double ratio = this->GetMachineFunc()(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;
