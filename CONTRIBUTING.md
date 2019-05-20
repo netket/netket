@@ -11,8 +11,8 @@ Before sending your pull requests, make sure you followed this list.
 
 - Read [contributing guidelines](CONTRIBUTING.md).
 - Read [Code of Conduct](CODE_OF_CONDUCT.md).
-- Check if my changes are consistent with the [guidelines](CONTRIBUTING.md#general-guidelines-and-philosophy-for-contribution).
-- Changes are consistent with the [Coding Style](CONTRIBUTING.md#c-coding-style).
+- Check if your changes are consistent with the [guidelines](CONTRIBUTING.md#general-guidelines-and-philosophy-for-contribution).
+- Check if your changes are consistent with the [C++](CONTRIBUTING.md#c-coding-style) and/or [Python](CONTRIBUTING.md#python-coding-style) code style and run the code formatters clang-format and black as needed.
 - Run [Unit Tests](CONTRIBUTING.md#running-unit-tests).
 
 ## How to become a contributor and submit your own code
@@ -103,6 +103,18 @@ which can be configured with Google style.
 To do so, after having installed the plugin, go to
 `Atom -> Preferences... -> Packages -> clang-format -> Settings` and type `google` in the `Style` field.
 
+#### Python coding style
+
+Python code should follow [PEP 8](https://TODO).
+For consistency, we use the [black](https://TODO) code formatter, which you can install in you Python environment using `pip install black`.
+If you add or change Python code, you should run black via
+```bash
+# to reformat a specific file
+black Path/To/The/file.py
+# to reformat all files below the specified directories
+black Test/ Examples/
+```
+before creating a pull request.
 
 #### Running sanity check
 
