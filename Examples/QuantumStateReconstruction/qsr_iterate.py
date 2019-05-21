@@ -15,7 +15,10 @@
 
 import netket as nk
 from generate_data import generate
+import sys
+import numpy as np
 
+mpi_rank = nk.MPI.rank()
 
 # Load the data
 N = 10
@@ -45,4 +48,29 @@ qst = nk.unsupervised.Qsr(
 
 qst.add_observable(ha, "Energy")
 
-qst.run(n_iter=2000, output_prefix="output")
+
+for step in qst.iter(4000, 100):
+    obs = qst.get_observable_stats()
+    if (mpi_rank == 0):
+        print("step={}".format(step))
+        print("acceptance={}".format(list(sa.acceptance)))
+        print("observables={}".format(obs))
+
+        # Compute fidelity with exact state
+        psima = ma.to_array()
+
+        fidelity = np.abs(np.vdot(psima, psi))
+        print("fidelity={}".format(fidelity))
+
+        # Compute NLL on training data
+        nll = qst.nll(rotations=rotations,
+                      samples=training_samples,
+                      bases=training_bases,
+                      log_norm=ma.log_norm())
+        print("negative log likelihood={}".format(nll))
+
+        # Print output to the console immediately
+        sys.stdout.flush()
+
+        # Save current parameters to file
+        ma.save('test.wf')

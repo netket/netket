@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import netket as nk
 import networkx as nx
 import numpy as np
+import pytest
 
 hilberts = {}
 
@@ -118,17 +120,39 @@ def test_random_states():
 
 
 #TODO (jamesETsmith)
-def test_mapping():
+def test_hilbert_index():
     """"""
 
     for name, hi in hilberts.items():
         assert (hi.size > 0)
         assert (hi.local_size > 0)
 
-        log_max_states = np.log(nk.hilbert.HilbertIndex.max_states)
+        log_max_states = np.log(nk.hilbert.max_states)
         if hi.size * np.log(hi.local_size) < log_max_states:
-            hilb_index = nk.hilbert.HilbertIndex(hi)
+            assert hi.is_indexable
 
-            for k in range(hilb_index.n_states):
-                state = hilb_index.number_to_state(k)
-                assert (hilb_index.state_to_number(state) == k)
+            for k, state in enumerate(hi.states()):
+                assert hi.state_to_number(state) == k
+        else:
+            assert not hi.is_indexable
+
+            with pytest.raises(RuntimeError):
+                hi.n_states
+
+            op = nk.operator.Heisenberg(hi)
+
+            with pytest.raises(RuntimeError):
+                m1 = op.to_dense()
+            with pytest.raises(RuntimeError):
+                m2 = op.to_sparse()
+            with pytest.raises(RuntimeError):
+                dw = nk.operator.DirectMatrixWrapper(op)
+
+def test_state_iteration():
+    g = nk.graph.Hypercube(10, 1)
+    hilbert = nk.hilbert.Spin(g, s=0.5)
+
+    reference = [np.array(el) for el in itertools.product([-1., 1.], repeat=10)]
+
+    for state, ref in zip(hilbert.states(), reference):
+        assert np.allclose(state, ref)

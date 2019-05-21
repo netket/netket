@@ -17,8 +17,11 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <memory>
+#include <nonstd/optional.hpp>
 #include <vector>
+
 #include "Utils/random_utils.hpp"
+#include "hilbert_index.hpp"
 
 namespace netket {
 
@@ -35,6 +38,28 @@ class AbstractHilbert {
   @return true if the local hilbert space is discrete
   */
   virtual bool IsDiscrete() const = 0;
+
+  /**
+   * We call a Hilbert space indexable if and only if the total Hilbert space
+   * dimension can be represented by an index of type int.
+   * @return true, iff the Hilbert space is indexable
+   */
+  bool IsIndexable() const {
+    static constexpr int max_states = std::numeric_limits<int>::max() - 1;
+    static const double log_max = std::log(max_states);
+
+    return Size() * std::log(LocalSize()) <= log_max;
+  }
+
+  const HilbertIndex &GetIndex() const {
+    if (!index_.has_value()) {
+      if (!IsIndexable()) {
+        throw std::runtime_error("Hilbert space is too large to be indexed");
+      }
+      index_.emplace(LocalStates(), LocalSize(), Size());
+    }
+    return *index_;
+  }
 
   /**
   Member function returning the size of the local hilbert space.
@@ -80,7 +105,14 @@ class AbstractHilbert {
 
   virtual const AbstractGraph &GetGraph() const noexcept = 0;
 
-  virtual ~AbstractHilbert() {}
+  // Allow range-based for over all states in the Hilbert space, iff it is indexable
+  StateIterator begin() const { return StateIterator(GetIndex()); };
+  StateIterator end() const { return StateIterator(GetIndex()); };
+
+  virtual ~AbstractHilbert() = default;
+
+ private:
+  mutable nonstd::optional<HilbertIndex> index_;
 };
 
 }  // namespace netket

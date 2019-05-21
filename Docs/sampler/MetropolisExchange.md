@@ -24,11 +24,11 @@ This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s
 Constructs a new ``MetropolisExchange`` sampler given a machine and a
 graph.
 
-|Argument|         Type         |                                                                                     Description                                                                                     |
-|--------|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|machine |netket.machine.Machine|A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
-|graph   |netket.graph.Graph    |A graph used to define the distances among the degrees of freedom being sampled.                                                                                                     |
-|d_max   |int=1                 |The maximum graph distance allowed for exchanges.                                                                                                                                    |
+|Argument|         Type         |                                            Description                                             |
+|--------|----------------------|----------------------------------------------------------------------------------------------------|
+|machine |netket.machine.Machine|A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^2$$.|
+|graph   |netket.graph.Graph    |A graph used to define the distances among the degrees of freedom being sampled.                    |
+|d_max   |int=1                 |The maximum graph distance allowed for exchanges.                                                   |
 
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -76,10 +76,9 @@ consists of an extensive number of local moves.
 
 ## Properties
 
-|  Property  |                    Type                    |                                                                                          Description                                                                                          |
-|------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|acceptance  |         numpy.array                        | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.                                                                      |
-|hilbert     |         netket.hilbert                     | The Hilbert space used for the sampling.                                                                                                                                                      |
-|machine     |         netket.machine                     | The machine used for the sampling.                                                                                                                                                            |
-|machine_func|                           function(complex)| The function to be used for sampling.                                        by default $$\|\Psi(x)\|^2$$ is sampled,                                        however in general $$F(\Psi(v))$$  |
-|visible     |                       numpy.array          | The quantum numbers being sampled,                        and distributed according to $$F(\Psi(v))$$                                                                                         |
+| Property |               Type               |                                                        Description                                                        |
+|----------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+|acceptance|         numpy.array              | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.  |
+|hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
+|machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
+|visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |

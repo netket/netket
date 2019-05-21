@@ -55,7 +55,7 @@ void AddSparseMatrixWrapper(py::module &subm) {
             ```
       )EOF")
       .def_property_readonly(
-          "_matrix", &SparseMatrixWrapper<>::GetMatrix,
+          "data", &SparseMatrixWrapper<>::GetMatrix,
           R"EOF(Eigen SparseMatrix Complex : The stored matrix.)EOF");
 }
 

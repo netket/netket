@@ -14,7 +14,6 @@ desired. If none are specified, the bond operators act on all edges.
 |bondops       |List[List[List[complex]]]=[]|A list of operators that act on the edges of the graph. The default is an empty list. Note that if no bondops are specified, the user must give a list of site operators.|
 |bondops_colors|List[int]=[]                |A list of edge colors, specifying the color each bond operator acts on. The defualt is an empty list.                                                                    |
 
-
 ### Examples
 Constructs a ``BosGraphOperator`` operator for a 2D system.
 
@@ -48,10 +47,28 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+### to_dense
+Returns the dense matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
+### to_sparse
+Returns the sparse matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+This method requires an indexable Hilbert space.
+
+
 
 ## Properties
 
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
-

@@ -28,11 +28,11 @@ Custom Sampler, where transition operators are specified by the user.
 Constructs a new ``CustomSampler`` given a machine and a list of local
 stochastic move (transition) operators.
 
-|   Argument   |            Type             |                                                                                     Description                                                                                     |
-|--------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|machine       |netket.machine.Machine       |A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
-|move_operators|netket.operator.LocalOperator|The stochastic `LocalOperator` $$\mathcal{M}= \sum_i M_i$$ used for transitions.                                                                                                     |
-|move_weights  |List[float]=[]               |For each $$ i $$, the probability to pick one of the move operators (must sum to one).                                                                                               |
+|   Argument   |            Type             |                                            Description                                             |
+|--------------|-----------------------------|----------------------------------------------------------------------------------------------------|
+|machine       |netket.machine.Machine       |A machine used for the sampling. The probability distribution being sampled from is $$\|\Psi(s)\|^2$$.|
+|move_operators|netket.operator.LocalOperator|The stochastic `LocalOperator` $$\mathcal{M}= \sum_i M_i$$ used for transitions.                    |
+|move_weights  |List[float]=[]               |For each $$ i $$, the probability to pick one of the move operators (must sum to one).              |
 
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2
@@ -80,10 +80,9 @@ consists of an extensive number of local moves.
 
 ## Properties
 
-|  Property  |                    Type                    |                                                                                          Description                                                                                          |
-|------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|acceptance  |         numpy.array                        | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.                                                                      |
-|hilbert     |         netket.hilbert                     | The Hilbert space used for the sampling.                                                                                                                                                      |
-|machine     |         netket.machine                     | The machine used for the sampling.                                                                                                                                                            |
-|machine_func|                           function(complex)| The function to be used for sampling.                                        by default $$\|\Psi(x)\|^2$$ is sampled,                                        however in general $$F(\Psi(v))$$  |
-|visible     |                       numpy.array          | The quantum numbers being sampled,                        and distributed according to $$F(\Psi(v))$$                                                                                         |
+| Property |               Type               |                                                        Description                                                        |
+|----------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+|acceptance|         numpy.array              | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.  |
+|hilbert   |         netket.hilbert           | The Hilbert space used for the sampling.                                                                                  |
+|machine   |         netket.machine           | The machine used for the sampling.                                                                                        |
+|visible   |                       numpy.array| The quantum numbers being sampled,                        and distributed according to $$\|\Psi(v)\|^2$$                    |

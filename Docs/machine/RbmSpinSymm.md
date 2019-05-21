@@ -62,6 +62,15 @@ Member function to load machine parameters from a json file.
 |--------|----|-------------------------------------|
 |filename|str |name of file to load parameters from.|
 
+### log_norm
+Returns the log of the L2 norm of the wave-function.
+This operation is a brute-force calculation, and should thus
+only be performed for low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
 ### log_val
 Member function to obtain log value of machine given an input
 vector.
@@ -86,6 +95,17 @@ Member function to save the machine parameters.
 |Argument|Type|            Description            |
 |--------|----|-----------------------------------|
 |filename|str |name of file to save parameters to.|
+
+### to_array
+Returns a numpy array representation of the machine.
+The returned array is normalized to 1 in L2 norm.
+Note that, in general, the size of the array is exponential
+in the number of quantum numbers, and this operation should thus
+only be performed for low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
 
 ## Properties
 

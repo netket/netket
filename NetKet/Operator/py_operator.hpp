@@ -37,13 +37,14 @@ namespace netket {
 void AddOperatorModule(py::module &m) {
   auto subm = m.def_submodule("operator");
 
-  py::class_<AbstractOperator>(m, "Operator", R"EOF(
+  auto op =
+      py::class_<AbstractOperator>(m, "Operator", R"EOF(
       Abstract class for quantum Operators. This class prototypes the methods
       needed by a class satisfying the Operator concept. Users interested in
       implementing new quantum Operators should derive they own class from this
       class
        )EOF")
-      .def("get_conn", &AbstractOperator::GetConn, py::arg("v"), R"EOF(
+          .def("get_conn", &AbstractOperator::GetConn, py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such
        that the matrix element O(v,v') is different from zero. In general there
@@ -54,9 +55,33 @@ void AddOperatorModule(py::module &m) {
            v: A constant reference to the visible configuration.
 
        )EOF")
-      .def_property_readonly(
-          "hilbert", &AbstractOperator::GetHilbert,
-          R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF");
+          .def_property_readonly(
+              "hilbert", &AbstractOperator::GetHilbert,
+              R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
+          .def("to_sparse",
+               [](const AbstractOperator &self) {
+                 return SparseMatrixWrapper<>(self).GetMatrix();
+               },
+               R"EOF(
+         Returns the sparse matrix representation of the operator. Note that, in general,
+         the size of the matrix is exponential in the number of quantum
+         numbers, and this operation should thus only be performed for
+         low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+         This method requires an indexable Hilbert space.
+         )EOF")
+          .def("to_dense",
+               [](const AbstractOperator &self) {
+                 return DenseMatrixWrapper<>(self).GetMatrix();
+               },
+               R"EOF(
+         Returns the dense matrix representation of the operator. Note that, in general,
+         the size of the matrix is exponential in the number of quantum
+         numbers, and this operation should thus only be performed for
+         low-dimensional Hilbert spaces.
+
+         This method requires an indexable Hilbert space.
+         )EOF");
 
   AddIsing(subm);
   AddHeisenberg(subm);

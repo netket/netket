@@ -8,7 +8,6 @@ Constructs a new ``Heisenberg`` given a hilbert space.
 |--------|----------------------|-----------------------------------|
 |hilbert |netket.hilbert.Hilbert|Hilbert space the operator acts on.|
 
-
 ### Examples
 Constructs a ``Heisenberg`` operator for a 1D system.
 
@@ -36,10 +35,28 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+### to_dense
+Returns the dense matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
+### to_sparse
+Returns the sparse matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+This method requires an indexable Hilbert space.
+
+
 
 ## Properties
 
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
-

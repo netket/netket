@@ -67,7 +67,62 @@ void AddUnsupervisedModule(py::module &m) {
            py::keep_alive<1, 2>())
       .def("run", &QuantumStateReconstruction::Run, py::arg("output_prefix"),
            py::arg("n_iter"), py::arg("step_size") = 1,
-           py::arg("save_params_every") = 50);
+           py::arg("save_params_every") = 50)
+      .def("iter", &QuantumStateReconstruction::Iterate,
+           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1, R"EOF(
+                      Iterate the optimization of the wavefunction.
+
+                      Args:
+                          n_iter: The maximum number of iterations.
+                          step_size: Number of iterations performed at a time. Default is
+                              1.
+
+                      )EOF")
+      .def("advance", &QuantumStateReconstruction::Advance,
+           py::arg("steps") = 1,
+           R"EOF(
+                      Perform one or several iteration steps of the Qsr calculation. In each step,
+                      the gradient will be estimated via negative and positive phase and subsequently,
+                      the variational parameters will be updated according to the configured method.
+
+                      Args:
+                          steps: Number of optimization steps to perform.
+
+                      )EOF")
+      .def("get_observable_stats",
+           [](QuantumStateReconstruction &self) {
+             py::dict data;
+             self.ComputeObservables();
+             self.GetObsManager().InsertAllStats(data);
+             return data;
+           },
+           R"EOF(
+                   Calculate and return the value of the operators stored as observables.
+
+                 )EOF")
+      .def("nll", &QuantumStateReconstruction::NegativeLogLikelihood,
+           py::arg("rotations"), py::arg("samples"), py::arg("bases"),
+           py::arg("log_norm") = 0,
+           R"EOF(
+             Negative log-likelihood, $$\langle log(|Psi_b(x)|^2) \rangle$$,
+             where the average is over the given samples, and $b$ denotes
+             the given bases associated to the samples.
+
+             Args:
+             rotations: Vector of rotations corresponding to the basis rotations.
+             samples: Vector of samples.
+             bases: Which bases the samples correspond to.
+             lognorm: This should be $$ log \sum_x |\Psi(x)|^2 $$. Notice that
+                      if the probability disitribution is not normalized,
+                      (i.e. log_norm \neq 0), a user-supplied log_norm must be
+                      provided, otherwise there is no guarantuee that the
+                      negative log-likelihood computed here is a meaningful
+                      quantity.
+                  )EOF");
+  py::class_<QuantumStateReconstruction::Iterator>(subm, "QsrIterator")
+      .def("__iter__", [](QuantumStateReconstruction::Iterator &self) {
+        return py::make_iterator(self.begin(), self.end());
+      });
 }
 
 }  // namespace netket

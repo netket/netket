@@ -82,6 +82,50 @@ class QuantumStateReconstruction {
   std::vector<int> trainingBases_;
 
  public:
+  class Iterator {
+   public:
+    // typedefs required for iterators
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = Index;
+    using value_type = Index;
+    using pointer_type = Index *;
+    using reference_type = Index &;
+
+   private:
+    QuantumStateReconstruction &qst_;
+    Index step_size_;
+    nonstd::optional<Index> n_iter_;
+
+    Index cur_iter_;
+
+   public:
+    Iterator(QuantumStateReconstruction &qst, Index step_size,
+             nonstd::optional<Index> n_iter)
+        : qst_(qst),
+          step_size_(step_size),
+          n_iter_(std::move(n_iter)),
+          cur_iter_(0) {}
+
+    Index operator*() const { return cur_iter_; }
+
+    Iterator &operator++() {
+      qst_.Advance(step_size_);
+      cur_iter_ += step_size_;
+      return *this;
+    }
+
+    // TODO(C++17): Replace with comparison to special Sentinel type, since
+    // C++17 allows end() to return a different type from begin().
+    bool operator!=(const Iterator &) {
+      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
+    }
+    // pybind11::make_iterator requires operator==
+    bool operator==(const Iterator &other) { return !(*this != other); }
+
+    Iterator begin() const { return *this; }
+    Iterator end() const { return *this; }
+  };
+
   QuantumStateReconstruction(
       AbstractSampler &sampler, AbstractOptimizer &opt, int batchsize,
       int nsamples, std::vector<AbstractOperator *> rotations,
@@ -171,8 +215,20 @@ class QuantumStateReconstruction {
     }
   }
 
-  void Gradient(std::vector<Eigen::VectorXd> &batchSamples,
-                std::vector<int> &batchBases) {
+  void Gradient() {
+    std::vector<Eigen::VectorXd> batchSamples(batchsize_node_);
+    std::vector<int> batchBases(batchsize_node_);
+
+    // Randomly select a batch of training data
+    std::uniform_int_distribution<int> distribution(
+        0, trainingSamples_.size() - 1);
+
+    for (int k = 0; k < batchsize_node_; k++) {
+      const auto index = distribution(engine_.Get());
+      batchSamples[k] = trainingSamples_[index];
+      batchBases[k] = trainingBases_[index];
+    }
+
     Eigen::VectorXcd der(psi_.Npar());
 
     // Positive phase driven by data
@@ -186,7 +242,6 @@ class QuantumStateReconstruction {
 
     // Negative phase driven by the machine
     Sample();
-    ComputeObservables();
 
     const int nsamp = vsamp_.rows();
     Ok_.resize(nsamp, psi_.Npar());
@@ -233,36 +288,56 @@ class QuantumStateReconstruction {
     return obval;
   }
 
-  void Run(const std::string &output_prefix, Index n_iter, Index step_size = 1,
-           Index save_params_every = 50) {
+  void Run(const std::string &output_prefix,
+           nonstd::optional<Index> n_iter = nonstd::nullopt,
+           Index step_size = 1, Index save_params_every = 50) {
     assert(n_iter > 0);
     assert(step_size > 0);
     assert(save_params_every > 0);
 
-    std::vector<Eigen::VectorXd> batchSamples;
-    std::vector<int> batchBases;
-    opt_.Reset();
-    InitOutput(output_prefix, save_params_every);
-
-    InitSweeps();
-    std::uniform_int_distribution<int> distribution(
-        0, trainingSamples_.size() - 1);
-
-    for (Index i = 0; i < n_iter; i += step_size) {
-      int index;
-      batchSamples.resize(batchsize_node_);
-      batchBases.resize(batchsize_node_);
-
-      // Randomly select a batch of training data
-      for (int k = 0; k < batchsize_node_; k++) {
-        index = distribution(engine_.Get());
-        batchSamples[k] = trainingSamples_[index];
-        batchBases[k] = trainingBases_[index];
-      }
-      Gradient(batchSamples, batchBases);
-      UpdateParameters();
-      PrintOutput(i);
+    nonstd::optional<JsonOutputWriter> writer;
+    if (mynode_ == 0) {
+      writer.emplace(output_prefix + ".log", output_prefix + ".wf",
+                     save_params_every);
     }
+    opt_.Reset();
+
+    for (const auto step : Iterate(n_iter, step_size)) {
+      ComputeObservables();
+
+      // Note: This has to be called in all MPI processes, because converting
+      // the ObsManager to JSON performs a MPI reduction.
+      auto obs_data = json(obsmanager_);
+      obs_data["Acceptance"] = sampler_.Acceptance();
+
+      // writer.has_value() iff the MPI rank is 0, so the output is only
+      // written once
+      if (writer.has_value()) {
+        writer->WriteLog(step, obs_data);
+        writer->WriteState(step, psi_);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+  }
+
+  void Advance(Index steps = 1) {
+    assert(steps > 0);
+    for (Index i = 0; i < steps; ++i) {
+      Gradient();
+      UpdateParameters();
+    }
+  }
+
+  Iterator Iterate(const nonstd::optional<Index> &n_iter = nonstd::nullopt,
+                   Index step_size = 1) {
+    assert(!n_iter.has_value() || n_iter.value() > 0);
+    assert(step_size > 0);
+
+    opt_.Reset();
+    InitSweeps();
+
+    Advance(step_size);
+    return Iterator(*this, step_size, n_iter);
   }
 
   void UpdateParameters() {
@@ -327,6 +402,39 @@ class QuantumStateReconstruction {
     dosr_ = true;
     sr_.setParameters(diag_shift, use_iterative, use_cholesky,
                       psi_.IsHolomorphic());
+  }
+
+  const ObsManager &GetObsManager() const { return obsmanager_; }
+
+  // Computes the NNLL on a given set of test samples
+  double NegativeLogLikelihood(std::vector<AbstractOperator *> rotations,
+                               std::vector<Eigen::VectorXd> testSamples,
+                               std::vector<int> trainingBases,
+                               const double &lognorm) {
+    double nnll = 0;
+
+    for (std::size_t i = 0; i < testSamples.size(); i++) {
+      const auto state = testSamples[i];
+      const std::size_t b_index = trainingBases[i];
+
+      rotations[b_index]->FindConn(state, mel_, connectors_, newconfs_);
+
+      const auto nconn = connectors_.size();
+
+      auto logvaldiffs = psi_.LogValDiff(state, connectors_, newconfs_);
+
+      Complex ratio = 0.;
+
+      for (std::size_t k = 0; k < nconn; k++) {
+        ratio += mel_[k] * std::exp(logvaldiffs(k));
+      }
+
+      nnll -= std::log(std::norm(ratio));
+      nnll -= 2. * std::real(psi_.LogVal(state));
+    }
+    nnll /= double(testSamples.size());
+
+    return nnll + lognorm;
   }
 };
 
