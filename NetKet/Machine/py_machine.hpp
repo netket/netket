@@ -190,12 +190,13 @@ void AddMachineModule(py::module &m) {
                }
              }
 
+             double norpsi = 0;
              for (Index i = 0; i < hind.NStates(); i++) {
                vals(i) -= maxlog;
-               vals(i) = std::exp(vals(i));
+               norpsi += std::norm(std::exp(vals(i)));
              }
 
-             return std::log(vals.norm()) + 2. * maxlog;
+             return std::log(norpsi) + 2. * maxlog;
            },
            R"EOF(
                 Returns the log of the L2 norm of the wave-function.

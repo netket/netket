@@ -58,6 +58,7 @@ for step in qst.iter(4000, 100):
 
         # Compute fidelity with exact state
         psima = ma.to_array()
+
         fidelity = np.abs(np.vdot(psima, psi))
         print("fidelity={}".format(fidelity))
 
