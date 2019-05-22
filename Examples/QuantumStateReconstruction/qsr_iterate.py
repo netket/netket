@@ -23,7 +23,8 @@ mpi_rank = nk.MPI.rank()
 # Load the data
 N = 10
 hi, rotations, training_samples, training_bases, ha, psi = generate(
-    N, n_basis=2 * N, n_shots=500)
+    N, n_basis=2 * N, n_shots=500
+)
 
 # Machine
 ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
@@ -44,14 +45,15 @@ qst = nk.unsupervised.Qsr(
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method='Sr')
+    method="Sr",
+)
 
 qst.add_observable(ha, "Energy")
 
 
 for step in qst.iter(4000, 100):
     obs = qst.get_observable_stats()
-    if (mpi_rank == 0):
+    if mpi_rank == 0:
         print("step={}".format(step))
         print("acceptance={}".format(list(sa.acceptance)))
         print("observables={}".format(obs))
@@ -63,14 +65,16 @@ for step in qst.iter(4000, 100):
         print("fidelity={}".format(fidelity))
 
         # Compute NLL on training data
-        nll = qst.nll(rotations=rotations,
-                      samples=training_samples,
-                      bases=training_bases,
-                      log_norm=ma.log_norm())
+        nll = qst.nll(
+            rotations=rotations,
+            samples=training_samples,
+            bases=training_bases,
+            log_norm=ma.log_norm(),
+        )
         print("negative log likelihood={}".format(nll))
 
         # Print output to the console immediately
         sys.stdout.flush()
 
         # Save current parameters to file
-        ma.save('test.wf')
+        ma.save("test.wf")

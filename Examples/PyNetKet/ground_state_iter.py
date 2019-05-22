@@ -31,7 +31,8 @@ vmc = nk.variational.Vmc(
     optimizer=op,
     n_samples=1000,
     diag_shift=0.0,
-    method='Sr')
+    method="Sr",
+)
 
 mpi_rank = nk.MPI.rank()
 
@@ -44,6 +45,6 @@ for step in vmc.iter(300):
         # Print output to the console immediately
         sys.stdout.flush()
         # Save current parameters to file
-        ma.save('test.wf')
+        ma.save("test.wf")
 
     comm.barrier()
