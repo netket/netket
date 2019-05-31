@@ -116,6 +116,9 @@ void AddGraphModule(py::module& m) {
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
                              R"EOF(
       int: The number of vertices in the graph.)EOF")
+      .def_property_readonly("size", &AbstractGraph::Size,
+                             R"EOF(
+      int: The number of vertices in the graph.)EOF")
       .def_property_readonly(
           "edges",
           [](AbstractGraph const& x) {

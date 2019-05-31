@@ -22,31 +22,42 @@ hilberts = {}
 
 # Spin 1/2
 hilberts["Spin 1/2"] = nk.hilbert.Spin(
-    s=0.5, graph=nk.graph.Hypercube(length=20, n_dim=1))
+    s=0.5, graph=nk.graph.Hypercube(length=20, n_dim=1)
+)
+
+hilberts["Spin 1/2 n"] = nk.hilbert.Spin(s=0.5, n=10)
 
 # Spin 1/2 with total Sz
 hilberts["Spin 1/2 with total Sz"] = nk.hilbert.Spin(
-    s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(length=20, n_dim=1))
+    s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(length=20, n_dim=1)
+)
 
 # Spin 3
-hilberts["Spin 3"] = nk.hilbert.Spin(
-    s=3, graph=nk.graph.Hypercube(length=25, n_dim=1))
+hilberts["Spin 3"] = nk.hilbert.Spin(s=3, graph=nk.graph.Hypercube(length=25, n_dim=1))
 
 # Boson
 hilberts["Boson"] = nk.hilbert.Boson(
-    n_max=5, graph=nk.graph.Hypercube(length=21, n_dim=1))
+    n_max=5, graph=nk.graph.Hypercube(length=21, n_dim=1)
+)
 
 # Boson with total number
 hilberts["Bosons with total number"] = nk.hilbert.Boson(
-    n_max=5, n_bosons=11, graph=nk.graph.Hypercube(length=21, n_dim=1))
+    n_max=5, n_bosons=11, graph=nk.graph.Hypercube(length=21, n_dim=1)
+)
 
 # Qubit
-hilberts["Qubit"] = nk.hilbert.Qubit(
-    graph=nk.graph.Hypercube(length=32, n_dim=1))
+hilberts["Qubit"] = nk.hilbert.Qubit(graph=nk.graph.Hypercube(length=32, n_dim=1))
+
+hilberts["Qubit n=1"] = nk.hilbert.Qubit()
 
 # Custom Hilbert
 hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=34, n_dim=1))
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=34, n_dim=1)
+)
+
+hilberts["Custom Hilbert n"] = nk.hilbert.CustomHilbert(
+    local_states=[-1232, 132, 0], n=2
+)
 
 # Heisenberg 1d
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -64,23 +75,28 @@ hilberts["Bose Hubbard"] = hi
 
 # Spin 1/2
 hilberts["Spin 1/2 Small"] = nk.hilbert.Spin(
-    s=0.5, graph=nk.graph.Hypercube(length=10, n_dim=1))
+    s=0.5, graph=nk.graph.Hypercube(length=10, n_dim=1)
+)
 
 # Spin 3
 hilberts["Spin 1/2 with total Sz Small"] = nk.hilbert.Spin(
-    s=3, total_sz=1.0, graph=nk.graph.Hypercube(length=4, n_dim=1))
+    s=3, total_sz=1.0, graph=nk.graph.Hypercube(length=4, n_dim=1)
+)
 
 # Boson
 hilberts["Boson Small"] = nk.hilbert.Boson(
-    n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+    n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1)
+)
 
 # Qubit
 hilberts["Qubit Small"] = nk.hilbert.Qubit(
-    graph=nk.graph.Hypercube(length=1, n_dim=1, pbc=False))
+    graph=nk.graph.Hypercube(length=1, n_dim=1, pbc=False)
+)
 
 # Custom Hilbert
 hilberts["Custom Hilbert Small"] = nk.hilbert.CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1))
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
+)
 
 #
 # Tests
@@ -91,22 +107,22 @@ def test_consistent_size():
     """"""
 
     for name, hi in hilberts.items():
-        #print("Hilbert test: %s" % name)
-        assert (hi.size > 0)
-        assert (hi.local_size > 0)
+        # print("Hilbert test: %s" % name)
+        assert hi.size > 0
+        assert hi.local_size > 0
         if hi.is_discrete:
-            assert (len(hi.local_states) == hi.local_size)
+            assert len(hi.local_states) == hi.local_size
             for state in hi.local_states:
-                assert (np.isfinite(state).all())
+                assert np.isfinite(state).all()
 
 
 def test_random_states():
     """"""
 
     for name, hi in hilberts.items():
-        assert (hi.size > 0)
-        assert (hi.local_size > 0)
-        assert (len(hi.local_states) == hi.local_size)
+        assert hi.size > 0
+        assert hi.local_size > 0
+        assert len(hi.local_states) == hi.local_size
 
         if hi.is_discrete:
             rstate = np.zeros(hi.size)
@@ -116,16 +132,15 @@ def test_random_states():
             for i in range(100):
                 hi.random_vals(rstate, rg)
                 for state in rstate:
-                    assert (state in local_states)
+                    assert state in local_states
 
 
-#TODO (jamesETsmith)
 def test_hilbert_index():
     """"""
 
     for name, hi in hilberts.items():
-        assert (hi.size > 0)
-        assert (hi.local_size > 0)
+        assert hi.size > 0
+        assert hi.local_size > 0
 
         log_max_states = np.log(nk.hilbert.max_states)
         if hi.size * np.log(hi.local_size) < log_max_states:
@@ -148,11 +163,12 @@ def test_hilbert_index():
             with pytest.raises(RuntimeError):
                 dw = nk.operator.DirectMatrixWrapper(op)
 
+
 def test_state_iteration():
     g = nk.graph.Hypercube(10, 1)
     hilbert = nk.hilbert.Spin(g, s=0.5)
 
-    reference = [np.array(el) for el in itertools.product([-1., 1.], repeat=10)]
+    reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
 
     for state, ref in zip(hilbert.states(), reference):
         assert np.allclose(state, ref)

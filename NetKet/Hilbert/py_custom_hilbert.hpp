@@ -53,6 +53,27 @@ void AddCustomHilbert(py::module &subm) {
                100
 
                ```
+           )EOF")
+      .def(py::init<int, std::vector<double>>(), py::arg("n") = 1,
+           py::arg("local_states"),
+           R"EOF(
+           Constructs a new ``CustomHilbert`` given a number of sites and a list of
+           local quantum numbers.
+
+           Args:
+               n: Number of sites.
+               local_states: Eigenvalues of the states.
+
+           Examples:
+               Simple custom hilbert space.
+
+               ```python
+               >>> from netket.hilbert import CustomHilbert
+               >>> hi = CustomHilbert(n=100, local_states=[-1232, 132, 0])
+               >>> print(hi.size)
+               100
+
+               ```
            )EOF");
 }
 

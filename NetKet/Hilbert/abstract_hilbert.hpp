@@ -103,15 +103,35 @@ class AbstractHilbert {
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
 
-  virtual const AbstractGraph &GetGraph() const noexcept = 0;
+  void SetGraph(const AbstractGraph &graph) {
+    if (graph.Size() != Size()) {
+      throw RuntimeError{"Trying to assign an invalid Graph to Hilbert"};
+    }
+    graph_ = &graph;
+  }
 
-  // Allow range-based for over all states in the Hilbert space, iff it is indexable
+  const AbstractGraph &GetGraph() const {
+    if (graph_ == nullptr) {
+      throw RuntimeError{"Hilbert does not contain a valid Graph"};
+    }
+    if (graph_->Size() != Size()) {
+      throw RuntimeError{"Invalid Graph assigned to Hilbert"};
+    }
+    return *graph_;
+  }
+
+  // Allow range-based for over all states in the Hilbert space, iff it is
+  // indexable
   StateIterator begin() const { return StateIterator(GetIndex()); };
   StateIterator end() const { return StateIterator(GetIndex()); };
 
   virtual ~AbstractHilbert() = default;
 
+ protected:
+  AbstractHilbert() { graph_ = nullptr; }
+
  private:
+  AbstractGraph const *graph_;
   mutable nonstd::optional<HilbertIndex> index_;
 };
 

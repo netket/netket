@@ -36,8 +36,6 @@ namespace netket {
 */
 
 class Spin : public AbstractHilbert {
-  const AbstractGraph &graph_;
-
   double S_;
   double totalS_;
   bool constraintSz_;
@@ -49,20 +47,28 @@ class Spin : public AbstractHilbert {
   int nspins_;
 
  public:
-  explicit Spin(const AbstractGraph &graph, double S) : graph_(graph) {
-    const int nspins = graph.Size();
-
+  explicit Spin(int nspins, double S) {
     Init(nspins, S);
 
     constraintSz_ = false;
   }
-  explicit Spin(const AbstractGraph &graph, double S, double totalSz)
-      : graph_(graph) {
-    const int nspins = graph.Size();
+
+  explicit Spin(const AbstractGraph &graph, double S) {
+    int nspins = graph.Size();
+
+    Init(nspins, S);
+
+    constraintSz_ = false;
+    SetGraph(graph);
+  }
+
+  explicit Spin(const AbstractGraph &graph, double S, double totalSz) {
+    int nspins = graph.Size();
 
     Init(nspins, S);
 
     SetConstraint(totalSz);
+    SetGraph(graph);
   }
 
   void Init(int nspins, double S) {
@@ -174,8 +180,6 @@ class Spin : public AbstractHilbert {
       i++;
     }
   }
-
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket

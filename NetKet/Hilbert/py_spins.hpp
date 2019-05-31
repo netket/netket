@@ -31,6 +31,27 @@ namespace netket {
 void AddSpins(py::module &subm) {
   py::class_<Spin, AbstractHilbert>(
       subm, "Spin", R"EOF(Hilbert space composed of spin states.)EOF")
+      .def(py::init<int, double>(), py::arg("n") = 1, py::arg("s"), R"EOF(
+           Constructs a new ``Spin`` hilbert space as the tensor product of n
+           local spin spaces.
+
+           Args:
+               n: Number of spins.
+               s: Spin at each site. Must be integer or half-integer.
+
+           Examples:
+               Simple spin hilbert space.
+
+               ```python
+               >>> from netket.graph import Hypercube
+               >>> from netket.hilbert import Spin
+               >>> g = Hypercube(length=10,n_dim=2,pbc=True)
+               >>> hi = Spin(graph=g, s=0.5)
+               >>> print(hi.size)
+               100
+
+               ```
+           )EOF")
       .def(py::init<const AbstractGraph &, double>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("s"), R"EOF(
            Constructs a new ``Spin`` given a graph and the value of each spin.
@@ -63,7 +84,7 @@ void AddSpins(py::module &subm) {
                total_sz: Constrain total spin of system to a particular value.
 
            Examples:
-               Simple spin hilbert space.
+               Simple spin hilbert space with constrained total spin.
 
                ```python
                >>> from netket.graph import Hypercube

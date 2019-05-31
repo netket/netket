@@ -50,7 +50,24 @@ void AddQubits(py::module &subm) {
                100
 
                ```
-           )EOF");
+           )EOF")
+      .def(py::init<int>(), py::arg("n") = 1, R"EOF(
+           Constructs a new Hilbert space tensor product of n ``Qubit`` spaces .
+
+           Args:
+               n: Total number of qubits.
+
+           Examples:
+               Simple qubit hilbert space.
+
+               ```python
+               >>> from netket.hilbert import Qubit
+               >>> hi = Qubit(10)
+               >>> print(hi.size)
+               10
+
+           ```
+         )EOF");
 }
 
 }  // namespace netket

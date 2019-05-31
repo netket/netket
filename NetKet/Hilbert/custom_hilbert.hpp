@@ -32,19 +32,21 @@ namespace netket {
 */
 
 class CustomHilbert : public AbstractHilbert {
-  const AbstractGraph &graph_;
   std::vector<double> local_;
-
+  int size_;
   int nstates_;
 
-  int size_;
-
  public:
+  explicit CustomHilbert(int n_sites, const std::vector<double> &localstates)
+      : size_(n_sites), local_(localstates) {
+    nstates_ = local_.size();
+  }
   explicit CustomHilbert(const AbstractGraph &graph,
                          const std::vector<double> &localstates)
-      : graph_(graph), local_(localstates) {
+      : local_(localstates) {
     size_ = graph.Size();
     nstates_ = local_.size();
+    SetGraph(graph);
   }
 
   bool IsDiscrete() const override { return true; }
@@ -79,7 +81,6 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };  // namespace netket
 
 }  // namespace netket

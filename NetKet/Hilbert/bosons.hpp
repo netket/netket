@@ -33,8 +33,6 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
-  const AbstractGraph &graph_;
-
   int nsites_;
 
   std::vector<double> local_;
@@ -51,22 +49,36 @@ class Boson : public AbstractHilbert {
   int nstates_;
 
  public:
-  explicit Boson(const AbstractGraph &graph, int nmax)
-      : graph_(graph), nmax_(nmax) {
-    nsites_ = graph.Size();
-
+  explicit Boson(int nsites, int nmax) : nsites_(nsites), nmax_(nmax) {
     Init();
 
     constraintN_ = false;
   }
 
+  explicit Boson(int nsites, int nmax, int nbosons)
+      : nsites_(nsites), nmax_(nmax) {
+    Init();
+
+    SetNbosons(nbosons);
+  }
+
+  explicit Boson(const AbstractGraph &graph, int nmax) : nmax_(nmax) {
+    nsites_ = graph.Size();
+
+    Init();
+
+    constraintN_ = false;
+    SetGraph(graph);
+  }
+
   explicit Boson(const AbstractGraph &graph, int nmax, int nbosons)
-      : graph_(graph), nmax_(nmax) {
+      : nmax_(nmax) {
     nsites_ = graph.Size();
 
     Init();
 
     SetNbosons(nbosons);
+    SetGraph(graph);
   }
 
   void Init() {
@@ -156,8 +168,6 @@ class Boson : public AbstractHilbert {
       assert(CheckConstraint(v));
     }
   }
-
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket
