@@ -25,7 +25,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # Use scipy sparse diagonalization
-vals, vecs = eigs(ha.to_sparse(), k=3, which='SR')
+vals, vecs = eigs(ha.to_sparse(), k=3, which="SR")
 print("eigenvalues with scipy sparse:", vals.real)
 
 # Use internal Lanczos Solver Instead

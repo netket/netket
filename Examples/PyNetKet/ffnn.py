@@ -29,19 +29,13 @@ ha = nk.operator.Heisenberg(hilbert=hi)
 # Layers
 layers = (
     nk.layer.ConvolutionalHypercube(
-        length=L,
-        n_dim=1,
-        input_channels=1,
-        output_channels=4,
-        kernel_length=4),
+        length=L, n_dim=1, input_channels=1, output_channels=4, kernel_length=4
+    ),
     nk.layer.Lncosh(input_size=4 * L),
     nk.layer.ConvolutionalHypercube(
-        length=4 * L,
-        n_dim=1,
-        input_channels=1,
-        output_channels=2,
-        kernel_length=4),
-    nk.layer.Lncosh(input_size=4 * 2 * L)
+        length=4 * L, n_dim=1, input_channels=1, output_channels=2, kernel_length=4
+    ),
+    nk.layer.Lncosh(input_size=4 * 2 * L),
 )
 
 # FFNN Machine
@@ -56,10 +50,7 @@ op = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Variational Monte Carlo
 gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    diag_shift=0.01)
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, diag_shift=0.01
+)
 
 gs.run(output_prefix="ffnn_test", n_iter=300, save_params_every=10)

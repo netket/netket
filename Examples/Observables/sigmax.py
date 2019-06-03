@@ -41,7 +41,8 @@ gs = nk.variational.Vmc(
     optimizer=op,
     n_samples=1000,
     diag_shift=0.1,
-    method='Sr')
+    method="Sr",
+)
 
 # Adding an observable
 # The sum of sigma_x on all sites
@@ -49,4 +50,4 @@ X = [[0, 1], [1, 0]]
 sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
 gs.add_observable(sx, "SigmaX")
 
-gs.run(output_prefix='test', n_iter=300)
+gs.run(output_prefix="test", n_iter=300)
