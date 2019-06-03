@@ -180,6 +180,31 @@ class Spin : public AbstractHilbert {
       i++;
     }
   }
+
+  Spin &operator*=(const Spin &rhs) {
+    if (LocalSize() != rhs.LocalSize()) {
+      throw RuntimeError{"Cannot multiply the given hilbert spaces"};
+    }
+    nspins_ += rhs.Size();
+    if (constraintSz_ && rhs.constraintSz_ &&
+        std::abs(totalS_ - rhs.totalS_) < 1.0e-8) {
+      SetConstraint(totalS_);
+    } else {
+      constraintSz_ = false;
+    }
+
+    return *this;
+  }
+  friend Spin Pow(const Spin &lhs, int iexp) {
+    Spin powsp = lhs;
+    powsp.nspins_ *= iexp;
+    if (powsp.constraintSz_) {
+      powsp.SetConstraint(powsp.totalS_);
+    } else {
+      powsp.constraintSz_ = false;
+    }
+    return powsp;
+  }
 };
 
 }  // namespace netket

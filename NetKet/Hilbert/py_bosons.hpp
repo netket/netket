@@ -75,7 +75,22 @@ void AddBosons(py::module &subm) {
                100
 
                ```
-           )EOF");
+           )EOF")
+      .def("__imul__",
+           [](Boson &self, const Boson &rhs) {
+             self *= (rhs);
+             return self;
+           },
+           py::is_operator())
+      .def("__mul__",
+           [](const Boson &lhs, const Boson &rhs) {
+             Boson res = lhs;
+             res *= (rhs);
+             return res;
+           },
+           py::is_operator())
+      .def("__pow__", [](Boson &lhs, int iexp) { return Pow(lhs, iexp); },
+           py::is_operator());
 }
 
 }  // namespace netket

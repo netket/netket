@@ -74,7 +74,23 @@ void AddCustomHilbert(py::module &subm) {
                100
 
                ```
-           )EOF");
+           )EOF")
+      .def("__imul__",
+           [](CustomHilbert &self, const CustomHilbert &rhs) {
+             self *= (rhs);
+             return self;
+           },
+           py::is_operator())
+      .def("__mul__",
+           [](const CustomHilbert &lhs, const CustomHilbert &rhs) {
+             CustomHilbert res = lhs;
+             res *= (rhs);
+             return res;
+           },
+           py::is_operator())
+      .def("__pow__",
+           [](CustomHilbert &lhs, int iexp) { return Pow(lhs, iexp); },
+           py::is_operator());
 }
 
 }  // namespace netket

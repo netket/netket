@@ -85,6 +85,17 @@ class Qubit : public AbstractHilbert {
       i++;
     }
   }
+
+  Qubit &operator*=(const Qubit &rhs) {
+    nqubits_ += rhs.Size();
+    return *this;
+  }
+
+  friend Qubit Pow(const Qubit &lhs, int iexp) {
+    Qubit powsp = lhs;
+    powsp.nqubits_ *= iexp;
+    return powsp;
+  }
 };
 
 }  // namespace netket

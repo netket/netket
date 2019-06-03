@@ -67,7 +67,22 @@ void AddQubits(py::module &subm) {
                10
 
            ```
-         )EOF");
+         )EOF")
+      .def("__imul__",
+           [](Qubit &self, const Qubit &rhs) {
+             self *= (rhs);
+             return self;
+           },
+           py::is_operator())
+      .def("__mul__",
+           [](const Qubit &lhs, const Qubit &rhs) {
+             Qubit res = lhs;
+             res *= (rhs);
+             return res;
+           },
+           py::is_operator())
+      .def("__pow__", [](Qubit &lhs, int iexp) { return Pow(lhs, iexp); },
+           py::is_operator());
 }
 
 }  // namespace netket

@@ -102,9 +102,10 @@ void AddHilbertModule(py::module &m) {
           new_conf: Contains the value that those quantum numbers should take.
 
       )EOF");
+  // .def(py::self * py::self);
 
-  // Add HilbertIndex methods. For convenience, they are provided as methods on
-  // the Hilbert space directly.
+  // Add HilbertIndex methods. For convenience, they are provided as methods
+  // on the Hilbert space directly.
   hilbert_class
       .def_property_readonly(
           "n_states",

@@ -81,6 +81,23 @@ class CustomHilbert : public AbstractHilbert {
     }
   }
 
+  // Product of two hilbert spaces
+  CustomHilbert &operator*=(const CustomHilbert &rhs) {
+    if (LocalSize() != rhs.LocalSize()) {
+      throw RuntimeError{"Cannot multiply the given hilbert spaces"};
+    }
+
+    // TODO generalize this to spaces with different local sizes
+    size_ += rhs.Size();
+    return *this;
+  }
+
+  friend CustomHilbert Pow(const CustomHilbert &lhs, int iexp) {
+    CustomHilbert powres = lhs;
+    powres.size_ *= iexp;
+    return powres;
+  }
+
 };  // namespace netket
 
 }  // namespace netket

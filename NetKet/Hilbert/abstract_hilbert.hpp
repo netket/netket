@@ -103,6 +103,11 @@ class AbstractHilbert {
                           const std::vector<int> &tochange,
                           const std::vector<double> &newconf) const = 0;
 
+  AbstractHilbert &operator*=(const AbstractHilbert &rhs) {
+    this->operator*=(rhs);
+    return *this;
+  }
+
   void SetGraph(const AbstractGraph &graph) {
     if (graph.Size() != Size()) {
       throw RuntimeError{"Trying to assign an invalid Graph to Hilbert"};

@@ -95,7 +95,22 @@ void AddSpins(py::module &subm) {
                100
 
                ```
-           )EOF");
+           )EOF")
+      .def("__imul__",
+           [](Spin &self, const Spin &rhs) {
+             self *= (rhs);
+             return self;
+           },
+           py::is_operator())
+      .def("__mul__",
+           [](const Spin &lhs, const Spin &rhs) {
+             Spin res = lhs;
+             res *= (rhs);
+             return res;
+           },
+           py::is_operator())
+      .def("__pow__", [](Spin &lhs, int iexp) { return Pow(lhs, iexp); },
+           py::is_operator());
 }
 }  // namespace netket
 #endif

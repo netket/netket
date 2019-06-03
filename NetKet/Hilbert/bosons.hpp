@@ -168,6 +168,32 @@ class Boson : public AbstractHilbert {
       assert(CheckConstraint(v));
     }
   }
+
+  Boson &operator*=(const Boson &rhs) {
+    if (LocalSize() != rhs.LocalSize()) {
+      throw RuntimeError{"Cannot multiply the given hilbert spaces"};
+    }
+    nsites_ += rhs.Size();
+    if (constraintN_ && rhs.constraintN_) {
+      SetNbosons(nbosons_ + rhs.nbosons_);
+    } else {
+      constraintN_ = false;
+    }
+
+    return *this;
+  }
+
+  friend Boson Pow(const Boson &lhs, int iexp) {
+    Boson powsp = lhs;
+    powsp.nsites_ *= iexp;
+    if (powsp.constraintN_) {
+      int nbosons = powsp.nbosons_ * iexp;
+      powsp.SetNbosons(nbosons);
+    } else {
+      powsp.constraintN_ = false;
+    }
+    return powsp;
+  }
 };
 
 }  // namespace netket
