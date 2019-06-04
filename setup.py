@@ -71,7 +71,7 @@ class CMakeBuild(build_ext):
             # lib_dir is the directory, where the shared libraries will be
             # stored (it will probably be different from the build_temp
             # directory so that setuptools find the libraries)
-            lib_dir = os.path.abspath(self.build_lib)
+            lib_dir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             # Options to pass to CMake during configuration
@@ -118,11 +118,6 @@ class CMakeBuild(build_ext):
             else:
                 super(build_ext, self).build_extension(ext)
 
-        extdir = os.path.abspath(os.path.dirname(
-            self.get_ext_fullpath(ext.name)))
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
-
 
 setup(
     name='netket',
@@ -131,7 +126,8 @@ setup(
     url='http://github.com/netket/netket',
     author_email='netket@netket.org',
     license='Apache 2.0',
-    ext_modules=[CMakeExtension('netket')],
+    packages=['netket'],
+    ext_modules=[CMakeExtension('netket._C_netket')],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
