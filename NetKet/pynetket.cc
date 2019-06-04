@@ -15,6 +15,7 @@
 #ifndef NETKET_PYNETKET_CC
 #define NETKET_PYNETKET_CC
 
+// clang-format off
 #include <netket.hpp>
 #include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
@@ -28,15 +29,16 @@
 #include "Stats/py_stats.hpp"
 #include "Supervised/py_supervised.hpp"
 #include "Unsupervised/py_unsupervised.hpp"
-#include "Utils/mpi_interface.hpp"  // for MPIInitializer
+#include "Utils/mpi_interface.hpp" // for MPIInitializer
 #include "Utils/py_utils.hpp"
 #include "Utils/pybind_helpers.hpp"
+// clang-format on
 
 namespace netket {
 
 namespace detail {
 static MPIInitializer _do_not_use_me_dummy_{};
-}  // namespace detail
+} // namespace detail
 
 using ode::AddDynamicsModule;
 
@@ -54,8 +56,8 @@ PYBIND11_MODULE(netket, m) {
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);
-}  // PYBIND11_MODULE
+} // PYBIND11_MODULE
 
-}  // namespace netket
+} // namespace netket
 
 #endif
