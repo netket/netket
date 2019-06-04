@@ -38,9 +38,7 @@ namespace netket {
 
 namespace detail {
 static MPIInitializer _do_not_use_me_dummy_{};
-} // namespace detail
-
-using ode::AddDynamicsModule;
+}  // namespace detail
 
 PYBIND11_MODULE(_C_netket, m) {
   AddDynamicsModule(m);
@@ -56,8 +54,8 @@ PYBIND11_MODULE(_C_netket, m) {
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);
-} // PYBIND11_MODULE
+}  // PYBIND11_MODULE
 
-} // namespace netket
+}  // namespace netket
 
 #endif
