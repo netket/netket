@@ -207,7 +207,7 @@ endif()
 
 
 add_library(netket MODULE NetKet/pynetket.cc NetKet/Dynamics/py_dynamics.cpp
-    NetKet/Graph/hypercube.cc)
+    NetKet/Graph/hypercube.cc NetKet/Graph/lattice.cc)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")

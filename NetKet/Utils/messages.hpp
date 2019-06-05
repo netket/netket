@@ -35,7 +35,7 @@ class NullStream : public std::ostream {
   NullBuffer m_sb;
 };
 
-std::ostream& InfoMessage(const std::string& comment = "# ") {
+inline std::ostream& InfoMessage(const std::string& comment = "# ") {
   // null stream
   static NullStream nullstream;
 
@@ -50,8 +50,8 @@ std::ostream& InfoMessage(const std::string& comment = "# ") {
   }
 }
 
-
-std::ostream& WarningMessage(const std::string& comment = "# WARNING: ") {
+inline std::ostream& WarningMessage(
+    const std::string& comment = "# WARNING: ") {
   // null stream
   static NullStream nullstream;
 
@@ -66,7 +66,7 @@ std::ostream& WarningMessage(const std::string& comment = "# WARNING: ") {
   }
 }
 
-std::ostream& ErrorMessage(const std::string& comment = "# ERROR: ") {
+inline std::ostream& ErrorMessage(const std::string& comment = "# ERROR: ") {
   // null stream
   static NullStream nullstream;
 
@@ -81,7 +81,7 @@ std::ostream& ErrorMessage(const std::string& comment = "# ERROR: ") {
   }
 }
 
-std::ostream& DebugMessage(const std::string& comment = "# DEBUG: ") {
+inline std::ostream& DebugMessage(const std::string& comment = "# DEBUG: ") {
   // null stream
   static NullStream nullstream;
 
