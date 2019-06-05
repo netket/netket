@@ -211,6 +211,7 @@ target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
 add_dependencies(netket eigen_project pybind11_project)
+set_target_properties(netket PROPERTIES OUTPUT_NAME "_C_netket")
 
 if(NETKET_Sanitizer)
     message(STATUS "[NetKet] Building python library with address and UB sanitizers")

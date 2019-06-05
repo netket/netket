@@ -40,7 +40,7 @@ static MPIInitializer _do_not_use_me_dummy_{};
 
 using ode::AddDynamicsModule;
 
-PYBIND11_MODULE(netket, m) {
+PYBIND11_MODULE(_C_netket, m) {
   AddDynamicsModule(m);
   AddGraphModule(m);
   AddGroundStateModule(m);
