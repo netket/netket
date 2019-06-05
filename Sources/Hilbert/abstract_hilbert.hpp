@@ -106,8 +106,8 @@ class AbstractHilbert {
   virtual const AbstractGraph &GetGraph() const noexcept = 0;
 
   // Allow range-based for over all states in the Hilbert space, iff it is indexable
-  StateIterator begin() const { return StateIterator(GetIndex()); };
-  StateIterator end() const { return StateIterator(GetIndex()); };
+  StateGenerator begin() const { return StateGenerator(GetIndex()); };
+  StateGenerator end() const { return StateGenerator(GetIndex()); };
 
   virtual ~AbstractHilbert() = default;
 
