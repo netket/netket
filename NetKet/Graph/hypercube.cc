@@ -93,6 +93,31 @@ Hypercube::Hypercube(int const length, ColorMap colors)
   symm_table_ = BuildSymmTable(length_, n_dim_, pbc_, n_sites_);
 }
 
+int Hypercube::Nsites() const noexcept { return n_sites_; }
+int Hypercube::Size() const noexcept { return n_sites_; }
+
+const std::vector<Hypercube::Edge> &Hypercube::Edges() const noexcept {
+  return edges_;
+}
+
+std::vector<std::vector<int>> Hypercube::AdjacencyList() const {
+  return detail::AdjacencyListFromEdges(Edges(), Nsites());
+}
+
+bool Hypercube::IsBipartite() const noexcept {
+  return !pbc_ || length_ % 2 == 0;
+}
+
+bool Hypercube::IsConnected() const noexcept { return true; }
+
+const Hypercube::ColorMap &Hypercube::EdgeColors() const noexcept {
+  return colors_;
+}
+
+std::vector<std::vector<int>> Hypercube::SymmetryTable() const {
+  return symm_table_;
+}
+
 int Hypercube::Coord2Site(std::vector<int> const &coord) const {
   auto const print_coord = [&coord](std::ostream &os) -> std::ostream & {
     os << "[";
