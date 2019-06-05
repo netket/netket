@@ -99,7 +99,7 @@ class AbstractGraph {
   @return true if lattice is bipartite.
   */
   // virtual bool IsBipartite() const noexcept = 0;
-  inline bool IsBipartite() const noexcept;
+  inline virtual bool IsBipartite() const noexcept;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
@@ -107,7 +107,7 @@ class AbstractGraph {
    * @return true, if the graph is connected
    */
   // virtual bool IsConnected() const noexcept = 0;
-  inline bool IsConnected() const noexcept;
+  inline virtual bool IsConnected() const noexcept;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
