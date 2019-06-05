@@ -32,8 +32,6 @@ namespace py = pybind11;
 
 namespace netket {
 
-constexpr int HilbertIndex::MaxStates;
-
 void AddHilbertModule(py::module &m) {
   auto subm = m.def_submodule("hilbert");
 
@@ -108,21 +106,23 @@ void AddHilbertModule(py::module &m) {
           [](const AbstractHilbert &self) { return self.GetIndex().NStates(); },
           R"EOF(int: The total dimension of the many-body Hilbert space.
                 Throws an exception iff the space is not indexable.)EOF")
-      .def("number_to_state",
-           [](const AbstractHilbert &self, int i) {
-             return self.GetIndex().NumberToState(i);
-           },
-           py::arg("i"),
-           R"EOF(
+      .def(
+          "number_to_state",
+          [](const AbstractHilbert &self, int i) {
+            return self.GetIndex().NumberToState(i);
+          },
+          py::arg("i"),
+          R"EOF(
            Returns the visible configuration corresponding to the i-th basis state
            for input i. Throws an exception iff the space is not indexable.
       )EOF")
-      .def("state_to_number",
-           [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
-             return self.GetIndex().StateToNumber(conf);
-           },
-           py::arg("conf"),
-           R"EOF(Returns index of the given many-body configuration.
+      .def(
+          "state_to_number",
+          [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
+            return self.GetIndex().StateToNumber(conf);
+          },
+          py::arg("conf"),
+          R"EOF(Returns index of the given many-body configuration.
                 Throws an exception iff the space is not indexable.)EOF")
       .def(
           "states",

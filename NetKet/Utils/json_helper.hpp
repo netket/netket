@@ -27,7 +27,7 @@ namespace netket {
 
 using json = nlohmann::json;
 
-bool FieldExists(const json& pars, const std::string& field) {
+inline bool FieldExists(const json& pars, const std::string& field) {
   return pars.count(field) > 0;
 }
 
@@ -42,8 +42,8 @@ bool FieldExists(const json& pars, const std::string& field) {
  * "Field 'SubKey' (below 'Key') is not defined in the input".
  */
 
-void CheckFieldExists(const json& pars, const std::string& field,
-                      const std::string& context = "") {
+inline void CheckFieldExists(const json& pars, const std::string& field,
+                             const std::string& context = "") {
   if (!FieldExists(pars, field)) {
     std::stringstream s;
     s << "Field '" << field << "' ";
@@ -55,8 +55,8 @@ void CheckFieldExists(const json& pars, const std::string& field,
   }
 }
 
-json FieldVal(const json& pars, const std::string& field,
-              const std::string& context = "") {
+inline json FieldVal(const json& pars, const std::string& field,
+                     const std::string& context = "") {
   CheckFieldExists(pars, field, context);
   return pars[field];
 }
@@ -68,8 +68,8 @@ json FieldVal(const json& pars, const std::string& field,
   return pars[field].get<Value>();
 }
 
-void FieldArray(const json& pars, const std::string& field,
-                std::vector<int>& arr, const std::string& context = "") {
+inline void FieldArray(const json& pars, const std::string& field,
+                       std::vector<int>& arr, const std::string& context = "") {
   CheckFieldExists(pars, field, context);
   arr.resize(pars[field].size());
   for (std::size_t i = 0; i < pars[field].size(); i++) {
@@ -86,7 +86,7 @@ Value FieldOrDefaultVal(const json& pars, std::string field, Value defval) {
   }
 }
 
-json ReadJsonFromFile(std::string filename) {
+inline json ReadJsonFromFile(std::string filename) {
   json pars;
 
   std::ifstream filein(filename);

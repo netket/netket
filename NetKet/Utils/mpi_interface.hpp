@@ -22,6 +22,8 @@
 #include <valarray>
 #include <vector>
 
+#include "common_types.hpp"
+
 namespace netket {
 
 inline void SendToAll(double &val, int sendnode = 0,
@@ -37,36 +39,36 @@ inline void SendToAll(Complex &val, int sendnode = 0,
   MPI_Bcast(&val, 1, MPI_DOUBLE_COMPLEX, sendnode, comm);
 }
 
-void SendToAll(std::vector<int> &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(std::vector<int> &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_INT, root, comm);
 }
-void SendToAll(std::vector<unsigned int> &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(std::vector<unsigned int> &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED, root, comm);
 }
-void SendToAll(std::vector<unsigned long> &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(std::vector<unsigned long> &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_UNSIGNED_LONG, root, comm);
 }
-void SendToAll(std::vector<double> &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(std::vector<double> &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_DOUBLE, root, comm);
 }
-void SendToAll(std::vector<Complex> &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(std::vector<Complex> &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&value[0], value.size(), MPI_DOUBLE_COMPLEX, root, comm);
 }
-void SendToAll(Eigen::VectorXi &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(Eigen::VectorXi &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(value.data(), value.size(), MPI_INT, root, comm);
 }
-void SendToAll(Eigen::VectorXd &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(Eigen::VectorXd &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(value.data(), value.size(), MPI_DOUBLE, root, comm);
 }
-void SendToAll(Eigen::VectorXcd &value, int root = 0,
-               const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SendToAll(Eigen::VectorXcd &value, int root = 0,
+                      const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(value.data(), value.size(), MPI_DOUBLE_COMPLEX, root, comm);
 }
 
@@ -101,6 +103,7 @@ inline void SumOnNodes(std::vector<double> &value,
                 comm);
 }
 
+#if 0
 inline void SumOnNodes(std::valarray<double> &val, std::valarray<double> &sum,
                        const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Allreduce(&val[0], &sum[0], val.size(), MPI_DOUBLE, MPI_SUM, comm);
@@ -111,6 +114,7 @@ inline void SumOnNodes(std::valarray<double> &value,
   MPI_Allreduce(MPI_IN_PLACE, &value[0], value.size(), MPI_DOUBLE, MPI_SUM,
                 comm);
 }
+#endif
 
 inline void SumOnNodes(Eigen::VectorXd &val, Eigen::VectorXd &sum,
                        const MPI_Comm comm = MPI_COMM_WORLD) {
@@ -150,8 +154,7 @@ inline void SumOnNodes(Complex *value, int size,
   MPI_Allreduce(MPI_IN_PLACE, value, size, MPI_DOUBLE_COMPLEX, MPI_SUM, comm);
 }
 
-inline void SumOnNodes(std::vector<Complex> &val,
-                       std::vector<Complex> &sum,
+inline void SumOnNodes(std::vector<Complex> &val, std::vector<Complex> &sum,
                        const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Allreduce(&val[0], &sum[0], val.size(), MPI_DOUBLE_COMPLEX, MPI_SUM,
                 comm);
@@ -163,8 +166,7 @@ inline void SumOnNodes(std::vector<Complex> &value,
                 MPI_SUM, comm);
 }
 
-inline void SumOnNodes(Complex &value,
-                       const MPI_Comm comm = MPI_COMM_WORLD) {
+inline void SumOnNodes(Complex &value, const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, comm);
 }
 
