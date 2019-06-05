@@ -48,7 +48,7 @@ class Spin : public AbstractHilbert {
                   const std::vector<double> &newconf) const override;
 
  private:
-  void Init(int nspins, double S);
+  void Init();
   inline void SetConstraint(double totalS);
 
   const AbstractGraph &graph_;

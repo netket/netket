@@ -23,33 +23,30 @@
 namespace netket {
 
 Spin::Spin(const AbstractGraph &graph, double const S)
-    : graph_{graph}, constraintSz_{false}, nspins_{graph.Size()} {
-  Init(nspins_, S);
+    : graph_{graph}, S_{S}, constraintSz_{false}, nspins_{graph.Size()} {
+  Init();
 }
 
 Spin::Spin(const AbstractGraph &graph, double const S, double const totalSz)
-    : graph_{graph}, nspins_{graph.Size()} {
-  Init(nspins_, S);
+    : graph_{graph}, S_{S}, nspins_{graph.Size()} {
+  Init();
   SetConstraint(totalSz);
 }
 
-void Spin::Init(int nspins, double S) {
-  S_ = S;
-  nspins_ = nspins;
-
-  if (S <= 0) {
+void Spin::Init() {
+  if (S_ <= 0) {
     throw InvalidInputError("Invalid spin value");
   }
 
-  if (std::round(2. * S) != 2. * S) {
+  if (std::round(2. * S_) != 2. * S_) {
     throw InvalidInputError("Spin value is neither integer nor half integer");
   }
 
-  nstates_ = std::round(2. * S) + 1;
+  nstates_ = std::round(2. * S_) + 1;
 
   local_.resize(nstates_);
 
-  int sp = -std::round(2. * S);
+  int sp = -std::round(2. * S_);
   for (int i = 0; i < nstates_; i++) {
     local_[i] = sp;
     sp += 2;
