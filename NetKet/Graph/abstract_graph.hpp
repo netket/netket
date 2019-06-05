@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 #include "Utils/array_hasher.hpp"
+#include "Utils/exceptions.hpp"
 
 namespace netket {
 
@@ -98,7 +99,7 @@ class AbstractGraph {
   @return true if lattice is bipartite.
   */
   // virtual bool IsBipartite() const noexcept = 0;
-  bool IsBipartite() const noexcept;
+  inline bool IsBipartite() const noexcept;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
@@ -106,7 +107,7 @@ class AbstractGraph {
    * @return true, if the graph is connected
    */
   // virtual bool IsConnected() const noexcept = 0;
-  bool IsConnected() const noexcept;
+  inline bool IsConnected() const noexcept;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
@@ -162,7 +163,7 @@ class AbstractGraph {
    * @return A vector `dist` of distances where dist[v] is the distance of v to
    * root.
    */
-  virtual std::vector<int> Distances(int root) const;
+  inline virtual std::vector<int> Distances(int root) const;
 
   /**
    * Computes the distances between each pair of nodes on the graph (the
@@ -170,7 +171,7 @@ class AbstractGraph {
    * @return A vector of vectors dist where dist[v][w] is the distance between
    *    nodes v and w.
    */
-  virtual std::vector<std::vector<int>> AllDistances() const;
+  inline virtual std::vector<std::vector<int>> AllDistances() const;
 
   virtual ~AbstractGraph(){};
 
@@ -191,7 +192,7 @@ class AbstractGraph {
 namespace detail {
 /// Constructs the adjacency list given graph edges. No sanity checks are
 /// performed. Use at your own risk!
-std::vector<std::vector<int>> AdjacencyListFromEdges(
+inline std::vector<std::vector<int>> AdjacencyListFromEdges(
     const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
   assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
   std::vector<std::vector<int>> adjacency_list(
@@ -203,7 +204,7 @@ std::vector<std::vector<int>> AdjacencyListFromEdges(
   return adjacency_list;
 }
 
-int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
+inline int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
   if (edges.empty()) {
     return 0;
   }
