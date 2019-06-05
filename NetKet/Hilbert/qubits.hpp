@@ -12,18 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <vector>
-#include "Graph/graph.hpp"
-#include "Utils/json_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "abstract_hilbert.hpp"
-
 #ifndef NETKET_QUBITS_HPP
 #define NETKET_QUBITS_HPP
+
+#include "Graph/abstract_graph.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 
 namespace netket {
 
@@ -32,61 +25,31 @@ namespace netket {
 */
 
 class Qubit : public AbstractHilbert {
-  const AbstractGraph &graph_;
-
-  std::vector<double> local_;
-
-  int nqubits_;
-
  public:
-  explicit Qubit(const AbstractGraph &graph) : graph_(graph) {
-    const int nqubits = graph.Size();
-    Init(nqubits);
-  }
+  explicit Qubit(const AbstractGraph &graph);
 
-  void Init(int nqubits) {
-    nqubits_ = nqubits;
+  virtual bool IsDiscrete() const override;
+  virtual int LocalSize() const override;
+  virtual int Size() const override;
+  virtual std::vector<double> LocalStates() const override;
 
-    local_.resize(2);
+  virtual void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
+                          netket::default_random_engine &rgen) const override;
 
-    local_[0] = 0;
-    local_[1] = 1;
-  }
+  virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                          const std::vector<int> &tochange,
+                          const std::vector<double> &newconf) const override;
 
-  bool IsDiscrete() const override { return true; }
+  virtual const AbstractGraph &GetGraph() const noexcept override;
 
-  int LocalSize() const override { return 2; }
+ private:
+  inline void Init();
 
-  int Size() const override { return nqubits_; }
-
-  std::vector<double> LocalStates() const override { return local_; }
-
-  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                  netket::default_random_engine &rgen) const override {
-    std::uniform_int_distribution<int> distribution(0, 1);
-
-    assert(state.size() == nqubits_);
-
-    // unconstrained random
-    for (int i = 0; i < state.size(); i++) {
-      state(i) = distribution(rgen);
-    }
-  }
-
-  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                  const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const override {
-    assert(v.size() == nqubits_);
-
-    int i = 0;
-    for (auto sf : tochange) {
-      v(sf) = newconf[i];
-      i++;
-    }
-  }
-
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
+  const AbstractGraph &graph_;
+  std::vector<double> local_;
+  int nqubits_;
 };
 
 }  // namespace netket
-#endif
+
+#endif  // NETKET_QUBITS_HPP
