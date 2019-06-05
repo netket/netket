@@ -15,95 +15,40 @@
 #ifndef NETKET_HILBERT_INDEX_HPP
 #define NETKET_HILBERT_INDEX_HPP
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <cmath>
 #include <limits>
 #include <map>
-#include <memory>
 #include <nonstd/span.hpp>
 #include <vector>
 
-#include "Utils/next_variation.hpp"
+#include <Eigen/Dense>
+
+#include "common_types.hpp"
 
 namespace netket {
 
 class HilbertIndex {
  public:
-  HilbertIndex(std::vector<double> localstates, int local_size, int size)
-      : localstates_(std::move(localstates)),
-        localsize_(local_size),
-        size_(size) {
-    Init();
-  }
-
-  void Init() {
-    nstates_ = std::pow(localsize_, size_);
-
-    std::size_t ba = 1;
-    for (int s = 0; s < size_; s++) {
-      basis_.push_back(ba);
-      ba *= localsize_;
-    }
-
-    for (std::size_t k = 0; k < localstates_.size(); k++) {
-      statenumber_[localstates_[k]] = k;
-    }
-  }
+  HilbertIndex(std::vector<double> localstates, int local_size, int size);
 
   // converts a vector of quantum numbers into the unique integer identifier
-  std::size_t StateToNumber(const Eigen::VectorXd &v) const {
-    std::size_t number = 0;
-
-    for (int i = 0; i < size_; i++) {
-      assert(statenumber_.count(v(size_ - i - 1)) > 0);
-      number += statenumber_.at(v(size_ - i - 1)) * basis_[i];
-    }
-
-    return number;
-  }
+  std::size_t StateToNumber(const Eigen::VectorXd &v) const;
 
   // converts a vector of quantum numbers into the unique integer identifier
   // this version assumes that a number representaiton is already known for the
   // given vector v, and this function is used to update it
   std::size_t DeltaStateToNumber(const Eigen::VectorXd &v,
                                  nonstd::span<const int> connector,
-                                 nonstd::span<const double> newconf) const {
-    std::size_t number = 0;
-
-    for (int k = 0; k < connector.size(); k++) {
-      const int ich = connector[k];
-      assert(statenumber_.count(v(ich)) > 0);
-      assert(statenumber_.count(newconf[k]) > 0);
-      number -= statenumber_.at(v(ich)) * basis_[size_ - ich - 1];
-      number += statenumber_.at(newconf[k]) * basis_[size_ - ich - 1];
-    }
-
-    return number;
-  }
+                                 nonstd::span<const double> newconf) const;
 
   // converts an integer into a vector of quantum numbers
-  Eigen::VectorXd NumberToState(int i) const {
-    Eigen::VectorXd result = Eigen::VectorXd::Constant(size_, localstates_[0]);
+  Eigen::VectorXd NumberToState(int i) const;
 
-    int ip = i;
-
-    int k = size_ - 1;
-
-    while (ip > 0) {
-      assert((ip % localsize_) < localstates_.size());
-      result(k) = localstates_[ip % localsize_];
-      ip /= localsize_;
-      k--;
-    }
-    return result;
-  }
-
-  int NStates() const { return nstates_; }
-
+  constexpr int NStates() const noexcept { return nstates_; }
   constexpr static int MaxStates = std::numeric_limits<int>::max() - 1;
 
  private:
+  void Init();
+
   const std::vector<double> localstates_;
   const int localsize_;
   const int size_;
@@ -145,4 +90,5 @@ class StateIterator {
 };
 
 }  // namespace netket
-#endif
+
+#endif  // NETKET_HILBERT_INDEX_HPP
