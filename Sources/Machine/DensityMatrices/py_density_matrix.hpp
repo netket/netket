@@ -38,25 +38,31 @@ void AddDensityMatrixModule(py::module &subm) {
           R"EOF(netket.hilbert.Hilbert: The physical hilbert space object of the density matrix.)EOF")
       .def(
           "to_matrix",
-          [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::VectorType {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+          [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::MatrixType {
+            const auto &hind = self.GetHilbertPhysical().GetIndex();
+            AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
             double maxlog = std::numeric_limits<double>::lowest();
 
             for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
+              auto v_r = hind.NumberToState(i);
+              for (Index j = 0; j < hind.NStates(); j++) {
+                auto v_c = hind.NumberToState(j);
+
+                Eigen::VectorXd v(v_r.size() * 2);
+                v << v_r, v_c;
+
+                vals(i, j) = self.LogVal(v);
+                if (std::real(vals(i, j)) > maxlog) {
+                  maxlog = std::real(vals(i, j));
+                }
               }
             }
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              vals(i) = std::exp(vals(i));
-            }
+            vals.array() -= maxlog;
+            vals = vals.array().exp();
 
-            vals /= vals.norm();
+            vals /= vals.trace();
             return vals;
           },
           R"EOF( a
