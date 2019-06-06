@@ -38,8 +38,8 @@ void AddUnsupervisedModule(py::module &m) {
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<int> bases, int discarded_samples,
                        int discarded_samples_on_init, const std::string &method,
-                       double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
+                       double diag_shift, bool use_iterative,
+                       bool use_cholesky) {
              auto rots = py::cast<std::vector<AbstractOperator *>>(rotations);
              return QuantumStateReconstruction{sa,
                                                op,
