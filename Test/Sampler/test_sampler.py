@@ -78,6 +78,12 @@ move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin 2 moves"] = sa
 
+# Diagonal density matrix sampling
+ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
+ma.init_random_parameters(seed=1234, sigma=0.2)
+dm = nk.machine.DiagonalDensityMatrix(ma)
+sa = nk.sampler.MetropolisLocal(machine=dm)
+samplers["Diagonal Density Matrix"] = sa
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():
