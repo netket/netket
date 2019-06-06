@@ -90,33 +90,26 @@ void AddExactModule(py::module &m) {
                    other choices are `dense` and `direct`.
 
            )EOF")
-      .def("iter", &ImagTimePropagation::Iterate, py::arg("dt"),
-           py::arg("n_iter") = nonstd::nullopt, R"EOF(
-           Iterate the optimization of the Vmc wavefunction.
+      .def("advance", &ImagTimePropagation::Advance, py::arg("dt"), R"EOF(
+           Advance the time propagation by dt.
 
            Args:
-               dt: Number of iterations performed at a time.
-               n_iter: The maximum number of iterations.
-
-           )EOF")
+               dt (float): The time step.
+      )EOF")
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
-      .def("get_observable_stats",
-           [](const ImagTimePropagation &self) {
-             py::dict data;
-             self.GetObsManager().InsertAllStats(data);
-             return data;
-           },
-           R"EOF(
+      .def(
+          "get_observable_stats",
+          [](const ImagTimePropagation &self) {
+            py::dict data;
+            self.GetObsManager().InsertAllStats(data);
+            return data;
+          },
+          R"EOF(
         Calculate and return the value of the operators stored as observables.
 
         )EOF");
-
-  py::class_<ImagTimePropagation::Iterator>(m_exact, "ImagTimeIterator")
-      .def("__iter__", [](ImagTimePropagation::Iterator &self) {
-        return py::make_iterator(self.begin(), self.end());
-      });
 
   py::class_<eddetail::result_t>(
       m_exact, "EdResult",
@@ -127,15 +120,16 @@ void AddExactModule(py::module &m) {
       .def_property_readonly(
           "eigenvectors", &eddetail::result_t::eigenvectors,
           R"EOF(vector<Eigen::Matrix<Complex, Eigen::Dynamic, 1>>: The complex eigenvectors of the system hamiltonian.)EOF")
-      .def("mean",
-           [](eddetail::result_t &self, AbstractOperator &op, int which) {
-             if (which < 0 || static_cast<std::size_t>(which) >=
-                                  self.eigenvectors().size()) {
-               throw InvalidInputError("Invalid eigenvector index `which`");
-             }
-             return self.mean(op, which);
-           },
-           py::arg("operator"), py::arg("which") = 0);
+      .def(
+          "mean",
+          [](eddetail::result_t &self, AbstractOperator &op, int which) {
+            if (which < 0 ||
+                static_cast<std::size_t>(which) >= self.eigenvectors().size()) {
+              throw InvalidInputError("Invalid eigenvector index `which`");
+            }
+            return self.mean(op, which);
+          },
+          py::arg("operator"), py::arg("which") = 0);
 
   m_exact.def("lanczos_ed", &lanczos_ed, py::arg("operator"),
               py::arg("matrix_free") = false, py::arg("first_n") = 1,
