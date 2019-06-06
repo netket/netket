@@ -19,7 +19,7 @@
 #include <iosfwd>
 #include <vector>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <nlohmann/json_fwd.hpp>
 
 #include "Hilbert/abstract_hilbert.hpp"
