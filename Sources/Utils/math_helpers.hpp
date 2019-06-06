@@ -1,8 +1,9 @@
 #ifndef NETKET_MATH_HELPERS_HPP
 #define NETKET_MATH_HELPERS_HPP
 
+#include <cmath>
 #include <functional>
-#include <iostream>
+#include <limits>
 
 namespace netket {
 
