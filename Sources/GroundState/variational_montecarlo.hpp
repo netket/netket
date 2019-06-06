@@ -89,50 +89,6 @@ class VariationalMonteCarlo {
   const std::string target_;
 
  public:
-  class Iterator {
-   public:
-    // typedefs required for iterators
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = Index;
-    using value_type = Index;
-    using pointer_type = Index *;
-    using reference_type = Index &;
-
-   private:
-    VariationalMonteCarlo &vmc_;
-    Index step_size_;
-    nonstd::optional<Index> n_iter_;
-
-    Index cur_iter_;
-
-   public:
-    Iterator(VariationalMonteCarlo &vmc, Index step_size,
-             nonstd::optional<Index> n_iter)
-        : vmc_(vmc),
-          step_size_(step_size),
-          n_iter_(std::move(n_iter)),
-          cur_iter_(0) {}
-
-    Index operator*() const { return cur_iter_; }
-
-    Iterator &operator++() {
-      vmc_.Advance(step_size_);
-      cur_iter_ += step_size_;
-      return *this;
-    }
-
-    // TODO(C++17): Replace with comparison to special Sentinel type, since
-    // C++17 allows end() to return a different type from begin().
-    bool operator!=(const Iterator &) {
-      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
-    }
-    // pybind11::make_iterator requires operator==
-    bool operator==(const Iterator &other) { return !(*this != other); }
-
-    Iterator begin() const { return *this; }
-    Iterator end() const { return *this; }
-  };
-
   VariationalMonteCarlo(const AbstractOperator &hamiltonian,
                         AbstractSampler &sampler, AbstractOptimizer &optimizer,
                         int nsamples, int discarded_samples = -1,
@@ -344,6 +300,11 @@ class VariationalMonteCarlo {
 
   double Elocvar() { return elocvar_; }
 
+  void Reset() {
+    opt_.Reset();
+    InitSweeps();
+  }
+
   void Advance(Index steps = 1) {
     assert(steps > 0);
     for (Index i = 0; i < steps; ++i) {
@@ -351,18 +312,6 @@ class VariationalMonteCarlo {
       Gradient();
       UpdateParameters();
     }
-  }
-
-  Iterator Iterate(const nonstd::optional<Index> &n_iter = nonstd::nullopt,
-                   Index step_size = 1) {
-    assert(!n_iter.has_value() || n_iter.value() > 0);
-    assert(step_size > 0);
-
-    opt_.Reset();
-    InitSweeps();
-
-    Advance(step_size);
-    return Iterator(*this, step_size, n_iter);
   }
 
   void Run(const std::string &output_prefix,
@@ -379,7 +328,8 @@ class VariationalMonteCarlo {
     }
     opt_.Reset();
 
-    for (const auto step : Iterate(n_iter, step_size)) {
+    for (Index step = 0; !n_iter.has_value() || step < *n_iter; step += step_size) {
+      Advance(step_size);
       ComputeObservables();
 
       // Note: This has to be called in all MPI processes, because converting

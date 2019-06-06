@@ -36,7 +36,7 @@ def test_vmc_advance():
     ma1, vmc1 = _setup_vmc()
     ma2, vmc2 = _setup_vmc()
 
-    for i in range(11):
+    for i in range(10):
         vmc1.advance()
 
     for step in vmc2.iter(10):

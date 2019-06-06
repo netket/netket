@@ -146,16 +146,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
                ```
 
            )EOF")
-      .def("iter", &VariationalMonteCarlo::Iterate,
-           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1, R"EOF(
-           Iterate the optimization of the Vmc wavefunction.
-
-           Args:
-               n_iter: The maximum number of iterations.
-               step_size: Number of iterations performed at a time. Default is
-                   1.
-
-           )EOF")
+      .def("reset", &VariationalMonteCarlo::Reset)
       .def("advance", &VariationalMonteCarlo::Advance, py::arg("steps") = 1,
            R"EOF(
            Perform one or several iteration steps of the VMC calculation. In each step,
@@ -166,22 +157,18 @@ void AddVariationalMonteCarloModule(py::module &m) {
                steps: Number of VMC steps to perform.
 
            )EOF")
-      .def("get_observable_stats",
-           [](VariationalMonteCarlo &self) {
-             py::dict data;
-             self.ComputeObservables();
-             self.GetObsManager().InsertAllStats(data);
-             return data;
-           },
-           R"EOF(
+      .def(
+          "get_observable_stats",
+          [](VariationalMonteCarlo &self) {
+            py::dict data;
+            self.ComputeObservables();
+            self.GetObsManager().InsertAllStats(data);
+            return data;
+          },
+          R"EOF(
         Calculate and return the value of the operators stored as observables.
 
         )EOF");
-
-  py::class_<VariationalMonteCarlo::Iterator>(m_vmc, "VmcIterator")
-      .def("__iter__", [](VariationalMonteCarlo::Iterator &self) {
-        return py::make_iterator(self.begin(), self.end());
-      });
 }
 
 }  // namespace netket
