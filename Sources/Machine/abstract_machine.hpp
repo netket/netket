@@ -15,10 +15,14 @@
 #ifndef NETKET_ABSTRACTMACHINE_HPP
 #define NETKET_ABSTRACTMACHINE_HPP
 
-#include <Eigen/Dense>
 #include <complex>
-#include <fstream>
+#include <iosfwd>
 #include <vector>
+
+#include <Eigen/Dense>
+#include <nlohmann/json_fwd.hpp>
+
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -197,28 +201,15 @@ class AbstractMachine {
   */
   virtual VectorType DerLogChanged(VisibleConstType v,
                                    const std::vector<int> &tochange,
-                                   const std::vector<double> &newconf) {
-    VisibleType vp(v);
-    GetHilbert().UpdateConf(vp, tochange, newconf);
-    return DerLog(vp);
-  }
+                                   const std::vector<double> &newconf);
 
   virtual bool IsHolomorphic() { return true; }
 
-  virtual void to_json(json &j) const = 0;
-  virtual void from_json(const json &j) = 0;
+  virtual void to_json(nlohmann::json &j) const = 0;
+  virtual void from_json(const nlohmann::json &j) = 0;
 
-  void Save(const std::string &filename) const {
-    std::ofstream filewf(filename);
-    Save(filewf);
-    filewf.close();
-  }
-
-  void Save(std::ofstream &stream) const {
-    json j;
-    to_json(j);
-    stream << j << std::endl;
-  }
+  void Save(const std::string &filename) const;
+  void Save(std::ofstream &stream) const;
 
   virtual const AbstractHilbert &GetHilbert() const noexcept = 0;
 
@@ -226,4 +217,4 @@ class AbstractMachine {
 };
 }  // namespace netket
 
-#endif
+#endif  // NETKET_ABSTRACTMACHINE_HPP
