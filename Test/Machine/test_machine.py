@@ -5,6 +5,11 @@ import pytest
 from pytest import approx
 import os
 
+def merge_dicts(x, y):
+     z = x.copy()   # start with x's keys and values
+     z.update(y)    # modifies z with y's keys and values & returns None
+     return z
+
 machines = {}
 
 
@@ -28,6 +33,8 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
+dm_machines = {}
+ dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(hilbert=hi, alpha=2, beta=2, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
 
 # Layers
 layers = (
@@ -104,7 +111,7 @@ def check_holomorphic(func, x, eps, *args):
 
 
 def test_set_get_parameters():
-    for name, machine in machines.items():
+    for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
         assert machine.n_par > 0
         npar = machine.n_par
@@ -117,7 +124,7 @@ def test_set_get_parameters():
 
 
 def test_save_load_parameters(tmpdir):
-    for name, machine in machines.items():
+    for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
         assert machine.n_par > 0
         n_par = machine.n_par
@@ -140,7 +147,7 @@ def test_save_load_parameters(tmpdir):
 
 
 def test_log_derivative():
-    for name, machine in machines.items():
+    for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -172,7 +179,7 @@ def test_log_derivative():
 
 
 def test_log_val_diff():
-    for name, machine in machines.items():
+    for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -233,3 +240,13 @@ def test_nvisible():
         hi = machine.hilbert
 
         assert machine.n_visible == hi.size
+
+
+    for name, machine in dm_machines.items():
+        print("Machine test: %s" % name)
+        hip = machine.hilbert_physical
+        hi  = machine.hilbert
+
+        assert machine.n_visible == hip.size
+        assert machine.n_visible * 2 ==  hi.size  
+
