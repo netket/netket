@@ -12,18 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <vector>
-#include "Graph/graph.hpp"
-#include "Utils/json_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "abstract_hilbert.hpp"
-
 #ifndef NETKET_CUSTOM_HILBERT_HPP
 #define NETKET_CUSTOM_HILBERT_HPP
+
+#include "Graph/abstract_graph.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 
 namespace netket {
 
@@ -41,46 +34,22 @@ class CustomHilbert : public AbstractHilbert {
 
  public:
   explicit CustomHilbert(const AbstractGraph &graph,
-                         const std::vector<double> &localstates)
-      : graph_(graph), local_(localstates) {
-    size_ = graph.Size();
-    nstates_ = local_.size();
-  }
+                         const std::vector<double> &localstates);
 
-  bool IsDiscrete() const override { return true; }
+  virtual bool IsDiscrete() const override;
+  virtual int LocalSize() const override;
+  virtual int Size() const override;
+  virtual std::vector<double> LocalStates() const override;
+  virtual const AbstractGraph &GetGraph() const noexcept override;
 
-  int LocalSize() const override { return nstates_; }
+  virtual void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
+                          netket::default_random_engine &rgen) const override;
 
-  int Size() const override { return size_; }
-
-  std::vector<double> LocalStates() const override { return local_; }
-
-  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                  netket::default_random_engine &rgen) const override {
-    std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
-
-    assert(state.size() == size_);
-
-    // unconstrained random
-    for (int i = 0; i < state.size(); i++) {
-      state(i) = local_[distribution(rgen)];
-    }
-  }
-
-  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                  const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const override {
-    assert(v.size() == size_);
-
-    int i = 0;
-    for (auto sf : tochange) {
-      v(sf) = newconf[i];
-      i++;
-    }
-  }
-
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
-};  // namespace netket
+  virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                          const std::vector<int> &tochange,
+                          const std::vector<double> &newconf) const override;
+};
 
 }  // namespace netket
-#endif
+
+#endif  // NETKET_CUSTOM_HILBERT_HPP
