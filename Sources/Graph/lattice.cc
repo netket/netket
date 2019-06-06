@@ -116,14 +116,15 @@ Lattice::Lattice(std::vector<std::vector<double>> basis_vector,
     static_cast<void>(success);  // Make everyone happy in the NDEBUG case
     assert(success && "There should be no duplicate edges");
   }
+}
 
-};  // namespace netket
-Lattice::~Lattice(){};
+Lattice::~Lattice(){}
 
 // Get private members
-int Lattice::Ndim() const noexcept { return ndim_; };
-int Lattice::Nsites() const noexcept { return nsites_; };
-int Lattice::Size() const noexcept { return Nsites(); };
+int Lattice::Ndim() const noexcept { return ndim_; }
+int Lattice::Nsites() const noexcept { return nsites_; }
+int Lattice::Size() const noexcept { return Nsites(); }
+
 std::vector<std::vector<double>> Lattice::BasisVectors() const {
   return basis_vectors_;
 }
@@ -132,10 +133,10 @@ std::vector<std::vector<double>> Lattice::BasisVectors() const {
 std::vector<std::vector<double>> Lattice::Coordinates() const { return R_; }
 std::vector<Lattice::Edge> const &Lattice::Edges() const noexcept {
   return edges_;
-};
+}
 std::vector<std::vector<int>> Lattice::SymmetryTable() const {
   return symmetrytable_;
-};
+}
 const AbstractGraph::ColorMap &Lattice::EdgeColors() const noexcept {
   return colors_;
 }
@@ -154,7 +155,7 @@ std::vector<int> Lattice::Site2Vector(int i) const {
     k--;
   }
   return result;
-};
+}
 
 std::vector<double> Lattice::Vector2Coord(const std::vector<int> &n,
                                           int iatom) const {
@@ -165,7 +166,7 @@ std::vector<double> Lattice::Vector2Coord(const std::vector<int> &n,
     for (int k = 0; k < ndim_; k++) R[j] += n[k] * basis_vectors_[k][j];
   }
   return R;
-};
+}
 
 std::vector<double> Lattice::Site2Coord(int k) const {
   assert(k >= 0 && "Bug! Site index should be non-negative");
@@ -217,7 +218,8 @@ std::vector<std::vector<int>> Lattice::PossibleLatticeNeighbours() const {
     result_matrix.push_back(row);
   }
   return result_matrix;
-};
+}
+
 std::vector<double> Lattice::NeighboursSquaredDistance(
     const std::vector<std::vector<int>> &neighbours_matrix, int iatom) const {
   std::vector<double> distance;
@@ -231,7 +233,8 @@ std::vector<double> Lattice::NeighboursSquaredDistance(
   }
 
   return distance;
-};
+}
+
 std::vector<std::vector<int>> Lattice::LatticeNeighbours(int iatom) const {
   std::vector<std::vector<int>> neighbours_matrix_in;
   std::vector<std::vector<int>> result;
@@ -313,7 +316,7 @@ std::vector<Lattice::Edge> Lattice::BuildEdges() const {
     }
   }
   return edge_vector;
-};
+}
 
 std::vector<std::vector<int>> Lattice::AdjacencyList() const {
   return detail::AdjacencyListFromEdges(edges_, nsites_);
@@ -327,7 +330,7 @@ std::vector<std::vector<int>> Lattice::BuildSymmetryTable() const {
   int i = 0;
   do {
     std::vector<int> row;
-    int index;
+    int index = 1;
     for (int iatom = 0; iatom < natoms_; iatom++) {
       for (int j = 0; j < nlatticesites_; j++) {
         std::vector<int> n(ndim_);
@@ -348,7 +351,7 @@ std::vector<std::vector<int>> Lattice::BuildSymmetryTable() const {
   } while (i < nlatticesites_);
 
   return result;
-};
+}
 
 // Generic Utils
 
@@ -357,7 +360,8 @@ double Lattice::GetNorm(const std::vector<double> &coord) const {
   for (std::size_t i = 0; i < coord.size(); i++)
     distance += coord[i] * coord[i];
   return distance;
-};
+}
+
 double Lattice::GetSquaredDistance(const std::vector<double> &v1,
                                    const std::vector<double> &v2) const {
   double distance = 0;

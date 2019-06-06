@@ -1,4 +1,5 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018 The Simons Foundation, Inc. - All
+// Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,25 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MACHINE_HPP
-#define NETKET_MACHINE_HPP
+#ifndef NETKET_DENSITY_MATRIX_MACHINE_HPP
+#define NETKET_DENSITY_MATRIX_MACHINE_HPP
 
-#include <fstream>
-#include <memory>
+#include "abstract_density_matrix.hpp"
+#include "diagonal_density_matrix.hpp"
+#include "ndm_spin_phase.hpp"
 
-#include "Graph/graph.hpp"
-#include "Operator/operator.hpp"
-#include "abstract_machine.hpp"
-#include "ffnn.hpp"
-#include "jastrow.hpp"
-#include "jastrow_symm.hpp"
-#include "mps_periodic.hpp"
-#include "rbm_multival.hpp"
-#include "rbm_spin.hpp"
-#include "rbm_spin_phase.hpp"
-#include "rbm_spin_real.hpp"
-#include "rbm_spin_symm.hpp"
-
-#include "DensityMatrices/density_matrix_machine.hpp"
-
-#endif
+#endif  // NETKET_DENSITY_MATRIX_MACHINE_HPP

@@ -13,8 +13,6 @@ namespace netket {
 
 class ImagTimePropagation {
  public:
-  class Iterator;
-
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
   using Matrix = AbstractMatrixWrapper<>;
@@ -48,18 +46,6 @@ class ImagTimePropagation {
     t_ += dt;
   }
 
-  /*void Run(StateVector& initial_state, ) {
-    assert(initial_state.size() == Dimension());
-    state_ = initial_state;
-    for (const auto& step : Iterate(range.t0, )) {
-    }
-  }*/
-
-  Iterator Iterate(double dt,
-                   nonstd::optional<Index> n_iter = nonstd::nullopt) {
-    return Iterator(*this, dt, std::move(n_iter));
-  }
-
   void ComputeObservables(const StateVector& state) {
     const auto mean_variance = matrix_->MeanVariance(state);
     obsmanager_.Reset("Energy");
@@ -81,46 +67,6 @@ class ImagTimePropagation {
 
   double GetTime() const { return t_; }
   void SetTime(double t) { t_ = t; }
-
-  class Iterator {
-   public:
-    // typedefs required for iterators
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = Index;
-    using value_type = Index;
-    using pointer_type = Index*;
-    using reference_type = Index&;
-
-   private:
-    ImagTimePropagation& driver_;
-    nonstd::optional<Index> n_iter_;
-    double dt_;
-
-    Index cur_iter_;
-
-   public:
-    Iterator(ImagTimePropagation& driver, double dt,
-             nonstd::optional<Index> n_iter)
-        : driver_(driver), n_iter_(std::move(n_iter)), dt_(dt), cur_iter_(0) {}
-
-    Index operator*() const { return cur_iter_; };
-    Iterator& operator++() {
-      driver_.Advance(dt_);
-      cur_iter_ += 1;
-      return *this;
-    }
-
-    // TODO(C++17): Replace with comparison to special Sentinel type, since
-    // C++17 allows end() to return a different type from begin().
-    bool operator!=(const Iterator&) {
-      return !n_iter_.has_value() || cur_iter_ < n_iter_.value();
-    }
-    // pybind11::make_iterator requires operator==
-    bool operator==(const Iterator& other) { return !(*this != other); }
-
-    Iterator begin() const { return *this; }
-    Iterator end() const { return *this; }
-  };
 
  private:
   std::unique_ptr<Matrix> matrix_;

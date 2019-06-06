@@ -38,8 +38,8 @@ void AddUnsupervisedModule(py::module &m) {
                        std::vector<Eigen::VectorXd> samples,
                        std::vector<int> bases, int discarded_samples,
                        int discarded_samples_on_init, const std::string &method,
-                       double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
+                       double diag_shift, bool use_iterative,
+                       bool use_cholesky) {
              auto rots = py::cast<std::vector<AbstractOperator *>>(rotations);
              return QuantumStateReconstruction{sa,
                                                op,
@@ -68,16 +68,7 @@ void AddUnsupervisedModule(py::module &m) {
       .def("run", &QuantumStateReconstruction::Run, py::arg("output_prefix"),
            py::arg("n_iter"), py::arg("step_size") = 1,
            py::arg("save_params_every") = 50)
-      .def("iter", &QuantumStateReconstruction::Iterate,
-           py::arg("n_iter") = nonstd::nullopt, py::arg("step_size") = 1, R"EOF(
-                      Iterate the optimization of the wavefunction.
-
-                      Args:
-                          n_iter: The maximum number of iterations.
-                          step_size: Number of iterations performed at a time. Default is
-                              1.
-
-                      )EOF")
+      .def("reset", &QuantumStateReconstruction::Reset)
       .def("advance", &QuantumStateReconstruction::Advance,
            py::arg("steps") = 1,
            R"EOF(
@@ -119,10 +110,6 @@ void AddUnsupervisedModule(py::module &m) {
                       negative log-likelihood computed here is a meaningful
                       quantity.
                   )EOF");
-  py::class_<QuantumStateReconstruction::Iterator>(subm, "QsrIterator")
-      .def("__iter__", [](QuantumStateReconstruction::Iterator &self) {
-        return py::make_iterator(self.begin(), self.end());
-      });
 }
 
 }  // namespace netket

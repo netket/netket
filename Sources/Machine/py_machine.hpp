@@ -35,6 +35,7 @@
 #include "py_rbm_spin_phase.hpp"
 #include "py_rbm_spin_real.hpp"
 #include "py_rbm_spin_symm.hpp"
+#include "DensityMatrices/py_density_matrix.hpp"
 
 namespace py = pybind11;
 
@@ -216,6 +217,8 @@ void AddMachineModule(py::module &m) {
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);
+
+  AddDensityMatrixModule(subm);
 }
 
 }  // namespace netket

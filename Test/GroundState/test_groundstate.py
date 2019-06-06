@@ -1,6 +1,7 @@
 import json
 from pytest import approx
 import netket as nk
+import numpy as np
 import shutil
 import tempfile
 
@@ -36,7 +37,7 @@ def test_vmc_advance():
     ma1, vmc1 = _setup_vmc()
     ma2, vmc2 = _setup_vmc()
 
-    for i in range(11):
+    for i in range(10):
         vmc1.advance()
 
     for step in vmc2.iter(10):
@@ -91,6 +92,21 @@ def test_vmc_run():
         last_obs = obs
 
     assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)
+
+
+def test_imag_time_propagation():
+    g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    ha = nk.operator.Ising(h=0.0, hilbert=hi)
+
+    stepper = nk.dynamics.create_timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
+    psi0 = np.random.rand(hi.n_states)
+    driver = nk.exact.ImagTimePropagation(ha, stepper, t0=0, initial_state=psi0)
+
+    for step in driver.iter(dt=0.1, n_iter=1000):
+        pass
+
+    assert driver.get_observable_stats()["Energy"]["Mean"] == approx(-8.0)
 
 
 def test_ed():
