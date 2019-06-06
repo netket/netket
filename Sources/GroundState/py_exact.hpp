@@ -90,6 +90,12 @@ void AddExactModule(py::module &m) {
                    other choices are `dense` and `direct`.
 
            )EOF")
+      .def("advance", &ImagTimePropagation::Advance, py::arg("dt"), R"EOF(
+           Advance the time propagation by dt.
+
+           Args:
+               dt (float): The time step.
+      )EOF")
       .def_property("t", &ImagTimePropagation::GetTime,
                     &ImagTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
