@@ -127,15 +127,15 @@ void AddHilbertModule(py::module &m) {
       .def(
           "states",
           [](const AbstractHilbert &self) {
-            return StateIterator(self.GetIndex());
+            return StateGenerator(self.GetIndex());
           },
           R"EOF(Returns an iterator over all valid configurations of the Hilbert space.
                  Throws an exception iff the space is not indexable.)EOF");
 
   subm.attr("max_states") = HilbertIndex::MaxStates;
 
-  py::class_<StateIterator>(subm, "_StateIterator")
-      .def("__iter__", [](StateIterator &self) {
+  py::class_<StateGenerator>(subm, "_StateGenerator")
+      .def("__iter__", [](StateGenerator &self) {
         return py::make_iterator(self.begin(), self.end());
       });
 
