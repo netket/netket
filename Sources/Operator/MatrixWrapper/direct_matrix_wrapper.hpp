@@ -47,7 +47,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
     State result(dim_);
     result.setZero();
 
-    for (size_t i = 0; i < dim_; ++i) {
+    for (int i = 0; i < dim_; ++i) {
       const auto v = hilbert_index_.NumberToState(i);
       operator_.ForEachConn(v, [&](ConnectorRef conn) {
         const auto j = i + hilbert_index_.DeltaStateToNumber(v, conn.tochange,
