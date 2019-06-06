@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
-#include <iostream>
-#include <vector>
-#include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
-
 #ifndef NETKET_RBM_SPIN_REAL_HPP
 #define NETKET_RBM_SPIN_REAL_HPP
 
+#include "Machine/abstract_machine.hpp"
+
 namespace netket {
+
+using json = nlohmann::json;
 
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
 and real-valued weights
@@ -58,280 +56,45 @@ class RbmSpinReal : public AbstractMachine {
 
  public:
   explicit RbmSpinReal(const AbstractHilbert &hilbert, int nhidden = 0,
-                       int alpha = 0, bool usea = true, bool useb = true)
-      : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
-    nh_ = std::max(nhidden, alpha * nv_);
+                       int alpha = 0, bool usea = true, bool useb = true);
 
-    Init();
-  }
+  inline void Init();
 
-  void Init() {
-    W_.resize(nv_, nh_);
-    a_.resize(nv_);
-    b_.resize(nh_);
+  virtual int Npar() const override;
+  virtual int Nvisible() const override;
+  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-    thetas_.resize(nh_);
-    lnthetas_.resize(nh_);
-    thetasnew_.resize(nh_);
-    lnthetasnew_.resize(nh_);
+  virtual void InitRandomPars(int seed, double sigma) override;
+  virtual void InitLookup(VisibleConstType v, LookupType &lt) override;
+  virtual void UpdateLookup(VisibleConstType v,
+                            const std::vector<int> &tochange,
+                            const std::vector<double> &newconf,
+                            LookupType &lt) override;
 
-    npar_ = nv_ * nh_;
+  virtual VectorType DerLog(VisibleConstType v) override;
+  virtual VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
 
-    if (usea_) {
-      npar_ += nv_;
-    } else {
-      a_.setZero();
-    }
+  virtual VectorType GetParameters() override;
+  virtual void SetParameters(VectorConstRefType pars) override;
 
-    if (useb_) {
-      npar_ += nh_;
-    } else {
-      b_.setZero();
-    }
-
-    InfoMessage() << "Real-valued RBM Initizialized with nvisible = " << nv_
-                  << " and nhidden = " << nh_ << std::endl;
-    InfoMessage() << "Using visible bias = " << usea_ << std::endl;
-    InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
-  }
-
-  int Nvisible() const override { return nv_; }
-
-  int Nhidden() const { return nh_; }
-
-  int Npar() const override { return npar_; }
-
-  void InitRandomPars(int seed, double sigma) override {
-    RealVectorType par(npar_);
-
-    netket::RandomGaussian(par, seed, sigma);
-
-    SetParameters(VectorType(par));
-  }
-
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
-    if (lt.VectorSize() == 0) {
-      lt.AddVector(b_.size());
-    }
-    if (lt.V(0).size() != b_.size()) {
-      lt.V(0).resize(b_.size());
-    }
-
-    lt.V(0) = (W_.transpose() * v + b_);
-  }
-
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
-    if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-        lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-      }
-    }
-  }
-
-  VectorType DerLog(VisibleConstType v) override {
-    LookupType ltnew;
-    InitLookup(v, ltnew);
-    return DerLog(v, ltnew);
-  }
-
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
-    VectorType der(npar_);
-
-    if (usea_) {
-      der.head(nv_) = v;
-    }
-
-    RbmSpin::tanh(lt.V(0).real(), lnthetas_);
-
-    if (useb_) {
-      der.segment(usea_ * nv_, nh_) = lnthetas_;
-    }
-
-    MatrixType wder = (v * lnthetas_.transpose());
-    der.tail(nv_ * nh_) = Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
-
-    return der;
-  }
-
-  VectorType GetParameters() override {
-    VectorType pars(npar_);
-
-    if (usea_) {
-      pars.head(nv_) = a_;
-    }
-
-    if (useb_) {
-      pars.segment(usea_ * nv_, nh_) = b_;
-    }
-
-    pars.tail(nv_ * nh_) = Eigen::Map<RealVectorType>(W_.data(), nv_ * nh_);
-
-    return pars;
-  }
-
-  void SetParameters(VectorConstRefType pars) override {
-    if (usea_) {
-      a_ = pars.head(nv_).real();
-    }
-
-    if (useb_) {
-      b_ = pars.segment(usea_ * nv_, nh_).real();
-    }
-
-    VectorType Wpars = pars.tail(nv_ * nh_);
-
-    W_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_).real();
-  }
-
-  // Value of the logarithm of the wave-function
-  Complex LogVal(VisibleConstType v) override {
-    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-
-    return (v.dot(a_) + lnthetas_.sum());
-  }
-
-  // Value of the logarithm of the wave-function
-  // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
-
-    return (v.dot(a_) + lnthetas_.sum());
-  }
-
-  // Difference between logarithms of values, when one or more visible
-  // variables are being flipped
-  VectorType LogValDiff(
+  virtual Complex LogVal(VisibleConstType v) override;
+  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  virtual VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
-    const std::size_t nconn = tochange.size();
-    VectorType logvaldiffs = VectorType::Zero(nconn);
+      const std::vector<std::vector<double>> &newconf) override;
+  virtual Complex LogValDiff(VisibleConstType v,
+                             const std::vector<int> &tochange,
+                             const std::vector<double> &newconf,
+                             const LookupType &lt) override;
 
-    thetas_ = (W_.transpose() * v + b_);
-    RbmSpin::lncosh(thetas_, lnthetas_);
+  virtual const AbstractHilbert &GetHilbert() const noexcept override;
 
-    Complex logtsum = lnthetas_.sum();
+  virtual void to_json(json &j) const override;
+  virtual void from_json(const json &pars) override;
 
-    for (std::size_t k = 0; k < nconn; k++) {
-      if (tochange[k].size() != 0) {
-        thetasnew_ = thetas_;
-
-        for (std::size_t s = 0; s < tochange[k].size(); s++) {
-          const int sf = tochange[k][s];
-
-          logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
-
-          thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-        }
-
-        RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-        logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
-      }
-    }
-    return logvaldiffs;
-  }
-
-  // Difference between logarithms of values, when one or more visible
-  // variables are being flipped Version using pre-computed look-up tables for
-  // efficiency on a small number of spin flips
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override {
-    Complex logvaldiff = 0.;
-
-    if (tochange.size() != 0) {
-      RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
-
-      thetasnew_ = lt.V(0).real();
-
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-
-        logvaldiff += a_(sf) * (newconf[s] - v(sf));
-
-        thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-      }
-
-      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-      logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
-    }
-    return logvaldiff;
-  }
-
-  inline static double lncosh(double x) {
-    const double xp = std::abs(x);
-    if (xp <= 12.) {
-      return std::log(std::cosh(xp));
-    } else {
-      const static double log2v = std::log(2.);
-      return xp - log2v;
-    }
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
-  void to_json(json &j) const override {
-    j["Name"] = "RbmSpinReal";
-    j["Nvisible"] = nv_;
-    j["Nhidden"] = nh_;
-    j["UseVisibleBias"] = usea_;
-    j["UseHiddenBias"] = useb_;
-    j["a"] = a_;
-    j["b"] = b_;
-    j["W"] = W_;
-  }
-
-  void from_json(const json &pars) override {
-    std::string name = FieldVal<std::string>(pars, "Name");
-    if (name != "RbmSpinReal") {
-      throw InvalidInputError(
-          "Error while constructing RbmSpinReal from input parameters");
-    }
-
-    if (FieldExists(pars, "Nvisible")) {
-      nv_ = FieldVal<int>(pars, "Nvisible");
-    }
-    if (nv_ != hilbert_.Size()) {
-      throw InvalidInputError(
-          "Number of visible units is incompatible with given "
-          "Hilbert space");
-    }
-
-    if (FieldExists(pars, "Nhidden")) {
-      nh_ = FieldVal<int>(pars, "Nhidden");
-    } else {
-      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
-    }
-
-    usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
-    useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
-
-    Init();
-
-    // Loading parameters, if defined in the input
-    if (FieldExists(pars, "a")) {
-      a_ = FieldVal<RealVectorType>(pars, "a");
-    } else {
-      a_.setZero();
-    }
-
-    if (FieldExists(pars, "b")) {
-      b_ = FieldVal<RealVectorType>(pars, "b");
-    } else {
-      b_.setZero();
-    }
-    if (FieldExists(pars, "W")) {
-      W_ = FieldVal<RealMatrixType>(pars, "W");
-    }
-  }
-
-  bool IsHolomorphic() override { return false; }
+  virtual bool IsHolomorphic() override;
 };
 
 }  // namespace netket
 
-#endif
+#endif  // NETKET_RBM_SPIN_REAL_HPP

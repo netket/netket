@@ -106,17 +106,6 @@ class RbmSpinPhase : public AbstractMachine {
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
-#if 0
-  inline static double lncosh(double x) {
-    const double xp = std::abs(x);
-    if (xp <= 12.) {
-      return std::log(std::cosh(xp));
-    } else {
-      const static double log2v = std::log(2.);
-      return xp - log2v;
-    }
-  }
-#endif
 
   virtual bool IsHolomorphic() override;
   virtual const AbstractHilbert &GetHilbert() const noexcept override;
