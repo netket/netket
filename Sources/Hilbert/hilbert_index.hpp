@@ -57,32 +57,29 @@ class HilbertIndex {
   int nstates_;
 };
 
-class StateIterator {
+class StateGenerator {
  public:
-  // typedefs required for iterators
-  using iterator_category = std::input_iterator_tag;
   using difference_type = Index;
   using value_type = Eigen::VectorXd;
-  using pointer_type = Eigen::VectorXd *;
-  using reference_type = Eigen::VectorXd &;
+  using reference = value_type;
 
-  explicit StateIterator(const HilbertIndex &index) : i_(0), index_(index) {}
+  explicit StateGenerator(const HilbertIndex &index) : i_(0), index_(index) {}
 
-  value_type operator*() const { return index_.NumberToState(i_); }
+  reference operator*() const { return index_.NumberToState(i_); }
 
-  StateIterator &operator++() {
+  StateGenerator &operator++() {
     ++i_;
     return *this;
   }
 
   // TODO(C++17): Replace with comparison to special Sentinel type, since
   // C++17 allows end() to return a different type from begin().
-  bool operator!=(const StateIterator &) { return i_ < index_.NStates(); }
+  bool operator!=(const StateGenerator &) { return i_ < index_.NStates(); }
   // pybind11::make_iterator requires operator==
-  bool operator==(const StateIterator &other) { return !(*this != other); }
+  bool operator==(const StateGenerator &other) { return !(*this != other); }
 
-  StateIterator begin() const { return *this; }
-  StateIterator end() const { return *this; }
+  StateGenerator begin() const { return *this; }
+  StateGenerator end() const { return *this; }
 
  private:
   int i_;

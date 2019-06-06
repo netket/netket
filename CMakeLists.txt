@@ -171,7 +171,7 @@ endif()
 #
 
 add_library(netket_lib INTERFACE)
-target_include_directories(netket_lib INTERFACE NetKet)
+target_include_directories(netket_lib INTERFACE Sources)
 target_include_directories(netket_lib SYSTEM INTERFACE ${MPI_CXX_INCLUDE_PATH})
 target_link_libraries(netket_lib
     INTERFACE
@@ -206,12 +206,12 @@ endif()
 
 
 
-add_library(netket MODULE NetKet/pynetket.cc NetKet/Dynamics/py_dynamics.cpp
-    NetKet/Graph/hypercube.cc NetKet/Graph/lattice.cc
-    NetKet/Graph/custom_graph.cc NetKet/Graph/abstract_graph.cc
-    NetKet/Graph/py_graph.cc NetKet/Hilbert/hilbert_index.cc
-    NetKet/Hilbert/bosons.cc NetKet/Hilbert/spins.cc NetKet/Hilbert/qubits.cc
-    NetKet/Hilbert/custom_hilbert.cc NetKet/Hilbert/py_hilbert.cc)
+add_library(netket MODULE Sources/pynetket.cc Sources/Dynamics/py_dynamics.cpp
+    Sources/Graph/hypercube.cc Sources/Graph/lattice.cc
+    Sources/Graph/custom_graph.cc Sources/Graph/abstract_graph.cc
+    Sources/Graph/py_graph.cc Sources/Hilbert/hilbert_index.cc
+    Sources/Hilbert/bosons.cc Sources/Hilbert/spins.cc Sources/Hilbert/qubits.cc
+    Sources/Hilbert/custom_hilbert.cc Sources/Hilbert/py_hilbert.cc)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")

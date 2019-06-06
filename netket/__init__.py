@@ -12,4 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._C_netket import *
+from __future__ import absolute_import
+from . import (
+    _C_netket,
+    dynamics,
+    exact,
+    graph,
+    hilbert,
+    layer,
+    machine,
+    operator,
+    optimizer,
+    output,
+    sampler,
+    stats,
+    supervised,
+    unsupervised,
+    utils,
+    variational,
+)

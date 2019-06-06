@@ -149,8 +149,9 @@ install:
   - python -m pip install numpy networkx pytest python-igraph
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
+  - mkdir workdir && cd workdir
 
 script:
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
-  - python -m pytest --verbose Test/
-  - python -m pytest --verbose --doctest-glob='*.md' Docs/
+  - python -m pytest --verbose ../Test/
+  - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
