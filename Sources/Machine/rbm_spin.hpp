@@ -61,7 +61,7 @@ class RbmSpin : public AbstractMachine {
 
   virtual int Nvisible() const override;
   virtual int Npar() const override;
-  constexpr int Nhidden() const noexcept { return nh_; }
+  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
   virtual void InitRandomPars(int seed, double sigma) override;
   virtual void InitLookup(VisibleConstType v, LookupType &lt) override;

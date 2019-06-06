@@ -42,8 +42,8 @@ class Hypercube : public AbstractGraph {
   Hypercube &operator=(Hypercube const &) noexcept = delete;
   Hypercube &operator=(Hypercube &&) noexcept = default;
 
-  constexpr int Length() const noexcept { return length_; }
-  constexpr int Ndim() const noexcept { return n_dim_; }
+  /*constexpr*/ int Length() const noexcept { return length_; }
+  /*constexpr*/ int Ndim() const noexcept { return n_dim_; }
   virtual int Nsites() const noexcept override;
   virtual int Size() const noexcept override;
   virtual const std::vector<Edge> &Edges() const noexcept override;

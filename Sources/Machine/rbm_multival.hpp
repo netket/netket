@@ -74,7 +74,7 @@ class RbmMultival : public AbstractMachine {
 
   virtual int Npar() const override;
   virtual int Nvisible() const override;
-  constexpr int Nhidden() const noexcept { return nh_; }
+  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
   virtual const AbstractHilbert &GetHilbert() const noexcept override;
 

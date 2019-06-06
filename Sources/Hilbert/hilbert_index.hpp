@@ -43,7 +43,7 @@ class HilbertIndex {
   // converts an integer into a vector of quantum numbers
   Eigen::VectorXd NumberToState(int i) const;
 
-  constexpr int NStates() const noexcept { return nstates_; }
+  /*constexpr*/ int NStates() const noexcept { return nstates_; }
   constexpr static int MaxStates = std::numeric_limits<int>::max() - 1;
 
  private:
