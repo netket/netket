@@ -34,7 +34,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 dm_machines = {}
- dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(hilbert=hi, alpha=2, beta=2, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
+dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(hilbert=hi, alpha=2, beta=2, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
 
 # Layers
 layers = (
