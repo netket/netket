@@ -26,6 +26,7 @@
 #include <map>
 #include <vector>
 #include "Hilbert/abstract_hilbert.hpp"
+#include "Utils/array_utils.hpp"
 #include "Utils/kronecker_product.hpp"
 #include "Utils/next_variation.hpp"
 #include "abstract_operator.hpp"
@@ -254,6 +255,29 @@ class LocalOperator : public AbstractOperator {
       state[i] = v(sites_[opn][i]);
     }
     return invstate_[opn].at(state);
+  }
+
+  LocalOperator Transpose() const {
+    std::vector<MatType> mat_t(mat_.size());
+    std::transform(mat_.begin(), mat_.end(), mat_t.begin(),
+                   netket::transpose_vecvec<MelType>);
+
+    return LocalOperator(hilbert_, mat_t, sites_, constant_);
+  }
+
+  LocalOperator Conjugate() const {
+    std::vector<MatType> mat_c(mat_.size());
+    std::transform(mat_.begin(), mat_.end(), mat_c.begin(),
+                   [](const MatType &m) {
+                     MatType out = m;
+                     for (auto &v : out) {
+                       for (auto &el : v) {
+                         el = std::conj(el);
+                       }
+                     }
+                     return out;
+                   });
+    return LocalOperator(hilbert_, mat_c, sites_, constant_);
   }
 
   // Product of two local operators, performing KroneckerProducts as necessary
