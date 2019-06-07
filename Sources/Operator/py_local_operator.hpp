@@ -126,6 +126,10 @@ void AddLocalOperator(py::module &subm) {
       .def_property_readonly(
           "acting_on", &LocalOperator::ActingOn,
           R"EOF(list[list]: A list of the sites that each local matrix acts on.)EOF")
+      .def("transpose", &LocalOperator::Transpose,
+           R"EOF(Returns the transpose of this operator)EOF")
+      .def("conjugate", &LocalOperator::Conjugate,
+           R"EOF(Returns the complex conjugation of this operator)EOF")
       .def(py::self + py::self)
       .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
            py::is_operator())
