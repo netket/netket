@@ -50,13 +50,14 @@ rg = nk.utils.RandomEngine(seed=1234)
 def same_matrices(matl, matr, eps=1.0e-6):
     assert np.max(np.abs(matl - matr)) == approx(0.0, rel=eps, abs=eps)
 
+
 def test_hermitian_local_operator_transpose_conjugation():
     for name, op in herm_operators.items():
         op_t = op.transpose()
         op_c = op.conjugate()
         op_h = op.transpose().conjugate()
 
-        mat  = op.to_dense()
+        mat = op.to_dense()
         mat_t = op_t.to_dense()
         mat_c = op_c.to_dense()
         mat_h = op_h.to_dense()
@@ -67,14 +68,14 @@ def test_hermitian_local_operator_transpose_conjugation():
         mat_t_t = op.transpose().transpose().to_dense()
         mat_c_c = op.conjugate().conjugate().to_dense()
 
-        #same_matrices(mat, mat_t_t)
+        same_matrices(mat, mat_t_t)
         same_matrices(mat, mat_c_c)
 
 
 def test_local_operator_transpose_conjugation():
     for name, (op, oph) in generic_operators.items():
-        mat = op.to_sparse()
-        math = oph.to_sparse()
+        mat = op.to_dense()
+        math = oph.to_dense()
 
         mat_h = op.transpose().conjugate().to_dense()
         same_matrices(mat_h, math)
