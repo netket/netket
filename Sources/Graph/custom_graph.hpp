@@ -41,12 +41,12 @@ class CustomGraph : public AbstractGraph {
               std::vector<std::vector<int>> automorphisms =
                   std::vector<std::vector<int>>());
 
-  virtual int Nsites() const noexcept override;
-  virtual int Size() const noexcept override;
-  virtual std::vector<Edge> const &Edges() const noexcept override;
-  virtual std::vector<std::vector<int>> AdjacencyList() const override;
-  virtual const ColorMap &EdgeColors() const noexcept override;
-  virtual std::vector<std::vector<int>> SymmetryTable() const override;
+  int Nsites() const noexcept override;
+  int Size() const noexcept override;
+  std::vector<Edge> const &Edges() const noexcept override;
+  std::vector<std::vector<int>> AdjacencyList() const override;
+  const ColorMap &EdgeColors() const noexcept override;
+  std::vector<std::vector<int>> SymmetryTable() const override;
 
  private:
   /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.

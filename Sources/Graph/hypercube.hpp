@@ -44,14 +44,14 @@ class Hypercube : public AbstractGraph {
 
   /*constexpr*/ int Length() const noexcept { return length_; }
   /*constexpr*/ int Ndim() const noexcept { return n_dim_; }
-  virtual int Nsites() const noexcept override;
-  virtual int Size() const noexcept override;
-  virtual const std::vector<Edge> &Edges() const noexcept override;
-  virtual std::vector<std::vector<int>> AdjacencyList() const override;
-  virtual bool IsBipartite() const noexcept override;
-  virtual bool IsConnected() const noexcept override;
-  virtual const ColorMap &EdgeColors() const noexcept override;
-  virtual std::vector<std::vector<int>> SymmetryTable() const override;
+  int Nsites() const noexcept override;
+  int Size() const noexcept override;
+  const std::vector<Edge> &Edges() const noexcept override;
+  std::vector<std::vector<int>> AdjacencyList() const override;
+  bool IsBipartite() const noexcept override;
+  bool IsConnected() const noexcept override;
+  const ColorMap &EdgeColors() const noexcept override;
+  std::vector<std::vector<int>> SymmetryTable() const override;
 
  private:
   /// Given a site's coordinate as a `Ndim()`-dimensional vector, returns the

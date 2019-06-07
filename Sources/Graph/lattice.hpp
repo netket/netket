@@ -52,8 +52,8 @@ class Lattice : public AbstractGraph {
   */
   int Ndim() const noexcept;
 
-  virtual int Nsites() const noexcept override;
-  virtual int Size() const noexcept override;
+  int Nsites() const noexcept override;
+  int Size() const noexcept override;
 
   /**
   Member function returning the basis vectors that define the lattice (graph).
@@ -68,10 +68,10 @@ class Lattice : public AbstractGraph {
    */
   std::vector<std::vector<double>> Coordinates() const;
 
-  virtual std::vector<Edge> const &Edges() const noexcept override;
-  virtual std::vector<std::vector<int>> SymmetryTable() const override;
-  virtual std::vector<std::vector<int>> AdjacencyList() const override;
-  virtual const ColorMap &EdgeColors() const noexcept override;
+  std::vector<Edge> const &Edges() const noexcept override;
+  std::vector<std::vector<int>> SymmetryTable() const override;
+  std::vector<std::vector<int>> AdjacencyList() const override;
+  const ColorMap &EdgeColors() const noexcept override;
 
   // Graph sites representations (site = k, vector = n_i, coord = coordinates)
 

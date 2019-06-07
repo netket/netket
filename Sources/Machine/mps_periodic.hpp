@@ -64,33 +64,31 @@ class MPSPeriodic : public AbstractMachine {
   MPSPeriodic(const AbstractHilbert &hilbert, int bond_dim, bool diag,
               int symperiod = -1);
 
-  virtual int Npar() const override;
-  virtual int Nvisible() const override;
+  int Npar() const override;
+  int Nvisible() const override;
 
-  virtual const AbstractHilbert &GetHilbert() const noexcept override;
+  const AbstractHilbert &GetHilbert() const noexcept override;
 
-  virtual void InitRandomPars(int seed, double sigma) override;
-  virtual VectorType GetParameters() override;
-  virtual void SetParameters(VectorConstRefType pars) override;
-  virtual void InitLookup(VisibleConstType v, LookupType &lt) override;
-  virtual void UpdateLookup(VisibleConstType v,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            LookupType &lt) override;
+  void InitRandomPars(int seed, double sigma) override;
+  VectorType GetParameters() override;
+  void SetParameters(VectorConstRefType pars) override;
+  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override;
 
-  virtual Complex LogVal(VisibleConstType v) override;
-  virtual Complex LogVal(VisibleConstType /* v */,
-                         const LookupType &lt) override;
-  virtual VectorType LogValDiff(
+  Complex LogVal(VisibleConstType v) override;
+  Complex LogVal(VisibleConstType /* v */, const LookupType &lt) override;
+  VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
-  virtual Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
-                             const std::vector<double> &newconf,
-                             const LookupType &lt) override;
-  virtual VectorType DerLog(VisibleConstType v) override;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v) override;
 
-  virtual void to_json(json &j) const override;
-  virtual void from_json(const json &pars) override;
+  void to_json(json &j) const override;
+  void from_json(const json &pars) override;
 
  private:
   inline MatrixType prod(const MatrixType &m1, const MatrixType &m2) const;

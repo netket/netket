@@ -28,19 +28,19 @@ class Qubit : public AbstractHilbert {
  public:
   explicit Qubit(const AbstractGraph &graph);
 
-  virtual bool IsDiscrete() const override;
-  virtual int LocalSize() const override;
-  virtual int Size() const override;
-  virtual std::vector<double> LocalStates() const override;
+  bool IsDiscrete() const override;
+  int LocalSize() const override;
+  int Size() const override;
+  std::vector<double> LocalStates() const override;
 
-  virtual void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                          netket::default_random_engine &rgen) const override;
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
+                  netket::default_random_engine &rgen) const override;
 
-  virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                          const std::vector<int> &tochange,
-                          const std::vector<double> &newconf) const override;
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
+                  const std::vector<double> &newconf) const override;
 
-  virtual const AbstractGraph &GetGraph() const noexcept override;
+  const AbstractGraph &GetGraph() const noexcept override;
 
  private:
   inline void Init();

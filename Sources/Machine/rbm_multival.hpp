@@ -72,42 +72,43 @@ class RbmMultival : public AbstractMachine {
   explicit RbmMultival(const AbstractHilbert &hilbert, int nhidden = 0,
                        int alpha = 0, bool usea = true, bool useb = true);
 
-  virtual int Npar() const override;
-  virtual int Nvisible() const override;
+  int Npar() const override;
+  int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  virtual const AbstractHilbert &GetHilbert() const noexcept override;
+  const AbstractHilbert &GetHilbert() const noexcept override;
 
-  virtual void InitRandomPars(int seed, double sigma) override;
-  virtual void InitLookup(VisibleConstType v, LookupType &lt) override;
-  virtual void UpdateLookup(VisibleConstType v,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            LookupType &lt) override;
+  void InitRandomPars(int seed, double sigma) override;
+  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override;
 
-  virtual VectorType DerLog(VisibleConstType v) override;
-  virtual VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v) override;
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
 
-  virtual VectorType GetParameters() override;
-  virtual void SetParameters(VectorConstRefType pars) override;
+  VectorType GetParameters() override;
+  void SetParameters(VectorConstRefType pars) override;
 
   // Value of the logarithm of the wave-function
-  virtual Complex LogVal(VisibleConstType v) override;
+  Complex LogVal(VisibleConstType v) override;
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
-  virtual VectorType LogValDiff(
+  VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being changed Version using pre-computed look-up tables for efficiency
   // on a small number of local changes
-  virtual Complex LogValDiff(VisibleConstType v,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             const LookupType &lt) override;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override;
+
+  void to_json(json &j) const override;
+  void from_json(const json &pars) override;
 
  private:
   inline void Init();
@@ -122,9 +123,6 @@ class RbmMultival : public AbstractMachine {
     auto t = (localconfs_.array() == (mask_ * v).array());
     vtilde = t.template cast<double>();
   }
-
-  virtual void to_json(json &j) const override;
-  virtual void from_json(const json &pars) override;
 };
 
 }  // namespace netket

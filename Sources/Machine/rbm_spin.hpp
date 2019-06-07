@@ -56,45 +56,43 @@ class RbmSpin : public AbstractMachine {
   bool useb_;
 
  public:
-  explicit RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0,
-                   int alpha = 0, bool usea = true, bool useb = true);
+  RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
+          bool usea = true, bool useb = true);
 
-  virtual int Nvisible() const override;
-  virtual int Npar() const override;
+  int Nvisible() const override;
+  int Npar() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  virtual void InitRandomPars(int seed, double sigma) override;
-  virtual void InitLookup(VisibleConstType v, LookupType &lt) override;
-  virtual void UpdateLookup(VisibleConstType v,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            LookupType &lt) override;
-  virtual VectorType DerLog(VisibleConstType v) override;
-  virtual VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
-  virtual Complex LogVal(VisibleConstType v) override;
-  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  void InitRandomPars(int seed, double sigma) override;
+  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v) override;
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v) override;
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
 
-  virtual VectorType GetParameters() override;
-  virtual void SetParameters(VectorConstRefType pars) override;
+  VectorType GetParameters() override;
+  void SetParameters(VectorConstRefType pars) override;
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
-  virtual VectorType LogValDiff(
+  VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
 
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped Version using pre-computed look-up tables for efficiency
   // on a small number of spin flips
-  virtual Complex LogValDiff(VisibleConstType v,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             const LookupType &lt) override;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override;
 
-  virtual const AbstractHilbert &GetHilbert() const noexcept override;
+  const AbstractHilbert &GetHilbert() const noexcept override;
 
-  virtual void to_json(json &j) const override;
-  virtual void from_json(const json &pars) override;
+  void to_json(json &j) const override;
+  void from_json(const json &pars) override;
 
   static double lncosh(double x) {
     const double xp = std::abs(x);

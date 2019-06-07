@@ -34,10 +34,10 @@ class Spin : public AbstractHilbert {
   Spin(const AbstractGraph &graph, double S);
   Spin(const AbstractGraph &graph, double S, double totalSz);
 
-  virtual bool IsDiscrete() const override;
-  virtual int LocalSize() const override;
-  virtual int Size() const override;
-  virtual std::vector<double> LocalStates() const override;
+  bool IsDiscrete() const override;
+  int LocalSize() const override;
+  int Size() const override;
+  std::vector<double> LocalStates() const override;
   const AbstractGraph &GetGraph() const noexcept override;
 
   void RandomVals(Eigen::Ref<Eigen::VectorXd> state,

@@ -71,14 +71,14 @@ class RbmSpinPhase : public AbstractMachine {
   const Complex I_;
 
  public:
-  explicit RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0,
-                        int alpha = 0, bool usea = true, bool useb = true);
+  RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
+               bool usea = true, bool useb = true);
 
-  virtual int Npar() const override;
-  virtual int Nvisible() const override;
+  int Npar() const override;
+  int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  virtual void InitRandomPars(int seed, double sigma) override;
+  void InitRandomPars(int seed, double sigma) override;
   void InitLookup(VisibleConstType v, LookupType &lt) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
@@ -107,11 +107,11 @@ class RbmSpinPhase : public AbstractMachine {
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
 
-  virtual bool IsHolomorphic() override;
-  virtual const AbstractHilbert &GetHilbert() const noexcept override;
+  bool IsHolomorphic() override;
+  const AbstractHilbert &GetHilbert() const noexcept override;
 
-  virtual void to_json(json &j) const override;
-  virtual void from_json(const json &pars) override;
+  void to_json(json &j) const override;
+  void from_json(const json &pars) override;
 
  private:
   inline void Init();
