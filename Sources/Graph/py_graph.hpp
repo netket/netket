@@ -18,11 +18,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "config.hpp"
-
 namespace netket {
 
-NETKET_EXPORT void AddGraphModule(pybind11::module m);
+void AddGraphModule(pybind11::module m);
 
 }  // namespace netket
 

@@ -16,7 +16,6 @@
 
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
-#include "config.hpp"
 #include "custom_graph.hpp"
 #include "hypercube.hpp"
 #include "lattice.hpp"
@@ -401,7 +400,7 @@ void AddLattice(py::module subm) {
 }
 }  // namespace
 
-NETKET_EXPORT void AddGraphModule(py::module m) {
+void AddGraphModule(py::module m) {
   auto subm = m.def_submodule("graph");
 
   AddAbstractGraph(subm);
