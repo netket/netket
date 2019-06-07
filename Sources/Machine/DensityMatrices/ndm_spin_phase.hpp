@@ -18,6 +18,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
+#include "Machine/rbm_spin.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
 #include "abstract_density_matrix.hpp"
