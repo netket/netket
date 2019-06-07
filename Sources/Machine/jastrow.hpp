@@ -14,14 +14,10 @@
 //
 // by G. Mazzola, May-Aug 2018
 
-#include <Eigen/Dense>
-#include <iostream>
-#include <vector>
-#include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
-
 #ifndef NETKET_JASTROW_HPP
 #define NETKET_JASTROW_HPP
+
+#include "Machine/abstract_machine.hpp"
 
 namespace netket {
 
@@ -45,200 +41,40 @@ class Jastrow : public AbstractMachine {
   VectorType thetasnew_;
 
  public:
-  // constructor
-  explicit Jastrow(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), nv_(hilbert.Size()) {
-    Init();
-  }
+  explicit Jastrow(const AbstractHilbert &hilbert);
 
-  void Init() {
-    if (nv_ < 2) {
-      throw InvalidInputError(
-          "Cannot construct Jastrow states with less than two visible units");
-    }
+  inline void Init();
 
-    W_.resize(nv_, nv_);
-    W_.setZero();
+  virtual int Nvisible() const override;
+  virtual int Npar() const override;
 
-    npar_ = (nv_ * (nv_ - 1)) / 2;
+  virtual void InitRandomPars(int seed, double sigma) override;
+  virtual VectorType GetParameters() override;
+  virtual void SetParameters(VectorConstRefType pars) override;
+  virtual void InitLookup(VisibleConstType v, LookupType &lt) override;
+  virtual void UpdateLookup(VisibleConstType v,
+                            const std::vector<int> &tochange,
+                            const std::vector<double> &newconf,
+                            LookupType &lt) override;
+  virtual Complex LogVal(VisibleConstType v) override;
+  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) override;
 
-    thetas_.resize(nv_);
-    thetasnew_.resize(nv_);
-
-    InfoMessage() << "Jastrow WF Initizialized with nvisible = " << nv_
-                  << " and nparams = " << npar_ << std::endl;
-  }
-
-  int Nvisible() const override { return nv_; }
-
-  int Npar() const override { return npar_; }
-
-  void InitRandomPars(int seed, double sigma) override {
-    VectorType par(npar_);
-
-    netket::RandomGaussian(par, seed, sigma);
-
-    SetParameters(par);
-  }
-
-  VectorType GetParameters() override {
-    VectorType pars(npar_);
-
-    int k = 0;
-
-    for (int i = 0; i < nv_; i++) {
-      for (int j = i + 1; j < nv_; j++) {
-        pars(k) = W_(i, j);
-        k++;
-      }
-    }
-
-    return pars;
-  }
-
-  void SetParameters(VectorConstRefType pars) override {
-    int k = 0;
-
-    for (int i = 0; i < nv_; i++) {
-      W_(i, i) = Complex(0.);
-      for (int j = i + 1; j < nv_; j++) {
-        W_(i, j) = pars(k);
-        W_(j, i) = W_(i, j);  // create the lower triangle
-        k++;
-      }
-    }
-  }
-
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
-    if (lt.VectorSize() == 0) {
-      lt.AddVector(v.size());
-    }
-    if (lt.V(0).size() != v.size()) {
-      lt.V(0).resize(v.size());
-    }
-
-    lt.V(0) = (W_.transpose() * v);  // does not matter the transpose W is symm
-  }
-
-  // same as for the RBM
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
-    if (tochange.size() != 0) {
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-        lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-      }
-    }
-  }
-
-  Complex LogVal(VisibleConstType v) override { return 0.5 * v.dot(W_ * v); }
-
-  // Value of the logarithm of the wave-function
-  // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    return 0.5 * v.dot(lt.V(0));
-  }
-
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
-  VectorType LogValDiff(
+  virtual VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
-    const std::size_t nconn = tochange.size();
-    VectorType logvaldiffs = VectorType::Zero(nconn);
+      const std::vector<std::vector<double>> &newconf) override;
 
-    thetas_ = (W_.transpose() * v);
-    Complex logtsum = 0.5 * v.dot(thetas_);
+  virtual Complex LogValDiff(VisibleConstType v,
+                             const std::vector<int> &tochange,
+                             const std::vector<double> &newconf,
+                             const LookupType &lt) override;
 
-    for (std::size_t k = 0; k < nconn; k++) {
-      if (tochange[k].size() != 0) {
-        thetasnew_ = thetas_;
-        Eigen::VectorXd vnew(v);
+  virtual VectorType DerLog(VisibleConstType v) override;
+  virtual const AbstractHilbert &GetHilbert() const noexcept override;
 
-        for (std::size_t s = 0; s < tochange[k].size(); s++) {
-          const int sf = tochange[k][s];
-
-          thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-          vnew(sf) = newconf[k][s];
-        }
-
-        logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
-      }
-    }
-    return logvaldiffs;
-  }
-
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override {
-    Complex logvaldiff = 0.;
-
-    if (tochange.size() != 0) {
-      Complex logtsum = 0.5 * v.dot(lt.V(0));
-      thetasnew_ = lt.V(0);
-      Eigen::VectorXd vnew(v);
-
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-
-        thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-        vnew(sf) = newconf[s];
-      }
-
-      logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
-    }
-
-    return logvaldiff;
-  }
-
-  VectorType DerLog(VisibleConstType v) override {
-    VectorType der(npar_);
-
-    int k = 0;
-
-    for (int i = 0; i < nv_; i++) {
-      for (int j = i + 1; j < nv_; j++) {
-        der(k) = v(i) * v(j);
-        k++;
-      }
-    }
-
-    return der;
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
-  void to_json(json &j) const override {
-    j["Name"] = "Jastrow";
-    j["Nvisible"] = nv_;
-    j["W"] = W_;
-  }
-
-  void from_json(const json &pars) override {
-    if (pars.at("Name") != "Jastrow") {
-      throw InvalidInputError(
-          "Error while constructing Jastrow from Json input");
-    }
-
-    if (FieldExists(pars, "Nvisible")) {
-      nv_ = pars["Nvisible"];
-    }
-    if (nv_ != hilbert_.Size()) {
-      throw InvalidInputError(
-          "Number of visible units is incompatible with given "
-          "Hilbert space");
-    }
-
-    Init();
-
-    if (FieldExists(pars, "W")) {
-      W_ = pars["W"];
-    }
-  }
+  virtual void to_json(json &j) const override;
+  virtual void from_json(const json &pars) override;
 };
+
 }  // namespace netket
 
-#endif
+#endif  // NETKET_JASTROW_HPP

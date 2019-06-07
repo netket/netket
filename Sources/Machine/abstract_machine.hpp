@@ -27,6 +27,9 @@
 #include "Utils/random_utils.hpp"
 
 namespace netket {
+
+using json = nlohmann::json;
+
 /**
   Abstract class for Machines.
   This class prototypes the methods needed
