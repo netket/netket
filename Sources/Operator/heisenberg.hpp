@@ -28,7 +28,6 @@ namespace netket {
 // Heisenberg model on an arbitrary graph
 
 class Heisenberg : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
   const int nspins_;
@@ -43,7 +42,8 @@ class Heisenberg : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit Heisenberg(const AbstractHilbert &hilbert)
-      : hilbert_(hilbert), graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
+      : graph_(hilbert.GetGraph()), nspins_(hilbert.Size()) {
+    SetHilbert(hilbert);
     Init();
   }
 
@@ -100,10 +100,6 @@ class Heisenberg : public AbstractOperator {
         }
       }
     }
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
   }
 };
 

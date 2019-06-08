@@ -61,4 +61,8 @@ void Qubit::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
   }
 }
 
+std::shared_ptr<AbstractHilbert> Qubit::Clone() const {
+  return std::make_shared<Qubit>(*this);
+}
+
 }  // namespace netket

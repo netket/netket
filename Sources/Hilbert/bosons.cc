@@ -115,4 +115,8 @@ void Boson::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
   }
 }
 
+std::shared_ptr<AbstractHilbert> Boson::Clone() const {
+  return std::make_shared<Boson>(*this);
+}
+
 }  // namespace netket

@@ -29,8 +29,6 @@ namespace netket {
 
 // Graph Hamiltonian on an arbitrary graph
 class GraphOperator : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
-
   // Arbitrary graph
   const AbstractGraph &graph_;
 
@@ -50,8 +48,7 @@ class GraphOperator : public AbstractOperator {
                          OVecType siteops = OVecType(),
                          OVecType bondops = OVecType(),
                          std::vector<int> bondops_colors = std::vector<int>())
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
+      : graph_(hilbert.GetGraph()),
         operator_(hilbert),
         nvertices_(hilbert.Size()) {
     // Create the local operator as the sum of all site and bond operators
@@ -71,7 +68,8 @@ class GraphOperator : public AbstractOperator {
     if (siteops.size() > 0) {
       for (int i = 0; i < nvertices_; i++) {
         for (std::size_t j = 0; j < siteops.size(); j++) {
-          operator_ += LocalOperator(hilbert_, siteops[j], std::vector<int>{i});
+          operator_ +=
+              LocalOperator(GetHilbert(), siteops[j], std::vector<int>{i});
         }
       }
     }
@@ -89,20 +87,20 @@ class GraphOperator : public AbstractOperator {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
-            operator_ += LocalOperator(hilbert_, bondops[c], edge);
+            operator_ += LocalOperator(GetHilbert(), bondops[c], edge);
           }
         }
       }
     }
+    SetHilbert(hilbert);
   }
 
   // Constructor to be used when overloading operators
   explicit GraphOperator(const AbstractHilbert &hilbert,
                          const LocalOperator &lop)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        operator_(lop),
-        nvertices_(hilbert.Size()) {}
+      : graph_(hilbert.GetGraph()), operator_(lop), nvertices_(hilbert.Size()) {
+    SetHilbert(hilbert);
+  }
 
   friend GraphOperator operator+(const GraphOperator &lhs,
                                  const GraphOperator &rhs) {
@@ -120,9 +118,6 @@ class GraphOperator : public AbstractOperator {
     operator_.FindConn(v, mel, connectors, newconfs);
   }
 
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 };  // namespace netket
 }  // namespace netket
 #endif

@@ -30,7 +30,6 @@ namespace netket {
 
 // Heisenberg model on an arbitrary graph
 class BoseHubbard : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
   int nsites_;
@@ -53,13 +52,13 @@ class BoseHubbard : public AbstractOperator {
 
   explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
                        double mu = 0.)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
+      : graph_(hilbert.GetGraph()),
         nsites_(hilbert.Size()),
         U_(U),
         V_(V),
         mu_(mu) {
-    nmax_ = hilbert_.LocalSize() - 1;
+    nmax_ = hilbert.LocalSize() - 1;
+    SetHilbert(hilbert);
     Init();
   }
 
@@ -122,10 +121,6 @@ class BoseHubbard : public AbstractOperator {
         }
       }
     }
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
   }
 };
 
