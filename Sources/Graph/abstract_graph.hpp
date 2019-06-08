@@ -12,15 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_ABSTRACTGRAPH_HPP
-#define NETKET_ABSTRACTGRAPH_HPP
+#ifndef NETKET_ABSTRACT_GRAPH_HPP
+#define NETKET_ABSTRACT_GRAPH_HPP
 
 #include <array>
-#include <cassert>
-#include <queue>
 #include <unordered_map>
-#include <utility>
 #include <vector>
+
 #include "Utils/array_hasher.hpp"
 
 namespace netket {
@@ -75,30 +73,22 @@ class AbstractGraph {
   */
   virtual const ColorMap &EdgeColors() const noexcept = 0;
 
+ protected:
   // Edge Colors from users specified map
   void EdgeColorsFromList(const std::vector<std::vector<int>> &colorlist,
-                          ColorMap &eclist) {
-    for (auto edge : colorlist) {
-      eclist[{{edge[0], edge[1]}}] = edge[2];
-    }
-  }
+                          ColorMap &eclist);
 
   // If no Edge Colors are specified, initialize eclist_ with same color (0).
   void EdgeColorsFromAdj(const std::vector<std::vector<int>> &adjlist,
-                         ColorMap &eclist) {
-    for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
-      for (std::size_t j = 0; j < adjlist[i].size(); j++) {
-        eclist[{{i, adjlist[i][j]}}] = 0;
-      }
-    }
-  }
+                         ColorMap &eclist);
 
+ public:
   /**
   Member function returning true if the graph is bipartite.
   @return true if lattice is bipartite.
   */
   // virtual bool IsBipartite() const noexcept = 0;
-  bool IsBipartite() const noexcept;
+  virtual bool IsBipartite() const noexcept;
 
   /**
    * Checks whether the graph is connected, i.e., there exists a path between
@@ -106,7 +96,7 @@ class AbstractGraph {
    * @return true, if the graph is connected
    */
   // virtual bool IsConnected() const noexcept = 0;
-  bool IsConnected() const noexcept;
+  virtual bool IsConnected() const noexcept;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
@@ -118,9 +108,7 @@ class AbstractGraph {
    * node from start.
    */
   template <typename Func>
-  void BreadthFirstSearch(int start, Func visitor_func) const {
-    BreadthFirstSearch(start, Nsites(), visitor_func);
-  }
+  void BreadthFirstSearch(int start, Func visitor_func) const;
 
   /**
    * Perform a breadth-first search (BFS) through the graph, calling
@@ -189,44 +177,15 @@ class AbstractGraph {
 };
 
 namespace detail {
-/// Constructs the adjacency list given graph edges. No sanity checks are
-/// performed. Use at your own risk!
 std::vector<std::vector<int>> AdjacencyListFromEdges(
-    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
-  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
-  std::vector<std::vector<int>> adjacency_list(
-      static_cast<std::size_t>(number_sites));
-  for (auto const &edge : edges) {
-    adjacency_list[edge[0]].push_back(edge[1]);
-    adjacency_list[edge[1]].push_back(edge[0]);
-  }
-  return adjacency_list;
-}
+    const std::vector<AbstractGraph::Edge> &edges, int const number_sites);
 
-int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
-  if (edges.empty()) {
-    return 0;
-  }
-  int min = 0;
-  int max = -1;
-  for (auto const &edge : edges) {
-    if (edge[0] > edge[1]) {
-      throw InvalidInputError{
-          "For each edge i<->j, i must not be greater than j"};
-    }
-    if (edge[0] < min) min = edge[0];
-    if (edge[1] > max) max = edge[1];
-  }
-  if (min < 0) {
-    throw InvalidInputError{"Nodes act as indices and should be >=0"};
-  }
-  assert(max >= min && "Bug! Postcondition violated");
-  return max + 1;
-}
+int CheckEdges(std::vector<AbstractGraph::Edge> const &edges);
 }  // namespace detail
 
 }  // namespace netket
 
-#include "graph_functions_impl.hpp"
+// Implementation of template functions
+#include "abstract_graph.ipp"
 
-#endif
+#endif  // NETKET_ABSTRACT_GRAPH_HPP

@@ -12,79 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GRAPH_FUNCTIONS_IMPL_HPP
-#define NETKET_GRAPH_FUNCTIONS_IMPL_HPP
+#include "abstract_graph.hpp"
 
 namespace netket {
-
-template <typename Func>
-void AbstractGraph::BreadthFirstSearch_Impl(int start, int max_depth,
-                                            Func visitor_func,
-                                            std::vector<bool> &seen) const {
-  assert(start >= 0 && start < Nsites());
-  assert(max_depth > 0);
-  assert(std::ptrdiff_t(seen.size()) == Nsites());
-  assert(!seen[start]);
-
-  // Queue to store states to visit
-  using QueueEntry = std::pair<int, int>;
-  std::queue<QueueEntry> queue;
-  queue.push({start, 0});
-
-  seen[start] = true;
-
-  const auto adjacency_list = AdjacencyList();
-  while (!queue.empty()) {
-    const auto elem = queue.front();
-    queue.pop();
-    const int node = elem.first;
-    const int depth = elem.second;
-
-    if (depth > max_depth) {
-      continue;
-    }
-
-    visitor_func(node, depth);
-
-    for (const int adj : adjacency_list[node]) {
-      if (!seen[adj]) {
-        seen[adj] = true;
-        queue.push({adj, depth + 1});
-      }
-    }
-  }
-}
-
-template <typename Func>
-void AbstractGraph::BreadthFirstSearch(Func visitor_func) const {
-  std::vector<bool> seen(Nsites(), false);
-  for (int v = 0; v < Nsites(); ++v) {
-    if (seen[v]) {
-      continue;
-    }
-    auto modified_visitor = [&](int node, int depth) {
-      visitor_func(node, depth, v);
-    };
-    BreadthFirstSearch_Impl(v, Nsites(), modified_visitor, seen);
-  }
-}
-
-template <typename Func>
-void AbstractGraph::BreadthFirstSearch(int start, int max_depth,
-                                       Func visitor_func) const {
-  std::vector<bool> seen(Nsites(), false);
-  BreadthFirstSearch_Impl(start, max_depth, visitor_func, seen);
-}
-
-std::vector<int> AbstractGraph::Distances(int root) const {
-  std::vector<int> dists(Nsites(), -1);
-
-  // Dijkstra's algorithm
-  BreadthFirstSearch(root,
-                     [&dists](int node, int depth) { dists[node] = depth; });
-
-  return dists;
-}
 
 std::vector<std::vector<int>> AbstractGraph::AllDistances() const {
   // This can be implemented more efficiently (by reusing information between
@@ -95,6 +25,7 @@ std::vector<std::vector<int>> AbstractGraph::AllDistances() const {
   }
   return distances;
 }
+
 bool AbstractGraph::IsConnected() const noexcept {
   const int start = 0;  // arbitrary node
   int nvisited = 0;
@@ -139,5 +70,68 @@ bool AbstractGraph::IsBipartite() const noexcept {
   return is_bipartite;
 }
 
+std::vector<int> AbstractGraph::Distances(int root) const {
+  std::vector<int> dists(Nsites(), -1);
+
+  // Dijkstra's algorithm
+  BreadthFirstSearch(root,
+                     [&dists](int node, int depth) { dists[node] = depth; });
+
+  return dists;
+}
+
+void AbstractGraph::EdgeColorsFromList(
+    const std::vector<std::vector<int>> &colorlist, ColorMap &eclist) {
+  for (auto edge : colorlist) {
+    eclist[{{edge[0], edge[1]}}] = edge[2];
+  }
+}
+
+// If no Edge Colors are specified, initialize eclist_ with same color (0).
+void AbstractGraph::EdgeColorsFromAdj(
+    const std::vector<std::vector<int>> &adjlist, ColorMap &eclist) {
+  for (int i = 0; i < static_cast<int>(adjlist.size()); i++) {
+    for (std::size_t j = 0; j < adjlist[i].size(); j++) {
+      eclist[{{i, adjlist[i][j]}}] = 0;
+    }
+  }
+}
+
+namespace detail {
+/// Constructs the adjacency list given graph edges. No sanity checks are
+/// performed. Use at your own risk!
+std::vector<std::vector<int>> AdjacencyListFromEdges(
+    const std::vector<AbstractGraph::Edge> &edges, int const number_sites) {
+  assert(number_sites >= 0 && "Bug! Number of sites should be non-negative");
+  std::vector<std::vector<int>> adjacency_list(
+      static_cast<std::size_t>(number_sites));
+  for (auto const &edge : edges) {
+    adjacency_list[edge[0]].push_back(edge[1]);
+    adjacency_list[edge[1]].push_back(edge[0]);
+  }
+  return adjacency_list;
+}
+
+int CheckEdges(std::vector<AbstractGraph::Edge> const &edges) {
+  if (edges.empty()) {
+    return 0;
+  }
+  int min = 0;
+  int max = -1;
+  for (auto const &edge : edges) {
+    if (edge[0] > edge[1]) {
+      throw InvalidInputError{
+          "For each edge i<->j, i must not be greater than j"};
+    }
+    if (edge[0] < min) min = edge[0];
+    if (edge[1] > max) max = edge[1];
+  }
+  if (min < 0) {
+    throw InvalidInputError{"Nodes act as indices and should be >=0"};
+  }
+  assert(max >= min && "Bug! Postcondition violated");
+  return max + 1;
+}
+}  // namespace detail
+
 }  // namespace netket
-#endif

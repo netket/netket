@@ -13,17 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
+#ifndef NETKET_FFNN_HPP
+#define NETKET_FFNN_HPP
+
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <vector>
+
+#include <Eigen/Dense>
+
 #include "Layers/layer.hpp"
+#include "Machine/abstract_machine.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/lookup.hpp"
-
-#ifndef NETKET_FFNN_HPP
-#define NETKET_FFNN_HPP
 
 namespace netket {
 

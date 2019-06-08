@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_LATTICE_IMPL_HPP
-#define NETKET_LATTICE_IMPL_HPP
+#include "lattice.hpp"
 
 #include <cmath>
 #include <iostream>
 #include <vector>
+
 #include "Utils/array_search.hpp"
 #include "Utils/math_helpers.hpp"
 #include "Utils/messages.hpp"
@@ -376,5 +376,3 @@ double Lattice::GetSquaredDistance(const std::vector<double> &v1,
 }
 
 }  // namespace netket
-
-#endif

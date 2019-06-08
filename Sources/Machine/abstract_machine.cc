@@ -12,22 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PYHILBERTINDEX_HPP
-#define NETKET_PYHILBERTINDEX_HPP
+#include "abstract_machine.hpp"
 
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
-#include <vector>
-#include "hilbert_index.hpp"
+#include <fstream>
 
-namespace py = pybind11;
+#include <nlohmann/json.hpp>
 
 namespace netket {
 
+AbstractMachine::VectorType AbstractMachine::DerLogChanged(
+    VisibleConstType v, const std::vector<int> &tochange,
+    const std::vector<double> &newconf) {
+  VisibleType vp(v);
+  GetHilbert().UpdateConf(vp, tochange, newconf);
+  return DerLog(vp);
+}
+
+void AbstractMachine::Save(const std::string &filename) const {
+  std::ofstream filewf(filename);
+  Save(filewf);
+  filewf.close();
+}
+
+void AbstractMachine::Save(std::ofstream &stream) const {
+  nlohmann::json j;
+  to_json(j);
+  stream << j << std::endl;
+}
 
 }  // namespace netket
-#endif

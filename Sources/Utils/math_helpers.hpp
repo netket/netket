@@ -1,8 +1,9 @@
 #ifndef NETKET_MATH_HELPERS_HPP
 #define NETKET_MATH_HELPERS_HPP
 
+#include <cmath>
 #include <functional>
-#include <iostream>
+#include <limits>
 
 namespace netket {
 
@@ -29,7 +30,7 @@ constexpr const T& bound(const T& v, const T& lo, const T& hi) {
   return bound(v, lo, hi, std::less<T>());
 }
 
-bool RelativelyEqual(double a, double b, double maxRelativeDiff) {
+inline bool RelativelyEqual(double a, double b, double maxRelativeDiff) {
   const double difference = std::abs(a - b);
   // Scale to the largest value.
   a = std::abs(a);
@@ -38,7 +39,7 @@ bool RelativelyEqual(double a, double b, double maxRelativeDiff) {
   return difference <= scaledEpsilon;
 }
 
-bool CheckProductOverflow(int a, int b) {
+inline bool CheckProductOverflow(int a, int b) {
   if (a == 0 || b == 0)
     return false;
   else
@@ -46,7 +47,7 @@ bool CheckProductOverflow(int a, int b) {
            std::log(std::numeric_limits<int>::max());
 }
 
-bool CheckSumOverflow(int a, int b) {
+inline bool CheckSumOverflow(int a, int b) {
   if (b < 0) {
     if (a >= 0)
       return false;

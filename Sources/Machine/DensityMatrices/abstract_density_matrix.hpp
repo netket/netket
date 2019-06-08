@@ -16,7 +16,10 @@
 #ifndef NETKET_ABSTRACT_DENSITY_MATRIX_HPP
 #define NETKET_ABSTRACT_DENSITY_MATRIX_HPP
 
+#include "Graph/custom_graph.hpp"
+#include "Hilbert/custom_hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
+#include "Utils/memory_utils.hpp"
 
 namespace netket {
 
@@ -94,7 +97,6 @@ class AbstractDensityMatrix : public AbstractMachine {
   const AbstractHilbert &GetHilbertPhysical() const noexcept {
     return hilbert_physical_;
   }
-
 };
 }  // namespace netket
 

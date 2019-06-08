@@ -15,15 +15,20 @@
 #ifndef NETKET_RANDOMUTILS_HPP
 #define NETKET_RANDOMUTILS_HPP
 
-#include <Eigen/Dense>
 #include <complex>
 #include <random>
+
+#include <mpi.h>
+#include <Eigen/Dense>
+
+#include "Utils/mpi_interface.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 using default_random_engine = std::mt19937;
 
-void RandomGaussian(Eigen::Matrix<double, Eigen::Dynamic, 1> &par, int seed,
-                    double sigma) {
+inline void RandomGaussian(Eigen::Matrix<double, Eigen::Dynamic, 1> &par,
+                           int seed, double sigma) {
   std::default_random_engine generator(seed);
   std::normal_distribution<double> distribution(0, sigma);
   for (int i = 0; i < par.size(); i++) {
@@ -31,13 +36,12 @@ void RandomGaussian(Eigen::Matrix<double, Eigen::Dynamic, 1> &par, int seed,
   }
 }
 
-void RandomGaussian(Eigen::Matrix<Complex, Eigen::Dynamic, 1> &par,
-                    int seed, double sigma) {
+inline void RandomGaussian(Eigen::Matrix<Complex, Eigen::Dynamic, 1> &par,
+                           int seed, double sigma) {
   std::default_random_engine generator(seed);
   std::normal_distribution<double> distribution(0, sigma);
   for (int i = 0; i < par.size(); i++) {
-    par(i) =
-        Complex(distribution(generator), distribution(generator));
+    par(i) = Complex(distribution(generator), distribution(generator));
   }
 }
 

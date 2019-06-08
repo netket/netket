@@ -15,9 +15,10 @@
 #ifndef NETKET_LOOKUP_HPP
 #define NETKET_LOOKUP_HPP
 
-#include <Eigen/Dense>
 #include <cassert>
 #include <vector>
+
+#include <Eigen/Core>
 
 namespace netket {
 
@@ -85,6 +86,7 @@ class Lookup {
     return m_[i];
   }
 };
+
 }  // namespace netket
 
-#endif
+#endif  // NETKET_LOOKUP_HPP

@@ -70,7 +70,7 @@ class ControlledStepperBase : public AbstractTimeStepper<State> {
   ControlledStepperBase(double atol, double rtol)
       : atol_(atol), rtol_(rtol), current_dt_(0.), last_norm_(0.) {}
 
-  virtual void Reset() override = 0;
+  void Reset() override = 0;
 
   /**
    * Perform a single step from t to t + dt.
