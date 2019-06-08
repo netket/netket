@@ -32,10 +32,6 @@ namespace netket {
 */
 
 class Ising : public AbstractOperator {
-  /**
-    Hilbert space descriptor for this hamiltonian.
-  */
-  const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
   const int nspins_;
@@ -53,11 +49,8 @@ class Ising : public AbstractOperator {
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
   explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nspins_(hilbert.Size()),
-        h_(h),
-        J_(J) {
+      : graph_(hilbert.GetGraph()), nspins_(hilbert.Size()), h_(h), J_(J) {
+    SetHilbert(hilbert);
     Init();
   }
 
@@ -151,10 +144,6 @@ class Ising : public AbstractOperator {
 
     // diagonal term H(v,v)
     callback(ConnectorRef{mel_J, {}, {}});
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
   }
 };
 
