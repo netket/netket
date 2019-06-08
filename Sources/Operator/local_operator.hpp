@@ -227,7 +227,7 @@ class LocalOperator : public AbstractOperator {
                 std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const {
-    assert(opn < mat_.size() && opn >= 0);
+    assert(opn < mat_.size());
 
     mel.resize(1, 0.);
     connectors.resize(1);

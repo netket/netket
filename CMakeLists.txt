@@ -29,14 +29,19 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
 
 # json
 ################################################################################
-if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/json/json.hpp")
-    file(DOWNLOAD
-        "https://github.com/nlohmann/json/releases/download/v3.2.0/json.hpp"
-        "External/json/json.hpp")
-endif()
+ExternalProject_Add(
+    json_project
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/json/include"
+    URL "https://github.com/nlohmann/json/releases/download/v3.6.1/include.zip"
+    URL_HASH MD5=0dc903888211db3a0f170304cd9f3a89
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+ExternalProject_Get_Property(json_project SOURCE_DIR)
 add_library(nlohmann_json INTERFACE)
-target_include_directories(nlohmann_json
-    INTERFACE "${CMAKE_BINARY_DIR}/External/json")
+target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
+target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR}/nlohmann)
 
 # optional-lite
 ################################################################################
@@ -206,11 +211,21 @@ endif()
 
 
 
-add_library(netket MODULE Sources/pynetket.cc)
+add_library(netket MODULE Sources/pynetket.cc Sources/Dynamics/py_dynamics.cpp
+    Sources/Graph/hypercube.cc Sources/Graph/lattice.cc
+    Sources/Graph/custom_graph.cc Sources/Graph/abstract_graph.cc
+    Sources/Graph/py_graph.cc Sources/Hilbert/hilbert_index.cc
+    Sources/Hilbert/bosons.cc Sources/Hilbert/spins.cc Sources/Hilbert/qubits.cc
+    Sources/Hilbert/custom_hilbert.cc Sources/Hilbert/py_hilbert.cc
+    Sources/Machine/abstract_machine.cc Sources/Machine/rbm_spin.cc
+    Sources/Machine/rbm_multival.cc Sources/Machine/rbm_spin_phase.cc
+    Sources/Machine/rbm_spin_real.cc Sources/Machine/rbm_spin_symm.cc
+    Sources/Machine/jastrow.cc Sources/Machine/jastrow_symm.cc
+    Sources/Machine/mps_periodic.cc Sources/Machine/py_machine.cc Sources/Utils/mpi_interface.cc)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(netket eigen_project pybind11_project)
+add_dependencies(netket json_project eigen_project pybind11_project)
 set_target_properties(netket PROPERTIES OUTPUT_NAME "_C_netket")
 
 if(NETKET_Sanitizer)

@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <vector>
-#include "Graph/graph.hpp"
-#include "Utils/json_utils.hpp"
-#include "Utils/random_utils.hpp"
-#include "abstract_hilbert.hpp"
-
 #ifndef NETKET_BOSONS_HPP
 #define NETKET_BOSONS_HPP
+
+#include <Eigen/Core>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include "Graph/abstract_graph.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 
 namespace netket {
 
@@ -33,6 +30,29 @@ namespace netket {
 */
 
 class Boson : public AbstractHilbert {
+ public:
+  Boson(const AbstractGraph &graph, int nmax);
+  Boson(const AbstractGraph &graph, int nmax, int nbosons);
+
+  bool IsDiscrete() const override;
+  int LocalSize() const override;
+  int Size() const override;
+  std::vector<double> LocalStates() const override;
+  const AbstractGraph &GetGraph() const noexcept override;
+
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
+                  netket::default_random_engine &rgen) const override;
+
+  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
+                  const std::vector<int> &tochange,
+                  const std::vector<double> &newconf) const override;
+
+ private:
+  void Init();
+  inline void SetNbosons(int nbosons);
+  inline bool CheckConstraint(Eigen::Ref<const Eigen::VectorXd> v) const;
+
+ private:
   const AbstractGraph &graph_;
 
   int nsites_;
@@ -49,115 +69,6 @@ class Boson : public AbstractHilbert {
   int nmax_;
 
   int nstates_;
-
- public:
-  explicit Boson(const AbstractGraph &graph, int nmax)
-      : graph_(graph), nmax_(nmax) {
-    nsites_ = graph.Size();
-
-    Init();
-
-    constraintN_ = false;
-  }
-
-  explicit Boson(const AbstractGraph &graph, int nmax, int nbosons)
-      : graph_(graph), nmax_(nmax) {
-    nsites_ = graph.Size();
-
-    Init();
-
-    SetNbosons(nbosons);
-  }
-
-  void Init() {
-    if (nsites_ <= 0) {
-      throw InvalidInputError("Invalid number of sites");
-    }
-
-    if (nmax_ <= 0) {
-      throw InvalidInputError("Invalid maximum occupation number");
-    }
-
-    nstates_ = nmax_ + 1;
-
-    local_.resize(nstates_);
-
-    for (int i = 0; i < nstates_; i++) {
-      local_[i] = i;
-    }
-  }
-
-  void SetNbosons(int nbosons) {
-    constraintN_ = true;
-    nbosons_ = nbosons;
-
-    if (nbosons_ > nsites_ * nmax_) {
-      throw InvalidInputError("Cannot set the desired number of bosons");
-    }
-  }
-
-  bool IsDiscrete() const override { return true; }
-
-  int LocalSize() const override { return nstates_; }
-
-  int Size() const override { return nsites_; }
-
-  std::vector<double> LocalStates() const override { return local_; }
-
-  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                  netket::default_random_engine &rgen) const override {
-    assert(state.size() == nsites_);
-
-    if (!constraintN_) {
-      std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
-      // unconstrained random
-      for (int i = 0; i < state.size(); i++) {
-        state(i) = distribution(rgen);
-      }
-    } else {
-      state.setZero();
-
-      std::uniform_int_distribution<int> distribution(0, nsites_ - 1);
-      for (int i = 0; i < nbosons_; i++) {
-        int rsite = distribution(rgen);
-
-        while (state(rsite) >= nmax_) {
-          rsite = distribution(rgen);
-        }
-
-        state(rsite) += 1;
-      }
-    }
-  }
-
-  bool CheckConstraint(Eigen::Ref<const Eigen::VectorXd> v) const {
-    int tot = 0;
-    for (int i = 0; i < v.size(); i++) {
-      tot += std::round(v(i));
-    }
-
-    return tot == nbosons_;
-  }
-
-  void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                  const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const override {
-    assert(v.size() == nsites_);
-
-    int i = 0;
-    for (auto sf : tochange) {
-      v(sf) = newconf[i];
-      i++;
-      assert(v(sf) <= nmax_);
-      assert(v(sf) >= 0);
-    }
-
-    if (constraintN_) {
-      assert(CheckConstraint(v));
-    }
-  }
-
-  const AbstractGraph &GetGraph() const noexcept override { return graph_; }
 };
 
 }  // namespace netket

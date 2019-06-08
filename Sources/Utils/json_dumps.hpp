@@ -82,11 +82,11 @@ void from_json(const nlohmann::json &js,
 
 namespace std {
 
-void to_json(nlohmann::json &js, const std::complex<double> &p) {
+inline void to_json(nlohmann::json &js, const std::complex<double> &p) {
   js = nlohmann::json{p.real(), p.imag()};
 }
 
-void from_json(const nlohmann::json &js, std::complex<double> &p) {
+inline void from_json(const nlohmann::json &js, std::complex<double> &p) {
   if (js.is_array()) {
     p = std::complex<double>(js[0].get<double>(), js[1].get<double>());
   } else {

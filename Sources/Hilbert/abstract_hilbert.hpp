@@ -14,14 +14,15 @@
 #ifndef NETKET_ABSTRACTHILBERT_HPP
 #define NETKET_ABSTRACTHILBERT_HPP
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <complex>
-#include <memory>
+#include <limits>
 #include <nonstd/optional.hpp>
 #include <vector>
 
+#include "Graph/abstract_graph.hpp"
+#include "Hilbert/hilbert_index.hpp"
 #include "Utils/random_utils.hpp"
-#include "hilbert_index.hpp"
 
 namespace netket {
 
@@ -105,7 +106,8 @@ class AbstractHilbert {
 
   virtual const AbstractGraph &GetGraph() const noexcept = 0;
 
-  // Allow range-based for over all states in the Hilbert space, iff it is indexable
+  // Allow range-based for over all states in the Hilbert space, iff it is
+  // indexable
   StateGenerator begin() const { return StateGenerator(GetIndex()); };
   StateGenerator end() const { return StateGenerator(GetIndex()); };
 

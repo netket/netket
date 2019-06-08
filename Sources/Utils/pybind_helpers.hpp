@@ -3,6 +3,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <nonstd/optional.hpp>
 
 #include "exceptions.hpp"
 
@@ -12,8 +13,8 @@ namespace pybind11 {
 namespace detail {
 
 template <typename T>
-struct type_caster<nonstd::optional<T>> : public optional_caster<nonstd::optional<T>> {
-};
+struct type_caster<nonstd::optional<T>>
+    : public optional_caster<nonstd::optional<T>> {};
 
 template <>
 struct type_caster<nonstd::nullopt_t> : public void_caster<nonstd::nullopt_t> {

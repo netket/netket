@@ -15,12 +15,15 @@
 #ifndef NETKET_ABSTRACTLAYER_HH
 #define NETKET_ABSTRACTLAYER_HH
 
-#include <Eigen/Dense>
-#include <Utils/lookup.hpp>
 #include <complex>
 #include <fstream>
 #include <random>
 #include <vector>
+
+#include <Eigen/Dense>
+
+#include "Machine/abstract_machine.hpp"
+#include "Utils/lookup.hpp"
 
 namespace netket {
 /**
