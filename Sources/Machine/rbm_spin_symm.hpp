@@ -23,8 +23,6 @@ using json = nlohmann::json;
 
 // Rbm with permutation symmetries
 class RbmSpinSymm : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   const AbstractGraph &graph_;
 
   // number of visible units
@@ -78,9 +76,6 @@ class RbmSpinSymm : public AbstractMachine {
   int Npar() const override;
   int Nvisible() const override;
   int Nhidden() const { return nh_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
-
   void InitRandomPars(int seed, double sigma) override;
   void InitLookup(VisibleConstType v, LookupType &lt) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,

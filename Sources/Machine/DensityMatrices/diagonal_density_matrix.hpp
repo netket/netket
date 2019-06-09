@@ -35,11 +35,9 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
  public:
   explicit DiagonalDensityMatrix(AbstractDensityMatrix &dm)
-      : density_matrix_(dm){};
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return density_matrix_.GetHilbertPhysical();
-  }
+      : density_matrix_(dm) {
+    SetHilbert(dm.GetHilbertPhysical());
+  };
 
   const AbstractDensityMatrix &GetFullDensityMatrix() const noexcept {
     return density_matrix_;

@@ -25,8 +25,6 @@ namespace netket {
  *
  */
 class Jastrow : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -67,7 +65,6 @@ class Jastrow : public AbstractMachine {
                      const LookupType &lt) override;
 
   VectorType DerLog(VisibleConstType v) override;
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void to_json(json &j) const override;
   void from_json(const json &pars) override;

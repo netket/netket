@@ -106,7 +106,6 @@ class NdmSpinPhase : public AbstractDensityMatrix {
         I_(0, 1) {
     nh_ = std::max(nhidden, alpha * nv_);
     na_ = std::max(nancilla, beta * nv_);
-
     Init();
   }
 

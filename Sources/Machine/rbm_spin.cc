@@ -21,8 +21,9 @@ namespace netket {
 
 RbmSpin::RbmSpin(const AbstractHilbert &hilbert, int nhidden, int alpha,
                  bool usea, bool useb)
-    : hilbert_(hilbert), nv_(hilbert.Size()), usea_(usea), useb_(useb) {
+    : nv_(hilbert.Size()), usea_(usea), useb_(useb) {
   nh_ = std::max(nhidden, alpha * nv_);
+  SetHilbert(hilbert);
   Init();
 }
 
@@ -219,8 +220,6 @@ Complex RbmSpin::LogValDiff(VisibleConstType v,
   return logvaldiff;
 }
 
-const AbstractHilbert &RbmSpin::GetHilbert() const noexcept { return hilbert_; }
-
 void RbmSpin::to_json(json &j) const {
   j["Name"] = "RbmSpin";
   j["Nvisible"] = nv_;
@@ -242,7 +241,7 @@ void RbmSpin::from_json(const json &pars) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = FieldVal<int>(pars, "Nvisible");
   }
-  if (nv_ != hilbert_.Size()) {
+  if (nv_ != GetHilbert().Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

@@ -29,12 +29,8 @@ namespace netket {
  */
 class AbstractDensityMatrix : public AbstractMachine {
   // The physical hilbert space over which this operator acts
-  const AbstractHilbert &hilbert_physical_;
 
   const std::unique_ptr<AbstractGraph> graph_doubled_;
-
-  // The doubled hilbert space where this operator is defined
-  const std::unique_ptr<AbstractHilbert> hilbert_doubled_;
 
   using Edge = AbstractGraph::Edge;
 
@@ -80,23 +76,26 @@ class AbstractDensityMatrix : public AbstractMachine {
 
  public:
   explicit AbstractDensityMatrix(const AbstractHilbert &hilbert)
-      : hilbert_physical_(hilbert),
-        graph_doubled_(DoubledGraph(hilbert.GetGraph())),
-        hilbert_doubled_(make_unique<CustomHilbert>(*graph_doubled_,
-                                                    hilbert.LocalStates())){};
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return *hilbert_doubled_;
-  }
+      : graph_doubled_(DoubledGraph(hilbert.GetGraph())) {
+    SetHilbertPhysical(hilbert);
+    SetHilbert(CustomHilbert(*graph_doubled_, hilbert.LocalStates()));
+  };
 
   /**
    * Member function returning the Physical hilbert space over which
    * this density matrix acts
    * @return The physical hilbert space
    */
-  const AbstractHilbert &GetHilbertPhysical() const noexcept {
-    return hilbert_physical_;
+  const AbstractHilbert &GetHilbertPhysical() const {
+    return *hilbert_physical_;
   }
+
+  void SetHilbertPhysical(const AbstractHilbert &hilbert) {
+    hilbert_physical_ = hilbert.Clone();
+  }
+
+ private:
+  std::shared_ptr<AbstractHilbert> hilbert_physical_;
 };
 }  // namespace netket
 

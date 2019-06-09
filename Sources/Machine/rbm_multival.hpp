@@ -30,8 +30,6 @@ namespace netket {
 // Restricted Boltzman Machine wave function
 // for generic (finite) local hilbert space
 class RbmMultival : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -75,8 +73,6 @@ class RbmMultival : public AbstractMachine {
   int Npar() const override;
   int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void InitRandomPars(int seed, double sigma) override;
   void InitLookup(VisibleConstType v, LookupType &lt) override;
