@@ -21,8 +21,9 @@
 
 namespace netket {
 
-Jastrow::Jastrow(const AbstractHilbert &hilbert) : nv_(hilbert.Size()) {
-  SetHilbert(hilbert);
+Jastrow::Jastrow(std::shared_ptr<const AbstractHilbert> hilbert)
+    : nv_(hilbert->Size()) {
+  SetHilbert(std::move(hilbert));
   Init();
 }
 
@@ -196,7 +197,7 @@ void Jastrow::from_json(const json &pars) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = pars["Nvisible"];
   }
-  if (nv_ != GetHilbert().Size()) {
+  if (nv_ != hilbert_->Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

@@ -44,13 +44,12 @@ class GraphOperator : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit GraphOperator(const AbstractHilbert &hilbert,
-                         OVecType siteops = OVecType(),
-                         OVecType bondops = OVecType(),
-                         std::vector<int> bondops_colors = std::vector<int>())
-      : graph_(hilbert.GetGraph()),
+  GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
+                OVecType siteops = OVecType(), OVecType bondops = OVecType(),
+                std::vector<int> bondops_colors = std::vector<int>())
+      : graph_(hilbert->GetGraph()),
         operator_(hilbert),
-        nvertices_(hilbert.Size()) {
+        nvertices_(hilbert->Size()) {
     SetHilbert(hilbert);
 
     // Create the local operator as the sum of all site and bond operators
@@ -96,10 +95,10 @@ class GraphOperator : public AbstractOperator {
   }
 
   // Constructor to be used when overloading operators
-  explicit GraphOperator(const AbstractHilbert &hilbert,
+  explicit GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const LocalOperator &lop)
-      : graph_(hilbert.GetGraph()), operator_(lop), nvertices_(hilbert.Size()) {
-    SetHilbert(hilbert);
+      : graph_(hilbert->GetGraph()), operator_(lop), nvertices_(hilbert->Size()) {
+    SetHilbert(std::move(hilbert));
   }
 
   friend GraphOperator operator+(const GraphOperator &lhs,

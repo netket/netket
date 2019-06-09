@@ -27,8 +27,6 @@ namespace netket {
 class MetropolisHop : public AbstractSampler {
   AbstractMachine &psi_;
 
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -52,8 +50,8 @@ class MetropolisHop : public AbstractSampler {
 
  public:
   MetropolisHop(AbstractMachine &psi, int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
-    Init(hilbert_.GetGraph(), dmax);
+      : AbstractSampler(psi.GetHilbert()), psi_(psi), nv_(hilbert_->Size()) {
+    Init(hilbert_->GetGraph(), dmax);
   }
 
   void Init(const AbstractGraph &graph, int dmax) {
@@ -65,8 +63,8 @@ class MetropolisHop : public AbstractSampler {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     GenerateClusters(graph, dmax);
 
@@ -95,7 +93,7 @@ class MetropolisHop : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      hilbert_->RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -156,7 +154,7 @@ class MetropolisHop : public AbstractSampler {
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_.UpdateConf(v_, tochange, newconf);
+        hilbert_->UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_.LogVal(v_);
@@ -178,10 +176,6 @@ class MetropolisHop : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_, lt_);

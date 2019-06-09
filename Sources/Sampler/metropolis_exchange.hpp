@@ -28,8 +28,6 @@ namespace netket {
 class MetropolisExchange : public AbstractSampler {
   AbstractMachine &psi_;
 
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -51,7 +49,7 @@ class MetropolisExchange : public AbstractSampler {
  public:
   MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi,
                      int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : AbstractSampler(psi.GetHilbert()), psi_(psi), nv_(hilbert_->Size()) {
     Init(graph, dmax);
   }
 
@@ -92,7 +90,7 @@ class MetropolisExchange : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, this->GetRandomEngine());
+        hilbert_->RandomVals(v_, this->GetRandomEngine());
       }
     }
 
@@ -129,7 +127,7 @@ class MetropolisExchange : public AbstractSampler {
         if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;
           psi_.UpdateLookup(v_, tochange, newconf, lt_);
-          hilbert_.UpdateConf(v_, tochange, newconf);
+          hilbert_->UpdateConf(v_, tochange, newconf);
         }
       }
       moves_[0] += 1;
@@ -141,10 +139,6 @@ class MetropolisExchange : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_, lt_);

@@ -39,7 +39,7 @@ class Jastrow : public AbstractMachine {
   VectorType thetasnew_;
 
  public:
-  explicit Jastrow(const AbstractHilbert &hilbert);
+  explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert);
 
   inline void Init();
 

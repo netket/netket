@@ -31,7 +31,7 @@ namespace netket {
 // Metropolis sampling using custom moves provided by user
 class CustomSampler : public AbstractSampler {
   AbstractMachine &psi_;
-  const AbstractHilbert &hilbert_;
+
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
 
@@ -60,17 +60,17 @@ class CustomSampler : public AbstractSampler {
  public:
   CustomSampler(AbstractMachine &psi, const LocalOperator &move_operators,
                 const std::vector<double> &move_weights = {})
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
         move_operators_(move_operators),
-        nv_(hilbert_.Size()) {
+        nv_(hilbert_->Size()) {
     Init(move_weights);
   }
 
   void Init(const std::vector<double> &move_weights) {
     CheckMoveOperators(move_operators_);
 
-    if (hilbert_.Size() != move_operators_.GetHilbert().Size()) {
+    if (hilbert_->Size() != move_operators_.GetHilbert()->Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -93,7 +93,7 @@ class CustomSampler : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
@@ -101,8 +101,8 @@ class CustomSampler : public AbstractSampler {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     Reset(true);
 
@@ -111,7 +111,7 @@ class CustomSampler : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      hilbert_->RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -149,7 +149,7 @@ class CustomSampler : public AbstractSampler {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
                           lt_);
-        hilbert_.UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
+        hilbert_->UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
       }
       moves_[0] += 1;
     }
@@ -160,10 +160,6 @@ class CustomSampler : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_, lt_);
@@ -246,7 +242,7 @@ class CustomSampler : public AbstractSampler {
     }
 
     if (static_cast<int>(touched_sites.size()) !=
-        move_operators.GetHilbert().Size()) {
+        move_operators.GetHilbert()->Size()) {
       InfoMessage() << "Warning: MoveOperators appear not to act on "
                        "all sites of the space:"
                     << std::endl;

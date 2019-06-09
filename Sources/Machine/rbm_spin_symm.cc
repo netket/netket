@@ -20,14 +20,14 @@
 
 namespace netket {
 
-RbmSpinSymm::RbmSpinSymm(const AbstractHilbert &hilbert, int alpha, bool usea,
-                         bool useb)
-    : graph_(hilbert.GetGraph()),
-      nv_(hilbert.Size()),
+RbmSpinSymm::RbmSpinSymm(std::shared_ptr<const AbstractHilbert> hilbert,
+                         int alpha, bool usea, bool useb)
+    : graph_(hilbert->GetGraph()),
+      nv_(hilbert->Size()),
       alpha_(alpha),
       usea_(usea),
       useb_(useb) {
-  SetHilbert(hilbert);
+  SetHilbert(std::move(hilbert));
   Init(graph_);
   SetBareParameters();
 }
@@ -366,7 +366,7 @@ void RbmSpinSymm::from_json(const json &pars) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = pars["Nvisible"];
   }
-  if (nv_ != GetHilbert().Size()) {
+  if (nv_ != hilbert_->Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

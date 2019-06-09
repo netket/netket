@@ -28,7 +28,6 @@ namespace netket {
 // Parallel tempering is also used
 class MetropolisExchangePt : public AbstractSampler {
   AbstractMachine &psi_;
-  const AbstractHilbert &hilbert_;
 
   // number of visible units
   const int nv_;
@@ -55,9 +54,9 @@ class MetropolisExchangePt : public AbstractSampler {
  public:
   MetropolisExchangePt(const AbstractGraph &graph, AbstractMachine &psi,
                        int dmax = 1, int nreplicas = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
+        nv_(hilbert_->Size()),
         nrep_(nreplicas) {
     Init(graph, dmax);
   }
@@ -109,7 +108,7 @@ class MetropolisExchangePt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        hilbert_->RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -150,7 +149,7 @@ class MetropolisExchangePt : public AbstractSampler {
         if (ratio > distu(this->GetRandomEngine())) {
           accept_(rep) += 1;
           psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-          hilbert_.UpdateConf(v_[rep], tochange, newconf);
+          hilbert_->UpdateConf(v_[rep], tochange, newconf);
         }
       }
 
@@ -206,10 +205,6 @@ class MetropolisExchangePt : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_[0], lt_[0]);

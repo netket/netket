@@ -24,7 +24,7 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
     VisibleConstType v, const std::vector<int> &tochange,
     const std::vector<double> &newconf) {
   VisibleType vp(v);
-  GetHilbert().UpdateConf(vp, tochange, newconf);
+  hilbert_->UpdateConf(vp, tochange, newconf);
   return DerLog(vp);
 }
 
@@ -38,12 +38,6 @@ void AbstractMachine::Save(std::ofstream &stream) const {
   nlohmann::json j;
   to_json(j);
   stream << j << std::endl;
-}
-
-const AbstractHilbert &AbstractMachine::GetHilbert() const { return *hilbert_; }
-
-void AbstractMachine::SetHilbert(const AbstractHilbert &hilbert) {
-  hilbert_ = hilbert.Clone();
 }
 
 }  // namespace netket

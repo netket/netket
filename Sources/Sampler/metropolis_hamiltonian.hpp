@@ -29,8 +29,6 @@ template <class H>
 class MetropolisHamiltonian : public AbstractSampler {
   AbstractMachine &psi_;
 
-  const AbstractHilbert &hilbert_;
-
   H &hamiltonian_;
 
   // number of visible units
@@ -60,10 +58,10 @@ class MetropolisHamiltonian : public AbstractSampler {
 
  public:
   MetropolisHamiltonian(AbstractMachine &psi, H &hamiltonian)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()) {
+        nv_(hilbert_->Size()) {
     Init();
   }
 
@@ -73,7 +71,7 @@ class MetropolisHamiltonian : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -89,7 +87,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      hilbert_->RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -112,7 +110,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_;
-      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      hilbert_->UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
@@ -155,10 +153,6 @@ class MetropolisHamiltonian : public AbstractSampler {
   Eigen::VectorXd Visible() override { return v_; }
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
 

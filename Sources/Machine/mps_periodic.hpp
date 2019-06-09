@@ -59,7 +59,7 @@ class MPSPeriodic : public AbstractMachine {
   MatrixType identity_mat_;
 
  public:
-  MPSPeriodic(const AbstractHilbert &hilbert, int bond_dim, bool diag,
+  MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert, int bond_dim, bool diag,
               int symperiod = -1);
 
   int Npar() const override;

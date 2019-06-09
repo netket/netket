@@ -31,7 +31,7 @@ namespace netket {
 
 namespace {
 void AddBosons(py::module subm) {
-  py::class_<Boson, AbstractHilbert>(
+  py::class_<Boson, AbstractHilbert, std::shared_ptr<Boson>>(
       subm, "Boson", R"EOF(Hilbert space composed of bosonic states.)EOF")
       .def(py::init<const AbstractGraph &, int>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("n_max"), R"EOF(
@@ -80,8 +80,8 @@ void AddBosons(py::module subm) {
 }
 
 void AddCustomHilbert(py::module subm) {
-  py::class_<CustomHilbert, AbstractHilbert>(subm, "CustomHilbert",
-                                             R"EOF(A custom hilbert space.)EOF")
+  py::class_<CustomHilbert, AbstractHilbert, std::shared_ptr<CustomHilbert>>(
+      subm, "CustomHilbert", R"EOF(A custom hilbert space.)EOF")
       .def(py::init<const AbstractGraph &, std::vector<double>>(),
            py::keep_alive<1, 2>(), py::arg("graph"), py::arg("local_states"),
            R"EOF(
@@ -108,7 +108,7 @@ void AddCustomHilbert(py::module subm) {
 }
 
 void AddSpins(py::module subm) {
-  py::class_<Spin, AbstractHilbert>(
+  py::class_<Spin, AbstractHilbert, std::shared_ptr<Spin>>(
       subm, "Spin", R"EOF(Hilbert space composed of spin states.)EOF")
       .def(py::init<const AbstractGraph &, double>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("s"), R"EOF(
@@ -161,7 +161,8 @@ void AddHilbertModule(py::module m) {
   auto subm = m.def_submodule("hilbert");
 
   auto hilbert_class =
-      py::class_<AbstractHilbert>(subm, "Hilbert")
+      py::class_<AbstractHilbert, std::shared_ptr<AbstractHilbert>>(subm,
+                                                                    "Hilbert")
           .def_property_readonly(
               "is_discrete", &AbstractHilbert::IsDiscrete,
               R"EOF(bool: Whether the hilbert space is discrete.)EOF")

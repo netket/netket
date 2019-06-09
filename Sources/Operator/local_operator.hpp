@@ -74,27 +74,29 @@ class LocalOperator : public AbstractOperator {
   //   SetHilbert(rhs.GetHilbert());
   // }
 
-  explicit LocalOperator(const AbstractHilbert &hilbert, double constant = 0.)
+  explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
+                         double constant = 0.)
       : constant_(constant), nops_(0) {
-    SetHilbert(hilbert);
+    SetHilbert(std::move(hilbert));
   }
 
-  explicit LocalOperator(const AbstractHilbert &hilbert,
+  explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites,
                          double constant = 0.)
       : constant_(constant) {
-    SetHilbert(hilbert);
+    SetHilbert(std::move(hilbert));
     for (std::size_t i = 0; i < mat.size(); i++) {
       Push(mat[i], sites[i]);
     }
     Init();
   }
 
-  explicit LocalOperator(const AbstractHilbert &hilbert, const MatType &mat,
-                         const SiteType &sites, double constant = 0.)
+  explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
+                         const MatType &mat, const SiteType &sites,
+                         double constant = 0.)
       : constant_(constant) {
-    SetHilbert(hilbert);
+    SetHilbert(std::move(hilbert));
     Push(mat, sites);
     // TODO sort sites and swap columns of mat accordingly
     Init();
@@ -116,7 +118,7 @@ class LocalOperator : public AbstractOperator {
   }
 
   void Init() {
-    if (!GetHilbert().IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Cannot construct operators on infinite local hilbert spaces");
     }
@@ -143,12 +145,12 @@ class LocalOperator : public AbstractOperator {
       auto &invstate = invstate_[op];
 
       if (*std::max_element(sites.begin(), sites.end()) >=
-              GetHilbert().Size() ||
+              hilbert_->Size() ||
           *std::min_element(sites.begin(), sites.end()) < 0) {
         throw InvalidInputError("Operator acts on an invalid set of sites");
       }
 
-      auto localstates = GetHilbert().LocalStates();
+      auto localstates = hilbert_->LocalStates();
       const auto localsize = localstates.size();
 
       // Finding the non-zero matrix elements
@@ -203,7 +205,7 @@ class LocalOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
-    assert(v.size() == GetHilbert().Size());
+    assert(v.size() == hilbert_->Size());
 
     connectors.clear();
     newconfs.clear();
@@ -275,7 +277,8 @@ class LocalOperator : public AbstractOperator {
     std::transform(mat_.begin(), mat_.end(), mat_t.begin(),
                    netket::transpose_vecvec<MelType>);
 
-    return LocalOperator(GetHilbert(), mat_t, sites_, constant_);
+    return LocalOperator(GetHilbert(), mat_t, sites_,
+                         constant_);
   }
 
   LocalOperator Conjugate() const {
@@ -290,7 +293,8 @@ class LocalOperator : public AbstractOperator {
                      }
                      return out;
                    });
-    return LocalOperator(GetHilbert(), mat_c, sites_, constant_);
+    return LocalOperator(GetHilbert(), mat_c, sites_,
+                         constant_);
   }
 
   // Product of two local operators, performing KroneckerProducts as necessary
@@ -318,7 +322,8 @@ class LocalOperator : public AbstractOperator {
       }
     }
     auto constant = lhs.constant_ * rhs.constant_;
-    auto opret = LocalOperator(lhs.GetHilbert(), mat, sites, constant);
+    auto opret = LocalOperator(lhs.GetHilbert(), mat, sites,
+                               constant);
 
     if (std::abs(lhs.constant_) > mel_cutoff_) {
       opret += lhs.constant_ * rhs;
@@ -332,8 +337,8 @@ class LocalOperator : public AbstractOperator {
 
   friend LocalOperator operator+(const LocalOperator &lhs,
                                  const LocalOperator &rhs) {
-    assert(rhs.GetHilbert().LocalStates().size() ==
-           lhs.GetHilbert().LocalStates().size());
+    assert(rhs.hilbert_->LocalStates().size() ==
+           lhs.hilbert_->LocalStates().size());
 
     auto sites = lhs.sites_;
     auto mat = lhs.mat_;
@@ -354,8 +359,8 @@ class LocalOperator : public AbstractOperator {
   }
 
   LocalOperator &operator+=(const LocalOperator &rhs) {
-    assert(rhs.GetHilbert().LocalStates().size() ==
-           this->GetHilbert().LocalStates().size());
+    assert(rhs.hilbert_->LocalStates().size() ==
+           this->hilbert_->LocalStates().size());
 
     this->sites_.insert(this->sites_.end(), rhs.sites_.begin(),
                         rhs.sites_.end());

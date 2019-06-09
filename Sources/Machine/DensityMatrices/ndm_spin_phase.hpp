@@ -95,11 +95,12 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   const Complex I_;
 
  public:
-  explicit NdmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0,
-                        int nancilla = 0, int alpha = 0, int beta = 0,
-                        bool useb = true, bool useh = true, bool used = true)
+  explicit NdmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert,
+                        int nhidden = 0, int nancilla = 0, int alpha = 0,
+                        int beta = 0, bool useb = true, bool useh = true,
+                        bool used = true)
       : AbstractDensityMatrix(hilbert),
-        nv_(hilbert.Size()),
+        nv_(hilbert->Size()),
         useb_(useb),
         useh_(useh),
         used_(used),
@@ -223,8 +224,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
       lt.V(5).resize(d1_.size());
     }
 
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     lt.V(0) = (W1_.transpose() * vr + h1_);
     lt.V(1) = (W2_.transpose() * vr + h2_);
@@ -238,8 +239,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf,
                     LookupType &lt) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     if (tochange.size() != 0) {
       for (std::size_t s = 0; s < tochange.size(); s++) {
@@ -269,8 +270,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   }
 
   VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     VectorType der(npar_);
 
@@ -403,8 +404,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
   // Value of the logarithm of the wave-function
   Complex LogVal(VisibleConstType v) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
     RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
@@ -427,8 +428,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
   Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     RbmSpin::lncosh(lt.V(0).real(), lnthetas_r1_);
     RbmSpin::lncosh(lt.V(1).real(), lnthetas_r2_);
@@ -449,8 +450,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     const std::size_t nconn = tochange.size();
 
@@ -526,8 +527,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+    VisibleConstType vr = v.head(GetHilbertPhysical()->Size());
+    VisibleConstType vc = v.tail(GetHilbertPhysical()->Size());
 
     Complex logvaldiff = 0.;
 
@@ -623,7 +624,7 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     if (FieldExists(pars, "Nvisible")) {
       nv_ = FieldVal<int>(pars, "Nvisible");
     }
-    if (nv_ != GetHilbertPhysical().Size()) {
+    if (nv_ != GetHilbertPhysical()->Size()) {
       throw InvalidInputError(
           "Number of visible units is incompatible with given "
           "Hilbert space");

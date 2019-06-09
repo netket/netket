@@ -48,9 +48,10 @@ class Ising : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit Ising(const AbstractHilbert &hilbert, double h, double J = 1)
-      : graph_(hilbert.GetGraph()), nspins_(hilbert.Size()), h_(h), J_(J) {
-    SetHilbert(hilbert);
+  explicit Ising(std::shared_ptr<const AbstractHilbert> hilbert, double h,
+                 double J = 1)
+      : graph_(hilbert->GetGraph()), nspins_(hilbert->Size()), h_(h), J_(J) {
+    SetHilbert(std::move(hilbert));
     Init();
   }
 

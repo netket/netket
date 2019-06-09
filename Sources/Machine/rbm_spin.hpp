@@ -54,8 +54,8 @@ class RbmSpin : public AbstractMachine {
   bool useb_;
 
  public:
-  RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
-          bool usea = true, bool useb = true);
+  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
+          int alpha = 0, bool usea = true, bool useb = true);
 
   int Nvisible() const override;
   int Npar() const override;

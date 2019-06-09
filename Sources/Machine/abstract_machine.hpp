@@ -215,14 +215,15 @@ class AbstractMachine {
   void Save(const std::string &filename) const;
   void Save(std::ofstream &stream) const;
 
-  const AbstractHilbert &GetHilbert() const;
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const { return hilbert_; };
+  void SetHilbert(std::shared_ptr<const AbstractHilbert> hilbert) {
+    hilbert_ = std::move(hilbert);
+  }
 
-  void SetHilbert(const AbstractHilbert &hilbert);
+  virtual ~AbstractMachine() = default;
 
-  virtual ~AbstractMachine() {}
-
- private:
-  std::shared_ptr<AbstractHilbert> hilbert_;
+ protected:
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 };
 }  // namespace netket
 

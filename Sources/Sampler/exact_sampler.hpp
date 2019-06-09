@@ -29,8 +29,6 @@ namespace netket {
 class ExactSampler : public AbstractSampler {
   AbstractMachine& psi_;
 
-  const AbstractHilbert& hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -43,7 +41,7 @@ class ExactSampler : public AbstractSampler {
   int mynode_;
   int totalnodes_;
 
-  const HilbertIndex &hilbert_index_;
+  const HilbertIndex& hilbert_index_;
 
   const int dim_;
 
@@ -54,10 +52,10 @@ class ExactSampler : public AbstractSampler {
 
  public:
   explicit ExactSampler(AbstractMachine& psi)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
-        hilbert_index_(hilbert_.GetIndex()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
+        nv_(hilbert_->Size()),
+        hilbert_index_(hilbert_->GetIndex()),
         dim_(hilbert_index_.NStates()) {
     Init();
   }
@@ -68,7 +66,7 @@ class ExactSampler : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Exact sampler works only for discrete "
           "Hilbert spaces");
@@ -84,7 +82,7 @@ class ExactSampler : public AbstractSampler {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      hilbert_->RandomVals(v_, this->GetRandomEngine());
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -121,10 +119,6 @@ class ExactSampler : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
   AbstractMachine& GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert& GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;
