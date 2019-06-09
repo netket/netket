@@ -17,6 +17,7 @@
 
 #include <complex>
 #include <iosfwd>
+#include <memory>
 #include <vector>
 
 #include <Eigen/Core>
