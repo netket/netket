@@ -29,8 +29,6 @@ namespace netket {
 class MetropolisLocalPt : public AbstractSampler {
   AbstractMachine& psi_;
 
-  const AbstractHilbert& hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -60,9 +58,9 @@ class MetropolisLocalPt : public AbstractSampler {
  public:
   // Constructor with one replica by default
   explicit MetropolisLocalPt(AbstractMachine& psi, int nreplicas = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
+        nv_(hilbert_->Size()),
         nrep_(nreplicas) {
     Init();
   }
@@ -71,8 +69,8 @@ class MetropolisLocalPt : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     SetNreplicas(nrep_);
 
@@ -103,7 +101,7 @@ class MetropolisLocalPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        hilbert_->RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -159,7 +157,7 @@ class MetropolisLocalPt : public AbstractSampler {
         accept_(rep) += 1;
 
         psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-        hilbert_.UpdateConf(v_[rep], tochange, newconf);
+        hilbert_->UpdateConf(v_[rep], tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_.LogVal(v_[rep]);
@@ -224,10 +222,6 @@ class MetropolisLocalPt : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
   AbstractMachine& GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert& GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_[0], lt_[0]);

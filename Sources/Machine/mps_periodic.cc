@@ -23,17 +23,17 @@
 
 namespace netket {
 
-MPSPeriodic::MPSPeriodic(const AbstractHilbert &hilbert, int bond_dim,
-                         bool diag, int symperiod)
-    : N_{hilbert.Size()},
-      d_{hilbert.LocalSize()},
+MPSPeriodic::MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert,
+                         int bond_dim, bool diag, int symperiod)
+    : N_{hilbert->Size()},
+      d_{hilbert->LocalSize()},
       D_{bond_dim},
       symperiod_{symperiod},
       is_diag_{diag} {
   if (symperiod_ == -1) {
     symperiod_ = N_;
   }
-  SetHilbert(hilbert);
+  SetHilbert(std::move(hilbert));
   Init();
 }
 
@@ -113,7 +113,7 @@ void MPSPeriodic::Init() {
                   << std::endl;
   }
   // Initialize map from Hilbert space states to MPS indices
-  auto localstates = GetHilbert().LocalStates();
+  auto localstates = hilbert_->LocalStates();
   for (int i = 0; i < d_; i++) {
     confindex_[localstates[i]] = i;
   }
@@ -528,7 +528,7 @@ void MPSPeriodic::from_json(const json &pars) {
   if (FieldExists(pars, "Length")) {
     N_ = pars["Length"];
   }
-  if (N_ != GetHilbert().Size()) {
+  if (N_ != hilbert_->Size()) {
     throw InvalidInputError(
         "Number of spins is incompatible with given Hilbert space");
   }
@@ -536,7 +536,7 @@ void MPSPeriodic::from_json(const json &pars) {
   if (FieldExists(pars, "PhysDim")) {
     d_ = pars["PhysDim"];
   }
-  if (d_ != GetHilbert().LocalSize()) {
+  if (d_ != hilbert_->LocalSize()) {
     throw InvalidInputError(
         "Number of spins is incompatible with given Hilbert space");
   }

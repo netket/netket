@@ -38,8 +38,6 @@ class AbstractSampler {
 
   virtual Eigen::VectorXd Acceptance() const = 0;
 
-  virtual const AbstractHilbert& GetHilbert() const noexcept = 0;
-
   // Computes the derivative of the machine on the current visible
   // Using the lookUp tables if possible
   virtual AbstractMachine::VectorType DerLogVisible() {
@@ -61,12 +59,19 @@ class AbstractSampler {
     machine_func_ = std::move(machine_func);
   }
 
+  std::shared_ptr<const AbstractHilbert> GetHilbert() const noexcept {
+    return hilbert_;
+  }
+
   const MachineFunction& GetMachineFunc() const noexcept {
     return machine_func_;
   }
 
  protected:
-  AbstractSampler() {
+  std::shared_ptr<const AbstractHilbert> hilbert_;
+
+  AbstractSampler(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(std::move(hilbert)) {
     // Default initialization for the machine function to be sampled from
     machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
   }

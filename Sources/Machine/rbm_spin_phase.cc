@@ -20,11 +20,11 @@
 
 namespace netket {
 
-RbmSpinPhase::RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden,
-                           int alpha, bool usea, bool useb)
-    : nv_(hilbert.Size()), usea_(usea), useb_(useb), I_(0, 1) {
+RbmSpinPhase::RbmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert,
+                           int nhidden, int alpha, bool usea, bool useb)
+    : nv_(hilbert->Size()), usea_(usea), useb_(useb), I_(0, 1) {
   nh_ = std::max(nhidden, alpha * nv_);
-  SetHilbert(hilbert);
+  SetHilbert(std::move(hilbert));
   Init();
 }
 
@@ -311,7 +311,7 @@ void RbmSpinPhase::from_json(const json &pars) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = FieldVal<int>(pars, "Nvisible");
   }
-  if (nv_ != GetHilbert().Size()) {
+  if (nv_ != hilbert_->Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

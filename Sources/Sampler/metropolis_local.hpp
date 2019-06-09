@@ -29,8 +29,6 @@ namespace netket {
 class MetropolisLocal : public AbstractSampler {
   AbstractMachine& psi_;
 
-  const AbstractHilbert& hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -51,7 +49,7 @@ class MetropolisLocal : public AbstractSampler {
 
  public:
   explicit MetropolisLocal(AbstractMachine& psi)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : AbstractSampler(psi.GetHilbert()), psi_(psi), nv_(hilbert_->Size()) {
     Init();
   }
 
@@ -61,7 +59,7 @@ class MetropolisLocal : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -70,8 +68,8 @@ class MetropolisLocal : public AbstractSampler {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = hilbert_->LocalSize();
+    localstates_ = hilbert_->LocalStates();
 
     Reset(true);
 
@@ -80,7 +78,7 @@ class MetropolisLocal : public AbstractSampler {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      hilbert_->RandomVals(v_, this->GetRandomEngine());
     }
 
     psi_.InitLookup(v_, lt_);
@@ -131,7 +129,7 @@ class MetropolisLocal : public AbstractSampler {
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
         psi_.UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_.UpdateConf(v_, tochange, newconf);
+        hilbert_->UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
         const auto psival2 = psi_.LogVal(v_);
@@ -153,10 +151,6 @@ class MetropolisLocal : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
   AbstractMachine& GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert& GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_, lt_);

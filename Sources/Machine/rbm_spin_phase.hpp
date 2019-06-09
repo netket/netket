@@ -69,8 +69,8 @@ class RbmSpinPhase : public AbstractMachine {
   const Complex I_;
 
  public:
-  RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
-               bool usea = true, bool useb = true);
+  RbmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
+               int alpha = 0, bool usea = true, bool useb = true);
 
   int Npar() const override;
   int Nvisible() const override;

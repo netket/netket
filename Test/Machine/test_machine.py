@@ -12,7 +12,6 @@ def merge_dicts(x, y):
 
 machines = {}
 
-
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=4, n_dim=1)

@@ -75,10 +75,11 @@ class AbstractDensityMatrix : public AbstractMachine {
   }
 
  public:
-  explicit AbstractDensityMatrix(const AbstractHilbert &hilbert)
-      : graph_doubled_(DoubledGraph(hilbert.GetGraph())) {
+  explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
+      : graph_doubled_(DoubledGraph(hilbert->GetGraph())) {
     SetHilbertPhysical(hilbert);
-    SetHilbert(CustomHilbert(*graph_doubled_, hilbert.LocalStates()));
+    SetHilbert(std::make_shared<CustomHilbert>(*graph_doubled_,
+                                               hilbert->LocalStates()));
   };
 
   /**
@@ -86,16 +87,16 @@ class AbstractDensityMatrix : public AbstractMachine {
    * this density matrix acts
    * @return The physical hilbert space
    */
-  const AbstractHilbert &GetHilbertPhysical() const {
-    return *hilbert_physical_;
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysical() const {
+    return hilbert_physical_;
   }
 
-  void SetHilbertPhysical(const AbstractHilbert &hilbert) {
-    hilbert_physical_ = hilbert.Clone();
+  void SetHilbertPhysical(std::shared_ptr<const AbstractHilbert> hilbert) {
+    hilbert_physical_ = std::move(hilbert);
   }
 
  private:
-  std::shared_ptr<AbstractHilbert> hilbert_physical_;
+  std::shared_ptr<const AbstractHilbert> hilbert_physical_;
 };
 }  // namespace netket
 

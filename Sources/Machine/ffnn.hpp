@@ -47,10 +47,10 @@ class FFNN : public AbstractMachine {
   std::unique_ptr<SumOutput> sum_output_layer_;
 
  public:
-  explicit FFNN(const AbstractHilbert &hilbert,
+  explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
                 std::vector<AbstractLayer *> layers)
-      : layers_(std::move(layers)), nv_(hilbert.Size()) {
-    SetHilbert(hilbert);
+      : layers_(std::move(layers)), nv_(hilbert->Size()) {
+    SetHilbert(std::move(hilbert));
     Init();
   }
 

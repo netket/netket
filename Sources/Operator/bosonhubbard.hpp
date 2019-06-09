@@ -18,7 +18,9 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <vector>
+
 #include "Graph/graph.hpp"
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/exceptions.hpp"
@@ -50,15 +52,15 @@ class BoseHubbard : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
-                       double mu = 0.)
-      : graph_(hilbert.GetGraph()),
-        nsites_(hilbert.Size()),
+  BoseHubbard(std::shared_ptr<const AbstractHilbert> hilbert, double U, double V = 0.,
+              double mu = 0.)
+      : graph_(hilbert->GetGraph()),
+        nsites_(hilbert->Size()),
         U_(U),
         V_(V),
         mu_(mu) {
-    nmax_ = hilbert.LocalSize() - 1;
-    SetHilbert(hilbert);
+    nmax_ = hilbert->LocalSize() - 1;
+    SetHilbert(std::move(hilbert));
     Init();
   }
 

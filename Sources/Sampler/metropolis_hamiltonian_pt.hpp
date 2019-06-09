@@ -29,8 +29,6 @@ template <class H>
 class MetropolisHamiltonianPt : public AbstractSampler {
   AbstractMachine &psi_;
 
-  const AbstractHilbert &hilbert_;
-
   H &hamiltonian_;
 
   // number of visible units
@@ -62,10 +60,10 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
  public:
   MetropolisHamiltonianPt(AbstractMachine &psi, H &hamiltonian, int nrep)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+      : AbstractSampler(psi.GetHilbert()),
+        psi_(psi),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
+        nv_(hilbert_->Size()),
         nrep_(nrep) {
     Init();
   }
@@ -74,7 +72,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!hilbert_->IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -105,7 +103,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        hilbert_->RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
@@ -131,7 +129,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_[rep];
-      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      hilbert_->UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
@@ -222,10 +220,6 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
   AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 
   AbstractMachine::VectorType DerLogVisible() override {
     return psi_.DerLog(v_[0], lt_[0]);

@@ -58,11 +58,12 @@ void AddOperatorModule(py::module &m) {
           .def_property_readonly(
               "hilbert", &AbstractOperator::GetHilbert,
               R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
-          .def("to_sparse",
-               [](const AbstractOperator &self) {
-                 return SparseMatrixWrapper<>(self).GetMatrix();
-               },
-               R"EOF(
+          .def(
+              "to_sparse",
+              [](const AbstractOperator &self) {
+                return SparseMatrixWrapper<>(self).GetMatrix();
+              },
+              R"EOF(
          Returns the sparse matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for
@@ -70,11 +71,12 @@ void AddOperatorModule(py::module &m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def("to_dense",
-               [](const AbstractOperator &self) {
-                 return DenseMatrixWrapper<>(self).GetMatrix();
-               },
-               R"EOF(
+          .def(
+              "to_dense",
+              [](const AbstractOperator &self) {
+                return DenseMatrixWrapper<>(self).GetMatrix();
+              },
+              R"EOF(
          Returns the dense matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for

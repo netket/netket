@@ -31,7 +31,7 @@ namespace netket {
 void AddIsing(py::module &subm) {
   py::class_<Ising, AbstractOperator>(subm, "Ising",
                                       R"EOF(An Ising Hamiltonian operator.)EOF")
-      .def(py::init<const AbstractHilbert &, double, double>(),
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("h"),
            py::arg("J") = 1.0, R"EOF(
          Constructs a new ``Ising`` given a hilbert space, a transverse field,

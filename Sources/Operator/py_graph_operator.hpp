@@ -31,7 +31,7 @@ namespace netket {
 void AddGraphOperator(py::module &subm) {
   py::class_<GraphOperator, AbstractOperator>(
       subm, "GraphOperator", R"EOF(A custom graph based operator.)EOF")
-      .def(py::init<const AbstractHilbert &, GraphOperator::OVecType,
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, GraphOperator::OVecType,
                     GraphOperator::OVecType, std::vector<int>>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"),
            py::arg("siteops") = GraphOperator::OVecType(),

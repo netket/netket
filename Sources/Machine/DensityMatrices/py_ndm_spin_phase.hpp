@@ -36,9 +36,9 @@ void AddNdmSpinPhase(py::module &subm) {
           In this case, two NDMs are taken to parameterize, respectively, phase
           and amplitude of the density matrix.
           This type of NDM has spin 1/2 hidden and ancilla units.)EOF")
-      .def(py::init<const AbstractHilbert &, int, int, int, int, bool, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, int, int,
+                    bool, bool, bool>(),
+           py::arg("hilbert"), py::arg("n_hidden") = 0,
            py::arg("n_ancilla") = 0, py::arg("alpha") = 0, py::arg("beta") = 0,
            py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,

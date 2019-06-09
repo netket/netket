@@ -70,7 +70,7 @@ class RbmSpinSymm : public AbstractMachine {
   bool useb_;
 
  public:
-  RbmSpinSymm(const AbstractHilbert &hilbert, int alpha = 0, bool usea = true,
+  RbmSpinSymm(std::shared_ptr<const AbstractHilbert> hilbert, int alpha = 0, bool usea = true,
               bool useb = true);
 
   int Npar() const override;

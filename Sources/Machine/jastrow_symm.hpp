@@ -51,7 +51,7 @@ class JastrowSymm : public AbstractMachine {
   Eigen::MatrixXi Wtemp_;
 
  public:
-  explicit JastrowSymm(const AbstractHilbert &hilbert);
+  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert);
 
   int Nvisible() const override;
   int Npar() const override;
