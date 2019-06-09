@@ -62,7 +62,7 @@ matrix:
             - 'libmpich-dev'
 
     - os: linux
-      dist: trusty
+      dist: xenial
       python: 3.6
       env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-7"
       addons:
