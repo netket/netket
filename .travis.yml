@@ -71,8 +71,7 @@ matrix:
             - 'ubuntu-toolchain-r-test'
           packages:
             - 'g++-7'
-              # NOTE: For some reason using libopenmpi-dev here gives errors
-            - 'libmpich-dev'
+            - 'libopenmpi-dev'
 
     # Modern toolsets
     - os: linux
@@ -146,12 +145,13 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy networkx pytest python-igraph
+  - python -m pip install numpy networkx pytest python-igraph mpi4py
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
   - mkdir workdir && cd workdir
 
 script:
+  - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --verbose ../Test/
   - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
