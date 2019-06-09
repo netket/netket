@@ -27,8 +27,6 @@ amplitude
  *
  */
 class RbmSpinPhase : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -108,7 +106,6 @@ class RbmSpinPhase : public AbstractMachine {
                      const LookupType &lt) override;
 
   bool IsHolomorphic() override;
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void to_json(json &j) const override;
   void from_json(const json &pars) override;

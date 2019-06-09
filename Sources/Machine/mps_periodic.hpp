@@ -24,8 +24,6 @@
 namespace netket {
 
 class MPSPeriodic : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // Number of sites
   int N_;
   // Physical dimension
@@ -66,8 +64,6 @@ class MPSPeriodic : public AbstractMachine {
 
   int Npar() const override;
   int Nvisible() const override;
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void InitRandomPars(int seed, double sigma) override;
   VectorType GetParameters() override;

@@ -51,6 +51,8 @@ class GraphOperator : public AbstractOperator {
       : graph_(hilbert.GetGraph()),
         operator_(hilbert),
         nvertices_(hilbert.Size()) {
+    SetHilbert(hilbert);
+
     // Create the local operator as the sum of all site and bond operators
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
@@ -68,8 +70,7 @@ class GraphOperator : public AbstractOperator {
     if (siteops.size() > 0) {
       for (int i = 0; i < nvertices_; i++) {
         for (std::size_t j = 0; j < siteops.size(); j++) {
-          operator_ +=
-              LocalOperator(GetHilbert(), siteops[j], std::vector<int>{i});
+          operator_ += LocalOperator(hilbert, siteops[j], std::vector<int>{i});
         }
       }
     }
@@ -87,12 +88,11 @@ class GraphOperator : public AbstractOperator {
         for (std::size_t c = 0; c < op_color.size(); c++) {
           if (op_color[c] == kv.second && kv.first[0] < kv.first[1]) {
             std::vector<int> edge = {kv.first[0], kv.first[1]};
-            operator_ += LocalOperator(GetHilbert(), bondops[c], edge);
+            operator_ += LocalOperator(hilbert, bondops[c], edge);
           }
         }
       }
     }
-    SetHilbert(hilbert);
   }
 
   // Constructor to be used when overloading operators
