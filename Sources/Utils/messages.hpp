@@ -16,7 +16,7 @@
 #define NETKET_MESSAGES_HPP
 
 #include <mpi.h>
-#include <ostream>
+#include <iostream>
 #include <streambuf>
 #include <string>
 

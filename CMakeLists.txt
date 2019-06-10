@@ -222,7 +222,8 @@ add_library(netket MODULE Sources/pynetket.cc Sources/Dynamics/py_dynamics.cpp
     Sources/Machine/rbm_multival.cc Sources/Machine/rbm_spin_phase.cc
     Sources/Machine/rbm_spin_real.cc Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/jastrow.cc Sources/Machine/jastrow_symm.cc
-    Sources/Machine/mps_periodic.cc Sources/Machine/py_machine.cc Sources/Utils/mpi_interface.cc)
+    Sources/Machine/mps_periodic.cc Sources/Machine/py_machine.cc
+    Sources/Utils/mpi_interface.cc Sources/Utils/json_utils.cc Sources/Utils/py_utils.cc)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")

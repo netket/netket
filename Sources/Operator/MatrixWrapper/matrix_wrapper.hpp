@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "Operator/abstract_operator.hpp"
-#include "Utils/json_helper.hpp"
 
 #include "abstract_matrix_wrapper.hpp"
 #include "dense_matrix_wrapper.hpp"
