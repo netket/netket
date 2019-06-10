@@ -15,11 +15,13 @@
 #ifndef NETKET_ARRAYHASHER_HPP
 #define NETKET_ARRAYHASHER_HPP
 
+#include <array>
+
 namespace netket {
 // Special hash functor for the EdgeColors unordered_map
 // Same as hash_combine from boost
 struct ArrayHasher {
-  std::size_t operator()(const std::array<int, 2>& a) const {
+  std::size_t operator()(const std::array<int, 2>& a) const noexcept {
     return *reinterpret_cast<std::size_t const*>(a.data());
   }
 };

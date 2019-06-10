@@ -15,6 +15,8 @@
 #ifndef NETKET_ARRAYSEARCH_HPP
 #define NETKET_ARRAYSEARCH_HPP
 
+#include "Utils/exceptions.hpp"
+
 namespace netket {
 
 /**

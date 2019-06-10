@@ -15,42 +15,12 @@
 #ifndef NETKET_PYUTILS_HPP
 #define NETKET_PYUTILS_HPP
 
-#include <mpi.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
-#include <vector>
-#include "all_utils.hpp"
-
-namespace py = pybind11;
 
 namespace netket {
 
-void AddUtilsModule(py::module &m) {
-  auto subm = m.def_submodule("utils");
-
-  py::class_<netket::default_random_engine>(subm, "RandomEngine")
-      .def(py::init<netket::default_random_engine::result_type>(),
-           py::arg("seed") = netket::default_random_engine::default_seed)
-      .def("seed", (void (netket::default_random_engine::*)(
-                       netket::default_random_engine::result_type)) &
-                       netket::default_random_engine::seed);
-
-  py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
-
-  py::class_<Lookup<Complex>>(m, "LookupComplex")
-      .def(py::init<>());
-
-  py::class_<MPIHelpers>(m, "MPI")
-      .def("rank", &MPIHelpers::MPIRank,
-           R"EOF(int: The MPI rank for the current process.  )EOF")
-      .def("size", &MPIHelpers::MPISize,
-           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
-}
+void AddUtilsModule(pybind11::module m);
 
 }  // namespace netket
 
-#endif
+#endif  // NETKET_PYUTILS_HPP

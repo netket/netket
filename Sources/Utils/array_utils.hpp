@@ -7,12 +7,13 @@
 
 #include <algorithm>
 #include <complex>
+#include <vector>
 
 namespace netket {
 
 template <typename T>
 std::vector<std::vector<T>> transpose_vecvec(
-    const std::vector<std::vector<T>> data) {
+    const std::vector<std::vector<T>>& data) {
   typedef typename std::vector<T>::size_type size_type;
 
   // this assumes that all inner vectors have the same size and
