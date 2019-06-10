@@ -83,10 +83,6 @@ class AbstractDensityMatrix : public AbstractMachine {
         hilbert_physical_(physical_hilbert),
         graph_doubled_(std::move(doubled_graph)) {}
 
-  AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> physical_hilbert,
-                        std::shared_ptr<const AbstractHilbert> doubled_hilbert)
-      : AbstractMachine(doubled_hilbert), hilbert_physical_(physical_hilbert) {}
-
  public:
   explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
       : AbstractDensityMatrix(hilbert, DoubledGraph(hilbert->GetGraph())){};
