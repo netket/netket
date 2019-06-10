@@ -4,16 +4,13 @@
 #include <cassert>
 #include <fstream>
 
+#include <mpi.h>
 #include <nonstd/optional.hpp>
 
 #include "Machine/abstract_machine.hpp"
 #include "Stats/obs_manager.hpp"
-#include "Utils/json_dumps.hpp"
-#include "Utils/json_helper.hpp"
-
-#ifndef NDEBUG
-#include <mpi.h>
-#endif
+#include "Utils/json_utils.hpp"
+#include "Utils/messages.hpp"
 
 namespace netket {
 
