@@ -142,8 +142,4 @@ void Spin::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
   }
 }
 
-std::shared_ptr<AbstractHilbert> Spin::Clone() const {
-  return std::make_shared<Spin>(*this);
-}
-
 }  // namespace netket

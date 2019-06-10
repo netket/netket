@@ -48,8 +48,6 @@ class CustomHilbert : public AbstractHilbert {
   void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
                   const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override;
-
-  std::shared_ptr<AbstractHilbert> Clone() const override;
 };
 
 }  // namespace netket

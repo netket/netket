@@ -47,8 +47,6 @@ class Boson : public AbstractHilbert {
                   const std::vector<int> &tochange,
                   const std::vector<double> &newconf) const override;
 
-  std::shared_ptr<AbstractHilbert> Clone() const override;
-
  private:
   void Init();
   inline void SetNbosons(int nbosons);
