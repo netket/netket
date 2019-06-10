@@ -57,8 +57,4 @@ void CustomHilbert::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
 
 const AbstractGraph &CustomHilbert::GetGraph() const noexcept { return graph_; }
 
-std::shared_ptr<AbstractHilbert> CustomHilbert::Clone() const {
-  return std::make_shared<CustomHilbert>(*this);
-}
-
 }  // namespace netket

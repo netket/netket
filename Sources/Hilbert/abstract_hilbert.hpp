@@ -114,8 +114,6 @@ class AbstractHilbert {
 
   virtual ~AbstractHilbert() = default;
 
-  virtual std::shared_ptr<AbstractHilbert> Clone() const = 0;
-
  private:
   mutable nonstd::optional<HilbertIndex> index_;
 };

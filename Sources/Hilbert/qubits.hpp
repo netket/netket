@@ -42,8 +42,6 @@ class Qubit : public AbstractHilbert {
 
   const AbstractGraph &GetGraph() const noexcept override;
 
-  std::shared_ptr<AbstractHilbert> Clone() const override;
-
  private:
   inline void Init();
 
