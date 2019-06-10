@@ -186,6 +186,7 @@ target_link_libraries(netket_lib
         optional_lite
         span_lite
         IETL
+        ${CMAKE_DL_LIBS}
 )
 
 # Check if we should use native Lapack with Eigen
