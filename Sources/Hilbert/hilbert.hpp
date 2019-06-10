@@ -23,7 +23,6 @@
 #include "abstract_hilbert.hpp"
 #include "bosons.hpp"
 #include "custom_hilbert.hpp"
-#include "qubits.hpp"
 #include "spins.hpp"
 
 #endif

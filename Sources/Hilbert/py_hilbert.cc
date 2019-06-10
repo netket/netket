@@ -23,7 +23,6 @@
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Hilbert/bosons.hpp"
 #include "Hilbert/custom_hilbert.hpp"
-#include "Hilbert/qubits.hpp"
 #include "Hilbert/spins.hpp"
 
 namespace py = pybind11;
@@ -101,31 +100,6 @@ void AddCustomHilbert(py::module subm) {
                >>> from netket.hilbert import CustomHilbert
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
                >>> hi = CustomHilbert(graph=g, local_states=[-1232, 132, 0])
-               >>> print(hi.size)
-               100
-
-               ```
-           )EOF");
-}
-
-void AddQubits(py::module subm) {
-  py::class_<Qubit, AbstractHilbert>(
-      subm, "Qubit", R"EOF(Hilbert space composed of qubits.)EOF")
-      .def(py::init<const AbstractGraph &>(), py::keep_alive<1, 2>(),
-           py::arg("graph"), R"EOF(
-           Constructs a new ``Qubit`` given a graph.
-
-           Args:
-               graph: Graph representation of sites.
-
-           Examples:
-               Simple qubit hilbert space.
-
-               ```python
-               >>> from netket.graph import Hypercube
-               >>> from netket.hilbert import Qubit
-               >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-               >>> hi = Qubit(graph=g)
                >>> print(hi.size)
                100
 
@@ -257,23 +231,21 @@ void AddHilbertModule(py::module m) {
           [](const AbstractHilbert &self) { return self.GetIndex().NStates(); },
           R"EOF(int: The total dimension of the many-body Hilbert space.
                 Throws an exception iff the space is not indexable.)EOF")
-      .def(
-          "number_to_state",
-          [](const AbstractHilbert &self, int i) {
-            return self.GetIndex().NumberToState(i);
-          },
-          py::arg("i"),
-          R"EOF(
+      .def("number_to_state",
+           [](const AbstractHilbert &self, int i) {
+             return self.GetIndex().NumberToState(i);
+           },
+           py::arg("i"),
+           R"EOF(
            Returns the visible configuration corresponding to the i-th basis state
            for input i. Throws an exception iff the space is not indexable.
       )EOF")
-      .def(
-          "state_to_number",
-          [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
-            return self.GetIndex().StateToNumber(conf);
-          },
-          py::arg("conf"),
-          R"EOF(Returns index of the given many-body configuration.
+      .def("state_to_number",
+           [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
+             return self.GetIndex().StateToNumber(conf);
+           },
+           py::arg("conf"),
+           R"EOF(Returns index of the given many-body configuration.
                 Throws an exception iff the space is not indexable.)EOF")
       .def(
           "states",
@@ -292,7 +264,6 @@ void AddHilbertModule(py::module m) {
 
   AddSpins(subm);
   AddBosons(subm);
-  AddQubits(subm);
   AddCustomHilbert(subm);
 }
 
