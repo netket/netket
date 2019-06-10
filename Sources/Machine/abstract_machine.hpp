@@ -225,11 +225,6 @@ class AbstractMachine {
  protected:
   AbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
       : hilbert_(std::move(hilbert)) {}
-  AbstractMachine() = default;
-
-  void SetHilbert(std::shared_ptr<const AbstractHilbert> hilbert) {
-    hilbert_ = std::move(hilbert);
-  }
 
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;

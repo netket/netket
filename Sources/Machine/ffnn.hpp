@@ -49,8 +49,9 @@ class FFNN : public AbstractMachine {
  public:
   explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
                 std::vector<AbstractLayer *> layers)
-      : layers_(std::move(layers)), nv_(hilbert->Size()) {
-    SetHilbert(std::move(hilbert));
+      : AbstractMachine(hilbert),
+        layers_(std::move(layers)),
+        nv_(hilbert->Size()) {
     Init();
   }
 
