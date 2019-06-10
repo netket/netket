@@ -222,6 +222,31 @@ class LocalOperator : public AbstractOperator {
     }
   }
 
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
+    assert(v.size() == hilbert_.Size());
+
+    Complex mel_diag = 0.;
+
+    for (std::size_t opn = 0; opn < nops_; opn++) {
+      int st1 = StateNumber(v, opn);
+      assert(st1 < int(mat_[opn].size()));
+      assert(st1 < int(connected_[opn].size()));
+
+      mel_diag += (mat_[opn][st1][st1]);
+
+      // off-diagonal part
+      for (auto st2 : connected_[opn][st1]) {
+        assert(st2 < int(states_[opn].size()));
+
+        const auto mel_offdiag = mat_[opn][st1][st2];
+        callback(ConnectorRef{mel_offdiag, sites_[opn], states_[opn][st2]});
+      }
+    }
+
+    // diagonal term H(v,v)
+    callback(ConnectorRef{mel_diag, {}, {}});
+  }
+
   // FindConn for a specific operator
   void FindConn(std::size_t opn, VectorConstRefType v,
                 std::vector<Complex> &mel,
