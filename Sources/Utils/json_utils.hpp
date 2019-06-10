@@ -15,8 +15,67 @@
 #ifndef NETKET_JSONUTILS_HPP
 #define NETKET_JSONUTILS_HPP
 
-#include <json.hpp>
-#include "json_dumps.hpp"
-#include "json_helper.hpp"
+#include <complex>
 
-#endif
+#include <Eigen/Core>
+#include <nlohmann/json.hpp>
+
+namespace nlohmann {
+template <typename T>
+struct adl_serializer<std::complex<T>> {
+  static void to_json(json& js, const std::complex<T>& p);
+  static void from_json(const json& js, std::complex<T>& p);
+};
+}  // namespace nlohmann
+
+namespace Eigen {
+template <class T>
+void to_json(nlohmann::json& js, const Matrix<T, Eigen::Dynamic, 1>& v);
+template <class T>
+void to_json(nlohmann::json& js,
+             const Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& v);
+
+template <class T>
+void from_json(const nlohmann::json& js, Matrix<T, Eigen::Dynamic, 1>& v);
+template <class T>
+void from_json(const nlohmann::json& js,
+               Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& v);
+}  // namespace Eigen
+
+namespace netket {
+
+using json = nlohmann::json;
+
+bool FieldExists(const json& pars, const std::string& field);
+
+void CheckFieldExists(const json& pars, const std::string& field,
+                      const std::string& context = "");
+
+json FieldVal(const json& pars, const std::string& field,
+              const std::string& context = "");
+
+void FieldArray(const json& pars, const std::string& field,
+                std::vector<int>& arr, const std::string& context = "");
+
+json ReadJsonFromFile(std::string filename);
+
+template <class Value, class JSON>
+Value FieldVal(const JSON& pars, const std::string& field,
+               const std::string& context = "") {
+  CheckFieldExists(pars, field, context);
+  return pars[field].template get<Value>();
+}
+
+template <class Value, class JSON>
+Value FieldOrDefaultVal(const JSON& pars, const std::string& field,
+                        Value defval) {
+  if (FieldExists(pars, field)) {
+    return pars[field];
+  } else {
+    return defval;
+  }
+}
+
+}  // namespace netket
+
+#endif  // NETKET_JSONUTILS_HPP

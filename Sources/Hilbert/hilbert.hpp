@@ -15,15 +15,10 @@
 #ifndef NETKET_HILBERT_HPP
 #define NETKET_HILBERT_HPP
 
-#include <memory>
-#include <set>
-#include "Graph/graph.hpp"
-#include "Utils/json_utils.hpp"
-#include "Utils/parallel_utils.hpp"
-#include "abstract_hilbert.hpp"
-#include "bosons.hpp"
-#include "custom_hilbert.hpp"
-#include "qubits.hpp"
-#include "spins.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
+#include "Hilbert/bosons.hpp"
+#include "Hilbert/custom_hilbert.hpp"
+#include "Hilbert/qubits.hpp"
+#include "Hilbert/spins.hpp"
 
 #endif

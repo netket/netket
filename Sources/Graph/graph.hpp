@@ -15,14 +15,9 @@
 #ifndef NETKET_GRAPH_HPP
 #define NETKET_GRAPH_HPP
 
-#include <array>
-#include <unordered_map>
-#include <vector>
-#include "Utils/json_utils.hpp"
-#include "Utils/memory_utils.hpp"
-#include "abstract_graph.hpp"
-#include "custom_graph.hpp"
-#include "hypercube.hpp"
-#include "lattice.hpp"
+#include "Graph/abstract_graph.hpp"
+#include "Graph/custom_graph.hpp"
+#include "Graph/hypercube.hpp"
+#include "Graph/lattice.hpp"
 
 #endif
