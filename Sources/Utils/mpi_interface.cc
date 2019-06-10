@@ -1,8 +1,6 @@
 #include "mpi_interface.hpp"
 
-#if defined(__linux__)  // we use pre-loading only on Linux
 #include <dlfcn.h>
-#endif
 #include <iostream>
 #include <memory>
 
