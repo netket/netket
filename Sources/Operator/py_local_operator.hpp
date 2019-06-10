@@ -89,8 +89,8 @@ void AddLocalOperator(py::module &subm) {
 
               ```
           )EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, LocalOperator::MatType,
-                    LocalOperator::SiteType, double>(),
+      .def(py::init<std::shared_ptr<const AbstractHilbert>,
+                    LocalOperator::MatType, LocalOperator::SiteType, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operator"),
            py::arg("acting_on"), py::arg("constant") = 0., R"EOF(
            Constructs a new ``LocalOperator`` given a hilbert space, an

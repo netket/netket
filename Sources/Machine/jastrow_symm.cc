@@ -23,10 +23,10 @@
 namespace netket {
 
 JastrowSymm::JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
-    : graph_(hilbert->GetGraph()), nv_(hilbert->Size()) {
-  SetHilbert(std::move(hilbert));
+    : AbstractMachine(hilbert),
+      graph_(hilbert->GetGraph()),
+      nv_(hilbert->Size()) {
   Init(graph_);
-
   SetBareParameters();
 }
 
@@ -287,7 +287,7 @@ void JastrowSymm::from_json(const json &pars) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = pars["Nvisible"];
   }
-  if (nv_ != hilbert_->Size()) {
+  if (nv_ != GetHilbert().Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

@@ -31,8 +31,8 @@ namespace netket {
 void AddHeisenberg(py::module &subm) {
   py::class_<Heisenberg, AbstractOperator>(
       subm, "Heisenberg", R"EOF(A Heisenberg Hamiltonian operator.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(), py::keep_alive<1, 2>(),
-           py::arg("hilbert"), R"EOF(
+      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
            Constructs a new ``Heisenberg`` given a hilbert space.
 
            Args:

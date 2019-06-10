@@ -25,11 +25,14 @@
 
 namespace netket {
 
-RbmMultival::RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden, int alpha,
-                         bool usea, bool useb)
-    : nv_(hilbert->Size()), ls_(hilbert->LocalSize()), usea_(usea), useb_(useb) {
+RbmMultival::RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert,
+                         int nhidden, int alpha, bool usea, bool useb)
+    : AbstractMachine(hilbert),
+      nv_(hilbert->Size()),
+      ls_(hilbert->LocalSize()),
+      usea_(usea),
+      useb_(useb) {
   nh_ = std::max(nhidden, alpha * nv_);
-  SetHilbert(std::move(hilbert));
   Init();
 }
 
@@ -57,7 +60,7 @@ void RbmMultival::Init() {
     b_.setZero();
   }
 
-  auto localstates = hilbert_->LocalStates();
+  auto localstates = GetHilbert().LocalStates();
 
   localconfs_.resize(nv_ * ls_);
   for (int i = 0; i < nv_ * ls_; i += ls_) {
@@ -336,7 +339,7 @@ void RbmMultival::from_json(const json &pars) {
     nv_ = pars["Nvisible"];
   }
 
-  if (nv_ != hilbert_->Size()) {
+  if (nv_ != GetHilbert().Size()) {
     throw InvalidInputError(
         "Loaded wave-function has incompatible Hilbert space");
   }
@@ -344,7 +347,7 @@ void RbmMultival::from_json(const json &pars) {
   if (FieldExists(pars, "LocalSize")) {
     ls_ = pars["LocalSize"];
   }
-  if (ls_ != hilbert_->LocalSize()) {
+  if (ls_ != GetHilbert().LocalSize()) {
     throw InvalidInputError(
         "Loaded wave-function has incompatible Hilbert space");
   }

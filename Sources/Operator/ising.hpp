@@ -50,8 +50,11 @@ class Ising : public AbstractOperator {
 
   explicit Ising(std::shared_ptr<const AbstractHilbert> hilbert, double h,
                  double J = 1)
-      : graph_(hilbert->GetGraph()), nspins_(hilbert->Size()), h_(h), J_(J) {
-    SetHilbert(std::move(hilbert));
+      : AbstractOperator(hilbert),
+        graph_(hilbert->GetGraph()),
+        nspins_(hilbert->Size()),
+        h_(h),
+        J_(J) {
     Init();
   }
 

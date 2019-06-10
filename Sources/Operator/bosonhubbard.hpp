@@ -52,15 +52,15 @@ class BoseHubbard : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  BoseHubbard(std::shared_ptr<const AbstractHilbert> hilbert, double U, double V = 0.,
-              double mu = 0.)
-      : graph_(hilbert->GetGraph()),
+  BoseHubbard(std::shared_ptr<const AbstractHilbert> hilbert, double U,
+              double V = 0., double mu = 0.)
+      : AbstractOperator(hilbert),
+        graph_(hilbert->GetGraph()),
         nsites_(hilbert->Size()),
         U_(U),
         V_(V),
         mu_(mu) {
     nmax_ = hilbert->LocalSize() - 1;
-    SetHilbert(std::move(hilbert));
     Init();
   }
 

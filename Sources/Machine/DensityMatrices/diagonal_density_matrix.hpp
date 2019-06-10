@@ -36,7 +36,7 @@ class DiagonalDensityMatrix : public AbstractMachine {
  public:
   explicit DiagonalDensityMatrix(AbstractDensityMatrix &dm)
       : density_matrix_(dm) {
-    SetHilbert(dm.GetHilbertPhysical());
+    SetHilbert(dm.GetHilbertPhysicalShared());
   };
 
   const AbstractDensityMatrix &GetFullDensityMatrix() const noexcept {

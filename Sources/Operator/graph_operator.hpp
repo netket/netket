@@ -47,11 +47,10 @@ class GraphOperator : public AbstractOperator {
   GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                 OVecType siteops = OVecType(), OVecType bondops = OVecType(),
                 std::vector<int> bondops_colors = std::vector<int>())
-      : graph_(hilbert->GetGraph()),
+      : AbstractOperator(hilbert),
+        graph_(hilbert->GetGraph()),
         operator_(hilbert),
         nvertices_(hilbert->Size()) {
-    SetHilbert(hilbert);
-
     // Create the local operator as the sum of all site and bond operators
     // Ensure that at least one of SiteOps and BondOps was initialized
     if (!siteops.size() && !bondops.size()) {
@@ -97,9 +96,10 @@ class GraphOperator : public AbstractOperator {
   // Constructor to be used when overloading operators
   explicit GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const LocalOperator &lop)
-      : graph_(hilbert->GetGraph()), operator_(lop), nvertices_(hilbert->Size()) {
-    SetHilbert(std::move(hilbert));
-  }
+      : AbstractOperator(hilbert),
+        graph_(hilbert->GetGraph()),
+        operator_(lop),
+        nvertices_(hilbert->Size()) {}
 
   friend GraphOperator operator+(const GraphOperator &lhs,
                                  const GraphOperator &rhs) {
@@ -108,7 +108,7 @@ class GraphOperator : public AbstractOperator {
     auto lop = lhs.operator_;
     auto rop = rhs.operator_;
 
-    return GraphOperator(lhs.GetHilbert(), lop + rop);
+    return GraphOperator(lhs.GetHilbertShared(), lop + rop);
   }
 
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,

@@ -39,7 +39,7 @@ void AddDensityMatrixModule(py::module &subm) {
       .def(
           "to_matrix",
           [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::MatrixType {
-            const auto &hind = self.GetHilbertPhysical()->GetIndex();
+            const auto &hind = self.GetHilbertPhysical().GetIndex();
             AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
             double maxlog = std::numeric_limits<double>::lowest();

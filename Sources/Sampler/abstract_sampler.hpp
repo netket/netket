@@ -34,8 +34,6 @@ class AbstractSampler {
 
   virtual void SetVisible(const Eigen::VectorXd& v) = 0;
 
-  virtual AbstractMachine& GetMachine() noexcept = 0;
-
   virtual Eigen::VectorXd Acceptance() const = 0;
 
   // Computes the derivative of the machine on the current visible
@@ -59,8 +57,12 @@ class AbstractSampler {
     machine_func_ = std::move(machine_func);
   }
 
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const noexcept {
-    return hilbert_;
+  const AbstractHilbert &GetHilbert() const noexcept {
+    return *hilbert_;
+  }
+
+  AbstractMachine &GetMachine() const noexcept {
+    return psi_;
   }
 
   const MachineFunction& GetMachineFunc() const noexcept {
@@ -68,10 +70,8 @@ class AbstractSampler {
   }
 
  protected:
-  std::shared_ptr<const AbstractHilbert> hilbert_;
-
-  AbstractSampler(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(std::move(hilbert)) {
+  AbstractSampler(AbstractMachine& psi)
+      : psi_(psi), hilbert_(psi.GetHilbertShared()) {
     // Default initialization for the machine function to be sampled from
     machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
   }
@@ -81,6 +81,8 @@ class AbstractSampler {
  private:
   DistributedRandomEngine engine_;
   MachineFunction machine_func_;
+  AbstractMachine& psi_;
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 };
 
 }  // namespace netket
