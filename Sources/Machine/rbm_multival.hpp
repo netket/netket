@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <Eigen/Dense>
-#include <iostream>
-#include <map>
-#include <vector>
-#include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
-#include "rbm_spin.hpp"
-
 #ifndef NETKET_RBM_MULTIVAL_HPP
 #define NETKET_RBM_MULTIVAL_HPP
 
-#include "abstract_machine.hpp"
+#include <map>
+#include <vector>
+
+#include <Eigen/Dense>
+
+#include "Machine/abstract_machine.hpp"
+#include "Machine/rbm_spin.hpp"
 
 namespace netket {
 

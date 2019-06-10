@@ -46,7 +46,14 @@ std::unique_ptr<void, Unload> TryPreload(void) {
 
   return {handle, Unload{}};
 }
-}  // namespace
+
+struct MPIInitializer {
+  MPIInitializer();
+  ~MPIInitializer();
+
+ private:
+  bool have_initialized_;
+};
 
 MPIInitializer::MPIInitializer() {
   int already_initialized;
@@ -78,6 +85,9 @@ MPIInitializer::~MPIInitializer() {
 #endif
   }
 }
+}  // namespace
+
+static MPIInitializer initiaze_mpi_when_loading_the_module{};
 
 }  // namespace detail
 }  // namespace netket
