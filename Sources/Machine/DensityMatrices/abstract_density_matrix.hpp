@@ -76,19 +76,27 @@ class AbstractDensityMatrix : public AbstractMachine {
 
  public:
   explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
-      : graph_doubled_(DoubledGraph(hilbert->GetGraph())) {
-    SetHilbertPhysical(hilbert);
+      : graph_doubled_(DoubledGraph(hilbert->GetGraph())),
+        hilbert_physical_(hilbert) {
     SetHilbert(std::make_shared<CustomHilbert>(*graph_doubled_,
                                                hilbert->LocalStates()));
   };
 
   /**
-   * Member function returning the Physical hilbert space over which
-   * this density matrix acts
+   * Member function returning the physical hilbert space over which
+   * this density matrix acts as a shared pointer.
    * @return The physical hilbert space
    */
-  std::shared_ptr<const AbstractHilbert> GetHilbertPhysical() const {
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const {
     return hilbert_physical_;
+  }
+
+  /* Member function returning a reference to the physical hilbert space
+   * on which this density matrix acts.
+   * @return The physical hilbert space
+   */
+  const AbstractHilbert &GetHilbertPhysical() const {
+    return *hilbert_physical_;
   }
 
   void SetHilbertPhysical(std::shared_ptr<const AbstractHilbert> hilbert) {

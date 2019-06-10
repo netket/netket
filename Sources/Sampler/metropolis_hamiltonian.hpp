@@ -27,8 +27,6 @@ namespace netket {
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class H>
 class MetropolisHamiltonian : public AbstractSampler {
-  AbstractMachine &psi_;
-
   H &hamiltonian_;
 
   // number of visible units
@@ -58,10 +56,9 @@ class MetropolisHamiltonian : public AbstractSampler {
 
  public:
   MetropolisHamiltonian(AbstractMachine &psi, H &hamiltonian)
-      : AbstractSampler(psi.GetHilbert()),
-        psi_(psi),
+      : AbstractSampler(psi),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_->Size()) {
+        nv_(GetHilbert().Size()) {
     Init();
   }
 
@@ -71,7 +68,7 @@ class MetropolisHamiltonian : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -87,10 +84,10 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, this->GetRandomEngine());
+      GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    psi_.InitLookup(v_, lt_);
+    GetMachine().InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -110,21 +107,21 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_;
-      hilbert_->UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
       double w2 = tochange1_.size();
 
-      const auto lvd = psi_.LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
+      const auto lvd = GetMachine().LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
       double ratio = this->GetMachineFunc()(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_);
-      if (std::abs(std::exp(psi_.LogVal(v_) - psi_.LogVal(v_, lt_)) - 1.) >
+      const auto psival1 = GetMachine().LogVal(v_);
+      if (std::abs(std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) - 1.) >
           1.0e-8) {
-        std::cerr << psi_.LogVal(v_) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_, lt_) << std::endl;
+        std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
+                  << GetMachine().LogVal(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
@@ -132,16 +129,16 @@ class MetropolisHamiltonian : public AbstractSampler {
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
-        psi_.UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
+        GetMachine().UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;
 
 #ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_);
+        const auto psival2 = GetMachine().LogVal(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_, lt_) << std::endl;
+                    << GetMachine().LogVal(v_, lt_) << std::endl;
           std::abort();
         }
 #endif
@@ -154,10 +151,8 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  AbstractMachine &GetMachine() noexcept override { return psi_; }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_, lt_);
+    return GetMachine().DerLog(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {

@@ -67,8 +67,9 @@ class RbmMultival : public AbstractMachine {
   std::map<double, int> confindex_;
 
  public:
-  explicit RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
-                       int alpha = 0, bool usea = true, bool useb = true);
+  explicit RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert,
+                       int nhidden = 0, int alpha = 0, bool usea = true,
+                       bool useb = true);
 
   int Npar() const override;
   int Nvisible() const override;

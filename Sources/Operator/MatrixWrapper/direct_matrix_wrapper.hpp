@@ -40,7 +40,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
  public:
   explicit DirectMatrixWrapper(const AbstractOperator& the_operator)
       : operator_(the_operator),
-        hilbert_index_(the_operator.GetHilbert()->GetIndex()),
+        hilbert_index_(the_operator.GetHilbert().GetIndex()),
         dim_(hilbert_index_.NStates()) {}
 
   State Apply(const State& state) const override {

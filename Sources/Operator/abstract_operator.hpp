@@ -100,15 +100,18 @@ class AbstractOperator {
   Member function returning the hilbert space associated with this Hamiltonian.
   @return Hilbert space specifier for this Hamiltonian
   */
-  std::shared_ptr<const AbstractHilbert> GetHilbert() const { return hilbert_; }
-
-  void SetHilbert(std::shared_ptr<const AbstractHilbert> hilbert) {
-    hilbert_ = std::move(hilbert);
+  const AbstractHilbert &GetHilbert() const { return *hilbert_; }
+  std::shared_ptr<const AbstractHilbert> GetHilbertShared() const {
+    return hilbert_;
   }
 
   virtual ~AbstractOperator() = default;
 
  protected:
+  AbstractOperator(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(std::move(hilbert)) {}
+
+ private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
 

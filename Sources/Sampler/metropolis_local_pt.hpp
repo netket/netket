@@ -27,8 +27,6 @@ namespace netket {
 // Metropolis sampling generating local changes
 // Parallel tempering is also used
 class MetropolisLocalPt : public AbstractSampler {
-  AbstractMachine& psi_;
-
   // number of visible units
   const int nv_;
 
@@ -58,9 +56,8 @@ class MetropolisLocalPt : public AbstractSampler {
  public:
   // Constructor with one replica by default
   explicit MetropolisLocalPt(AbstractMachine& psi, int nreplicas = 1)
-      : AbstractSampler(psi.GetHilbert()),
-        psi_(psi),
-        nv_(hilbert_->Size()),
+      : AbstractSampler(psi),
+        nv_(GetHilbert().Size()),
         nrep_(nreplicas) {
     Init();
   }
@@ -69,8 +66,8 @@ class MetropolisLocalPt : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = GetHilbert().LocalSize();
+    localstates_ = GetHilbert().LocalStates();
 
     SetNreplicas(nrep_);
 
@@ -101,12 +98,12 @@ class MetropolisLocalPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_->RandomVals(v_[i], this->GetRandomEngine());
+        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_.InitLookup(v_[i], lt_[i]);
+      GetMachine().InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -139,16 +136,16 @@ class MetropolisLocalPt : public AbstractSampler {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
+      const auto lvd = GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
       double ratio = this->GetMachineFunc()(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_[rep]);
+      const auto psival1 = GetMachine().LogVal(v_[rep]);
       if (std::abs(
-              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
+              std::exp(GetMachine().LogVal(v_[rep]) - GetMachine().LogVal(v_[rep], lt_[rep])) -
               1.) > 1.0e-8) {
-        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+        std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -156,16 +153,16 @@ class MetropolisLocalPt : public AbstractSampler {
       if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
 
-        psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-        hilbert_->UpdateConf(v_[rep], tochange, newconf);
+        GetMachine().UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
+        GetHilbert().UpdateConf(v_[rep], tochange, newconf);
 
 #ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_[rep]);
+        const auto psival2 = GetMachine().LogVal(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
 #endif
@@ -206,8 +203,8 @@ class MetropolisLocalPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -221,10 +218,8 @@ class MetropolisLocalPt : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  AbstractMachine& GetMachine() noexcept override { return psi_; }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_[0], lt_[0]);
+    return GetMachine().DerLog(v_[0], lt_[0]);
   }
 
   Eigen::VectorXd Acceptance() const override {

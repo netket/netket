@@ -27,8 +27,6 @@ namespace netket {
 
 // Exact sampling using heat bath, mostly for testing purposes on small systems
 class ExactSampler : public AbstractSampler {
-  AbstractMachine& psi_;
-
   // number of visible units
   const int nv_;
 
@@ -52,10 +50,9 @@ class ExactSampler : public AbstractSampler {
 
  public:
   explicit ExactSampler(AbstractMachine& psi)
-      : AbstractSampler(psi.GetHilbert()),
-        psi_(psi),
-        nv_(hilbert_->Size()),
-        hilbert_index_(hilbert_->GetIndex()),
+      : AbstractSampler(psi),
+        nv_(GetHilbert().Size()),
+        hilbert_index_(GetHilbert().GetIndex()),
         dim_(hilbert_index_.NStates()) {
     Init();
   }
@@ -66,7 +63,7 @@ class ExactSampler : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Exact sampler works only for discrete "
           "Hilbert spaces");
@@ -82,7 +79,7 @@ class ExactSampler : public AbstractSampler {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, this->GetRandomEngine());
+      GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
     double logmax = -std::numeric_limits<double>::infinity();
@@ -92,7 +89,7 @@ class ExactSampler : public AbstractSampler {
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index_.NumberToState(i);
-      logpsivals_[i] = psi_.LogVal(v);
+      logpsivals_[i] = GetMachine().LogVal(v);
       logmax = std::max(logmax, std::real(logpsivals_[i]));
     }
 
@@ -117,8 +114,6 @@ class ExactSampler : public AbstractSampler {
   Eigen::VectorXd Visible() override { return v_; }
 
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
-
-  AbstractMachine& GetMachine() noexcept override { return psi_; }
 
   Eigen::VectorXd Acceptance() const override {
     Eigen::VectorXd acc = accept_;

@@ -30,8 +30,6 @@ namespace netket {
 
 // Metropolis sampling using custom moves provided by user
 class CustomSampler : public AbstractSampler {
-  AbstractMachine &psi_;
-
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
 
@@ -60,17 +58,16 @@ class CustomSampler : public AbstractSampler {
  public:
   CustomSampler(AbstractMachine &psi, const LocalOperator &move_operators,
                 const std::vector<double> &move_weights = {})
-      : AbstractSampler(psi.GetHilbert()),
-        psi_(psi),
+      : AbstractSampler(psi),
         move_operators_(move_operators),
-        nv_(hilbert_->Size()) {
+        nv_(GetHilbert().Size()) {
     Init(move_weights);
   }
 
   void Init(const std::vector<double> &move_weights) {
     CheckMoveOperators(move_operators_);
 
-    if (hilbert_->Size() != move_operators_.GetHilbert()->Size()) {
+    if (GetHilbert().Size() != move_operators_.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -93,7 +90,7 @@ class CustomSampler : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_->IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
@@ -101,8 +98,8 @@ class CustomSampler : public AbstractSampler {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_->LocalSize();
-    localstates_ = hilbert_->LocalStates();
+    nstates_ = GetHilbert().LocalSize();
+    localstates_ = GetHilbert().LocalStates();
 
     Reset(true);
 
@@ -111,10 +108,10 @@ class CustomSampler : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      hilbert_->RandomVals(v_, this->GetRandomEngine());
+      GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    psi_.InitLookup(v_, lt_);
+    GetMachine().InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -140,16 +137,16 @@ class CustomSampler : public AbstractSampler {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      auto exlog = std::exp(psi_.LogValDiff(v_, tochange_[exit_state],
+      auto exlog = std::exp(GetMachine().LogValDiff(v_, tochange_[exit_state],
                                             newconfs_[exit_state], lt_));
       double ratio = this->GetMachineFunc()(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
-        psi_.UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
+        GetMachine().UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
                           lt_);
-        hilbert_->UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
+        GetHilbert().UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
       }
       moves_[0] += 1;
     }
@@ -159,10 +156,8 @@ class CustomSampler : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  AbstractMachine &GetMachine() noexcept override { return psi_; }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_, lt_);
+    return GetMachine().DerLog(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {
@@ -242,7 +237,7 @@ class CustomSampler : public AbstractSampler {
     }
 
     if (static_cast<int>(touched_sites.size()) !=
-        move_operators.GetHilbert()->Size()) {
+        move_operators.GetHilbert().Size()) {
       InfoMessage() << "Warning: MoveOperators appear not to act on "
                        "all sites of the space:"
                     << std::endl;

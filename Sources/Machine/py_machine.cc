@@ -52,8 +52,8 @@ void AddRbmSpin(py::module subm) {
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
+           py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpin`` machine:
@@ -140,8 +140,8 @@ void AddRbmMultival(py::module subm) {
              local Hilbert spaces.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
+           py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true);
 }
 
@@ -158,8 +158,8 @@ void AddRbmSpinPhase(py::module subm) {
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
+           py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinPhase`` machine:
@@ -204,8 +204,8 @@ void AddRbmSpinReal(py::module subm) {
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
+           py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinReal`` machine:
@@ -246,12 +246,12 @@ void AddFFNN(py::module subm) {
              class. Each layer implements a transformation such that the
              information is transformed sequentially as it moves from the input
              nodes through the hidden layers and to the output nodes.)EOF")
-      .def(py::init([](std::shared_ptr<const AbstractHilbert> hi, py::tuple tuple) {
-             auto layers = py::cast<std::vector<AbstractLayer *>>(tuple);
-             return FFNN{std::move(hi), std::move(layers)};
-           }),
-           py::keep_alive<1, 3>(), py::arg("hilbert"),
-           py::arg("layers"),
+      .def(py::init(
+               [](std::shared_ptr<const AbstractHilbert> hi, py::tuple tuple) {
+                 auto layers = py::cast<std::vector<AbstractLayer *>>(tuple);
+                 return FFNN{std::move(hi), std::move(layers)};
+               }),
+           py::keep_alive<1, 3>(), py::arg("hilbert"), py::arg("layers"),
            R"EOF(
               Constructs a new ``FFNN`` machine:
 
@@ -352,8 +352,8 @@ void AddJastrowSymm(py::module subm) {
 void AddMpsPeriodic(py::module subm) {
   py::class_<MPSPeriodic, AbstractMachine>(subm, "MPSPeriodic")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, int>(),
-           py::arg("hilbert"), py::arg("bond_dim"),
-           py::arg("diag") = false, py::arg("symperiod") = -1);
+           py::arg("hilbert"), py::arg("bond_dim"), py::arg("diag") = false,
+           py::arg("symperiod") = -1);
 }
 
 void AddLayerModule(py::module m) {
@@ -664,7 +664,7 @@ void AddMachineModule(py::module m) {
       .def(
           "to_array",
           [](AbstractMachine &self) -> AbstractMachine::VectorType {
-            const auto &hind = self.GetHilbert()->GetIndex();
+            const auto &hind = self.GetHilbert().GetIndex();
             AbstractMachine::VectorType vals(hind.NStates());
 
             double maxlog = std::numeric_limits<double>::lowest();
@@ -696,7 +696,7 @@ void AddMachineModule(py::module m) {
       .def(
           "log_norm",
           [](AbstractMachine &self) -> double {
-            const auto &hind = self.GetHilbert()->GetIndex();
+            const auto &hind = self.GetHilbert().GetIndex();
             AbstractMachine::VectorType vals(hind.NStates());
 
             double maxlog = std::numeric_limits<double>::lowest();
