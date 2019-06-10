@@ -57,6 +57,10 @@ class AbstractSampler {
     machine_func_ = std::move(machine_func);
   }
 
+  std::shared_ptr<const AbstractHilbert> GetHilbertShared() const noexcept {
+    return hilbert_;
+  }
+
   const AbstractHilbert &GetHilbert() const noexcept {
     return *hilbert_;
   }

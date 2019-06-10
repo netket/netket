@@ -92,7 +92,8 @@ void AddSamplerModule(py::module &m) {
       .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
         numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.  )EOF")
-      .def_property_readonly("hilbert", &AbstractSampler::GetHilbert, R"EOF(
+      .def_property_readonly("hilbert", &AbstractSampler::GetHilbertShared,
+                             R"EOF(
         netket.hilbert: The Hilbert space used for the sampling.  )EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
