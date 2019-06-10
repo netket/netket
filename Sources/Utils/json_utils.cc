@@ -15,6 +15,7 @@
 #include "Utils/json_utils.hpp"
 
 #include <complex>
+#include <fstream>
 #include <vector>
 
 #include <Eigen/Core>
