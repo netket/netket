@@ -21,7 +21,6 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Hilbert/abstract_hilbert.hpp"
-#include "Utils/json_helper.hpp"
 #include "abstract_operator.hpp"
 #include "local_operator.hpp"
 
@@ -117,6 +116,13 @@ class GraphOperator : public AbstractOperator {
     operator_.FindConn(v, mel, connectors, newconfs);
   }
 
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
+    operator_.ForEachConn(v, callback);
+  }
+
+  const AbstractHilbert &GetHilbert() const noexcept override {
+    return hilbert_;
+  }
 };  // namespace netket
 }  // namespace netket
 #endif

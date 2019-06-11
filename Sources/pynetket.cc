@@ -34,10 +34,6 @@
 
 namespace netket {
 
-namespace detail {
-static MPIInitializer _do_not_use_me_dummy_{};
-}  // namespace detail
-
 PYBIND11_MODULE(_C_netket, m) {
   AddDynamicsModule(m);
   AddGraphModule(m);

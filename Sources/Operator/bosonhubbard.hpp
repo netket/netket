@@ -24,7 +24,6 @@
 #include "Graph/graph.hpp"
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/exceptions.hpp"
-#include "Utils/json_helper.hpp"
 #include "Utils/messages.hpp"
 #include "abstract_operator.hpp"
 

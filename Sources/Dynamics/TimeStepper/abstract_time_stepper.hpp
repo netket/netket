@@ -4,8 +4,6 @@
 #include <cassert>
 #include <functional>
 
-#include "Utils/json_helper.hpp"
-
 namespace netket {
 namespace ode {
 
@@ -13,13 +11,6 @@ struct TimeRange {
   double tmin;
   double tmax;
   double dt;
-
-  static TimeRange FromJson(const json& pars) {
-    double tmin = FieldVal(pars, "StartTime");
-    double tmax = FieldVal(pars, "EndTime");
-    double dt = FieldVal(pars, "TimeStep");
-    return {tmin, tmax, dt};
-  }
 };
 
 /**

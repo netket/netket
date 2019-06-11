@@ -197,16 +197,6 @@ struct MPIHelpers {
   }
 };
 
-namespace detail {
-struct MPIInitializer {
-  MPIInitializer();
-  ~MPIInitializer();
-
- private:
-  bool have_initialized_;
-};
-}  // namespace detail
-
 }  // namespace netket
 
 #endif

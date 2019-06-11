@@ -31,3 +31,4 @@ from . import (
     utils,
     variational,
 )
+from ._C_netket import MPI, LookupReal, LookupComplex
