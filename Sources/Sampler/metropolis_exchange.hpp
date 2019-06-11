@@ -26,10 +26,6 @@ namespace netket {
 
 // Metropolis sampling generating local exchanges
 class MetropolisExchange : public AbstractSampler {
-  AbstractMachine &psi_;
-
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -51,7 +47,7 @@ class MetropolisExchange : public AbstractSampler {
  public:
   MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi,
                      int dmax = 1)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : AbstractSampler(psi), nv_(GetHilbert().Size()) {
     Init(graph, dmax);
   }
 
@@ -92,11 +88,11 @@ class MetropolisExchange : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        hilbert_.RandomVals(v_, this->GetRandomEngine());
+        GetHilbert().RandomVals(v_, this->GetRandomEngine());
       }
     }
 
-    psi_.InitLookup(v_, lt_);
+    GetMachine().InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -122,14 +118,14 @@ class MetropolisExchange : public AbstractSampler {
         newconf[0] = v_(sj);
         newconf[1] = v_(si);
 
-        auto explo = std::exp(psi_.LogValDiff(v_, tochange, newconf, lt_));
+        auto explo = std::exp(GetMachine().LogValDiff(v_, tochange, newconf, lt_));
 
         double ratio = this->GetMachineFunc()(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_[0] += 1;
-          psi_.UpdateLookup(v_, tochange, newconf, lt_);
-          hilbert_.UpdateConf(v_, tochange, newconf);
+          GetMachine().UpdateLookup(v_, tochange, newconf, lt_);
+          GetHilbert().UpdateConf(v_, tochange, newconf);
         }
       }
       moves_[0] += 1;
@@ -140,14 +136,8 @@ class MetropolisExchange : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
-  AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_, lt_);
+    return GetMachine().DerLog(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {

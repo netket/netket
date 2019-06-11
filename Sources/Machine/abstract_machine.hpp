@@ -17,6 +17,7 @@
 
 #include <complex>
 #include <iosfwd>
+#include <memory>
 #include <vector>
 
 #include <Eigen/Core>
@@ -214,9 +215,19 @@ class AbstractMachine {
   void Save(const std::string &filename) const;
   void Save(std::ofstream &stream) const;
 
-  virtual const AbstractHilbert &GetHilbert() const noexcept = 0;
+  const AbstractHilbert &GetHilbert() const { return *hilbert_; };
+  std::shared_ptr<const AbstractHilbert> GetHilbertShared() const {
+    return hilbert_;
+  };
 
-  virtual ~AbstractMachine() {}
+  virtual ~AbstractMachine() = default;
+
+ protected:
+  AbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
+      : hilbert_(std::move(hilbert)) {}
+
+ private:
+  std::shared_ptr<const AbstractHilbert> hilbert_;
 };
 }  // namespace netket
 

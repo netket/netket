@@ -18,7 +18,9 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <vector>
+
 #include "Graph/graph.hpp"
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/exceptions.hpp"
@@ -29,7 +31,6 @@ namespace netket {
 
 // Heisenberg model on an arbitrary graph
 class BoseHubbard : public AbstractOperator {
-  const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
   int nsites_;
@@ -50,15 +51,15 @@ class BoseHubbard : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit BoseHubbard(const AbstractHilbert &hilbert, double U, double V = 0.,
-                       double mu = 0.)
-      : hilbert_(hilbert),
-        graph_(hilbert.GetGraph()),
-        nsites_(hilbert.Size()),
+  BoseHubbard(std::shared_ptr<const AbstractHilbert> hilbert, double U,
+              double V = 0., double mu = 0.)
+      : AbstractOperator(hilbert),
+        graph_(hilbert->GetGraph()),
+        nsites_(hilbert->Size()),
         U_(U),
         V_(V),
         mu_(mu) {
-    nmax_ = hilbert_.LocalSize() - 1;
+    nmax_ = hilbert->LocalSize() - 1;
     Init();
   }
 
@@ -121,10 +122,6 @@ class BoseHubbard : public AbstractOperator {
         }
       }
     }
-  }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
   }
 };
 

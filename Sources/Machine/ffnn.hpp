@@ -31,8 +31,6 @@
 namespace netket {
 
 class FFNN : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   std::vector<AbstractLayer *> layers_;  // Pointers to hidden layers
 
   std::vector<int> layersizes_;
@@ -49,9 +47,11 @@ class FFNN : public AbstractMachine {
   std::unique_ptr<SumOutput> sum_output_layer_;
 
  public:
-  explicit FFNN(const AbstractHilbert &hilbert,
+  explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
                 std::vector<AbstractLayer *> layers)
-      : hilbert_(hilbert), layers_(std::move(layers)), nv_(hilbert.Size()) {
+      : AbstractMachine(hilbert),
+        layers_(std::move(layers)),
+        nv_(hilbert->Size()) {
     Init();
   }
 
@@ -295,9 +295,6 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 };  // namespace netket
 
 }  // namespace netket

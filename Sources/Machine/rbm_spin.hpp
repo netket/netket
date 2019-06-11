@@ -27,8 +27,6 @@ using json = nlohmann::json;
  *
  */
 class RbmSpin : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -56,8 +54,8 @@ class RbmSpin : public AbstractMachine {
   bool useb_;
 
  public:
-  RbmSpin(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
-          bool usea = true, bool useb = true);
+  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
+          int alpha = 0, bool usea = true, bool useb = true);
 
   int Nvisible() const override;
   int Npar() const override;
@@ -88,8 +86,6 @@ class RbmSpin : public AbstractMachine {
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void to_json(json &j) const override;
   void from_json(const json &pars) override;

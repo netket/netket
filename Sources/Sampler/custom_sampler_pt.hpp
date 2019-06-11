@@ -30,8 +30,6 @@ namespace netket {
 
 // Metropolis sampling using custom moves provided by user
 class CustomSamplerPt : public AbstractSampler {
-  AbstractMachine& psi_;
-  const AbstractHilbert& hilbert_;
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
   // number of visible units
@@ -64,10 +62,9 @@ class CustomSamplerPt : public AbstractSampler {
   CustomSamplerPt(AbstractMachine& psi, const LocalOperator& move_operators,
                   const std::vector<double>& move_weights = {},
                   int nreplicas = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+      : AbstractSampler(psi),
         move_operators_(move_operators),
-        nv_(hilbert_.Size()),
+        nv_(GetHilbert().Size()),
         nrep_(nreplicas) {
     Init(move_weights);
   }
@@ -75,7 +72,7 @@ class CustomSamplerPt : public AbstractSampler {
   void Init(const std::vector<double>& move_weights) {
     CustomSampler::CheckMoveOperators(move_operators_);
 
-    if (hilbert_.Size() != move_operators_.GetHilbert().Size()) {
+    if (GetHilbert().Size() != move_operators_.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -97,13 +94,13 @@ class CustomSamplerPt : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = GetHilbert().LocalSize();
+    localstates_ = GetHilbert().LocalStates();
 
     v_.resize(nrep_);
     for (int i = 0; i < nrep_; i++) {
@@ -130,12 +127,12 @@ class CustomSamplerPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_.InitLookup(v_[i], lt_[i]);
+      GetMachine().InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -161,7 +158,7 @@ class CustomSamplerPt : public AbstractSampler {
       }
 
       auto explo = std::exp(beta_[rep] *
-                            psi_.LogValDiff(v_[rep], tochange_[exit_state],
+                            GetMachine().LogValDiff(v_[rep], tochange_[exit_state],
                                             newconfs_[exit_state], lt_[rep]));
 
       double ratio = this->GetMachineFunc()(explo);
@@ -169,9 +166,9 @@ class CustomSamplerPt : public AbstractSampler {
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
-        psi_.UpdateLookup(v_[rep], tochange_[exit_state], newconfs_[exit_state],
+        GetMachine().UpdateLookup(v_[rep], tochange_[exit_state], newconfs_[exit_state],
                           lt_[rep]);
-        hilbert_.UpdateConf(v_[rep], tochange_[exit_state],
+        GetHilbert().UpdateConf(v_[rep], tochange_[exit_state],
                             newconfs_[exit_state]);
       }
       moves_(rep) += 1;
@@ -210,8 +207,8 @@ class CustomSamplerPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -225,14 +222,8 @@ class CustomSamplerPt : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
-  AbstractMachine& GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert& GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_[0], lt_[0]);
+    return GetMachine().DerLog(v_[0], lt_[0]);
   }
 
   Eigen::VectorXd Acceptance() const override {

@@ -27,10 +27,6 @@ namespace netket {
 // Metropolis sampling generating transitions using the Hamiltonian
 template <class H>
 class MetropolisHamiltonianPt : public AbstractSampler {
-  AbstractMachine &psi_;
-
-  const AbstractHilbert &hilbert_;
-
   H &hamiltonian_;
 
   // number of visible units
@@ -62,10 +58,9 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
  public:
   MetropolisHamiltonianPt(AbstractMachine &psi, H &hamiltonian, int nrep)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
+      : AbstractSampler(psi),
         hamiltonian_(hamiltonian),
-        nv_(hilbert_.Size()),
+        nv_(GetHilbert().Size()),
         nrep_(nrep) {
     Init();
   }
@@ -74,7 +69,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -105,12 +100,12 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_.InitLookup(v_[i], lt_[i]);
+      GetMachine().InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -131,24 +126,24 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_[rep];
-      hilbert_.UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
       double w2 = tochange1_.size();
 
       const auto lvd =
-          psi_.LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+          GetMachine().LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
       double ratio =
           this->GetMachineFunc()(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_[rep]);
+      const auto psival1 = GetMachine().LogVal(v_[rep]);
       if (std::abs(
-              std::exp(psi_.LogVal(v_[rep]) - psi_.LogVal(v_[rep], lt_[rep])) -
+              std::exp(GetMachine().LogVal(v_[rep]) - GetMachine().LogVal(v_[rep], lt_[rep])) -
               1.) > 1.0e-8) {
-        std::cerr << psi_.LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+        std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
+                  << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -156,16 +151,16 @@ class MetropolisHamiltonianPt : public AbstractSampler {
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
-        psi_.UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+        GetMachine().UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
         v_[rep] = v1_;
 
 #ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_[rep]);
+        const auto psival2 = GetMachine().LogVal(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
           std::abort();
         }
 #endif
@@ -206,8 +201,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -221,14 +216,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_[0], lt_[0]);
+    return GetMachine().DerLog(v_[0], lt_[0]);
   }
 
   Eigen::VectorXd Acceptance() const override {

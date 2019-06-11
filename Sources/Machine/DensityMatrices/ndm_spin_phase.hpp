@@ -95,18 +95,18 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   const Complex I_;
 
  public:
-  explicit NdmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0,
-                        int nancilla = 0, int alpha = 0, int beta = 0,
-                        bool useb = true, bool useh = true, bool used = true)
+  explicit NdmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert,
+                        int nhidden = 0, int nancilla = 0, int alpha = 0,
+                        int beta = 0, bool useb = true, bool useh = true,
+                        bool used = true)
       : AbstractDensityMatrix(hilbert),
-        nv_(hilbert.Size()),
+        nv_(hilbert->Size()),
         useb_(useb),
         useh_(useh),
         used_(used),
         I_(0, 1) {
     nh_ = std::max(nhidden, alpha * nv_);
     na_ = std::max(nancilla, beta * nv_);
-
     Init();
   }
 

@@ -24,7 +24,6 @@ namespace netket {
 
 // Jastrow with permutation symmetries
 class JastrowSymm : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
   const AbstractGraph &graph_;
 
   std::vector<std::vector<int>> permtable_;
@@ -52,12 +51,10 @@ class JastrowSymm : public AbstractMachine {
   Eigen::MatrixXi Wtemp_;
 
  public:
-  explicit JastrowSymm(const AbstractHilbert &hilbert);
+  explicit JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert);
 
   int Nvisible() const override;
   int Npar() const override;
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void InitRandomPars(int seed, double sigma) override;
   void InitLookup(VisibleConstType v, LookupType &lt) override;
