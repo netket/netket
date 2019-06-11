@@ -17,7 +17,6 @@
 #include <Eigen/Core>
 #include <complex>
 #include <limits>
-#include <memory>
 #include <nonstd/optional.hpp>
 #include <vector>
 

@@ -100,7 +100,7 @@ class AbstractDensityMatrix : public AbstractMachine {
    * on which this density matrix acts.
    * @return The physical hilbert space
    */
-  const AbstractHilbert &GetHilbertPhysical() const {
+  const AbstractHilbert &GetHilbertPhysical() const noexcept {
     return *hilbert_physical_;
   }
 };
