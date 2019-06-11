@@ -23,8 +23,6 @@
 #include "abstract_operator.hpp"
 #include "bosonhubbard.hpp"
 #include "graph_operator.hpp"
-#include "heisenberg.hpp"
-#include "ising.hpp"
 #include "local_operator.hpp"
 
 #endif

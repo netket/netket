@@ -185,6 +185,9 @@ void AddHilbertModule(py::module m) {
           .def_property_readonly(
               "local_states", &AbstractHilbert::LocalStates,
               R"EOF(list[float]: List of discreet local quantum numbers.)EOF")
+          .def_property_readonly(
+              "graph", &AbstractHilbert::GetGraph,
+              R"EOF(netket.graph.Graph: The Graph used to construct this Hilbert space.)EOF")
           .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
                py::arg("rgen"), R"EOF(
        Member function generating uniformely distributed local random states.

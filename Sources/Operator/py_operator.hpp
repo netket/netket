@@ -26,8 +26,6 @@
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
-#include "py_heisenberg.hpp"
-#include "py_ising.hpp"
 #include "py_local_operator.hpp"
 
 namespace py = pybind11;
@@ -83,8 +81,6 @@ void AddOperatorModule(py::module &m) {
          This method requires an indexable Hilbert space.
          )EOF");
 
-  AddIsing(subm);
-  AddHeisenberg(subm);
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);

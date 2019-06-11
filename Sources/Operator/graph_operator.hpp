@@ -119,6 +119,10 @@ class GraphOperator : public AbstractOperator {
     operator_.FindConn(v, mel, connectors, newconfs);
   }
 
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
+    operator_.ForEachConn(v, callback);
+  }
+
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }

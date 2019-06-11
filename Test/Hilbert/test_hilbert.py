@@ -52,14 +52,12 @@ hilberts["Custom Hilbert"] = nk.hilbert.CustomHilbert(
 )
 
 # Heisenberg 1d
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
-hilberts["Heisenberg 1d"] = hi
+g1 = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+hilberts["Heisenberg 1d"] = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g1)
 
 # Bose Hubbard
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hi = nk.hilbert.Boson(n_max=4, n_bosons=20, graph=g)
-hilberts["Bose Hubbard"] = hi
+g3 = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+hilberts["Bose Hubbard"] = nk.hilbert.Boson(n_max=4, n_bosons=20, graph=g3)
 
 #
 # Small hilbert space tests
@@ -89,6 +87,7 @@ hilberts["Qubit Small"] = nk.hilbert.Qubit(
 hilberts["Custom Hilbert Small"] = nk.hilbert.CustomHilbert(
     local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
 )
+
 
 #
 # Tests
@@ -127,7 +126,6 @@ def test_random_states():
                     assert state in local_states
 
 
-# TODO (jamesETsmith)
 def test_hilbert_index():
     """"""
 
@@ -147,14 +145,19 @@ def test_hilbert_index():
             with pytest.raises(RuntimeError):
                 hi.n_states
 
-            op = nk.operator.Heisenberg(hi)
+        # Check that a large hilbert space raises error when constructing matrices
+        op = nk.operator.Heisenberg(
+            hilbert=nk.hilbert.Spin(
+                s=0.5, graph=nk.graph.Hypercube(length=100, n_dim=1)
+            )
+        )
 
-            with pytest.raises(RuntimeError):
-                m1 = op.to_dense()
-            with pytest.raises(RuntimeError):
-                m2 = op.to_sparse()
-            with pytest.raises(RuntimeError):
-                dw = nk.operator.DirectMatrixWrapper(op)
+        with pytest.raises(RuntimeError):
+            m1 = op.to_dense()
+        with pytest.raises(RuntimeError):
+            m2 = op.to_sparse()
+        with pytest.raises(RuntimeError):
+            dw = nk.operator.DirectMatrixWrapper(op)
 
 
 def test_state_iteration():
