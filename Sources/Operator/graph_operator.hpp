@@ -119,10 +119,6 @@ class GraphOperator : public AbstractOperator {
   void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     operator_.ForEachConn(v, callback);
   }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
 };  // namespace netket
 }  // namespace netket
 #endif

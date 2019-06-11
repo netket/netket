@@ -234,7 +234,7 @@ class LocalOperator : public AbstractOperator {
   }
 
   void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
-    assert(v.size() == hilbert_.Size());
+    assert(v.size() == GetHilbert().Size());
 
     Complex mel_diag = 0.;
 
