@@ -35,6 +35,12 @@ class Result {
   MatrixXcd log_derivs_;
 
  public:
+  Result() = default;
+  Result(Result &&) = default;
+  Result &operator=(Result &&) = default;
+  Result(const Result &) = delete;
+  Result &operator=(const Result &) = delete;
+
   Result(MatrixXd samples, MatrixXcd log_derivs)
       : samples_(std::move(samples)), log_derivs_(std::move(log_derivs)) {}
 
