@@ -58,7 +58,7 @@ void LocalValues(const AbstractOperator &op, AbstractMachine &psi,
   }
 }
 
-Stats Expectation(Result result, const AbstractOperator &op,
+Stats Expectation(const Result &result, const AbstractOperator &op,
                   AbstractMachine &psi) {
   Binning<double> bin;
   for (Index i = 0; i < result.NSamples(); ++i) {

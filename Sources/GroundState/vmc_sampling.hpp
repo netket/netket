@@ -101,7 +101,7 @@ void LocalValues(const AbstractOperator &op, AbstractMachine &psi,
 /**
  * Computes the expectation value of an operator based on VMC results.
  */
-Stats Expectation(Result result, const AbstractOperator &op,
+Stats Expectation(const Result &result, const AbstractOperator &op,
                   AbstractMachine &psi);
 
 /**
