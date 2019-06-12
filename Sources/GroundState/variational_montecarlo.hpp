@@ -16,9 +16,6 @@
 #define NETKET_VARIATIONALMONTECARLO_HPP
 
 #include <complex>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
