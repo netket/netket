@@ -19,6 +19,7 @@
 #include <valarray>
 #include <vector>
 
+#include "Utils/messages.hpp"
 #include "onlinestat.hpp"
 
 namespace netket {
