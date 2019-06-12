@@ -160,10 +160,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
       .def(
           "get_observable_stats",
           [](VariationalMonteCarlo &self) {
-            py::dict data;
             self.ComputeObservables();
-            self.GetObsManager().InsertAllStats(data);
-            return data;
+            return self.GetObservableStats();
           },
           R"EOF(
         Calculate and return the value of the operators stored as observables.

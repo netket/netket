@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <Eigen/Dense>
@@ -36,6 +37,8 @@
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
 
+#include "vmc_sampling.hpp"
+
 namespace netket {
 
 // Variational Monte Carlo schemes to learn the ground state
@@ -44,27 +47,10 @@ namespace netket {
 //   both direct and sparse version
 // 2) Gradient Descent optimizer
 class VariationalMonteCarlo {
-  using GsType = Complex;
-  using VectorT = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
-  using MatrixT = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-
   const AbstractOperator &ham_;
   AbstractSampler &sampler_;
   AbstractMachine &psi_;
 
-  std::vector<std::vector<int>> connectors_;
-  std::vector<std::vector<double>> newconfs_;
-  std::vector<Complex> mel_;
-
-  Eigen::VectorXcd elocs_;
-  MatrixT Ok_;
-  VectorT Okmean_;
-  MatrixT elocsder_;
-  VectorT elocsdermean_;
-
-  Eigen::MatrixXd vsamp_;
-
-  Eigen::VectorXcd grad_;
 
   int totalnodes_;
   int mynode_;
@@ -73,20 +59,23 @@ class VariationalMonteCarlo {
   SR sr_;
   bool dosr_;
 
-  std::vector<AbstractOperator *> obs_;
+  std::vector<const AbstractOperator *> obs_;
   std::vector<std::string> obsnames_;
-  ObsManager obsmanager_;
+
+  using StatsMap = std::unordered_map<std::string, vmc::Stats>;
+  StatsMap observable_stats_;
+
+  vmc::Result vmc_data_;
+  Eigen::VectorXcd grad_;
 
   int nsamples_;
   int nsamples_node_;
   int ninitsamples_;
-  int ndiscardedsamples_;
+  int ndiscard_;
 
-  Complex elocmean_;
-  double elocvar_;
   int npar_;
 
-  const std::string target_;
+  std::string target_;
 
  public:
   VariationalMonteCarlo(const AbstractOperator &hamiltonian,
@@ -101,7 +90,6 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
-        elocvar_(0.),
         target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
          diag_shift, use_iterative, use_cholesky);
@@ -111,25 +99,20 @@ class VariationalMonteCarlo {
             const std::string &method, double diag_shift, bool use_iterative,
             bool use_cholesky) {
     npar_ = psi_.Npar();
-
     opt_.Init(npar_, psi_.IsHolomorphic());
-
     grad_.resize(npar_);
-    Okmean_.resize(npar_);
 
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
     nsamples_ = nsamples;
-
     nsamples_node_ = int(std::ceil(double(nsamples_) / double(totalnodes_)));
-
     ninitsamples_ = discarded_samples_on_init;
 
     if (discarded_samples == -1) {
-      ndiscardedsamples_ = 0.1 * nsamples_node_;
+      ndiscard_ = 0.1 * nsamples_node_;
     } else {
-      ndiscardedsamples_ = discarded_samples;
+      ndiscard_ = discarded_samples;
     }
 
     if (method == "Gd") {
@@ -157,27 +140,14 @@ class VariationalMonteCarlo {
 
   void InitSweeps() {
     sampler_.Reset();
-
     for (int i = 0; i < ninitsamples_; i++) {
       sampler_.Sweep();
     }
   }
 
-  void Sample() {
-    sampler_.Reset();
-
-    for (int i = 0; i < ndiscardedsamples_; i++) {
-      sampler_.Sweep();
-    }
-
-    vsamp_.resize(nsamples_node_, psi_.Nvisible());
-    Ok_.resize(nsamples_node_, npar_);
-
-    for (int i = 0; i < nsamples_node_; i++) {
-      sampler_.Sweep();
-      vsamp_.row(i) = sampler_.Visible();
-      Ok_.row(i) = sampler_.DerLogVisible();
-    }
+  void Reset() {
+    opt_.Reset();
+    InitSweeps();
   }
 
   /**
@@ -185,131 +155,31 @@ class VariationalMonteCarlo {
    * samples.
    */
   void ComputeObservables() {
-    const Index nsamp = vsamp_.rows();
-    for (const auto &obname : obsnames_) {
-      obsmanager_.Reset(obname);
+    for (std::size_t i = 0; i < obs_.size(); ++i) {
+      observable_stats_[obsnames_[i]] = vmc::Ex(vmc_data_, *obs_[i], psi_);
     }
-    for (Index i_samp = 0; i_samp < nsamp; ++i_samp) {
-      for (std::size_t i_obs = 0; i_obs < obs_.size(); ++i_obs) {
-        const auto &op = obs_[i_obs];
-        const auto &name = obsnames_[i_obs];
-        obsmanager_.Push(name, ObsLocValue(*op, vsamp_.row(i_samp)).real());
-      }
-    }
-  }
-
-  void Gradient() {
-    obsmanager_.Reset("Energy");
-    obsmanager_.Reset("EnergyVariance");
-
-    const int nsamp = vsamp_.rows();
-    elocs_.resize(nsamp);
-
-    for (int i = 0; i < nsamp; i++) {
-      elocs_(i) = ObsLocValue(ham_, vsamp_.row(i));
-      obsmanager_.Push("Energy", elocs_(i).real());
-    }
-
-    elocmean_ = elocs_.mean();
-    SumOnNodes(elocmean_);
-    elocmean_ /= double(totalnodes_);
-
-    Okmean_ = Ok_.colwise().mean();
-    SumOnNodes(Okmean_);
-    Okmean_ /= double(totalnodes_);
-
-    Ok_ = Ok_.rowwise() - Okmean_.transpose();
-
-    elocs_ -= elocmean_ * Eigen::VectorXd::Ones(nsamp);
-
-    for (int i = 0; i < nsamp; i++) {
-      obsmanager_.Push("EnergyVariance", std::norm(elocs_(i)));
-    }
-
-    if (target_ == "energy") {
-      grad_ = (Ok_.adjoint() * elocs_);
-    } else if (target_ == "variance") {
-      elocsder_.resize(nsamp, npar_);
-      elocsdermean_.resize(npar_);
-
-      for (int i = 0; i < nsamp; i++) {
-        elocsder_.row(i) = ElocDer(vsamp_.row(i));
-      }
-      elocsdermean_ = elocsder_.colwise().mean();
-      SumOnNodes(elocsdermean_);
-      elocsdermean_ /= double(totalnodes_);
-      elocsder_ = elocsder_.rowwise() - elocsdermean_.transpose();
-
-      grad_ = elocsder_.adjoint() * elocs_;
-    }
-    // Summing the gradient over the nodes
-    SumOnNodes(grad_);
-    grad_ /= double(totalnodes_ * nsamp);
   }
 
   /**
-   * Computes the value of the local estimator of the operator `ob` in
-   * configuration `v` which is defined by O_loc(v) = ⟨v|ob|Ψ⟩ / ⟨v|Ψ⟩.
-   *
-   * @param ob Operator representing the observable.
-   * @param v Many-body configuration
-   * @return The value of the local observable O_loc(v).
+   * Advances the simulation by performing `steps` VMC iterations.
    */
-  Complex ObsLocValue(const AbstractOperator &ob, const Eigen::VectorXd &v) {
-    ob.FindConn(v, mel_, connectors_, newconfs_);
-
-    assert(connectors_.size() == mel_.size());
-
-    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
-
-    assert(mel_.size() == std::size_t(logvaldiffs.size()));
-
-    Complex obval = 0;
-
-    for (int i = 0; i < logvaldiffs.size(); i++) {
-      obval += mel_[i] * std::exp(logvaldiffs(i));
-    }
-
-    return obval;
-  }
-
-  VectorT ElocDer(const Eigen::VectorXd &v) {
-    VectorT eder(npar_);
-    eder.setZero();
-
-    ham_.FindConn(v, mel_, connectors_, newconfs_);
-
-    assert(connectors_.size() == mel_.size());
-
-    auto logvaldiffs = (psi_.LogValDiff(v, connectors_, newconfs_));
-
-    assert(mel_.size() == std::size_t(logvaldiffs.size()));
-
-    auto ok = psi_.DerLog(v);
-
-    for (int i = 0; i < logvaldiffs.size(); i++) {
-      const auto melval = mel_[i] * std::exp(logvaldiffs(i));
-      eder += melval * psi_.DerLogChanged(v, connectors_[i], newconfs_[i]);
-      eder -= melval * ok;
-    }
-
-    return eder;
-  }
-
-  double ElocMean() { return elocmean_.real(); }
-
-  double Elocvar() { return elocvar_; }
-
-  void Reset() {
-    opt_.Reset();
-    InitSweeps();
-  }
-
   void Advance(Index steps = 1) {
     assert(steps > 0);
     for (Index i = 0; i < steps; ++i) {
-      Sample();
-      Gradient();
+      vmc_data_ = vmc::ComputeSamples(sampler_, nsamples_node_, ndiscard_);
+
+      vmc::ExpectationVarianceResult energy;
+      if (target_ == "energy") {
+        energy = vmc::ExVarGrad(vmc_data_, ham_, psi_, grad_);
+      } else if (target_ == "variance") {
+        energy = vmc::ExVar(vmc_data_, ham_, psi_);
+        vmc::GradientOfVariance(vmc_data_, ham_, psi_, grad_);
+      } else {
+        throw std::runtime_error("This should not happen.");
+      }
+      observable_stats_["Energy"] = energy.expectation;
+      observable_stats_["EnergyVariance"] = energy.variance;
+
       UpdateParameters();
     }
   }
@@ -328,18 +198,17 @@ class VariationalMonteCarlo {
     }
     opt_.Reset();
 
-    for (Index step = 0; !n_iter.has_value() || step < *n_iter; step += step_size) {
+    for (Index step = 0; !n_iter.has_value() || step < *n_iter;
+         step += step_size) {
       Advance(step_size);
       ComputeObservables();
-
-      // Note: This has to be called in all MPI processes, because converting
-      // the ObsManager to JSON performs a MPI reduction.
-      auto obs_data = json(obsmanager_);
-      obs_data["Acceptance"] = sampler_.Acceptance();
 
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
       if (writer.has_value()) {
+        auto obs_data = json(observable_stats_);
+        obs_data["Acceptance"] = sampler_.Acceptance();
+
         writer->WriteLog(step, obs_data);
         writer->WriteState(step, psi_);
       }
@@ -353,12 +222,12 @@ class VariationalMonteCarlo {
     Eigen::VectorXcd deltap(npar_);
 
     if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap);
+      sr_.ComputeUpdate(vmc_data_.LogDerivs().transpose(), grad_, deltap);
     } else {
       deltap = grad_;
     }
-
     opt_.Update(deltap, pars);
+
     SendToAll(pars);
 
     psi_.SetParameters(pars);
@@ -374,8 +243,11 @@ class VariationalMonteCarlo {
   }
 
   AbstractMachine &GetMachine() { return psi_; }
-  const ObsManager &GetObsManager() const { return obsmanager_; }
-};  // namespace netket
+
+  const StatsMap &GetObservableStats() const noexcept {
+    return observable_stats_;
+  }
+};
 
 }  // namespace netket
 
