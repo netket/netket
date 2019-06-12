@@ -85,8 +85,8 @@ class Result {
  * the samples.
  * @return A Result object containing the MC samples and auxillary information.
  */
-Result PerformSampling(AbstractSampler &sampler, Index nsamples,
-                       Index ndiscard = 0);
+Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
+                      Index ndiscard = 0);
 
 /**
  * Computes the local value of the operator `op` in configuration `v`
@@ -121,7 +121,7 @@ VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
 
 /**
  * Computes an approximation of the gradient of the variance of an operator.
- * 
+ *
  * Specifically, the function returns ∇(σ²) = 2⟨∇O_loc (O_loc - ⟨O_loc⟩)⟩.
  * See Eq. (3) in Umrigar and Filippi, Phys. Rev. Lett. 94, 150201 (2005).
  */
@@ -130,16 +130,16 @@ void GradientOfVariance(const Result &result, const AbstractOperator &op,
 /**
  * Computes the expectation value of an operator based on VMC results.
  */
-Stats Expectation(const Result &result, const AbstractOperator &op,
-                  AbstractMachine &psi);
+Stats Ex(const Result &result, const AbstractOperator &op,
+         AbstractMachine &psi);
 
 /**
  * Computes the expectation value of an operator based on VMC results.
  * The local value of the observable for each sampled configuration are stored
  * in the vector locvals.
  */
-Stats Expectation(const Result &result, const AbstractOperator &op,
-                  AbstractMachine &psi, VectorXcd &locvals);
+Stats Ex(const Result &result, const AbstractOperator &op, AbstractMachine &psi,
+         VectorXcd &locvals);
 
 /**
  * Struct combining statistics for expectation value and mean of an observable.
@@ -154,26 +154,25 @@ struct ExpectationVarianceResult {
  * VMC data. The local value of the observable for each sampled configuration
  * are stored in the vector locvals.
  */
-ExpectationVarianceResult ExpectationVariance(const Result &result,
-                                              const AbstractOperator &op,
-                                              AbstractMachine &psi,
-                                              VectorXcd &locvals);
+ExpectationVarianceResult ExVar(const Result &result,
+                                const AbstractOperator &op,
+                                AbstractMachine &psi, VectorXcd &locvals);
 
 /**
  * Computes expectation value and variance of an observable based on the given
  * VMC data.
  */
-ExpectationVarianceResult ExpectationVariance(const Result &result,
-                                              const AbstractOperator &op,
-                                              AbstractMachine &psi);
+ExpectationVarianceResult ExVar(const Result &result,
+                                const AbstractOperator &op,
+                                AbstractMachine &psi);
 
 /**
  * Computes expectation value, variance, and gradient of an observable based on
  * the given VMC data.
  */
-ExpectationVarianceResult ExpectationVarianceGradient(
-    const Result &result, const AbstractOperator &op, AbstractMachine &psi,
-    VectorXcd &grad);
+ExpectationVarianceResult ExVarGrad(const Result &result,
+                                    const AbstractOperator &op,
+                                    AbstractMachine &psi, VectorXcd &grad);
 
 }  // namespace vmc
 }  // namespace netket

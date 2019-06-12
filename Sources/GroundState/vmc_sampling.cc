@@ -3,8 +3,8 @@
 namespace netket {
 namespace vmc {
 
-Result PerformSampling(AbstractSampler &sampler, Index nsamples,
-                       Index ndiscard) {
+Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
+                      Index ndiscard) {
   sampler.Reset();
 
   for (Index i = 0; i < ndiscard; i++) {
@@ -99,8 +99,8 @@ void GradientOfVariance(const Result &result, const AbstractOperator &op,
   MeanOnNodes<>(grad);
 }
 
-Stats Expectation(const Result &result, const AbstractOperator &op,
-                  AbstractMachine &psi) {
+Stats Ex(const Result &result, const AbstractOperator &op,
+         AbstractMachine &psi) {
   Binning<double> bin;
   for (Index i = 0; i < result.NSamples(); ++i) {
     const Complex loc = LocalValue(op, psi, result.Sample(i));
@@ -109,8 +109,8 @@ Stats Expectation(const Result &result, const AbstractOperator &op,
   return bin.AllStats();
 }
 
-Stats Expectation(const Result &result, const AbstractOperator &op,
-                  AbstractMachine &psi, VectorXcd &locvals) {
+Stats Ex(const Result &result, const AbstractOperator &op, AbstractMachine &psi,
+         VectorXcd &locvals) {
   locvals.resize(result.NSamples());
 
   Binning<double> bin;
@@ -123,13 +123,12 @@ Stats Expectation(const Result &result, const AbstractOperator &op,
   return bin.AllStats();
 }
 
-ExpectationVarianceResult ExpectationVariance(const Result &result,
-                                              const AbstractOperator &op,
-                                              AbstractMachine &psi,
-                                              VectorXcd &locvals) {
+ExpectationVarianceResult ExVar(const Result &result,
+                                const AbstractOperator &op,
+                                AbstractMachine &psi, VectorXcd &locvals) {
   Binning<double> bin_var;
 
-  auto ex_stats = Expectation(result, op, psi, locvals);
+  auto ex_stats = Ex(result, op, psi, locvals);
 
   Complex loc_mean = locvals.mean();
   MeanOnNodes<>(loc_mean);
@@ -143,18 +142,18 @@ ExpectationVarianceResult ExpectationVariance(const Result &result,
   return {ex_stats, bin_var.AllStats()};
 }
 
-ExpectationVarianceResult ExpectationVariance(const Result &result,
-                                              const AbstractOperator &op,
-                                              AbstractMachine &psi) {
+ExpectationVarianceResult ExVar(const Result &result,
+                                const AbstractOperator &op,
+                                AbstractMachine &psi) {
   VectorXcd locvals;
-  return ExpectationVariance(result, op, psi, locvals);
+  return ExVar(result, op, psi, locvals);
 }
 
-ExpectationVarianceResult ExpectationVarianceGradient(
-    const Result &result, const AbstractOperator &op, AbstractMachine &psi,
-    VectorXcd &grad) {
+ExpectationVarianceResult ExVarGrad(const Result &result,
+                                    const AbstractOperator &op,
+                                    AbstractMachine &psi, VectorXcd &grad) {
   VectorXcd locvals;
-  const auto stats = ExpectationVariance(result, op, psi, locvals);
+  const auto stats = ExVar(result, op, psi, locvals);
 
   grad = result.LogDerivs().conjugate() * locvals / double(result.NSamples());
   MeanOnNodes<>(grad);
