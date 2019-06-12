@@ -244,6 +244,8 @@ class VariationalMonteCarlo {
   const StatsMap &GetObservableStats() const noexcept {
     return observable_stats_;
   }
+
+  const vmc::Result &GetVmcData() const noexcept { return vmc_data_; }
 };
 
 }  // namespace netket

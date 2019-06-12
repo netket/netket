@@ -166,7 +166,25 @@ void AddVariationalMonteCarloModule(py::module &m) {
           R"EOF(
         Calculate and return the value of the operators stored as observables.
 
-        )EOF");
+        )EOF")
+      .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData);
+
+  py::class_<vmc::Result>(m_vmc, "_VmcResult");
+
+  m_vmc.def("compute_vmc_samples", vmc::ComputeSamples, py::arg("sampler"),
+            py::arg("nsamples"), py::arg("ndiscard") = 0);
+
+  m_vmc.def(
+      "expectation",
+      [](const vmc::Result &vmc_data, AbstractMachine &psi,
+         AbstractOperator &op) { return vmc::Ex(vmc_data, op, psi); },
+      py::arg("vmc_data"), py::arg("op"), py::arg("psi"));
+
+  m_vmc.def(
+      "expectation",
+      [](const vmc::Result &vmc_data, AbstractMachine &psi,
+         AbstractOperator &op) { return vmc::Ex(vmc_data, op, psi); },
+      py::arg("vmc_data"), py::arg("op"), py::arg("psi"));
 }
 
 }  // namespace netket
