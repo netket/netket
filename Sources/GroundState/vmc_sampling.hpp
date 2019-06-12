@@ -69,7 +69,15 @@ class Result {
 };
 
 /**
- * TODO
+ * Computes a sequence of visible configurations based on Monte Carlo sampling
+ * using `sampler`.
+ *
+ * @param sampler The sampler used to perform the MC sweeps.
+ * @param nsamples The number of MC samples that are stored (one MC sweep is
+ * performed between each sample)
+ * @param ndiscard The number of sweeps to be discarded before starting to store
+ * the samples.
+ * @return A Result object containing the MC samples and auxillary information.
  */
 Result PerformSampling(AbstractSampler &sampler, Index nsamples,
                        Index ndiscard = 0);
@@ -95,9 +103,24 @@ Complex LocalValue(const AbstractOperator &op, AbstractMachine &psi,
  * @param out A vector which will be filled with o_i = O_loc(v_i).
  *    The output vector will be resized as needed by this function.
  */
-void LocalValues(const AbstractOperator &op, AbstractMachine &psi,
-                 Eigen::Ref<const MatrixXd> vs, VectorXcd &out);
+VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
+                      Eigen::Ref<const MatrixXd> vs);
 
+/**
+ * Computes the gradient of the local value with respect to the variational
+ * parameters, ∇ O_loc, for an operator `op`.
+ */
+VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
+                          Eigen::Ref<const VectorXd> v, VectorXcd &grad);
+
+/**
+ * Computes an approximation of the gradient of the variance of an operator.
+ * 
+ * Specifically, the function returns ∇(σ²) = 2⟨∇O_loc (O_loc - ⟨O_loc⟩)⟩.
+ * See Eq. (3) in Umrigar and Filippi, Phys. Rev. Lett. 94, 150201 (2005).
+ */
+void GradientOfVariance(const Result &result, const AbstractOperator &op,
+                        AbstractMachine &psi, VectorXcd &grad);
 /**
  * Computes the expectation value of an operator based on VMC results.
  */

@@ -50,12 +50,53 @@ Complex LocalValue(const AbstractOperator &op, AbstractMachine &psi,
   return result;
 }
 
-void LocalValues(const AbstractOperator &op, AbstractMachine &psi,
-                 Eigen::Ref<const MatrixXd> vs, VectorXcd &out) {
-  out.resize(vs.cols());
+VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
+                      Eigen::Ref<const MatrixXd> vs) {
+  VectorXcd out(vs.cols());
   for (Index i = 0; i < vs.cols(); ++i) {
     out(i) = LocalValue(op, psi, vs.col(i));
   }
+  return out;
+}
+
+VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
+                          Eigen::Ref<const VectorXd> v) {
+  AbstractOperator::ConnectorsType tochange;
+  AbstractOperator::NewconfsType newconf;
+  AbstractOperator::MelType mels;
+  op.FindConn(v, mels, tochange, newconf);
+
+  auto logvaldiffs = psi.LogValDiff(v, tochange, newconf);
+  auto log_deriv = psi.DerLog(v);
+
+  VectorXcd grad(v.size());
+  for (int i = 0; i < logvaldiffs.size(); i++) {
+    const auto melval = mels[i] * std::exp(logvaldiffs(i));
+    const auto log_deriv_prime = psi.DerLogChanged(v, tochange[i], newconf[i]);
+    grad += melval * (log_deriv - log_deriv_prime);
+  }
+
+  return grad;
+}
+
+void GradientOfVariance(const Result &result, const AbstractOperator &op,
+                        AbstractMachine &psi, VectorXcd &grad) {
+  // TODO: This function can probably be implemented more efficiently (e.g., by
+  // computing local values and their gradients at the same time or reusing
+  // already computed local values)
+  MatrixXcd locval_deriv(psi.Npar(), result.NSamples());
+
+  for (int i = 0; i < result.NSamples(); i++) {
+    locval_deriv.col(i) = LocalValueDeriv(op, psi, result.Sample(i));
+  }
+  VectorXcd locval_deriv_mean = locval_deriv.colwise().mean();
+  MeanOnNodes<>(locval_deriv_mean);
+  locval_deriv = locval_deriv.colwise() - locval_deriv_mean;
+
+  grad = locval_deriv.conjugate() *
+         LocalValues(op, psi, result.SampleMatrix()) /
+         double(result.NSamples());
+  MeanOnNodes<>(grad);
 }
 
 Stats Expectation(const Result &result, const AbstractOperator &op,
