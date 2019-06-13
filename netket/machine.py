@@ -1,7 +1,5 @@
 from ._C_netket.machine import *
-
-import numpy as np
-import pickle
+import numpy as __np
 
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
@@ -60,6 +58,8 @@ class CxxMachine(Machine):
         raise NotImplementedError
 
     def _is_holomorphic(self):
+        r"""Returns whether the wave function is holomorphic.
+        """
         raise NotImplementedError
 
     def _number_parameters(self):
@@ -127,9 +127,9 @@ class PyRbm(CxxMachine):
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
         m = int(round(alpha * n))
-        self._w = np.empty([m, n], dtype=np.complex128)
-        self._a = np.empty(n, dtype=np.complex128) if use_visible_bias else None
-        self._b = np.empty(m, dtype=np.complex128) if use_hidden_bias else None
+        self._w = __np.empty([m, n], dtype=__np.complex128)
+        self._a = __np.empty(n, dtype=__np.complex128) if use_visible_bias else None
+        self._b = __np.empty(m, dtype=__np.complex128) if use_hidden_bias else None
 
     def _number_parameters(self):
         r"""Returns the number of parameters in the machine. We just sum the
@@ -173,7 +173,7 @@ class PyRbm(CxxMachine):
         if self._b is not None:
             params += (self._b,)
         params += (self._w.reshape(-1),)
-        return np.concatenate(params)
+        return __np.concatenate(params)
 
     def _set_parameters(self, p):
         r"""Sets parameters from a 1D tensor.
@@ -187,29 +187,35 @@ class PyRbm(CxxMachine):
                 i += x.size
 
     def log_val(self, x):
-        r = np.dot(self._w, x)
+        r"""Computes the logarithm of the wave function given a spin
+        configuration ``x``.
+        """
+        r = __np.dot(self._w, x)
         if self._b is not None:
             r += self._b
-        r = np.sum(PyRbm._log_cosh(r))
+        r = __np.sum(PyRbm._log_cosh(r))
         if self._a is not None:
-            r += np.dot(self._a, x)
+            r += __np.dot(self._a, x)
         # Officially, we should return
         #     self._w.shape[0] * 0.6931471805599453 + r
         # but the C++ implementation ignores the "constant factor"
         return r
 
     def der_log(self, x):
-        grad = np.empty(self.n_par, dtype=np.complex128)
+        r"""Computes the gradient of the logarithm of the wave function
+        given a spin configuration ``x``.
+        """
+        grad = __np.empty(self.n_par, dtype=__np.complex128)
         i = 0
 
         if self._a is not None:
             grad[i : i + self._a.size] = x
             i += self._a.size
 
-        tanh_stuff = np.dot(self._w, x)
+        tanh_stuff = __np.dot(self._w, x)
         if self._b is not None:
             tanh_stuff += self._b
-        tanh_stuff = np.tanh(tanh_stuff)
+        tanh_stuff = __np.tanh(tanh_stuff)
 
         if self._b is not None:
             grad[i : i + self._b.size] = tanh_stuff
@@ -217,25 +223,31 @@ class PyRbm(CxxMachine):
 
         # NOTE: order='F' is important, because of the order='C' in
         # ``_get_parameters`` and ``_set_parameters``!
-        grad[i : i + self._w.size] = np.outer(x, tanh_stuff).reshape(-1, order="F")
+        grad[i : i + self._w.size] = __np.outer(x, tanh_stuff).reshape(-1, order="F")
         return grad
 
     def _is_holomorphic(self):
+        r"""Complex valued RBM a holomorphic function.
+        """
         return True
 
     def save(self, filename):
         r"""Saves machine weights to ``filename`` using ``pickle``.
         """
+        import pickle
+
         with open(filename, "wb") as output_file:
             pickle.dump((self._w, self._a, self._b), output_file)
 
     def load(self, filename):
         r"""Loads machine weights from ``filename`` using ``pickle``.
         """
+        import pickle
+
         with open(filename, "rb") as input_file:
             self._w, self._a, self._b = pickle.load(input_file)
 
     @staticmethod
     def _log_cosh(x):
         # TODO: Handle big numbers properly
-        return np.log(np.cosh(x))
+        return __np.log(__np.cosh(x))
