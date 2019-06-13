@@ -38,7 +38,7 @@ def test_vmc_functions():
 
     exact_dist = np.abs(state) ** 2
 
-    for op, name, tol in (ha, "ha", 1e-7), (sx, "sx", 1e-2):
+    for op, name, tol in (ha, "ha", 1e-6), (sx, "sx", 1e-2):
         print("Testing expectation of op={}".format(name))
 
         exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
