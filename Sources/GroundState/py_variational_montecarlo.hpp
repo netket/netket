@@ -177,13 +177,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
   m_vmc.def(
       "expectation",
       [](const vmc::Result &vmc_data, AbstractMachine &psi,
-         AbstractOperator &op) { return vmc::Ex(vmc_data, op, psi); },
-      py::arg("vmc_data"), py::arg("op"), py::arg("psi"));
-
-  m_vmc.def(
-      "expectation",
-      [](const vmc::Result &vmc_data, AbstractMachine &psi,
-         AbstractOperator &op) { return vmc::Ex(vmc_data, op, psi); },
+         AbstractOperator &op) { return vmc::Expectation(vmc_data, psi, op); },
       py::arg("vmc_data"), py::arg("op"), py::arg("psi"));
 }
 

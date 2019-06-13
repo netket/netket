@@ -79,28 +79,8 @@ VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
   return grad;
 }
 
-void GradientOfVariance(const Result &result, const AbstractOperator &op,
-                        AbstractMachine &psi, VectorXcd &grad) {
-  // TODO: This function can probably be implemented more efficiently (e.g., by
-  // computing local values and their gradients at the same time or reusing
-  // already computed local values)
-  MatrixXcd locval_deriv(psi.Npar(), result.NSamples());
-
-  for (int i = 0; i < result.NSamples(); i++) {
-    locval_deriv.col(i) = LocalValueDeriv(op, psi, result.Sample(i));
-  }
-  VectorXcd locval_deriv_mean = locval_deriv.colwise().mean();
-  MeanOnNodes<>(locval_deriv_mean);
-  locval_deriv = locval_deriv.colwise() - locval_deriv_mean;
-
-  grad = locval_deriv.conjugate() *
-         LocalValues(op, psi, result.SampleMatrix()) /
-         double(result.NSamples());
-  MeanOnNodes<>(grad);
-}
-
-Stats Ex(const Result &result, const AbstractOperator &op,
-         AbstractMachine &psi) {
+Stats Expectation(const Result &result, AbstractMachine &psi,
+                  const AbstractOperator &op) {
   Binning<double> bin;
   for (Index i = 0; i < result.NSamples(); ++i) {
     const Complex loc = LocalValue(op, psi, result.Sample(i));
@@ -109,8 +89,8 @@ Stats Ex(const Result &result, const AbstractOperator &op,
   return bin.AllStats();
 }
 
-Stats Ex(const Result &result, const AbstractOperator &op, AbstractMachine &psi,
-         VectorXcd &locvals) {
+Stats Expectation(const Result &result, AbstractMachine &psi,
+                  const AbstractOperator &op, VectorXcd &locvals) {
   locvals.resize(result.NSamples());
 
   Binning<double> bin;
@@ -123,42 +103,62 @@ Stats Ex(const Result &result, const AbstractOperator &op, AbstractMachine &psi,
   return bin.AllStats();
 }
 
-ExpectationVarianceResult ExVar(const Result &result,
-                                const AbstractOperator &op,
-                                AbstractMachine &psi, VectorXcd &locvals) {
+Stats Variance(const Result &result, const AbstractOperator &op,
+               AbstractMachine &psi) {
+  VectorXcd locvals;
+  auto ex = Expectation(result, psi, op, locvals);
+  return Variance(result, psi, op, ex.mean, locvals);
+}
+
+Stats Variance(const Result & /*result*/, AbstractMachine & /*psi*/,
+               const AbstractOperator & /*op*/, double expectation_value,
+               const VectorXcd &locvals) {
   Binning<double> bin_var;
-
-  auto ex_stats = Ex(result, op, psi, locvals);
-
-  Complex loc_mean = locvals.mean();
-  MeanOnNodes<>(loc_mean);
-  locvals.array() -= loc_mean;
-
-  // TODO: Mean and variance should be computed in one pass
   for (Index i = 0; i < locvals.size(); ++i) {
-    bin_var << std::norm(locvals(i));
+    bin_var << std::norm(locvals(i) - expectation_value);
   }
-
-  return {ex_stats, bin_var.AllStats()};
+  return bin_var.AllStats();
 }
 
-ExpectationVarianceResult ExVar(const Result &result,
-                                const AbstractOperator &op,
-                                AbstractMachine &psi) {
+VectorXcd Gradient(const Result &result, AbstractMachine &psi,
+                   const AbstractOperator &op) {
   VectorXcd locvals;
-  return ExVar(result, op, psi, locvals);
-}
+  Expectation(result, psi, op, locvals);
 
-ExpectationVarianceResult ExVarGrad(const Result &result,
-                                    const AbstractOperator &op,
-                                    AbstractMachine &psi, VectorXcd &grad) {
-  VectorXcd locvals;
-  const auto stats = ExVar(result, op, psi, locvals);
-
-  grad = result.LogDerivs().conjugate() * locvals / double(result.NSamples());
+  VectorXcd grad =
+      result.LogDerivs().conjugate() * locvals / double(result.NSamples());
   MeanOnNodes<>(grad);
 
-  return stats;
+  return grad;
+}
+
+VectorXcd Gradient(const Result &result, AbstractMachine & /*psi*/,
+                   const AbstractOperator & /*op*/, const VectorXcd &locvals) {
+  VectorXcd grad =
+      result.LogDerivs().conjugate() * locvals / double(result.NSamples());
+  MeanOnNodes<>(grad);
+  return grad;
+}
+
+VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
+                             const AbstractOperator &op) {
+  // TODO: This function can probably be implemented more efficiently (e.g., by
+  // computing local values and their gradients at the same time or reusing
+  // already computed local values)
+  MatrixXcd locval_deriv(psi.Npar(), result.NSamples());
+
+  for (int i = 0; i < result.NSamples(); i++) {
+    locval_deriv.col(i) = LocalValueDeriv(op, psi, result.Sample(i));
+  }
+  VectorXcd locval_deriv_mean = locval_deriv.colwise().mean();
+  MeanOnNodes<>(locval_deriv_mean);
+  locval_deriv = locval_deriv.colwise() - locval_deriv_mean;
+
+  VectorXcd grad = locval_deriv.conjugate() *
+                   LocalValues(op, psi, result.SampleMatrix()) /
+                   double(result.NSamples());
+  MeanOnNodes<>(grad);
+  return grad;
 }
 
 }  // namespace vmc

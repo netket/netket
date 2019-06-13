@@ -118,6 +118,49 @@ VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
  */
 VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
                           Eigen::Ref<const VectorXd> v, VectorXcd &grad);
+/**
+ * Computes the expectation value of an operator based on VMC results.
+ */
+Stats Expectation(const Result &result, AbstractMachine &psi,
+                  const AbstractOperator &op);
+
+/**
+ * Computes the expectation value of an operator based on VMC results.
+ * The local value of the observable for each sampled configuration are stored
+ * in the vector locvals and can be reused for further calculations.
+ */
+Stats Expectation(const Result &result, AbstractMachine &psi,
+                  const AbstractOperator &op, VectorXcd &locvals);
+
+/**
+ * Computes the variance of an observable based on the given VMC data.
+ */
+Stats Variance(const Result &result, const AbstractOperator &op,
+               AbstractMachine &psi);
+
+/**
+ * Computes variance of an observable based on the given VMC data.
+ * This function reuses the precomputed expectation and local values of the
+ * observable.
+ */
+Stats Variance(const Result &result, AbstractMachine &psi,
+               const AbstractOperator &op, double expectation_value,
+               const VectorXcd &locvals);
+
+/**
+ * Computes the gradient of an observable with respect to the variational
+ * parameters based on the given VMC data.
+ */
+VectorXcd Gradient(const Result &result, AbstractMachine &psi,
+                   const AbstractOperator &op);
+
+/**
+ * Computes the gradient of an observable with respect to the variational
+ * parameters based on the given VMC data. This function reuses the precomputed
+ * expectation and local values of the observable.
+ */
+VectorXcd Gradient(const Result &result, AbstractMachine &psi,
+                   const AbstractOperator &op, const VectorXcd &locvals);
 
 /**
  * Computes an approximation of the gradient of the variance of an operator.
@@ -125,54 +168,8 @@ VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
  * Specifically, the function returns ∇(σ²) = 2⟨∇O_loc (O_loc - ⟨O_loc⟩)⟩.
  * See Eq. (3) in Umrigar and Filippi, Phys. Rev. Lett. 94, 150201 (2005).
  */
-void GradientOfVariance(const Result &result, const AbstractOperator &op,
-                        AbstractMachine &psi, VectorXcd &grad);
-/**
- * Computes the expectation value of an operator based on VMC results.
- */
-Stats Ex(const Result &result, const AbstractOperator &op,
-         AbstractMachine &psi);
-
-/**
- * Computes the expectation value of an operator based on VMC results.
- * The local value of the observable for each sampled configuration are stored
- * in the vector locvals.
- */
-Stats Ex(const Result &result, const AbstractOperator &op, AbstractMachine &psi,
-         VectorXcd &locvals);
-
-/**
- * Struct combining statistics for expectation value and mean of an observable.
- */
-struct ExpectationVarianceResult {
-  Stats expectation;
-  Stats variance;
-};
-
-/**
- * Computes expectation value and variance of an observable based on the given
- * VMC data. The local value of the observable for each sampled configuration
- * are stored in the vector locvals.
- */
-ExpectationVarianceResult ExVar(const Result &result,
-                                const AbstractOperator &op,
-                                AbstractMachine &psi, VectorXcd &locvals);
-
-/**
- * Computes expectation value and variance of an observable based on the given
- * VMC data.
- */
-ExpectationVarianceResult ExVar(const Result &result,
-                                const AbstractOperator &op,
-                                AbstractMachine &psi);
-
-/**
- * Computes expectation value, variance, and gradient of an observable based on
- * the given VMC data.
- */
-ExpectationVarianceResult ExVarGrad(const Result &result,
-                                    const AbstractOperator &op,
-                                    AbstractMachine &psi, VectorXcd &grad);
+VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
+                             const AbstractOperator &op);
 
 }  // namespace vmc
 }  // namespace netket

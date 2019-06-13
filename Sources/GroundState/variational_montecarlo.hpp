@@ -63,6 +63,7 @@ class VariationalMonteCarlo {
   StatsMap observable_stats_;
 
   vmc::Result vmc_data_;
+  Eigen::VectorXcd locvals_;
   Eigen::VectorXcd grad_;
 
   int nsamples_;
@@ -153,7 +154,8 @@ class VariationalMonteCarlo {
    */
   void ComputeObservables() {
     for (std::size_t i = 0; i < obs_.size(); ++i) {
-      observable_stats_[obsnames_[i]] = vmc::Ex(vmc_data_, *obs_[i], psi_);
+      auto ex = vmc::Expectation(vmc_data_, psi_, *obs_[i]);
+      observable_stats_[obsnames_[i]] = ex;
     }
   }
 
@@ -165,17 +167,20 @@ class VariationalMonteCarlo {
     for (Index i = 0; i < steps; ++i) {
       vmc_data_ = vmc::ComputeSamples(sampler_, nsamples_node_, ndiscard_);
 
-      vmc::ExpectationVarianceResult energy;
+      const auto energy = vmc::Expectation(vmc_data_, psi_, ham_, locvals_);
+      const auto variance =
+          vmc::Variance(vmc_data_, psi_, ham_, energy.mean, locvals_);
+
+      observable_stats_["Energy"] = energy;
+      observable_stats_["EnergyVariance"] = variance;
+
       if (target_ == "energy") {
-        energy = vmc::ExVarGrad(vmc_data_, ham_, psi_, grad_);
+        grad_ = vmc::Gradient(vmc_data_, psi_, ham_, locvals_);
       } else if (target_ == "variance") {
-        energy = vmc::ExVar(vmc_data_, ham_, psi_);
-        vmc::GradientOfVariance(vmc_data_, ham_, psi_, grad_);
+        grad_ = vmc::GradientOfVariance(vmc_data_, psi_, ham_);
       } else {
         throw std::runtime_error("This should not happen.");
       }
-      observable_stats_["Energy"] = energy.expectation;
-      observable_stats_["EnergyVariance"] = energy.variance;
 
       UpdateParameters();
     }
