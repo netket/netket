@@ -168,4 +168,11 @@ json ReadJsonFromFile(std::string const &filename) {
   return pars;
 }
 
+void WriteJsonToFile(const json &json, std::string const &filename) {
+  std::ofstream out_file;
+  out_file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
+  out_file.open(filename);
+  out_file << json;
+}
+
 }  // namespace netket
