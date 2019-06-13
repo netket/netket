@@ -27,10 +27,6 @@ namespace netket {
 
 // Metropolis sampling generating local moves in hilbert space
 class MetropolisLocal : public AbstractSampler {
-  AbstractMachine& psi_;
-
-  const AbstractHilbert& hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -51,7 +47,7 @@ class MetropolisLocal : public AbstractSampler {
 
  public:
   explicit MetropolisLocal(AbstractMachine& psi)
-      : psi_(psi), hilbert_(psi.GetHilbert()), nv_(hilbert_.Size()) {
+      : AbstractSampler(psi), nv_(GetHilbert().Size()) {
     Init();
   }
 
@@ -61,7 +57,7 @@ class MetropolisLocal : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!hilbert_.IsDiscrete()) {
+    if (!GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -70,8 +66,8 @@ class MetropolisLocal : public AbstractSampler {
     accept_.resize(1);
     moves_.resize(1);
 
-    nstates_ = hilbert_.LocalSize();
-    localstates_ = hilbert_.LocalStates();
+    nstates_ = GetHilbert().LocalSize();
+    localstates_ = GetHilbert().LocalStates();
 
     Reset(true);
 
@@ -80,10 +76,10 @@ class MetropolisLocal : public AbstractSampler {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      hilbert_.RandomVals(v_, this->GetRandomEngine());
+      GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    psi_.InitLookup(v_, lt_);
+    GetMachine().InitLookup(v_, lt_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);
@@ -114,15 +110,15 @@ class MetropolisLocal : public AbstractSampler {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = psi_.LogValDiff(v_, tochange, newconf, lt_);
+      const auto lvd = GetMachine().LogValDiff(v_, tochange, newconf, lt_);
       double ratio = this->GetMachineFunc()(std::exp(lvd));
 
 #ifndef NDEBUG
-      const auto psival1 = psi_.LogVal(v_);
-      if (std::abs(std::exp(psi_.LogVal(v_) - psi_.LogVal(v_, lt_)) - 1.) >
+      const auto psival1 = GetMachine().LogVal(v_);
+      if (std::abs(std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) - 1.) >
           1.0e-8) {
-        std::cerr << psi_.LogVal(v_) << "  and LogVal with Lt is "
-                  << psi_.LogVal(v_, lt_) << std::endl;
+        std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
+                  << GetMachine().LogVal(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
@@ -130,16 +126,16 @@ class MetropolisLocal : public AbstractSampler {
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
-        psi_.UpdateLookup(v_, tochange, newconf, lt_);
-        hilbert_.UpdateConf(v_, tochange, newconf);
+        GetMachine().UpdateLookup(v_, tochange, newconf, lt_);
+        GetHilbert().UpdateConf(v_, tochange, newconf);
 
 #ifndef NDEBUG
-        const auto psival2 = psi_.LogVal(v_);
+        const auto psival2 = GetMachine().LogVal(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << psi_.LogVal(v_, lt_) << std::endl;
+                    << GetMachine().LogVal(v_, lt_) << std::endl;
           std::abort();
         }
 #endif
@@ -152,14 +148,8 @@ class MetropolisLocal : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 
-  AbstractMachine& GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert& GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_, lt_);
+    return GetMachine().DerLog(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {

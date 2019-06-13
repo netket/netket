@@ -25,8 +25,6 @@ namespace netket {
  *
  */
 class Jastrow : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -41,7 +39,7 @@ class Jastrow : public AbstractMachine {
   VectorType thetasnew_;
 
  public:
-  explicit Jastrow(const AbstractHilbert &hilbert);
+  explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert);
 
   inline void Init();
 
@@ -67,7 +65,6 @@ class Jastrow : public AbstractMachine {
                      const LookupType &lt) override;
 
   VectorType DerLog(VisibleConstType v) override;
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void Save(std::string const &filename) const override;
   void Load(std::string const &filename) override;

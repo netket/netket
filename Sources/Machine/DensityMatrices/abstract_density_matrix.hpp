@@ -29,12 +29,9 @@ namespace netket {
  */
 class AbstractDensityMatrix : public AbstractMachine {
   // The physical hilbert space over which this operator acts
-  const AbstractHilbert &hilbert_physical_;
 
-  const std::unique_ptr<AbstractGraph> graph_doubled_;
-
-  // The doubled hilbert space where this operator is defined
-  const std::unique_ptr<AbstractHilbert> hilbert_doubled_;
+  std::shared_ptr<const AbstractHilbert> hilbert_physical_;
+  std::unique_ptr<const AbstractGraph> graph_doubled_;
 
   using Edge = AbstractGraph::Edge;
 
@@ -78,24 +75,33 @@ class AbstractDensityMatrix : public AbstractMachine {
         CustomGraph(d_edges, d_eclist, d_automorphisms));
   }
 
- public:
-  explicit AbstractDensityMatrix(const AbstractHilbert &hilbert)
-      : hilbert_physical_(hilbert),
-        graph_doubled_(DoubledGraph(hilbert.GetGraph())),
-        hilbert_doubled_(make_unique<CustomHilbert>(*graph_doubled_,
-                                                    hilbert.LocalStates())){};
+ protected:
+  AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> physical_hilbert,
+                        std::unique_ptr<const AbstractGraph> doubled_graph)
+      : AbstractMachine(std::make_shared<CustomHilbert>(
+            *doubled_graph, physical_hilbert->LocalStates())),
+        hilbert_physical_(physical_hilbert),
+        graph_doubled_(std::move(doubled_graph)) {}
 
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return *hilbert_doubled_;
-  }
+ public:
+  explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
+      : AbstractDensityMatrix(hilbert, DoubledGraph(hilbert->GetGraph())){};
 
   /**
-   * Member function returning the Physical hilbert space over which
-   * this density matrix acts
+   * Member function returning the physical hilbert space over which
+   * this density matrix acts as a shared pointer.
+   * @return The physical hilbert space
+   */
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const {
+    return hilbert_physical_;
+  }
+
+  /* Member function returning a reference to the physical hilbert space
+   * on which this density matrix acts.
    * @return The physical hilbert space
    */
   const AbstractHilbert &GetHilbertPhysical() const noexcept {
-    return hilbert_physical_;
+    return *hilbert_physical_;
   }
 };
 }  // namespace netket

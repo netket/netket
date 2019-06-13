@@ -39,7 +39,6 @@ class QuantumStateReconstruction {
 
   AbstractSampler &sampler_;
   AbstractMachine &psi_;
-  const AbstractHilbert &hilbert_;
   AbstractOptimizer &opt_;
   SR sr_;
   bool dosr_;
@@ -92,7 +91,6 @@ class QuantumStateReconstruction {
       bool use_cholesky = true)
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
-        hilbert_(psi_.GetHilbert()),
         opt_(opt),
         rotations_(rotations),
         trainingSamples_(trainingSamples),

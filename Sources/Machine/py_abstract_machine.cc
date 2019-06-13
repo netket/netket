@@ -86,17 +86,6 @@ bool PyAbstractMachine::IsHolomorphic() const noexcept {
   });
 }
 
-const AbstractHilbert &PyAbstractMachine::GetHilbert() const noexcept {
-  // return ShouldNotThrow([this]() {
-  PYBIND11_OVERLOAD_PURE_NAME(
-      const AbstractHilbert &, /* Return type */
-      AbstractMachine,         /* Parent class */
-      "_get_hilbert",          /* Name of the function in Python */
-      GetHilbert,              /* Name of function in C++ */
-  );
-  // });
-}
-
 PyAbstractMachine::VectorType PyAbstractMachine::GetParameters() {
   PYBIND11_OVERLOAD_PURE_NAME(
       VectorType,        /* Return type */

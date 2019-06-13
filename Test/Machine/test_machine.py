@@ -1,4 +1,3 @@
-import netket
 import netket as nk
 import networkx as nx
 import numpy as np
@@ -14,7 +13,6 @@ def merge_dicts(x, y):
 
 
 machines = {}
-
 
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice

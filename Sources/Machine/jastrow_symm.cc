@@ -22,10 +22,11 @@
 
 namespace netket {
 
-JastrowSymm::JastrowSymm(const AbstractHilbert &hilbert)
-    : hilbert_(hilbert), graph_(hilbert.GetGraph()), nv_(hilbert.Size()) {
+JastrowSymm::JastrowSymm(std::shared_ptr<const AbstractHilbert> hilbert)
+    : AbstractMachine(hilbert),
+      graph_(hilbert->GetGraph()),
+      nv_(hilbert->Size()) {
   Init(graph_);
-
   SetBareParameters();
 }
 
@@ -271,10 +272,6 @@ Complex JastrowSymm::LogValDiff(VisibleConstType v,
   return logvaldiff;
 }
 
-const AbstractHilbert &JastrowSymm::GetHilbert() const noexcept {
-  return hilbert_;
-}
-
 bool JastrowSymm::IsHolomorphic() const noexcept { return true; }
 
 void JastrowSymm::Save(const std::string &filename) const {
@@ -295,7 +292,7 @@ void JastrowSymm::Load(const std::string &filename) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = pars["Nvisible"];
   }
-  if (nv_ != hilbert_.Size()) {
+  if (nv_ != GetHilbert().Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");

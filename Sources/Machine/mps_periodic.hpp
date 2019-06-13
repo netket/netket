@@ -24,8 +24,6 @@
 namespace netket {
 
 class MPSPeriodic : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // Number of sites
   int N_;
   // Physical dimension
@@ -61,13 +59,11 @@ class MPSPeriodic : public AbstractMachine {
   MatrixType identity_mat_;
 
  public:
-  MPSPeriodic(const AbstractHilbert &hilbert, int bond_dim, bool diag,
-              int symperiod = -1);
+  MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert, int bond_dim,
+              bool diag, int symperiod = -1);
 
   int Npar() const override;
   int Nvisible() const override;
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void InitRandomPars(int seed, double sigma) override;
   VectorType GetParameters() override;

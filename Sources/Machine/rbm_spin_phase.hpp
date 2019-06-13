@@ -25,8 +25,6 @@ amplitude
  *
  */
 class RbmSpinPhase : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -69,8 +67,8 @@ class RbmSpinPhase : public AbstractMachine {
   const Complex I_;
 
  public:
-  RbmSpinPhase(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
-               bool usea = true, bool useb = true);
+  RbmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
+               int alpha = 0, bool usea = true, bool useb = true);
 
   int Npar() const override;
   int Nvisible() const override;
@@ -106,7 +104,6 @@ class RbmSpinPhase : public AbstractMachine {
                      const LookupType &lt) override;
 
   bool IsHolomorphic() const noexcept override;
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

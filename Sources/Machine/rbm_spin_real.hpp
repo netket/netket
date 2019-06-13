@@ -24,8 +24,6 @@ and real-valued weights
  *
  */
 class RbmSpinReal : public AbstractMachine {
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   int nv_;
 
@@ -53,8 +51,8 @@ class RbmSpinReal : public AbstractMachine {
   bool useb_;
 
  public:
-  RbmSpinReal(const AbstractHilbert &hilbert, int nhidden = 0, int alpha = 0,
-              bool usea = true, bool useb = true);
+  RbmSpinReal(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
+              int alpha = 0, bool usea = true, bool useb = true);
 
   int Npar() const override;
   int Nvisible() const override;
@@ -80,8 +78,6 @@ class RbmSpinReal : public AbstractMachine {
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
-
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

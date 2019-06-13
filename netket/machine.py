@@ -9,52 +9,8 @@ def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
 
 
 class CxxMachine(Machine):
-    def __init__(self):
-        super(CxxMachine, self).__init__()
-
-    @property
-    def n_par(self):
-        r"""Number of parameters in the machine.
-
-        __Do not override this function!__ Subclasses should implement
-        `CxxMachine._number_parameters` instead.
-        """
-        return self._number_parameters()
-
-    @property
-    def n_visible(self):
-        r"""Number of "visible units". In other words the dimension of the
-        vector one can pass to `log_val`.
-
-        __Do not override this function!__ Subclasses should implement
-        `CxxMachine._number_visible` instead.
-        """
-        return self._number_visible()
-
-    @property
-    def parameters(self):
-        r"""Variational parameters as a 1D vector.
-
-        __Do not override this attribute!__ Subclasses should implement
-        `CxxMachine._get_parameters` and `CxxMachine._set_parameters` instead.
-        """
-        return self._get_parameters()
-
-    @parameters.setter
-    def parameters(self, p):
-        self._set_parameters(p)
-
-    @property
-    def hilbert(self):
-        r"""Returns the hilbert space on which the machine is defined.
-
-        __Do not override this function!__ Subclasses should implement
-        `CxxMachine._get_hilbert` instead.
-        """
-        return self._get_hilbert()
-
-    ## Functions which users should override
-    ###########################################################################
+    def __init__(self, hilbert):
+        super(CxxMachine, self).__init__(hilbert)
 
     def log_val(self, x):
         r"""Returns the logarithm of the wave function at point x.
@@ -103,6 +59,9 @@ class CxxMachine(Machine):
 	"""
         raise NotImplementedError
 
+    def _is_holomorphic(self):
+        raise NotImplementedError
+
     def _number_parameters(self):
         r"""Returns the number of variational parameters in the machine.
 
@@ -138,14 +97,6 @@ class CxxMachine(Machine):
         """
         raise NotImplementedError
 
-    def _get_hilbert(self):
-        r"""Returns the Hilbert space object.
-
-        Subclasses should implement this function, but to actually access
-        the Hilbert space, use `self.hilbert` attribute.
-        """
-        raise NotImplementedError
-
 
 class PyRbm(CxxMachine):
     """
@@ -171,12 +122,11 @@ class PyRbm(CxxMachine):
             use_hidden_bias: specifies whether to use a bias for hidden spins.
         """
         # NOTE: The following call to __init__ is important!
-        super(PyRbm, self).__init__()
+        super(PyRbm, self).__init__(hilbert)
         n = hilbert.size
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
         m = int(round(alpha * n))
-        self._hilbert = hilbert
         self._w = np.empty([m, n], dtype=np.complex128)
         self._a = np.empty(n, dtype=np.complex128) if use_visible_bias else None
         self._b = np.empty(m, dtype=np.complex128) if use_hidden_bias else None
@@ -269,9 +219,6 @@ class PyRbm(CxxMachine):
         # ``_get_parameters`` and ``_set_parameters``!
         grad[i : i + self._w.size] = np.outer(x, tanh_stuff).reshape(-1, order="F")
         return grad
-
-    def _get_hilbert(self):
-        return self._hilbert
 
     def _is_holomorphic(self):
         return True

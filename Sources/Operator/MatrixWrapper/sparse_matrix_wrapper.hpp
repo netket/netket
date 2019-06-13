@@ -72,8 +72,7 @@ public:
 
 private:
   void InitializeMatrix(const AbstractOperator &the_operator) {
-    const auto &hilbert = the_operator.GetHilbert();
-    const auto &hilbert_index = hilbert.GetIndex();
+    const auto& hilbert_index = the_operator.GetHilbert().GetIndex();
     dim_ = hilbert_index.NStates();
 
     using Triplet = Eigen::Triplet<Complex>;

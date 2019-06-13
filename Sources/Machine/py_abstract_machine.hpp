@@ -8,12 +8,12 @@ namespace netket {
 
 class PyAbstractMachine : public AbstractMachine {
  public:
-  using AbstractMachine::AbstractMachine;
+  PyAbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
+      : AbstractMachine{std::move(hilbert)} {}
 
   int Npar() const override;
   int Nvisible() const override;
   bool IsHolomorphic() const noexcept override;
-  const AbstractHilbert &GetHilbert() const noexcept override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;

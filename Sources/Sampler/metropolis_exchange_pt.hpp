@@ -27,9 +27,6 @@ namespace netket {
 // Metropolis sampling generating local exchanges
 // Parallel tempering is also used
 class MetropolisExchangePt : public AbstractSampler {
-  AbstractMachine &psi_;
-  const AbstractHilbert &hilbert_;
-
   // number of visible units
   const int nv_;
 
@@ -55,9 +52,8 @@ class MetropolisExchangePt : public AbstractSampler {
  public:
   MetropolisExchangePt(const AbstractGraph &graph, AbstractMachine &psi,
                        int dmax = 1, int nreplicas = 1)
-      : psi_(psi),
-        hilbert_(psi.GetHilbert()),
-        nv_(hilbert_.Size()),
+      : AbstractSampler(psi),
+        nv_(GetHilbert().Size()),
         nrep_(nreplicas) {
     Init(graph, dmax);
   }
@@ -109,12 +105,12 @@ class MetropolisExchangePt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        hilbert_.RandomVals(v_[i], this->GetRandomEngine());
+        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      psi_.InitLookup(v_[i], lt_[i]);
+      GetMachine().InitLookup(v_[i], lt_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -144,13 +140,13 @@ class MetropolisExchangePt : public AbstractSampler {
         newconf[1] = v_[rep](si);
 
         auto explo = std::exp(
-            beta_[rep] * psi_.LogValDiff(v_[rep], tochange, newconf, lt_[rep]));
+            beta_[rep] * GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]));
         double ratio = this->GetMachineFunc()(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_(rep) += 1;
-          psi_.UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-          hilbert_.UpdateConf(v_[rep], tochange, newconf);
+          GetMachine().UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
+          GetHilbert().UpdateConf(v_[rep], tochange, newconf);
         }
       }
 
@@ -190,8 +186,8 @@ class MetropolisExchangePt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(psi_.LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(psi_.LogVal(v_[r2], lt_[r2]));
+    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
+    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }
@@ -205,14 +201,8 @@ class MetropolisExchangePt : public AbstractSampler {
 
   void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
 
-  AbstractMachine &GetMachine() noexcept override { return psi_; }
-
-  const AbstractHilbert &GetHilbert() const noexcept override {
-    return hilbert_;
-  }
-
   AbstractMachine::VectorType DerLogVisible() override {
-    return psi_.DerLog(v_[0], lt_[0]);
+    return GetMachine().DerLog(v_[0], lt_[0]);
   }
 
   Eigen::VectorXd Acceptance() const override {

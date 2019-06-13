@@ -21,8 +21,8 @@
 
 namespace netket {
 
-Jastrow::Jastrow(const AbstractHilbert &hilbert)
-    : hilbert_(hilbert), nv_(hilbert.Size()) {
+Jastrow::Jastrow(std::shared_ptr<const AbstractHilbert> hilbert)
+    : AbstractMachine(hilbert), nv_(hilbert->Size()) {
   Init();
 }
 
@@ -182,8 +182,6 @@ Jastrow::VectorType Jastrow::DerLog(VisibleConstType v) {
   return der;
 }
 
-const AbstractHilbert &Jastrow::GetHilbert() const noexcept { return hilbert_; }
-
 void Jastrow::Save(std::string const &filename) const {
   json state;
   state["Name"] = "Jastrow";
@@ -201,7 +199,7 @@ void Jastrow::Load(const std::string &filename) {
   if (FieldExists(pars, "Nvisible")) {
     nv_ = pars["Nvisible"];
   }
-  if (nv_ != hilbert_.Size()) {
+  if (nv_ != GetHilbert().Size()) {
     throw InvalidInputError(
         "Number of visible units is incompatible with given "
         "Hilbert space");
