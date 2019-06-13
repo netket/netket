@@ -3,8 +3,8 @@
 namespace netket {
 namespace vmc {
 
-Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
-                      Index ndiscard) {
+Result ComputeSamples(AbstractSampler &sampler, Index nsamples, Index ndiscard,
+                      bool compute_logderivs) {
   sampler.Reset();
 
   for (Index i = 0; i < ndiscard; i++) {
@@ -14,19 +14,26 @@ Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
   const Index nvisible = sampler.GetMachine().Nvisible();
   const Index npar = sampler.GetMachine().Npar();
   MatrixXd samples(nvisible, nsamples);
-  MatrixXcd log_derivs(npar, nsamples);
 
-  for (Index i = 0; i < nsamples; i++) {
-    sampler.Sweep();
-    samples.col(i) = sampler.Visible();
-    log_derivs.col(i) = sampler.DerLogVisible();
+  nonstd::optional<MatrixXcd> log_derivs;
+  if (compute_logderivs) {
+    log_derivs.emplace(npar, nsamples);
+    for (Index i = 0; i < nsamples; i++) {
+      sampler.Sweep();
+      samples.col(i) = sampler.Visible();
+      log_derivs->col(i) = sampler.DerLogVisible();
+    }
+
+    // Compute "centered" log-derivatives, i.e., O_k ↦ O_k - ⟨O_k⟩
+    VectorXcd log_der_mean = log_derivs->rowwise().mean();
+    MeanOnNodes<>(log_der_mean);
+    log_derivs = log_derivs->colwise() - log_der_mean;
+  } else {
+    for (Index i = 0; i < nsamples; i++) {
+      sampler.Sweep();
+      samples.col(i) = sampler.Visible();
+    }
   }
-
-  // Compute "centered" log-derivatives, i.e., O_k ↦ O_k - ⟨O_k⟩
-  VectorXcd log_der_mean = log_derivs.rowwise().mean();
-  MeanOnNodes<>(log_der_mean);
-  log_derivs = log_derivs.colwise() - log_der_mean;
-
   return Result(std::move(samples), std::move(log_derivs));
 }
 
@@ -122,11 +129,17 @@ Stats Variance(const Result & /*result*/, AbstractMachine & /*psi*/,
 
 VectorXcd Gradient(const Result &result, AbstractMachine &psi,
                    const AbstractOperator &op) {
+  if (!result.LogDerivs().has_value()) {
+    throw std::runtime_error{
+        "vmc::Result does not contain log-derivatives, which are required to "
+        "compute gradients."};
+  }
+
   VectorXcd locvals;
   Expectation(result, psi, op, locvals);
 
   VectorXcd grad =
-      result.LogDerivs().conjugate() * locvals / double(result.NSamples());
+      result.LogDerivs()->conjugate() * locvals / double(result.NSamples());
   MeanOnNodes<>(grad);
 
   return grad;
@@ -134,8 +147,14 @@ VectorXcd Gradient(const Result &result, AbstractMachine &psi,
 
 VectorXcd Gradient(const Result &result, AbstractMachine & /*psi*/,
                    const AbstractOperator & /*op*/, const VectorXcd &locvals) {
+  if (!result.LogDerivs().has_value()) {
+    throw std::runtime_error{
+        "vmc::Result does not contain log-derivatives, which are required to "
+        "compute gradients."};
+  }
+
   VectorXcd grad =
-      result.LogDerivs().conjugate() * locvals / double(result.NSamples());
+      result.LogDerivs()->conjugate() * locvals / double(result.NSamples());
   MeanOnNodes<>(grad);
   return grad;
 }

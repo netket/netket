@@ -32,7 +32,7 @@ using Stats = Binning<double>::Stats;
  */
 class Result {
   MatrixXd samples_;
-  MatrixXcd log_derivs_;
+  nonstd::optional<MatrixXcd> log_derivs_;
 
  public:
   Result() = default;
@@ -41,7 +41,7 @@ class Result {
   Result(const Result &) = delete;
   Result &operator=(const Result &) = delete;
 
-  Result(MatrixXd samples, MatrixXcd log_derivs)
+  Result(MatrixXd samples, nonstd::optional<MatrixXcd> log_derivs)
       : samples_(std::move(samples)), log_derivs_(std::move(log_derivs)) {}
 
   /**
@@ -65,13 +65,16 @@ class Result {
   }
 
   /**
-   * Returns a reference to the matrix O of log-derivatives of the wavefunction.
+   * Returns an optional reference to the matrix O of log-derivatives of the
+   * wavefunction, which is non-empty if the log-derivs are present.
    * Define Δ_i(v_j) = ∂/∂x_i log Ψ(v_j). The values contained in O are
    * centered, i.e.,
    *      O_ij = Δ_i(v_j) - ⟨Δ_i⟩,
    * where ⟨Δ_i⟩ denotes the average over all samples.
    */
-  const MatrixXcd &LogDerivs() const noexcept { return log_derivs_; }
+  const nonstd::optional<MatrixXcd> &LogDerivs() const noexcept {
+    return log_derivs_;
+  }
 };
 
 /**
@@ -83,10 +86,12 @@ class Result {
  * performed between each sample)
  * @param ndiscard The number of sweeps to be discarded before starting to store
  * the samples.
+ * @param compute_logderivs Whether to store the logarithmic derivatives of
+ *    the wavefunction as part of the returned VMC result.
  * @return A Result object containing the MC samples and auxillary information.
  */
 Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
-                      Index ndiscard = 0);
+                      Index ndiscard = 0, bool compute_logderivs = true);
 
 /**
  * Computes the local value of the operator `op` in configuration `v`

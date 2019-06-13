@@ -1,4 +1,4 @@
-from pytest import approx
+from pytest import approx, raises
 import numpy as np
 
 import netket as nk
@@ -44,7 +44,7 @@ def test_vmc_functions():
         exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        data = vmc.compute_vmc_samples(sampler, nsamples=10000, ndiscard=1000)
+        data = vmc.compute_samples(sampler, nsamples=10000, ndiscard=1000)
 
         ex, lv = vmc.expectation(data, ma, op, return_locvals=True)
         assert ex["Mean"] == approx(np.mean(lv).real, rel=tol)
@@ -56,3 +56,13 @@ def test_vmc_functions():
     grad = vmc.gradient(data, ma, ha)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
+
+    data_without_logderivs = vmc.compute_samples(
+        sampler, nsamples=10000, compute_logderivs=False
+    )
+    with raises(
+        RuntimeError,
+        match="vmc::Result does not contain log-derivatives, "
+        "which are required to compute gradients.",
+    ):
+        vmc.gradient(data_without_logderivs, ma, ha)

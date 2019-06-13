@@ -224,7 +224,7 @@ class VariationalMonteCarlo {
     Eigen::VectorXcd deltap(npar_);
 
     if (dosr_) {
-      sr_.ComputeUpdate(vmc_data_.LogDerivs().transpose(), grad_, deltap);
+      sr_.ComputeUpdate(vmc_data_.LogDerivs()->transpose(), grad_, deltap);
     } else {
       deltap = grad_;
     }

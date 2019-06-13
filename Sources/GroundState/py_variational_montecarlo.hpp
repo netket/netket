@@ -171,45 +171,19 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 
-  m_vmc.def("compute_vmc_samples", vmc::ComputeSamples, py::arg("sampler"),
-            py::arg("nsamples"), py::arg("ndiscard") = 0, R"EOF(
-           Computes the expectation value of a Hermitian operator based on
-           provided VMC data.
+  m_vmc.def("compute_samples", vmc::ComputeSamples, py::arg("sampler"),
+            py::arg("nsamples"), py::arg("ndiscard") = 0,
+            py::arg("compute_logderivs") = true, R"EOF(
+           Computes a sequence of visible configurations based on Monte Carlo sampling using `sampler`.
 
            Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-               return_locvals: If `True`, this function will additionally
-                   return an array containing the local values of the observable
-                   for all visible configurations in `vmc_data`.
-
-            Examples:
-               A very basic VMC loop in Python:
-
-               ```python
-                 from netket.graph import Hypercube
-                 from netket.hilbert import Spin
-                 from netket.operator import Ising
-                 from netket.machine import RbmSpin
-                 from netket.sampler import MetropolisLocal
-                 from netket.variational import compute_vmc_samples, expectation, gradient
-
-                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
-                 ham = Ising(hi, h=1.0)
-                 psi = RbmSpin(hi, alpha=2)
-                 psi.init_random_parameters(sigma=0.1)
-                 sampler = MetropolisLocal(psi)
-
-                 for step in range(100):
-                     data = compute_vmc_samples(sampler, 10000, 1000)
-
-                     ex = expectation(data, psi, ham)
-                     print("E={Mean:.4f} ± {Sigma:.4f}".format(**ex))
-
-                     grad = gradient(data, psi, ham)
-                     psi.parameters -= 0.1 * grad
-               ```
+               sampler: The sampler used to perform the MC sweeps.
+               nsamples: The number of MC samples that are stored (one MC sweep
+                    is performed between each sample)
+               ndiscard: The number of sweeps to be discarded before starting
+                    to store samples.
+               compute_logderivs: Whether to store the logarithmic derivatives
+                    of the wavefunction as part of the returned VMC result.
             )EOF");
 
   m_vmc.def(
