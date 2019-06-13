@@ -187,36 +187,159 @@ void AddVariationalMonteCarloModule(py::module &m) {
         }
       },
       py::arg("vmc_data"), py::arg("psi"), py::arg("op"),
-      py::arg("return_locvals") = false);
+      py::arg("return_locvals") = false, R"EOF(
+           Computes the expectation value of a Hermitian operator based on
+           provided VMC data.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+               return_locvals: If `True`, this function will additionally
+                   return an array containing the local values of the observable
+                   for all visible configurations in `vmc_data`.
+
+            Examples:
+               A very basic VMC loop in Python:
+
+               ```python
+                 from netket.graph import Hypercube
+                 from netket.hilbert import Spin
+                 from netket.operator import Ising
+                 from netket.machine import RbmSpin
+                 from netket.sampler import MetropolisLocal
+                 from netket.variational import compute_vmc_samples, expectation, gradient
+
+                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
+                 ham = Ising(hi, h=1.0)
+                 psi = RbmSpin(hi, alpha=2)
+                 psi.init_random_parameters(sigma=0.1)
+                 sampler = MetropolisLocal(psi)
+
+                 for step in range(100):
+                     data = compute_vmc_samples(sampler, 10000, 1000)
+
+                     ex = expectation(data, psi, ham)
+                     print("E={Mean:.4f} ± {Sigma:.4f}".format(**ex))
+
+                     grad = gradient(data, psi, ham)
+                     psi.parameters -= 0.1 * grad
+               ```
+            )EOF");
 
   using VarType1 = vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
                                   const AbstractOperator &);
   m_vmc.def("variance", (VarType1)&vmc::Variance, py::arg("vmc_data"),
-            py::arg("psi"), py::arg("op"));
+            py::arg("psi"), py::arg("op"), R"EOF(
+           Computes the variance value of a Hermitian operator, i.e.,
+                σ² = ⟨(O - ⟨O⟩)²⟩
+           based on provided VMC data.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+            )EOF");
 
   using VarType2 =
       vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
                      const AbstractOperator &, double, const VectorXcd &);
   m_vmc.def("variance", (VarType2)&vmc::Variance, py::arg("vmc_data"),
             py::arg("op"), py::arg("psi"), py::arg("expectation_value"),
-            py::arg("locvals"));
+            py::arg("locvals"), R"EOF(
+           Computes the variance value of a Hermitian operator, i.e.,
+                σ² = ⟨(O - ⟨O⟩)²⟩
+           based on provided VMC data, reusing precomputed local values
+           and expectation of `op`.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+               expectation_value: The expectation of `op` for the given
+                   VMC data.
+               locvals: An array containing the local values of `op` for the
+                   given VMC data.
+
+            Examples:
+               Computing the variance using precomputed values.
+
+               ```python
+                 from netket.graph import Hypercube
+                 from netket.hilbert import Spin
+                 from netket.operator import Ising
+                 from netket.machine import RbmSpin
+                 from netket.sampler import MetropolisLocal
+                 from netket.variational import compute_vmc_samples, expectation, gradient
+
+                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
+                 ham = Ising(hi, h=1.0)
+                 psi = RbmSpin(hi, alpha=2)
+                 psi.init_random_parameters(sigma=0.1)
+                 sampler = MetropolisLocal(psi)
+
+                 data = compute_vmc_samples(sampler, 10000, 1000)
+                 ex, lv = expectation(data, psi, ham)
+                 var = variance(data, psi, ham, ex["Mean], lv)
+               ```
+            )EOF");
 
   using GradType1 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
                                   const AbstractOperator &);
   m_vmc.def("gradient", (GradType1)&vmc::Gradient, py::arg("vmc_data"),
-            py::arg("op"), py::arg("psi"));
+            py::arg("op"), py::arg("psi"), R"EOF(
+           Computes the expectation gradient a Hermitian operator ∇⟨O⟩
+           with respect to the wavefunction parameters based on provided VMC
+           data.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+            )EOF");
 
   using GradType2 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
                                   const AbstractOperator &, const VectorXcd &);
   m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
-            py::arg("op"), py::arg("psi"), py::arg("locvals"));
+            py::arg("op"), py::arg("psi"), py::arg("locvals"), R"EOF(
+           Computes the expectation gradient a Hermitian operator ∇⟨O⟩
+           with respect to the wavefunction parameters based on provided VMC
+           data, reusing precomputed local values of `op`.
 
-  m_vmc.def("local_value", &vmc::LocalValue);
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+               locvals: An array containing the local values of `op` for the
+                   given VMC data.
+            )EOF");
 
-  m_vmc.def("local_values", [](const vmc::Result &result, AbstractMachine &psi,
-                               const AbstractOperator &op) {
-    return vmc::LocalValues(op, psi, result.SampleMatrix());
-  });
+  m_vmc.def("local_value", &vmc::LocalValue, py::arg("op"), py::arg("psi"),
+            py::arg("v"), R"EOF(
+           Computes the local value of the operator `op` in configuration `v`
+           which is defined as O_loc(v) = ⟨v|op|Ψ⟩ / ⟨v|Ψ⟩.
+
+           Args:
+               op: Hermitian operator.
+               psi: Machine represenation of the wavefunction.
+               v: Visible configuration.
+            )EOF");
+
+  m_vmc.def(
+      "local_values",
+      [](const vmc::Result &result, AbstractMachine &psi,
+         const AbstractOperator &op) {
+        return vmc::LocalValues(op, psi, result.SampleMatrix());
+      },
+      py::arg("vmc_data"), py::arg("psi"), py::arg("op"), R"EOF(
+           Computes the local values of the operator `op` for all visible
+           configurations sotred in `vmc_data`.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+            )EOF");
 }
 
 }  // namespace netket
