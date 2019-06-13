@@ -184,13 +184,16 @@ Jastrow::VectorType Jastrow::DerLog(VisibleConstType v) {
 
 const AbstractHilbert &Jastrow::GetHilbert() const noexcept { return hilbert_; }
 
-void Jastrow::to_json(json &j) const {
-  j["Name"] = "Jastrow";
-  j["Nvisible"] = nv_;
-  j["W"] = W_;
+void Jastrow::Save(std::string const &filename) const {
+  json state;
+  state["Name"] = "Jastrow";
+  state["Nvisible"] = nv_;
+  state["W"] = W_;
+  WriteJsonToFile(state, filename);
 }
 
-void Jastrow::from_json(const json &pars) {
+void Jastrow::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   if (pars.at("Name") != "Jastrow") {
     throw InvalidInputError("Error while constructing Jastrow from Json input");
   }
@@ -210,5 +213,7 @@ void Jastrow::from_json(const json &pars) {
     W_ = pars["W"];
   }
 }
+
+bool Jastrow::IsHolomorphic() const noexcept { return true; }
 
 }  // namespace netket

@@ -275,13 +275,18 @@ const AbstractHilbert &JastrowSymm::GetHilbert() const noexcept {
   return hilbert_;
 }
 
-void JastrowSymm::to_json(json &j) const {
-  j["Name"] = "JastrowSymm";
-  j["Nvisible"] = nv_;
-  j["Wsymm"] = Wsymm_;
+bool JastrowSymm::IsHolomorphic() const noexcept { return true; }
+
+void JastrowSymm::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "JastrowSymm";
+  state["Nvisible"] = nv_;
+  state["Wsymm"] = Wsymm_;
+  WriteJsonToFile(state, filename);
 }
 
-void JastrowSymm::from_json(const json &pars) {
+void JastrowSymm::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   if (pars.at("Name") != "JastrowSymm") {
     throw InvalidInputError(
         "Error while constructing JastrowSymm from Json input");

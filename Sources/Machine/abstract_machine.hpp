@@ -20,15 +20,12 @@
 #include <vector>
 
 #include <Eigen/Core>
-#include <nlohmann/json_fwd.hpp>
 
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
-
-using json = nlohmann::json;
 
 /**
   Abstract class for Machines.
@@ -206,13 +203,10 @@ class AbstractMachine {
                                    const std::vector<int> &tochange,
                                    const std::vector<double> &newconf);
 
-  virtual bool IsHolomorphic() { return true; }
+  virtual bool IsHolomorphic() const noexcept = 0;
 
-  virtual void to_json(nlohmann::json &j) const = 0;
-  virtual void from_json(const nlohmann::json &j) = 0;
-
-  void Save(const std::string &filename) const;
-  void Save(std::ofstream &stream) const;
+  virtual void Save(const std::string &filename) const = 0;
+  virtual void Load(const std::string &filename) = 0;
 
   virtual const AbstractHilbert &GetHilbert() const noexcept = 0;
 

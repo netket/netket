@@ -28,16 +28,4 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   return DerLog(vp);
 }
 
-void AbstractMachine::Save(const std::string &filename) const {
-  std::ofstream filewf(filename);
-  Save(filewf);
-  filewf.close();
-}
-
-void AbstractMachine::Save(std::ofstream &stream) const {
-  nlohmann::json j;
-  to_json(j);
-  stream << j << std::endl;
-}
-
 }  // namespace netket

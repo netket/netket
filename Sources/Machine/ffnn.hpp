@@ -111,21 +111,6 @@ class FFNN : public AbstractMachine {
                         << std::endl;
   }
 
-  void from_json(const json &pars) override {
-    json layers_par;
-    if (FieldExists(pars, "Layers")) {
-      layers_par = pars["Layers"];
-      nlayer_ = layers_par.size();
-    } else {
-      throw InvalidInputError(
-          "Field (Layers) not defined for Machine (FFNN) in initfile");
-    }
-
-    for (int i = 0; i < nlayer_; ++i) {
-      layers_[i]->from_json(layers_par[i]);
-    }
-  }
-
   int Nvisible() const override { return layersizes_[0]; }
 
   int Npar() const override { return npar_; }
@@ -287,17 +272,37 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  void to_json(json &j) const override {
-    j["Name"] = "FFNN";
-    j["Layers"] = {};
+  void Save(std::string const &filename) const override {
+    json state;
+    state["Name"] = "FFNN";
+    state["Layers"] = {};
     for (int i = 0; i < nlayer_; ++i) {
-      layers_[i]->to_json(j);
+      layers_[i]->to_json(state);
+    }
+    WriteJsonToFile(state, filename);
+  }
+
+  void Load(const std::string &filename) override {
+    auto const pars = ReadJsonFromFile(filename);
+    json layers_par;
+    if (FieldExists(pars, "Layers")) {
+      layers_par = pars["Layers"];
+      nlayer_ = layers_par.size();
+    } else {
+      throw InvalidInputError(
+          "Field (Layers) not defined for Machine (FFNN) in initfile");
+    }
+
+    for (int i = 0; i < nlayer_; ++i) {
+      layers_[i]->from_json(layers_par[i]);
     }
   }
 
   const AbstractHilbert &GetHilbert() const noexcept override {
     return hilbert_;
   }
+
+  bool IsHolomorphic() const noexcept override { return true; }
 };  // namespace netket
 
 }  // namespace netket

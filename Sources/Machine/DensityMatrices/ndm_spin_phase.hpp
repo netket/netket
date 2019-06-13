@@ -594,27 +594,30 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
   }
 
-  void to_json(json &j) const override {
-    j["Name"] = "NdmSpinPhase";
-    j["Nvisible"] = nv_;
-    j["Nhidden"] = nh_;
-    j["Nancilla"] = na_;
-    j["UseVisibleBias"] = useb_;
-    j["UseHiddenBias"] = useh_;
-    j["UseAncillaBias"] = used_;
-    j["b1"] = b1_;
-    j["h1"] = h1_;
-    j["d1"] = d1_;
-    j["W1"] = W1_;
-    j["U1"] = U1_;
+  void Save(const std::string &filename) const override {
+    json state;
+    state["Name"] = "NdmSpinPhase";
+    state["Nvisible"] = nv_;
+    state["Nhidden"] = nh_;
+    state["Nancilla"] = na_;
+    state["UseVisibleBias"] = useb_;
+    state["UseHiddenBias"] = useh_;
+    state["UseAncillaBias"] = used_;
+    state["b1"] = b1_;
+    state["h1"] = h1_;
+    state["d1"] = d1_;
+    state["W1"] = W1_;
+    state["U1"] = U1_;
 
-    j["b2"] = b2_;
-    j["h2"] = h2_;
-    j["W2"] = W2_;
-    j["U2"] = U2_;
+    state["b2"] = b2_;
+    state["h2"] = h2_;
+    state["W2"] = W2_;
+    state["U2"] = U2_;
+    WriteJsonToFile(state, filename);
   }
 
-  void from_json(const json &pars) override {
+  void Load(const std::string &filename) override {
+    auto pars = ReadJsonFromFile(filename);
     std::string name = FieldVal<std::string>(pars, "Name");
     if (name != "NdmSpinPhase") {
       throw InvalidInputError(
@@ -682,7 +685,7 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
   }
 
-  bool IsHolomorphic() override { return false; }
+  bool IsHolomorphic() const noexcept override { return false; }
 };
 
 }  // namespace netket

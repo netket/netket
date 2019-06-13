@@ -221,18 +221,21 @@ Complex RbmSpin::LogValDiff(VisibleConstType v,
 
 const AbstractHilbert &RbmSpin::GetHilbert() const noexcept { return hilbert_; }
 
-void RbmSpin::to_json(json &j) const {
-  j["Name"] = "RbmSpin";
-  j["Nvisible"] = nv_;
-  j["Nhidden"] = nh_;
-  j["UseVisibleBias"] = usea_;
-  j["UseHiddenBias"] = useb_;
-  j["a"] = a_;
-  j["b"] = b_;
-  j["W"] = W_;
+void RbmSpin::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "RbmSpin";
+  state["Nvisible"] = nv_;
+  state["Nhidden"] = nh_;
+  state["UseVisibleBias"] = usea_;
+  state["UseHiddenBias"] = useb_;
+  state["a"] = a_;
+  state["b"] = b_;
+  state["W"] = W_;
+  WriteJsonToFile(state, filename);
 }
 
-void RbmSpin::from_json(const json &pars) {
+void RbmSpin::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   std::string name = FieldVal<std::string>(pars, "Name");
   if (name != "RbmSpin") {
     throw InvalidInputError(
@@ -275,5 +278,7 @@ void RbmSpin::from_json(const json &pars) {
     W_ = FieldVal<MatrixType>(pars, "W");
   }
 }
+
+bool RbmSpin::IsHolomorphic() const noexcept { return true; }
 
 }  // namespace netket

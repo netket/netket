@@ -511,21 +511,25 @@ MPSPeriodic::VectorType MPSPeriodic::DerLog(VisibleConstType v) {
 }
 
 // Json functions
-void MPSPeriodic::to_json(json &j) const {
-  j["Name"] = "MPSperiodic";
-  j["Length"] = N_;
-  j["BondDim"] = D_;
-  j["PhysDim"] = d_;
-  j["Diagonal"] = is_diag_;
-  j["SymmetryPeriod"] = symperiod_;
+
+void MPSPeriodic::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "MPSperiodic";
+  state["Length"] = N_;
+  state["BondDim"] = D_;
+  state["PhysDim"] = d_;
+  state["Diagonal"] = is_diag_;
+  state["SymmetryPeriod"] = symperiod_;
   for (int i = 0; i < symperiod_; i++) {
     for (int k = 0; k < d_; k++) {
-      j["W" + std::to_string(d_ * i + k)] = W_[i][k];
+      state["W" + std::to_string(d_ * i + k)] = W_[i][k];
     }
   }
+  WriteJsonToFile(state, filename);
 }
 
-void MPSPeriodic::from_json(const json &pars) {
+void MPSPeriodic::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   if (pars.at("Name") != "MPSperiodic") {
     throw InvalidInputError("Error while constructing MPS from Json input");
   }
@@ -568,10 +572,6 @@ void MPSPeriodic::from_json(const json &pars) {
   Init();
 
   // Loading parameters, if defined in the input
-  from_jsonWeights(pars);
-}
-
-void MPSPeriodic::from_jsonWeights(const json &pars) {
   for (int i = 0; i < symperiod_; i++) {
     for (int k = 0; k < d_; k++) {
       if (FieldExists(pars, "W" + std::to_string(d_ * i + k))) {
@@ -580,5 +580,7 @@ void MPSPeriodic::from_jsonWeights(const json &pars) {
     }
   }
 }
+
+bool MPSPeriodic::IsHolomorphic() const noexcept { return true; }
 
 }  // namespace netket

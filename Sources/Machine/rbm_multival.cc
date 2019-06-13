@@ -321,19 +321,22 @@ const AbstractHilbert &RbmMultival::GetHilbert() const noexcept {
   return hilbert_;
 }
 
-void RbmMultival::to_json(json &j) const {
-  j["Name"] = "RbmMultival";
-  j["Nvisible"] = nv_;
-  j["Nhidden"] = nh_;
-  j["LocalSize"] = ls_;
-  j["UseVisibleBias"] = usea_;
-  j["UseHiddenBias"] = useb_;
-  j["a"] = a_;
-  j["b"] = b_;
-  j["W"] = W_;
+void RbmMultival::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "RbmMultival";
+  state["Nvisible"] = nv_;
+  state["Nhidden"] = nh_;
+  state["LocalSize"] = ls_;
+  state["UseVisibleBias"] = usea_;
+  state["UseHiddenBias"] = useb_;
+  state["a"] = a_;
+  state["b"] = b_;
+  state["W"] = W_;
+  WriteJsonToFile(state, filename);
 }
 
-void RbmMultival::from_json(const json &pars) {
+void RbmMultival::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   if (pars.at("Name") != "RbmMultival") {
     throw InvalidInputError(
         "Error while constructing RbmMultival from Json input");
@@ -383,5 +386,7 @@ void RbmMultival::from_json(const json &pars) {
     W_ = pars["W"];
   }
 }
+
+bool RbmMultival::IsHolomorphic() const noexcept { return true; }
 
 }  // namespace netket

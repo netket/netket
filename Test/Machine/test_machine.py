@@ -1,3 +1,4 @@
+import netket
 import netket as nk
 import networkx as nx
 import numpy as np
@@ -5,10 +6,12 @@ import pytest
 from pytest import approx
 import os
 
+
 def merge_dicts(x, y):
-     z = x.copy()   # start with x's keys and values
-     z.update(y)    # modifies z with y's keys and values & returns None
-     return z
+    z = x.copy()  # start with x's keys and values
+    z.update(y)  # modifies z with y's keys and values & returns None
+    return z
+
 
 machines = {}
 
@@ -22,6 +25,8 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
+machines["PyRbm 1d Hypercube spin"] = nk.machine.PyRbm(hilbert=hi, alpha=3)
+
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=1)
@@ -34,7 +39,14 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 dm_machines = {}
-dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(hilbert=hi, alpha=2, beta=2, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
+dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
+    hilbert=hi,
+    alpha=2,
+    beta=2,
+    use_visible_bias=True,
+    use_hidden_bias=True,
+    use_ancilla_bias=True,
+)
 
 # Layers
 layers = (
@@ -241,12 +253,10 @@ def test_nvisible():
 
         assert machine.n_visible == hi.size
 
-
     for name, machine in dm_machines.items():
         print("Machine test: %s" % name)
         hip = machine.hilbert_physical
-        hi  = machine.hilbert
+        hi = machine.hilbert
 
         assert machine.n_visible == hip.size
-        assert machine.n_visible * 2 ==  hi.size  
-
+        assert machine.n_visible * 2 == hi.size

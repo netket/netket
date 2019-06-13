@@ -351,18 +351,21 @@ const AbstractHilbert &RbmSpinSymm::GetHilbert() const noexcept {
   return hilbert_;
 }
 
-void RbmSpinSymm::to_json(json &j) const {
-  j["Name"] = "RbmSpinSymm";
-  j["Nvisible"] = nv_;
-  j["Alpha"] = alpha_;
-  j["UseVisibleBias"] = usea_;
-  j["UseHiddenBias"] = useb_;
-  j["asymm"] = asymm_;
-  j["bsymm"] = bsymm_;
-  j["Wsymm"] = Wsymm_;
+void RbmSpinSymm::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "RbmSpinSymm";
+  state["Nvisible"] = nv_;
+  state["Alpha"] = alpha_;
+  state["UseVisibleBias"] = usea_;
+  state["UseHiddenBias"] = useb_;
+  state["asymm"] = asymm_;
+  state["bsymm"] = bsymm_;
+  state["Wsymm"] = Wsymm_;
+  WriteJsonToFile(state, filename);
 }
 
-void RbmSpinSymm::from_json(const json &pars) {
+void RbmSpinSymm::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   if (pars.at("Name") != "RbmSpinSymm") {
     throw InvalidInputError(
         "Error while constructing RbmSpinSymm from Json input");
@@ -402,4 +405,7 @@ void RbmSpinSymm::from_json(const json &pars) {
 
   SetBareParameters();
 }
+
+bool RbmSpinSymm::IsHolomorphic() const noexcept { return true; }
+
 }  // namespace netket

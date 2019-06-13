@@ -21,6 +21,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <nlohmann/json_fwd.hpp>
 
 #include "Machine/abstract_machine.hpp"
 #include "Utils/lookup.hpp"
@@ -136,9 +137,9 @@ class AbstractLayer {
                         const VectorType &dout, VectorType &din,
                         VectorRefType der) = 0;
 
-  virtual void to_json(json &j) const = 0;
+  virtual void to_json(nlohmann::json &j) const = 0;
 
-  virtual void from_json(const json &j) = 0;
+  virtual void from_json(const nlohmann::json &j) = 0;
 
   /**
   destructor
