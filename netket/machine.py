@@ -172,7 +172,7 @@ class PyRbm(CxxMachine):
             params += (self._a,)
         if self._b is not None:
             params += (self._b,)
-        params += (self._w.reshape(-1),)
+        params += (self._w.reshape(-1, order='F'),)
         return _np.concatenate(params)
 
     def _set_parameters(self, p):
@@ -181,10 +181,13 @@ class PyRbm(CxxMachine):
         ``self._set_parameters(self._get_parameters())`` is an identity.
         """
         i = 0
-        for x in [self._a, self._b, self._w]:
-            if x is not None:
-                x.reshape(-1)[:] = p[i : i + x.size]
-                i += x.size
+        if self._a is not None:
+            self._a[:] = p[i : i + self._a.size]
+            i += self._a.size
+        if self._b is not None:
+            self._b[:] = p[i : i + self._b.size]
+            i += self._b.size
+        self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order='F')
 
     def log_val(self, x):
         r"""Computes the logarithm of the wave function given a spin
@@ -215,15 +218,15 @@ class PyRbm(CxxMachine):
         tanh_stuff = _np.dot(self._w, x)
         if self._b is not None:
             tanh_stuff += self._b
-        tanh_stuff = _np.tanh(tanh_stuff)
+        tanh_stuff = _np.tanh(tanh_stuff, out=tanh_stuff)
 
         if self._b is not None:
             grad[i : i + self._b.size] = tanh_stuff
             i += self._b.size
 
-        # NOTE: order='F' is important, because of the order='C' in
-        # ``_get_parameters`` and ``_set_parameters``!
-        grad[i : i + self._w.size] = _np.outer(x, tanh_stuff).reshape(-1, order="F")
+        out = grad[i : i + self._w.size]
+        out.shape = (x.size, tanh_stuff.size)
+        _np.outer(x, tanh_stuff, out=out)
         return grad
 
     def _is_holomorphic(self):
