@@ -210,6 +210,13 @@ void AddVariationalMonteCarloModule(py::module &m) {
                                   const AbstractOperator &, const VectorXcd &);
   m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
             py::arg("op"), py::arg("psi"), py::arg("locvals"));
+
+  m_vmc.def("local_value", &vmc::LocalValue);
+
+  m_vmc.def("local_values", [](const vmc::Result &result, AbstractMachine &psi,
+                               const AbstractOperator &op) {
+    return vmc::LocalValues(op, psi, result.SampleMatrix());
+  });
 }
 
 }  // namespace netket
