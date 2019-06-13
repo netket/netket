@@ -1,5 +1,5 @@
 from ._C_netket.machine import *
-import numpy as __np
+import numpy as _np
 
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
@@ -127,9 +127,9 @@ class PyRbm(CxxMachine):
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
         m = int(round(alpha * n))
-        self._w = __np.empty([m, n], dtype=__np.complex128)
-        self._a = __np.empty(n, dtype=__np.complex128) if use_visible_bias else None
-        self._b = __np.empty(m, dtype=__np.complex128) if use_hidden_bias else None
+        self._w = _np.empty([m, n], dtype=_np.complex128)
+        self._a = _np.empty(n, dtype=_np.complex128) if use_visible_bias else None
+        self._b = _np.empty(m, dtype=_np.complex128) if use_hidden_bias else None
 
     def _number_parameters(self):
         r"""Returns the number of parameters in the machine. We just sum the
@@ -173,7 +173,7 @@ class PyRbm(CxxMachine):
         if self._b is not None:
             params += (self._b,)
         params += (self._w.reshape(-1),)
-        return __np.concatenate(params)
+        return _np.concatenate(params)
 
     def _set_parameters(self, p):
         r"""Sets parameters from a 1D tensor.
@@ -190,12 +190,12 @@ class PyRbm(CxxMachine):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        r = __np.dot(self._w, x)
+        r = _np.dot(self._w, x)
         if self._b is not None:
             r += self._b
-        r = __np.sum(PyRbm._log_cosh(r))
+        r = _np.sum(PyRbm._log_cosh(r))
         if self._a is not None:
-            r += __np.dot(self._a, x)
+            r += _np.dot(self._a, x)
         # Officially, we should return
         #     self._w.shape[0] * 0.6931471805599453 + r
         # but the C++ implementation ignores the "constant factor"
@@ -205,17 +205,17 @@ class PyRbm(CxxMachine):
         r"""Computes the gradient of the logarithm of the wave function
         given a spin configuration ``x``.
         """
-        grad = __np.empty(self.n_par, dtype=__np.complex128)
+        grad = _np.empty(self.n_par, dtype=_np.complex128)
         i = 0
 
         if self._a is not None:
             grad[i : i + self._a.size] = x
             i += self._a.size
 
-        tanh_stuff = __np.dot(self._w, x)
+        tanh_stuff = _np.dot(self._w, x)
         if self._b is not None:
             tanh_stuff += self._b
-        tanh_stuff = __np.tanh(tanh_stuff)
+        tanh_stuff = _np.tanh(tanh_stuff)
 
         if self._b is not None:
             grad[i : i + self._b.size] = tanh_stuff
@@ -223,7 +223,7 @@ class PyRbm(CxxMachine):
 
         # NOTE: order='F' is important, because of the order='C' in
         # ``_get_parameters`` and ``_set_parameters``!
-        grad[i : i + self._w.size] = __np.outer(x, tanh_stuff).reshape(-1, order="F")
+        grad[i : i + self._w.size] = _np.outer(x, tanh_stuff).reshape(-1, order="F")
         return grad
 
     def _is_holomorphic(self):
@@ -250,4 +250,4 @@ class PyRbm(CxxMachine):
     @staticmethod
     def _log_cosh(x):
         # TODO: Handle big numbers properly
-        return __np.log(__np.cosh(x))
+        return _np.log(_np.cosh(x))
