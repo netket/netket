@@ -103,8 +103,8 @@ Stats Expectation(const Result &result, AbstractMachine &psi,
   return bin.AllStats();
 }
 
-Stats Variance(const Result &result, const AbstractOperator &op,
-               AbstractMachine &psi) {
+Stats Variance(const Result &result, AbstractMachine &psi,
+               const AbstractOperator &op) {
   VectorXcd locvals;
   auto ex = Expectation(result, psi, op, locvals);
   return Variance(result, psi, op, ex.mean, locvals);

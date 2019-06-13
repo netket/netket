@@ -176,9 +176,40 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   m_vmc.def(
       "expectation",
-      [](const vmc::Result &vmc_data, AbstractMachine &psi,
-         AbstractOperator &op) { return vmc::Expectation(vmc_data, psi, op); },
-      py::arg("vmc_data"), py::arg("op"), py::arg("psi"));
+      [](const vmc::Result &result, AbstractMachine &psi,
+         const AbstractOperator &op, bool return_locvals) {
+        if (return_locvals) {
+          VectorXcd locvals;
+          auto ex = vmc::Expectation(result, psi, op, locvals);
+          return py::object(py::make_tuple(ex, locvals));
+        } else {
+          return py::cast(vmc::Expectation(result, psi, op));
+        }
+      },
+      py::arg("vmc_data"), py::arg("psi"), py::arg("op"),
+      py::arg("return_locvals") = false);
+
+  using VarType1 = vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
+                                  const AbstractOperator &);
+  m_vmc.def("variance", (VarType1)&vmc::Variance, py::arg("vmc_data"),
+            py::arg("psi"), py::arg("op"));
+
+  using VarType2 =
+      vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
+                     const AbstractOperator &, double, const VectorXcd &);
+  m_vmc.def("variance", (VarType2)&vmc::Variance, py::arg("vmc_data"),
+            py::arg("op"), py::arg("psi"), py::arg("expectation_value"),
+            py::arg("locvals"));
+
+  using GradType1 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
+                                  const AbstractOperator &);
+  m_vmc.def("gradient", (GradType1)&vmc::Gradient, py::arg("vmc_data"),
+            py::arg("op"), py::arg("psi"));
+
+  using GradType2 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
+                                  const AbstractOperator &, const VectorXcd &);
+  m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
+            py::arg("op"), py::arg("psi"), py::arg("locvals"));
 }
 
 }  // namespace netket

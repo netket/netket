@@ -135,8 +135,8 @@ Stats Expectation(const Result &result, AbstractMachine &psi,
 /**
  * Computes the variance of an observable based on the given VMC data.
  */
-Stats Variance(const Result &result, const AbstractOperator &op,
-               AbstractMachine &psi);
+Stats Variance(const Result &result, AbstractMachine &psi,
+               const AbstractOperator &op);
 
 /**
  * Computes variance of an observable based on the given VMC data.
