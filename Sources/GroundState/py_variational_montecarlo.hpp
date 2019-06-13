@@ -172,7 +172,45 @@ void AddVariationalMonteCarloModule(py::module &m) {
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 
   m_vmc.def("compute_vmc_samples", vmc::ComputeSamples, py::arg("sampler"),
-            py::arg("nsamples"), py::arg("ndiscard") = 0);
+            py::arg("nsamples"), py::arg("ndiscard") = 0, R"EOF(
+           Computes the expectation value of a Hermitian operator based on
+           provided VMC data.
+
+           Args:
+               vmc_data: The VMC result data.
+               psi: Machine represenation of the wavefunction.
+               op: Hermitian operator.
+               return_locvals: If `True`, this function will additionally
+                   return an array containing the local values of the observable
+                   for all visible configurations in `vmc_data`.
+
+            Examples:
+               A very basic VMC loop in Python:
+
+               ```python
+                 from netket.graph import Hypercube
+                 from netket.hilbert import Spin
+                 from netket.operator import Ising
+                 from netket.machine import RbmSpin
+                 from netket.sampler import MetropolisLocal
+                 from netket.variational import compute_vmc_samples, expectation, gradient
+
+                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
+                 ham = Ising(hi, h=1.0)
+                 psi = RbmSpin(hi, alpha=2)
+                 psi.init_random_parameters(sigma=0.1)
+                 sampler = MetropolisLocal(psi)
+
+                 for step in range(100):
+                     data = compute_vmc_samples(sampler, 10000, 1000)
+
+                     ex = expectation(data, psi, ham)
+                     print("E={Mean:.4f} ± {Sigma:.4f}".format(**ex))
+
+                     grad = gradient(data, psi, ham)
+                     psi.parameters -= 0.1 * grad
+               ```
+            )EOF");
 
   m_vmc.def(
       "expectation",
@@ -288,8 +326,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
                                   const AbstractOperator &);
   m_vmc.def("gradient", (GradType1)&vmc::Gradient, py::arg("vmc_data"),
             py::arg("op"), py::arg("psi"), R"EOF(
-           Computes the expectation gradient a Hermitian operator ∇⟨O⟩
-           with respect to the wavefunction parameters based on provided VMC
+           Computes the gradient of the expecation value of a Hermitian operator
+           `op` with respect to the wavefunction parameters based on provided VMC
            data.
 
            Args:
@@ -302,9 +340,9 @@ void AddVariationalMonteCarloModule(py::module &m) {
                                   const AbstractOperator &, const VectorXcd &);
   m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
             py::arg("op"), py::arg("psi"), py::arg("locvals"), R"EOF(
-           Computes the expectation gradient a Hermitian operator ∇⟨O⟩
-           with respect to the wavefunction parameters based on provided VMC
-           data, reusing precomputed local values of `op`.
+           Computes the gradient of the expecation value of a Hermitian operator
+           `op` with respect to the wavefunction parameters based on provided VMC
+           data.
 
            Args:
                vmc_data: The VMC result data.
@@ -333,7 +371,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
       },
       py::arg("vmc_data"), py::arg("psi"), py::arg("op"), R"EOF(
            Computes the local values of the operator `op` for all visible
-           configurations sotred in `vmc_data`.
+           configurations stored in `vmc_data`.
 
            Args:
                vmc_data: The VMC result data.
