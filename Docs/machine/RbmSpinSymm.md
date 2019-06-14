@@ -13,12 +13,12 @@ A fully connected Restricted Boltzmann Machine with lattice
 ## Class Constructor
 Constructs a new ``RbmSpinSymm`` machine:
 
-|    Argument    |         Type         |                                 Description                                  |
-|----------------|----------------------|------------------------------------------------------------------------------|
-|hilbert         |netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
-|alpha           |int=0                 |Hidden unit density.                                                          |
-|use_visible_bias|bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
-|use_hidden_bias |bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
+|    Argument    |              Type              |                                 Description                                  |
+|----------------|--------------------------------|------------------------------------------------------------------------------|
+|hilbert         |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
+|alpha           |int=0                           |Hidden unit density.                                                          |
+|use_visible_bias|bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
+|use_hidden_bias |bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
 
 ### Examples
 A ``RbmSpinSymm`` machine with hidden unit density

@@ -19,6 +19,9 @@
 #include <valarray>
 #include <vector>
 
+#include "Utils/json_utils.hpp"
+#include "Utils/messages.hpp"
+
 #include "onlinestat.hpp"
 
 namespace netket {
@@ -47,6 +50,12 @@ class Binning {
     DataType mean;
     DataType sigma;
     DataType taucorr;
+
+    friend void to_json(json &j, const Stats &stats) {
+      j["Mean"] = stats.mean;
+      j["Sigma"] = stats.sigma;
+      j["Taucorr"] = stats.taucorr;
+    }
   };
 
   explicit Binning(int nbins = 16) { Init(nbins); }

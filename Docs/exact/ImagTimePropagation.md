@@ -5,13 +5,13 @@ Solving for the ground state of the wavefunction using imaginary time propagatio
 Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper,
 a time, and an initial state.
 
-|  Argument   |               Type                |                                                                   Description                                                                    |
-|-------------|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-|hamiltonian  |netket::AbstractOperator           |The hamiltonian of the system.                                                                                                                    |
-|stepper      |netket.dynamics.AbstractTimeStepper|Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.                                                  |
-|t0           |float                              |The initial time.                                                                                                                                 |
-|initial_state|numpy.ndarray[complex128[m, 1]]    |The initial state of the system (when propagation begins.)                                                                                        |
-|matrix_type  |str='sparse'                       |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
+|  Argument   |                    Type                     |                                                                   Description                                                                    |
+|-------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+|hamiltonian  |netket::AbstractOperator                     |The hamiltonian of the system.                                                                                                                    |
+|stepper      |netket._C_netket.dynamics.AbstractTimeStepper|Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.                                                  |
+|t0           |float                                        |The initial time.                                                                                                                                 |
+|initial_state|numpy.ndarray[complex128[m, 1]]              |The initial state of the system (when propagation begins.)                                                                                        |
+|matrix_type  |str='sparse'                                 |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
 
 ### Examples
 Solving 1D ising model with imagniary time propagation.
@@ -47,6 +47,13 @@ iteration.
 |name       |str                     |The name of the observable.                                                                                                                      |
 |matrix_type|str='sparse'            |The type of matrix used for the observable when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
 
+### advance
+Advance the time propagation by dt.
+
+|Argument|Type | Description  |
+|--------|-----|--------------|
+|dt      |float|The time step.|
+
 ### get_observable_stats
 Calculate and return the value of the operators stored as observables.
 
@@ -54,12 +61,14 @@ Calculate and return the value of the operators stored as observables.
 
 
 ### iter
-Iterate the optimization of the Vmc wavefunction.
+Returns a generator which advances the time evolution by dt,
+yielding after every step.
 
-|Argument|       Type       |               Description               |
-|--------|------------------|-----------------------------------------|
-|dt      |float             |Number of iterations performed at a time.|
-|n_iter  |Optional[int]=None|The maximum number of iterations.        |
+
+|Argument|  Type  |               Description                |
+|--------|--------|------------------------------------------|
+|dt      |float   |The size of the time step.                |
+|n_iter  |int=None|The number of steps or None, for no limit.|
 
 ## Properties
 

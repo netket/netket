@@ -14,8 +14,8 @@ A 10-site one-dimensional lattice with periodic boundary conditions can be
 constructed specifying the edges as follows:
 
 ```python
->>> from netket.graph import CustomGraph
->>> g=CustomGraph([[i, (i + 1) % 10] for i in range(10)])
+>>> import netket
+>>> g=netket.graph.CustomGraph([[i, (i + 1) % 10] for i in range(10)])
 >>> print(g.n_sites)
 10
 

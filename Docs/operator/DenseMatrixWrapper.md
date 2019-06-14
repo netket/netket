@@ -6,9 +6,9 @@ This class stores the matrix elements of
 Constructs a dense matrix wrapper from an operator. Matrix elements are
 stored as a dense Eigen matrix.
 
-|Argument|     Type      |               Description                |
-|--------|---------------|------------------------------------------|
-|operator|netket.Operator|The operator used to construct the matrix.|
+|Argument|          Type           |               Description                |
+|--------|-------------------------|------------------------------------------|
+|operator|netket._C_netket.Operator|The operator used to construct the matrix.|
 
 ### Examples
 Printing the dimension of a dense matrix wrapper.

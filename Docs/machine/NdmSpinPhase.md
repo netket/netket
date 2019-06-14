@@ -1,36 +1,37 @@
-# RbmSpinReal
-A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
- This type of RBM has spin 1/2 hidden units and is defined by:
-
- $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
- \left(\sum_i^N W_{ij} s_i + b_j \right) $$
-
- for arbitrary local quantum numbers $$ s_i $$.
+# NdmSpinPhase
+A positive semidefinite Neural Density Matrix (NDM) with real-valued parameters.
+ In this case, two NDMs are taken to parameterize, respectively, phase
+ and amplitude of the density matrix.
+ This type of NDM has spin 1/2 hidden and ancilla units.
 
 ## Class Constructor
-Constructs a new ``RbmSpinReal`` machine:
+Constructs a new ``NdmSpinPhase`` machine:
 
 |    Argument    |              Type              |                                 Description                                  |
 |----------------|--------------------------------|------------------------------------------------------------------------------|
-|hilbert         |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
+|hilbert         |netket._C_netket.hilbert.Hilbert|physical Hilbert space over which the density matrix acts.                    |
 |n_hidden        |int=0                           |Number of hidden units.                                                       |
+|n_ancilla       |int=0                           |Number of ancilla units.                                                      |
 |alpha           |int=0                           |Hidden unit density.                                                          |
+|beta            |int=0                           |Ancilla unit density.                                                         |
 |use_visible_bias|bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
 |use_hidden_bias |bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
+|use_ancilla_bias|bool=True                       |If ``True`` then there would be a bias on the ancilla units. Default ``True``.|
 
 ### Examples
-A ``RbmSpinReal`` machine with hidden unit density
-alpha = 2 for a one-dimensional L=20 spin-half system:
+A ``NdmSpinPhase`` machine with hidden unit density
+alpha = 1 and ancilla unit density beta = 2 for a
+one-dimensional L=9 spin-half system:
 
 ```python
->>> from netket.machine import RbmSpinReal
+>>> from netket.machine import NdmSpinPhase
 >>> from netket.hilbert import Spin
 >>> from netket.graph import Hypercube
->>> g = Hypercube(length=20, n_dim=1)
->>> hi = Spin(s=0.5, total_sz=0, graph=g)
->>> ma = RbmSpinReal(hilbert=hi,alpha=2)
+>>> g = Hypercube(length=9, n_dim=1)
+>>> hi = Spin(s=0.5, total_sz=0.5, graph=g)
+>>> ma = NdmSpinPhase(hilbert=hi,alpha=1, beta=2)
 >>> print(ma.n_par)
-860
+540
 
 ```
 
@@ -105,12 +106,23 @@ This method requires an indexable Hilbert space.
 
 
 
+### to_matrix
+a
+Returns a numpy matrix representation of the machine.
+The returned matrix has trace normalized to 1,
+Note that, in general, the size of the matrix is exponential
+in the number of quantum numbers, and this operation should thus
+only be performed for low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
 ## Properties
 
-|   Property   |         Type         |                                                   Description                                                    |
-|--------------|----------------------|------------------------------------------------------------------------------------------------------------------|
-|hilbert       |netket.hilbert.Hilbert| The hilbert space object of the system.                                                                          |
-|is_holomorphic|bool                  | Whether the given wave-function is a holomorphic function of             its parameters                          |
-|n_par         |int                   | The number of parameters in the machine.                                                                         |
-|n_visible     |int                   | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
-|parameters    |list                  | List containing the parameters within the layer.             Read and write                                      |
+|    Property    |         Type         |                                                   Description                                                    |
+|----------------|----------------------|------------------------------------------------------------------------------------------------------------------|
+|hilbert         |netket.hilbert.Hilbert| The hilbert space object of the system.                                                                          |
+|hilbert_physical|netket.hilbert.Hilbert| The physical hilbert space object of the density matrix.                                                         |
+|is_holomorphic  |bool                  | Whether the given wave-function is a holomorphic function of             its parameters                          |
+|n_par           |int                   | The number of parameters in the machine.                                                                         |
+|n_visible       |int                   | The number of inputs into the machine aka visible units in             the case of Restricted Boltzmann Machines.|
+|parameters      |list                  | List containing the parameters within the layer.             Read and write                                      |

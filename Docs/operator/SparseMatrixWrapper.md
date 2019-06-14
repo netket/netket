@@ -5,9 +5,9 @@ This class stores the matrix elements of a given Operator as an Eigen sparse mat
 Constructs a sparse matrix wrapper from an operator. Matrix elements are
 stored as a sparse Eigen matrix.
 
-|Argument|     Type      |               Description                |
-|--------|---------------|------------------------------------------|
-|operator|netket.Operator|The operator used to construct the matrix.|
+|Argument|          Type           |               Description                |
+|--------|-------------------------|------------------------------------------|
+|operator|netket._C_netket.Operator|The operator used to construct the matrix.|
 
 ### Examples
 Printing the dimension of a sparse matrix wrapper.
