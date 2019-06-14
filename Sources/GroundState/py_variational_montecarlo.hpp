@@ -193,7 +193,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
         if (return_locvals) {
           VectorXcd locvals;
           auto ex = vmc::Expectation(result, psi, op, locvals);
-          return py::object(py::make_tuple(ex, locvals));
+          return static_cast<py::object>(py::make_tuple(ex, locvals));
         } else {
           return py::cast(vmc::Expectation(result, psi, op));
         }
