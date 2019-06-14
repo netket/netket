@@ -225,6 +225,7 @@ add_library(netket MODULE Sources/pynetket.cc Sources/Dynamics/py_dynamics.cpp
     Sources/Machine/mps_periodic.cc Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
+    Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
     Sources/Utils/mpi_interface.cc Sources/Utils/json_utils.cc Sources/Utils/py_utils.cc)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
