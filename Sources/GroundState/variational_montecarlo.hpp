@@ -29,12 +29,12 @@
 #include "Optimizer/stochastic_reconfiguration.hpp"
 #include "Output/json_output_writer.hpp"
 #include "Sampler/abstract_sampler.hpp"
+#include "Sampler/vmc_sampling.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
 
-#include "vmc_sampling.hpp"
 
 namespace netket {
 
