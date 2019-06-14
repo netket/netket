@@ -57,7 +57,9 @@ json FieldVal(const json& pars, const std::string& field,
 void FieldArray(const json& pars, const std::string& field,
                 std::vector<int>& arr, const std::string& context = "");
 
-json ReadJsonFromFile(std::string filename);
+json ReadJsonFromFile(const std::string& filename);
+
+void WriteJsonToFile(const json& json, const std::string& filename);
 
 template <class Value, class JSON>
 Value FieldVal(const JSON& pars, const std::string& field,
