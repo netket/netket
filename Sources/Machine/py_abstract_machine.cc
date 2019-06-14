@@ -24,6 +24,8 @@
 
 namespace netket {
 
+namespace detail {
+namespace {
 bool ShouldIDoIO() noexcept {
   auto rank = 0;
   auto const status = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -70,6 +72,8 @@ auto ShouldNotThrow(Function &&function, Args &&... args) noexcept
                    // marked [[noreturn]]).
   }
 }
+}  // namespace
+}  // namespace detail
 
 int PyAbstractMachine::Npar() const {
   PYBIND11_OVERLOAD_PURE_NAME(
@@ -90,7 +94,7 @@ int PyAbstractMachine::Nvisible() const {
 }
 
 bool PyAbstractMachine::IsHolomorphic() const noexcept {
-  return ShouldNotThrow([this]() {
+  return detail::ShouldNotThrow([this]() {
     PYBIND11_OVERLOAD_PURE_NAME(
         bool,              /* Return type */
         AbstractMachine,   /* Parent class */
