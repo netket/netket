@@ -223,18 +223,21 @@ Complex RbmSpinReal::LogValDiff(VisibleConstType v,
   return logvaldiff;
 }
 
-void RbmSpinReal::to_json(json &j) const {
-  j["Name"] = "RbmSpinReal";
-  j["Nvisible"] = nv_;
-  j["Nhidden"] = nh_;
-  j["UseVisibleBias"] = usea_;
-  j["UseHiddenBias"] = useb_;
-  j["a"] = a_;
-  j["b"] = b_;
-  j["W"] = W_;
+void RbmSpinReal::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "RbmSpinReal";
+  state["Nvisible"] = nv_;
+  state["Nhidden"] = nh_;
+  state["UseVisibleBias"] = usea_;
+  state["UseHiddenBias"] = useb_;
+  state["a"] = a_;
+  state["b"] = b_;
+  state["W"] = W_;
+  WriteJsonToFile(state, filename);
 }
 
-void RbmSpinReal::from_json(const json &pars) {
+void RbmSpinReal::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   std::string name = FieldVal<std::string>(pars, "Name");
   if (name != "RbmSpinReal") {
     throw InvalidInputError(
@@ -278,6 +281,6 @@ void RbmSpinReal::from_json(const json &pars) {
   }
 }
 
-bool RbmSpinReal::IsHolomorphic() { return false; }
+bool RbmSpinReal::IsHolomorphic() const noexcept { return false; }
 
 }  // namespace netket

@@ -76,8 +76,10 @@ class JastrowSymm : public AbstractMachine {
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
 
-  void to_json(json &j) const override;
-  void from_json(const json &pars) override;
+  void Save(const std::string &filename) const override;
+  void Load(const std::string &filename) override;
+
+  bool IsHolomorphic() const noexcept override;
 
  private:
   inline void Init(const AbstractGraph &graph);

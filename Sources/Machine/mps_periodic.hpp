@@ -83,8 +83,10 @@ class MPSPeriodic : public AbstractMachine {
                      const LookupType &lt) override;
   VectorType DerLog(VisibleConstType v) override;
 
-  void to_json(json &j) const override;
-  void from_json(const json &pars) override;
+  void Save(const std::string &filename) const override;
+  void Load(const std::string &filename) override;
+
+  bool IsHolomorphic() const noexcept override;
 
  private:
   inline MatrixType prod(const MatrixType &m1, const MatrixType &m2) const;
@@ -103,7 +105,6 @@ class MPSPeriodic : public AbstractMachine {
   // Auxiliary function that calculates contractions from site1 to site2
   inline MatrixType mps_contraction(VisibleConstType v, const int &site1,
                                     const int &site2);
-  inline void from_jsonWeights(const json &pars);
 };
 
 }  // namespace netket

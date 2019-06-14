@@ -98,8 +98,7 @@ class JsonOutputWriter {
       return;
     }
     if (iteration % save_every_ == 0) {
-      std::ofstream wf_stream{wf_stream_name_};
-      SaveState_Impl(wf_stream, state);
+      SaveState_Impl(wf_stream_name_, state);
     }
   }
 
@@ -107,16 +106,17 @@ class JsonOutputWriter {
   // Member functions functions for saving the state.
   // The first overload works for classes inheriting from AbstractMachine, the
   // second one for Eigen matrices.
-  void SaveState_Impl(std::ofstream& stream, const AbstractMachine& state) {
-    state.Save(stream);
+  void SaveState_Impl(const std::string& filename,
+                      const AbstractMachine& state) {
+    state.Save(filename);
   }
 
   template <typename T, int S1, int S2>
-  void SaveState_Impl(std::ofstream& stream,
+  void SaveState_Impl(const std::string& filename,
                       const Eigen::Matrix<T, S1, S2>& state) {
     json j;
     j["StateVector"] = state;
-    stream << j << std::endl;
+    WriteJsonToFile(j, filename);
   }
 
   static std::string _s_start;
