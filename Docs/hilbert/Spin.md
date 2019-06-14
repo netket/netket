@@ -4,10 +4,10 @@ Hilbert space composed of spin states.
 ## Class Constructor [1]
 Constructs a new ``Spin`` given a graph and the value of each spin.
 
-|Argument|       Type       |                    Description                    |
-|--------|------------------|---------------------------------------------------|
-|graph   |netket.graph.Graph|Graph representation of sites.                     |
-|s       |float             |Spin at each site. Must be integer or half-integer.|
+|Argument|            Type            |                    Description                    |
+|--------|----------------------------|---------------------------------------------------|
+|graph   |netket._C_netket.graph.Graph|Graph representation of sites.                     |
+|s       |float                       |Spin at each site. Must be integer or half-integer.|
 
 ### Examples
 Simple spin hilbert space.
@@ -26,11 +26,11 @@ Simple spin hilbert space.
 ## Class Constructor [2]
 Constructs a new ``Spin`` given a graph and the value of each spin.
 
-|Argument|       Type       |                     Description                     |
-|--------|------------------|-----------------------------------------------------|
-|graph   |netket.graph.Graph|Graph representation of sites.                       |
-|s       |float             |Spin at each site. Must be integer or half-integer.  |
-|total_sz|float             |Constrain total spin of system to a particular value.|
+|Argument|            Type            |                     Description                     |
+|--------|----------------------------|-----------------------------------------------------|
+|graph   |netket._C_netket.graph.Graph|Graph representation of sites.                       |
+|s       |float                       |Spin at each site. Must be integer or half-integer.  |
+|total_sz|float                       |Constrain total spin of system to a particular value.|
 
 ### Examples
 Simple spin hilbert space.
@@ -105,6 +105,7 @@ where the local changes have been done.
 
 |  Property  |                                                                            Type                                                                            |                                                      Description                                                       |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+|graph       |netket.graph.Graph                                                                                                                                          | The Graph used to construct this Hilbert space.                                                                        |
 |index       |        HilbertIndex                                                                                                                                        | An object containing information on the states of an                indexable Hilbert space                            |
 |is_discrete |bool                                                                                                                                                        | Whether the hilbert space is discrete.                                                                                 |
 |is_indexable|        We call a Hilbert space indexable if and only if the total Hilbert space        dimension can be represented by an index of type int.        Returns|            bool: Whether the Hilbert space is indexable.                                                               |

@@ -5,12 +5,14 @@ import itertools
 
 def _ImagTimePropagation_iter(self, dt, n_iter=None):
     """
+    iter(self: ImagTimePropagation, dt: float, n_iter: int=None) -> int
+
     Returns a generator which advances the time evolution by dt,
     yielding after every step.
 
     Args:
         dt (float): The size of the time step.
-        n_iter (int, optional): The number of steps or None, for no limit.
+        n_iter (int=None): The number of steps or None, for no limit.
 
     Yields:
         int: The current step.

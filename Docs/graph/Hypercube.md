@@ -16,8 +16,8 @@ A 10x10 square lattice with periodic boundary conditions can be
 constructed as follows:
 
 ```python
->>> from netket.graph import Hypercube
->>> g=Hypercube(length=10,n_dim=2,pbc=True)
+>>> import netket
+>>> g=netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
 >>> print(g.n_sites)
 100
 

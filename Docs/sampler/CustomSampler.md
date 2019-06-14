@@ -87,4 +87,3 @@ consists of an extensive number of local moves.
 |machine     |         netket.machine                     | The machine used for the sampling.                                                                                                                                                            |
 |machine_func|                           function(complex)| The function to be used for sampling.                                        by default $$\|\Psi(x)\|^2$$ is sampled,                                        however in general $$F(\Psi(v))$$  |
 |visible     |                       numpy.array          | The quantum numbers being sampled,                        and distributed according to $$F(\Psi(v))$$                                                                                         |
-

@@ -9,9 +9,9 @@ A Jastrow wavefunction Machine. This machine defines the following
 ## Class Constructor
 Constructs a new ``Jastrow`` machine:
 
-|Argument|         Type         |            Description             |
-|--------|----------------------|------------------------------------|
-|hilbert |netket.hilbert.Hilbert|Hilbert space object for the system.|
+|Argument|              Type              |            Description             |
+|--------|--------------------------------|------------------------------------|
+|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.|
 
 ### Examples
 A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2

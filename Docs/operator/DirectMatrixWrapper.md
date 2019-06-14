@@ -7,9 +7,9 @@ This class wraps a given Operator. The
 Constructs a direct matrix wrapper from an operator. Matrix elements are
 calculated when required.
 
-|Argument|     Type      |               Description                |
-|--------|---------------|------------------------------------------|
-|operator|netket.Operator|The operator used to construct the matrix.|
+|Argument|          Type           |               Description                |
+|--------|-------------------------|------------------------------------------|
+|operator|netket._C_netket.Operator|The operator used to construct the matrix.|
 
 ### Examples
 Printing the dimension of a direct matrix wrapper.

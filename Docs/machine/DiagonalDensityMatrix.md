@@ -1,36 +1,13 @@
-# JastrowSymm
-A Jastrow wavefunction Machine with lattice symmetries.This machine
- defines the wavefunction as follows:
-
- $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
-
- where $$ W_{ij} $$ are the Jastrow parameters respects the
- specified symmetries of the lattice.
+# DiagonalDensityMatrix
+A Machine sampling the diagonal of a density matrix.
 
 ## Class Constructor
-Constructs a new ``JastrowSymm`` machine:
+Constructs a new ``DiagonalDensityMatrix`` machine sampling the
+diagonal of the provided density matrix.
 
-|Argument|              Type              |            Description             |
-|--------|--------------------------------|------------------------------------|
-|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.|
-
-### Examples
-A ``JastrowSymm`` machine for a one-dimensional L=20 spin
-1/2 system:
-
-```python
->>> from netket.machine import JastrowSymm
->>> from netket.hilbert import Spin
->>> from netket.graph import Hypercube
->>> g = Hypercube(length=20, n_dim=1)
->>> hi = Spin(s=0.5, total_sz=0, graph=g)
->>> ma = JastrowSymm(hilbert=hi)
->>> print(ma.n_par)
-10
-
-```
-
-
+|Argument|                 Type                 |    Description    |
+|--------|--------------------------------------|-------------------|
+|dm      |netket._C_netket.machine.DensityMatrix|the density matrix.|
 
 ## Class Methods 
 ### der_log
