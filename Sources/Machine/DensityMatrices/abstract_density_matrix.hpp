@@ -35,74 +35,221 @@ class AbstractDensityMatrix : public AbstractMachine {
 
   using Edge = AbstractGraph::Edge;
 
-  /**
-   * Returns the disjoint union G of a graph g with itself. The resulting graph
-   * has twice the number of vertices and edges of g.
-   * The automorpisms of G are the automorphisms of g applied identically
-   * to both it's subgraphs.
-   */
-  static std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph) {
-    auto n_sites = graph.Nsites();
-    std::vector<Edge> d_edges(graph.Edges().size());
-    auto eclist = graph.EdgeColors();
-
-    // same graph
-    auto d_eclist = graph.EdgeColors();
-    for (auto edge : graph.Edges()) {
-      d_edges.push_back(edge);
-    }
-
-    // second graph
-    for (auto edge : graph.Edges()) {
-      Edge new_edge = edge;
-      new_edge[0] += n_sites;
-      new_edge[1] += n_sites;
-
-      d_edges.push_back(new_edge);
-      d_eclist.emplace(new_edge, eclist[edge]);
-    }
-
-    std::vector<std::vector<int>> d_automorphisms;
-    for (auto automorphism : graph.SymmetryTable()) {
-      std::vector<int> d_automorphism = automorphism;
-      for (auto s : automorphism) {
-        d_automorphism.push_back(s + n_sites);
-      }
-      d_automorphisms.push_back(d_automorphism);
-    }
-
-    return make_unique<CustomGraph>(
-        CustomGraph(d_edges, d_eclist, d_automorphisms));
-  }
-
  protected:
   AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> physical_hilbert,
-                        std::unique_ptr<const AbstractGraph> doubled_graph)
-      : AbstractMachine(std::make_shared<CustomHilbert>(
-            *doubled_graph, physical_hilbert->LocalStates())),
-        hilbert_physical_(physical_hilbert),
-        graph_doubled_(std::move(doubled_graph)) {}
+                        std::unique_ptr<const AbstractGraph> doubled_graph);
 
  public:
-  explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractDensityMatrix(hilbert, DoubledGraph(hilbert->GetGraph())){};
+  explicit AbstractDensityMatrix(
+      std::shared_ptr<const AbstractHilbert> hilbert);
 
   /**
    * Member function returning the physical hilbert space over which
    * this density matrix acts as a shared pointer.
    * @return The physical hilbert space
    */
-  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const {
-    return hilbert_physical_;
-  }
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const;
 
-  /* Member function returning a reference to the physical hilbert space
+  /**
+   * Member function returning a reference to the physical hilbert space
    * on which this density matrix acts.
    * @return The physical hilbert space
    */
-  const AbstractHilbert &GetHilbertPhysical() const noexcept {
-    return *hilbert_physical_;
-  }
+  const AbstractHilbert &GetHilbertPhysical() const noexcept;
+
+  /**
+  Member function initializing the look-up tables.
+  If needed, a Machine can make use of look-up tables
+  to speed up some critical functions. For example,
+  to speed up the calculation of density-matrix ratios.
+  The state of a look-up table depends on the visible units.
+  This function should initialize the look-up tables
+  making sure that memory in the table is also being allocated.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param lt a reference to the look-up table to be initialized.
+  */
+  virtual void InitLookup(VisibleConstType v_r, VisibleConstType v_c,
+                          LookupType &lt) = 0;
+  /**
+  Member function updating the look-up tables.
+  If needed, a Machine can make use of look-up tables
+  to speed up some critical functions. For example,
+  to speed up the calculation of density matrix ratios.
+  The state of a look-up table depends on the visible units.
+  This function should update the look-up tables
+  when the state of visible units is changed according
+  to the information stored in toflip and newconf
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param tochange_r a constant reference to a vector containing the indices of
+  the units to be modified on the row configuration.
+  @param tochange_c a constant reference to a vector containing the indices of
+  the units to be modified on the column configuration.
+  @param newconf_r a constant reference to a vector containing the new values of
+  the row visible units: here newconf_r(i)=v_r'(tochange_r(i)), where v_r' is
+  the new row visible state.
+  @param newconf_c a constant reference to a vector containing the new values of
+  the column visible units: here newconf_c(i)=v_c'(tochange_c(i)), where v_c' is
+  the new column visible state.
+  @param lt a reference to the look-up table to be updated.
+  */
+  virtual void UpdateLookup(VisibleConstType v_r, VisibleConstType v_c,
+                            const std::vector<int> &tochange_r,
+                            const std::vector<int> &tochange_c,
+                            const std::vector<double> &newconf_r,
+                            const std::vector<double> &newconf_c,
+                            LookupType &lt) = 0;
+
+  /**
+  Member function computing the derivative of the logarithm of the
+  density-matrix function for a given visible vector.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @return Derivatives of the logarithm of the density matrix with respect to the
+  set of parameters.
+  */
+  virtual VectorType DerLog(VisibleConstType v_r, VisibleConstType v_c) = 0;
+
+  /**
+  Member function computing the derivative of the logarithm of the
+  density-matrix for a given visible vector. This specialized version, if
+  implemented, should make use of the Lookup table to speed up the calculation.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @return Derivatives of the logarithm of the density matrix with respect to the
+  set of parameters.
+  */
+  virtual VectorType DerLog(VisibleConstType v_r, VisibleConstType v_c,
+                            const LookupType &lt) = 0;
+  /**
+  Member function computing the logarithm of the density matrix for the given
+  row and column visible vectors. Given the current set of parameters, this
+  function should compute the value of the logarithm of the density matrix from
+  scratch.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @return Logarithm of the density matrix function.
+  */
+  virtual Complex LogVal(VisibleConstType v_r, VisibleConstType v_c) = 0;
+
+  /**
+  Member function computing the logarithm of the density matrix for the given
+  row and column visible vectors. Given the current set of parameters, this
+  function should compute the value of the logarithm of the density matrix using
+  the information provided in the look-up table, to speed up the computation.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param lt a constant eference to the look-up table.
+  @return Logarithm of the density matrix function.
+  */
+  virtual Complex LogVal(VisibleConstType v_r, VisibleConstType v_c,
+                         const LookupType &lt) = 0;
+
+  /**
+  Member function computing the difference between the logarithm of the
+  density matrix computed at different values of the visible units ((v_r, v_c),
+  and a set of (v_r',v_c')).
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param tochange_r a constant reference to a vector containing the indices of
+  the units to be modified on the row configuration.
+  @param tochange_c a constant reference to a vector containing the indices of
+  the units to be modified on the column configuration.
+  @param newconf_r a constant reference to a vector containing the new values of
+  the row visible units: here newconf_r(i)=v_r'(tochange_r(i)), where v_r' is
+  the new row visible state.
+  @param newconf_c a constant reference to a vector containing the new values of
+  the column visible units: here newconf_c(i)=v_c'(tochange_c(i)), where v_c' is
+  the new column visible state.
+  @return A vector containing, for each ( v_r',v_c'),log(Rho(v_r', v_c')) -
+  log(Rho(v_r', v_c'))
+  */
+  virtual VectorType LogValDiff(
+      VisibleConstType v_r, VisibleConstType v_c,
+      const std::vector<std::vector<int>> &tochange_r,
+      const std::vector<std::vector<int>> &tochange_c,
+      const std::vector<std::vector<double>> &newconf_r,
+      const std::vector<std::vector<double>> &newconf_c) = 0;
+
+  /**
+  Member function computing the difference between the logarithm of the
+  wave-function computed at different values of the visible units ((v_r, v_c),
+  and a single (v_r',v_c')). This version uses the look-up tables to speed-up
+  the calculation.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param tochange_r a constant reference to a vector containing the indices of
+  the units to be modified on the row configuration.
+  @param tochange_c a constant reference to a vector containing the indices of
+  the units to be modified on the column configuration.
+  @param newconf_r a constant reference to a vector containing the new values of
+  the row visible units: here newconf_r(i)=v_r'(tochange_r(i)), where v_r' is
+  the new row visible state.
+  @param newconf_c a constant reference to a vector containing the new values of
+  the column visible units: here newconf_c(i)=v_c'(tochange_c(i)), where v_c' is
+  the new column visible state.
+  @param lt a constant reference to the look-up table.
+  @return The value of log(Rho(v_r', v_c')) - log(Rho(v_r', v_c'))
+*/
+  virtual Complex LogValDiff(VisibleConstType v_r, VisibleConstType v_c,
+                             const std::vector<int> &tochange_r,
+                             const std::vector<int> &tochange_c,
+                             const std::vector<double> &newconf_r,
+                             const std::vector<double> &newconf_c,
+                             const LookupType &lt) = 0;
+  /**
+  Member function computing O_k(v'), the derivative of
+  the logarithm of the wave function at an update visible state v', given the
+  current value at v. Specialized versions use the look-up tables to speed-up
+  the calculation, otherwise it is computed from scratch.
+  @param v_r a constant reference to the visible configuration of the row.
+  @param v_c a constant reference to the visible configuration of the column.
+  @param tochange_r a constant reference to a vector containing the indices of
+  the units to be modified on the row configuration.
+  @param tochange_c a constant reference to a vector containing the indices of
+  the units to be modified on the column configuration.
+  @param newconf_r a constant reference to a vector containing the new values of
+  the row visible units: here newconf_r(i)=v_r'(tochange_r(i)), where v_r' is
+  the new row visible state.
+  @param newconf_c a constant reference to a vector containing the new values of
+  the column visible units: here newconf_c(i)=v_c'(tochange_c(i)), where v_c' is
+  the new column visible state.
+  @param lt a constant reference to the look-up table.
+  @return The value of DerLog(v')
+*/
+  virtual VectorType DerLogChanged(VisibleConstType v_r,VisibleConstType v_c,
+                                   const std::vector<int> &tochange_r,
+                                   const std::vector<int> &tochange_c,
+                                   const std::vector<double> &newconf,
+                                   const std::vector<double> &newconf_c);
+
+
+  // Implementations for the AbstractMachine interface.
+  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
+                    const std::vector<double> &newconf,
+                    LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v) override;
+  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v) override;
+  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  VectorType LogValDiff(
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf) override;
+  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const LookupType &lt) override;
+  using AbstractMachine::DerLogChanged;
+
+ protected:
+  /**
+   * Returns the disjoint union G of a graph g with itself. The resulting graph
+   * has twice the number of vertices and edges of g.
+   * The automorpisms of G are the automorphisms of g applied identically
+   * to both it's subgraphs.
+   */
+  static std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph);
 };
 }  // namespace netket
 
