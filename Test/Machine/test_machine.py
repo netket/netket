@@ -5,6 +5,7 @@ import pytest
 from pytest import approx
 import os
 
+from rbm import PyRbm
 
 def merge_dicts(x, y):
     z = x.copy()  # start with x's keys and values
@@ -23,7 +24,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-machines["PyRbm 1d Hypercube spin"] = nk.machine.PyRbm(hilbert=hi, alpha=3)
+machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
 
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 

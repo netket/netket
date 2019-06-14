@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_MACHINE_PY_ABSTRACT_MATHINE_HPP
-#define NETKET_MACHINE_PY_ABSTRACT_MATHINE_HPP
+#ifndef NETKET_MACHINE_PY_ABSTRACT_MACHINE_HPP
+#define NETKET_MACHINE_PY_ABSTRACT_MACHINE_HPP
 
 #include "Machine/abstract_machine.hpp"
 
@@ -30,7 +30,7 @@ class PyAbstractMachine : public AbstractMachine {
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitRandomPars(int const seed, double const sigma) override;
+  void InitRandomPars(int seed, double sigma) override;
 
   Complex LogVal(VisibleConstType v) override;
   Complex LogVal(VisibleConstType v, const LookupType & /*unused*/) override;
@@ -68,4 +68,4 @@ class PyAbstractMachine : public AbstractMachine {
 
 }  // namespace netket
 
-#endif  // NETKET_MACHINE_PY_ABSTRACT_MATHINE_HPP
+#endif  // NETKET_MACHINE_PY_ABSTRACT_MACHINE_HPP

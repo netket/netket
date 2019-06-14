@@ -154,7 +154,7 @@ void FieldArray(const json &pars, const std::string &field,
   }
 }
 
-json ReadJsonFromFile(std::string const &filename) {
+json ReadJsonFromFile(const std::string &filename) {
   json pars;
 
   std::ifstream filein(filename);
@@ -168,7 +168,7 @@ json ReadJsonFromFile(std::string const &filename) {
   return pars;
 }
 
-void WriteJsonToFile(const json &json, std::string const &filename) {
+void WriteJsonToFile(const json &json, const std::string &filename) {
   std::ofstream out_file;
   out_file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   out_file.open(filename);
