@@ -220,7 +220,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
                  from netket.operator import Ising
                  from netket.machine import RbmSpin
                  from netket.sampler import MetropolisLocal
-                 from netket.variational import compute_vmc_samples, expectation, gradient
+                 from netket.variational import compute_samples, expectation, gradient
 
                  hi = Spin(s=0.5, graph=Hypercube(8, 1))
                  ham = Ising(hi, h=1.0)
@@ -228,8 +228,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
                  psi.init_random_parameters(sigma=0.1)
                  sampler = MetropolisLocal(psi)
 
-                 for step in range(100):
-                     data = compute_vmc_samples(sampler, 10000, 1000)
+                 for step in range(10):
+                     data = compute_samples(sampler, 10000, 1000)
 
                      ex = expectation(data, psi, ham)
                      print("E={Mean:.4f} ± {Sigma:.4f}".format(**ex))
@@ -282,7 +282,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
                  from netket.operator import Ising
                  from netket.machine import RbmSpin
                  from netket.sampler import MetropolisLocal
-                 from netket.variational import compute_vmc_samples, expectation, gradient
+                 import netket.variational as vmc
 
                  hi = Spin(s=0.5, graph=Hypercube(8, 1))
                  ham = Ising(hi, h=1.0)
@@ -290,9 +290,9 @@ void AddVariationalMonteCarloModule(py::module &m) {
                  psi.init_random_parameters(sigma=0.1)
                  sampler = MetropolisLocal(psi)
 
-                 data = compute_vmc_samples(sampler, 10000, 1000)
-                 ex, lv = expectation(data, psi, ham)
-                 var = variance(data, psi, ham, ex["Mean], lv)
+                 data = vmc.compute_samples(sampler, 10000, 1000)
+                 ex, lv = vmc.expectation(data, psi, ham, return_locvals=True)
+                 var = vmc.variance(data, psi, ham, ex["Mean"], lv)
                ```
             )EOF");
 
