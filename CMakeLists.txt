@@ -212,19 +212,36 @@ endif()
 
 
 
-add_library(netket MODULE Sources/pynetket.cc Sources/Dynamics/py_dynamics.cpp
-    Sources/Graph/hypercube.cc Sources/Graph/lattice.cc
-    Sources/Graph/custom_graph.cc Sources/Graph/abstract_graph.cc
-    Sources/Graph/py_graph.cc Sources/Hilbert/hilbert_index.cc
-    Sources/Hilbert/bosons.cc Sources/Hilbert/spins.cc 
-    Sources/Hilbert/custom_hilbert.cc Sources/Hilbert/py_hilbert.cc
-    Sources/Machine/abstract_machine.cc Sources/Machine/rbm_spin.cc
-    Sources/Machine/rbm_multival.cc Sources/Machine/rbm_spin_phase.cc
-    Sources/Machine/rbm_spin_real.cc Sources/Machine/rbm_spin_symm.cc
-    Sources/Machine/jastrow.cc Sources/Machine/jastrow_symm.cc
-    Sources/Machine/mps_periodic.cc Sources/Machine/py_machine.cc
-    Sources/Machine/py_abstract_machine.cc Sources/Sampler/vmc_sampling.cc
-    Sources/Utils/mpi_interface.cc Sources/Utils/json_utils.cc Sources/Utils/py_utils.cc)
+add_library(netket MODULE
+    Sources/Dynamics/py_dynamics.cpp
+    Sources/Graph/abstract_graph.cc
+    Sources/Graph/custom_graph.cc
+    Sources/Graph/hypercube.cc
+    Sources/Graph/lattice.cc
+    Sources/Graph/py_graph.cc
+    Sources/Hilbert/bosons.cc
+    Sources/Hilbert/custom_hilbert.cc
+    Sources/Hilbert/hilbert_index.cc
+    Sources/Hilbert/py_hilbert.cc
+    Sources/Hilbert/spins.cc
+    Sources/Machine/abstract_machine.cc
+    Sources/Machine/jastrow_symm.cc
+    Sources/Machine/jastrow.cc
+    Sources/Machine/mps_periodic.cc
+    Sources/Machine/py_abstract_machine.cc
+    Sources/Machine/py_machine.cc
+    Sources/Machine/rbm_multival.cc
+    Sources/Machine/rbm_spin_phase.cc
+    Sources/Machine/rbm_spin_real.cc
+    Sources/Machine/rbm_spin_symm.cc
+    Sources/Machine/rbm_spin.cc
+    Sources/Operator/abstract_operator.cc
+    Sources/Sampler/vmc_sampling.cc
+    Sources/Utils/json_utils.cc
+    Sources/Utils/mpi_interface.cc
+    Sources/Utils/py_utils.cc
+    Sources/pynetket.cc
+)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
