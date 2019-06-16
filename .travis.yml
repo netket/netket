@@ -11,7 +11,7 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       language: generic
-      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=OFF -DCMAKE_CXX_FLAGS=-O1"
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=OFF -DCMAKE_CXX_FLAGS=-O2"
 
     # The oldest supported configurations
     - os: linux
@@ -49,7 +49,7 @@ matrix:
     - os: linux
       dist: xenial
       python: 3.5
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O1"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
       addons:
         apt:
           sources:
@@ -80,7 +80,7 @@ matrix:
     - os: linux
       dist: xenial
       python: 3.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O1"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O2"
       addons:
         apt:
           sources:
