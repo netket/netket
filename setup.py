@@ -58,6 +58,29 @@ class CMakeExtension(Extension):
         self.sourcedir = os.path.abspath(sourcedir)
 
 
+def _have_ninja():
+    """
+    Returns `True` if the [ninja](https://ninja-build.org/) build system is
+    available on the system.
+    """
+    with open(os.devnull, "wb") as devnull:
+        try:
+            subprocess.check_call("ninja --version".split(), stdout=devnull)
+        except OSError:
+            return False
+        else:
+            return True
+
+
+def _generator_specified(args):
+    """
+    Returns `True` if `-G` flag was given to CMake.
+    """
+    for _ in filter(lambda f: f.startswith("-G"), args):
+        return True
+    return False
+
+
 class CMakeBuild(build_ext):
     """
     We extend setuptools to support building extensions with CMake. An extension
@@ -82,6 +105,8 @@ class CMakeBuild(build_ext):
                 "-DNETKET_PYTHON_VERSION={}.{}.{}".format(*sys.version_info[:3])
             )
             cmake_args.append("-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(lib_dir))
+            if not _generator_specified(cmake_args) and _have_ninja():
+                cmake_args.append("-GNinja")
 
             def _decode(x):
                 if sys.version_info >= (3, 0):

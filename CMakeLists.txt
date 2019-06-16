@@ -2,26 +2,31 @@ cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
-option(ENABLE_TESTS "Enable unit tests." OFF)
-option(NETKET_Sanitizer "Build test suite with Clang sanitizer" OFF)
 
-project(NetKet)
+project(NetKet LANGUAGES C CXX)
 
-add_library(netket_test INTERFACE)
-target_link_libraries(netket_test INTERFACE netket_lib Catch2)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
 
-set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
-
-if(ENABLE_TESTS)
-   include(CTest) # adds option BUILD_TESTING (default ON)
-endif()
-
+include(CTest)
 include(ExternalProject)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/)
+
+option(NETKET_BUILD_TESTING "Build unit tests." OFF)
+option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
+option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
+option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
+option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
+set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
+
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "[NetKet] CMAKE_BUILD_TYPE not specified, setting it to "
+                 "Release. Use `-DCMAKE_BUILD_TYPE=...` to overwrite.")
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 
 #
 # Dependencies
@@ -83,13 +88,13 @@ add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
 
-
 # IETL
 ################################################################################
 add_library(IETL INTERFACE)
 target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
 
-# PYBIND11
+
+# pybind11
 ###############################################################################
 ExternalProject_Add(
     pybind11_project
@@ -113,13 +118,30 @@ target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
 # Greatly reduces the code bloat
 target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 
+
 # MPI
 ################################################################################
 find_package(MPI REQUIRED)
 
+
+# OpenMP
+################################################################################
+if(NETKET_USE_OPENMP)
+    find_package(OpenMP REQUIRED)
+    if(NOT TARGET OpenMP::OpenMP_CXX)
+        find_package(Threads REQUIRED)
+        add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
+        set_property(TARGET OpenMP::OpenMP_CXX
+                     PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+        # Only works if the same flag is passed to the linker; use CMake 3.9+ otherwise (Intel, AppleClang)
+        set_property(TARGET OpenMP::OpenMP_CXX
+                     PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+    endif()
+endif()
+
 # Catch2
 ################################################################################
-if (BUILD_TESTING)
+if (BUILD_TESTING AND NETKET_BUILD_TESTING)
     if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/Catch2/catch2/catch.hpp")
         file(DOWNLOAD
             "https://github.com/catchorg/Catch2/releases/download/v2.4.0/catch.hpp"
@@ -130,46 +152,6 @@ if (BUILD_TESTING)
         INTERFACE "${CMAKE_BINARY_DIR}/External/Catch2/catch2")
 endif()
 
-#
-################################################################################
-
-# option(NETKET_ENABLE_BENCHMARKS "Enable building benchmarks." ON)
-# option(BENCHMARK_ENABLE_TESTING "" OFF)
-# option(BENCHMARK_ENABLE_INSTALL "" OFF)
-# option(BENCHMARK_DOWNLOAD_DEPENDENCIES "" ON)
-# add_subdirectory(External/benchmark)
-
-if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "[NetKet] CMAKE_BUILD_TYPE not specified, setting it to "
-                 "Release. Use `-DCMAKE_BUILD_TYPE=...` to overwrite.")
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
-# Set -O3 in debug mode unless explicitly disabled
-if((${CMAKE_BUILD_TYPE} STREQUAL "Debug") AND NOT NETKET_DISABLE_OPTIMIZATION)
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3")
-endif()
-
-if(MSVC)
-  # Force to always compile with W4
-  if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
-    string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-  endif()
-elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX  OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  # Update if necessary
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Wextra -Wshadow")
-endif()
-
-
-if("Ninja" STREQUAL ${CMAKE_GENERATOR})
-    include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("-fdiagnostics-color" COMPILER_SUPPORTS_-fdiagnostics-color)
-    if (COMPILER_SUPPORTS_-fdiagnostics-color)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color")
-    endif()
-endif()
 
 #
 # NetKet
@@ -188,90 +170,96 @@ target_link_libraries(netket_lib
         IETL
         ${CMAKE_DL_LIBS}
 )
+if(NETKET_USE_OPENMP)
+    target_link_libraries(netket_lib INTERFACE OpenMP::OpenMP_CXX)
+endif()
 
-# Check if we should use native Lapack with Eigen
-option(USE_LAPACK "Enable Lapack Support." OFF)
-if(USE_LAPACK)
-    find_package(LAPACK REQUIRED)
-    add_definitions(-DEIGEN_USE_BLAS)
-    target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
-    find_package(LAPACKE)
-    if(LAPACKE_FOUND)
-    add_definitions(-DEIGEN_USE_LAPACKE)
-    target_link_libraries(netket_lib INTERFACE ${LAPACKE_LIBRARIES})
+set(NETKET_WARNING_FLAGS
+    -Wall -Wextra -pedantic
+    -Wshadow
+)
+target_compile_options(netket_lib INTERFACE ${NEKET_WARNING_FLAGS})
+
+if(${CMAKE_GENERATOR} STREQUAL "Ninja")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        target_compile_options(netket_lib INTERFACE -fcolor-diagnostics)
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        target_compile_options(netket_lib INTERFACE -fdiagnostics-color=always)
     endif()
+endif()
 
+if(NETKET_USE_BLAS)
+    find_package(BLAS REQUIRED)
+    target_compile_definitions(netket_lib INTERFACE EIGEN_USE_BLAS=1)
+    target_link_libraries(netket_lib INTERFACE ${BLAS_LIBRARIES})
+endif()
+
+if(NEKET_USE_LAPACK)
+    find_package(LAPACK REQUIRED)
+    target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1 EIGEN_USE_LAPACKE=1)
+    target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
 endif()
 
 
-
-#target_link_libraries(netket PUBLIC netket_lib)
-# Yes, this is ugly, but until CMake 3.5, we can't add an external project
-# dependency to an interface library
-#add_dependencies(netket eigen_project)
-
-
-
-add_library(netket MODULE
+set(NETKET_SOURCES
+    Sources/pynetket.cc
     Sources/Dynamics/py_dynamics.cpp
-    Sources/Graph/abstract_graph.cc
-    Sources/Graph/custom_graph.cc
     Sources/Graph/hypercube.cc
     Sources/Graph/lattice.cc
+    Sources/Graph/custom_graph.cc
+    Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
-    Sources/Hilbert/bosons.cc
-    Sources/Hilbert/custom_hilbert.cc
     Sources/Hilbert/hilbert_index.cc
-    Sources/Hilbert/py_hilbert.cc
+    Sources/Hilbert/bosons.cc
     Sources/Hilbert/spins.cc
+    Sources/Hilbert/custom_hilbert.cc
+    Sources/Hilbert/py_hilbert.cc
     Sources/Machine/abstract_machine.cc
-    Sources/Machine/jastrow_symm.cc
     Sources/Machine/jastrow.cc
+    Sources/Machine/jastrow_symm.cc
     Sources/Machine/mps_periodic.cc
-    Sources/Machine/py_abstract_machine.cc
-    Sources/Machine/py_machine.cc
     Sources/Machine/rbm_multival.cc
+    Sources/Machine/rbm_spin.cc
     Sources/Machine/rbm_spin_phase.cc
     Sources/Machine/rbm_spin_real.cc
     Sources/Machine/rbm_spin_symm.cc
-    Sources/Machine/rbm_spin.cc
+    Sources/Machine/py_machine.cc
+    Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
     Sources/Sampler/vmc_sampling.cc
-    Sources/Utils/json_utils.cc
     Sources/Utils/mpi_interface.cc
+    Sources/Utils/json_utils.cc
     Sources/Utils/py_utils.cc
-    Sources/pynetket.cc
 )
+
+add_library(netket MODULE ${NETKET_SOURCES})
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
 add_dependencies(netket json_project eigen_project pybind11_project)
 set_target_properties(netket PROPERTIES OUTPUT_NAME "_C_netket")
 
-if(NETKET_Sanitizer)
-    message(STATUS "[NetKet] Building python library with address and UB sanitizers")
-    target_compile_options(netket_lib
-        INTERFACE
-            -g -fno-omit-frame-pointer
-            -fsanitize=address -fsanitize=undefined
-    )
-    target_link_libraries(netket_lib
-        INTERFACE
-            -fsanitize=address -fsanitize=undefined
-    )
-endif()
+
+# if(NETKET_SANITIZER)
+#     message(STATUS "[NetKet] Building python library with address and UB sanitizers")
+#     target_compile_options(netket_lib
+#         INTERFACE
+#             -g -fno-omit-frame-pointer
+#             -fsanitize=address -fsanitize=undefined
+#     )
+#     target_link_libraries(netket_lib
+#         INTERFACE
+#             -fsanitize=address -fsanitize=undefined
+#     )
+# endif()
 
 #
 # Testing
 #
 
-if(BUILD_TESTING)
-   enable_testing()
-   add_subdirectory(Test)
+if(BUILD_TESTING AND NETKET_BUILD_TESTING)
+    add_library(netket_test INTERFACE)
+    target_link_libraries(netket_test INTERFACE netket_lib Catch2)
+    enable_testing()
+    add_subdirectory(Test)
 endif()
-
-#
-# Installing
-#
-
-# install (TARGETS netket DESTINATION bin)
