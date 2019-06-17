@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(NETKET_BUILD_TESTING "Build unit tests." OFF)
-option(NETKET_USE_OPENMP "Use OpenMP for multithreading" OFF)
+option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
@@ -126,6 +126,13 @@ find_package(MPI REQUIRED)
 
 # OpenMP
 ################################################################################
+if(NETKET_USE_OPENMP AND APPLE)
+    find_package(OpenMP)
+    if(NOT OpenMP_FOUND)
+      set(NETKET_USE_OPENMP OFF)
+    endif()
+endif()
+
 if(NETKET_USE_OPENMP)
     find_package(OpenMP REQUIRED)
     if(NOT TARGET OpenMP::OpenMP_CXX)
