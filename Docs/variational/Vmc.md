@@ -69,13 +69,16 @@ Calculate and return the value of the operators stored as observables.
 
 
 ### iter
-Iterate the optimization of the Vmc wavefunction.
+Returns a generator which advances the VMC optimization, yielding
+after every step_size steps up to n_iter.
 
-|Argument |       Type       |                    Description                     |
-|---------|------------------|----------------------------------------------------|
-|n_iter   |Optional[int]=None|The maximum number of iterations.                   |
-|step_size|int=1             |Number of iterations performed at a time. Default is|
 
+|Argument |  Type  |                  Description                  |
+|---------|--------|-----------------------------------------------|
+|n_iter   |int=None|The number of steps or None, for no limit.     |
+|step_size|int=1   |The number of steps the simulation is advanced.|
+
+### reset
 ### run
 Optimize the Vmc wavefunction.
 
@@ -116,3 +119,4 @@ Running a simple Vmc calculation.
 |Property|         Type         |                 Description                  |
 |--------|----------------------|----------------------------------------------|
 |machine |netket.machine.Machine| The machine used to express the wavefunction.|
+|vmc_data|                      |                                              |

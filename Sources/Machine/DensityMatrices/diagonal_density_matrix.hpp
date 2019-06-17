@@ -162,12 +162,16 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   int Nvisible() const override { return density_matrix_.Nvisible(); }
 
-  bool IsHolomorphic() override { return density_matrix_.IsHolomorphic(); }
+  bool IsHolomorphic() const noexcept override {
+    return density_matrix_.IsHolomorphic();
+  }
 
-  void to_json(json &j) const override { return density_matrix_.to_json(j); }
+  void Save(const std::string &filename) const override {
+    return density_matrix_.Save(filename);
+  }
 
-  void from_json(const json &j) override {
-    return density_matrix_.from_json(j);
+  void Load(const std::string &filename) override {
+    return density_matrix_.Load(filename);
   }
 };
 }  // namespace netket

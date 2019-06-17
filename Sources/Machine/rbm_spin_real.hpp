@@ -19,8 +19,6 @@
 
 namespace netket {
 
-using json = nlohmann::json;
-
 /** Restricted Boltzmann machine class with spin 1/2 hidden units.
 and real-valued weights
  *
@@ -81,10 +79,10 @@ class RbmSpinReal : public AbstractMachine {
                      const std::vector<double> &newconf,
                      const LookupType &lt) override;
 
-  void to_json(json &j) const override;
-  void from_json(const json &pars) override;
+  void Save(const std::string &filename) const override;
+  void Load(const std::string &filename) override;
 
-  bool IsHolomorphic() override;
+  bool IsHolomorphic() const noexcept override;
 
  private:
   inline void Init();

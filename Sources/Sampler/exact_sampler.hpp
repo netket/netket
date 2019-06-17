@@ -111,7 +111,7 @@ class ExactSampler : public AbstractSampler {
     moves_(0) += 1;
   }
 
-  Eigen::VectorXd Visible() override { return v_; }
+  const Eigen::VectorXd& Visible() const noexcept override { return v_; }
 
   void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
 

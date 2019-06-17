@@ -7,8 +7,8 @@ data, including samples and targets.
 
 |  Argument   |                Type                 |                                                                                    Description                                                                                     |
 |-------------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|machine      |netket.machine.Machine               |The machine representing the wave function.                                                                                                                                         |
-|optimizer    |netket.optimizer.Optimizer           |The optimizer object that determines how the SGD optimization.                                                                                                                      |
+|machine      |netket._C_netket.machine.Machine     |The machine representing the wave function.                                                                                                                                         |
+|optimizer    |netket._C_netket.optimizer.Optimizer |The optimizer object that determines how the SGD optimization.                                                                                                                      |
 |batch_size   |int                                  |The batch size used in SGD.                                                                                                                                                         |
 |samples      |List[numpy.ndarray[float64[m, 1]]]   |The input data, i.e. many-body basis.                                                                                                                                               |
 |targets      |List[numpy.ndarray[complex128[m, 1]]]|The output label, i.e. amplitude of the corresponding basis.                                                                                                                        |

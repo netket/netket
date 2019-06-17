@@ -10,9 +10,9 @@ A Jastrow wavefunction Machine with lattice symmetries.This machine
 ## Class Constructor
 Constructs a new ``JastrowSymm`` machine:
 
-|Argument|         Type         |            Description             |
-|--------|----------------------|------------------------------------|
-|hilbert |netket.hilbert.Hilbert|Hilbert space object for the system.|
+|Argument|              Type              |            Description             |
+|--------|--------------------------------|------------------------------------|
+|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.|
 
 ### Examples
 A ``JastrowSymm`` machine for a one-dimensional L=20 spin

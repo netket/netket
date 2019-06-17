@@ -6,12 +6,12 @@ Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
 interaction strength. The chemical potential and the hopping term can
 be specified as well.
 
-|Argument|         Type         |            Description            |
-|--------|----------------------|-----------------------------------|
-|hilbert |netket.hilbert.Hilbert|Hilbert space the operator acts on.|
-|U       |float                 |The Hubbard interaction term.      |
-|V       |float=0.0             |The hopping term.                  |
-|mu      |float=0.0             |The chemical potential.            |
+|Argument|              Type              |            Description            |
+|--------|--------------------------------|-----------------------------------|
+|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.|
+|U       |float                           |The Hubbard interaction term.      |
+|V       |float=0.0                       |The hopping term.                  |
+|mu      |float=0.0                       |The chemical potential.            |
 
 ### Examples
 Constructs a ``BoseHubbard`` operator for a 2D system.

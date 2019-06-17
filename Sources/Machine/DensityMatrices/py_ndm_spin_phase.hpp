@@ -72,10 +72,10 @@ void AddNdmSpinPhase(py::module &subm) {
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
                        >>> g = Hypercube(length=9, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+                       >>> hi = Spin(s=0.5, total_sz=0.5, graph=g)
                        >>> ma = NdmSpinPhase(hilbert=hi,alpha=1, beta=2)
                        >>> print(ma.n_par)
-                       1720
+                       540
 
                        ```
                    )EOF");

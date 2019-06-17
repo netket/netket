@@ -8,10 +8,10 @@ A feedforward neural network (FFNN) Machine. This machine is
 ## Class Constructor
 Constructs a new ``FFNN`` machine:
 
-|Argument|         Type         |            Description             |
-|--------|----------------------|------------------------------------|
-|hilbert |netket.hilbert.Hilbert|Hilbert space object for the system.|
-|layers  |tuple                 |Tuple of layers.                    |
+|Argument|              Type              |            Description             |
+|--------|--------------------------------|------------------------------------|
+|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.|
+|layers  |tuple                           |Tuple of layers.                    |
 
 ### Examples
 A ``FFNN`` machine with 2 layers.

@@ -30,6 +30,7 @@
 #include "Machine/jastrow.hpp"
 #include "Machine/jastrow_symm.hpp"
 #include "Machine/mps_periodic.hpp"
+#include "Machine/py_abstract_machine.hpp"
 #include "Machine/rbm_multival.hpp"
 #include "Machine/rbm_spin.hpp"
 #include "Machine/rbm_spin_phase.hpp"
@@ -552,12 +553,10 @@ void AddLayerModule(py::module m) {
   }
 }
 
-}  // namespace
-
-void AddMachineModule(py::module m) {
-  auto subm = m.def_submodule("machine");
-
-  py::class_<AbstractMachine>(subm, "Machine")
+void AddAbstractMachine(py::module m) {
+  py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
+      .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
+           py::arg{"hilbert"})
       .def_property_readonly(
           "n_par", &AbstractMachine::Npar,
           R"EOF(int: The number of parameters in the machine.)EOF")
@@ -627,35 +626,15 @@ void AddMachineModule(py::module m) {
           "is_holomorphic", &AbstractMachine::IsHolomorphic,
           R"EOF(bool: Whether the given wave-function is a holomorphic function of
             its parameters )EOF")
-      .def(
-          "save",
-          [](const AbstractMachine &a, std::string filename) {
-            json j;
-            a.to_json(j);
-            std::ofstream filewf(filename);
-            filewf << j << std::endl;
-            filewf.close();
-          },
-          py::arg("filename"),
-          R"EOF(
+      .def("save", &AbstractMachine::Save, py::arg("filename"),
+           R"EOF(
                  Member function to save the machine parameters.
 
                  Args:
                      filename: name of file to save parameters to.
            )EOF")
-      .def(
-          "load",
-          [](AbstractMachine &a, std::string filename) {
-            std::ifstream filewf(filename);
-            if (filewf.is_open()) {
-              json j;
-              filewf >> j;
-              filewf.close();
-              a.from_json(j);
-            }
-          },
-          py::arg("filename"),
-          R"EOF(
+      .def("load", &AbstractMachine::Load, py::arg("filename"),
+           R"EOF(
                  Member function to load machine parameters from a json file.
 
                  Args:
@@ -723,7 +702,14 @@ void AddMachineModule(py::module m) {
 
                 This method requires an indexable Hilbert space.
                 )EOF");
+}
 
+}  // namespace
+
+void AddMachineModule(py::module m) {
+  auto subm = m.def_submodule("machine");
+
+  AddAbstractMachine(subm);
   AddRbmSpin(subm);
   AddRbmSpinSymm(subm);
   AddRbmMultival(subm);

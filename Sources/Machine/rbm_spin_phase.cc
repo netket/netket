@@ -290,21 +290,24 @@ Complex RbmSpinPhase::LogValDiff(VisibleConstType v,
   return logvaldiff;
 }
 
-void RbmSpinPhase::to_json(json &j) const {
-  j["Name"] = "RbmSpinPhase";
-  j["Nvisible"] = nv_;
-  j["Nhidden"] = nh_;
-  j["UseVisibleBias"] = usea_;
-  j["UseHiddenBias"] = useb_;
-  j["a1"] = a1_;
-  j["b1"] = b1_;
-  j["W1"] = W1_;
-  j["a2"] = a2_;
-  j["b2"] = b2_;
-  j["W2"] = W2_;
+void RbmSpinPhase::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "RbmSpinPhase";
+  state["Nvisible"] = nv_;
+  state["Nhidden"] = nh_;
+  state["UseVisibleBias"] = usea_;
+  state["UseHiddenBias"] = useb_;
+  state["a1"] = a1_;
+  state["b1"] = b1_;
+  state["W1"] = W1_;
+  state["a2"] = a2_;
+  state["b2"] = b2_;
+  state["W2"] = W2_;
+  WriteJsonToFile(state, filename);
 }
 
-void RbmSpinPhase::from_json(const json &pars) {
+void RbmSpinPhase::Load(const std::string &filename) {
+  auto const pars = ReadJsonFromFile(filename);
   std::string name = FieldVal<std::string>(pars, "Name");
   if (name != "RbmSpinPhase") {
     throw InvalidInputError(
@@ -353,6 +356,6 @@ void RbmSpinPhase::from_json(const json &pars) {
   }
 }
 
-bool RbmSpinPhase::IsHolomorphic() { return false; }
+bool RbmSpinPhase::IsHolomorphic() const noexcept { return false; }
 
 }  // namespace netket
