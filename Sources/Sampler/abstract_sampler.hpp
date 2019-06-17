@@ -30,7 +30,7 @@ class AbstractSampler {
 
   virtual void Sweep() = 0;
 
-  virtual Eigen::VectorXd Visible() = 0;
+  virtual const Eigen::VectorXd& Visible() const noexcept = 0;
 
   virtual void SetVisible(const Eigen::VectorXd& v) = 0;
 

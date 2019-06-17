@@ -12,13 +12,13 @@ A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters
 ## Class Constructor
 Constructs a new ``RbmSpinPhase`` machine:
 
-|    Argument    |         Type         |                                 Description                                  |
-|----------------|----------------------|------------------------------------------------------------------------------|
-|hilbert         |netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
-|n_hidden        |int=0                 |Number of hidden units.                                                       |
-|alpha           |int=0                 |Hidden unit density.                                                          |
-|use_visible_bias|bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
-|use_hidden_bias |bool=True             |If ``True`` then there would be a bias on the visible units. Default ``True``.|
+|    Argument    |              Type              |                                 Description                                  |
+|----------------|--------------------------------|------------------------------------------------------------------------------|
+|hilbert         |netket._C_netket.hilbert.Hilbert|Hilbert space object for the system.                                          |
+|n_hidden        |int=0                           |Number of hidden units.                                                       |
+|alpha           |int=0                           |Hidden unit density.                                                          |
+|use_visible_bias|bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
+|use_hidden_bias |bool=True                       |If ``True`` then there would be a bias on the visible units. Default ``True``.|
 
 ### Examples
 A ``RbmSpinPhase`` machine with hidden unit density

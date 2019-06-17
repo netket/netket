@@ -214,7 +214,7 @@ class MetropolisLocalPt : public AbstractSampler {
     std::swap(lt_[r1], lt_[r2]);
   }
 
-  Eigen::VectorXd Visible() override { return v_[0]; }
+  const Eigen::VectorXd& Visible() const noexcept override { return v_[0]; }
 
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 

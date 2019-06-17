@@ -183,6 +183,14 @@ inline void SumOnNodes(Eigen::VectorXcd &val, Eigen::VectorXcd &sum,
                 comm);
 }
 
+template <typename T>
+inline void MeanOnNodes(T &value, const MPI_Comm comm = MPI_COMM_WORLD) {
+  int size;
+  MPI_Comm_size(comm, &size);
+  SumOnNodes(value);
+  value /= size;
+}
+
 struct MPIHelpers {
   static int MPIRank() {
     int rank;

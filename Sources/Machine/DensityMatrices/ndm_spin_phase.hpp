@@ -160,11 +160,65 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
   }
 
-  void to_json(json &j) const override;
+  void Save(const std::string &filename) const override {
+    json state;
+    state["Name"] = "NdmSpinPhase";
+    state["Nvisible"] = nv_;
+    state["Nhidden"] = nh_;
+    state["Nancilla"] = na_;
+    state["UseVisibleBias"] = useb_;
+    state["UseHiddenBias"] = useh_;
+    state["UseAncillaBias"] = used_;
+    state["b1"] = b1_;
+    state["h1"] = h1_;
+    state["d1"] = d1_;
+    state["W1"] = W1_;
+    state["U1"] = U1_;
+
+    state["b2"] = b2_;
+    state["h2"] = h2_;
+    state["W2"] = W2_;
+    state["U2"] = U2_;
+    WriteJsonToFile(state, filename);
+  }
+
+  void Load(const std::string &filename) override {
+    auto pars = ReadJsonFromFile(filename);
+    std::string name = FieldVal<std::string>(pars, "Name");
+    if (name != "NdmSpinPhase") {
+      throw InvalidInputError(
+          "Error while constructing RbmSpinPhase from input parameters");
+    }
+
+    if (FieldExists(pars, "Nvisible")) {
+      nv_ = FieldVal<int>(pars, "Nvisible");
+    }
+    if (nv_ != GetHilbertPhysical().Size()) {
+      throw InvalidInputError(
+          "Number of visible units is incompatible with given "
+          "Hilbert space");
+    }
+
+    if (FieldExists(pars, "Nhidden")) {
+      nh_ = FieldVal<int>(pars, "Nhidden");
+    } else {
+      nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
+    }
+
+    if (FieldExists(pars, "Nancilla")) {
+      na_ = FieldVal<int>(pars, "Nancilla");
+    } else {
+      na_ = nv_ * double(FieldVal<double>(pars, "Beta"));
+    }
+
+    useb_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+    useh_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
+    used_ = FieldOrDefaultVal(pars, "UseAncillaBias", true);
+  }
 
   void from_json(const json &pars) override;
 
-  bool IsHolomorphic() override { return false; }
+  bool IsHolomorphic() const noexcept override { return false; }
 };
 
 }  // namespace netket

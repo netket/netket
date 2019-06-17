@@ -66,8 +66,10 @@ class Jastrow : public AbstractMachine {
 
   VectorType DerLog(VisibleConstType v) override;
 
-  void to_json(json &j) const override;
-  void from_json(const json &pars) override;
+  void Save(std::string const &filename) const override;
+  void Load(std::string const &filename) override;
+
+  bool IsHolomorphic() const noexcept override;
 };
 
 }  // namespace netket

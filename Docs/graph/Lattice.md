@@ -24,8 +24,8 @@ Constructs a new ``Lattice`` given its side length and the features of the unit 
 Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
 ```python
->>> from netket.graph import Lattice
->>> g=Lattice(basis_vectors=[[1,0],[0,1]],extent=[3,4])
+>>> import netket
+>>> g=netket.graph.Lattice(basis_vectors=[[1,0],[0,1]],extent=[3,4])
 >>> print(g.n_sites)
 12
 
@@ -59,8 +59,8 @@ Member function returning the site vector corresponding to a given site index.
 Constructs a square 2X2 lattice without periodic boundary conditions and prints the site vectors corresponding to given site indices.
 
 ```python
- >>> from netket.graph import Lattice
- >>> g=Lattice(basis_vectors=[[1.,0.],[0.,1.]], extent=[2,2], pbc=[0,0])
+ >>> import netket
+ >>> g=netket.graph.Lattice(basis_vectors=[[1.,0.],[0.,1.]], extent=[2,2], pbc=[0,0])
  >>> print(list(map(int,g.site_to_vector(0))))
  [0, 0]
  >>> print(list(map(int,g.site_to_vector(1))))
