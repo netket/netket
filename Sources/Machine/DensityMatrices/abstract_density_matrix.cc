@@ -13,6 +13,8 @@ using VectorType = AbstractDensityMatrix::VectorType;
 using VisibleConstType = AbstractDensityMatrix::VisibleConstType;
 using LookupType = AbstractDensityMatrix::LookupType;
 using Edge = AbstractGraph::Edge;
+using ChangeInfo = AbstractDensityMatrix::ChangeInfo;
+using RowColChangeInfo = AbstractDensityMatrix::RowColChangeInfo;
 
 AbstractDensityMatrix::AbstractDensityMatrix(
     std::shared_ptr<const AbstractHilbert> physical_hilbert,
@@ -48,21 +50,11 @@ void AbstractDensityMatrix::UpdateLookup(VisibleConstType v,
                                          const std::vector<int> &tochange,
                                          const std::vector<double> &newconf,
                                          LookupType &lt) {
-  std::vector<int> tochange_r, tochange_c;
-  std::vector<double> newconf_r, newconf_c;
-
-  if (tochange.size() != 0) {
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      if (sf < Nvisible()) {
-        tochange_r.push_back(sf);
-        newconf_r.push_back(newconf[s]);
-      } else {
-        tochange_c.push_back(sf - Nvisible());
-        newconf_c.push_back(newconf[s]);
-      }
-    }
-  }
+  auto split_data = SplitRowColsChange(tochange, newconf);
+  auto tochange_r = std::move(std::get<0>(std::get<0>(split_data)));
+  auto tochange_c = std::move(std::get<0>(std::get<1>(split_data)));
+  auto newconf_r = std::move(std::get<1>(std::get<0>(split_data)));
+  auto newconf_c = std::move(std::get<1>(std::get<1>(split_data)));
 
   // split into first half and second half
   VisibleConstType v_r = v.head(GetHilbertPhysical().Size());
@@ -104,20 +96,13 @@ VectorType AbstractDensityMatrix::LogValDiff(
 
   const std::size_t nconn = tochange.size();
   for (std::size_t k = 0; k < nconn; k++) {
-    std::vector<int> tochange_r, tochange_c;
-    std::vector<double> newconf_r, newconf_c;
-    if (tochange[k].size() != 0) {
-      for (std::size_t s = 0; s < tochange[k].size(); s++) {
-        const int sf = tochange[k][s];
-        if (sf < Nvisible()) {
-          tochange_r.push_back(sf);
-          newconf_r.push_back(newconf[k][s]);
-        } else {
-          tochange_c.push_back(sf - Nvisible());
-          newconf_c.push_back(newconf[k][s]);
-        }
-      }
-    }
+    auto split_data = SplitRowColsChange(tochange[k], newconf[k]);
+    tochange_all_r.emplace_back(
+        std::move(std::get<0>(std::get<0>(split_data))));
+    tochange_all_c.emplace_back(
+        std::move(std::get<0>(std::get<1>(split_data))));
+    newconf_all_r.emplace_back(std::move(std::get<1>(std::get<0>(split_data))));
+    newconf_all_c.emplace_back(std::move(std::get<1>(std::get<1>(split_data))));
   }
 
   return LogValDiff(v_r, v_c, tochange_all_r, tochange_all_c, newconf_all_r,
@@ -131,6 +116,30 @@ Complex AbstractDensityMatrix::LogValDiff(VisibleConstType v,
   VisibleConstType v_r = v.head(GetHilbertPhysical().Size());
   VisibleConstType v_c = v.tail(GetHilbertPhysical().Size());
 
+  auto split_data = SplitRowColsChange(tochange, newconf);
+  auto tochange_r = std::move(std::get<0>(std::get<0>(split_data)));
+  auto tochange_c = std::move(std::get<0>(std::get<1>(split_data)));
+  auto newconf_r = std::move(std::get<1>(std::get<0>(split_data)));
+  auto newconf_c = std::move(std::get<1>(std::get<1>(split_data)));
+
+  return LogValDiff(v_r, v_c, tochange_r, tochange_c, newconf_r, newconf_c, lt);
+}
+
+VectorType AbstractDensityMatrix::DerLogChanged(
+    VisibleConstType v_r, VisibleConstType v_c,
+    const std::vector<int> &tochange_r, const std::vector<int> &tochange_c,
+    const std::vector<double> &newconf_r,
+    const std::vector<double> &newconf_c) {
+  VisibleType vp_r(v_r);
+  VisibleType vp_c(v_c);
+  hilbert_physical_->UpdateConf(vp_r, tochange_r, newconf_r);
+  hilbert_physical_->UpdateConf(vp_c, tochange_c, newconf_c);
+  return DerLog(vp_r, vp_c);
+}
+
+RowColChangeInfo AbstractDensityMatrix::SplitRowColsChange(
+    const std::vector<int> &tochange,
+    const std::vector<double> &newconf) const {
   std::vector<int> tochange_r, tochange_c;
   std::vector<double> newconf_r, newconf_c;
 
@@ -147,19 +156,9 @@ Complex AbstractDensityMatrix::LogValDiff(VisibleConstType v,
     }
   }
 
-  return LogValDiff(v_r, v_c, tochange_r, tochange_c, newconf_r, newconf_c, lt);
-}
-
-VectorType AbstractDensityMatrix::DerLogChanged(
-    VisibleConstType v_r, VisibleConstType v_c,
-    const std::vector<int> &tochange_r, const std::vector<int> &tochange_c,
-    const std::vector<double> &newconf_r,
-    const std::vector<double> &newconf_c) {
-  VisibleType vp_r(v_r);
-  VisibleType vp_c(v_c);
-  hilbert_physical_->UpdateConf(vp_r, tochange_r, newconf_r);
-  hilbert_physical_->UpdateConf(vp_c, tochange_c, newconf_c);
-  return DerLog(vp_r, vp_c);
+  ChangeInfo info_r(std::move(tochange_r), std::move(newconf_r));
+  ChangeInfo info_c(std::move(tochange_c), std::move(newconf_c));
+  return RowColChangeInfo(std::move(info_r), std::move(info_c));
 }
 
 std::unique_ptr<CustomGraph> AbstractDensityMatrix::DoubledGraph(

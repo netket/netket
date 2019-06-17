@@ -33,7 +33,9 @@ class AbstractDensityMatrix : public AbstractMachine {
   std::shared_ptr<const AbstractHilbert> hilbert_physical_;
   std::unique_ptr<const AbstractGraph> graph_doubled_;
 
-  using Edge = AbstractGraph::Edge;
+ public:
+  using ChangeInfo = std::tuple<std::vector<int>, std::vector<double>>;
+  using RowColChangeInfo = std::tuple<ChangeInfo, ChangeInfo>;
 
  protected:
   AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> physical_hilbert,
@@ -218,12 +220,11 @@ class AbstractDensityMatrix : public AbstractMachine {
   @param lt a constant reference to the look-up table.
   @return The value of DerLog(v')
 */
-  virtual VectorType DerLogChanged(VisibleConstType v_r,VisibleConstType v_c,
+  virtual VectorType DerLogChanged(VisibleConstType v_r, VisibleConstType v_c,
                                    const std::vector<int> &tochange_r,
                                    const std::vector<int> &tochange_c,
                                    const std::vector<double> &newconf,
                                    const std::vector<double> &newconf_c);
-
 
   // Implementations for the AbstractMachine interface.
   void InitLookup(VisibleConstType v, LookupType &lt) override;
@@ -250,6 +251,8 @@ class AbstractDensityMatrix : public AbstractMachine {
    * to both it's subgraphs.
    */
   static std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph);
+  RowColChangeInfo SplitRowColsChange(const std::vector<int> &tochange,
+                                      const std::vector<double> &newconf) const;
 };
 }  // namespace netket
 
