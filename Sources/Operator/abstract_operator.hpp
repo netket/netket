@@ -15,12 +15,15 @@
 #ifndef NETKET_ABSTRACT_OPERATOR_HPP
 #define NETKET_ABSTRACT_OPERATOR_HPP
 
-#include <Eigen/Dense>
 #include <complex>
+#include <functional>
 #include <memory>
-#include <nonstd/span.hpp>
 #include <tuple>
 #include <vector>
+
+#include <Eigen/Core>
+#include <Eigen/SparseCore>
+#include <nonstd/span.hpp>
 
 #include "Hilbert/hilbert.hpp"
 
@@ -55,6 +58,7 @@ class AbstractOperator {
   using MelType = std::vector<Complex>;
   using ConnectorsType = std::vector<std::vector<int>>;
   using NewconfsType = std::vector<std::vector<double>>;
+  using ConnCallback = std::function<void(ConnectorRef)>;
 
   /**
   Member function finding the connected elements of the Operator.
@@ -75,16 +79,9 @@ class AbstractOperator {
                         ConnectorsType &connectors,
                         NewconfsType &newconfs) const = 0;
 
-  using ConnCallback = std::function<void(ConnectorRef)>;
-
   virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
-      VectorConstRefType v) const {
-    std::vector<Complex> mel;
-    std::vector<std::vector<int>> connectors;
-    std::vector<std::vector<double>> newconfs;
-    FindConn(v, mel, connectors, newconfs);
-    return std::make_tuple(mel, connectors, newconfs);
-  }
+      VectorConstRefType v) const;
+
   /**
    * Iterates over all states reachable from a given visible configuration v,
    * i.e., all states v' such that O(v,v') is non-zero.
@@ -103,8 +100,78 @@ class AbstractOperator {
   @return Hilbert space specifier for this Hamiltonian
   */
   const AbstractHilbert &GetHilbert() const { return *hilbert_; }
+
   std::shared_ptr<const AbstractHilbert> GetHilbertShared() const {
     return hilbert_;
+  }
+
+ private:
+  template <class Function>
+  void ForEachMatrixElement(Function &&function) const {
+    const auto &hilbert_index = GetHilbert().GetIndex();
+    for (int i = 0; i < hilbert_index.NStates(); ++i) {
+      // TODO: Make NumberToState return a reference so that we can avoid the
+      // copy here.
+      const auto v = hilbert_index.NumberToState(i);
+      ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
+                                                            conn.newconf);
+        function(i, j, conn.mel);
+      });
+    }
+  }
+
+ public:
+  /**
+   * Applies the operator to a quantum state.
+   * @param state The entry state(i) corresponds to the coefficient of the basis
+   * vector with quantum numbers given by StateFromNumber(i) of a HilbertIndex
+   * for the original operator.
+   */
+  virtual Eigen::VectorXcd Apply(const Eigen::VectorXcd &state) const {
+    auto const &hilbert_index = GetHilbert().GetIndex();
+    Eigen::VectorXcd result(hilbert_index.NStates());
+    result.setZero();
+
+    for (int i = 0; i < hilbert_index.NStates(); ++i) {
+      // TODO: Make NumberToState return a reference so that we can avoid the
+      // copy here.
+      const auto v = hilbert_index.NumberToState(i);
+      ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
+                                                            conn.newconf);
+        result(i) += conn.mel * state(j);
+      });
+    }
+    return result;
+  }
+
+  Eigen::MatrixXcd ToDense() const {
+    const auto &hilbert_index = GetHilbert().GetIndex();
+    Eigen::MatrixXcd matrix;
+    matrix.resize(hilbert_index.NStates(), hilbert_index.NStates());
+    matrix.setZero();
+    ForEachMatrixElement([&matrix](const int i, const int j, const Complex x) {
+      matrix(i, j) = x;
+    });
+    return matrix;
+  }
+
+  Eigen::SparseMatrix<Complex> ToSparse() const {
+    const auto &hilbert_index = GetHilbert().GetIndex();
+    std::vector<Eigen::Triplet<Complex>> triplets;
+    triplets.reserve(hilbert_index.NStates());
+
+    ForEachMatrixElement(
+        [&triplets](const int i, const int j, const Complex x) {
+          triplets.emplace_back(i, j, x);
+        });
+
+    Eigen::SparseMatrix<Complex> matrix(hilbert_index.NStates(),
+                                        hilbert_index.NStates());
+    matrix.setFromTriplets(triplets.begin(), triplets.end());
+    matrix.makeCompressed();
+    return matrix;
   }
 
   virtual ~AbstractOperator() = default;
@@ -116,6 +183,21 @@ class AbstractOperator {
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
+
+template <class Operator>
+Complex Mean(Operator &&apply, const Eigen::VectorXcd &state) {
+  return state.adjoint() * std::forward<Operator>(apply)(state);
+}
+
+template <class Operator>
+std::pair<Complex, double> MeanVariance(Operator &&apply,
+                                        const Eigen::VectorXcd &state) {
+  Eigen::VectorXcd state1 = apply(state);
+  const Complex mean = state.adjoint() * state1;
+  state1 -= mean * state;
+  const double var = state1.norm();
+  return {mean, var};
+}
 
 }  // namespace netket
 

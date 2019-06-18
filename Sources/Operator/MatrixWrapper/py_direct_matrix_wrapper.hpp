@@ -28,6 +28,7 @@ namespace py = pybind11;
 
 namespace netket {
 
+#if 0
 void AddDirectMatrixWrapper(py::module &subm) {
   py::class_<DirectMatrixWrapper<>, AbstractMatrixWrapper<>>(
       subm, "DirectMatrixWrapper",
@@ -58,6 +59,7 @@ void AddDirectMatrixWrapper(py::module &subm) {
 
       )EOF");
 }
+#endif
 
 }  // namespace netket
 

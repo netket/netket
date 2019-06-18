@@ -32,6 +32,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMatrixWrapper(py::module &subm) {
+#if 0
   py::class_<AbstractMatrixWrapper<>>(subm, "AbstractMatrixWrapper",
                                       R"EOF(This class wraps an AbstractOperator
   and provides a method to apply it to a pure state. @tparam State The type of a
@@ -47,6 +48,7 @@ void AddMatrixWrapper(py::module &subm) {
   AddSparseMatrixWrapper(subm);
   AddDenseMatrixWrapper(subm);
   AddDirectMatrixWrapper(subm);
+#endif
 }
 
 }  // namespace netket

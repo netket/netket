@@ -16,25 +16,57 @@ class ImagTimePropagation {
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
   using Matrix = AbstractMatrixWrapper<>;
+  using Operator = std::function<StateVector(StateVector const&)>;
+  using ObsEntry = std::pair<std::string, Operator>;
 
-  using ObsEntry = std::pair<std::string, std::unique_ptr<Matrix>>;
+  static Operator MakeOperator(const AbstractOperator& op,
+                               const std::string& type) {
+    if (type == "dense") {
+      struct Function {
+        Eigen::MatrixXcd matrix;
+        StateVector operator()(StateVector const& x) const {
+          return matrix * x;
+        }
+      };
+      return Function{op.ToDense()};
+    } else if (type == "direct") {
+      struct Function {
+        const AbstractOperator& matrix;
+        StateVector operator()(StateVector const& x) const {
+          return matrix.Apply(x);
+        }
+      };
+      return Function{op};
+    } else if (type == "sparse") {
+      struct Function {
+        Eigen::SparseMatrix<Complex> matrix;
+        StateVector operator()(StateVector const& x) const {
+          return matrix * x;
+        }
+      };
+      return Function{op.ToSparse()};
+    } else {
+      std::stringstream str;
+      str << "Unknown matrix wrapper: " << type;
+      throw InvalidInputError(str.str());
+    }
+  }
 
   ImagTimePropagation(const AbstractOperator& hamiltonian, Stepper& stepper,
                       double t0, StateVector initial_state,
                       const std::string& matrix_type = "sparse")
-      : matrix_(CreateMatrixWrapper<>(hamiltonian, matrix_type)),
+      : matrix_{MakeOperator(hamiltonian, matrix_type)},
         stepper_(stepper),
         t_(t0),
         state_(std::move(initial_state)) {
     ode_system_ = [this](const StateVector& x, StateVector& dxdt,
-                         double /*t*/) { dxdt.noalias() = -matrix_->Apply(x); };
+                         double /*t*/) { dxdt.noalias() = -matrix_(x); };
   }
 
   void AddObservable(const AbstractOperator& observable,
                      const std::string& name,
                      const std::string& matrix_type = "sparse") {
-    auto wrapper = CreateMatrixWrapper(observable, matrix_type);
-    observables_.emplace_back(name, std::move(wrapper));
+    observables_.emplace_back(name, MakeOperator(observable, matrix_type));
   }
 
   void Advance(double dt) {
@@ -47,18 +79,18 @@ class ImagTimePropagation {
   }
 
   void ComputeObservables(const StateVector& state) {
-    const auto mean_variance = matrix_->MeanVariance(state);
+    const auto mean_variance = MeanVariance(matrix_, state);
     obsmanager_.Reset("Energy");
-    obsmanager_.Push("Energy", mean_variance[0].real());
+    obsmanager_.Push("Energy", mean_variance.first.real());
     obsmanager_.Reset("EnergyVariance");
-    obsmanager_.Push("EnergyVariance", mean_variance[1].real());
+    obsmanager_.Push("EnergyVariance", mean_variance.second);
 
     for (const auto& entry : observables_) {
       const auto& name = entry.first;
       const auto& obs = entry.second;
       obsmanager_.Reset(name);
 
-      const auto value = obs->Mean(state).real();
+      const auto value = Mean(obs, state).real();
       obsmanager_.Push(name, value);
     }
   }
@@ -69,7 +101,7 @@ class ImagTimePropagation {
   void SetTime(double t) { t_ = t; }
 
  private:
-  std::unique_ptr<Matrix> matrix_;
+  std::function<StateVector(StateVector const&)> matrix_;
   Stepper& stepper_;
   ode::OdeSystemFunction<StateVector> ode_system_;
 

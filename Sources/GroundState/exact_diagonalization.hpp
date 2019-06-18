@@ -45,8 +45,8 @@ class result_t {
   Complex mean(AbstractOperator& op, int which = 0) {
     assert(which >= 0 &&
            static_cast<std::size_t>(which) < eigenvectors_.size());
-    DirectMatrixWrapper<> op_mat(op);
-    return op_mat.Mean(eigenvectors_[which]);
+    return Mean([&op](Eigen::VectorXcd const& x) { return op.Apply(x); },
+                eigenvectors_[which]);
   }
 
  private:
@@ -57,6 +57,8 @@ class result_t {
 template <class matrix_t, class iter_t, class random_t>
 result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
                      iter_t& iter, int n_eigenvectors) {
+  throw std::runtime_error{"Temporary disabled"};
+#if 0
   using vectorspace_t = ietl::vectorspace<Complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
@@ -84,6 +86,7 @@ result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
   }
   result_t result(lanczos.eigenvalues(), std::move(eigenvectors));
   return result;
+#endif
 }
 }  // namespace eddetail
 
@@ -104,13 +107,12 @@ eddetail::result_t lanczos_ed(const AbstractOperator& op,
   int n_eigenvectors = compute_eigenvectors ? first_n : 0;
 
   if (matrix_free) {
-    DirectMatrixWrapper<> matrix(op);
     eddetail::result_t results =
-        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+        eddetail::lanczos_run(op, random_gen, iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
     return results;
   } else {  // computation using Sparse matrix
-    SparseMatrixWrapper<> matrix(op);
+    auto matrix = op.ToSparse();
     eddetail::result_t results =
         eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
@@ -123,16 +125,16 @@ eddetail::result_t full_ed(const AbstractOperator& op, int first_n = 1,
   using eigen_solver_t =
       Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<Complex>>;
 
-  SparseMatrixWrapper<> matrix(op);
+  auto matrix = op.ToSparse();
 
   eigen_solver_t eigen_solver;
   eddetail::eigenvectors_t eigenvectors;
   if (compute_eigenvectors) {
-    eigen_solver = matrix.ComputeEigendecomposition();
+    eigen_solver = eigen_solver_t{matrix, Eigen::ComputeEigenvectors};
     for (int i = 0; i < first_n; ++i)
       eigenvectors.push_back(eigen_solver.eigenvectors().col(i));
   } else {
-    eigen_solver = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
+    eigen_solver = eigen_solver_t{matrix, Eigen::EigenvaluesOnly};
   }
   auto eigen_evals = eigen_solver.eigenvalues();
   eigen_evals.conservativeResize(first_n);  // Keep only first_n eigenvalues

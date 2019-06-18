@@ -22,6 +22,7 @@
 
 namespace netket {
 
+#if 0
 /**
  * This class stores the matrix elements of a given Operator
  *  as an Eigen sparse matrix.
@@ -96,7 +97,8 @@ private:
     matrix_.makeCompressed();
   }
 };
+#endif
 
-} // namespace netket
+}  // namespace netket
 
-#endif // NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH
+#endif  // NETKET_SPARSE_HAMILTONIAN_OPERATOR_HH

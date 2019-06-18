@@ -28,6 +28,7 @@ namespace py = pybind11;
 
 namespace netket {
 
+#if 0
 void AddSparseMatrixWrapper(py::module &subm) {
   py::class_<SparseMatrixWrapper<>, AbstractMatrixWrapper<>>(
       subm, "SparseMatrixWrapper",
@@ -58,6 +59,7 @@ void AddSparseMatrixWrapper(py::module &subm) {
           "data", &SparseMatrixWrapper<>::GetMatrix,
           R"EOF(Eigen SparseMatrix Complex : The stored matrix.)EOF");
 }
+#endif
 
 }  // namespace netket
 

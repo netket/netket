@@ -58,9 +58,7 @@ void AddOperatorModule(py::module &m) {
               R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
           .def(
               "to_sparse",
-              [](const AbstractOperator &self) {
-                return SparseMatrixWrapper<>(self).GetMatrix();
-              },
+              [](const AbstractOperator &self) { return self.ToSparse(); },
               R"EOF(
          Returns the sparse matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
@@ -71,9 +69,7 @@ void AddOperatorModule(py::module &m) {
          )EOF")
           .def(
               "to_dense",
-              [](const AbstractOperator &self) {
-                return DenseMatrixWrapper<>(self).GetMatrix();
-              },
+              [](const AbstractOperator &self) { return self.ToDense(); },
               R"EOF(
          Returns the dense matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum

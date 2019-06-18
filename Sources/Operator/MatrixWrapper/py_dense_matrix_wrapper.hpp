@@ -28,6 +28,7 @@ namespace py = pybind11;
 
 namespace netket {
 
+#if 0
 void AddDenseMatrixWrapper(py::module &subm) {
   py::class_<DenseMatrixWrapper<>, AbstractMatrixWrapper<>>(
       subm, "DenseMatrixWrapper",
@@ -59,6 +60,7 @@ void AddDenseMatrixWrapper(py::module &subm) {
       .def_property_readonly("data", &DenseMatrixWrapper<>::GetMatrix,
                              R"EOF(Eigen MatrixXcd : The stored matrix.)EOF");
 }
+#endif
 
 }  // namespace netket
 

@@ -12,6 +12,7 @@
 
 namespace netket {
 
+#if 0
 template <class State = Eigen::VectorXcd>
 std::unique_ptr<AbstractMatrixWrapper<State>> CreateMatrixWrapper(
     const AbstractOperator& wrapped, const std::string& type = "sparse") {
@@ -28,6 +29,7 @@ std::unique_ptr<AbstractMatrixWrapper<State>> CreateMatrixWrapper(
     throw InvalidInputError(str.str());
   }
 }
+#endif
 
 }  // namespace netket
 

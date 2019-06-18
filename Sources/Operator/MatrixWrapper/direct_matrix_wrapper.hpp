@@ -26,6 +26,7 @@
 
 namespace netket {
 
+#if 0
 /**
  * This class wraps a given Operator. The matrix elements are not stored
  * separately but are computed from Operator::FindConn every time Apply is
@@ -60,6 +61,7 @@ class DirectMatrixWrapper : public AbstractMatrixWrapper<State> {
 
   int Dimension() const override { return dim_; }
 };
+#endif
 
 }  // namespace netket
 
