@@ -44,7 +44,7 @@ void mult(const Eigen::SparseMatrix<TCoeffs>& a,
 template <class matrix_t, class TCoeffs>
 void mult(const matrix_t& a, const Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& x,
           Eigen::Matrix<TCoeffs, Eigen::Dynamic, 1>& y) {
-  y = a.Apply(x);
+  y = a(x);
 }
 
 template <class TCoeffs>

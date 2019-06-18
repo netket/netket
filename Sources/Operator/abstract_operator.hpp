@@ -122,6 +122,8 @@ class AbstractOperator {
   }
 
  public:
+  int Dimension() const { return GetHilbert().GetIndex().NStates(); }
+
   /**
    * Applies the operator to a quantum state.
    * @param state The entry state(i) corresponds to the coefficient of the basis

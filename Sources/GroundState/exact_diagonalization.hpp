@@ -55,14 +55,12 @@ class result_t {
 };
 
 template <class matrix_t, class iter_t, class random_t>
-result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
-                     iter_t& iter, int n_eigenvectors) {
-  throw std::runtime_error{"Temporary disabled"};
-#if 0
+result_t lanczos_run(const size_t dimension, const matrix_t& matrix,
+                     const random_t& random_gen, iter_t& iter,
+                     int n_eigenvectors) {
   using vectorspace_t = ietl::vectorspace<Complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
-  size_t dimension = matrix.Dimension();
   vectorspace_t ietl_vecspace(dimension);
   lanczos_t lanczos(matrix, ietl_vecspace);
   lanczos.calculate_eigenvalues(iter, random_gen);
@@ -86,7 +84,6 @@ result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
   }
   result_t result(lanczos.eigenvalues(), std::move(eigenvectors));
   return result;
-#endif
 }
 }  // namespace eddetail
 
@@ -107,14 +104,20 @@ eddetail::result_t lanczos_ed(const AbstractOperator& op,
   int n_eigenvectors = compute_eigenvectors ? first_n : 0;
 
   if (matrix_free) {
-    eddetail::result_t results =
-        eddetail::lanczos_run(op, random_gen, iter, n_eigenvectors);
+    eddetail::result_t results = eddetail::lanczos_run(
+        op.Dimension(),
+        [&op](const Eigen::VectorXcd& x) { return op.Apply(x); }, random_gen,
+        iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
     return results;
   } else {  // computation using Sparse matrix
     auto matrix = op.ToSparse();
-    eddetail::result_t results =
-        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+    eddetail::result_t results = eddetail::lanczos_run(
+        op.Dimension(),
+        [&matrix](const Eigen::VectorXcd& x) -> Eigen::VectorXcd {
+          return matrix * x;
+        },
+        random_gen, iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
     return results;
   }
