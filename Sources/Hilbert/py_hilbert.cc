@@ -157,6 +157,9 @@ void AddSpins(py::module subm) {
 }
 }  // namespace
 
+template <typename T>
+using PyCArray = py::array_t<T, py::array::c_style | py::array::forcecast>;
+
 void AddHilbertModule(py::module m) {
   auto subm = m.def_submodule("hilbert");
 
@@ -215,8 +218,24 @@ void AddHilbertModule(py::module m) {
 
            ```
        )EOF")
-          .def("update_conf", &AbstractHilbert::UpdateConf, py::arg("v"),
-               py::arg("to_change"), py::arg("new_conf"), R"EOF(
+          .def(
+              "update_conf",
+              [](const AbstractHilbert &self, Eigen::Ref<Eigen::VectorXd> v,
+                 PyCArray<int> tochange, PyCArray<double> newconf) {
+                if (tochange.ndim() > 1 || newconf.ndim() > 1) {
+                  throw std::invalid_argument{
+                      "to_change and new_conf must be "
+                      "one-dimensional arrays."};
+                } else if (tochange.shape(0) != newconf.shape(0)) {
+                  throw std::invalid_argument{
+                      "to_change and new_conf must be "
+                      "of the same length."};
+                }
+                nonstd::span<const int> tc{tochange.data(), tochange.shape(0)};
+                nonstd::span<const double> nc{newconf.data(), newconf.shape(0)};
+                return self.UpdateConf(v, tc, nc);
+              },
+              py::arg("v"), py::arg("to_change"), py::arg("new_conf"), R"EOF(
       Member function updating a visible configuration using the information on
       where the local changes have been done.
 
@@ -224,7 +243,6 @@ void AddHilbertModule(py::module m) {
           v: The vector of visible units to be modified.
           to_change: A list of which qunatum numbers will be modified.
           new_conf: Contains the value that those quantum numbers should take.
-
       )EOF");
 
   // Add HilbertIndex methods. For convenience, they are provided as methods on

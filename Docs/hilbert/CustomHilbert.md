@@ -76,8 +76,8 @@ where the local changes have been done.
 |Argument |                    Type                     |                       Description                        |
 |---------|---------------------------------------------|----------------------------------------------------------|
 |v        |numpy.ndarray[float64[m, 1], flags.writeable]|The vector of visible units to be modified.               |
-|to_change|List[int]                                    |A list of which qunatum numbers will be modified.         |
-|new_conf |List[float]                                  |Contains the value that those quantum numbers should take.|
+|to_change|numpy.ndarray[int32]                         |A list of which qunatum numbers will be modified.         |
+|new_conf |numpy.ndarray[float64]                       |Contains the value that those quantum numbers should take.|
 
 ## Properties
 

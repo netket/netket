@@ -44,8 +44,8 @@ void CustomHilbert::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
 }
 
 void CustomHilbert::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                               const std::vector<int> &tochange,
-                               const std::vector<double> &newconf) const {
+                               nonstd::span<const int> tochange,
+                               nonstd::span<const double> newconf) const {
   assert(v.size() == size_);
 
   int i = 0;

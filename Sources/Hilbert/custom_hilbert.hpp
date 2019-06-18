@@ -46,8 +46,8 @@ class CustomHilbert : public AbstractHilbert {
                   netket::default_random_engine &rgen) const override;
 
   void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                  const std::vector<int> &tochange,
-                  const std::vector<double> &newconf) const override;
+                  nonstd::span<const int> tochange,
+                  nonstd::span<const double> newconf) const override;
 };
 
 }  // namespace netket
