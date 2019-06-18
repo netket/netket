@@ -22,7 +22,6 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "MatrixWrapper/py_matrix_wrapper.hpp"
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
@@ -82,7 +81,6 @@ void AddOperatorModule(py::module &m) {
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
-  AddMatrixWrapper(subm);
 }
 
 }  // namespace netket

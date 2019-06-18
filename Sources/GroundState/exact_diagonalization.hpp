@@ -22,7 +22,6 @@
 #include <ietl/lanczos.h>
 #include <ietl/randomgenerator.h>
 
-#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/operator.hpp"
 #include "common_types.hpp"
 

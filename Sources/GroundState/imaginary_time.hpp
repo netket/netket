@@ -4,7 +4,6 @@
 #include <Eigen/Dense>
 
 #include "Dynamics/TimeStepper/abstract_time_stepper.hpp"
-#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/operator.hpp"
 #include "Output/json_output_writer.hpp"
 #include "Stats/stats.hpp"
@@ -15,7 +14,6 @@ class ImagTimePropagation {
  public:
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
-  using Matrix = AbstractMatrixWrapper<>;
   using Operator = std::function<StateVector(StateVector const&)>;
   using ObsEntry = std::pair<std::string, Operator>;
 
