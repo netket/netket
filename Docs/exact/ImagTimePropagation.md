@@ -19,7 +19,7 @@ Solving 1D ising model with imagniary time propagation.
 ```python
 >>> import netket as nk
 >>> import numpy as np
->>> L = 20
+>>> L = 10
 >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
 >>> hilbert = nk.hilbert.Spin(graph, 0.5)
 >>> n_states = hilbert.n_states
@@ -29,7 +29,7 @@ Solving 1D ising model with imagniary time propagation.
 >>> psi0 = np.random.rand(n_states)
 >>> driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
 >>> driver.add_observable(hamiltonian, 'Hamiltonian')
->>> for step in driver.iter(dt=0.05, n_iter=2):
+>>> for step in driver.iter(dt=0.05, n_iter=10):
 ...     obs = driver.get_observable_stats()
 
 ```

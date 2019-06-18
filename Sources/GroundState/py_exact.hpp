@@ -57,7 +57,7 @@ void AddExactModule(py::module &m) {
                    other choices are `dense` and `direct`.
 
            Examples:
-               Solving 1D ising model with imagniary time propagation.
+               Solving 1D ising model with imaginary time propagation.
 
                ```python
                >>> import netket as nk
