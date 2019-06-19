@@ -22,7 +22,6 @@
 #include <ietl/lanczos.h>
 #include <ietl/randomgenerator.h>
 
-#include "Operator/MatrixWrapper/matrix_wrapper.hpp"
 #include "Operator/operator.hpp"
 #include "common_types.hpp"
 
@@ -45,8 +44,8 @@ class result_t {
   Complex mean(AbstractOperator& op, int which = 0) {
     assert(which >= 0 &&
            static_cast<std::size_t>(which) < eigenvectors_.size());
-    DirectMatrixWrapper<> op_mat(op);
-    return op_mat.Mean(eigenvectors_[which]);
+    return Mean([&op](const Eigen::VectorXcd& x) { return op.Apply(x); },
+                eigenvectors_[which]);
   }
 
  private:
@@ -55,12 +54,12 @@ class result_t {
 };
 
 template <class matrix_t, class iter_t, class random_t>
-result_t lanczos_run(const matrix_t& matrix, const random_t& random_gen,
-                     iter_t& iter, int n_eigenvectors) {
+result_t lanczos_run(const size_t dimension, const matrix_t& matrix,
+                     const random_t& random_gen, iter_t& iter,
+                     int n_eigenvectors) {
   using vectorspace_t = ietl::vectorspace<Complex>;
   using lanczos_t = ietl::lanczos<matrix_t, vectorspace_t>;
 
-  size_t dimension = matrix.Dimension();
   vectorspace_t ietl_vecspace(dimension);
   lanczos_t lanczos(matrix, ietl_vecspace);
   lanczos.calculate_eigenvalues(iter, random_gen);
@@ -104,15 +103,20 @@ eddetail::result_t lanczos_ed(const AbstractOperator& op,
   int n_eigenvectors = compute_eigenvectors ? first_n : 0;
 
   if (matrix_free) {
-    DirectMatrixWrapper<> matrix(op);
-    eddetail::result_t results =
-        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+    eddetail::result_t results = eddetail::lanczos_run(
+        op.Dimension(),
+        [&op](const Eigen::VectorXcd& x) { return op.Apply(x); }, random_gen,
+        iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
     return results;
   } else {  // computation using Sparse matrix
-    SparseMatrixWrapper<> matrix(op);
-    eddetail::result_t results =
-        eddetail::lanczos_run(matrix, random_gen, iter, n_eigenvectors);
+    auto matrix = op.ToSparse();
+    eddetail::result_t results = eddetail::lanczos_run(
+        op.Dimension(),
+        [&matrix](const Eigen::VectorXcd& x) -> Eigen::VectorXcd {
+          return matrix * x;
+        },
+        random_gen, iter, n_eigenvectors);
     results.eigenvalues().resize(first_n);  // Keep only converged eigenvalues
     return results;
   }
@@ -123,16 +127,16 @@ eddetail::result_t full_ed(const AbstractOperator& op, int first_n = 1,
   using eigen_solver_t =
       Eigen::SelfAdjointEigenSolver<Eigen::SparseMatrix<Complex>>;
 
-  SparseMatrixWrapper<> matrix(op);
+  auto matrix = op.ToSparse();
 
   eigen_solver_t eigen_solver;
   eddetail::eigenvectors_t eigenvectors;
   if (compute_eigenvectors) {
-    eigen_solver = matrix.ComputeEigendecomposition();
+    eigen_solver = eigen_solver_t{matrix, Eigen::ComputeEigenvectors};
     for (int i = 0; i < first_n; ++i)
       eigenvectors.push_back(eigen_solver.eigenvectors().col(i));
   } else {
-    eigen_solver = matrix.ComputeEigendecomposition(Eigen::EigenvaluesOnly);
+    eigen_solver = eigen_solver_t{matrix, Eigen::EigenvaluesOnly};
   }
   auto eigen_evals = eigen_solver.eigenvalues();
   eigen_evals.conservativeResize(first_n);  // Keep only first_n eigenvalues

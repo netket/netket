@@ -152,7 +152,7 @@ auto WithEdges(py::iterator first, Function&& callback)
     edges.reserve(colors.size());
     std::transform(
         begin(colors), end(colors), std::back_inserter(edges),
-        [](std::pair<AbstractGraph::Edge, int> const& x) { return x.first; });
+        [](const std::pair<AbstractGraph::Edge, int>& x) { return x.first; });
     return std::forward<Function>(callback)(std::move(edges),
                                             std::move(colors));
   } else {
@@ -181,7 +181,7 @@ void AddAbstractGraph(py::module subm) {
       int: The number of vertices in the graph.)EOF")
       .def_property_readonly(
           "edges",
-          [](AbstractGraph const& x) {
+          [](const AbstractGraph& x) {
             using vector_type =
                 std::remove_reference<decltype(x.Edges())>::type;
             return vector_type{x.Edges()};

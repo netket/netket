@@ -22,7 +22,6 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "MatrixWrapper/py_matrix_wrapper.hpp"
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
@@ -56,12 +55,8 @@ void AddOperatorModule(py::module &m) {
           .def_property_readonly(
               "hilbert", &AbstractOperator::GetHilbert,
               R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
-          .def(
-              "to_sparse",
-              [](const AbstractOperator &self) {
-                return SparseMatrixWrapper<>(self).GetMatrix();
-              },
-              R"EOF(
+          .def("to_sparse", &AbstractOperator::ToSparse,
+               R"EOF(
          Returns the sparse matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for
@@ -69,12 +64,8 @@ void AddOperatorModule(py::module &m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def(
-              "to_dense",
-              [](const AbstractOperator &self) {
-                return DenseMatrixWrapper<>(self).GetMatrix();
-              },
-              R"EOF(
+          .def("to_dense", &AbstractOperator::ToDense,
+               R"EOF(
          Returns the dense matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for
@@ -86,7 +77,6 @@ void AddOperatorModule(py::module &m) {
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
-  AddMatrixWrapper(subm);
 }
 
 }  // namespace netket
