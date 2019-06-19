@@ -19,11 +19,11 @@ namespace netket {
 std::tuple<AbstractOperator::MelType, AbstractOperator::ConnectorsType,
            AbstractOperator::NewconfsType>
 AbstractOperator::GetConn(VectorConstRefType v) const {
-  std::vector<Complex> mel;
-  std::vector<std::vector<int>> connectors;
-  std::vector<std::vector<double>> newconfs;
+  MelType mel;
+  ConnectorsType connectors;
+  NewconfsType newconfs;
   FindConn(v, mel, connectors, newconfs);
-  return std::make_tuple(mel, connectors, newconfs);
+  return {std::move(mel), std::move(connectors), std::move(newconfs)};
 }
 
 void AbstractOperator::ForEachConn(VectorConstRefType v,

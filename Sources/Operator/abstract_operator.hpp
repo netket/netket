@@ -105,23 +105,11 @@ class AbstractOperator {
     return hilbert_;
   }
 
- private:
-  template <class Function>
-  void ForEachMatrixElement(Function &&function) const {
-    const auto &hilbert_index = GetHilbert().GetIndex();
-    for (int i = 0; i < hilbert_index.NStates(); ++i) {
-      // TODO: Make NumberToState return a reference so that we can avoid the
-      // copy here.
-      const auto v = hilbert_index.NumberToState(i);
-      ForEachConn(v, [&](ConnectorRef conn) {
-        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
-                                                            conn.newconf);
-        function(i, j, conn.mel);
-      });
-    }
-  }
-
- public:
+  /**
+   * Returns the number of states in the underlying Hilbert space.
+   *
+   * @precondition `this->GetHilbert().IsIndexable()`
+   */
   int Dimension() const { return GetHilbert().GetIndex().NStates(); }
 
   /**
@@ -129,6 +117,7 @@ class AbstractOperator {
    * @param state The entry state(i) corresponds to the coefficient of the basis
    * vector with quantum numbers given by StateFromNumber(i) of a HilbertIndex
    * for the original operator.
+   * @precondition `this->GetHilbert().IsIndexable()`
    */
   virtual Eigen::VectorXcd Apply(const Eigen::VectorXcd &state) const {
     auto const &hilbert_index = GetHilbert().GetIndex();
@@ -183,6 +172,21 @@ class AbstractOperator {
       : hilbert_(std::move(hilbert)) {}
 
  private:
+  template <class Function>
+  void ForEachMatrixElement(Function &&function) const {
+    const auto &hilbert_index = GetHilbert().GetIndex();
+    for (int i = 0; i < hilbert_index.NStates(); ++i) {
+      // TODO: Make NumberToState return a reference so that we can avoid the
+      // copy here.
+      const auto v = hilbert_index.NumberToState(i);
+      ForEachConn(v, [&](ConnectorRef conn) {
+        const auto j = i + hilbert_index.DeltaStateToNumber(v, conn.tochange,
+                                                            conn.newconf);
+        function(i, j, conn.mel);
+      });
+    }
+  }
+
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
 

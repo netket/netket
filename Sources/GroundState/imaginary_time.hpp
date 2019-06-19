@@ -14,7 +14,7 @@ class ImagTimePropagation {
  public:
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
-  using Operator = std::function<StateVector(StateVector const&)>;
+  using Operator = std::function<StateVector(const StateVector&)>;
   using ObsEntry = std::pair<std::string, Operator>;
 
   static Operator MakeOperator(const AbstractOperator& op,
@@ -22,7 +22,7 @@ class ImagTimePropagation {
     if (type == "dense") {
       struct Function {
         Eigen::MatrixXcd matrix;
-        StateVector operator()(StateVector const& x) const {
+        StateVector operator()(const StateVector& x) const {
           return matrix * x;
         }
       };
@@ -30,7 +30,7 @@ class ImagTimePropagation {
     } else if (type == "direct") {
       struct Function {
         const AbstractOperator& matrix;
-        StateVector operator()(StateVector const& x) const {
+        StateVector operator()(const StateVector& x) const {
           return matrix.Apply(x);
         }
       };
@@ -38,7 +38,7 @@ class ImagTimePropagation {
     } else if (type == "sparse") {
       struct Function {
         Eigen::SparseMatrix<Complex> matrix;
-        StateVector operator()(StateVector const& x) const {
+        StateVector operator()(const StateVector& x) const {
           return matrix * x;
         }
       };
@@ -99,7 +99,7 @@ class ImagTimePropagation {
   void SetTime(double t) { t_ = t; }
 
  private:
-  std::function<StateVector(StateVector const&)> matrix_;
+  Operator matrix_;
   Stepper& stepper_;
   ode::OdeSystemFunction<StateVector> ode_system_;
 

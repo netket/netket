@@ -44,7 +44,7 @@ class result_t {
   Complex mean(AbstractOperator& op, int which = 0) {
     assert(which >= 0 &&
            static_cast<std::size_t>(which) < eigenvectors_.size());
-    return Mean([&op](Eigen::VectorXcd const& x) { return op.Apply(x); },
+    return Mean([&op](const Eigen::VectorXcd& x) { return op.Apply(x); },
                 eigenvectors_[which]);
   }
 
