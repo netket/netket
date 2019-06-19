@@ -156,8 +156,6 @@ def test_hilbert_index():
             m1 = op.to_dense()
         with pytest.raises(RuntimeError):
             m2 = op.to_sparse()
-        with pytest.raises(RuntimeError):
-            dw = nk.operator.DirectMatrixWrapper(op)
 
 
 def test_state_iteration():
