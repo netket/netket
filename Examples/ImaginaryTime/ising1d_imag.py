@@ -52,7 +52,9 @@ import numpy as np
 psi0 = np.random.rand(n_states)
 
 # create ground state driver
-driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
+driver = nk.exact.ExactTimePropagation(
+    hamiltonian, stepper, t0=0, initial_state=psi0, propagation_type="imaginary"
+)
 
 # add observable (TODO: more interesting observable)
 driver.add_observable(hamiltonian, "Hamiltonian")

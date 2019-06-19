@@ -24,7 +24,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-#include "imaginary_time.hpp"
+#include "Dynamics/exact_time_propagation.hpp"
 
 namespace py = pybind11;
 
@@ -33,16 +33,17 @@ namespace netket {
 void AddExactModule(py::module &m) {
   auto m_exact = m.def_submodule("exact");
 
-  py::class_<ImagTimePropagation>(
-      m_exact, "ImagTimePropagation",
+  py::class_<ExactTimePropagation>(
+      m_exact, "ExactTimePropagation",
       R"EOF(Solving for the ground state of the wavefunction using imaginary time propagation.)EOF")
-      .def(py::init<const AbstractOperator &, ImagTimePropagation::Stepper &,
-                    double, ImagTimePropagation::StateVector,
-                    const std::string &>(),
+      .def(py::init<const AbstractOperator &, ExactTimePropagation::Stepper &,
+                    double, ExactTimePropagation::StateVector,
+                    const std::string &, const std::string &>(),
            py::keep_alive<1, 2>(), py::arg("hamiltonian"), py::arg("stepper"),
            py::arg("t0"), py::arg("initial_state"),
-           py::arg("matrix_type") = "sparse", R"EOF(
-           Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper,
+           py::arg("matrix_type") = "sparse",
+           py::arg("propagation_type") = "real", R"EOF(
+           Constructs an ``ExactTimePropagation`` object from a hamiltonian, a stepper,
            a time, and an initial state.
 
            Args:
@@ -55,14 +56,17 @@ void AddExactModule(py::module &m) {
                matrix_type: The type of matrix used for the Hamiltonian when
                    creating the matrix wrapper. The default is `sparse`. The
                    other choices are `dense` and `direct`.
+               propagation_type: Specifies whether the imaginary or real-time
+                   Schroedinger equation is solved. Should be one of "real" or
+                   "imaginary".
 
            Examples:
-               Solving 1D ising model with imaginary time propagation.
+               Solving 1D Ising model with imaginary time propagation:
 
                ```python
                >>> import netket as nk
                >>> import numpy as np
-               >>> L = 20
+               >>> L = 8
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
                >>> hilbert = nk.hilbert.Spin(graph, 0.5)
                >>> n_states = hilbert.n_states
@@ -70,14 +74,16 @@ void AddExactModule(py::module &m) {
                >>> stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
                >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
                >>> psi0 = np.random.rand(n_states)
-               >>> driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
+               >>> driver = nk.exact.ExactTimePropagation(hamiltonian, stepper, t0=0,
+               ...                                        initial_state=psi0,
+               ...                                        propagation_type="imaginary")
                >>> driver.add_observable(hamiltonian, 'Hamiltonian')
-               >>> for step in driver.iter(dt=0.05, n_iter=2):
+               >>> for step in driver.iter(dt=0.05, n_iter=20):
                ...     obs = driver.get_observable_stats()
 
                ```
            )EOF")
-      .def("add_observable", &ImagTimePropagation::AddObservable,
+      .def("add_observable", &ExactTimePropagation::AddObservable,
            py::keep_alive<1, 2>(), py::arg("observable"), py::arg("name"),
            py::arg("matrix_type") = "sparse", R"EOF(
            Add an observable quantity, that will be calculated at each
@@ -91,18 +97,18 @@ void AddExactModule(py::module &m) {
                    other choices are `dense` and `direct`.
 
            )EOF")
-      .def("advance", &ImagTimePropagation::Advance, py::arg("dt"), R"EOF(
+      .def("advance", &ExactTimePropagation::Advance, py::arg("dt"), R"EOF(
            Advance the time propagation by dt.
 
            Args:
                dt (float): The time step.
       )EOF")
-      .def_property("t", &ImagTimePropagation::GetTime,
-                    &ImagTimePropagation::SetTime,
+      .def_property("t", &ExactTimePropagation::GetTime,
+                    &ExactTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
       .def(
           "get_observable_stats",
-          [](const ImagTimePropagation &self) {
+          [](const ExactTimePropagation &self) {
             py::dict data;
             self.GetObsManager().InsertAllStats(data);
             return data;

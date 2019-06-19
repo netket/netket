@@ -1,20 +1,21 @@
-# ImagTimePropagation
+# ExactTimePropagation
 Solving for the ground state of the wavefunction using imaginary time propagation.
 
 ## Class Constructor
-Constructs an ``ImagTimePropagation`` object from a hamiltonian, a stepper,
+Constructs an ``ExactTimePropagation`` object from a hamiltonian, a stepper,
 a time, and an initial state.
 
-|  Argument   |                    Type                     |                                                                   Description                                                                    |
-|-------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-|hamiltonian  |netket::AbstractOperator                     |The hamiltonian of the system.                                                                                                                    |
-|stepper      |netket._C_netket.dynamics.AbstractTimeStepper|Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.                                                  |
-|t0           |float                                        |The initial time.                                                                                                                                 |
-|initial_state|numpy.ndarray[complex128[m, 1]]              |The initial state of the system (when propagation begins.)                                                                                        |
-|matrix_type  |str='sparse'                                 |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
+|    Argument    |                    Type                     |                                                                   Description                                                                    |
+|----------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+|hamiltonian     |netket::AbstractOperator                     |The hamiltonian of the system.                                                                                                                    |
+|stepper         |netket._C_netket.dynamics.AbstractTimeStepper|Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.                                                  |
+|t0              |float                                        |The initial time.                                                                                                                                 |
+|initial_state   |numpy.ndarray[complex128[m, 1]]              |The initial state of the system (when propagation begins.)                                                                                        |
+|matrix_type     |str='sparse'                                 |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
+|propagation_type|str='exact'                                  |Specifies whether the imaginary or real-time Schroedinger equation is solved. Should be one of "real" or "imaginary".                             |
 
 ### Examples
-Solving 1D ising model with imagniary time propagation.
+Solving 1D Ising model with imaginary time propagation:
 
 ```python
 >>> import netket as nk
@@ -27,7 +28,9 @@ Solving 1D ising model with imagniary time propagation.
 >>> stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
 >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
 >>> psi0 = np.random.rand(n_states)
->>> driver = nk.exact.ImagTimePropagation(hamiltonian, stepper, t0=0, initial_state=psi0)
+>>> driver = nk.exact.ExactTimePropagation(hamiltonian, stepper, t0=0,
+...                                        initial_state=psi0,
+...                                        propagation_type="imaginary")
 >>> driver.add_observable(hamiltonian, 'Hamiltonian')
 >>> for step in driver.iter(dt=0.05, n_iter=10):
 ...     obs = driver.get_observable_stats()

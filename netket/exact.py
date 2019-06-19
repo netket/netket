@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
+import itertools as _itertools
 
 from . import _core
 from ._C_netket.exact import *
 
 
-def _ImagTimePropagation_iter(self, dt, n_iter=None):
+def _ExactTimePropagation_iter(self, dt, n_iter=None):
     """
-    iter(self: ImagTimePropagation, dt: float, n_iter: int=None) -> int
+    iter(self: ExactTimePropagation, dt: float, n_iter: int=None) -> int
 
     Returns a generator which advances the time evolution by dt,
     yielding after every step.
@@ -32,14 +32,11 @@ def _ImagTimePropagation_iter(self, dt, n_iter=None):
     Yields:
         int: The current step.
     """
-    for i in itertools.count():
+    for i in _itertools.count():
         if n_iter and i >= n_iter:
             return
         self.advance(dt)
         yield i
-
-
-ImagTimePropagation.iter = _ImagTimePropagation_iter
 
 
 @_core.deprecated()
@@ -173,3 +170,21 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
         first_n=first_n,
         compute_eigenvectors=compute_eigenvectors,
     )
+
+
+ExactTimePropagation.iter = _ExactTimePropagation_iter
+
+
+@_core.deprecated(
+    "`ImagTimePropagation` is deprecated. Please use "
+    '`ExactTimePropagation(..., propagation_type="imaginary")` instead.'
+)
+def ImagTimePropagation(*args, **kwargs):
+    """
+    Returns `ExactTimePropagation(..., propagation_type="imaginary")` for
+    backwards compatibility.
+
+    Deprecated (NetKet 2.0): Use `ExactTimePropagation` directly.
+    """
+    kwargs["propagation_type"] = "imaginary"
+    return ExactTimePropagation(*args, **kwargs)

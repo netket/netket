@@ -1,5 +1,19 @@
-#ifndef NETKET_IMAGINARY_TIME_PROPAGATION_HPP
-#define NETKET_IMAGINARY_TIME_PROPAGATION_HPP
+// Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef NETKET_EXACT_TIME_PROPAGATION_HPP
+#define NETKET_EXACT_TIME_PROPAGATION_HPP
 
 #include <Eigen/Dense>
 
@@ -10,7 +24,7 @@
 
 namespace netket {
 
-class ImagTimePropagation {
+class ExactTimePropagation {
  public:
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
@@ -50,15 +64,28 @@ class ImagTimePropagation {
     }
   }
 
-  ImagTimePropagation(const AbstractOperator& hamiltonian, Stepper& stepper,
-                      double t0, StateVector initial_state,
-                      const std::string& matrix_type = "sparse")
+  ExactTimePropagation(const AbstractOperator& hamiltonian, Stepper& stepper,
+                       double t0, StateVector initial_state,
+                       const std::string& matrix_type = "sparse",
+                       const std::string& propagation_type = "exact")
       : matrix_{MakeMatrix(hamiltonian, matrix_type)},
         stepper_(stepper),
         t_(t0),
         state_(std::move(initial_state)) {
-    ode_system_ = [this](const StateVector& x, StateVector& dxdt,
-                         double /*t*/) { dxdt.noalias() = -matrix_(x); };
+    if (propagation_type == "imaginary") {
+      ode_system_ = [this](const StateVector& x, StateVector& dxdt,
+                           double /*t*/) { dxdt.noalias() = -matrix_(x); };
+      normalize_ = true;
+    } else if (propagation_type == "real") {
+      static constexpr const Complex mi{0, -1};
+      ode_system_ = [this](const StateVector& x, StateVector& dxdt,
+                           double /*t*/) { dxdt.noalias() = mi * matrix_(x); };
+      normalize_ = false;
+    } else {
+      throw InvalidInputError{
+          "ExactTimePropagation: propagation_type must be 'real' or "
+          "'imaginary'."};
+    }
   }
 
   void AddObservable(const AbstractOperator& observable,
@@ -70,8 +97,11 @@ class ImagTimePropagation {
   void Advance(double dt) {
     // Propagate the state
     stepper_.Propagate(ode_system_, state_, t_, dt);
-    // renormalize the state to prevent unbounded growth of the norm
-    state_.normalize();
+    if (normalize_) {
+      // Renormalize state to prevent unbounded growth in imaginary time
+      // propagation
+      state_.normalize();
+    }
     ComputeObservables(state_);
     t_ += dt;
   }
@@ -102,6 +132,7 @@ class ImagTimePropagation {
   Matrix matrix_;
   Stepper& stepper_;
   ode::OdeSystemFunction<StateVector> ode_system_;
+  bool normalize_;
 
   double t_;
   StateVector state_;
@@ -112,4 +143,4 @@ class ImagTimePropagation {
 
 }  // namespace netket
 
-#endif  // NETKET_IMAGINARY_TIME_PROPAGATION_HPP
+#endif  // NETKET_EXACT_TIME_PROPAGATION_HPP
