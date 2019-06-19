@@ -14,11 +14,11 @@ class ImagTimePropagation {
  public:
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
-  using Operator = std::function<StateVector(const StateVector&)>;
-  using ObsEntry = std::pair<std::string, Operator>;
+  using Matrix = std::function<StateVector(const StateVector&)>;
+  using ObsEntry = std::pair<std::string, Matrix>;
 
-  static Operator MakeOperator(const AbstractOperator& op,
-                               const std::string& type) {
+  static Matrix MakeMatrix(const AbstractOperator& op,
+                           const std::string& type) {
     if (type == "dense") {
       struct Function {
         Eigen::MatrixXcd matrix;
@@ -45,7 +45,7 @@ class ImagTimePropagation {
       return Function{op.ToSparse()};
     } else {
       std::stringstream str;
-      str << "Unknown matrix wrapper: " << type;
+      str << "Unknown matrix type: " << type;
       throw InvalidInputError(str.str());
     }
   }
@@ -53,7 +53,7 @@ class ImagTimePropagation {
   ImagTimePropagation(const AbstractOperator& hamiltonian, Stepper& stepper,
                       double t0, StateVector initial_state,
                       const std::string& matrix_type = "sparse")
-      : matrix_{MakeOperator(hamiltonian, matrix_type)},
+      : matrix_{MakeMatrix(hamiltonian, matrix_type)},
         stepper_(stepper),
         t_(t0),
         state_(std::move(initial_state)) {
@@ -64,7 +64,7 @@ class ImagTimePropagation {
   void AddObservable(const AbstractOperator& observable,
                      const std::string& name,
                      const std::string& matrix_type = "sparse") {
-    observables_.emplace_back(name, MakeOperator(observable, matrix_type));
+    observables_.emplace_back(name, MakeMatrix(observable, matrix_type));
   }
 
   void Advance(double dt) {
@@ -99,7 +99,7 @@ class ImagTimePropagation {
   void SetTime(double t) { t_ = t; }
 
  private:
-  Operator matrix_;
+  Matrix matrix_;
   Stepper& stepper_;
   ode::OdeSystemFunction<StateVector> ode_system_;
 
