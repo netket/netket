@@ -23,7 +23,8 @@ AbstractOperator::GetConn(VectorConstRefType v) const {
   ConnectorsType connectors;
   NewconfsType newconfs;
   FindConn(v, mel, connectors, newconfs);
-  return {std::move(mel), std::move(connectors), std::move(newconfs)};
+  return std::make_tuple(std::move(mel), std::move(connectors),
+                         std::move(newconfs));
 }
 
 void AbstractOperator::ForEachConn(VectorConstRefType v,
