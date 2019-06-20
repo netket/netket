@@ -31,7 +31,7 @@ namespace py = pybind11;
 
 namespace netket {
 
-void AddOperatorModule(py::module &m) {
+void AddOperatorModule(py::module m) {
   auto subm = m.def_submodule("operator");
 
   auto op =
@@ -72,7 +72,35 @@ void AddOperatorModule(py::module &m) {
          low-dimensional Hilbert spaces.
 
          This method requires an indexable Hilbert space.
-         )EOF");
+         )EOF")
+          .def(
+              "to_linear_operator",
+              [](py::object py_self) {
+                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                const auto dtype =
+                    py::module::import("numpy").attr("complex128");
+                const auto linear_operator =
+                    py::module::import("scipy.sparse.linalg")
+                        .attr("LinearOperator");
+                const auto dim = cxx_self->Dimension();
+                return linear_operator(
+                    py::arg{"shape"} = std::make_tuple(dim, dim),
+                    py::arg{"matvec"} = py::cpp_function(
+                        // TODO: Does this copy data?
+                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                          return cxx_self->Apply(x);
+                        }),
+                    py::arg{"dtype"} = dtype);
+              },
+              R"EOF(
+        Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+        This method requires an indexable Hilbert space.
+          )EOF")
+          .def("__call__", &AbstractOperator::Apply,
+               R"EOF(
+        Applies the operator to a state.
+            )EOF");
 
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
