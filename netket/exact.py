@@ -12,35 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
-import functools
 import itertools
-import inspect
 
+from . import _core
 from ._C_netket.exact import *
-
-# NOTE: If more modules end up requiring this functionality, we can create a
-# `netket._core` module and move `deprecated` there.
-def deprecated(reason=None):
-    """
-    This is a decorator which can be used to mark functions as deprecated. It
-    will result in a warning being emitted when the function is used.
-    """
-
-    def decorator(func):
-        object_type = "class" if inspect.isclass(func) else "function"
-        message = "Call to deprecated {} {!r}".format(object_type, func.__name__)
-        if reason is not None:
-            message += " ({})".format(reason)
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            warnings.warn(message, category=FutureWarning, stacklevel=2)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def _ImagTimePropagation_iter(self, dt, n_iter=None):
@@ -67,7 +42,7 @@ def _ImagTimePropagation_iter(self, dt, n_iter=None):
 ImagTimePropagation.iter = _ImagTimePropagation_iter
 
 
-@deprecated()
+@_core.deprecated()
 class EdResult(object):
     def __init__(self, eigenvalues, eigenvectors):
         # NOTE: These conversions are required because our old C++ code stored
@@ -98,7 +73,7 @@ class EdResult(object):
         return numpy.vdot(x, operator(x))
 
 
-@deprecated(
+@_core.deprecated(
     "use 'netket.Operator.to_linear_operator' to convert an operator "
     "to a 'scipy.sparse.linalg.LinearOperator' and then call "
     "'scipy.sparse.linalg.eigsh' directly"
@@ -112,7 +87,8 @@ def lanczos_ed(
     precision=1e-14,
     compute_eigenvectors=False,
 ):
-    r"""Uses Lanczos algorithm to diagonalize the operator.
+    r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
+    of a Hermitian operator using the Lanczos method.
 
     Args:
         operator: The operator to diagnolize.
@@ -159,13 +135,14 @@ def lanczos_ed(
     return EdResult(result, None)
 
 
-@deprecated(
+@_core.deprecated(
     "use 'netket.Operator.to_linear_operator' to convert an operator "
     "to a 'scipy.sparse.linalg.LinearOperator' and then call "
     "'scipy.sparse.linalg.eigsh' directly"
 )
 def full_ed(operator, first_n=1, compute_eigenvectors=False):
-    r"""Diagonalizes the operator.
+    r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
+    of a Hermitian operator using the Lanczos method.
 
     Args:
         operator: Operator to diagnolize.
