@@ -123,8 +123,9 @@ def lanczos_ed(
         seed: **Ignored**. Accepted for backward compatibility only.
         precision: The precision to which the eigenvalues will be
             computed.
-        compute_eigenvectors: Whether or not to compute the
-            eigenvectors of the operator.
+        compute_eigenvectors: Whether or not to return the
+            eigenvectors of the operator. With ARPACK, not requiring the
+            eigenvectors has almost no performance benefits.
 
 
     Examples:
@@ -169,8 +170,9 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
     Args:
         operator: Operator to diagnolize.
         first_n: Number of eigenvalues to compute.
-        compute_eigenvectors: Whether or not to compute the
-            eigenvectors of the operator.
+        compute_eigenvectors: Whether or not to return the
+            eigenvectors of the operator. With ARPACK, not requiring the
+            eigenvectors has almost no performance benefits.
 
 
     Examples:

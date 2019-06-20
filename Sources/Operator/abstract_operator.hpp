@@ -148,7 +148,7 @@ class AbstractOperator {
     return matrix;
   }
 
-  Eigen::SparseMatrix<Complex> ToSparse() const {
+  Eigen::SparseMatrix<Complex, Eigen::RowMajor> ToSparse() const {
     const auto &hilbert_index = GetHilbert().GetIndex();
     std::vector<Eigen::Triplet<Complex>> triplets;
     triplets.reserve(hilbert_index.NStates());
