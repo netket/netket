@@ -15,12 +15,14 @@
 #ifndef NETKET_EXACT_TIME_PROPAGATION_HPP
 #define NETKET_EXACT_TIME_PROPAGATION_HPP
 
+#include <unordered_map>
+
 #include <Eigen/Dense>
 
 #include "Dynamics/TimeStepper/abstract_time_stepper.hpp"
 #include "Operator/operator.hpp"
 #include "Output/json_output_writer.hpp"
-#include "Stats/stats.hpp"
+#include "Stats/binning.hpp"
 
 namespace netket {
 
@@ -29,7 +31,7 @@ class ExactTimePropagation {
   using StateVector = Eigen::VectorXcd;
   using Stepper = ode::AbstractTimeStepper<StateVector>;
   using Matrix = std::function<StateVector(const StateVector&)>;
-  using ObsEntry = std::pair<std::string, Matrix>;
+  using StatsMap = std::unordered_map<std::string, Binning<double>::Stats>;
 
   static Matrix MakeMatrix(const AbstractOperator& op,
                            const std::string& type) {
@@ -108,25 +110,23 @@ class ExactTimePropagation {
 
   void ComputeObservables(const StateVector& state) {
     const auto mean_variance = MeanVariance(matrix_, state);
-    obsmanager_.Reset("Energy");
-    obsmanager_.Push("Energy", mean_variance.first.real());
-    obsmanager_.Reset("EnergyVariance");
-    obsmanager_.Push("EnergyVariance", mean_variance.second);
+    observable_stats_["Energy"] = {mean_variance.first.real(), 0.0, 0.0};
+    observable_stats_["EnergyVariance"] = {mean_variance.second, 0.0, 0.0};
 
     for (const auto& entry : observables_) {
       const auto& name = entry.first;
       const auto& obs = entry.second;
-      obsmanager_.Reset(name);
-
-      const auto value = Mean(obs, state).real();
-      obsmanager_.Push(name, value);
+      observable_stats_[name] = {Mean(obs, state).real(), 0.0, 0.0};
     }
   }
 
-  const ObsManager& GetObsManager() const { return obsmanager_; }
+  const StatsMap& GetObservableStats() const noexcept { return observable_stats_; }
 
-  double GetTime() const { return t_; }
+  double GetTime() const noexcept { return t_; }
   void SetTime(double t) { t_ = t; }
+
+  const StateVector &GetState() const noexcept { return state_; }
+  void SetState(const StateVector &state) { state_ = state; }
 
  private:
   Matrix matrix_;
@@ -137,8 +137,9 @@ class ExactTimePropagation {
   double t_;
   StateVector state_;
 
+  using ObsEntry = std::pair<std::string, Matrix>;
   std::vector<ObsEntry> observables_;
-  ObsManager obsmanager_;
+  StatsMap observable_stats_;
 };
 
 }  // namespace netket

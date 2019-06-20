@@ -106,13 +106,11 @@ void AddExactModule(py::module &m) {
       .def_property("t", &ExactTimePropagation::GetTime,
                     &ExactTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
+      .def_property("state", &ExactTimePropagation::GetState,
+                   &ExactTimePropagation::SetState,
+                   "Current state.")
       .def(
-          "get_observable_stats",
-          [](const ExactTimePropagation &self) {
-            py::dict data;
-            self.GetObsManager().InsertAllStats(data);
-            return data;
-          },
+          "get_observable_stats", &ExactTimePropagation::GetObservableStats,
           R"EOF(
         Calculate and return the value of the operators stored as observables.
 
