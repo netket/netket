@@ -15,14 +15,15 @@
 #ifndef NETKET_PYEXACT_HPP
 #define NETKET_PYEXACT_HPP
 
+#include <complex>
+#include <vector>
+
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <complex>
-#include <vector>
-#include "exact_diagonalization.hpp"
+
 #include "imaginary_time.hpp"
 
 namespace py = pybind11;

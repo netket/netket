@@ -161,7 +161,6 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
-        IETL
         ${CMAKE_DL_LIBS}
 )
 if(NETKET_USE_OPENMP)
