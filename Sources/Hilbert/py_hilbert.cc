@@ -241,7 +241,7 @@ void AddHilbertModule(py::module m) {
 
       Args:
           v: The vector of visible units to be modified.
-          to_change: A list of which qunatum numbers will be modified.
+          to_change: A list of which quantum numbers will be modified.
           new_conf: Contains the value that those quantum numbers should take.
       )EOF");
 
