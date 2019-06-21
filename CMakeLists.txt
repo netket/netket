@@ -88,12 +88,6 @@ add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
 
-# IETL
-################################################################################
-add_library(IETL INTERFACE)
-target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
-
-
 # pybind11
 ###############################################################################
 ExternalProject_Add(
@@ -167,7 +161,6 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
-        IETL
         ${CMAKE_DL_LIBS}
 )
 if(NETKET_USE_OPENMP)
