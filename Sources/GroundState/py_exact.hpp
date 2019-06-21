@@ -39,7 +39,7 @@ void AddExactModule(py::module &m) {
       .def(py::init<const AbstractOperator &, ExactTimePropagation::Stepper &,
                     double, ExactTimePropagation::StateVector,
                     const std::string &, const std::string &>(),
-           py::keep_alive<1, 2>(), py::arg("hamiltonian"), py::arg("stepper"),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hamiltonian"), py::arg("stepper"),
            py::arg("t0"), py::arg("initial_state"),
            py::arg("matrix_type") = "sparse",
            py::arg("propagation_type") = "real", R"EOF(
