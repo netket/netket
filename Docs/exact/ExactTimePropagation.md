@@ -25,7 +25,7 @@ Solving 1D Ising model with imaginary time propagation:
 >>> hilbert = nk.hilbert.Spin(graph, 0.5)
 >>> n_states = hilbert.n_states
 >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
->>> stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
+>>> stepper = nk.dynamics.timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
 >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
 >>> psi0 = np.random.rand(n_states)
 >>> driver = nk.exact.ExactTimePropagation(hamiltonian, stepper, t0=0,

@@ -40,7 +40,7 @@ n_states = hilbert.n_states
 hamiltonian = nk.operator.Ising(hilbert, h=1.0)
 
 # create time stepper
-stepper = nk.dynamics.create_timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
+stepper = nk.dynamics.timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
 
 # prepare output
 output = nk.output.JsonOutputWriter("test.log", "test.wf")

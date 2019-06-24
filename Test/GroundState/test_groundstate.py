@@ -99,7 +99,7 @@ def test_imag_time_propagation():
     hi = nk.hilbert.Spin(s=0.5, graph=g)
     ha = nk.operator.Ising(h=0.0, hilbert=hi)
 
-    stepper = nk.dynamics.create_timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
+    stepper = nk.dynamics.timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
     psi0 = np.random.rand(hi.n_states)
     driver = nk.exact.ExactTimePropagation(
         ha, stepper, t0=0, initial_state=psi0, propagation_type="imaginary"

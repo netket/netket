@@ -4,7 +4,7 @@ from scipy.integrate import solve_ivp
 from scipy.linalg import norm
 
 import netket as nk
-from netket.dynamics import create_timestepper
+from netket.dynamics import timestepper
 from netket.exact import ExactTimePropagation
 
 
@@ -18,7 +18,7 @@ def _setup_model():
     hi = nk.hilbert.Spin(g, 0.5)
     ham = nk.operator.Heisenberg(hi)
 
-    ts = create_timestepper(hi.n_states, abs_tol=ATOL, rel_tol=RTOL)
+    ts = timestepper(hi.n_states, abs_tol=ATOL, rel_tol=RTOL)
     psi0 = np.random.rand(hi.n_states) + 1j * np.random.rand(hi.n_states)
     psi0 /= norm(psi0)
 
