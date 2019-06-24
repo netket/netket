@@ -642,7 +642,7 @@ void AddAbstractMachine(py::module m) {
            )EOF")
       .def(
           "to_array",
-          [](AbstractMachine &self) -> AbstractMachine::VectorType {
+          [](AbstractMachine &self, bool normalize) -> AbstractMachine::VectorType {
             const auto &hind = self.GetHilbert().GetIndex();
             AbstractMachine::VectorType vals(hind.NStates());
 
@@ -660,9 +660,11 @@ void AddAbstractMachine(py::module m) {
               vals(i) = std::exp(vals(i));
             }
 
-            vals /= vals.norm();
+            if (normalize) {
+                vals.normalize();
+            }
             return vals;
-          },
+          }, py::arg("normalize") = true,
           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
