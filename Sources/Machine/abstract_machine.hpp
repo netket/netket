@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include <Python.h>
 #include <Eigen/Core>
 
 #include "Hilbert/abstract_hilbert.hpp"
@@ -205,6 +206,14 @@ class AbstractMachine {
                                    const std::vector<double> &newconf);
 
   virtual bool IsHolomorphic() const noexcept = 0;
+
+  virtual PyObject *StateDict() const {
+    throw std::runtime_error{"Not implemented!"};
+  }
+
+  virtual void StateDict(PyObject *state) {
+    throw std::runtime_error{"Not implemented!"};
+  }
 
   virtual void Save(const std::string &filename) const = 0;
   virtual void Load(const std::string &filename) = 0;

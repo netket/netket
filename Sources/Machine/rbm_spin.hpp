@@ -17,6 +17,8 @@
 
 #include <cmath>
 
+#include <nonstd/optional.hpp>
+
 #include "Machine/abstract_machine.hpp"
 
 namespace netket {
@@ -25,31 +27,14 @@ namespace netket {
  *
  */
 class RbmSpin : public AbstractMachine {
-  // number of visible units
-  int nv_;
-
-  // number of hidden units
-  int nh_;
-
-  // number of parameters
-  int npar_;
-
-  // weights
-  MatrixType W_;
-
-  // visible units bias
-  VectorType a_;
-
-  // hidden units bias
-  VectorType b_;
-
+  MatrixType W_;                    ///< weights
+  nonstd::optional<VectorType> a_;  ///< visible units bias
+  nonstd::optional<VectorType> b_;  ///< hidden units bias
+  /// Caches
   VectorType thetas_;
   VectorType lnthetas_;
   VectorType thetasnew_;
   VectorType lnthetasnew_;
-
-  bool usea_;
-  bool useb_;
 
  public:
   RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
@@ -57,7 +42,7 @@ class RbmSpin : public AbstractMachine {
 
   int Nvisible() const override;
   int Npar() const override;
-  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
+  /*constexpr*/ int Nhidden() const noexcept { return W_.cols(); }
 
   void InitRandomPars(int seed, double sigma) override;
   void InitLookup(VisibleConstType v, LookupType &lt) override;
@@ -89,6 +74,9 @@ class RbmSpin : public AbstractMachine {
   void Load(const std::string &filename) override;
 
   bool IsHolomorphic() const noexcept override;
+
+  PyObject *StateDict() const override;
+  void StateDict(PyObject *dict) override;
 
   static double lncosh(double x) {
     const double xp = std::abs(x);

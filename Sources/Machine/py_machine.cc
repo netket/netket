@@ -641,6 +641,20 @@ void AddAbstractMachine(py::module m) {
                      filename: name of file to load parameters from.
            )EOF")
       .def(
+          "state_dict",
+          [](AbstractMachine const &self) {
+            return py::reinterpret_steal<py::dict>(self.StateDict());
+          },
+          R"EOF(Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.
+           )EOF")
+      .def(
+          "load_state_dict",
+          [](AbstractMachine &self, py::dict state) {
+            self.StateDict(state.ptr());
+          },
+          R"EOF(Loads machine's state from `state`.
+           )EOF")
+      .def(
           "to_array",
           [](AbstractMachine &self) -> AbstractMachine::VectorType {
             const auto &hind = self.GetHilbert().GetIndex();
