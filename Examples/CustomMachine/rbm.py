@@ -15,7 +15,8 @@
 import netket
 import numpy as _np
 
-__all__ = ['PyRbm']
+__all__ = ["PyRbm"]
+
 
 class PyRbm(netket.machine.CxxMachine):
     """
@@ -91,7 +92,7 @@ class PyRbm(netket.machine.CxxMachine):
             params += (self._a,)
         if self._b is not None:
             params += (self._b,)
-        params += (self._w.reshape(-1, order='F'),)
+        params += (self._w.reshape(-1, order="C"),)
         return _np.concatenate(params)
 
     def _set_parameters(self, p):
@@ -106,7 +107,7 @@ class PyRbm(netket.machine.CxxMachine):
         if self._b is not None:
             self._b[:] = p[i : i + self._b.size]
             i += self._b.size
-        self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order='F')
+        self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
 
     def log_val(self, x):
         r"""Computes the logarithm of the wave function given a spin
@@ -173,4 +174,3 @@ class PyRbm(netket.machine.CxxMachine):
     def _log_cosh(x):
         # TODO: Handle big numbers properly
         return _np.log(_np.cosh(x))
-
