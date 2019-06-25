@@ -15,7 +15,6 @@
 #ifndef NETKET_GROUND_STATE_HPP
 #define NETKET_GROUND_STATE_HPP
 
-#include "imaginary_time.hpp"
 #include "variational_montecarlo.hpp"
 
 #endif

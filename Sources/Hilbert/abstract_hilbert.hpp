@@ -101,8 +101,8 @@ class AbstractHilbert {
   @param newconf contains the value that those quantum numbers should take
   */
   virtual void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                          const std::vector<int> &tochange,
-                          const std::vector<double> &newconf) const = 0;
+                          nonstd::span<const int> tochange,
+                          nonstd::span<const double> newconf) const = 0;
 
   virtual const AbstractGraph &GetGraph() const noexcept = 0;
 

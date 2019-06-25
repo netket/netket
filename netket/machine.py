@@ -96,4 +96,3 @@ class CxxMachine(Machine):
             p: New variational parameters as a 1D complex vector.
         """
         raise NotImplementedError
-
