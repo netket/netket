@@ -107,6 +107,7 @@ class PyRbm(netket.machine.CxxMachine):
         if self._b is not None:
             self._b[:] = p[i : i + self._b.size]
             i += self._b.size
+
         self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
 
     def log_val(self, x):
@@ -145,8 +146,9 @@ class PyRbm(netket.machine.CxxMachine):
             i += self._b.size
 
         out = grad[i : i + self._w.size]
-        out.shape = (x.size, tanh_stuff.size)
-        _np.outer(x, tanh_stuff, out=out)
+        out.shape = (tanh_stuff.size, x.size)
+        _np.outer(tanh_stuff, x, out=out)
+
         return grad
 
     def _is_holomorphic(self):
