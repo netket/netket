@@ -220,6 +220,7 @@ set(NETKET_SOURCES
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
     Sources/Sampler/vmc_sampling.cc
+    Sources/Sampler/metropolis_local_v2.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/json_utils.cc
     Sources/Utils/py_utils.cc

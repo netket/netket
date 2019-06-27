@@ -37,6 +37,8 @@
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
 
+#include "Machine/rbm_spin_v2.hpp"
+
 namespace py = pybind11;
 
 namespace netket {
@@ -553,6 +555,22 @@ void AddLayerModule(py::module m) {
   }
 }
 
+void AddRbmSpinV2(py::module m) {
+  py::class_<RbmSpinV2>(m, "RbmSpinV2")
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
+                    bool, Index>(),
+           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
+           py::arg("use_visible_bias") = true,
+           py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 4)
+      .def_property_readonly("n_par", &RbmSpinV2::Npar)
+      .def("log_val", &RbmSpinV2::LogVal, py::arg("v"))
+      .def_property_readonly("n_visible", &RbmSpinV2::Nvisible)
+      .def_property_readonly("batch_size", &RbmSpinV2::BatchSize)
+      .def("get_a", &RbmSpinV2::GetA)
+      .def("get_b", &RbmSpinV2::GetB)
+      .def("get_w", &RbmSpinV2::GetW);
+}
+
 void AddAbstractMachine(py::module m) {
   py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
       .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
@@ -656,7 +674,8 @@ void AddAbstractMachine(py::module m) {
            )EOF")
       .def(
           "to_array",
-          [](AbstractMachine &self, bool normalize) -> AbstractMachine::VectorType {
+          [](AbstractMachine &self,
+             bool normalize) -> AbstractMachine::VectorType {
             const auto &hind = self.GetHilbert().GetIndex();
             AbstractMachine::VectorType vals(hind.NStates());
 
@@ -675,10 +694,11 @@ void AddAbstractMachine(py::module m) {
             }
 
             if (normalize) {
-                vals.normalize();
+              vals.normalize();
             }
             return vals;
-          }, py::arg("normalize") = true,
+          },
+          py::arg("normalize") = true,
           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
@@ -738,6 +758,8 @@ void AddMachineModule(py::module m) {
   AddLayerModule(m);
 
   AddDensityMatrixModule(subm);
+
+  // AddRbmSpinV2(subm);
 }
 
 }  // namespace netket

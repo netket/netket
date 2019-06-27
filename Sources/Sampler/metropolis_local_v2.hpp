@@ -21,15 +21,17 @@
 #include <Eigen/Core>
 #include <nonstd/span.hpp>
 
+#include "Utils/exceptions.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
 
 struct Suggestion {
-  nonstd::span<int const> sites;
+  nonstd::span<Index const> sites;
   nonstd::span<double const> values;
 };
 
+namespace detail {
 class Flipper {
   template <class T>
   using M = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -37,49 +39,46 @@ class Flipper {
   template <class T>
   using V = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
+  static constexpr auto D = Eigen::Dynamic;
+
   /// \brief A matrix of size `BatchSize() x SystemSize()`.
   ///
   /// Every row of #sites_ is a permutation of `[0, 1, ..., SystemSize() - 1]`.
   /// We iterate over columns of #sites_ to choose sites at which to change the
   /// quantum numbers.
-  M<int> sites_;
+  Eigen::Matrix<Index, D, D, Eigen::RowMajor> sites_;
   /// \brief A vector of size `BatchSize()` which contains new (proposed)
   /// quantum numbers.
   ///
   /// \pre `values_(j) == local_states_[indices_(j)]` for every
   /// `0 <= j && j < BatchSize()`.
-  V<double> values_;
-  /// \brief A vector of size `BatchSize()` which contains new (proposed)
-  /// indices of quantum numbers.
-  ///
-  /// It's easier to work with natural number representation of quantum numbers
-  /// so we use #indices_ for all internal operations and #values_ for creating
-  /// #Suggestion s.
-  ///
-  /// \pre `values_(j) == local_states_[indices_(j)]` for every
-  /// `0 <= j && j < BatchSize()`.
-  V<int> indices_;
+  Eigen::Matrix<double, D, 1> values_;
   /// A matrix of size `BatchSize() x SystemSize()` representing the
   /// current state of #BatchSize different chains.
-  M<int> state_;
+  Eigen::Matrix<double, D, D, Eigen::ColMajor> state_;
+
   /// Current index in the columns of `sites_`.
-  int i_;
+  Index i_;
 
   std::vector<double> local_states_;
 
   std::vector<Suggestion> proposed_;
 
-  DistributedRandomEngine engine_;
+  default_random_engine& engine_;
 
-  int BatchSize() const noexcept { return state_.rows(); }
-  int SystemSize() const noexcept { return state_.cols(); }
+  Index BatchSize() const noexcept { return state_.rows(); }
+  Index SystemSize() const noexcept { return state_.cols(); }
 
+  /// Returns local states of the Hilbert space as a `span`.
   nonstd::span<double const> LocalStates() const noexcept {
     using span = nonstd::span<double const>;
     return span{local_states_.data(),
                 static_cast<span::index_type>(local_states_.size())};
   }
 
+  /// \brief Shuffles every row of the #sites_ matrix.
+  ///
+  /// This is used for choosing which quantum numbers to update.
   void Shuffle() {
     for (auto j = 0; j < BatchSize(); ++j) {
       auto sites = sites_.row(j);
@@ -88,14 +87,73 @@ class Flipper {
     }
   }
 
+  /// Randomizes the state.
+  void RandomState() {
+    std::generate(state_.data(), state_.data() + state_.size(), [this]() {
+      return std::uniform_int_distribution<int>{
+          0, static_cast<int>(local_states_.size()) - 1}(engine_);
+    });
+  }
+
+  void ResetState() noexcept {
+    static_assert(decltype(sites_)::IsRowMajor == true, "");
+    std::iota(&sites_(0, 0), &sites_(0, sites_.cols()), Index{0});
+    for (auto j = Index{1}; j < sites_.rows(); ++j) {
+      sites_.row(j) = sites_.row(0);
+    }
+  }
+
  public:
+  Flipper(std::pair<Index, Index> const shape, std::vector<double> local_states,
+          default_random_engine& engine)
+      : sites_{},
+        values_{},
+        state_{},
+        i_{0},
+        local_states_{std::move(local_states)},
+        proposed_{},
+        engine_{engine} {
+    Index batch_size, system_size;
+    std::tie(batch_size, system_size) = shape;
+    if (batch_size < 1) {
+      std::ostringstream msg;
+      msg << "invalid batch size: " << batch_size << "; expected >=1";
+      throw InvalidInputError{msg.str()};
+    }
+    if (system_size < 1) {
+      std::ostringstream msg;
+      msg << "invalid system size: " << system_size << "; expected >=1";
+      throw InvalidInputError{msg.str()};
+    }
+    if (local_states_.empty()) {
+      throw InvalidInputError{"invalid local states: []"};
+    }
+
+    std::sort(local_states_.begin(), local_states_.end());
+
+    sites_.resize(batch_size, system_size);
+    values_.resize(batch_size);
+    state_.resize(batch_size, system_size);
+    proposed_.resize(batch_size);
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      proposed_[j].values = {&values_(j), 1};
+    }
+
+    ResetState();
+    Reset();
+  }
+
+  void Reset() {
+    RandomState();
+    i_ = SystemSize() - 1;
+    Next(false);
+  }
+
   void Next(bool accept) {
     if (accept) {
       assert(i_ < SystemSize() && "index out of bounds");
-      for (auto j = 0; j < BatchSize(); ++j) {
-        assert(0 <= indices_(j) && indices_(j) < LocalStates().size() &&
-               "index out of bounds");
-        state_(j, sites_(j, i_)) = indices_(j);
+      for (auto j = Index{0}; j < BatchSize(); ++j) {
+        state_(j, sites_(j, i_)) = values_(j);
       }
     }
 
@@ -104,14 +162,12 @@ class Flipper {
       i_ = 0;
     }
     const auto g = [this](const int j) {
-      auto idx = std::uniform_int_distribution<int>{
+      const auto idx = std::uniform_int_distribution<int>{
           0, static_cast<int>(local_states_.size()) - 2}(engine_);
-      return idx + (idx >= state_(j, i_));
+      return local_states_[idx + (local_states_[idx] >= state_(j, i_))];
     };
-    for (auto j = 0; j < BatchSize(); ++j) {
-      const auto idx = g(j);
-      indices_(j) = idx;
-      values_(j) = local_states_[static_cast<size_t>(idx)];
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      values_(j) = g(j);
       proposed_[j].sites = {&sites_(j, i_), 1};
     }
   }
@@ -122,6 +178,7 @@ class Flipper {
                 static_cast<span::index_type>(proposed_.size())};
   }
 };
+}  // namespace detail
 
 }  // namespace netket
 
