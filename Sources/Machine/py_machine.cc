@@ -759,7 +759,10 @@ void AddMachineModule(py::module m) {
 
   AddDensityMatrixModule(subm);
 
-  // AddRbmSpinV2(subm);
+  AddRbmSpinV2(subm);
+
+  subm.def("sum_log_cosh", &netket::SumLogCosh);
+  subm.def("sum_log_cosh_dumb", &netket::SumLogCoshDumb);
 }
 
 }  // namespace netket
