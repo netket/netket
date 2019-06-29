@@ -40,9 +40,17 @@
 #include "py_metropolis_local.hpp"
 #include "py_metropolis_local_pt.hpp"
 
+#include "Sampler/metropolis_local_v2.hpp"
+
 namespace py = pybind11;
 
 namespace netket {
+
+void AddMetropolisLocalV2(py::module m) {
+  py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
+      .def(py::init<RbmSpinV2 &, AbstractHilbert const &>())
+      .def("reset", &MetropolisLocalV2::Reset);
+}
 
 void AddSamplerModule(py::module &m) {
   auto subm = m.def_submodule("sampler");
@@ -114,6 +122,8 @@ void AddSamplerModule(py::module &m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddCustomSamplerPt(subm);
+
+  AddMetropolisLocalV2(subm);
 }
 
 }  // namespace netket

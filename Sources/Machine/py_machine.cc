@@ -761,7 +761,12 @@ void AddMachineModule(py::module m) {
 
   AddRbmSpinV2(subm);
 
-  subm.def("sum_log_cosh", &netket::SumLogCosh);
+  subm.def(
+      "sum_log_cosh",
+      [](Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+         Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
+        return SumLogCosh(input, bias);
+      });
   subm.def("sum_log_cosh_dumb", &netket::SumLogCoshDumb);
 }
 

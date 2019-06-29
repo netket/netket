@@ -21,6 +21,7 @@
 #include <Eigen/Core>
 #include <nonstd/span.hpp>
 
+#include "Machine/rbm_spin_v2.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -55,7 +56,7 @@ class Flipper {
   Eigen::Matrix<double, D, 1> values_;
   /// A matrix of size `BatchSize() x SystemSize()` representing the
   /// current state of #BatchSize different chains.
-  Eigen::Matrix<double, D, D, Eigen::ColMajor> state_;
+  Eigen::Matrix<double, D, D, Eigen::RowMajor> state_;
 
   /// Current index in the columns of `sites_`.
   Index i_;
@@ -64,10 +65,7 @@ class Flipper {
 
   std::vector<Suggestion> proposed_;
 
-  default_random_engine& engine_;
-
-  Index BatchSize() const noexcept { return state_.rows(); }
-  Index SystemSize() const noexcept { return state_.cols(); }
+  DistributedRandomEngine engine_;
 
   /// Returns local states of the Hilbert space as a `span`.
   nonstd::span<double const> LocalStates() const noexcept {
@@ -83,7 +81,7 @@ class Flipper {
     for (auto j = 0; j < BatchSize(); ++j) {
       auto sites = sites_.row(j);
       assert(sites.colStride() == 1);
-      std::shuffle(sites.data(), sites.data() + sites.cols(), engine_);
+      std::shuffle(sites.data(), sites.data() + sites.cols(), Generator());
     }
   }
 
@@ -91,7 +89,7 @@ class Flipper {
   void RandomState() {
     std::generate(state_.data(), state_.data() + state_.size(), [this]() {
       return std::uniform_int_distribution<int>{
-          0, static_cast<int>(local_states_.size()) - 1}(engine_);
+          0, static_cast<int>(local_states_.size()) - 1}(Generator());
     });
   }
 
@@ -104,15 +102,14 @@ class Flipper {
   }
 
  public:
-  Flipper(std::pair<Index, Index> const shape, std::vector<double> local_states,
-          default_random_engine& engine)
+  Flipper(std::pair<Index, Index> const shape, std::vector<double> local_states)
       : sites_{},
         values_{},
         state_{},
         i_{0},
         local_states_{std::move(local_states)},
         proposed_{},
-        engine_{engine} {
+        engine_{} {
     Index batch_size, system_size;
     std::tie(batch_size, system_size) = shape;
     if (batch_size < 1) {
@@ -143,16 +140,29 @@ class Flipper {
     Reset();
   }
 
+  Index BatchSize() const noexcept { return state_.rows(); }
+  Index SystemSize() const noexcept { return state_.cols(); }
+  default_random_engine& Generator() noexcept { return engine_.Get(); }
+
   void Reset() {
     RandomState();
-    i_ = SystemSize() - 1;
-    Next(false);
+    i_ = 0;
+    Shuffle();
+    const auto g = [this](const int j) {
+      const auto idx = std::uniform_int_distribution<int>{
+          0, static_cast<int>(local_states_.size()) - 2}(engine_.Get());
+      return local_states_[idx + (local_states_[idx] >= state_(j, i_))];
+    };
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      values_(j) = g(j);
+      proposed_[j].sites = {&sites_(j, i_), 1};
+    }
   }
 
-  void Next(bool accept) {
-    if (accept) {
-      assert(i_ < SystemSize() && "index out of bounds");
-      for (auto j = Index{0}; j < BatchSize(); ++j) {
+  void Next(nonstd::span<const bool> accept) {
+    assert(i_ < SystemSize() && "index out of bounds");
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      if (accept[j]) {
         state_(j, sites_(j, i_)) = values_(j);
       }
     }
@@ -163,7 +173,7 @@ class Flipper {
     }
     const auto g = [this](const int j) {
       const auto idx = std::uniform_int_distribution<int>{
-          0, static_cast<int>(local_states_.size()) - 2}(engine_);
+          0, static_cast<int>(local_states_.size()) - 2}(engine_.Get());
       return local_states_[idx + (local_states_[idx] >= state_(j, i_))];
     };
     for (auto j = Index{0}; j < BatchSize(); ++j) {
@@ -177,8 +187,175 @@ class Flipper {
     return span{proposed_.data(),
                 static_cast<span::index_type>(proposed_.size())};
   }
+
+  Eigen::Ref<const Eigen::MatrixXd> Current() const { return state_; }
+
+  void Read(Eigen::Ref<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                     Eigen::RowMajor>>
+                x) const noexcept {
+    assert(x.rows() == BatchSize() && x.cols() == SystemSize());
+    x = state_;
+    const auto updates = Read();
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      const auto& suggestion = updates[j];
+      assert(suggestion.sites.size() == 1 && suggestion.values.size() == 1);
+      x(j, suggestion.sites[0]) = suggestion.values[0];
+    }
+  }
 };
 }  // namespace detail
+
+class MetropolisLocalV2 {
+  using InputType = Eigen::Ref<const Eigen::MatrixXd>;
+  using ForwardFn = std::function<auto(Eigen::Ref<const Eigen::MatrixXd>)
+                                      ->Eigen::Ref<const Eigen::VectorXcd>>;
+
+  ForwardFn forward_;
+  detail::Flipper flipper_;
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+      proposed_X_;
+  Eigen::ArrayXcd proposed_Y_;
+  Eigen::ArrayXcd current_Y_;
+  Eigen::ArrayXd randoms_;
+  Eigen::Array<bool, Eigen::Dynamic, 1> accept_;
+
+ public:
+  MetropolisLocalV2(RbmSpinV2& machine, AbstractHilbert const& hilbert)
+      : forward_{[&machine](InputType x) { return machine.LogVal(x); }},
+        flipper_{{machine.BatchSize(), machine.Nvisible()},
+                 hilbert.LocalStates()},
+        proposed_X_(machine.BatchSize(), machine.Nvisible()),
+        proposed_Y_(machine.BatchSize()),
+        current_Y_(machine.BatchSize()),
+        randoms_(machine.BatchSize()),
+        accept_(machine.BatchSize()) {
+    current_Y_ = forward_(flipper_.Current());
+  }
+
+  void Reset() {
+    flipper_.Reset();
+    current_Y_ = forward_(flipper_.Current());
+  }
+
+  std::pair<Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic,
+                                           Eigen::Dynamic, Eigen::RowMajor>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  Read() {
+    return {flipper_.Current(), current_Y_};
+  }
+
+  Index BatchSize() const noexcept { return flipper_.BatchSize(); }
+  Index SystemSize() const noexcept { return flipper_.SystemSize(); }
+
+  void Next() {
+    flipper_.Read(proposed_X_);
+    proposed_Y_ = forward_(proposed_X_);
+    std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
+      return std::uniform_real_distribution<double>{}(flipper_.Generator());
+    });
+    accept_ =
+        randoms_ < (proposed_Y_ - current_Y_).real().exp().square().min(1.0);
+    current_Y_ = accept_.select(proposed_Y_, current_Y_);
+    flipper_.Next({accept_});
+  }
+};
+
+struct StepsRange {
+  StepsRange(std::tuple<Index, Index, Index> const& steps)
+      : start_{std::get<0>(steps)},
+        end_{std::get<1>(steps)},
+        step_{std::get<2>(steps)} {
+    CheckValid();
+  }
+
+  constexpr Index start() const noexcept { return start_; }
+  constexpr Index end() const noexcept { return end_; }
+  constexpr Index step() const noexcept { return step_; }
+
+  constexpr Index size() const noexcept {
+    return (end_ - start_ - 1) / step_ + 1;
+  }
+
+ private:
+  void CheckValid() const {
+    const auto error = [this](const char* expected) {
+      std::ostringstream msg;
+      msg << "invalid steps range: (start=" << start_ << ", end=" << end_
+          << ", step=" << step_ << "); " << expected;
+      throw InvalidInputError{msg.str()};
+    };
+    if (start_ < 0) error("expected start >= 0");
+    if (end_ < 0) error("expected end >= 0");
+    if (step_ <= 0) error("expected step >= 1");
+    if (end_ < start_) error("expected start <= end");
+  }
+
+  Index start_;
+  Index end_;
+  Index step_;
+};  // namespace netket
+
+namespace detail {
+template <class Skip, class Record>
+void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
+  auto i = Index{0};
+  // Skipping [0, 1, ..., start)
+  for (; i < steps.start(); ++i) {
+    skip();
+  }
+  // Record [start]
+  record();
+  for (i += steps.step(); i < steps.end(); i += steps.step()) {
+    for (auto j = Index{0}; j < steps.step(); ++j) {
+      skip();
+    }
+    record();
+  }
+}
+}  // namespace detail
+
+std::tuple<
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
+    Eigen::VectorXcd>
+ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps) {
+  sampler.Reset();
+  const auto num_samples = steps.size() * sampler.BatchSize();
+
+  using Matrix =
+      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+  Matrix samples(num_samples, sampler.SystemSize());
+  Eigen::VectorXcd values(num_samples);
+
+  struct Skip {
+    MetropolisLocalV2& sampler_;
+    void operator()() const { sampler_.Next(); }
+  };
+
+  struct Record {
+    MetropolisLocalV2& sampler_;
+    Matrix& samples_;
+    VectorXcd& values_;
+    Index i_;
+
+    std::pair<Eigen::Ref<Matrix>, Eigen::Ref<VectorXcd>> Batch() {
+      const auto n = sampler_.BatchSize();
+      return {samples_.block(i_ * n, 0, n, samples_.cols()),
+              values_.segment(i_ * n, n)};
+    }
+
+    void operator()() {
+      assert(i_ * sampler_.BatchSize() < samples_.rows());
+      Batch() = sampler_.Read();
+      if (++i_ * sampler_.BatchSize() != samples_.rows()) {
+        sampler_.Next();
+      }
+    }
+  };
+
+  detail::LoopV2(steps, Skip{sampler}, Record{sampler, samples, values, 0});
+  return std::make_tuple(std::move(samples), std::move(values));
+}
 
 }  // namespace netket
 
