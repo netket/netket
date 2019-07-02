@@ -17,8 +17,6 @@
 
 #include <cmath>
 
-#include <nonstd/optional.hpp>
-
 #include "Machine/abstract_machine.hpp"
 
 namespace netket {
@@ -27,14 +25,33 @@ namespace netket {
  *
  */
 class RbmSpin : public AbstractMachine {
-  MatrixType W_;                    ///< weights
-  nonstd::optional<VectorType> a_;  ///< visible units bias
-  nonstd::optional<VectorType> b_;  ///< hidden units bias
-  /// Caches
+  // number of visible units
+  int nv_;
+
+  // number of hidden units
+  int nh_;
+
+  // number of parameters
+  int npar_;
+
+  // weights
+  MatrixType W_;
+
+  // visible units bias
+  VectorType a_;
+
+  // hidden units bias
+  VectorType b_;
+
   VectorType thetas_;
   VectorType lnthetas_;
   VectorType thetasnew_;
   VectorType lnthetasnew_;
+
+  bool usea_;
+  bool useb_;
+
+  using LookupType = Lookup<Complex>;
 
  public:
   RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
@@ -42,17 +59,15 @@ class RbmSpin : public AbstractMachine {
 
   int Nvisible() const override;
   int Npar() const override;
-  /*constexpr*/ int Nhidden() const noexcept { return W_.cols(); }
+  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  void InitRandomPars(int seed, double sigma) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
+                    const std::vector<double> &newconf, any &lt) override;
   VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v, const any &lt) override;
   Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
@@ -68,15 +83,12 @@ class RbmSpin : public AbstractMachine {
   // on a small number of spin flips
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+                     const any &lt) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
 
   bool IsHolomorphic() const noexcept override;
-
-  PyObject *StateDict() const override;
-  void StateDict(PyObject *dict) override;
 
   static double lncosh(double x) {
     const double xp = std::abs(x);
