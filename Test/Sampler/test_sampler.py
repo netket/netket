@@ -25,9 +25,15 @@ ha = nk.operator.Ising(hilbert=hi, h=1.0)
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 samplers["MetropolisHamiltonian RbmSpin"] = sa
 
-ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
-sa = nk.sampler.MetropolisHamiltonianPt(machine=ma, hamiltonian=ha, n_replicas=4)
+# Test with uniform probability
+maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+maz.init_random_parameters(seed=1234, sigma=0)
+sa = nk.sampler.MetropolisLocal(machine=maz)
+samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
+
+mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
+mas.init_random_parameters(seed=1234, sigma=0.2)
+sa = nk.sampler.MetropolisHamiltonianPt(machine=mas, hamiltonian=ha, n_replicas=4)
 samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
 
 hi = nk.hilbert.Boson(graph=g, n_max=4)
@@ -79,11 +85,19 @@ sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin 2 moves"] = sa
 
 # Diagonal density matrix sampling
-ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1, use_visible_bias=True, use_hidden_bias=True, use_ancilla_bias=True)
+ma = nk.machine.NdmSpinPhase(
+    hilbert=hi,
+    alpha=1,
+    beta=1,
+    use_visible_bias=True,
+    use_hidden_bias=True,
+    use_ancilla_bias=True,
+)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 dm = nk.machine.DiagonalDensityMatrix(ma)
 sa = nk.sampler.MetropolisLocal(machine=dm)
 samplers["Diagonal Density Matrix"] = sa
+
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():
@@ -106,6 +120,7 @@ def test_states_in_hilbert():
 def test_machine_func():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
+        sa.machine_func = lambda x: np.absolute(x) ** 2.0
         maf = sa.machine_func(3.0 + 1.0j)
         assert maf == approx(np.absolute(3.0 + 1.0j) ** 2.0)
 
@@ -138,6 +153,7 @@ def test_correct_sampling():
 
             hist_samp = np.zeros(n_states)
             # fill in the histogram for sampler
+
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
@@ -165,3 +181,6 @@ def test_correct_sampling():
             eps = np.sqrt(1.0 / float(n_samples))
 
             assert z == approx(0.0, rel=10 * eps, abs=10 * eps)
+
+
+test_correct_sampling()

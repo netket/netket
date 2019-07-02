@@ -56,6 +56,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   std::vector<std::vector<double>> newconfs1_;
   std::vector<Complex> mel1_;
 
+  int sweep_size_;
+
  public:
   MetropolisHamiltonianPt(AbstractMachine &psi, H &hamiltonian, int nrep)
       : AbstractSampler(psi),
@@ -91,6 +93,13 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
     Reset(true);
 
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
+
     InfoMessage() << "Hamiltonian Metropolis sampler with parallel tempering "
                      "is ready "
                   << std::endl;
@@ -113,7 +122,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   }
 
   void LocalSweep(int rep) {
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       hamiltonian_.FindConn(v_[rep], mel_, tochange_, newconfs_);
 
       const double w1 = tochange_.size();
@@ -132,16 +141,16 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       double w2 = tochange1_.size();
 
-      const auto lvd =
-          GetMachine().LogValDiff(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+      const auto lvd = GetMachine().LogValDiff(v_[rep], tochange_[si],
+                                               newconfs_[si], lt_[rep]);
       double ratio =
           this->GetMachineFunc()(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_[rep]);
-      if (std::abs(
-              std::exp(GetMachine().LogVal(v_[rep]) - GetMachine().LogVal(v_[rep], lt_[rep])) -
-              1.) > 1.0e-8) {
+      if (std::abs(std::exp(GetMachine().LogVal(v_[rep]) -
+                            GetMachine().LogVal(v_[rep], lt_[rep])) -
+                   1.) > 1.0e-8) {
         std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
                   << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();
@@ -151,7 +160,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_(rep) += 1;
-        GetMachine().UpdateLookup(v_[rep], tochange_[si], newconfs_[si], lt_[rep]);
+        GetMachine().UpdateLookup(v_[rep], tochange_[si], newconfs_[si],
+                                  lt_[rep]);
         v_[rep] = v1_;
 
 #ifndef NDEBUG
