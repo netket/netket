@@ -181,6 +181,3 @@ def test_correct_sampling():
             eps = np.sqrt(1.0 / float(n_samples))
 
             assert z == approx(0.0, rel=10 * eps, abs=10 * eps)
-
-
-test_correct_sampling()
