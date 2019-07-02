@@ -180,12 +180,15 @@ class CustomSampler : public AbstractSampler {
 
   void SetSweepSize(int sweep_size) {
     if (sweep_size <= 0) {
-      throw InvalidInputError{"Sweep size should be a positive integer."};
+      std::ostringstream msg;
+      msg << "invalid sweep size: " << sweep_size
+          << "; expected a positive integer";
+      throw InvalidInputError{msg.str()};
     }
     sweep_size_ = sweep_size;
   }
 
-  int GetSweepSize() const { return sweep_size_; }
+  int GetSweepSize() const noexcept { return sweep_size_; }
 
   static void CheckMoveOperators(const LocalOperator &move_operators) {
     if (move_operators.Size() == 0) {
