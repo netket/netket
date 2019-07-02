@@ -50,6 +50,11 @@ void AddMetropolisLocalV2(py::module m) {
   py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
       .def(py::init<RbmSpinV2 &, AbstractHilbert const &>())
       .def("reset", &MetropolisLocalV2::Reset);
+
+  m.def("compute_samples_v2",
+        [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps) {
+          return ComputeSamples(sampler, {steps});
+        });
 }
 
 void AddSamplerModule(py::module &m) {
