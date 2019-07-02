@@ -48,14 +48,6 @@ int Jastrow::Nvisible() const { return nv_; }
 
 int Jastrow::Npar() const { return npar_; }
 
-void Jastrow::InitRandomPars(int seed, double sigma) {
-  VectorType par(npar_);
-
-  netket::RandomGaussian(par, seed, sigma);
-
-  SetParameters(par);
-}
-
 Jastrow::VectorType Jastrow::GetParameters() {
   VectorType pars(npar_);
 
@@ -84,7 +76,8 @@ void Jastrow::SetParameters(VectorConstRefType pars) {
   }
 }
 
-void Jastrow::InitLookup(VisibleConstType v, LookupType &lt) {
+any Jastrow::InitLookup(VisibleConstType v) {
+  LookupType lt;
   if (lt.VectorSize() == 0) {
     lt.AddVector(v.size());
   }
@@ -93,11 +86,13 @@ void Jastrow::InitLookup(VisibleConstType v, LookupType &lt) {
   }
 
   lt.V(0) = (W_.transpose() * v);  // does not matter the transpose W is symm
+  return any{std::move(lt)};
 }
 
 // same as for the RBM
 void Jastrow::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                           const std::vector<double> &newconf, LookupType &lt) {
+                           const std::vector<double> &newconf, any &lookup) {
+  auto &lt = any_cast_ref<LookupType>(lookup);
   if (tochange.size() != 0) {
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
@@ -110,8 +105,8 @@ Complex Jastrow::LogVal(VisibleConstType v) { return 0.5 * v.dot(W_ * v); }
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex Jastrow::LogVal(VisibleConstType v, const LookupType &lt) {
-  return 0.5 * v.dot(lt.V(0));
+Complex Jastrow::LogVal(VisibleConstType v, const any &lt) {
+  return 0.5 * v.dot(any_cast_ref<LookupType>(lt).V(0));
 }
 
 // Difference between logarithms of values, when one or more visible variables
@@ -146,10 +141,11 @@ Jastrow::VectorType Jastrow::LogValDiff(
 Complex Jastrow::LogValDiff(VisibleConstType v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
-                            const LookupType &lt) {
+                            const any &lookup) {
   Complex logvaldiff = 0.;
 
   if (tochange.size() != 0) {
+    const auto &lt = any_cast_ref<LookupType>(lookup);
     Complex logtsum = 0.5 * v.dot(lt.V(0));
     thetasnew_ = lt.V(0);
     Eigen::VectorXd vnew(v);
