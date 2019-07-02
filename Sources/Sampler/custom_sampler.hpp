@@ -179,7 +179,7 @@ class CustomSampler : public AbstractSampler {
   }
 
   void SetSweepSize(int sweep_size) {
-    if (sweep_size_ <= 0) {
+    if (sweep_size <= 0) {
       throw InvalidInputError{"Sweep size should be a positive integer."};
     }
     sweep_size_ = sweep_size;
