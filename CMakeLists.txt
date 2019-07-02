@@ -71,6 +71,17 @@ add_library(span_lite INTERFACE)
 target_include_directories(span_lite
     INTERFACE "${CMAKE_BINARY_DIR}/External/span-lite")
 
+# any-lite
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/any/any.hpp")
+    file(DOWNLOAD
+        "https://raw.githubusercontent.com/thelink2012/any/master/any.hpp"
+        "External/any/any.hpp")
+endif()
+add_library(linb_any INTERFACE)
+target_include_directories(linb_any
+    INTERFACE "${CMAKE_BINARY_DIR}/External/any")
+
 
 # Eigen3
 ################################################################################
@@ -161,6 +172,7 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
+        linb_any
         sleef
         ${CMAKE_DL_LIBS}
 )

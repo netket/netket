@@ -24,6 +24,7 @@
 #include <Eigen/Core>
 
 #include "Hilbert/abstract_hilbert.hpp"
+#include "Utils/any.hpp"
 #include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -38,6 +39,8 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
+  using RowMatrixType =
+      Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
@@ -45,6 +48,8 @@ class AbstractMachine {
   using VisibleType = Eigen::VectorXd;
   using RealVectorType = Eigen::Matrix<double, Eigen::Dynamic, 1>;
   using RealMatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+  using RealRowMatrixType =
+      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using RealVectorConstRefType = Eigen::Ref<const RealVectorType>;
 
   /**
@@ -76,6 +81,27 @@ class AbstractMachine {
   @return Number of visible units in the Machine.
   */
   virtual int Nvisible() const = 0;
+
+  /**
+   * Computes logarithm of the wave function for a batch of visible
+   * configurations.
+   *
+   * @param v a matrix of size `batch_size x Nvisible()`. Each row of the matrix
+   * is a visible configuration.
+   */
+#if 1
+  virtual void LogVal(Eigen::Ref<const RealRowMatrixType> v,
+                      Eigen::Ref<VectorType> out, const any &cache) const;
+
+  virtual VectorConstRefType LogVal(Eigen::Ref<const RealRowMatrixType> v,
+                                    const any &cache) const;
+
+  virtual void DerLog(Eigen::Ref<const RealRowMatrixType> v,
+                      Eigen::Ref<RowMatrixType> out, const any &cache) const;
+
+  virtual RowMatrixType DerLog(Eigen::Ref<const RealRowMatrixType> v,
+                               const any &cache) const;
+#endif
 
   /**
   Member function computing the logarithm of the wave function for a given
