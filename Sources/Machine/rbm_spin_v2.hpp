@@ -49,6 +49,7 @@ class RbmSpinV2 {
   Index Nhidden() const noexcept;
   Index Npar() const noexcept;
   Index BatchSize() const noexcept;
+  void BatchSize(Index batch_size);
 
   Eigen::Ref<const Eigen::VectorXcd> LogVal(
       Eigen::Ref<const RowMatrix<double>> x);

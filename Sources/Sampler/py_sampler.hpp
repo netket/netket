@@ -48,7 +48,8 @@ namespace netket {
 
 void AddMetropolisLocalV2(py::module m) {
   py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
-      .def(py::init<RbmSpinV2 &, AbstractHilbert const &>())
+      .def(py::init<RbmSpinV2 &, const AbstractHilbert &, Index>(),
+           py::arg{"machine"}, py::arg{"hilbert"}, py::arg{"batch_size"} = 128)
       .def("reset", &MetropolisLocalV2::Reset);
 
   m.def("compute_samples_v2",

@@ -566,7 +566,11 @@ void AddRbmSpinV2(py::module m) {
       .def_property_readonly("n_par", &RbmSpinV2::Npar)
       .def("log_val", &RbmSpinV2::LogVal, py::arg("v"))
       .def_property_readonly("n_visible", &RbmSpinV2::Nvisible)
-      .def_property_readonly("batch_size", &RbmSpinV2::BatchSize)
+      .def_property(
+          "batch_size", [](const RbmSpinV2 &self) { return self.BatchSize(); },
+          [](RbmSpinV2 &self, Index const batch_size) {
+            self.BatchSize(batch_size);
+          })
       .def("get_a", &RbmSpinV2::GetA)
       .def("get_b", &RbmSpinV2::GetB)
       .def("get_w", &RbmSpinV2::GetW);

@@ -135,22 +135,39 @@ void Flipper::Read(Eigen::Ref<RowMatrix<double>> x) const noexcept {
   }
 }
 
+Index CheckBatchSize(const Index batch_size) {
+  if (batch_size <= 0) {
+    std::ostringstream msg;
+    msg << "invalid batch size: " << batch_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return batch_size;
+}
+
 }  // namespace detail
 
 MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
-                                     AbstractHilbert const& hilbert)
+                                     AbstractHilbert const& hilbert,
+                                     const Index batch_size,
+                                     std::true_type /*safe*/)
     : forward_{[&machine](Eigen::Ref<const InputType> x) {
         return machine.LogVal(x);
       }},
-      flipper_{{machine.BatchSize(), machine.Nvisible()},
-               hilbert.LocalStates()},
-      proposed_X_(machine.BatchSize(), machine.Nvisible()),
-      proposed_Y_(machine.BatchSize()),
-      current_Y_(machine.BatchSize()),
-      randoms_(machine.BatchSize()),
-      accept_(machine.BatchSize()) {
+      flipper_{{batch_size, machine.Nvisible()}, hilbert.LocalStates()},
+      proposed_X_(batch_size, machine.Nvisible()),
+      proposed_Y_(batch_size),
+      current_Y_(batch_size),
+      randoms_(batch_size),
+      accept_(batch_size) {
   current_Y_ = forward_(flipper_.Current());
 }
+
+MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
+                                     AbstractHilbert const& hilbert,
+                                     const Index batch_size)
+    : MetropolisLocalV2{
+          machine, hilbert, detail::CheckBatchSize(batch_size), {}} {}
 
 void MetropolisLocalV2::Reset() {
   flipper_.Reset();
