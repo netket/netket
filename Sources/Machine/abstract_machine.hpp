@@ -71,10 +71,11 @@ class AbstractMachine {
 
   /**
   Member function providing a random initialization of the parameters.
-  @param seed is the see of the random number generator.
   @param sigma is the variance of the gaussian.
+  @param seed is the seed of the random number generator. If seed is `nullopt`,
+  one is generated using `std::random_device`.
   */
-  virtual void InitRandomPars(int seed, double sigma) = 0;
+  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed);
 
   /**
   Member function returning the number of visible units.
@@ -89,19 +90,17 @@ class AbstractMachine {
    * @param v a matrix of size `batch_size x Nvisible()`. Each row of the matrix
    * is a visible configuration.
    */
-#if 1
   virtual void LogVal(Eigen::Ref<const RealRowMatrixType> v,
-                      Eigen::Ref<VectorType> out, const any &cache) const;
+                      Eigen::Ref<VectorType> out, const any & /*unused*/);
 
-  virtual VectorConstRefType LogVal(Eigen::Ref<const RealRowMatrixType> v,
-                                    const any &cache) const;
+  virtual VectorType LogVal(Eigen::Ref<const RealRowMatrixType> v,
+                            const any &cache);
 
   virtual void DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                      Eigen::Ref<RowMatrixType> out, const any &cache) const;
+                      Eigen::Ref<RowMatrixType> out, const any &cache);
 
   virtual RowMatrixType DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                               const any &cache) const;
-#endif
+                               const any &cache);
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -121,7 +120,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) = 0;
+  virtual Complex LogVal(VisibleConstType v, const any &lt) = 0;
 
   /**
   Member function initializing the look-up tables.
@@ -134,7 +133,7 @@ class AbstractMachine {
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual void InitLookup(VisibleConstType v, LookupType &lt) = 0;
+  virtual any InitLookup(VisibleConstType v) = 0;
 
   /**
   Member function updating the look-up tables.
@@ -155,8 +154,7 @@ class AbstractMachine {
   */
   virtual void UpdateLookup(VisibleConstType v,
                             const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            LookupType &lt) = 0;
+                            const std::vector<double> &newconf, any &lt) = 0;
 
   /**
   Member function computing the difference between the logarithm of the
@@ -190,7 +188,7 @@ class AbstractMachine {
   virtual Complex LogValDiff(VisibleConstType v,
                              const std::vector<int> &tochange,
                              const std::vector<double> &newconf,
-                             const LookupType &lt) = 0;
+                             const any &lt) = 0;
 
   /**
   Member function computing the derivative of the logarithm of the wave function
@@ -209,7 +207,7 @@ class AbstractMachine {
   @return Derivatives of the logarithm of the wave function with respect to the
   set of parameters.
   */
-  virtual VectorType DerLog(VisibleConstType v, const LookupType & /*lt*/) {
+  virtual VectorType DerLog(VisibleConstType v, const any & /*lt*/) {
     return DerLog(v);
   }
 
