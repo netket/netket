@@ -26,6 +26,17 @@
 
 namespace netket {
 
+class MPIError : public virtual std::runtime_error {
+  static std::string make_message(int status, const char *function);
+  static std::string make_message(int status);
+
+ public:
+  MPIError(int status, const char *function)
+      : std::runtime_error{make_message(status, function)} {}
+
+  MPIError(int status) : std::runtime_error{make_message(status)} {}
+};
+
 inline void SendToAll(double &val, int sendnode = 0,
                       const MPI_Comm comm = MPI_COMM_WORLD) {
   MPI_Bcast(&val, 1, MPI_DOUBLE, sendnode, comm);
