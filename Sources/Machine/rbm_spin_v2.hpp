@@ -22,7 +22,6 @@
 #include <nonstd/optional.hpp>
 
 #include "Hilbert/abstract_hilbert.hpp"
-#include "Utils/log_cosh.hpp"
 
 namespace netket {
 
@@ -38,109 +37,39 @@ inline Complex SumLogCoshDumb(
 }
 
 class RbmSpinV2 {
+ public:
   template <class T>
-  using M = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using RowMatrix =
+      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-  template <class T>
-  using V = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+  RbmSpinV2(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
+            Index alpha, bool usea, bool useb, Index const batch_size);
 
-  static constexpr auto D = Eigen::Dynamic;
+  Index Nvisible() const noexcept;
+  Index Nhidden() const noexcept;
+  Index Npar() const noexcept;
+  Index BatchSize() const noexcept;
 
-  Eigen::Matrix<Complex, D, D, Eigen::ColMajor> W_;   ///< weights
-  nonstd::optional<Eigen::Matrix<Complex, D, 1>> a_;  ///< visible units bias
-  nonstd::optional<Eigen::Matrix<Complex, D, 1>> b_;  ///< hidden units bias
+  Eigen::Ref<const Eigen::VectorXcd> LogVal(
+      Eigen::Ref<const RowMatrix<double>> x);
+
+  Eigen::Ref<Eigen::MatrixXcd> GetW() { return W_; }
+  Eigen::Ref<Eigen::VectorXcd> GetA() { return a_.value(); }
+  Eigen::Ref<Eigen::VectorXcd> GetB() { return b_.value(); }
+
+ private:
+  void ApplyBiasAndActivation();
+
+  Eigen::MatrixXcd W_;             ///< weights
+  nonstd::optional<VectorXcd> a_;  ///< visible units bias
+  nonstd::optional<VectorXcd> b_;  ///< hidden units bias
 
   /// Caches
-  Eigen::Matrix<Complex, D, D, Eigen::RowMajor> theta_;
-  Eigen::Matrix<Complex, D, 1> output_;
+  RowMatrix<Complex> theta_;
+  VectorXcd output_;
 
   /// Hilbert space
   std::shared_ptr<const AbstractHilbert> hilbert_;
-
- public:
-  RbmSpinV2(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
-            Index alpha, bool usea, bool useb, Index const batch_size)
-      : W_{}, a_{nonstd::nullopt}, b_{nonstd::nullopt}, theta_{}, output_{} {
-    const auto nvisible = hilbert->Size();
-    assert(nvisible >= 0 && "AbstractHilbert::Size is broken");
-    if (nhidden < 0) {
-      std::ostringstream msg;
-      msg << "invalid number of hidden units: " << nhidden
-          << "; expected a non-negative number";
-      throw InvalidInputError{msg.str()};
-    }
-    if (alpha < 0) {
-      std::ostringstream msg;
-      msg << "invalid density of hidden units: " << alpha
-          << "; expected a non-negative number";
-      throw InvalidInputError{msg.str()};
-    }
-    if (nhidden > 0 && alpha > 0 && nhidden != alpha * nvisible) {
-      std::ostringstream msg;
-      msg << "number and density of hidden units are incompatible: " << nhidden
-          << " != " << alpha << " * " << nvisible;
-      throw InvalidInputError{msg.str()};
-    }
-    nhidden = std::max(nhidden, alpha * nvisible);
-
-    W_.resize(nvisible, nhidden);
-    if (usea) {
-      a_.emplace(nvisible);
-    }
-    if (useb) {
-      b_.emplace(nhidden);
-    }
-
-    theta_.resize(batch_size, nhidden);
-    output_.resize(batch_size);
-  }
-
-  Index Nvisible() const noexcept { return W_.rows(); }
-  Index Nhidden() const noexcept { return W_.cols(); }
-  Index Npar() const noexcept {
-    return W_.size() + (a_.has_value() ? a_->size() : 0) +
-           (b_.has_value() ? b_->size() : 0);
-  }
-  Index BatchSize() const noexcept { return theta_.rows(); }
-
-  Eigen::Ref<Eigen::Matrix<Complex, D, 1> const> LogVal(
-      Eigen::Ref<const Eigen::MatrixXd> x) {
-    if (x.rows() != BatchSize() || x.cols() != Nvisible()) {
-      std::ostringstream msg;
-      msg << "wrong shape: [" << x.rows() << ", " << x.cols() << "]; expected ["
-          << BatchSize() << ", " << Nvisible() << "]\n";
-      throw InvalidInputError{msg.str()};
-    }
-    if (a_.has_value()) {
-      output_.noalias() = x * (*a_);
-    } else {
-      output_.setZero();
-    }
-    theta_.noalias() = x * W_;
-    ApplyBiasAndActivation();
-    return output_;
-  }
-
-  Eigen::Ref<Eigen::Matrix<Complex, D, D>> GetW() { return W_; }
-  Eigen::Ref<Eigen::Matrix<Complex, D, 1>> GetA() { return a_.value(); }
-  Eigen::Ref<Eigen::Matrix<Complex, D, 1>> GetB() { return b_.value(); }
-
-  void ApplyBiasAndActivation() {
-    if (b_.has_value()) {
-#pragma omp parallel for
-      for (auto j = Index{0}; j < BatchSize(); ++j) {
-        output_(j) += SumLogCosh(theta_.row(j), (*b_));  // total;
-      }
-    } else {
-#pragma omp parallel for
-      for (auto j = Index{0}; j < BatchSize(); ++j) {
-        output_(j) += SumLogCosh(theta_.row(j));
-      }
-    }
-  }
-
-  // PyObject *StateDict() const;
-  // void StateDict(PyObject *dict);
 };
 
 }  // namespace netket

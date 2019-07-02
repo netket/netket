@@ -38,6 +38,7 @@
 #include "Machine/rbm_spin_symm.hpp"
 
 #include "Machine/rbm_spin_v2.hpp"
+#include "Utils/log_cosh.hpp"
 
 namespace py = pybind11;
 
