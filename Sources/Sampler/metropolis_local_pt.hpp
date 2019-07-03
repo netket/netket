@@ -53,12 +53,12 @@ class MetropolisLocalPt : public AbstractSampler {
   int nstates_;
   std::vector<double> localstates_;
 
+  int sweep_size_;
+
  public:
   // Constructor with one replica by default
   explicit MetropolisLocalPt(AbstractMachine& psi, int nreplicas = 1)
-      : AbstractSampler(psi),
-        nv_(GetHilbert().Size()),
-        nrep_(nreplicas) {
+      : AbstractSampler(psi), nv_(GetHilbert().Size()), nrep_(nreplicas) {
     Init();
   }
 
@@ -70,6 +70,13 @@ class MetropolisLocalPt : public AbstractSampler {
     localstates_ = GetHilbert().LocalStates();
 
     SetNreplicas(nrep_);
+
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
 
     InfoMessage() << "Metropolis sampler with parallel tempering is ready "
                   << std::endl;
@@ -119,7 +126,7 @@ class MetropolisLocalPt : public AbstractSampler {
     std::uniform_int_distribution<int> distrs(0, nv_ - 1);
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       // picking a random site to be changed
       int si = distrs(this->GetRandomEngine());
       assert(si < nv_);
@@ -136,14 +143,15 @@ class MetropolisLocalPt : public AbstractSampler {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
+      const auto lvd =
+          GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
       double ratio = this->GetMachineFunc()(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_[rep]);
-      if (std::abs(
-              std::exp(GetMachine().LogVal(v_[rep]) - GetMachine().LogVal(v_[rep], lt_[rep])) -
-              1.) > 1.0e-8) {
+      if (std::abs(std::exp(GetMachine().LogVal(v_[rep]) -
+                            GetMachine().LogVal(v_[rep], lt_[rep])) -
+                   1.) > 1.0e-8) {
         std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
                   << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
         std::abort();

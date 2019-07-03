@@ -54,6 +54,8 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   Eigen::VectorXd v1_;
 
+  int sweep_size_;
+
  public:
   MetropolisHamiltonian(AbstractMachine &psi, H &hamiltonian)
       : AbstractSampler(psi),
@@ -79,6 +81,13 @@ class MetropolisHamiltonian : public AbstractSampler {
 
     Reset(true);
 
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
+
     InfoMessage() << "Hamiltonian Metropolis sampler is ready " << std::endl;
   }
 
@@ -94,7 +103,7 @@ class MetropolisHamiltonian : public AbstractSampler {
   }
 
   void Sweep() override {
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       hamiltonian_.FindConn(v_, mel_, tochange_, newconfs_);
 
       const double w1 = tochange_.size();
@@ -113,13 +122,15 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       double w2 = tochange1_.size();
 
-      const auto lvd = GetMachine().LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
+      const auto lvd =
+          GetMachine().LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
       double ratio = this->GetMachineFunc()(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_);
-      if (std::abs(std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) - 1.) >
-          1.0e-8) {
+      if (std::abs(
+              std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) -
+              1.) > 1.0e-8) {
         std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
                   << GetMachine().LogVal(v_, lt_) << std::endl;
         std::abort();

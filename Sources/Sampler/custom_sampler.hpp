@@ -55,6 +55,8 @@ class CustomSampler : public AbstractSampler {
   int nstates_;
   std::vector<double> localstates_;
 
+  int sweep_size_;
+
  public:
   CustomSampler(AbstractMachine &psi, const LocalOperator &move_operators,
                 const std::vector<double> &move_weights = {})
@@ -101,6 +103,13 @@ class CustomSampler : public AbstractSampler {
     nstates_ = GetHilbert().LocalSize();
     localstates_ = GetHilbert().LocalStates();
 
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      SetSweepSize(nv_ + 1);
+    } else {
+      SetSweepSize(nv_);
+    }
+
     Reset(true);
 
     InfoMessage() << "Custom Metropolis sampler is ready " << std::endl;
@@ -122,7 +131,7 @@ class CustomSampler : public AbstractSampler {
                                               operatorsweights_.end());
     std::uniform_real_distribution<double> distu;
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
       int op = disc_dist(this->GetRandomEngine());
@@ -137,16 +146,17 @@ class CustomSampler : public AbstractSampler {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      auto exlog = std::exp(GetMachine().LogValDiff(v_, tochange_[exit_state],
-                                            newconfs_[exit_state], lt_));
+      auto exlog = std::exp(GetMachine().LogValDiff(
+          v_, tochange_[exit_state], newconfs_[exit_state], lt_));
       double ratio = this->GetMachineFunc()(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
         accept_[0] += 1;
-        GetMachine().UpdateLookup(v_, tochange_[exit_state], newconfs_[exit_state],
-                          lt_);
-        GetHilbert().UpdateConf(v_, tochange_[exit_state], newconfs_[exit_state]);
+        GetMachine().UpdateLookup(v_, tochange_[exit_state],
+                                  newconfs_[exit_state], lt_);
+        GetHilbert().UpdateConf(v_, tochange_[exit_state],
+                                newconfs_[exit_state]);
       }
       moves_[0] += 1;
     }
@@ -167,6 +177,18 @@ class CustomSampler : public AbstractSampler {
     }
     return acc;
   }
+
+  void SetSweepSize(int sweep_size) {
+    if (sweep_size <= 0) {
+      std::ostringstream msg;
+      msg << "invalid sweep size: " << sweep_size
+          << "; expected a positive integer";
+      throw InvalidInputError{msg.str()};
+    }
+    sweep_size_ = sweep_size;
+  }
+
+  int GetSweepSize() const noexcept { return sweep_size_; }
 
   static void CheckMoveOperators(const LocalOperator &move_operators) {
     if (move_operators.Size() == 0) {
