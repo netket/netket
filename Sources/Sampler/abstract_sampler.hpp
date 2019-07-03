@@ -61,13 +61,9 @@ class AbstractSampler {
     return hilbert_;
   }
 
-  const AbstractHilbert &GetHilbert() const noexcept {
-    return *hilbert_;
-  }
+  const AbstractHilbert& GetHilbert() const noexcept { return *hilbert_; }
 
-  AbstractMachine &GetMachine() const noexcept {
-    return psi_;
-  }
+  AbstractMachine& GetMachine() const noexcept { return psi_; }
 
   const MachineFunction& GetMachineFunc() const noexcept {
     return machine_func_;

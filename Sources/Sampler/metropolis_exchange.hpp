@@ -44,6 +44,8 @@ class MetropolisExchange : public AbstractSampler {
   // Look-up tables
   typename AbstractMachine::LookupType lt_;
 
+  int sweep_size_;
+
  public:
   MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi,
                      int dmax = 1)
@@ -64,6 +66,13 @@ class MetropolisExchange : public AbstractSampler {
     GenerateClusters(graph, dmax);
 
     Reset(true);
+
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
 
     InfoMessage() << "Metropolis Exchange sampler is ready " << std::endl;
     InfoMessage() << dmax << " is the maximum distance for exchanges"
@@ -105,7 +114,7 @@ class MetropolisExchange : public AbstractSampler {
 
     std::vector<double> newconf(2);
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -118,7 +127,8 @@ class MetropolisExchange : public AbstractSampler {
         newconf[0] = v_(sj);
         newconf[1] = v_(si);
 
-        auto explo = std::exp(GetMachine().LogValDiff(v_, tochange, newconf, lt_));
+        auto explo =
+            std::exp(GetMachine().LogValDiff(v_, tochange, newconf, lt_));
 
         double ratio = this->GetMachineFunc()(explo);
 
