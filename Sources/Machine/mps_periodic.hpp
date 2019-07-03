@@ -65,22 +65,20 @@ class MPSPeriodic : public AbstractMachine {
   int Npar() const override;
   int Nvisible() const override;
 
-  void InitRandomPars(int seed, double sigma) override;
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
+                    const std::vector<double> &newconf, any &lt) override;
 
   Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType /* v */, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v, const any &lt) override;
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+                     const any &lt) override;
   VectorType DerLog(VisibleConstType v) override;
 
   void Save(const std::string &filename) const override;

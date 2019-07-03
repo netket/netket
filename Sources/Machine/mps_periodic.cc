@@ -239,14 +239,8 @@ void MPSPeriodic::SetParametersIdentity(VectorConstRefType pars) {
   }
 }
 
-void MPSPeriodic::InitRandomPars(int seed, double sigma) {
-  VectorType pars(npar_);
-
-  netket::RandomGaussian(pars, seed, sigma);
-  SetParametersIdentity(pars);
-}
-
-void MPSPeriodic::InitLookup(VisibleConstType v, LookupType &lt) {
+any MPSPeriodic::InitLookup(VisibleConstType v) {
+  LookupType lt;
   for (int k = 0; k < Nleaves_; k++) {
     _InitLookup_check(lt, k);
     if (leaf_contractions_[k][0] < N_) {
@@ -272,6 +266,7 @@ void MPSPeriodic::InitLookup(VisibleConstType v, LookupType &lt) {
       }
     }
   }
+  return any{std::move(lt)};
 }
 
 // Auxiliary function
@@ -298,12 +293,13 @@ std::vector<std::size_t> MPSPeriodic::sort_indeces(const std::vector<int> &v) {
 void MPSPeriodic::UpdateLookup(VisibleConstType v,
                                const std::vector<int> &tochange,
                                const std::vector<double> &newconf,
-                               LookupType &lt) {
+                               any &lookup) {
   std::size_t nchange = tochange.size();
   if (nchange <= 0) {
     return;
   }
 
+  auto &lt = any_cast_ref<LookupType>(lookup);
   MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
   std::vector<std::size_t> sorted_ind = sort_indeces(tochange);
 
@@ -356,8 +352,8 @@ Complex MPSPeriodic::LogVal(VisibleConstType v) {
   return std::log(trace(mps_contraction(v, 0, N_)));
 }
 
-Complex MPSPeriodic::LogVal(VisibleConstType /* v */, const LookupType &lt) {
-  return std::log(trace(lt.M(Nleaves_ - 1)));
+Complex MPSPeriodic::LogVal(VisibleConstType /* v */, const any &lt) {
+  return std::log(trace(any_cast_ref<LookupType>(lt).M(Nleaves_ - 1)));
 }
 
 MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
@@ -404,13 +400,14 @@ MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
 Complex MPSPeriodic::LogValDiff(VisibleConstType v,
                                 const std::vector<int> &toflip,
                                 const std::vector<double> &newconf,
-                                const LookupType &lt) {
+                                const any &lookup) {
   // Assumes number of levels > 1 (?)
   std::size_t nflip = toflip.size();
   if (nflip <= 0) {
     return Complex(0, 0);
   }
 
+  auto &lt = any_cast_ref<LookupType>(lookup);
   MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
   std::vector<std::size_t> sorted_ind = sort_indeces(toflip);
 
