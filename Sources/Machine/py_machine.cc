@@ -36,6 +36,7 @@
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 #include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
@@ -588,7 +589,7 @@ void AddAbstractMachine(py::module m) {
                     R"EOF(list: List containing the parameters within the layer.
             Read and write)EOF")
       .def("init_random_parameters", &AbstractMachine::InitRandomPars,
-           py::arg("seed") = 1234, py::arg("sigma") = 0.1,
+           py::arg{"sigma"} = 0.1, py::arg{"seed"} = py::none(),
            R"EOF(
              Member function to initialise machine parameters.
 
