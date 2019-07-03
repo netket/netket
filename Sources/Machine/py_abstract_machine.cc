@@ -122,12 +122,6 @@ void PyAbstractMachine::SetParameters(VectorConstRefType pars) {
       pars);
 }
 
-void PyAbstractMachine::InitRandomPars(int const seed, double const sigma) {
-  VectorType par(Npar());
-  netket::RandomGaussian(par, seed, sigma);
-  SetParameters(par);
-}
-
 Complex PyAbstractMachine::LogVal(VisibleConstType v) {
   PYBIND11_OVERLOAD_PURE_NAME(Complex,         /* Return type */
                               AbstractMachine, /* Parent class */
@@ -136,18 +130,16 @@ Complex PyAbstractMachine::LogVal(VisibleConstType v) {
                               v);
 }
 
-Complex PyAbstractMachine::LogVal(VisibleConstType v,
-                                  const LookupType & /*unused*/) {
+Complex PyAbstractMachine::LogVal(VisibleConstType v, const any & /*unused*/) {
   return LogVal(v);
 }
 
-void PyAbstractMachine::InitLookup(VisibleConstType /*unused*/,
-                                   LookupType & /*unused*/) {}
+any PyAbstractMachine::InitLookup(VisibleConstType /*unused*/) { return {}; }
 
 void PyAbstractMachine::UpdateLookup(VisibleConstType /*unused*/,
                                      const std::vector<int> & /*unused*/,
                                      const std::vector<double> & /*unused*/,
-                                     LookupType & /*unused*/) {}
+                                     any & /*unused*/) {}
 
 Complex PyAbstractMachine::LogValDiff(VisibleConstType old_v,
                                       const std::vector<int> &to_change,
@@ -173,7 +165,7 @@ PyAbstractMachine::VectorType PyAbstractMachine::LogValDiff(
 Complex PyAbstractMachine::LogValDiff(VisibleConstType v,
                                       const std::vector<int> &to_change,
                                       const std::vector<double> &new_conf,
-                                      const LookupType & /*unused*/) {
+                                      const any & /*unused*/) {
   return LogValDiff(v, to_change, new_conf);
 }
 
@@ -185,8 +177,8 @@ PyAbstractMachine::VectorType PyAbstractMachine::DerLog(VisibleConstType v) {
                               v);
 }
 
-PyAbstractMachine::VectorType PyAbstractMachine::DerLog(
-    VisibleConstType v, const LookupType & /*lt*/) {
+PyAbstractMachine::VectorType PyAbstractMachine::DerLog(VisibleConstType v,
+                                                        const any & /*lt*/) {
   return DerLog(v);
 }
 

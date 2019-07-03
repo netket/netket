@@ -74,14 +74,12 @@ class RbmSpinPhase : public AbstractMachine {
   int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  void InitRandomPars(int seed, double sigma) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
+                    const std::vector<double> &newconf, any &lt) override;
 
   VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  VectorType DerLog(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
@@ -90,7 +88,7 @@ class RbmSpinPhase : public AbstractMachine {
   Complex LogVal(VisibleConstType v) override;
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  Complex LogVal(VisibleConstType v, const any &lt) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
@@ -101,7 +99,7 @@ class RbmSpinPhase : public AbstractMachine {
   // on a small number of spin flips
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+                     const any &lt) override;
 
   bool IsHolomorphic() const noexcept override;
 

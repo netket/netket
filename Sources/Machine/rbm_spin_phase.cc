@@ -77,35 +77,22 @@ int RbmSpinPhase::Nvisible() const { return nv_; }
 
 int RbmSpinPhase::Npar() const { return npar_; }
 
-void RbmSpinPhase::InitRandomPars(int seed, double sigma) {
-  RealVectorType par(npar_);
-
-  netket::RandomGaussian(par, seed, sigma);
-
-  SetParameters(VectorType(par));
-}
-
-void RbmSpinPhase::InitLookup(VisibleConstType v, LookupType &lt) {
-  if (lt.VectorSize() == 0) {
-    lt.AddVector(b1_.size());
-    lt.AddVector(b2_.size());
-  }
-  if (lt.V(0).size() != b1_.size()) {
-    lt.V(0).resize(b1_.size());
-  }
-  if (lt.V(1).size() != b2_.size()) {
-    lt.V(1).resize(b2_.size());
-  }
+any RbmSpinPhase::InitLookup(VisibleConstType v) {
+  LookupType lt;
+  lt.AddVector(b1_.size());
+  lt.AddVector(b2_.size());
 
   lt.V(0) = (W1_.transpose() * v + b1_);
   lt.V(1) = (W2_.transpose() * v + b2_);
+  return any{std::move(lt)};
 }
 
 void RbmSpinPhase::UpdateLookup(VisibleConstType v,
                                 const std::vector<int> &tochange,
                                 const std::vector<double> &newconf,
-                                LookupType &lt) {
+                                any &lookup) {
   if (tochange.size() != 0) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
       lt.V(0) += W1_.row(sf) * (newconf[s] - v(sf));
@@ -115,13 +102,12 @@ void RbmSpinPhase::UpdateLookup(VisibleConstType v,
 }
 
 RbmSpinPhase::VectorType RbmSpinPhase::DerLog(VisibleConstType v) {
-  LookupType ltnew;
-  InitLookup(v, ltnew);
+  auto ltnew = InitLookup(v);
   return DerLog(v, ltnew);
 }
 
 RbmSpinPhase::VectorType RbmSpinPhase::DerLog(VisibleConstType v,
-                                              const LookupType &lt) {
+                                              const any &lookup) {
   VectorType der(npar_);
 
   const int impar = npar_ / 2;
@@ -131,6 +117,7 @@ RbmSpinPhase::VectorType RbmSpinPhase::DerLog(VisibleConstType v,
     der.segment(impar, nv_) = I_ * v;
   }
 
+  auto &lt = any_cast_ref<LookupType>(lookup);
   RbmSpin::tanh(lt.V(0).real(), lnthetas1_);
   RbmSpin::tanh(lt.V(1).real(), lnthetas2_);
 
@@ -209,7 +196,8 @@ Complex RbmSpinPhase::LogVal(VisibleConstType v) {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinPhase::LogVal(VisibleConstType v, const LookupType &lt) {
+Complex RbmSpinPhase::LogVal(VisibleConstType v, const any &lookup) {
+  auto &lt = any_cast_ref<LookupType>(lookup);
   RbmSpin::lncosh(lt.V(0).real(), lnthetas1_);
   RbmSpin::lncosh(lt.V(1).real(), lnthetas2_);
 
@@ -262,10 +250,11 @@ RbmSpinPhase::VectorType RbmSpinPhase::LogValDiff(
 Complex RbmSpinPhase::LogValDiff(VisibleConstType v,
                                  const std::vector<int> &tochange,
                                  const std::vector<double> &newconf,
-                                 const LookupType &lt) {
+                                 const any &lookup) {
   Complex logvaldiff = 0.;
 
   if (tochange.size() != 0) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     RbmSpin::lncosh(lt.V(0).real(), lnthetas1_);
     RbmSpin::lncosh(lt.V(1).real(), lnthetas2_);
 

@@ -84,17 +84,17 @@ class DiagonalDensityMatrix : public AbstractMachine {
     return density_matrix_.LogVal(DoubleVisibleConfig(v));
   }
 
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    return density_matrix_.LogVal(DoubleVisibleConfig(v), lt);
+  Complex LogVal(VisibleConstType v, const any &lt) override {
+    const auto v2 = DoubleVisibleConfig(v);
+    return density_matrix_.LogVal(VisibleConstType{v2}, lt);
   }
 
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
-    return density_matrix_.InitLookup(DoubleVisibleConfig(v), lt);
+  any InitLookup(VisibleConstType v) override {
+    return density_matrix_.InitLookup(DoubleVisibleConfig(v));
   }
 
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
+                    const std::vector<double> &newconf, any &lt) override {
     VisibleChangeInfo d_changes =
         DoubleVisibleChangeInfo(tochange, newconf, v.size());
     return density_matrix_.UpdateLookup(DoubleVisibleConfig(v), d_changes.first,
@@ -123,7 +123,7 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override {
+                     const any &lt) override {
     VisibleChangeInfo d_changes =
         DoubleVisibleChangeInfo(tochange, newconf, v.size());
     return density_matrix_.LogValDiff(DoubleVisibleConfig(v), d_changes.first,
@@ -134,8 +134,9 @@ class DiagonalDensityMatrix : public AbstractMachine {
     return density_matrix_.DerLog(DoubleVisibleConfig(v));
   }
 
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
-    return density_matrix_.DerLog(DoubleVisibleConfig(v), lt);
+  VectorType DerLog(VisibleConstType v, const any &lt) override {
+    const auto v2 = DoubleVisibleConfig(v);
+    return density_matrix_.DerLog(VisibleConstType{v2}, lt);
   }
 
   VectorType DerLogChanged(VisibleConstType v, const std::vector<int> &tochange,
@@ -154,10 +155,6 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   void SetParameters(VectorConstRefType pars) override {
     return density_matrix_.SetParameters(pars);
-  }
-
-  void InitRandomPars(int seed, double sigma) override {
-    return density_matrix_.InitRandomPars(seed, sigma);
   }
 
   int Nvisible() const override { return density_matrix_.Nvisible(); }

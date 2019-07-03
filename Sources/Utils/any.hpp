@@ -23,6 +23,20 @@ using linb::any;
 using linb::any_cast;
 using linb::bad_any_cast;
 
+template <class T>
+T& any_cast_ref(any& x) {
+  T* p = any_cast<T>(&x);
+  if (p == nullptr) throw bad_any_cast{};
+  return *p;
+}
+
+template <class T>
+const T& any_cast_ref(any const& x) {
+  const T* p = any_cast<T>(&x);
+  if (p == nullptr) throw bad_any_cast{};
+  return *p;
+}
+
 }  // namespace netket
 
 #endif  // SOURCES_UTILS_ANY_HPP

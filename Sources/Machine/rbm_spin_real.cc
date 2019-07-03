@@ -61,30 +61,19 @@ int RbmSpinReal::Nvisible() const { return nv_; }
 
 int RbmSpinReal::Npar() const { return npar_; }
 
-void RbmSpinReal::InitRandomPars(int seed, double sigma) {
-  RealVectorType par(npar_);
-
-  netket::RandomGaussian(par, seed, sigma);
-
-  SetParameters(VectorType(par));
-}
-
-void RbmSpinReal::InitLookup(VisibleConstType v, LookupType &lt) {
-  if (lt.VectorSize() == 0) {
-    lt.AddVector(b_.size());
-  }
-  if (lt.V(0).size() != b_.size()) {
-    lt.V(0).resize(b_.size());
-  }
-
+any RbmSpinReal::InitLookup(VisibleConstType v) {
+  LookupType lt;
+  lt.AddVector(b_.size());
   lt.V(0) = (W_.transpose() * v + b_);
+  return any{std::move(lt)};
 }
 
 void RbmSpinReal::UpdateLookup(VisibleConstType v,
                                const std::vector<int> &tochange,
                                const std::vector<double> &newconf,
-                               LookupType &lt) {
+                               any &lookup) {
   if (tochange.size() != 0) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
       lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
@@ -93,20 +82,17 @@ void RbmSpinReal::UpdateLookup(VisibleConstType v,
 }
 
 RbmSpinReal::VectorType RbmSpinReal::DerLog(VisibleConstType v) {
-  LookupType ltnew;
-  InitLookup(v, ltnew);
-  return DerLog(v, ltnew);
+  return DerLog(v, InitLookup(v));
 }
 
-RbmSpinReal::VectorType RbmSpinReal::DerLog(VisibleConstType v,
-                                            const LookupType &lt) {
+RbmSpinReal::VectorType RbmSpinReal::DerLog(VisibleConstType v, const any &lt) {
   VectorType der(npar_);
 
   if (usea_) {
     der.head(nv_) = v;
   }
 
-  RbmSpin::tanh(lt.V(0).real(), lnthetas_);
+  RbmSpin::tanh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas_;
@@ -157,8 +143,8 @@ Complex RbmSpinReal::LogVal(VisibleConstType v) {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinReal::LogVal(VisibleConstType v, const LookupType &lt) {
-  RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
+Complex RbmSpinReal::LogVal(VisibleConstType v, const any &lt) {
+  RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
 
   return (v.dot(a_) + lnthetas_.sum());
 }
@@ -201,10 +187,11 @@ RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
 Complex RbmSpinReal::LogValDiff(VisibleConstType v,
                                 const std::vector<int> &tochange,
                                 const std::vector<double> &newconf,
-                                const LookupType &lt) {
+                                const any &lookup) {
   Complex logvaldiff = 0.;
 
   if (tochange.size() != 0) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
 
     thetasnew_ = lt.V(0).real();
