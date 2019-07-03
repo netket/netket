@@ -46,7 +46,7 @@ class CustomSampler : public AbstractSampler {
   int totalnodes_;
 
   // Look-up tables
-  typename AbstractMachine::LookupType lt_;
+  any lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
@@ -120,7 +120,7 @@ class CustomSampler : public AbstractSampler {
       GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    GetMachine().InitLookup(v_, lt_);
+    lt_ = GetMachine().InitLookup(v_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);

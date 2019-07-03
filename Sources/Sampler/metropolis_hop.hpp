@@ -41,7 +41,7 @@ class MetropolisHop : public AbstractSampler {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  typename AbstractMachine::LookupType lt_;
+  any lt_;
 
   int nstates_;
   std::vector<double> localstates_;
@@ -103,7 +103,7 @@ class MetropolisHop : public AbstractSampler {
       GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    GetMachine().InitLookup(v_, lt_);
+    lt_ = GetMachine().InitLookup(v_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);

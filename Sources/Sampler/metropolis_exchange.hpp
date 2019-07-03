@@ -42,7 +42,7 @@ class MetropolisExchange : public AbstractSampler {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  typename AbstractMachine::LookupType lt_;
+  any lt_;
 
   int sweep_size_;
 
@@ -101,7 +101,7 @@ class MetropolisExchange : public AbstractSampler {
       }
     }
 
-    GetMachine().InitLookup(v_, lt_);
+    lt_ = GetMachine().InitLookup(v_);
 
     accept_ = Eigen::VectorXd::Zero(1);
     moves_ = Eigen::VectorXd::Zero(1);

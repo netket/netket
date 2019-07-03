@@ -44,7 +44,7 @@ class MetropolisLocalPt : public AbstractSampler {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  std::vector<typename AbstractMachine::LookupType> lt_;
+  std::vector<any> lt_;
 
   int nrep_;
 
@@ -110,7 +110,7 @@ class MetropolisLocalPt : public AbstractSampler {
     }
 
     for (int i = 0; i < nrep_; i++) {
-      GetMachine().InitLookup(v_[i], lt_[i]);
+      lt_[i] = GetMachine().InitLookup(v_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);

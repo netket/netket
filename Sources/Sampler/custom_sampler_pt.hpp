@@ -46,7 +46,7 @@ class CustomSamplerPt : public AbstractSampler {
   int totalnodes_;
 
   // Look-up tables
-  std::vector<typename AbstractMachine::LookupType> lt_;
+  std::vector<any> lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
@@ -141,7 +141,7 @@ class CustomSamplerPt : public AbstractSampler {
     }
 
     for (int i = 0; i < nrep_; i++) {
-      GetMachine().InitLookup(v_[i], lt_[i]);
+      lt_[i] = GetMachine().InitLookup(v_[i]);
     }
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
