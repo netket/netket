@@ -122,6 +122,17 @@ class AbstractMachine {
   */
   virtual Complex LogVal(VisibleConstType v, const any &lt) = 0;
 
+  // This is a hack!
+  //
+  // Old and new (with batches) interfaces for LogVal overlap which makes some
+  // calls to LogVal ambigous. Here, we catch such calls and redirect them to
+  // the old function.
+  //
+  // This function should be removed once we get rid of the old interface.
+  Complex LogVal(VisibleType const &v, const any &lt) {
+    return LogVal(VisibleConstType{v}, lt);
+  }
+
   /**
   Member function initializing the look-up tables.
   If needed, a Machine can make use of look-up tables
@@ -209,6 +220,17 @@ class AbstractMachine {
   */
   virtual VectorType DerLog(VisibleConstType v, const any & /*lt*/) {
     return DerLog(v);
+  }
+
+  // This is a hack!
+  //
+  // Old and new (with batches) interfaces for DerLog overlap which makes some
+  // calls to DerLog ambigous. Here, we catch such calles and redirect them to
+  // the old function.
+  //
+  // This function should be removed once we get rid of the old interface.
+  VectorType DerLog(VisibleType const &v, const any &lt) {
+    return DerLog(VisibleConstType{v}, lt);
   }
 
   /**
