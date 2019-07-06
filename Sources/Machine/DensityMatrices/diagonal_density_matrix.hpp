@@ -80,13 +80,8 @@ class DiagonalDensityMatrix : public AbstractMachine {
   };
 
  public:
-  Complex LogVal(VisibleConstType v) override {
-    return density_matrix_.LogVal(DoubleVisibleConfig(v));
-  }
-
-  Complex LogVal(VisibleConstType v, const any &lt) override {
-    const auto v2 = DoubleVisibleConfig(v);
-    return density_matrix_.LogVal(VisibleConstType{v2}, lt);
+  Complex LogValSingle(VisibleConstType v, const any &lt) override {
+    return density_matrix_.LogValSingle(DoubleVisibleConfig(v), lt);
   }
 
   any InitLookup(VisibleConstType v) override {
@@ -130,13 +125,8 @@ class DiagonalDensityMatrix : public AbstractMachine {
                                       d_changes.second, lt);
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    return density_matrix_.DerLog(DoubleVisibleConfig(v));
-  }
-
-  VectorType DerLog(VisibleConstType v, const any &lt) override {
-    const auto v2 = DoubleVisibleConfig(v);
-    return density_matrix_.DerLog(VisibleConstType{v2}, lt);
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override {
+    return density_matrix_.DerLog(DoubleVisibleConfig(v), lt);
   }
 
   VectorType DerLogChanged(VisibleConstType v, const std::vector<int> &tochange,

@@ -122,16 +122,14 @@ void PyAbstractMachine::SetParameters(VectorConstRefType pars) {
       pars);
 }
 
-Complex PyAbstractMachine::LogVal(VisibleConstType v) {
-  PYBIND11_OVERLOAD_PURE_NAME(Complex,         /* Return type */
-                              AbstractMachine, /* Parent class */
-                              "log_val", /* Name of the function in Python */
-                              LogVal,    /* Name of function in C++ */
-                              v);
-}
-
-Complex PyAbstractMachine::LogVal(VisibleConstType v, const any & /*unused*/) {
-  return LogVal(v);
+Complex PyAbstractMachine::LogValSingle(VisibleConstType v,
+                                        const any & /*unused*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(
+      Complex,          /* Return type */
+      AbstractMachine,  /* Parent class */
+      "log_val_single", /* Name of the function in Python */
+      LogValSingle,     /* Name of function in C++ */
+      v);
 }
 
 any PyAbstractMachine::InitLookup(VisibleConstType /*unused*/) { return {}; }
@@ -144,10 +142,10 @@ void PyAbstractMachine::UpdateLookup(VisibleConstType /*unused*/,
 Complex PyAbstractMachine::LogValDiff(VisibleConstType old_v,
                                       const std::vector<int> &to_change,
                                       const std::vector<double> &new_conf) {
-  auto const old_value = LogVal(old_v);
+  auto const old_value = LogValSingle(old_v, {});
   VisibleType new_v{old_v};
   GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  auto const new_value = LogVal(new_v);
+  auto const new_value = LogValSingle(new_v, {});
   return new_value - old_value;
 }
 
@@ -169,17 +167,14 @@ Complex PyAbstractMachine::LogValDiff(VisibleConstType v,
   return LogValDiff(v, to_change, new_conf);
 }
 
-PyAbstractMachine::VectorType PyAbstractMachine::DerLog(VisibleConstType v) {
-  PYBIND11_OVERLOAD_PURE_NAME(VectorType,      /* Return type */
-                              AbstractMachine, /* Parent class */
-                              "der_log", /* Name of the function in Python */
-                              DerLog,    /* Name of function in C++ */
-                              v);
-}
-
-PyAbstractMachine::VectorType PyAbstractMachine::DerLog(VisibleConstType v,
-                                                        const any & /*lt*/) {
-  return DerLog(v);
+PyAbstractMachine::VectorType PyAbstractMachine::DerLogSingle(
+    VisibleConstType v, const any & /*lt*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(
+      VectorType,       /* Return type */
+      AbstractMachine,  /* Parent class */
+      "der_log_single", /* Name of the function in Python */
+      DerLogSingle,     /* Name of function in C++ */
+      v);
 }
 
 PyAbstractMachine::VectorType PyAbstractMachine::DerLogChanged(

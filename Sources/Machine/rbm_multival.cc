@@ -117,13 +117,13 @@ void RbmMultival::UpdateLookup(VisibleConstType v,
   }
 }
 
-RbmMultival::VectorType RbmMultival::DerLog(VisibleConstType v) {
-  auto ltnew = InitLookup(v);
-  return DerLog(v, ltnew);
+RbmMultival::VectorType RbmMultival::DerLogSingle(VisibleConstType v,
+                                                  const any &lookup) {
+  return DerLogSingleImpl(v, lookup.empty() ? InitLookup(v) : lookup);
 }
 
-RbmMultival::VectorType RbmMultival::DerLog(VisibleConstType v,
-                                            const any &lookup) {
+RbmMultival::VectorType RbmMultival::DerLogSingleImpl(VisibleConstType v,
+                                                      const any &lookup) {
   VectorType der(npar_);
   der.setZero();
 
@@ -208,16 +208,14 @@ void RbmMultival::SetParameters(VectorConstRefType pars) {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmMultival::LogVal(VisibleConstType v) {
-  ComputeTheta(v, thetas_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
-
-  return (vtilde_.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmMultival::LogVal(VisibleConstType v, const any &lt) {
+Complex RbmMultival::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) {
+    ComputeTheta(v, thetas_);
+    RbmSpin::lncosh(thetas_, lnthetas_);
+
+    return (vtilde_.dot(a_) + lnthetas_.sum());
+  }
   RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0), lnthetas_);
 
   ComputeVtilde(v, vtilde_);

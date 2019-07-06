@@ -127,12 +127,12 @@ class MetropolisHamiltonian : public AbstractSampler {
       double ratio = this->GetMachineFunc()(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
-      const auto psival1 = GetMachine().LogVal(v_);
-      if (std::abs(
-              std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) -
-              1.) > 1.0e-8) {
-        std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
-                  << GetMachine().LogVal(v_, lt_) << std::endl;
+      const auto psival1 = GetMachine().LogValSingle(v_);
+      if (std::abs(std::exp(GetMachine().LogValSingle(v_) -
+                            GetMachine().LogValSingle(v_, lt_)) -
+                   1.) > 1.0e-8) {
+        std::cerr << GetMachine().LogValSingle(v_) << "  and LogVal with Lt is "
+                  << GetMachine().LogValSingle(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
@@ -144,12 +144,12 @@ class MetropolisHamiltonian : public AbstractSampler {
         v_ = v1_;
 
 #ifndef NDEBUG
-        const auto psival2 = GetMachine().LogVal(v_);
+        const auto psival2 = GetMachine().LogValSingle(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << GetMachine().LogVal(v_, lt_) << std::endl;
+                    << GetMachine().LogValSingle(v_, lt_) << std::endl;
           std::abort();
         }
 #endif

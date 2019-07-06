@@ -14,14 +14,19 @@
 
 #include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
+#include "Utils/messages.hpp"
 
 namespace netket {
 
 RbmSpinV2::RbmSpinV2(std::shared_ptr<const AbstractHilbert> hilbert,
                      Index nhidden, Index alpha, bool usea, bool useb,
                      Index const batch_size)
-    : W_{}, a_{nonstd::nullopt}, b_{nonstd::nullopt}, theta_{}, output_{} {
-  const auto nvisible = hilbert->Size();
+    : AbstractMachine{std::move(hilbert)},
+      W_{},
+      a_{nonstd::nullopt},
+      b_{nonstd::nullopt},
+      theta_{} {
+  const auto nvisible = GetHilbert().Size();
   assert(nvisible >= 0 && "AbstractHilbert::Size is broken");
   if (nhidden < 0) {
     std::ostringstream msg;
@@ -52,15 +57,8 @@ RbmSpinV2::RbmSpinV2(std::shared_ptr<const AbstractHilbert> hilbert,
   }
 
   theta_.resize(batch_size, nhidden);
-  output_.resize(batch_size);
 }
 
-Index RbmSpinV2::Nvisible() const noexcept { return W_.rows(); }
-Index RbmSpinV2::Nhidden() const noexcept { return W_.cols(); }
-Index RbmSpinV2::Npar() const noexcept {
-  return W_.size() + (a_.has_value() ? a_->size() : 0) +
-         (b_.has_value() ? b_->size() : 0);
-}
 Index RbmSpinV2::BatchSize() const noexcept { return theta_.rows(); }
 
 void RbmSpinV2::BatchSize(Index batch_size) {
@@ -72,39 +70,124 @@ void RbmSpinV2::BatchSize(Index batch_size) {
   }
   if (batch_size != BatchSize()) {
     theta_.resize(batch_size, theta_.cols());
-    output_.resize(batch_size);
   }
 }
 
-Eigen::Ref<const Eigen::VectorXcd> RbmSpinV2::LogVal(
-    Eigen::Ref<const RowMatrix<double>> x) {
-  if (x.cols() != Nvisible()) {
+Eigen::VectorXcd RbmSpinV2::GetParameters() {
+  Eigen::VectorXcd parameters(DoNpar());
+  Index i = 0;
+  if (a_.has_value()) {
+    parameters.segment(i, a_->size()) = *a_;
+    i += a_->size();
+  }
+  if (b_.has_value()) {
+    parameters.segment(i, b_->size()) = *b_;
+    i += b_->size();
+  }
+  parameters.segment(i, W_.size()) =
+      Eigen::Map<Eigen::VectorXcd>(W_.data(), W_.size());
+  return parameters;
+}
+
+void RbmSpinV2::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
+  if (parameters.size() != DoNpar()) {
     std::ostringstream msg;
-    msg << "wrong shape: [" << x.rows() << ", " << x.cols() << "]; expected [?"
-        << ", " << Nvisible() << "]";
+    msg << "wrong shape: [" << parameters.size() << "]; expected [" << DoNpar()
+        << "]";
+    throw InvalidInputError{msg.str()};
+  }
+  Index i = 0;
+  if (a_.has_value()) {
+    *a_ = parameters.segment(i, a_->size());
+    i += a_->size();
+  }
+  if (b_.has_value()) {
+    *b_ = parameters.segment(i, b_->size());
+    i += b_->size();
+  }
+  Eigen::Map<Eigen::VectorXcd>(W_.data(), W_.size()) =
+      parameters.segment(i, W_.size());
+}
+
+void RbmSpinV2::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                       Eigen::Ref<Eigen::VectorXcd> out, const any&) {
+  if (x.cols() != DoNvisible()) {
+    std::ostringstream msg;
+    msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
+        << "]; expected [?"
+        << ", " << DoNvisible() << "]";
+    throw InvalidInputError{msg.str()};
+  }
+  if (out.size() != x.rows()) {
+    std::ostringstream msg;
+    msg << "output tensor wrong shape: [" << out.size() << "]; expected ["
+        << x.rows() << "]";
     throw InvalidInputError{msg.str()};
   }
   BatchSize(x.rows());
   if (a_.has_value()) {
-    output_.noalias() = x * (*a_);
+    out.noalias() = x * (*a_);
   } else {
-    output_.setZero();
+    out.setZero();
   }
   theta_.noalias() = x * W_;
-  ApplyBiasAndActivation();
-  return output_;
+  ApplyBiasAndActivation(out);
 }
 
-void RbmSpinV2::ApplyBiasAndActivation() {
+void RbmSpinV2::DerLog(Eigen::Ref<const RowMatrix<double>> x,
+                       Eigen::Ref<RowMatrix<Complex>> out,
+                       const any& /*unused*/) {
+  if (x.cols() != DoNvisible()) {
+    std::ostringstream msg;
+    msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
+        << "]; expected [?"
+        << ", " << DoNvisible() << "]";
+    throw InvalidInputError{msg.str()};
+  }
+  if (out.rows() != x.rows() || out.cols() != DoNpar()) {
+    std::ostringstream msg;
+    msg << "output tensor wrong shape: [" << out.rows() << ", " << out.cols()
+        << "]; expected [" << x.rows() << ", " << DoNpar() << "]";
+    throw InvalidInputError{msg.str()};
+  }
+  BatchSize(x.rows());
+
+  auto i = Index{0};
+  if (a_.has_value()) {
+    out.block(0, i, BatchSize(), a_->size()) = x;
+    i += a_->size();
+  }
+
+  Eigen::Map<RowMatrix<Complex>>{theta_.data(), theta_.rows(), theta_.cols()}
+      .noalias() = x * W_;
+  if (b_.has_value()) {
+    theta_.array() = (theta_ + b_->transpose().colwise().replicate(BatchSize()))
+                         .array()
+                         .tanh();
+    out.block(0, i, BatchSize(), b_->size()) = theta_;
+    i += b_->size();
+  } else {
+    theta_.array() = theta_.array().tanh();
+  }
+
+  // TODO: Rewrite this using tensors
+#pragma omp parallel for
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i), W_.rows(), W_.cols()}.noalias() =
+        x.row(j).transpose() * theta_.row(j);
+  }
+}
+
+void RbmSpinV2::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
   if (b_.has_value()) {
 #pragma omp parallel for
     for (auto j = Index{0}; j < BatchSize(); ++j) {
-      output_(j) += SumLogCosh(theta_.row(j), (*b_));  // total;
+      out(j) += SumLogCosh(theta_.row(j), (*b_));  // total;
     }
   } else {
 #pragma omp parallel for
     for (auto j = Index{0}; j < BatchSize(); ++j) {
-      output_(j) += SumLogCosh(theta_.row(j));
+      out(j) += SumLogCosh(theta_.row(j));
     }
   }
 }

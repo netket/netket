@@ -1,3 +1,4 @@
+#include "Utils/messages.hpp"
 #include "vmc_sampling.hpp"
 
 namespace netket {
@@ -74,7 +75,7 @@ VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
   op.FindConn(v, mels, tochange, newconf);
 
   auto logvaldiffs = psi.LogValDiff(v, tochange, newconf);
-  auto log_deriv = psi.DerLog(v);
+  auto log_deriv = psi.DerLogSingle(v);
 
   VectorXcd grad(v.size());
   for (int i = 0; i < logvaldiffs.size(); i++) {

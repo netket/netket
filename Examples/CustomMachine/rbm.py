@@ -110,7 +110,7 @@ class PyRbm(netket.machine.CxxMachine):
 
         self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
 
-    def log_val(self, x):
+    def log_val_single(self, x):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
@@ -125,7 +125,7 @@ class PyRbm(netket.machine.CxxMachine):
         # but the C++ implementation ignores the "constant factor"
         return r
 
-    def der_log(self, x):
+    def der_log_single(self, x):
         r"""Computes the gradient of the logarithm of the wave function
         given a spin configuration ``x``.
         """

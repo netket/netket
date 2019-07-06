@@ -147,12 +147,13 @@ class MetropolisHamiltonianPt : public AbstractSampler {
           this->GetMachineFunc()(std::exp(beta_[rep] * lvd)) * w1 / w2;
 
 #ifndef NDEBUG
-      const auto psival1 = GetMachine().LogVal(v_[rep]);
-      if (std::abs(std::exp(GetMachine().LogVal(v_[rep]) -
-                            GetMachine().LogVal(v_[rep], lt_[rep])) -
+      const auto psival1 = GetMachine().LogValSingle(v_[rep]);
+      if (std::abs(std::exp(GetMachine().LogValSingle(v_[rep]) -
+                            GetMachine().LogValSingle(v_[rep], lt_[rep])) -
                    1.) > 1.0e-8) {
-        std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
+        std::cerr << GetMachine().LogValSingle(v_[rep])
+                  << "  and LogVal with Lt is "
+                  << GetMachine().LogValSingle(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -165,12 +166,13 @@ class MetropolisHamiltonianPt : public AbstractSampler {
         v_[rep] = v1_;
 
 #ifndef NDEBUG
-        const auto psival2 = GetMachine().LogVal(v_[rep]);
+        const auto psival2 = GetMachine().LogValSingle(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << GetMachine().LogValSingle(v_[rep], lt_[rep])
+                    << std::endl;
           std::abort();
         }
 #endif
@@ -211,8 +213,10 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
+    const double lf1 =
+        2 * std::real(GetMachine().LogValSingle(v_[r1], lt_[r1]));
+    const double lf2 =
+        2 * std::real(GetMachine().LogValSingle(v_[r2], lt_[r2]));
 
     return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
   }

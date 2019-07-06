@@ -52,7 +52,7 @@ void AddDensityMatrixModule(py::module &subm) {
                 Eigen::VectorXd v(v_r.size() * 2);
                 v << v_r, v_c;
 
-                vals(i, j) = self.LogVal(v);
+                vals(i, j) = self.LogValSingle(v);
                 if (std::real(vals(i, j)) > maxlog) {
                   maxlog = std::real(vals(i, j));
                 }

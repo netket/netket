@@ -256,7 +256,8 @@ class QuantumStateReconstruction {
     }
     opt_.Reset();
 
-    for (Index step = 0; !n_iter.has_value() || step < *n_iter; step += step_size) {
+    for (Index step = 0; !n_iter.has_value() || step < *n_iter;
+         step += step_size) {
       Advance(step_size);
       ComputeObservables();
 
@@ -378,7 +379,7 @@ class QuantumStateReconstruction {
       }
 
       nnll -= std::log(std::norm(ratio));
-      nnll -= 2. * std::real(psi_.LogVal(state));
+      nnll -= 2. * std::real(psi_.LogValSingle(state));
     }
     nnll /= double(testSamples.size());
 

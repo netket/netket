@@ -78,14 +78,12 @@ class RbmSpinSymm : public AbstractMachine {
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf, any &lt) override;
 
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const any &lt) override;
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const any &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;

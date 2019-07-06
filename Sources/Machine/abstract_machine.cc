@@ -19,6 +19,7 @@
 
 #include <fstream>
 
+#include "Utils/messages.hpp"
 #include "Utils/mpi_interface.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -69,7 +70,7 @@ void AbstractMachine::LogVal(Eigen::Ref<const RealRowMatrixType> v,
     throw InvalidInputError{msg.str()};
   }
   for (auto i = Index{0}; i < v.rows(); ++i) {
-    out(i) = LogVal(v.row(i));
+    out(i) = LogValSingle(v.row(i));
   }
 }
 
@@ -95,7 +96,7 @@ void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
     throw InvalidInputError{msg.str()};
   }
   for (auto i = Index{0}; i < v.rows(); ++i) {
-    out.row(i) = DerLog(v.row(i));
+    out.row(i) = DerLogSingle(v.row(i));
   }
 }
 
@@ -111,7 +112,7 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
     const std::vector<double> &newconf) {
   VisibleType vp(v);
   hilbert_->UpdateConf(vp, tochange, newconf);
-  return DerLog(vp);
+  return DerLogSingle(vp);
 }
 
 }  // namespace netket

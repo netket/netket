@@ -51,8 +51,6 @@ class RbmSpin : public AbstractMachine {
   bool usea_;
   bool useb_;
 
-  using LookupType = Lookup<Complex>;
-
  public:
   RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
           int alpha = 0, bool usea = true, bool useb = true);
@@ -64,10 +62,8 @@ class RbmSpin : public AbstractMachine {
   any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf, any &lt) override;
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const any &lt) override;
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const any &lt) override;
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
@@ -139,6 +135,7 @@ class RbmSpin : public AbstractMachine {
 
  private:
   inline void Init();
+  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup);
 };
 
 }  // namespace netket

@@ -28,6 +28,7 @@
 #include "Operator/operator.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
+#include "Utils/pybind_helpers.hpp"
 #include "abstract_sampler.hpp"
 #include "py_custom_sampler.hpp"
 #include "py_custom_sampler_pt.hpp"
@@ -53,9 +54,12 @@ void AddMetropolisLocalV2(py::module m) {
       .def("reset", &MetropolisLocalV2::Reset);
 
   m.def("compute_samples_v2",
-        [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps) {
-          return ComputeSamples(sampler, {steps});
+        [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps,
+           bool compute_gradients) {
+          return ComputeSamples(sampler, {steps}, compute_gradients);
         });
+
+  m.def("local_values_v2", &LocalValuesV2);
 }
 
 void AddSamplerModule(py::module &m) {

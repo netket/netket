@@ -163,7 +163,8 @@ JastrowSymm::VectorType JastrowSymm::BareDerLog(VisibleConstType v) {
 }
 
 // now unchanged w.r.t. RBM spin symm
-JastrowSymm::VectorType JastrowSymm::DerLog(VisibleConstType v) {
+JastrowSymm::VectorType JastrowSymm::DerLogSingle(VisibleConstType v,
+                                                  const any & /*unused*/) {
   return DerMatSymm_ * BareDerLog(v);
 }
 
@@ -200,11 +201,10 @@ void JastrowSymm::SetBareParameters() {
   }
 }
 
-Complex JastrowSymm::LogVal(VisibleConstType v) { return 0.5 * v.dot(W_ * v); }
-
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex JastrowSymm::LogVal(VisibleConstType v, const any &lt) {
+Complex JastrowSymm::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) return 0.5 * v.dot(W_ * v);
   return 0.5 * v.dot(any_cast_ref<LookupType>(lt).V(0));
 }
 

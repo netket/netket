@@ -23,6 +23,7 @@
 #include <nonstd/span.hpp>
 
 #include "Machine/rbm_spin_v2.hpp"
+#include "Operator/abstract_operator.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -39,10 +40,6 @@ class Flipper {
   template <class T>
   using Vector = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
-  template <class T>
-  using RowMatrix =
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
   inline Flipper(std::pair<Index, Index> const shape,
                  std::vector<double> local_states);
 
@@ -51,7 +48,7 @@ class Flipper {
   default_random_engine& Generator() noexcept { return engine_.Get(); }
   inline void Reset();
   inline void Next(nonstd::span<const bool> accept);
-  inline Eigen::Ref<const RowMatrix<double>> Current() const noexcept;
+  const RowMatrix<double>& Current() const noexcept;
   inline nonstd::span<Suggestion const> Read() const noexcept;
   inline void Read(Eigen::Ref<RowMatrix<double>> x) const noexcept;
 
@@ -90,11 +87,11 @@ class Flipper {
 }  // namespace detail
 
 class MetropolisLocalV2 {
-  using InputType = detail::Flipper::RowMatrix<double>;
-  using ForwardFn = std::function<
-      auto(Eigen::Ref<const InputType>)->Eigen::Ref<const Eigen::VectorXcd>>;
+  using InputType = RowMatrix<double>;
+  using ForwardFn = std::function<void(Eigen::Ref<const InputType>,
+                                       Eigen::Ref<Eigen::VectorXcd>)>;
 
-  ForwardFn forward_;
+  RbmSpinV2& machine_;
   detail::Flipper flipper_;
   InputType proposed_X_;
   Eigen::ArrayXcd proposed_Y_;
@@ -111,6 +108,7 @@ class MetropolisLocalV2 {
 
   Index BatchSize() const noexcept { return flipper_.BatchSize(); }
   Index SystemSize() const noexcept { return flipper_.SystemSize(); }
+  RbmSpinV2& Machine() const noexcept { return machine_; }
 
   std::pair<Eigen::Ref<const InputType>, Eigen::Ref<const Eigen::VectorXcd>>
   Read();
@@ -141,10 +139,18 @@ struct StepsRange {
   Index step_;
 };  // namespace netket
 
-std::tuple<
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
-    Eigen::VectorXcd>
-ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps);
+std::tuple<RowMatrix<double>, Eigen::VectorXcd,
+           nonstd::optional<RowMatrix<Complex>>>
+ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
+               bool compute_gradients);
+
+Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
+                               Eigen::Ref<const Eigen::VectorXcd> values,
+                               RbmSpinV2& machine, AbstractOperator& op,
+                               Index batch_size);
+
+Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
+                          Eigen::Ref<const RowMatrix<Complex>> gradients);
 
 }  // namespace netket
 

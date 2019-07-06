@@ -85,20 +85,21 @@ void RbmSpin::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
   }
 }
 
-RbmSpin::VectorType RbmSpin::DerLog(VisibleConstType v) {
-  return DerLog(v, InitLookup(v));
+RbmSpin::VectorType RbmSpin::DerLogSingle(VisibleConstType v,
+                                          const any &cache) {
+  return DerLogSingleImpl(v, cache.empty() ? InitLookup(v) : cache);
 }
 
-RbmSpin::VectorType RbmSpin::DerLog(VisibleConstType v, const any &lookup) {
-  const auto *lt = any_cast<LookupType>(&lookup);
-  if (lt == nullptr) throw InvalidInputError{"lookup has wrong type"};
+RbmSpin::VectorType RbmSpin::DerLogSingleImpl(VisibleConstType v,
+                                              const any &lookup) {
+  auto &lt = any_cast_ref<LookupType>(lookup);
   VectorType der(npar_);
 
   if (usea_) {
     der.head(nv_) = v;
   }
 
-  RbmSpin::tanh(lt->V(0), lnthetas_);
+  RbmSpin::tanh(lt.V(0), lnthetas_);
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas_;
@@ -141,19 +142,14 @@ void RbmSpin::SetParameters(VectorConstRefType pars) {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmSpin::LogVal(VisibleConstType v) {
-  RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-
-  return (v.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpin::LogVal(VisibleConstType v, const any &lookup) {
-  const auto *lt = any_cast<LookupType>(&lookup);
-  if (lt == nullptr) throw InvalidInputError{"lookup has wrong type"};
-  RbmSpin::lncosh(lt->V(0), lnthetas_);
-
+Complex RbmSpin::LogValSingle(VisibleConstType v, const any &lookup) {
+  if (lookup.empty()) {
+    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    return (v.dot(a_) + lnthetas_.sum());
+  }
+  auto &lt = any_cast_ref<LookupType>(lookup);
+  RbmSpin::lncosh(lt.V(0), lnthetas_);
   return (v.dot(a_) + lnthetas_.sum());
 }
 

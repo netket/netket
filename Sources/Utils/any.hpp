@@ -16,6 +16,7 @@
 #define SOURCES_UTILS_ANY_HPP
 
 #include <any.hpp>
+#include <iostream>
 
 namespace netket {
 

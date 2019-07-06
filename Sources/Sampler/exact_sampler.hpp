@@ -89,7 +89,7 @@ class ExactSampler : public AbstractSampler {
 
     for (int i = 0; i < dim_; ++i) {
       auto v = hilbert_index_.NumberToState(i);
-      logpsivals_[i] = GetMachine().LogVal(v);
+      logpsivals_[i] = GetMachine().LogValSingle(v);
       logmax = std::max(logmax, std::real(logpsivals_[i]));
     }
 

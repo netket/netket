@@ -257,11 +257,11 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    return DerLog(v, InitLookup(v));
+  VectorType DerLogSingle(VisibleConstType v, const any &lookup) override {
+    return DerLogSingleImpl(v, lookup.empty() ? InitLookup(v) : lookup);
   }
 
-  VectorType DerLog(VisibleConstType v, const any &lookup) override {
+  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup) {
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
@@ -396,31 +396,30 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   }
 
   // Value of the logarithm of the wave-function
-  Complex LogVal(VisibleConstType v) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
-
-    RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
-    RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
-    RbmSpin::lncosh(W1_.transpose() * vc + h1_, lnthetas_c1_);
-    RbmSpin::lncosh(W2_.transpose() * vc + h2_, lnthetas_c2_);
-
-    thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
-    thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-    RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
-
-    auto gamma_1 =
-        0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
-
-    auto gamma_2 =
-        0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
-
-    return gamma_1 + I_ * gamma_2 + lnpi_.sum();
-  }
-
-  // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const any &lookup) override {
+  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
+    if (lookup.empty()) {
+      VisibleConstType vr = v.head(GetHilbertPhysical().Size());
+      VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+
+      RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
+      RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
+      RbmSpin::lncosh(W1_.transpose() * vc + h1_, lnthetas_c1_);
+      RbmSpin::lncosh(W2_.transpose() * vc + h2_, lnthetas_c2_);
+
+      thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
+      thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
+      RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
+
+      auto gamma_1 =
+          0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
+
+      auto gamma_2 =
+          0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
+
+      return gamma_1 + I_ * gamma_2 + lnpi_.sum();
+    }
+
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 

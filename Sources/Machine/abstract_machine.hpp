@@ -91,16 +91,16 @@ class AbstractMachine {
    * is a visible configuration.
    */
   virtual void LogVal(Eigen::Ref<const RealRowMatrixType> v,
-                      Eigen::Ref<VectorType> out, const any & /*unused*/);
+                      Eigen::Ref<VectorType> out, const any &cache = any{});
 
   virtual VectorType LogVal(Eigen::Ref<const RealRowMatrixType> v,
-                            const any &cache);
+                            const any &cache = any{});
 
   virtual void DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                      Eigen::Ref<RowMatrixType> out, const any &cache);
+                      Eigen::Ref<RowMatrixType> out, const any &cache = any{});
 
   virtual RowMatrixType DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                               const any &cache);
+                               const any &cache = any{});
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -109,7 +109,7 @@ class AbstractMachine {
   @param v a constant reference to a visible configuration.
   @return Logarithm of the wave function.
   */
-  virtual Complex LogVal(VisibleConstType v) = 0;
+  // virtual Complex LogValSingle(VisibleConstType v) = 0;
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -120,7 +120,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual Complex LogVal(VisibleConstType v, const any &lt) = 0;
+  virtual Complex LogValSingle(VisibleConstType v, const any &lt = any{}) = 0;
 
   // This is a hack!
   //
@@ -129,9 +129,9 @@ class AbstractMachine {
   // the old function.
   //
   // This function should be removed once we get rid of the old interface.
-  Complex LogVal(VisibleType const &v, const any &lt) {
-    return LogVal(VisibleConstType{v}, lt);
-  }
+  // Complex LogVal(VisibleType const &v, const any &lt) {
+  //   return LogVal(VisibleConstType{v}, lt);
+  // }
 
   /**
   Member function initializing the look-up tables.
@@ -208,7 +208,8 @@ class AbstractMachine {
   @return Derivatives of the logarithm of the wave function with respect to the
   set of parameters.
   */
-  virtual VectorType DerLog(VisibleConstType v) = 0;
+  virtual VectorType DerLogSingle(VisibleConstType v,
+                                  const any &cache = any{}) = 0;
 
   /**
   Member function computing the derivative of the logarithm of the wave function
@@ -218,9 +219,9 @@ class AbstractMachine {
   @return Derivatives of the logarithm of the wave function with respect to the
   set of parameters.
   */
-  virtual VectorType DerLog(VisibleConstType v, const any & /*lt*/) {
-    return DerLog(v);
-  }
+  // virtual VectorType DerLogSingle(VisibleConstType v, const any & /*lt*/) {
+  //   return DerLog(v);
+  // }
 
   // This is a hack!
   //
@@ -229,9 +230,9 @@ class AbstractMachine {
   // the old function.
   //
   // This function should be removed once we get rid of the old interface.
-  VectorType DerLog(VisibleType const &v, const any &lt) {
-    return DerLog(VisibleConstType{v}, lt);
-  }
+  // VectorType DerLog(VisibleType const &v, const any &lt) {
+  //   return DerLog(VisibleConstType{v}, lt);
+  // }
 
   /**
   Member function computing O_k(v'), the derivative of
@@ -278,6 +279,103 @@ class AbstractMachine {
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
+
+template <class LogValFn>
+struct BatchedLogVal {
+  template <class T>
+  using RowMatrix =
+      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+  LogValFn fn;
+
+  void operator()(Eigen::Ref<const RowMatrix<double>> x,
+                  Eigen::Ref<Eigen::VectorXcd> out) {
+    if (x.rows() == 1 || x.cols() == 1) {
+      if (out.size() != 1) {
+        std::ostringstream msg;
+        msg << "output tensor has wrong shape: [" << out.size()
+            << "]; expected [1]";
+        throw InvalidInputError{msg.str()};
+      }
+      out(0) = fn(Eigen::Ref<const Eigen::VectorXd>{x});
+    } else {
+      if (out.size() != x.rows()) {
+        std::ostringstream msg;
+        msg << "output tensor has wrong shape: [" << out.size()
+            << "]; expected [" << x.rows() << "]";
+        throw InvalidInputError{msg.str()};
+      }
+      for (auto j = Index{0}; j < x.rows(); ++j) {
+        out(j) = fn(Eigen::Ref<const Eigen::VectorXd>{x.row(j)});
+      }
+    }
+  }
+};
+
+template <class LogValFn>
+struct BatchedDerLog {
+  template <class T>
+  using RowMatrix =
+      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+  LogValFn fn;
+
+  void operator()(Eigen::Ref<const RowMatrix<double>> x,
+                  Eigen::Ref<RowMatrix<Complex>> out) {
+    if (x.rows() == 1 || x.cols() == 1) {
+      if (out.rows() != 1 && out.cols() != 1) {
+        std::ostringstream msg;
+        msg << "output tensor has wrong shape: [" << out.rows() << ", "
+            << out.cols() << "]; expected [1, ?] or [?, 1]";
+        throw InvalidInputError{msg.str()};
+      }
+      fn(Eigen::Ref<const Eigen::VectorXd>{x},
+         Eigen::Map<Eigen::VectorXcd>{out.data(), out.size()});
+    } else {
+      if (out.rows() != x.rows()) {
+        std::ostringstream msg;
+        msg << "output tensor has wrong shape: [" << out.rows() << ", "
+            << out.cols() << "]; expected [" << x.rows() << ", ?]";
+        throw InvalidInputError{msg.str()};
+      }
+      for (auto j = Index{0}; j < x.rows(); ++j) {
+        fn(Eigen::Ref<const Eigen::VectorXd>{x.row(j)},
+           Eigen::Ref<Eigen::VectorXcd>{out.row(j)});
+      }
+    }
+  }
+};
+
+template <class Fn>
+auto MakeBatchedLogVal(Fn &&fn) noexcept(noexcept(
+    BatchedLogVal<typename std::conditional<
+        std::is_lvalue_reference<Fn>::value, Fn,
+        typename std::remove_reference<Fn>::type>::type>{std::declval<Fn &&>()}
+
+    ))
+    -> BatchedLogVal<typename std::conditional<
+        std::is_lvalue_reference<Fn>::value, Fn,
+        typename std::remove_reference<Fn>::type>::type> {
+  return BatchedLogVal<typename std::conditional<
+      std::is_lvalue_reference<Fn>::value, Fn,
+      typename std::remove_reference<Fn>::type>::type>{std::forward<Fn>(fn)};
+}
+
+template <class Fn>
+auto MakeBatchedDerLog(Fn &&fn) noexcept(noexcept(
+    BatchedDerLog<typename std::conditional<
+        std::is_lvalue_reference<Fn>::value, Fn,
+        typename std::remove_reference<Fn>::type>::type>{std::declval<Fn &&>()}
+
+    ))
+    -> BatchedDerLog<typename std::conditional<
+        std::is_lvalue_reference<Fn>::value, Fn,
+        typename std::remove_reference<Fn>::type>::type> {
+  return BatchedDerLog<typename std::conditional<
+      std::is_lvalue_reference<Fn>::value, Fn,
+      typename std::remove_reference<Fn>::type>::type>{std::forward<Fn>(fn)};
+}
+
 }  // namespace netket
 
 #endif  // NETKET_ABSTRACTMACHINE_HPP

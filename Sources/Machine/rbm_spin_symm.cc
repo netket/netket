@@ -175,11 +175,9 @@ RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v,
   return der;
 }
 
-RbmSpinSymm::VectorType RbmSpinSymm::DerLog(VisibleConstType v) {
-  return DerMatSymm_ * BareDerLog(v);
-}
-
-RbmSpinSymm::VectorType RbmSpinSymm::DerLog(VisibleConstType v, const any &lt) {
+RbmSpinSymm::VectorType RbmSpinSymm::DerLogSingle(VisibleConstType v,
+                                                  const any &lt) {
+  if (lt.empty()) return DerMatSymm_ * BareDerLog(v);
   return DerMatSymm_ * BareDerLog(v, lt);
 }
 
@@ -259,17 +257,13 @@ void RbmSpinSymm::SetBareParameters() {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmSpinSymm::LogVal(VisibleConstType v) {
-  RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-
-  return (v.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinSymm::LogVal(VisibleConstType v, const any &lt) {
+Complex RbmSpinSymm::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) {
+    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    return (v.dot(a_) + lnthetas_.sum());
+  }
   RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0), lnthetas_);
-
   return (v.dot(a_) + lnthetas_.sum());
 }
 

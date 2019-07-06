@@ -78,17 +78,14 @@ class RbmSpinPhase : public AbstractMachine {
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf, any &lt) override;
 
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const any &lt) override;
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
   // Value of the logarithm of the wave-function
-  Complex LogVal(VisibleConstType v) override;
-  // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const any &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being flipped
   VectorType LogValDiff(
@@ -108,6 +105,7 @@ class RbmSpinPhase : public AbstractMachine {
 
  private:
   inline void Init();
+  inline VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup);
 };
 
 }  // namespace netket

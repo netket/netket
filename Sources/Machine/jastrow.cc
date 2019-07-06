@@ -101,11 +101,10 @@ void Jastrow::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
   }
 }
 
-Complex Jastrow::LogVal(VisibleConstType v) { return 0.5 * v.dot(W_ * v); }
-
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex Jastrow::LogVal(VisibleConstType v, const any &lt) {
+Complex Jastrow::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) return 0.5 * v.dot(W_ * v);
   return 0.5 * v.dot(any_cast_ref<LookupType>(lt).V(0));
 }
 
@@ -163,7 +162,8 @@ Complex Jastrow::LogValDiff(VisibleConstType v,
   return logvaldiff;
 }
 
-Jastrow::VectorType Jastrow::DerLog(VisibleConstType v) {
+Jastrow::VectorType Jastrow::DerLogSingle(VisibleConstType v,
+                                          const any & /*unused*/) {
   VectorType der(npar_);
 
   int k = 0;

@@ -51,8 +51,7 @@ class Jastrow : public AbstractMachine {
   any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                     const std::vector<double> &newconf, any &lt) override;
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const any &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
@@ -62,7 +61,7 @@ class Jastrow : public AbstractMachine {
                      const std::vector<double> &newconf,
                      const any &lt) override;
 
-  VectorType DerLog(VisibleConstType v) override;
+  VectorType DerLogSingle(VisibleConstType v, const any & /*unused*/) override;
 
   void Save(std::string const &filename) const override;
   void Load(std::string const &filename) override;

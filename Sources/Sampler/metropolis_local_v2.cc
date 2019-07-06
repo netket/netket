@@ -120,9 +120,7 @@ nonstd::span<Suggestion const> Flipper::Read() const noexcept {
               static_cast<span::index_type>(proposed_.size())};
 }
 
-Eigen::Ref<const Flipper::RowMatrix<double>> Flipper::Current() const noexcept {
-  return state_;
-}
+const RowMatrix<double>& Flipper::Current() const noexcept { return state_; }
 
 void Flipper::Read(Eigen::Ref<RowMatrix<double>> x) const noexcept {
   assert(x.rows() == BatchSize() && x.cols() == SystemSize());
@@ -151,16 +149,14 @@ MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
                                      AbstractHilbert const& hilbert,
                                      const Index batch_size,
                                      std::true_type /*safe*/)
-    : forward_{[&machine](Eigen::Ref<const InputType> x) {
-        return machine.LogVal(x);
-      }},
+    : machine_{machine},
       flipper_{{batch_size, machine.Nvisible()}, hilbert.LocalStates()},
       proposed_X_(batch_size, machine.Nvisible()),
       proposed_Y_(batch_size),
       current_Y_(batch_size),
       randoms_(batch_size),
       accept_(batch_size) {
-  current_Y_ = forward_(flipper_.Current());
+  machine_.LogVal(flipper_.Current(), current_Y_, {});
 }
 
 MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
@@ -171,7 +167,7 @@ MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
 
 void MetropolisLocalV2::Reset() {
   flipper_.Reset();
-  current_Y_ = forward_(flipper_.Current());
+  machine_.LogVal(flipper_.Current(), current_Y_, {});
 }
 
 std::pair<Eigen::Ref<const MetropolisLocalV2::InputType>,
@@ -182,7 +178,7 @@ MetropolisLocalV2::Read() {
 
 void MetropolisLocalV2::Next() {
   flipper_.Read(proposed_X_);
-  proposed_Y_ = forward_(proposed_X_);
+  machine_.LogVal(proposed_X_, proposed_Y_, {});
   std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
     return std::uniform_real_distribution<double>{}(flipper_.Generator());
   });
@@ -223,18 +219,20 @@ void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
 }
 }  // namespace detail
 
-std::tuple<
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
-    Eigen::VectorXcd>
-ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps) {
+std::tuple<RowMatrix<double>, Eigen::VectorXcd,
+           nonstd::optional<RowMatrix<Complex>>>
+ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
+               bool compute_gradients) {
   sampler.Reset();
   const auto num_samples = steps.size() * sampler.BatchSize();
 
-  using Matrix =
-      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-  Matrix samples(num_samples, sampler.SystemSize());
+  RowMatrix<double> samples(num_samples, sampler.SystemSize());
   Eigen::VectorXcd values(num_samples);
+  auto gradients =
+      compute_gradients
+          ? nonstd::optional<RowMatrix<Complex>>{nonstd::in_place, num_samples,
+                                                 sampler.Machine().Npar()}
+          : nonstd::nullopt;
 
   struct Skip {
     MetropolisLocalV2& sampler_;
@@ -243,27 +241,205 @@ ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps) {
 
   struct Record {
     MetropolisLocalV2& sampler_;
-    Matrix& samples_;
+    RowMatrix<double>& samples_;
     VectorXcd& values_;
+    nonstd::optional<RowMatrix<Complex>>& gradients_;
     Index i_;
 
-    std::pair<Eigen::Ref<Matrix>, Eigen::Ref<VectorXcd>> Batch() {
+    std::pair<Eigen::Ref<RowMatrix<double>>, Eigen::Ref<VectorXcd>> Batch() {
       const auto n = sampler_.BatchSize();
       return {samples_.block(i_ * n, 0, n, samples_.cols()),
               values_.segment(i_ * n, n)};
     }
 
+    void Gradients() {
+      const auto n = sampler_.BatchSize();
+      const auto X = samples_.block(i_ * n, 0, n, samples_.cols());
+      const auto out = gradients_->block(i_ * n, 0, n, gradients_->cols());
+      sampler_.Machine().DerLog(X, out, any{});
+    }
+
     void operator()() {
       assert(i_ * sampler_.BatchSize() < samples_.rows());
       Batch() = sampler_.Read();
+      if (gradients_.has_value()) Gradients();
       if (++i_ * sampler_.BatchSize() != samples_.rows()) {
         sampler_.Next();
       }
     }
   };
 
-  detail::LoopV2(steps, Skip{sampler}, Record{sampler, samples, values, 0});
-  return std::make_tuple(std::move(samples), std::move(values));
+  detail::LoopV2(steps, Skip{sampler},
+                 Record{sampler, samples, values, gradients, 0});
+  return std::make_tuple(std::move(samples), std::move(values),
+                         std::move(gradients));
+}
+
+namespace detail {
+struct Forward {
+  Forward(RbmSpinV2& m, Index batch_size)
+      : machine_{m},
+        X_(batch_size, m.Nvisible()),
+        Y_(batch_size),
+        coeff_(batch_size),
+        i_{0} {}
+
+  bool Full() const noexcept { return i_ == BatchSize(); }
+  Index BatchSize() const noexcept { return Y_.size(); }
+
+  void Push(Eigen::Ref<const Eigen::VectorXd> v, const ConnectorRef& conn) {
+    assert(!Full());
+    X_.row(i_) = v.transpose();
+    for (auto j = Index{0}; j < conn.tochange.size(); ++j) {
+      X_(i_, conn.tochange[j]) = conn.newconf[j];
+    }
+    coeff_(i_) = conn.mel;
+    ++i_;
+  }
+
+  void Fill(Eigen::Ref<const Eigen::VectorXd> v) {
+    if (!Full()) {
+      const auto n = BatchSize() - i_;
+      X_.block(i_, 0, n, X_.cols()) = v.transpose().colwise().replicate(n);
+      coeff_.segment(i_, n).setConstant(0.0);
+      i_ += n;
+    }
+    assert(Full());
+  }
+
+  std::tuple<const Eigen::VectorXcd&, Eigen::VectorXcd&> Propagate() {
+    assert(Full());
+    machine_.LogVal(X_, /*out=*/Y_, /*cache=*/any{});
+    i_ = 0;
+    return std::tuple<const Eigen::VectorXcd&, Eigen::VectorXcd&>{coeff_, Y_};
+  }
+
+ private:
+  RbmSpinV2& machine_;
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> X_;
+  Eigen::VectorXcd Y_;
+  Eigen::VectorXcd coeff_;
+  Index i_;
+};
+
+struct Accumulator {
+  Accumulator(Eigen::VectorXcd& loc, Forward& fwd)
+      : locals_{loc}, index_{0}, accum_{0.0, 0.0}, forward_{fwd}, states_{} {
+    states_.reserve(forward_.BatchSize());
+  }
+
+  void ProcessBatch() {
+    assert(forward_.Full());
+    auto result = forward_.Propagate();
+    const auto& coeff = std::get<0>(result);
+    auto& y = std::get<1>(result);
+
+    // y <- log(ψ(s')) - log(ψ(s))
+    {
+      auto i = Index{0};
+      for (auto j = size_t{0}; j < states_.size() - 1; ++j) {
+        const auto& state = states_.at(j);
+        for (auto n = Index{0}; n < state.first; ++n, ++i) {
+          y(i) -= state.second;
+        }
+      }
+      {
+        const auto& state = states_.back();
+        for (; i < y.size(); ++i) {
+          y(i) -= state.second;
+        }
+      }
+    }
+    // y <- ψ(s')/ψ(s)
+    y.array() = y.array().exp();
+
+    assert(states_.size() > 0);
+    auto i = Index{0};
+    for (auto j = size_t{0}; j < states_.size() - 1; ++j) {
+      const auto& state = states_[j];
+      for (auto n = Index{0}; n < state.first; ++n, ++i) {
+        accum_ += y(i) * coeff(i);
+      }
+
+      locals_(index_) = accum_;
+      ++index_;
+      accum_ = 0.0;
+    }
+    {
+      const auto& state = states_.back();
+      for (; i < y.size(); ++i) {
+        accum_ += y(i) * coeff(i);
+      }
+    }
+    if (states_.size() > 1) {
+      std::swap(states_.front(), states_.back());
+      states_.resize(1);
+    }
+    states_.front().first = 0;
+  }
+
+  void operator()(Eigen::Ref<const Eigen::VectorXd> v,
+                  const ConnectorRef& conn) {
+    assert(!forward_.Full());
+    forward_.Push(v, conn);
+    ++states_.back().first;
+    if (forward_.Full()) {
+      ProcessBatch();
+    }
+  }
+
+  void operator()(Complex log_val) {
+    assert(!forward_.Full());
+    states_.emplace_back(0, log_val);
+  }
+
+  void Finalize(Eigen::Ref<const Eigen::VectorXd> v) {
+    states_.emplace_back(0, states_.back().second);
+    forward_.Fill(v);
+    ProcessBatch();
+  }
+
+ private:
+  Eigen::VectorXcd& locals_;
+  Index index_;
+  Complex accum_;
+
+  Forward& forward_;
+  std::vector<std::pair<Index, Complex>> states_;
+};
+
+}  // namespace detail
+
+Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
+                               Eigen::Ref<const Eigen::VectorXcd> values,
+                               RbmSpinV2& machine, AbstractOperator& op,
+                               Index batch_size) {
+  Eigen::VectorXcd locals(samples.rows());
+  detail::Forward forward{machine, batch_size};
+  detail::Accumulator acc{locals, forward};
+  for (auto i = Index{0}; i < samples.rows(); ++i) {
+    acc(values(i));
+    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
+    op.ForEachConn(v, [v, &acc](const ConnectorRef& conn) { acc(v, conn); });
+  }
+  assert(samples.rows() > 0);
+  acc.Finalize(samples.row(0));
+  return locals;
+}
+
+Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
+                          Eigen::Ref<const RowMatrix<Complex>> gradients) {
+  if (locals.size() != gradients.rows()) {
+    std::ostringstream msg;
+    msg << "incompatible dimensions: [" << locals.size() << "] and ["
+        << gradients.rows() << ", " << gradients.cols()
+        << "]; expected [N] and [N, ?]";
+    throw InvalidInputError{msg.str()};
+  }
+  Eigen::VectorXcd force(gradients.cols());
+  Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
+      gradients.conjugate() * (locals.array() - locals.mean()).matrix();
+  return force;
 }
 
 }  // namespace netket

@@ -558,15 +558,12 @@ void AddLayerModule(py::module m) {
 }
 
 void AddRbmSpinV2(py::module m) {
-  py::class_<RbmSpinV2>(m, "RbmSpinV2")
+  py::class_<RbmSpinV2, AbstractMachine>(m, "RbmSpinV2")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
                     bool, Index>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 4)
-      .def_property_readonly("n_par", &RbmSpinV2::Npar)
-      .def("log_val", &RbmSpinV2::LogVal, py::arg("v"))
-      .def_property_readonly("n_visible", &RbmSpinV2::Nvisible)
+           py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 64)
       .def_property(
           "batch_size", [](const RbmSpinV2 &self) { return self.BatchSize(); },
           [](RbmSpinV2 &self, Index const batch_size) {
@@ -598,11 +595,19 @@ void AddAbstractMachine(py::module m) {
                  sigma: Standard deviation of normal distribution from which
                      parameters are drawn.
            )EOF")
-      .def("log_val",
-           (Complex(AbstractMachine::*)(AbstractMachine::VisibleConstType)) &
-               AbstractMachine::LogVal,
-           py::arg("v"),
-           R"EOF(
+      .def(
+          "log_val",
+          [](AbstractMachine &self, py::array_t<double> x) {
+            if (x.ndim() == 1) {
+              auto input = x.cast<Eigen::Ref<const VectorXd>>();
+              return py::cast(self.LogValSingle(input));
+            }
+            auto input =
+                x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+            return py::cast(self.LogVal(input, any{}));
+          },
+          py::arg("v"),
+          R"EOF(
                  Member function to obtain log value of machine given an input
                  vector.
 
@@ -627,12 +632,20 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
-      .def("der_log",
-           (AbstractMachine::VectorType(AbstractMachine::*)(
-               AbstractMachine::VisibleConstType)) &
-               AbstractMachine::DerLog,
-           py::arg("v"),
-           R"EOF(
+      .def(
+          "der_log",
+          [](AbstractMachine &self, py::array_t<double> x) {
+            py::print(x.ndim(), x);
+            if (x.ndim() == 1) {
+              auto input = x.cast<Eigen::Ref<const VectorXd>>();
+              return py::cast(self.DerLogSingle(input));
+            }
+            auto input =
+                x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+            return py::cast(self.DerLog(input, any{}));
+          },
+          py::arg("v"),
+          R"EOF(
                  Member function to obtain the derivatives of log value of
                  machine given an input wrt the machine's parameters.
 
@@ -688,7 +701,7 @@ void AddAbstractMachine(py::module m) {
             double maxlog = std::numeric_limits<double>::lowest();
 
             for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
+              vals(i) = self.LogValSingle(hind.NumberToState(i));
               if (std::real(vals(i)) > maxlog) {
                 maxlog = std::real(vals(i));
               }
@@ -723,7 +736,7 @@ void AddAbstractMachine(py::module m) {
             double maxlog = std::numeric_limits<double>::lowest();
 
             for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
+              vals(i) = self.LogValSingle(hind.NumberToState(i));
               if (std::real(vals(i)) > maxlog) {
                 maxlog = std::real(vals(i));
               }

@@ -348,11 +348,8 @@ MPSPeriodic::MatrixType MPSPeriodic::mps_contraction(VisibleConstType v,
   return c;
 }
 
-Complex MPSPeriodic::LogVal(VisibleConstType v) {
-  return std::log(trace(mps_contraction(v, 0, N_)));
-}
-
-Complex MPSPeriodic::LogVal(VisibleConstType /* v */, const any &lt) {
+Complex MPSPeriodic::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) return std::log(trace(mps_contraction(v, 0, N_)));
   return std::log(trace(any_cast_ref<LookupType>(lt).M(Nleaves_ - 1)));
 }
 
@@ -468,7 +465,8 @@ Complex MPSPeriodic::LogValDiff(VisibleConstType v,
 }
 
 // Derivative with full calculation
-MPSPeriodic::VectorType MPSPeriodic::DerLog(VisibleConstType v) {
+MPSPeriodic::VectorType MPSPeriodic::DerLogSingle(VisibleConstType v,
+                                                  const any & /*unused*/) {
   MatrixType temp_product(D_, Dsec_);
   std::vector<MatrixType> left_prods, right_prods;
   VectorType der = VectorType::Zero(npar_);

@@ -9,7 +9,7 @@ class CxxMachine(Machine):
     def __init__(self, hilbert):
         super(CxxMachine, self).__init__(hilbert)
 
-    def log_val(self, v):
+    def log_val_single(self, v):
         r"""Returns the logarithm of the wave function for a visible
         configuration `v`.
 
@@ -20,7 +20,7 @@ class CxxMachine(Machine):
         """
         raise NotImplementedError
 
-    def der_log(self, v):
+    def der_log_single(self, v):
         r"""Returns the gradient of the logarithm of the wave function for
         a visible configuration `v`.
 
@@ -30,6 +30,12 @@ class CxxMachine(Machine):
             x: 1D vector of `float` of size `self.n_visible`.
         """
         raise NotImplementedError
+
+    def log_val(self, v):
+        return self.log_val_single(v)
+
+    def der_log(self, v):
+        return self.der_log_single(v)
 
     def save(self, filename):
         r"""Saves machine's state to file.

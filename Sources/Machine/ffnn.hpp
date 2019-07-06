@@ -196,23 +196,23 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  Complex LogVal(VisibleConstType v) override {
-    auto lt = InitLookup(v);
+  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
     assert(nlayer_ > 0);
-    return any_cast_ref<LookupType>(lt).V(nlayer_ - 1)(0);
+    if (lookup.empty()) {
+      auto lt = InitLookup(v);
+      return any_cast_ref<LookupType>(lt).V(nlayer_ - 1)(0);
+    }
+    return any_cast_ref<LookupType>(lookup).V(nlayer_ - 1)(0);
   }
 
-  Complex LogVal(VisibleConstType /*v*/, const any &lt) override {
-    assert(nlayer_ > 0);
-    return any_cast_ref<LookupType>(lt).V(nlayer_ - 1)(0);
+  VectorType DerLogSingle(VisibleConstType v, const any &lookup) override {
+    if (lookup.empty()) {
+      return DerLogSingleImpl(v, InitLookup(v));
+    }
+    return DerLogSingleImpl(v, lookup);
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    auto lt = InitLookup(v);
-    return DerLog(v, lt);
-  }
-
-  VectorType DerLog(VisibleConstType v, const any &lookup) override {
+  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup) {
     auto &lt = any_cast_ref<LookupType>(lookup);
     VectorType der(npar_);
 
@@ -249,7 +249,7 @@ class FFNN : public AbstractMachine {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
     auto lt = InitLookup(v);
-    auto current_val = LogVal(v, lt);
+    auto current_val = LogValSingle(v, lt);
 
     for (int k = 0; k < nconn; ++k) {
       logvaldiffs(k) = 0;
@@ -257,7 +257,7 @@ class FFNN : public AbstractMachine {
         auto ltnew = lt;
         UpdateLookup(v, tochange[k], newconf[k], ltnew);
 
-        logvaldiffs(k) += LogVal(v, ltnew) - current_val;
+        logvaldiffs(k) += LogValSingle(v, ltnew) - current_val;
       }
     }
     return logvaldiffs;
@@ -270,7 +270,7 @@ class FFNN : public AbstractMachine {
       auto ltnew = lt;
       UpdateLookup(v, tochange, newconf, ltnew);
 
-      return LogVal(v, ltnew) - LogVal(v, lt);
+      return LogValSingle(v, ltnew) - LogValSingle(v, lt);
     } else {
       return 0.0;
     }

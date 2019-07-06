@@ -81,11 +81,13 @@ void RbmSpinReal::UpdateLookup(VisibleConstType v,
   }
 }
 
-RbmSpinReal::VectorType RbmSpinReal::DerLog(VisibleConstType v) {
-  return DerLog(v, InitLookup(v));
+RbmSpinReal::VectorType RbmSpinReal::DerLogSingle(VisibleConstType v,
+                                                  const any &cache) {
+  return DerLog(v, cache.empty() ? InitLookup(v) : cache);
 }
 
-RbmSpinReal::VectorType RbmSpinReal::DerLog(VisibleConstType v, const any &lt) {
+RbmSpinReal::VectorType RbmSpinReal::DerLogSingleImpl(VisibleConstType v,
+                                                      const any &lt) {
   VectorType der(npar_);
 
   if (usea_) {
@@ -135,17 +137,13 @@ void RbmSpinReal::SetParameters(VectorConstRefType pars) {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmSpinReal::LogVal(VisibleConstType v) {
-  RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-
-  return (v.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinReal::LogVal(VisibleConstType v, const any &lt) {
+Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) {
+    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    return (v.dot(a_) + lnthetas_.sum());
+  }
   RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
-
   return (v.dot(a_) + lnthetas_.sum());
 }
 
