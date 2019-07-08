@@ -169,7 +169,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
         )EOF")
       .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData);
 
-  py::class_<vmc::Result>(m_vmc, "_VmcResult");
+  py::class_<vmc::Result>(m_vmc, "_VmcResult")
+      .def_property_readonly("samples", &vmc::Result::SampleMatrix);
 
   m_vmc.def("compute_samples", vmc::ComputeSamples, py::arg("sampler"),
             py::arg("nsamples"), py::arg("ndiscard") = 0,
