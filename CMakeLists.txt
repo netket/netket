@@ -48,6 +48,25 @@ add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR}/nlohmann)
 
+# Sleef
+################################################################################
+ExternalProject_Add(
+    sleef_project
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/sleef/"
+    URL "https://github.com/shibatch/sleef/archive/3.4.0.tar.gz"
+    URL_HASH MD5=fdf620e232a56affaca90c107b70539b
+    CMAKE_GENERATOR "${CMAKE_GENERATOR}"
+    CMAKE_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_SHARED_LIBS=OFF -DBUILD_DFT=OFF -DBUILD_GNUABI_LIBS=OFF
+    -DBUILD_TESTS=OFF -DBUILD_QUAD=OFF -DSLEEF_SHOW_CONFIG=ON
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    INSTALL_COMMAND ""
+)
+add_library(Sleef INTERFACE)
+ExternalProject_Get_Property(sleef_project BINARY_DIR)
+target_include_directories(Sleef INTERFACE ${BINARY_DIR}/include)
+target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
+
 # optional-lite
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
@@ -173,7 +192,7 @@ target_link_libraries(netket_lib
         optional_lite
         span_lite
         linb_any
-        sleef
+        Sleef
         ${CMAKE_DL_LIBS}
 )
 if(NETKET_USE_OPENMP)
@@ -245,7 +264,7 @@ add_library(netket MODULE ${NETKET_SOURCES})
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(netket json_project eigen_project pybind11_project)
+add_dependencies(netket json_project eigen_project pybind11_project sleef_project)
 set_target_properties(netket PROPERTIES OUTPUT_NAME "_C_netket")
 
 
