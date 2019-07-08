@@ -26,6 +26,8 @@ machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
 machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
 
+machines["BatchedRbm 1d Hypercube spin"] = nk.machine.RbmSpinV2(hilbert=hi, alpha=3)
+
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=1)

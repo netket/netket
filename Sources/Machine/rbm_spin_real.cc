@@ -83,7 +83,7 @@ void RbmSpinReal::UpdateLookup(VisibleConstType v,
 
 RbmSpinReal::VectorType RbmSpinReal::DerLogSingle(VisibleConstType v,
                                                   const any &cache) {
-  return DerLog(v, cache.empty() ? InitLookup(v) : cache);
+  return DerLogSingleImpl(v, cache.empty() ? InitLookup(v) : cache);
 }
 
 RbmSpinReal::VectorType RbmSpinReal::DerLogSingleImpl(VisibleConstType v,
