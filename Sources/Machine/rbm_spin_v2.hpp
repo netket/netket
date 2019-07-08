@@ -18,15 +18,11 @@
 #include <cmath>
 #include <memory>
 
-// TODO: Remove me
-#include <iostream>
-
 #include <Eigen/Core>
 #include <nonstd/optional.hpp>
 
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
-#include "Utils/messages.hpp"
 
 namespace netket {
 

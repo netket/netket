@@ -635,7 +635,6 @@ void AddAbstractMachine(py::module m) {
       .def(
           "der_log",
           [](AbstractMachine &self, py::array_t<double> x) {
-            py::print(x.ndim(), x);
             if (x.ndim() == 1) {
               auto input = x.cast<Eigen::Ref<const VectorXd>>();
               return py::cast(self.DerLogSingle(input));

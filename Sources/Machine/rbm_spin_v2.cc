@@ -14,7 +14,6 @@
 
 #include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
-#include "Utils/messages.hpp"
 
 namespace netket {
 

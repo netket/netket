@@ -145,12 +145,11 @@ Index CheckBatchSize(const Index batch_size) {
 
 }  // namespace detail
 
-MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
-                                     AbstractHilbert const& hilbert,
-                                     const Index batch_size,
+MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine, const Index batch_size,
                                      std::true_type /*safe*/)
     : machine_{machine},
-      flipper_{{batch_size, machine.Nvisible()}, hilbert.LocalStates()},
+      flipper_{{batch_size, machine.Nvisible()},
+               machine.GetHilbert().LocalStates()},
       proposed_X_(batch_size, machine.Nvisible()),
       proposed_Y_(batch_size),
       current_Y_(batch_size),
@@ -159,11 +158,8 @@ MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
   machine_.LogVal(flipper_.Current(), current_Y_, {});
 }
 
-MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine,
-                                     AbstractHilbert const& hilbert,
-                                     const Index batch_size)
-    : MetropolisLocalV2{
-          machine, hilbert, detail::CheckBatchSize(batch_size), {}} {}
+MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine, const Index batch_size)
+    : MetropolisLocalV2{machine, detail::CheckBatchSize(batch_size), {}} {}
 
 void MetropolisLocalV2::Reset() {
   flipper_.Reset();

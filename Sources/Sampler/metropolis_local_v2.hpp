@@ -99,12 +99,11 @@ class MetropolisLocalV2 {
   Eigen::ArrayXd randoms_;
   Eigen::Array<bool, Eigen::Dynamic, 1> accept_;
 
-  inline MetropolisLocalV2(RbmSpinV2& machine, AbstractHilbert const& hilbert,
-                           Index batch_size, std::true_type);
+  inline MetropolisLocalV2(RbmSpinV2& machine, Index batch_size,
+                           std::true_type);
 
  public:
-  MetropolisLocalV2(RbmSpinV2& machine, AbstractHilbert const& hilbert,
-                    Index batch_size);
+  MetropolisLocalV2(RbmSpinV2& machine, Index batch_size);
 
   Index BatchSize() const noexcept { return flipper_.BatchSize(); }
   Index SystemSize() const noexcept { return flipper_.SystemSize(); }

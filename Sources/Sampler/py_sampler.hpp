@@ -49,17 +49,62 @@ namespace netket {
 
 void AddMetropolisLocalV2(py::module m) {
   py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
-      .def(py::init<RbmSpinV2 &, const AbstractHilbert &, Index>(),
-           py::arg{"machine"}, py::arg{"hilbert"}, py::arg{"batch_size"} = 128)
-      .def("reset", &MetropolisLocalV2::Reset);
+      .def(py::init<RbmSpinV2 &, Index>(), py::keep_alive<1, 2>{},
+           py::arg{"machine"}, py::arg{"batch_size"} = 128,
+           R"EOF(See `MetropolisLocal` for information about the algorithm.
 
-  m.def("compute_samples_v2",
-        [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps,
-           bool compute_gradients) {
-          return ComputeSamples(sampler, {steps}, compute_gradients);
-        });
+                 `MetropolisLocalV2` differs from `MetropolisLocal` in that it
+                 runs `batch_size` Markov Chains in parallel on one MPI node.
+                 Generating `batch_size` new samples requires only one call to
+                 `Machine.log_val` which helps to hide the latency associated
+                 with the call.
+           )EOF");
 
-  m.def("local_values_v2", &LocalValuesV2);
+  m.def(
+      "compute_samples_v2",
+      [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps,
+         bool compute_gradients) {
+        return ComputeSamples(sampler, {steps}, compute_gradients);
+      },
+      py::arg{"sampler"}, py::arg{"steps"}, py::arg{"compute_logderivs"},
+      R"EOF(
+      Same as `compute_samples` except that it uses batches to run multiple
+      Markov Chains in parallel.
+
+      Args:
+          sampler: an instance of `MetropolisLocalV2`.
+          steps: a tuple `(start, stop, step)`. `start`, `stop`, and `step` have
+          the same meaning as in `builtin.range`. This allows the one to specify
+          the sweep size. Typical usage would be `(T, T + N * n // B, n)` where
+          `T` is number of samples to discard (thermalization time), `n` is the
+          size of the system, `N` is the number of samples to record, and `B` is
+          the batch size of the sampler.
+          compute_logderivs: Whether to calculate gradients of the logarithm of
+          the wave function.
+
+      Returns:
+          A tuple `(samples, values, gradients)` if `compute_logderivs == True`
+          and a pair `(samples, values)` otherwise. `samples` are visible
+          configurations visited during sampling and `values` are the
+          corresponding values of the logarithm of the wavefunction.
+      )EOF");
+
+  m.def("local_values_v2", &LocalValuesV2, py::arg{"samples"},
+        py::arg{"values"}, py::arg{"machine"}, py::arg{"op"},
+        py::arg{"batch_size"},
+        R"EOF(
+           Computes the local values of the operator `op` for all `samples`.
+
+           Args:
+               samples: Visible configurations.
+               values: Corresponding values of the logarithm of the wavefunction.
+               machine: Wavefunction.
+               op: Hermitian operator.
+               batch_size: Batch size.
+
+          Returns:
+              A numpy array of local values of the operator.
+        )EOF");
 }
 
 void AddSamplerModule(py::module &m) {
