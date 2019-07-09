@@ -61,8 +61,11 @@ ExternalProject_Add(
     -DBUILD_TESTS=OFF -DBUILD_QUAD=OFF -DSLEEF_SHOW_CONFIG=ON
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     INSTALL_COMMAND ""
+    # NOTE: This is kind of a hack since we're explicitly specifying
+    # "sleef_project-prefix/...", but at least it works.
+    BUILD_BYPRODUCTS "sleef_project-prefix/src/sleef_project-build/lib/libsleef.a"
 )
-add_library(Sleef INTERFACE)
+add_library(Sleef INTERFACE IMPORTED)
 ExternalProject_Get_Property(sleef_project BINARY_DIR)
 target_include_directories(Sleef INTERFACE ${BINARY_DIR}/include)
 target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
