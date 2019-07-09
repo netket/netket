@@ -23,71 +23,72 @@
 
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 
-// TODO: Remove me!
-inline Complex SumLogCoshDumb(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
-  auto total = Complex{0.0, 0.0};
-  for (auto i = Index{0}; i < input.size(); ++i) {
-    total += std::log(std::cosh(input(i) + bias(i)));
-  }
-  return total;
-}
-
 class RbmSpinV2 : public AbstractMachine {
  public:
-  template <class T>
-  using RowMatrix =
-      Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
   RbmSpinV2(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
             Index alpha, bool usea, bool useb, Index const batch_size);
 
-  virtual int Npar() const override { return DoNpar(); }
-  virtual int Nvisible() const override { return DoNvisible(); }
-  int Nhidden() const noexcept { return DoNhidden(); }
+  int Npar() const final {
+    return W_.size() + (a_.has_value() ? a_->size() : 0) +
+           (b_.has_value() ? b_->size() : 0);
+  }
+  int Nvisible() const final { return W_.rows(); }
+  int Nhidden() const noexcept { return W_.cols(); }
 
+  /// Returns current batch size.
   Index BatchSize() const noexcept;
+
+  /// \brief Updates the batch size.
+  ///
+  /// There is no need to call this function explicitly -- batch size is changed
+  /// automatically on calls to `LogVal` and `DerLog`.
   void BatchSize(Index batch_size);
 
-  virtual VectorType GetParameters() override;
-  virtual void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) override;
+  VectorType GetParameters() final;
+  void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) final;
 
-  virtual void LogVal(Eigen::Ref<const RowMatrix<double>> v,
-                      Eigen::Ref<Eigen::VectorXcd> out,
-                      const any & /*unused*/) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<Eigen::VectorXcd> out, const any & /*unused*/) final;
 
-  virtual void DerLog(Eigen::Ref<const RowMatrix<double>> v,
-                      Eigen::Ref<RowMatrix<Complex>> out,
-                      const any & /*unused*/) override;
+  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<RowMatrix<Complex>> out, const any & /*unused*/) final;
 
-  Eigen::Ref<Eigen::MatrixXcd> GetW() { return W_; }
-  Eigen::Ref<Eigen::VectorXcd> GetA() { return a_.value(); }
-  Eigen::Ref<Eigen::VectorXcd> GetB() { return b_.value(); }
-
-  virtual Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                               const any &cache) override {
+  /// Simply calls `LogVal` with a batch size of 1.
+  ///
+  /// \note performance of this function is pretty bad. Please, use `LogVal`
+  /// with batch sizes greater than 1 if at all possible.
+  Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
+                       const any &cache) final {
     Complex data;
     auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
     LogVal(v.transpose(), out, cache);
     return data;
   }
 
-  virtual Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                                        const any &cache) override {
-    Eigen::VectorXcd out(DoNpar());
+  /// Simply calls `DerLog` with a batch size of 1.
+  ///
+  /// \note performance of this function is pretty bad. Please, use `DerLog`
+  /// with batch sizes greater than 1 if at all possible.
+  Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
+                                const any &cache) final {
+    Eigen::VectorXcd out(Npar());
     DerLog(v.transpose(),
            Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
     return out;
   }
 
-  virtual Eigen::VectorXcd LogValDiff(
+  /// Simply calls `LogVal` twice.
+  ///
+  /// \note performance of this function is pretty bad. Please, restructure your
+  /// code to avoid calling this function.
+  Eigen::VectorXcd LogValDiff(
       Eigen::Ref<const Eigen::VectorXd> v,
       const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
+      const std::vector<std::vector<double>> &newconf) final {
     RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
     input = v.transpose().colwise().replicate(input.rows());
     for (auto i = Index{0}; i < input.rows(); ++i) {
@@ -99,31 +100,32 @@ class RbmSpinV2 : public AbstractMachine {
     return x;
   }
 
-  virtual Complex LogValDiff(Eigen::Ref<const Eigen::VectorXd> v,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             const any & /*unused*/) override {
+  /// Simply calls `LogVal` twice.
+  ///
+  /// \note performance of this function is pretty bad. Please, restructure your
+  /// code to avoid calling this function.
+  Complex LogValDiff(Eigen::Ref<const Eigen::VectorXd> v,
+                     const std::vector<int> &tochange,
+                     const std::vector<double> &newconf,
+                     const any & /*unused*/) final {
     return LogValDiff(v, {tochange}, {newconf})(0);
   }
 
   // Look-up stuff
-  virtual any InitLookup(VisibleConstType) override { return {}; }
-  virtual void UpdateLookup(VisibleConstType, const std::vector<int> &,
-                            const std::vector<double> &, any &) override {}
+  any InitLookup(VisibleConstType) final { return {}; }
+  void UpdateLookup(VisibleConstType, const std::vector<int> &,
+                    const std::vector<double> &, any &) final {}
 
-  virtual void Save(const std::string &filename) const override { return; }
-  virtual void Load(const std::string &filename) override { return; }
+  void Save(const std::string &filename) const final;
+  void Load(const std::string &filename) final;
 
-  virtual bool IsHolomorphic() const noexcept override { return true; }
+  PyObject *StateDict() const final;
+  void StateDict(PyObject *obj) final;
+
+  bool IsHolomorphic() const noexcept final { return true; }
 
  private:
-  Index DoNhidden() const noexcept { return W_.cols(); }
-  Index DoNvisible() const noexcept { return W_.rows(); }
-  Index DoNpar() const noexcept {
-    return W_.size() + (a_.has_value() ? a_->size() : 0) +
-           (b_.has_value() ? b_->size() : 0);
-  }
-
+  /// Performs `out := log(cosh(out + b))`.
   void ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const;
 
   Eigen::MatrixXcd W_;             ///< weights

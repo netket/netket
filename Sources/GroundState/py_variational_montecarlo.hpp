@@ -340,19 +340,35 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   m_vmc.def(
       "local_values",
-      [](const vmc::Result &result, AbstractMachine &psi,
+      [](Eigen::Ref<const Eigen::MatrixXd> result, AbstractMachine &psi,
          const AbstractOperator &op) {
-        return vmc::LocalValues(op, psi, result.SampleMatrix());
+        return vmc::LocalValues(op, psi, result);
       },
       py::arg("vmc_data"), py::arg("psi"), py::arg("op"), R"EOF(
            Computes the local values of the operator `op` for all visible
            configurations stored in `vmc_data`.
 
            Args:
-               vmc_data: The VMC result data.
+               vmc_data: Visible samples.
                psi: Machine represenation of the wavefunction.
                op: Hermitian operator.
             )EOF");
+
+  // m_vmc.def(
+  //     "local_values",
+  //     [](const vmc::Result &result, AbstractMachine &psi,
+  //        const AbstractOperator &op) {
+  //       return vmc::LocalValues(op, psi, result.SampleMatrix());
+  //     },
+  //     py::arg("vmc_data"), py::arg("psi"), py::arg("op"), R"EOF(
+  //          Computes the local values of the operator `op` for all visible
+  //          configurations stored in `vmc_data`.
+
+  //          Args:
+  //              vmc_data: The VMC result data.
+  //              psi: Machine represenation of the wavefunction.
+  //              op: Hermitian operator.
+  //           )EOF");
 }
 
 }  // namespace netket

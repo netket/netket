@@ -13,7 +13,12 @@
 // limitations under the License.
 
 #include "Machine/rbm_spin_v2.hpp"
+
+#include <pybind11/eigen.h>
+#include <pybind11/eval.h>
+
 #include "Utils/log_cosh.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 namespace netket {
 
@@ -73,7 +78,7 @@ void RbmSpinV2::BatchSize(Index batch_size) {
 }
 
 Eigen::VectorXcd RbmSpinV2::GetParameters() {
-  Eigen::VectorXcd parameters(DoNpar());
+  Eigen::VectorXcd parameters(Npar());
   Index i = 0;
   if (a_.has_value()) {
     parameters.segment(i, a_->size()) = *a_;
@@ -89,9 +94,9 @@ Eigen::VectorXcd RbmSpinV2::GetParameters() {
 }
 
 void RbmSpinV2::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
-  if (parameters.size() != DoNpar()) {
+  if (parameters.size() != Npar()) {
     std::ostringstream msg;
-    msg << "wrong shape: [" << parameters.size() << "]; expected [" << DoNpar()
+    msg << "wrong shape: [" << parameters.size() << "]; expected [" << Npar()
         << "]";
     throw InvalidInputError{msg.str()};
   }
@@ -109,12 +114,12 @@ void RbmSpinV2::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
 }
 
 void RbmSpinV2::LogVal(Eigen::Ref<const RowMatrix<double>> x,
-                       Eigen::Ref<Eigen::VectorXcd> out, const any&) {
-  if (x.cols() != DoNvisible()) {
+                       Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  if (x.cols() != Nvisible()) {
     std::ostringstream msg;
     msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
         << "]; expected [?"
-        << ", " << DoNvisible() << "]";
+        << ", " << Nvisible() << "]";
     throw InvalidInputError{msg.str()};
   }
   if (out.size() != x.rows()) {
@@ -135,18 +140,18 @@ void RbmSpinV2::LogVal(Eigen::Ref<const RowMatrix<double>> x,
 
 void RbmSpinV2::DerLog(Eigen::Ref<const RowMatrix<double>> x,
                        Eigen::Ref<RowMatrix<Complex>> out,
-                       const any& /*unused*/) {
-  if (x.cols() != DoNvisible()) {
+                       const any & /*unused*/) {
+  if (x.cols() != Nvisible()) {
     std::ostringstream msg;
     msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
         << "]; expected [?"
-        << ", " << DoNvisible() << "]";
+        << ", " << Nvisible() << "]";
     throw InvalidInputError{msg.str()};
   }
-  if (out.rows() != x.rows() || out.cols() != DoNpar()) {
+  if (out.rows() != x.rows() || out.cols() != Npar()) {
     std::ostringstream msg;
     msg << "output tensor wrong shape: [" << out.rows() << ", " << out.cols()
-        << "]; expected [" << x.rows() << ", " << DoNpar() << "]";
+        << "]; expected [" << x.rows() << ", " << Npar() << "]";
     throw InvalidInputError{msg.str()};
   }
   BatchSize(x.rows());
@@ -170,7 +175,7 @@ void RbmSpinV2::DerLog(Eigen::Ref<const RowMatrix<double>> x,
   }
 
   // TODO: Rewrite this using tensors
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
   for (auto j = Index{0}; j < BatchSize(); ++j) {
     Eigen::Map<Eigen::MatrixXcd>{&out(j, i), W_.rows(), W_.cols()}.noalias() =
         x.row(j).transpose() * theta_.row(j);
@@ -179,16 +184,142 @@ void RbmSpinV2::DerLog(Eigen::Ref<const RowMatrix<double>> x,
 
 void RbmSpinV2::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
   if (b_.has_value()) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for (auto j = Index{0}; j < BatchSize(); ++j) {
       out(j) += SumLogCosh(theta_.row(j), (*b_));  // total;
     }
   } else {
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for (auto j = Index{0}; j < BatchSize(); ++j) {
       out(j) += SumLogCosh(theta_.row(j));
     }
   }
+}
+
+namespace detail {
+namespace {
+/// Saves Python object \par raw to a file \par filename using pickle.
+///
+/// \param raw reference to a Python object. It is borrowed, not stolen.
+///
+/// \note This is a hacky solution which should be implemented in pure Python.
+void WriteToFile(const std::string &filename, PyObject *raw) {
+  namespace py = pybind11;
+  auto object = py::reinterpret_borrow<py::object>(raw);
+  py::dict scope;
+  scope["dump"] = pybind11::module::import("pickle").attr("dump");
+  scope["filename"] = pybind11::cast(filename);
+  scope["x"] = object;
+  pybind11::exec(R"(
+    with open(filename, "wb") as output:
+        dump(x, output)
+    )",
+                 pybind11::module::import("__main__").attr("__dict__"), scope);
+}
+
+/// Loads a Python object from a file \par filename using pickle.
+//
+/// \return **new reference**.
+///
+/// \note This is a hacky solution which should be implemented in pure Python.
+PyObject *ReadFromFile(const std::string &filename) {
+  namespace py = pybind11;
+  py::dict scope;
+  scope["load"] = pybind11::module::import("pickle").attr("load");
+  scope["filename"] = pybind11::cast(filename);
+  scope["_return_value"] = pybind11::none();
+  pybind11::exec(R"(
+    with open(filename, "rb") as input:
+        _return_value = load(input)
+    )",
+                 pybind11::module::import("__main__").attr("__dict__"), scope);
+  return static_cast<py::object>(scope["_return_value"]).release().ptr();
+}
+
+/// Checks that \par src has the right shape to be written to \par dst.
+template <class T1, class T2>
+void CheckShape(char const *name, Eigen::EigenBase<T1> const &dst,
+                Eigen::EigenBase<T2> const &src) {
+  if (src.rows() != dst.rows() || src.cols() != dst.cols()) {
+    std::ostringstream msg;
+    msg << "field '" << name << "' has wrong shape: [" << src.rows() << ", "
+        << src.cols() << "]; expected [" << dst.rows() << ", " << dst.cols()
+        << "]";
+    throw InvalidInputError{msg.str()};
+  }
+}
+
+/// Loads some data from a Python object \par obj into an Eigen object
+/// \par parameter. \par name should be the name of the parameter and is used
+/// for error reporting.
+template <class T>
+void LoadImpl(char const *name, T &parameter, pybind11::object obj) {
+  auto new_parameter = obj.cast<T>();
+  CheckShape(name, parameter, new_parameter);
+  parameter = std::move(new_parameter);
+}
+
+/// Loads some data from a Python object \par obj into an Eigen object
+/// \par parameter. Very similar to #LoadImpl(char const*, T&, pybind11::object)
+/// except that \par parameter may be `nullopt` in which case \par obj is
+/// required to be `None`.
+template <class T>
+void LoadImpl(char const *name, nonstd::optional<T> &parameter,
+              pybind11::object obj) {
+  if (parameter.has_value()) {
+    LoadImpl(name, *parameter, obj);
+  } else if (!obj.is_none()) {
+    std::ostringstream msg;
+    msg << "expected field '" << name << "' to be None";
+    throw InvalidInputError{msg.str()};
+  }
+}
+
+/// Loads the `state[name]` into \par parameter.
+template <class T>
+void Load(char const *name, T &parameter, pybind11::dict state) {
+  auto py_name = pybind11::str{name};
+  if (!state.contains(py_name)) {
+    std::ostringstream msg;
+    msg << "state is missing required field '" << name << "'";
+    throw InvalidInputError{msg.str()};
+  }
+  LoadImpl(name, parameter, state[py_name]);
+}
+}  // namespace
+}  // namespace detail
+
+void RbmSpinV2::Save(const std::string &filename) const {
+  auto state = pybind11::reinterpret_steal<pybind11::dict>(StateDict());
+  detail::WriteToFile(filename, state.ptr());
+}
+
+void RbmSpinV2::Load(const std::string &filename) {
+  // NOTE: conversion to dict is very important, since it performs error
+  // checking! So don't just change object's type to `pybind11::object`. The
+  // code will compile, but as soon as the user passes some weird type, the
+  // program will most likely crash.
+  auto const state =
+      pybind11::dict{pybind11::reinterpret_steal<pybind11::object>(
+          detail::ReadFromFile(filename))};
+  StateDict(state.ptr());
+}
+
+PyObject *RbmSpinV2::StateDict() const {
+  namespace py = pybind11;
+  py::dict state;
+  state["a"] = a_.has_value() ? py::cast(*a_) : py::none();
+  state["b"] = b_.has_value() ? py::cast(*b_) : py::none();
+  state["w"] = py::cast(W_);
+  return state.release().ptr();
+}
+
+void RbmSpinV2::StateDict(PyObject *obj) {
+  namespace py = pybind11;
+  auto state = py::dict{py::reinterpret_borrow<py::object>(obj)};
+  detail::Load("a", a_, state);
+  detail::Load("b", b_, state);
+  detail::Load("w", W_, state);
 }
 
 }  // namespace netket

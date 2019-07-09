@@ -568,10 +568,7 @@ void AddRbmSpinV2(py::module m) {
           "batch_size", [](const RbmSpinV2 &self) { return self.BatchSize(); },
           [](RbmSpinV2 &self, Index const batch_size) {
             self.BatchSize(batch_size);
-          })
-      .def("get_a", &RbmSpinV2::GetA)
-      .def("get_b", &RbmSpinV2::GetB)
-      .def("get_w", &RbmSpinV2::GetW);
+          });
 }
 
 void AddAbstractMachine(py::module m) {
@@ -769,23 +766,13 @@ void AddMachineModule(py::module m) {
   AddRbmMultival(subm);
   AddRbmSpinReal(subm);
   AddRbmSpinPhase(subm);
+  AddRbmSpinV2(subm);
   AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);
-
   AddDensityMatrixModule(subm);
-
-  AddRbmSpinV2(subm);
-
-  subm.def(
-      "sum_log_cosh",
-      [](Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-         Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
-        return SumLogCosh(input, bias);
-      });
-  subm.def("sum_log_cosh_dumb", &netket::SumLogCoshDumb);
 }
 
 }  // namespace netket

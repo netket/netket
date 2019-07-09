@@ -27,10 +27,10 @@ namespace netket {
 namespace {
 inline std::pair<__m256d, __m256d> clog(__m256d const x,
                                         __m256d const y) noexcept {
-  auto real = Sleef_logd4_u10avx2(
+  auto real = Sleef_logd4_u35avx2(
       _mm256_add_pd(_mm256_mul_pd(x, x), _mm256_mul_pd(y, y)));
   real = _mm256_mul_pd(_mm256_set1_pd(0.5), real);
-  auto imag = Sleef_atan2d4_u10avx2(y, x);
+  auto imag = Sleef_atan2d4_u35avx2(y, x);
   return {real, imag};
 }
 
@@ -41,7 +41,7 @@ inline std::pair<__m256d, __m256d> LogCosh(__m256d x, __m256d y) noexcept {
   y = _mm256_blendv_pd(y, _mm256_sub_pd(_mm256_set1_pd(0), y), mask);
   const auto exp_min_2x =
       Sleef_expd4_u10avx2(_mm256_mul_pd(_mm256_set1_pd(-2.0), x));
-  const auto _t = Sleef_sincosd4_u10avx2(y);
+  const auto _t = Sleef_sincosd4_u35avx2(y);
   auto p = _t.y;
   auto q = _t.x;
   p = _mm256_mul_pd(p, _mm256_add_pd(_mm256_set1_pd(1.0), exp_min_2x));
