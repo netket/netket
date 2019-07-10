@@ -20,21 +20,14 @@
 #include "common_types.hpp"
 
 namespace netket {
-
-__attribute__((target("default"))) Complex SumLogCosh(
+/// Returns `∑log(cosh(inputᵢ + biasᵢ))`
+Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias);
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
 
-__attribute__((target("avx2"))) Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias);
-
-__attribute__((target("default"))) Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input);
-
-__attribute__((target("avx2"))) Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input);
-
+/// Returns `∑log(cosh(inputᵢ))`
+Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
 }  // namespace netket
 
 #endif  // SOURCES_UTILS_LOG_COSH_HPP

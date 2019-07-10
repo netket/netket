@@ -68,10 +68,10 @@ inline __m256d SumLogCoshKernel(__m256d z1, __m256d z2) noexcept {
   z2 = _mm256_shuffle_pd(x, y, 0b1111);
   return _mm256_add_pd(z1, z2);
 }
-}  // namespace
 
-__attribute__((target("avx2"))) Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) {
+Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    std::true_type /*has AVX2*/) noexcept {
   constexpr auto vector_size =
       static_cast<Index>(sizeof(__m256d) / sizeof(double));
   static_assert(vector_size == 4, "");
@@ -99,9 +99,10 @@ __attribute__((target("avx2"))) Complex SumLogCosh(
                               _mm256_extractf128_pd(total, 1)));
 }
 
-__attribute__((target("avx2"))) Complex SumLogCosh(
+Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias,
+    std::true_type /*has AVX2*/) noexcept {
   assert(input.size() == bias.size() && "incompatible sizes");
   constexpr auto vector_size =
       static_cast<Index>(sizeof(__m256d) / sizeof(double));
@@ -134,7 +135,6 @@ __attribute__((target("avx2"))) Complex SumLogCosh(
                               _mm256_extractf128_pd(total, 1)));
 }
 
-namespace {
 inline double LogCosh(double x) noexcept {
   x = std::abs(x);
   if (x <= 12.0) {
@@ -152,11 +152,11 @@ inline Complex LogCosh(Complex x) noexcept {
   res += std::log(Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
   return res;
 }
-}  // namespace
 
-__attribute__((target("default"))) Complex SumLogCosh(
+Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias,
+    std::false_type /*has AVX2*/) noexcept {
   auto total = Complex{0.0, 0.0};
   for (auto i = Index{0}; i < input.size(); ++i) {
     total += LogCosh(input(i) + bias(i));
@@ -164,13 +164,34 @@ __attribute__((target("default"))) Complex SumLogCosh(
   return total;
 }
 
-__attribute__((target("default"))) Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) {
+Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    std::false_type /*has AVX2*/) noexcept {
   auto total = Complex{0.0, 0.0};
   for (auto i = Index{0}; i < input.size(); ++i) {
     total += LogCosh(input(i));
   }
   return total;
+}
+}  // namespace
+
+Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
+  if (__builtin_cpu_supports("avx2")) {
+    return SumLogCosh(input, bias, std::true_type{});
+  } else {
+    return SumLogCosh(input, bias, std::false_type{});
+  }
+}
+
+Complex SumLogCosh(Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>>
+                       input) noexcept {
+  if (__builtin_cpu_supports("avx2")) {
+    return SumLogCosh(input, std::true_type{});
+  } else {
+    return SumLogCosh(input, std::false_type{});
+  }
 }
 
 }  // namespace netket
