@@ -216,7 +216,8 @@ void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
 }
 
 void SubtractMean(RowMatrix<Complex>& gradients) {
-  VectorXcd mean = gradients.rowwise().mean();
+  VectorXcd mean = gradients.colwise().mean();
+  assert(mean.size() == gradients.cols());
   MeanOnNodes<>(mean);
   gradients.rowwise() -= mean.transpose();
 }
