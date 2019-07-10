@@ -135,16 +135,6 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  void InitRandomPars(double sigma, nonstd::optional<unsigned> seed) override {
-    if (!seed.has_value()) {
-      std::random_device rd;
-      seed = rd();
-    }
-    for (auto const layer : layers_) {
-      layer->InitRandomPars(sigma, *seed);
-    }
-  }
-
   any InitLookup(VisibleConstType v) override {
     LookupType lt;
     // Do a forward pass to get the outputs of each layer.

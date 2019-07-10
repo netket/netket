@@ -58,13 +58,13 @@ void AbstractMachine::LogVal(Eigen::Ref<const RealRowMatrixType> v,
                              const any & /*unused*/) {
   if (v.cols() != Nvisible()) {
     std::ostringstream msg;
-    msg << "invalid dimension: [" << v.rows() << ", " << v.cols()
-        << "]; expected [?, " << Nvisible() << "]";
+    msg << __FUNCTION__ << ": invalid dimension: [" << v.rows() << ", "
+        << v.cols() << "]; expected [?, " << Nvisible() << "]";
     throw InvalidInputError{msg.str()};
   }
   if (v.rows() != out.size()) {
     std::ostringstream msg;
-    msg << "input dimension [" << v.rows() << ", " << v.cols()
+    msg << __FUNCTION__ << ": input dimension [" << v.rows() << ", " << v.cols()
         << "] and output dimension [" << out.size() << "] are incompatible";
     throw InvalidInputError{msg.str()};
   }
@@ -84,13 +84,13 @@ void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
                              Eigen::Ref<RowMatrixType> out, const any &cache) {
   if (v.cols() != Npar()) {
     std::ostringstream msg;
-    msg << "invalid dimension: [" << v.rows() << ", " << v.cols()
-        << "]; expected [?, " << Npar() << "]";
+    msg << __FUNCTION__ << ": invalid dimension: [" << v.rows() << ", "
+        << v.cols() << "]; expected [?, " << Npar() << "]";
     throw InvalidInputError{msg.str()};
   }
   if (v.rows() != out.size()) {
     std::ostringstream msg;
-    msg << "input dimension [" << v.rows() << ", " << v.cols()
+    msg << __FUNCTION__ << ": input dimension [" << v.rows() << ", " << v.cols()
         << "] and output dimension [" << out.size() << "] are incompatible";
     throw InvalidInputError{msg.str()};
   }

@@ -39,7 +39,7 @@ class AbstractSampler {
   // Computes the derivative of the machine on the current visible
   // Using the lookUp tables if possible
   virtual AbstractMachine::VectorType DerLogVisible() {
-    return GetMachine().DerLog(Visible());
+    return GetMachine().DerLogSingle(Visible());
   }
 
   virtual ~AbstractSampler() {}

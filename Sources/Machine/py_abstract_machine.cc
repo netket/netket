@@ -182,7 +182,7 @@ PyAbstractMachine::VectorType PyAbstractMachine::DerLogChanged(
     const std::vector<double> &new_conf) {
   VisibleType new_v{old_v};
   GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  return DerLog(new_v);
+  return DerLogSingle(new_v, {});
 }
 
 void PyAbstractMachine::Save(const std::string &filename) const {

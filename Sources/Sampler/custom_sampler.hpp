@@ -167,7 +167,7 @@ class CustomSampler : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
 
   AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_, lt_);
+    return GetMachine().DerLogSingle(v_, lt_);
   }
 
   Eigen::VectorXd Acceptance() const override {

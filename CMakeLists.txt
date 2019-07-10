@@ -93,7 +93,7 @@ add_library(span_lite INTERFACE)
 target_include_directories(span_lite
     INTERFACE "${CMAKE_BINARY_DIR}/External/span-lite")
 
-# any-lite
+# any
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/any/any.hpp")
     file(DOWNLOAD

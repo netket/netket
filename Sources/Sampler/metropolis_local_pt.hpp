@@ -231,7 +231,7 @@ class MetropolisLocalPt : public AbstractSampler {
   void SetVisible(const Eigen::VectorXd& v) override { v_[0] = v; }
 
   AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_[0], lt_[0]);
+    return GetMachine().DerLogSingle(v_[0], lt_[0]);
   }
 
   Eigen::VectorXd Acceptance() const override {

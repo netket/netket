@@ -75,12 +75,11 @@ any RbmSpin::InitLookup(VisibleConstType v) {
 
 void RbmSpin::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
                            const std::vector<double> &newconf, any &lookup) {
-  auto *lt = any_cast<LookupType>(&lookup);
-  if (lt == nullptr) throw InvalidInputError{"lookup has wrong type"};
+  auto &lt = any_cast_ref<LookupType>(lookup);
   if (tochange.size() != 0) {
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
-      lt->V(0) += W_.row(sf) * (newconf[s] - v(sf));
+      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
     }
   }
 }
@@ -192,14 +191,13 @@ Complex RbmSpin::LogValDiff(VisibleConstType v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
                             const any &lookup) {
-  const auto *lt = any_cast<LookupType>(&lookup);
-  if (lt == nullptr) throw InvalidInputError{"lookup has wrong type"};
+  const auto &lt = any_cast_ref<LookupType>(lookup);
   Complex logvaldiff = 0.;
 
   if (tochange.size() != 0) {
-    RbmSpin::lncosh(lt->V(0), lnthetas_);
+    RbmSpin::lncosh(lt.V(0), lnthetas_);
 
-    thetasnew_ = lt->V(0);
+    thetasnew_ = lt.V(0);
 
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
