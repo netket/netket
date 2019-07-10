@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "Sampler/metropolis_local_v2.hpp"
+#include "Utils/mpi_interface.hpp"
 
 namespace netket {
 
@@ -213,6 +214,12 @@ void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
     record();
   }
 }
+
+void SubtractMean(RowMatrix<Complex>& gradients) {
+  VectorXcd mean = gradients.rowwise().mean();
+  MeanOnNodes<>(mean);
+  gradients.rowwise() -= mean.transpose();
+}
 }  // namespace detail
 
 std::tuple<RowMatrix<double>, Eigen::VectorXcd,
@@ -267,6 +274,7 @@ ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
 
   detail::LoopV2(steps, Skip{sampler},
                  Record{sampler, samples, values, gradients, 0});
+  if (gradients.has_value()) detail::SubtractMean(*gradients);
   return std::make_tuple(std::move(samples), std::move(values),
                          std::move(gradients));
 }
@@ -434,7 +442,7 @@ Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
   }
   Eigen::VectorXcd force(gradients.cols());
   Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
-      gradients.conjugate() * (locals.array() - locals.mean()).matrix();
+      gradients.conjugate() * locals;
   return force;
 }
 
