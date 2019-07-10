@@ -123,12 +123,10 @@ struct StepsRange {
     CheckValid();
   }
 
-  constexpr Index start() const noexcept { return start_; }
-  constexpr Index end() const noexcept { return end_; }
-  constexpr Index step() const noexcept { return step_; }
-  constexpr Index size() const noexcept {
-    return (end_ - start_ - 1) / step_ + 1;
-  }
+  Index start() const noexcept { return start_; }
+  Index end() const noexcept { return end_; }
+  Index step() const noexcept { return step_; }
+  Index size() const noexcept { return (end_ - start_ - 1) / step_ + 1; }
 
  private:
   void CheckValid() const;
