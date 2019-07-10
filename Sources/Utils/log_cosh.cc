@@ -14,16 +14,12 @@
 
 #include "Utils/log_cosh.hpp"
 
-#if !defined(NETKET_NO_SLEEF)
 #include <immintrin.h>
 #include <sleef.h>
-#endif
 
 #include <cmath>
 
 namespace netket {
-
-#if !defined(NETKET_NO_SLEEF)
 namespace {
 inline std::pair<__m256d, __m256d> clog(__m256d const x,
                                         __m256d const y) noexcept {
@@ -74,7 +70,7 @@ inline __m256d SumLogCoshKernel(__m256d z1, __m256d z2) noexcept {
 }
 }  // namespace
 
-Complex SumLogCosh(
+__attribute__((target("avx2"))) Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) {
   constexpr auto vector_size =
       static_cast<Index>(sizeof(__m256d) / sizeof(double));
@@ -103,7 +99,7 @@ Complex SumLogCosh(
                               _mm256_extractf128_pd(total, 1)));
 }
 
-Complex SumLogCosh(
+__attribute__((target("avx2"))) Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
   assert(input.size() == bias.size() && "incompatible sizes");
@@ -138,8 +134,6 @@ Complex SumLogCosh(
                               _mm256_extractf128_pd(total, 1)));
 }
 
-#else  // Fallback to using cmath
-
 namespace {
 inline double LogCosh(double x) noexcept {
   x = std::abs(x);
@@ -154,13 +148,13 @@ inline double LogCosh(double x) noexcept {
 inline Complex LogCosh(Complex x) noexcept {
   const double xr = x.real();
   const double xi = x.imag();
-  Complex res = lncosh(xr);
+  Complex res = LogCosh(xr);
   res += std::log(Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
   return res;
 }
 }  // namespace
 
-Complex SumLogCosh(
+__attribute__((target("default"))) Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
   auto total = Complex{0.0, 0.0};
@@ -170,15 +164,13 @@ Complex SumLogCosh(
   return total;
 }
 
-Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) {
+__attribute__((target("default"))) Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) {
   auto total = Complex{0.0, 0.0};
   for (auto i = Index{0}; i < input.size(); ++i) {
-    total += LogCosh(input(i) + bias(i));
+    total += LogCosh(input(i));
   }
   return total;
 }
 
-#endif
 }  // namespace netket

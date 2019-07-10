@@ -21,11 +21,18 @@
 
 namespace netket {
 
-Complex SumLogCosh(
+__attribute__((target("default"))) Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias);
 
-Complex SumLogCosh(
+__attribute__((target("avx2"))) Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias);
+
+__attribute__((target("default"))) Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input);
+
+__attribute__((target("avx2"))) Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input);
 
 }  // namespace netket

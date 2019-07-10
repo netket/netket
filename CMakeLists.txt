@@ -260,13 +260,17 @@ set(NETKET_SOURCES
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
-    Sources/Utils/log_cosh.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
 )
 
 add_library(netket MODULE ${NETKET_SOURCES})
-target_link_libraries(netket PUBLIC netket_lib pybind11)
+add_library(log_cosh OBJECT Sources/Utils/log_cosh.cc)
+target_compile_options(log_cosh PRIVATE
+    -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
+target_link_libraries(log_cosh PUBLIC netket_lib)
+set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(netket PUBLIC netket_lib log_cosh pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
 add_dependencies(netket json_project eigen_project pybind11_project sleef_project)
