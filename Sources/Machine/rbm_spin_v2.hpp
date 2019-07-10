@@ -120,6 +120,7 @@ class RbmSpinV2 : public AbstractMachine {
   void Load(const std::string &filename) final;
 
   PyObject *StateDict() const final;
+  PyObject *StateDict() final;
   void StateDict(PyObject *obj) final;
 
   bool IsHolomorphic() const noexcept final { return true; }

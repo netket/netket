@@ -258,6 +258,10 @@ class AbstractMachine {
     throw std::runtime_error{"Not implemented!"};
   }
 
+  virtual PyObject *StateDict() {
+    throw std::runtime_error{"Not implemented!"};
+  }
+
   virtual void StateDict(PyObject *state) {
     throw std::runtime_error{"Not implemented!"};
   }

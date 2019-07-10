@@ -675,7 +675,7 @@ void AddAbstractMachine(py::module m) {
            )EOF")
       .def(
           "state_dict",
-          [](AbstractMachine const &self) {
+          [](AbstractMachine &self) {
             return py::reinterpret_steal<py::dict>(self.StateDict());
           },
           R"EOF(Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.

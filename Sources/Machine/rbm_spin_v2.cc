@@ -305,12 +305,33 @@ void RbmSpinV2::Load(const std::string &filename) {
   StateDict(state.ptr());
 }
 
+PyObject *RbmSpinV2::StateDict() {
+  namespace py = pybind11;
+  py::dict state;
+  state["a"] =
+      b_.has_value()
+          ? py::cast(*a_, py::return_value_policy::reference, py::none())
+          : py::none();
+  state["b"] =
+      b_.has_value()
+          ? py::cast(*b_, py::return_value_policy::reference, py::none())
+          : py::none();
+  state["w"] = py::cast(W_, py::return_value_policy::reference, py::none());
+  return state.release().ptr();
+}
+
 PyObject *RbmSpinV2::StateDict() const {
   namespace py = pybind11;
   py::dict state;
-  state["a"] = a_.has_value() ? py::cast(*a_) : py::none();
-  state["b"] = b_.has_value() ? py::cast(*b_) : py::none();
-  state["w"] = py::cast(W_);
+  state["a"] =
+      b_.has_value()
+          ? py::cast(*a_, py::return_value_policy::reference, py::none())
+          : py::none();
+  state["b"] =
+      b_.has_value()
+          ? py::cast(*b_, py::return_value_policy::reference, py::none())
+          : py::none();
+  state["w"] = py::cast(W_, py::return_value_policy::reference, py::none());
   return state.release().ptr();
 }
 
