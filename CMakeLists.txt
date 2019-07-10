@@ -257,6 +257,8 @@ set(NETKET_SOURCES
     Sources/Operator/abstract_operator.cc
     Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_local_v2.cc
+    Sources/Optimizer/stochastic_reconfiguration.cc
+    Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
     Sources/Utils/log_cosh.cc
     Sources/Utils/mpi_interface.cc
