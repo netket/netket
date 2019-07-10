@@ -269,6 +269,12 @@ add_library(log_cosh OBJECT Sources/Utils/log_cosh.cc)
 target_compile_options(log_cosh PRIVATE
     -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
 target_link_libraries(log_cosh PUBLIC netket_lib)
+# A workaround for missing __cpu_model bug in gcc-5
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GEATER 5.0
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    target_link_libraries(log_cosh PUBLIC gcc_s gcc)
+endif()
 set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_dependencies(log_cosh eigen_project sleef_project)
 target_link_libraries(netket PUBLIC netket_lib log_cosh pybind11)
