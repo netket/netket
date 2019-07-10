@@ -270,6 +270,7 @@ target_compile_options(log_cosh PRIVATE
     -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
 target_link_libraries(log_cosh PUBLIC netket_lib)
 set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_dependencies(log_cosh eigen_project sleef_project)
 target_link_libraries(netket PUBLIC netket_lib log_cosh pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
