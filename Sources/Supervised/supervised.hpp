@@ -91,6 +91,7 @@ class Supervised {
              bool use_iterative = false, bool use_cholesky = true)
       : psi_(psi),
         opt_(opt),
+        sr_(diag_shift, use_iterative, use_cholesky, psi.IsHolomorphic()),
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
@@ -123,7 +124,7 @@ class Supervised {
       dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      setSrParameters(diag_shift, use_iterative, use_cholesky);
+      dosr_ = true;
     }
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
@@ -458,13 +459,6 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
-
-  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
-    dosr_ = true;
-    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
-                      psi_.IsHolomorphic());
-  }
 };
 
 }  // namespace netket

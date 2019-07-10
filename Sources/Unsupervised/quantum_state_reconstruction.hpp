@@ -92,6 +92,8 @@ class QuantumStateReconstruction {
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         opt_(opt),
+        sr_(diag_shift, use_iterative, use_cholesky,
+            sampler_.GetMachine().IsHolomorphic()),
         rotations_(rotations),
         trainingSamples_(trainingSamples),
         trainingBases_(trainingBases) {
@@ -125,7 +127,7 @@ class QuantumStateReconstruction {
       dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      setSrParameters(diag_shift, use_iterative, use_cholesky);
+      dosr_ = true;
     }
 
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
@@ -344,13 +346,6 @@ class QuantumStateReconstruction {
       writer_->WriteState(i, psi_);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
-    dosr_ = true;
-    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
-                      psi_.IsHolomorphic());
   }
 
   const ObsManager &GetObsManager() const { return obsmanager_; }
