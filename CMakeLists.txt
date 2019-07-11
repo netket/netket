@@ -271,7 +271,7 @@ target_compile_options(log_cosh PRIVATE
 target_link_libraries(log_cosh PUBLIC netket_lib)
 # A workaround for missing __cpu_model bug in gcc-5
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
-        AND CMAKE_CXX_COMPILER_VERSION VERSION_GEATER 5.0
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0
         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
     target_link_libraries(log_cosh PUBLIC gcc_s gcc)
 endif()
