@@ -21,10 +21,10 @@ matrix:
       addons:
         apt:
           sources:
-            - 'llvm-toolchain-4.0'
+            - 'llvm-toolchain-5.0'
           packages:
             - 'ninja-build'
-            - 'clang-4.0'
+            - 'clang-5.0'
             - 'libc++-dev'
             - 'libc++abi-dev'
             - 'libomp-dev'

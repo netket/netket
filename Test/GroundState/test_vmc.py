@@ -51,7 +51,7 @@ def test_vmc_functions():
         assert ex["Mean"] == approx(exact_ex, rel=tol)
 
     var = vmc.variance(data, ma, ha)
-    assert var["Mean"] == approx(0.0, abs=1e-7)
+    assert var["Mean"] == approx(0.0, abs=2e-7)
 
     grad = vmc.gradient(data, ma, ha)
     assert grad.shape == (ma.n_par,)

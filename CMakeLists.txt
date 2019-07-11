@@ -270,11 +270,11 @@ target_compile_options(log_cosh PRIVATE
     -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
 target_link_libraries(log_cosh PUBLIC netket_lib)
 # A workaround for missing __cpu_model bug in gcc-5
-if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
         AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0
         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0) 
-    OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
+    # OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+    #     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
     target_link_libraries(log_cosh PUBLIC gcc_s gcc)
 endif()
 set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
