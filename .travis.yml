@@ -25,7 +25,6 @@ matrix:
           packages:
             - 'ninja-build'
             - 'clang-5.0'
-            - 'llvm-5-dev'
             - 'libc++-dev'
             - 'libc++abi-dev'
             - 'libomp-dev'
