@@ -273,9 +273,12 @@ target_link_libraries(log_cosh PUBLIC netket_lib)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
         AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0
         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0) 
-    # OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-    #     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
     target_link_libraries(log_cosh PUBLIC gcc_s gcc)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0) 
+    find_library(NETKET_CLANG_RT NAMES clang_rt.builtins-x86_64 PATHS /usr/lib/llvm-5/lib/clang/8.0.0/lib/linux)
+    message(STATUS "clang_rt: ${NETKET_CLANG_RT}")
+    target_link_libraries(log_cosh PUBLIC ${NETKET_CLANG_RT})
 endif()
 set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_dependencies(log_cosh eigen_project sleef_project)
