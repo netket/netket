@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10.3)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -31,7 +31,6 @@ endif()
 #
 # Dependencies
 #
-
 # json
 ################################################################################
 ExternalProject_Add(
@@ -116,7 +115,9 @@ target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 # MPI
 ################################################################################
 find_package(MPI REQUIRED)
-
+if(MPI_C_VERSION_MAJOR LESS 3)
+message( FATAL_ERROR "NetKet requires at least MPI 3." )
+endif()
 
 # OpenMP
 ################################################################################
