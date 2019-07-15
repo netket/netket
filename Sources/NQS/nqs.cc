@@ -7,8 +7,8 @@
 namespace netket {
 
     NQS::NQS(int nqubits) {
-        g = Hypercube(nqubits, 1, false);
-        hi = Spin(g, 0.5);
+        g(Hypercube(nqubits, 1, false));
+        hi(Spin(g, 0.5));
         psi(RbmSpin(hi));
         op(Adamax());
     }
