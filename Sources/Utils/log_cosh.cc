@@ -14,13 +14,16 @@
 
 #include "Utils/log_cosh.hpp"
 
+#ifdef NETKET_USE_SLEEF
 #include <immintrin.h>
 #include <sleef.h>
+#endif
 
 #include <cmath>
 
 namespace netket {
 namespace {
+#ifdef NETKET_USE_SLEEF
 inline std::pair<__m256d, __m256d> clog(__m256d const x,
                                         __m256d const y) noexcept {
   auto real = Sleef_logd4_u35avx2(
@@ -134,6 +137,7 @@ Complex SumLogCosh(
   return ToComplex(_mm_add_pd(_mm256_extractf128_pd(total, 0),
                               _mm256_extractf128_pd(total, 1)));
 }
+#endif  // NETKET_USE_SLEEF
 
 inline double LogCosh(double x) noexcept {
   x = std::abs(x);
@@ -178,20 +182,28 @@ Complex SumLogCosh(
 Complex SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
+#ifdef NETKET_USE_SLEEF
   if (__builtin_cpu_supports("avx2")) {
     return SumLogCosh(input, bias, std::true_type{});
   } else {
     return SumLogCosh(input, bias, std::false_type{});
   }
+#else
+  return SumLogCosh(input, bias, std::false_type{});
+#endif
 }
 
 Complex SumLogCosh(Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>>
                        input) noexcept {
+#ifdef NETKET_USE_SLEEF
   if (__builtin_cpu_supports("avx2")) {
     return SumLogCosh(input, std::true_type{});
   } else {
     return SumLogCosh(input, std::false_type{});
   }
+#else
+  return SumLogCosh(input, std::false_type{});
+#endif
 }
 
 }  // namespace netket
