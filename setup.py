@@ -165,5 +165,5 @@ setup(
          neural networks and machine learning techniques.""",
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=["numpy>=1.16", "cmake>3.1", "scipy>=1.2.1"],
+    install_requires=["numpy>=1.16", "cmake>=3.10.3", "scipy>=1.2.1"],
 )
