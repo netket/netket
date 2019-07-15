@@ -35,6 +35,7 @@ struct Suggestion {
 };
 
 namespace detail {
+/// Suggests which spins to try flipping next.
 class Flipper {
  public:
   template <class T>
@@ -46,10 +47,29 @@ class Flipper {
   Index BatchSize() const noexcept { return state_.rows(); }
   Index SystemSize() const noexcept { return state_.cols(); }
   default_random_engine& Generator() noexcept { return engine_.Get(); }
+
+  /// \brief Resets the flipper.
+  ///
+  /// Randomizes internal state.
   inline void Reset();
+
+  /// \brief Makes a move.
+  ///
+  /// \param accept has length #BatchSize() and describes which flips were
+  /// accepted and which weren't (`accept[i]==true` means that the `i`th flip
+  /// was accepted).
   inline void Next(nonstd::span<const bool> accept);
+
+  /// \brief Returns the current state.
+  ///
+  /// Each row of the matrix describes one visible configuration. There are
+  /// #BatchSize() rows in the returned matrix.
   const RowMatrix<double>& Current() const noexcept;
+
+  /// \brief Returns next spins to try flipping.
   inline nonstd::span<Suggestion const> Read() const noexcept;
+
+  /// \brief Similar to #Read() except that the result is written into \p x.
   inline void Read(Eigen::Ref<RowMatrix<double>> x) const noexcept;
 
  private:
@@ -87,13 +107,9 @@ class Flipper {
 }  // namespace detail
 
 class MetropolisLocalV2 {
-  using InputType = RowMatrix<double>;
-  using ForwardFn = std::function<void(Eigen::Ref<const InputType>,
-                                       Eigen::Ref<Eigen::VectorXcd>)>;
-
   RbmSpinV2& machine_;
   detail::Flipper flipper_;
-  InputType proposed_X_;
+  RowMatrix<double> proposed_X_;
   Eigen::ArrayXcd proposed_Y_;
   Eigen::ArrayXcd current_Y_;
   Eigen::ArrayXd randoms_;
@@ -109,9 +125,15 @@ class MetropolisLocalV2 {
   Index SystemSize() const noexcept { return flipper_.SystemSize(); }
   RbmSpinV2& Machine() const noexcept { return machine_; }
 
-  std::pair<Eigen::Ref<const InputType>, Eigen::Ref<const Eigen::VectorXcd>>
+  /// Returns a batch of current visible states and corresponding log values.
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
   Read();
+
+  /// Makes a step.
   void Next();
+
+  /// Resets the sampler.
   void Reset();
 };
 

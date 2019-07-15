@@ -167,19 +167,22 @@ void MetropolisLocalV2::Reset() {
   machine_.LogVal(flipper_.Current(), current_Y_, {});
 }
 
-std::pair<Eigen::Ref<const MetropolisLocalV2::InputType>,
+std::pair<Eigen::Ref<const RowMatrix<double>>,
           Eigen::Ref<const Eigen::VectorXcd>>
 MetropolisLocalV2::Read() {
   return {flipper_.Current(), current_Y_};
 }
 
 void MetropolisLocalV2::Next() {
-  flipper_.Read(proposed_X_);
-  machine_.LogVal(proposed_X_, proposed_Y_, {});
+  flipper_.Read(proposed_X_);  // Now proposed_X_ contains next states `v'`
+  machine_.LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
   std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
     return std::uniform_real_distribution<double>{}(flipper_.Generator());
   });
-  accept_ = randoms_ < (proposed_Y_ - current_Y_).exp().abs().square().min(1.0);
+  // Calculates acceptance probability
+  accept_ =
+      randoms_ < (proposed_Y_ - current_Y_).real().exp().square().min(1.0);
+  // Updates current state
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
   flipper_.Next({accept_});
 }
@@ -281,6 +284,7 @@ ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
 }
 
 namespace detail {
+/// A helper class for forward propagation of batches through machines.
 struct Forward {
   Forward(RbmSpinV2& m, Index batch_size)
       : machine_{m},
@@ -289,9 +293,15 @@ struct Forward {
         coeff_(batch_size),
         i_{0} {}
 
+  /// \brief Returns whether internal buffer if full.
   bool Full() const noexcept { return i_ == BatchSize(); }
+  /// \brief Returns whether internal buffer if empty.
+  bool Empty() const noexcept { return i_ == 0; }
   Index BatchSize() const noexcept { return Y_.size(); }
 
+  /// \brief Add an element to internal buffer.
+  ///
+  /// Buffer should not be full!
   void Push(Eigen::Ref<const Eigen::VectorXd> v, const ConnectorRef& conn) {
     assert(!Full());
     X_.row(i_) = v.transpose();
@@ -302,16 +312,22 @@ struct Forward {
     ++i_;
   }
 
+  /// \brief Fills the remaining part of internal buffer with visible
+  /// configuration \p v.
   void Fill(Eigen::Ref<const Eigen::VectorXd> v) {
-    if (!Full()) {
-      const auto n = BatchSize() - i_;
-      X_.block(i_, 0, n, X_.cols()) = v.transpose().colwise().replicate(n);
-      coeff_.segment(i_, n).setConstant(0.0);
-      i_ += n;
-    }
+    assert(!Empty() && !Full());
+    // if (!Full()) {
+    const auto n = BatchSize() - i_;
+    X_.block(i_, 0, n, X_.cols()) = v.transpose().colwise().replicate(n);
+    coeff_.segment(i_, n).setConstant(0.0);
+    i_ += n;
+    // }
     assert(Full());
   }
 
+  /// \brief Runs forward propagation.
+  ///
+  /// Buffer should be full!
   std::tuple<const Eigen::VectorXcd&, Eigen::VectorXcd&> Propagate() {
     assert(Full());
     machine_.LogVal(X_, /*out=*/Y_, /*cache=*/any{});
@@ -321,7 +337,7 @@ struct Forward {
 
  private:
   RbmSpinV2& machine_;
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> X_;
+  RowMatrix<double> X_;
   Eigen::VectorXcd Y_;
   Eigen::VectorXcd coeff_;
   Index i_;
@@ -333,6 +349,37 @@ struct Accumulator {
     states_.reserve(forward_.BatchSize());
   }
 
+  void operator()(Eigen::Ref<const Eigen::VectorXd> v,
+                  const ConnectorRef& conn) {
+    assert(!forward_.Full());
+    forward_.Push(v, conn);
+    ++states_.back().first;
+    if (forward_.Full()) {
+      ProcessBatch();
+    }
+    assert(!forward_.Full());
+  }
+
+  void operator()(Complex log_val) {
+    assert(!forward_.Full());
+    states_.emplace_back(0, log_val);
+  }
+
+  /// Number of visible configurations we've processed is not necessarily a
+  /// multiple of batch size.
+  void Finalize(Eigen::Ref<const Eigen::VectorXd> v) {
+    if (forward_.Empty()) {
+      locals_(index_) = accum_;
+      // ++index_;
+      // accum_ = 0.0;
+      return;
+    }
+    states_.emplace_back(0, states_.back().second);
+    forward_.Fill(v);
+    ProcessBatch();
+  }
+
+ private:
   void ProcessBatch() {
     assert(forward_.Full());
     auto result = forward_.Propagate();
@@ -348,6 +395,9 @@ struct Accumulator {
           y(i) -= state.second;
         }
       }
+      // We do the last iteration separately, because we don't yet know the
+      // number of spin configurations which contribute to the last local energy
+      // (some of them might not fit into current batch).
       {
         const auto& state = states_.back();
         for (; i < y.size(); ++i) {
@@ -361,11 +411,12 @@ struct Accumulator {
     assert(states_.size() > 0);
     auto i = Index{0};
     for (auto j = size_t{0}; j < states_.size() - 1; ++j) {
+      // Computes local value
       const auto& state = states_[j];
       for (auto n = Index{0}; n < state.first; ++n, ++i) {
         accum_ += y(i) * coeff(i);
       }
-
+      // Stores it and resets the accumulator
       locals_(index_) = accum_;
       ++index_;
       accum_ = 0.0;
@@ -376,6 +427,7 @@ struct Accumulator {
         accum_ += y(i) * coeff(i);
       }
     }
+    // A fancy way to throw away all elements except for the first one
     if (states_.size() > 1) {
       std::swap(states_.front(), states_.back());
       states_.resize(1);
@@ -383,33 +435,17 @@ struct Accumulator {
     states_.front().first = 0;
   }
 
-  void operator()(Eigen::Ref<const Eigen::VectorXd> v,
-                  const ConnectorRef& conn) {
-    assert(!forward_.Full());
-    forward_.Push(v, conn);
-    ++states_.back().first;
-    if (forward_.Full()) {
-      ProcessBatch();
-    }
-  }
-
-  void operator()(Complex log_val) {
-    assert(!forward_.Full());
-    states_.emplace_back(0, log_val);
-  }
-
-  void Finalize(Eigen::Ref<const Eigen::VectorXd> v) {
-    states_.emplace_back(0, states_.back().second);
-    forward_.Fill(v);
-    ProcessBatch();
-  }
-
- private:
-  Eigen::VectorXcd& locals_;
-  Index index_;
-  Complex accum_;
+  Eigen::VectorXcd& locals_;  // Destination array
+  Index index_;               // Index in locals_
+  Complex accum_;             // Accumulator for current local energy
 
   Forward& forward_;
+  // A priori it is unknown whether H|v⟩ contains more basis vectors than can
+  // fit into a batch. If H|v⟩ contains fewer than batch size basis vectors,
+  // then during one forward propagation, we will be computing log(ψ(v')) for v'
+  // which contribute to different local energies. `states_` vector keeps track
+  // of all local energies we're currently computing. Each state is a pair of:
+  //   * number of v' which contribute to ⟨v|H|ψ⟩/⟨v|ψ⟩ and value log(⟨v|ψ⟩).
   std::vector<std::pair<Index, Complex>> states_;
 };
 
@@ -419,6 +455,11 @@ Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
                                Eigen::Ref<const Eigen::VectorXcd> values,
                                RbmSpinV2& machine, AbstractOperator& op,
                                Index batch_size) {
+  if (batch_size < 1) {
+    std::ostringstream msg;
+    msg << "invalid batch size: " << batch_size << "; expected >=1";
+    throw InvalidInputError{msg.str()};
+  }
   Eigen::VectorXcd locals(samples.rows());
   detail::Forward forward{machine, batch_size};
   detail::Accumulator acc{locals, forward};
@@ -443,7 +484,7 @@ Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
   }
   Eigen::VectorXcd force(gradients.cols());
   Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
-      gradients.conjugate() * locals;
+      gradients.adjoint() * locals;
   return force;
 }
 
