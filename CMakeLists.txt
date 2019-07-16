@@ -67,7 +67,7 @@ if (NETKET_USE_SLEEF)
         # "sleef_project-prefix/...", but at least it works.
         BUILD_BYPRODUCTS "sleef_project-prefix/src/sleef_project-build/lib/libsleef.a"
     )
-    add_library(Sleef INTERFACE IMPORTED)
+    add_library(Sleef INTERFACE)
     ExternalProject_Get_Property(sleef_project BINARY_DIR)
     target_include_directories(Sleef INTERFACE ${BINARY_DIR}/include)
     target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
@@ -266,6 +266,7 @@ set(NETKET_SOURCES
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
+    Sources/Utils/exceptions.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
 )
@@ -296,7 +297,6 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
     string(REGEX REPLACE "^[0-9]+\.([0-9])+.*$" "\\1" NETKET_CLANG_MINOR "${CMAKE_CXX_COMPILER_VERSION}")
     find_program(LLVM_CONFIG_EXECUTABLE
         NAMES
-            llvm-config
             llvm-config-${CMAKE_CXX_COMPILER_VERSION}
             llvm-config-${NETKET_CLANG_MAJOR}.${NETKET_CLANG_MINOR}
             llvm-config-${NETKET_CLANG_MAJOR})

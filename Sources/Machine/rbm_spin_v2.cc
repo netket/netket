@@ -94,12 +94,7 @@ Eigen::VectorXcd RbmSpinV2::GetParameters() {
 }
 
 void RbmSpinV2::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
-  if (parameters.size() != Npar()) {
-    std::ostringstream msg;
-    msg << "wrong shape: [" << parameters.size() << "]; expected [" << Npar()
-        << "]";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "parameters", parameters.size(), Npar());
   Index i = 0;
   if (a_.has_value()) {
     *a_ = parameters.segment(i, a_->size());
@@ -115,19 +110,9 @@ void RbmSpinV2::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
 
 void RbmSpinV2::LogVal(Eigen::Ref<const RowMatrix<double>> x,
                        Eigen::Ref<Eigen::VectorXcd> out, const any &) {
-  if (x.cols() != Nvisible()) {
-    std::ostringstream msg;
-    msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
-        << "]; expected [?"
-        << ", " << Nvisible() << "]";
-    throw InvalidInputError{msg.str()};
-  }
-  if (out.size() != x.rows()) {
-    std::ostringstream msg;
-    msg << "output tensor wrong shape: [" << out.size() << "]; expected ["
-        << x.rows() << "]";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
   BatchSize(x.rows());
   if (a_.has_value()) {
     out.noalias() = x * (*a_);
@@ -141,19 +126,9 @@ void RbmSpinV2::LogVal(Eigen::Ref<const RowMatrix<double>> x,
 void RbmSpinV2::DerLog(Eigen::Ref<const RowMatrix<double>> x,
                        Eigen::Ref<RowMatrix<Complex>> out,
                        const any & /*unused*/) {
-  if (x.cols() != Nvisible()) {
-    std::ostringstream msg;
-    msg << "input tensor has wrong shape: [" << x.rows() << ", " << x.cols()
-        << "]; expected [?"
-        << ", " << Nvisible() << "]";
-    throw InvalidInputError{msg.str()};
-  }
-  if (out.rows() != x.rows() || out.cols() != Npar()) {
-    std::ostringstream msg;
-    msg << "output tensor wrong shape: [" << out.rows() << ", " << out.cols()
-        << "]; expected [" << x.rows() << ", " << Npar() << "]";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {x.rows(), Npar()});
   BatchSize(x.rows());
 
   auto i = Index{0};

@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -201,6 +201,8 @@ void StepsRange::CheckValid() const {
 }
 
 namespace detail {
+// Main loop: iterations specified by `steps` are `record`ed, others are
+// `skip`ped.
 template <class Skip, class Record>
 void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
   auto i = Index{0};
@@ -316,12 +318,10 @@ struct Forward {
   /// configuration \p v.
   void Fill(Eigen::Ref<const Eigen::VectorXd> v) {
     assert(!Empty() && !Full());
-    // if (!Full()) {
     const auto n = BatchSize() - i_;
     X_.block(i_, 0, n, X_.cols()) = v.transpose().colwise().replicate(n);
     coeff_.segment(i_, n).setConstant(0.0);
     i_ += n;
-    // }
     assert(Full());
   }
 

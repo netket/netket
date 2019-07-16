@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include <fstream>
 
+#include "Utils/exceptions.hpp"
 #include "Utils/mpi_interface.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -56,18 +57,9 @@ void AbstractMachine::InitRandomPars(double sigma,
 void AbstractMachine::LogVal(Eigen::Ref<const RealRowMatrixType> v,
                              Eigen::Ref<VectorType> out,
                              const any & /*unused*/) {
-  if (v.cols() != Nvisible()) {
-    std::ostringstream msg;
-    msg << __FUNCTION__ << ": invalid dimension: [" << v.rows() << ", "
-        << v.cols() << "]; expected [?, " << Nvisible() << "]";
-    throw InvalidInputError{msg.str()};
-  }
-  if (v.rows() != out.size()) {
-    std::ostringstream msg;
-    msg << __FUNCTION__ << ": input dimension [" << v.rows() << ", " << v.cols()
-        << "] and output dimension [" << out.size() << "] are incompatible";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), v.rows());
   for (auto i = Index{0}; i < v.rows(); ++i) {
     out(i) = LogValSingle(v.row(i));
   }
@@ -82,18 +74,9 @@ AbstractMachine::VectorType AbstractMachine::LogVal(
 
 void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
                              Eigen::Ref<RowMatrixType> out, const any &cache) {
-  if (v.cols() != Npar()) {
-    std::ostringstream msg;
-    msg << __FUNCTION__ << ": invalid dimension: [" << v.rows() << ", "
-        << v.cols() << "]; expected [?, " << Npar() << "]";
-    throw InvalidInputError{msg.str()};
-  }
-  if (v.rows() != out.size()) {
-    std::ostringstream msg;
-    msg << __FUNCTION__ << ": input dimension [" << v.rows() << ", " << v.cols()
-        << "] and output dimension [" << out.size() << "] are incompatible";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {v.rows(), Npar()});
   for (auto i = Index{0}; i < v.rows(); ++i) {
     out.row(i) = DerLogSingle(v.row(i));
   }
