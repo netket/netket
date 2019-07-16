@@ -17,7 +17,7 @@ matrix:
     - os: linux
       dist: xenial
       python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS='-stdlib=libc++ -I/usr/include/libcxxabi -O1'"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0"
       addons:
         apt:
           sources:
@@ -26,7 +26,8 @@ matrix:
             - 'ninja-build'
             - 'clang-5.0'
             - 'llvm-5.0'
-            - 'g++-5'
+            - 'g++-7'
+            - 'gdb'
             - 'libc++-dev'
             - 'libc++abi-dev'
             - 'libomp-dev'
