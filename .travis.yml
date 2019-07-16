@@ -22,6 +22,7 @@ matrix:
         apt:
           sources:
             - 'llvm-toolchain-5.0'
+            - 'ubuntu-toolchain-r-test'
           packages:
             - 'ninja-build'
             - 'clang-5.0'
