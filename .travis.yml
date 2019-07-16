@@ -204,7 +204,8 @@ before_script:
 script:
   - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
   - python -c 'import netket'
-    #- python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
+  - python -c 'import netket; g = netket.graph.Hypercube(4, 1)'
+    # - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
     # - python -m pytest -n 2 --verbose ../Test/
     # - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
 
