@@ -206,7 +206,7 @@ script:
   - python -c 'import netket'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1)'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5)'
-  - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
+  - echo -e "run\nbt" | gdb r -args python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
     # - python -m pytest -n 2 --verbose ../Test/
     # - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
 
