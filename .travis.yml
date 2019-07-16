@@ -26,6 +26,7 @@ matrix:
             - 'ninja-build'
             - 'clang-5.0'
             - 'llvm-5.0'
+            - 'g++-5'
             - 'libc++-dev'
             - 'libc++abi-dev'
             - 'libomp-dev'
@@ -175,8 +176,16 @@ install:
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
   - mkdir workdir && cd workdir
 
+before_script:
+  - ulimit -c unlimited -S
+
 script:
   - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest -n 2 --verbose ../Test/
   - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
+
+after_failure:
+  - COREFILE=$(find . -maxdepth 1 -name "core*" | head -n 1) # find core file
+  - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" example -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
+
