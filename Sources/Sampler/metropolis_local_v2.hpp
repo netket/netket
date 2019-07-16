@@ -29,7 +29,7 @@
 
 namespace netket {
 
-struct Suggestion {
+struct ConfDiff {
   nonstd::span<Index const> sites;
   nonstd::span<double const> values;
 };
@@ -67,7 +67,7 @@ class Flipper {
   const RowMatrix<double>& Current() const noexcept;
 
   /// \brief Returns next spins to try flipping.
-  inline nonstd::span<Suggestion const> Read() const noexcept;
+  inline nonstd::span<ConfDiff const> Read() const noexcept;
 
   /// \brief Similar to #Read() except that the result is written into \p x.
   inline void Read(Eigen::Ref<RowMatrix<double>> x) const noexcept;
@@ -101,7 +101,7 @@ class Flipper {
   /// \brief Allowed values for quantum numbers
   std::vector<double> local_states_;
 
-  std::vector<Suggestion> proposed_;
+  std::vector<ConfDiff> proposed_;
   DistributedRandomEngine engine_;
 };
 }  // namespace detail
@@ -136,40 +136,6 @@ class MetropolisLocalV2 {
   /// Resets the sampler.
   void Reset();
 };
-
-struct StepsRange {
-  StepsRange(std::tuple<Index, Index, Index> const& steps)
-      : start_{std::get<0>(steps)},
-        end_{std::get<1>(steps)},
-        step_{std::get<2>(steps)} {
-    CheckValid();
-  }
-
-  Index start() const noexcept { return start_; }
-  Index end() const noexcept { return end_; }
-  Index step() const noexcept { return step_; }
-  Index size() const noexcept { return (end_ - start_ - 1) / step_ + 1; }
-
- private:
-  void CheckValid() const;
-
-  Index start_;
-  Index end_;
-  Index step_;
-};  // namespace netket
-
-std::tuple<RowMatrix<double>, Eigen::VectorXcd,
-           nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
-               bool compute_gradients);
-
-Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
-                               Eigen::Ref<const Eigen::VectorXcd> values,
-                               RbmSpinV2& machine, AbstractOperator& op,
-                               Index batch_size);
-
-Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
-                          Eigen::Ref<const RowMatrix<Complex>> gradients);
 
 }  // namespace netket
 

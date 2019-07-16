@@ -18,6 +18,7 @@
 #include "Machine/abstract_machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Sampler/abstract_sampler.hpp"
+#include "Sampler/metropolis_local_v2.hpp"
 #include "Stats/binning.hpp"
 #include "common_types.hpp"
 
@@ -175,8 +176,64 @@ VectorXcd Gradient(const Result &result, AbstractMachine &psi,
  */
 VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
                              const AbstractOperator &op);
-
 }  // namespace vmc
+
+struct StepsRange {
+  StepsRange(std::tuple<Index, Index, Index> const &steps)
+      : start_{std::get<0>(steps)},
+        end_{std::get<1>(steps)},
+        step_{std::get<2>(steps)} {
+    CheckValid();
+  }
+
+  Index start() const noexcept { return start_; }
+  Index end() const noexcept { return end_; }
+  Index step() const noexcept { return step_; }
+  Index size() const noexcept { return (end_ - start_ - 1) / step_ + 1; }
+
+ private:
+  void CheckValid() const;
+
+  Index start_;
+  Index end_;
+  Index step_;
+};
+
+/**
+ * @overload
+ *
+ * @return a tuple of visible configurations, logarithms of wave function
+ * values, and (optionally) logarithmic derivatives with respect to variational
+ * parameters.
+ */
+std::tuple<RowMatrix<double>, Eigen::VectorXcd,
+           nonstd::optional<RowMatrix<Complex>>>
+ComputeSamples(MetropolisLocalV2 &sampler, StepsRange const &steps,
+               bool compute_gradients);
+
+/**
+ * @overload
+ *
+ * @param samples A matrix of MC samples as returned by ComputeSamples.
+ * @param values Logarithms of wave function values as returned by
+ * ComputeSamples.
+ * @param machine Machine representation of the wavefunction.
+ * @param batch_size Batch size to use internally.
+ */
+Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
+                               Eigen::Ref<const Eigen::VectorXcd> values,
+                               RbmSpinV2 &machine, AbstractOperator &op,
+                               Index batch_size);
+
+/**
+ * \overload
+ *
+ * @param values Local values computed by LocalValuesV2.
+ * @gradients gradients Logarithmic derivatives returned by ComputeSamples.
+ */
+Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
+                          Eigen::Ref<const RowMatrix<Complex>> gradients);
+
 }  // namespace netket
 
 #endif  // NETKET_VMC_SAMPLING_HPP
