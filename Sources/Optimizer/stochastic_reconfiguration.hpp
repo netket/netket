@@ -63,15 +63,11 @@ class SR {
         // Adding diagonal shift
         Scomplex_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
 
-        if (use_cholesky_ == false) {
-          Eigen::FullPivHouseholderQR<Eigen::MatrixXcd> qr(npar, npar);
-          qr.setThreshold(1.0e-6);
-          qr.compute(Scomplex_);
-          deltaP = qr.solve(grad);
+        if (use_cholesky_) {
+          deltaP = Scomplex_.llt().solve(grad);
         } else {
-          Eigen::LLT<Eigen::MatrixXcd> llt(npar);
-          llt.compute(Scomplex_);
-          deltaP = llt.solve(grad);
+          auto bdcSvd = Scomplex_.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
+          deltaP = bdcSvd.solve(grad);
         }
       } else {
         Eigen::ConjugateGradient<SrMatrixComplex, Eigen::Lower | Eigen::Upper,
@@ -100,17 +96,13 @@ class SR {
         // Adding diagonal shift
         Sreal_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
 
-        if (use_cholesky_ == false) {
-          Eigen::FullPivHouseholderQR<Eigen::MatrixXd> qr(npar, npar);
-          qr.setThreshold(1.0e-6);
-          qr.compute(Sreal_);
-          deltaP.real() = qr.solve(grad.real());
+        if (use_cholesky_) {
+          deltaP.real() = Sreal_.llt().solve(grad.real());
         } else {
-          Eigen::LLT<Eigen::MatrixXd> llt(npar);
-          llt.compute(Sreal_);
-          deltaP.real() = llt.solve(grad.real());
-          deltaP.imag().setZero();
+          auto bdcSvd = Sreal_.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
+          deltaP.real() = bdcSvd.solve(grad.real());
         }
+        deltaP.imag().setZero();
       } else {
         Eigen::ConjugateGradient<SrMatrixReal, Eigen::Lower | Eigen::Upper,
                                  Eigen::IdentityPreconditioner>
@@ -145,13 +137,15 @@ class SR {
     use_cholesky_ = use_cholesky;
     is_holomorphic_ = is_holomorphic;
 
-    InfoMessage() << "Using the Stochastic reconfiguration method" << std::endl;
+    InfoMessage() << "Using the Stochastic reconfiguration method\n";
 
     if (use_iterative_) {
       InfoMessage() << "With iterative solver" << std::endl;
     } else {
       if (use_cholesky_) {
         InfoMessage() << "Using Cholesky decomposition" << std::endl;
+      } else {
+        InfoMessage() << "Using BDCSVD decomposition" << std::endl;
       }
     }
   }
