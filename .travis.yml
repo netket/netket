@@ -3,15 +3,15 @@ sudo: required
 
 matrix:
   include:
-    # - os: osx
-    #   osx_image: xcode9.4
-    #   language: generic
-    #   env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-O1"
+    - os: osx
+      osx_image: xcode9.4
+      language: generic
+      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-O1"
 
-    # - os: osx
-    #   osx_image: xcode10.2
-    #   language: generic
-    #   env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
+    - os: osx
+      osx_image: xcode10.2
+      language: generic
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
 
     # The oldest supported configurations
     - os: linux
@@ -70,67 +70,67 @@ matrix:
             - 'libatlas-base-dev'
 
     # Not too old toolsets
-    # - os: linux
-    #   dist: xenial
-    #   python: 3.5
-    #   env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - 'ubuntu-toolchain-r-test'
-    #         - 'llvm-toolchain-6.0'
-    #       packages:
-    #         - 'ninja-build'
-    #         - 'g++-7'
-    #         - 'clang-6.0'
-    #         - 'libomp-dev'
-    #         - 'libmpich-dev'
-    #         - 'libopenblas-dev'
+    - os: linux
+      dist: xenial
+      python: 3.5
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-6.0'
+          packages:
+            - 'ninja-build'
+            - 'g++-7'
+            - 'clang-6.0'
+            - 'libomp-dev'
+            - 'libmpich-dev'
+            - 'libopenblas-dev'
 
-    # - os: linux
-    #   dist: xenial
-    #   python: 3.6
-    #   env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-7 -DCMAKE_CXX_COMPILER=g++-7 -DNETKET_USE_BLAS=OFF -DNETKET_USE_LAPACK=OFF -DCMAKE_CXX_FLAGS=-O1"
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - 'ubuntu-toolchain-r-test'
-    #       packages:
-    #         - 'ninja-build'
-    #         - 'g++-7'
-    #         - 'libopenmpi-dev'
+    - os: linux
+      dist: xenial
+      python: 3.6
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-7 -DCMAKE_CXX_COMPILER=g++-7 -DNETKET_USE_BLAS=OFF -DNETKET_USE_LAPACK=OFF -DCMAKE_CXX_FLAGS=-O1"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'ninja-build'
+            - 'g++-7'
+            - 'libopenmpi-dev'
 
-    # # Modern toolsets
-    # - os: linux
-    #   dist: xenial
-    #   python: 3.7
-    #   env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O2"
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - 'ubuntu-toolchain-r-test'
-    #         - 'llvm-toolchain-xenial-8'
-    #       packages:
-    #         - 'ninja-build'
-    #         - 'clang-8'
-    #         - 'g++-9'
-    #         - 'libomp-dev'
-    #         - 'libmpich-dev'
-    #         - 'libopenblas-dev'
+    # Modern toolsets
+    - os: linux
+      dist: xenial
+      python: 3.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O2"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-xenial-8'
+          packages:
+            - 'ninja-build'
+            - 'clang-8'
+            - 'g++-9'
+            - 'libomp-dev'
+            - 'libmpich-dev'
+            - 'libopenblas-dev'
 
-    # - os: linux
-    #   dist: xenial
-    #   python: 3.7
-    #   env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_CXX_FLAGS=-O1"
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - 'ubuntu-toolchain-r-test'
-    #       packages:
-    #         - 'ninja-build'
-    #         - 'g++-9'
-    #         - 'libopenmpi-dev'
-    #         - 'libopenblas-dev'
+    - os: linux
+      dist: xenial
+      python: 3.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_CXX_FLAGS=-O1"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'ninja-build'
+            - 'g++-9'
+            - 'libopenmpi-dev'
+            - 'libopenblas-dev'
 
 before_install:
   - |
@@ -198,19 +198,9 @@ install:
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
   - mkdir workdir && cd workdir
 
-before_script:
-  - ulimit -c unlimited -S
-
 script:
   - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
   - python -c 'import netket'
-  - python -c 'import netket; g = netket.graph.Hypercube(4, 1)'
-  - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5)'
-  - echo -e "run\nbt" | gdb r -args python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
-    # - python -m pytest -n 2 --verbose ../Test/
-    # - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
-
-after_failure:
-  - COREFILE=$(find . -maxdepth 1 -name "core*" | head -n 1) # find core file
-  - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" example -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
-
+  - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
+  - python -m pytest -n 2 --verbose ../Test/
+  - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
