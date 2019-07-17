@@ -49,12 +49,12 @@ class MetropolisExchangePt : public AbstractSampler {
   // Look-up tables
   std::vector<typename AbstractMachine::LookupType> lt_;
 
+  int sweep_size_;
+
  public:
   MetropolisExchangePt(const AbstractGraph &graph, AbstractMachine &psi,
                        int dmax = 1, int nreplicas = 1)
-      : AbstractSampler(psi),
-        nv_(GetHilbert().Size()),
-        nrep_(nreplicas) {
+      : AbstractSampler(psi), nv_(GetHilbert().Size()), nrep_(nreplicas) {
     Init(graph, dmax);
   }
 
@@ -79,6 +79,13 @@ class MetropolisExchangePt : public AbstractSampler {
     GenerateClusters(graph, dmax);
 
     Reset(true);
+
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
 
     InfoMessage() << "Metropolis sampler with parallel tempering is ready "
                   << std::endl;
@@ -125,7 +132,7 @@ class MetropolisExchangePt : public AbstractSampler {
 
     std::vector<double> newconf(2);
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -139,8 +146,9 @@ class MetropolisExchangePt : public AbstractSampler {
         newconf[0] = v_[rep](sj);
         newconf[1] = v_[rep](si);
 
-        auto explo = std::exp(
-            beta_[rep] * GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]));
+        auto explo =
+            std::exp(beta_[rep] * GetMachine().LogValDiff(v_[rep], tochange,
+                                                          newconf, lt_[rep]));
         double ratio = this->GetMachineFunc()(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {

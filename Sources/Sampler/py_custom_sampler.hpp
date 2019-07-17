@@ -86,7 +86,10 @@ void AddCustomSampler(py::module &subm) {
                  >>> sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 
                  ```
-             )EOF");
+             )EOF")
+      .def_property("sweep_size", &CustomSampler::GetSweepSize,
+                    &CustomSampler::SetSweepSize, R"EOF(
+                      The size of the sweep. Extra caution should be put in making sure that the number of sweeps is sufficient to have an ergodic sampling.)EOF");
 }
 }  // namespace netket
 #endif

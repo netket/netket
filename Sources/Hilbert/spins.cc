@@ -131,8 +131,8 @@ void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
 }
 
 void Spin::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                      const std::vector<int> &tochange,
-                      const std::vector<double> &newconf) const {
+                      nonstd::span<const int> tochange,
+                      nonstd::span<const double> newconf) const {
   assert(v.size() == nspins_);
 
   int i = 0;

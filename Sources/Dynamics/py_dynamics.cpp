@@ -62,7 +62,7 @@ void AddDynamicsModule(py::module m) {
 
   py::class_<ode::AbstractTimeStepper<State>>(subm, "AbstractTimeStepper");
 
-  subm.def("create_timestepper", &ode::CreateStepper<State>, py::arg("dim"),
+  subm.def("timestepper", &ode::CreateStepper<State>, py::arg("dim"),
            py::arg("name") = "Dopri54");
 }
 

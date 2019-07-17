@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10.3)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -31,7 +31,6 @@ endif()
 #
 # Dependencies
 #
-
 # json
 ################################################################################
 ExternalProject_Add(
@@ -52,7 +51,7 @@ target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR}/nlohmann
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
     file(DOWNLOAD
-        "https://raw.githubusercontent.com/martinmoene/optional-lite/e240fdaaa4071a980926dea4ed5b610aa8fbc538/include/nonstd/optional.hpp"
+        "https://github.com/martinmoene/optional-lite/releases/download/v3.2.0/optional.hpp"
         "External/optional-lite/nonstd/optional.hpp")
 endif()
 add_library(optional_lite INTERFACE)
@@ -64,7 +63,7 @@ target_include_directories(optional_lite
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/span-lite/nonstd/span.hpp")
     file(DOWNLOAD
-        "https://raw.githubusercontent.com/martinmoene/span-lite/308482109be5df5af750f8ad9d4fb76639a28efb/include/nonstd/span.hpp"
+        "https://github.com/martinmoene/span-lite/releases/download/v0.5.0/span.hpp"
         "External/span-lite/nonstd/span.hpp")
 endif()
 add_library(span_lite INTERFACE)
@@ -77,8 +76,8 @@ target_include_directories(span_lite
 ExternalProject_Add(
     eigen_project
     SOURCE_DIR "${CMAKE_BINARY_DIR}/External/Eigen3"
-    URL "https://github.com/eigenteam/eigen-git-mirror/archive/3.3.5.tar.gz"
-    URL_HASH MD5=305eed19157335016bde9b4d57ee3d35
+    URL "https://github.com/eigenteam/eigen-git-mirror/archive/3.3.7.tar.gz"
+    URL_HASH MD5=77a2c934eaf35943c43ee600a83b72df
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -88,19 +87,13 @@ add_library(Eigen3 INTERFACE)
 target_include_directories(Eigen3 SYSTEM INTERFACE ${SOURCE_DIR})
 
 
-# IETL
-################################################################################
-add_library(IETL INTERFACE)
-target_include_directories(IETL SYSTEM INTERFACE "${CMAKE_SOURCE_DIR}/External/ietl")
-
-
 # pybind11
 ###############################################################################
 ExternalProject_Add(
     pybind11_project
     SOURCE_DIR "${CMAKE_BINARY_DIR}/External/pybind11"
-    URL "https://github.com/pybind/pybind11/archive/v2.2.4.tar.gz"
-    URL_HASH MD5=c533a107bc95bd0c5525ff650b11bfa1
+    URL "https://github.com/pybind/pybind11/archive/v2.3.0.tar.gz"
+    URL_HASH MD5=e2120c5b0e3c20a93f2dfcdc55026ba8
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -122,7 +115,9 @@ target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 # MPI
 ################################################################################
 find_package(MPI REQUIRED)
-
+if(MPI_C_VERSION_MAJOR LESS 3)
+message( FATAL_ERROR "NetKet requires at least MPI 3." )
+endif()
 
 # OpenMP
 ################################################################################
@@ -167,7 +162,6 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
-        IETL
         ${CMAKE_DL_LIBS}
 )
 if(NETKET_USE_OPENMP)

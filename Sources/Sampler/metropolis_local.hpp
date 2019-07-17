@@ -45,6 +45,8 @@ class MetropolisLocal : public AbstractSampler {
   int nstates_;
   std::vector<double> localstates_;
 
+  int sweep_size_;
+
  public:
   explicit MetropolisLocal(AbstractMachine& psi)
       : AbstractSampler(psi), nv_(GetHilbert().Size()) {
@@ -71,6 +73,13 @@ class MetropolisLocal : public AbstractSampler {
 
     Reset(true);
 
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
+
     InfoMessage() << "Local Metropolis sampler is ready " << std::endl;
   }
 
@@ -93,7 +102,7 @@ class MetropolisLocal : public AbstractSampler {
     std::uniform_int_distribution<int> distrs(0, nv_ - 1);
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       // picking a random site to be changed
       int si = distrs(this->GetRandomEngine());
       assert(si < nv_);
@@ -115,8 +124,9 @@ class MetropolisLocal : public AbstractSampler {
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_);
-      if (std::abs(std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) - 1.) >
-          1.0e-8) {
+      if (std::abs(
+              std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) -
+              1.) > 1.0e-8) {
         std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
                   << GetMachine().LogVal(v_, lt_) << std::endl;
         std::abort();

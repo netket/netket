@@ -22,7 +22,6 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "MatrixWrapper/py_matrix_wrapper.hpp"
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
@@ -32,7 +31,7 @@ namespace py = pybind11;
 
 namespace netket {
 
-void AddOperatorModule(py::module &m) {
+void AddOperatorModule(py::module m) {
   auto subm = m.def_submodule("operator");
 
   auto op =
@@ -56,12 +55,8 @@ void AddOperatorModule(py::module &m) {
           .def_property_readonly(
               "hilbert", &AbstractOperator::GetHilbert,
               R"EOF(netket.hilbert.Hilbert: ``Hilbert`` space of operator.)EOF")
-          .def(
-              "to_sparse",
-              [](const AbstractOperator &self) {
-                return SparseMatrixWrapper<>(self).GetMatrix();
-              },
-              R"EOF(
+          .def("to_sparse", &AbstractOperator::ToSparse,
+               R"EOF(
          Returns the sparse matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for
@@ -69,24 +64,47 @@ void AddOperatorModule(py::module &m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def(
-              "to_dense",
-              [](const AbstractOperator &self) {
-                return DenseMatrixWrapper<>(self).GetMatrix();
-              },
-              R"EOF(
+          .def("to_dense", &AbstractOperator::ToDense,
+               R"EOF(
          Returns the dense matrix representation of the operator. Note that, in general,
          the size of the matrix is exponential in the number of quantum
          numbers, and this operation should thus only be performed for
          low-dimensional Hilbert spaces.
 
          This method requires an indexable Hilbert space.
-         )EOF");
+         )EOF")
+          .def(
+              "to_linear_operator",
+              [](py::object py_self) {
+                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                const auto dtype =
+                    py::module::import("numpy").attr("complex128");
+                const auto linear_operator =
+                    py::module::import("scipy.sparse.linalg")
+                        .attr("LinearOperator");
+                const auto dim = cxx_self->Dimension();
+                return linear_operator(
+                    py::arg{"shape"} = std::make_tuple(dim, dim),
+                    py::arg{"matvec"} = py::cpp_function(
+                        // TODO: Does this copy data?
+                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                          return cxx_self->Apply(x);
+                        }),
+                    py::arg{"dtype"} = dtype);
+              },
+              R"EOF(
+        Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+        This method requires an indexable Hilbert space.
+          )EOF")
+          .def("__call__", &AbstractOperator::Apply,
+               R"EOF(
+        Applies the operator to a state.
+            )EOF");
 
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
-  AddMatrixWrapper(subm);
 }
 
 }  // namespace netket

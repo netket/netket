@@ -46,6 +46,8 @@ class MetropolisHop : public AbstractSampler {
   int nstates_;
   std::vector<double> localstates_;
 
+  int sweep_size_;
+
  public:
   MetropolisHop(AbstractMachine &psi, int dmax = 1)
       : AbstractSampler(psi), nv_(GetHilbert().Size()) {
@@ -67,6 +69,13 @@ class MetropolisHop : public AbstractSampler {
     GenerateClusters(graph, dmax);
 
     Reset(true);
+
+    // Always use odd sweep size to avoid possible ergodicity problems
+    if (nv_ % 2 == 0) {
+      sweep_size_ = nv_ + 1;
+    } else {
+      sweep_size_ = nv_;
+    }
 
     InfoMessage() << "Metropolis sampler is ready " << std::endl;
     InfoMessage() << "" << dmax
@@ -109,7 +118,7 @@ class MetropolisHop : public AbstractSampler {
     std::uniform_int_distribution<int> distcl(0, clusters_.size() - 1);
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
-    for (int i = 0; i < nv_; i++) {
+    for (int i = 0; i < sweep_size_; i++) {
       int rcl = distcl(this->GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
@@ -141,8 +150,9 @@ class MetropolisHop : public AbstractSampler {
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_);
-      if (std::abs(std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) - 1.) >
-          1.0e-8) {
+      if (std::abs(
+              std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) -
+              1.) > 1.0e-8) {
         std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
                   << GetMachine().LogVal(v_, lt_) << std::endl;
         std::abort();

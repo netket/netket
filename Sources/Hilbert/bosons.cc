@@ -98,8 +98,8 @@ bool Boson::CheckConstraint(Eigen::Ref<const Eigen::VectorXd> v) const {
 }
 
 void Boson::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
-                       const std::vector<int> &tochange,
-                       const std::vector<double> &newconf) const {
+                       nonstd::span<const int> tochange,
+                       nonstd::span<const double> newconf) const {
   assert(v.size() == nsites_);
 
   int i = 0;
