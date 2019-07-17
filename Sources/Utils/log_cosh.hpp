@@ -62,7 +62,7 @@ inline Complex SumLogCosh(
     return detail::SumLogCosh_generic(input);
   }
 #else
-  return detail::SumLogCosh_avx2(input);
+  return detail::SumLogCosh_generic(input);
 #endif
 }
 }  // namespace netket
