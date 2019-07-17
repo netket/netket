@@ -20,15 +20,15 @@ option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-    set(NETKET_CAN_USE_SLEEF FALSE)
-    message(STATUS
-        "Clang ${CMAKE_CXX_COMPILER_VERSION} is very old: disabling "
-        "Sleef. Code using RBMs will be slow!")
-else()
-    set(NETKET_CAN_USE_SLEEF TRUE)
-endif()
-option(NETKET_USE_SLEEF "Use Sleef vector math library" ${NETKET_CAN_USE_SLEEF})
+# if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+#     set(NETKET_CAN_USE_SLEEF FALSE)
+#     message(STATUS
+#         "Clang ${CMAKE_CXX_COMPILER_VERSION} is very old: disabling "
+#         "Sleef. Code using RBMs will be slow!")
+# else()
+#     set(NETKET_CAN_USE_SLEEF TRUE)
+# endif()
+option(NETKET_USE_SLEEF "Use Sleef vector math library" ON)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -303,39 +303,37 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
         AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0
         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0) 
     target_link_libraries(netket_lib INTERFACE gcc_s gcc)
-# NOTE: Disabling this workaround for now, because it doesn't work on Travis VMs.
-# It does work locally so feel free to uncomment it and play around.
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
-#         AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-#     string(REGEX REPLACE "^([0-9]+)\..*$" "\\1" NETKET_CLANG_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
-#     string(REGEX REPLACE "^[0-9]+\.([0-9])+.*$" "\\1" NETKET_CLANG_MINOR "${CMAKE_CXX_COMPILER_VERSION}")
-#     find_program(LLVM_CONFIG_EXECUTABLE
-#         NAMES
-#             llvm-config-${CMAKE_CXX_COMPILER_VERSION}
-#             llvm-config-${NETKET_CLANG_MAJOR}.${NETKET_CLANG_MINOR}
-#             llvm-config-${NETKET_CLANG_MAJOR})
-#
-#     if (NOT LLVM_CONFIG_EXECUTABLE)
-#         message(FATAL_ERROR
-#             "llvm-config: not found. Clang ${CMAKE_CXX_COMPILER_VERSION} has a bug. "
-#             "A workaround for it involves linking against libclang_rt.builtins-x86_64. "
-#             "To find that library, we need llvm-config.")
-#     endif()
-#     execute_process(
-#         COMMAND ${LLVM_CONFIG_EXECUTABLE} --libdir
-#         OUTPUT_VARIABLE NETKET_LLVM_LIBDIR
-#         OUTPUT_STRIP_TRAILING_WHITESPACE
-#     )
-#     find_library(NETKET_CLANG_RT
-#         NAMES clang_rt.builtins-x86_64
-#         HINTS ${NETKET_LLVM_LIBDIR}/clang/${CMAKE_CXX_COMPILER_VERSION}/lib/linux)
-#     if(NOT NETKET_CLANG_RT)
-#         message(FATAL_ERROR
-#             "clang_rt: not found. Compilation will fail because "
-#             "of a known bug in Clang ${CMAKE_CXX_COMPILER_VERSION}")
-#     endif()
-#     message(STATUS "Found clang_rt: ${NETKET_CLANG_RT}")
-#     target_link_libraries(netket_lib INTERFACE ${NETKET_CLANG_RT})
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    string(REGEX REPLACE "^([0-9]+)\..*$" "\\1" NETKET_CLANG_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+    string(REGEX REPLACE "^[0-9]+\.([0-9])+.*$" "\\1" NETKET_CLANG_MINOR "${CMAKE_CXX_COMPILER_VERSION}")
+    find_program(LLVM_CONFIG_EXECUTABLE
+        NAMES
+            llvm-config-${CMAKE_CXX_COMPILER_VERSION}
+            llvm-config-${NETKET_CLANG_MAJOR}.${NETKET_CLANG_MINOR}
+            llvm-config-${NETKET_CLANG_MAJOR})
+
+    if (NOT LLVM_CONFIG_EXECUTABLE)
+        message(FATAL_ERROR
+            "llvm-config: not found. Clang ${CMAKE_CXX_COMPILER_VERSION} has a bug. "
+            "A workaround for it involves linking against libclang_rt.builtins-x86_64. "
+            "To find that library, we need llvm-config.")
+    endif()
+    execute_process(
+        COMMAND ${LLVM_CONFIG_EXECUTABLE} --libdir
+        OUTPUT_VARIABLE NETKET_LLVM_LIBDIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    find_library(NETKET_CLANG_RT
+        NAMES clang_rt.builtins-x86_64
+        HINTS ${NETKET_LLVM_LIBDIR}/clang/${CMAKE_CXX_COMPILER_VERSION}/lib/linux)
+    if(NOT NETKET_CLANG_RT)
+        message(FATAL_ERROR
+            "clang_rt: not found. Compilation will fail because "
+            "of a known bug in Clang ${CMAKE_CXX_COMPILER_VERSION}")
+    endif()
+    message(STATUS "Found clang_rt: ${NETKET_CLANG_RT}")
+    target_link_libraries(netket_lib INTERFACE ${NETKET_CLANG_RT})
 endif()
 
 target_link_libraries(netket PUBLIC netket_lib pybind11)
