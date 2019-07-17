@@ -20,14 +20,51 @@
 #include "common_types.hpp"
 
 namespace netket {
-/// Returns `∑log(cosh(inputᵢ + biasᵢ))`
-Complex SumLogCosh(
+
+namespace detail {
+#ifdef NETKET_USE_SLEEF
+Complex SumLogCosh_avx2(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
+Complex SumLogCosh_avx2(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
+#endif
+Complex SumLogCosh_generic(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
+Complex SumLogCosh_generic(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
+}  // namespace detail
+
+/// Returns `∑log(cosh(inputᵢ + biasᵢ))`
+inline Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
+#ifdef NETKET_USE_SLEEF
+  if (__builtin_cpu_supports("avx2")) {
+    return detail::SumLogCosh_avx2(input, bias);
+  } else {
+    return detail::SumLogCosh_generic(input, bias);
+  }
+#else
+  return detail::SumLogCosh_generic(input, bias);
+#endif
+}
 
 /// Returns `∑log(cosh(inputᵢ))`
-Complex SumLogCosh(
-    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
+inline Complex SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>>
+        input) noexcept {
+#ifdef NETKET_USE_SLEEF
+  if (__builtin_cpu_supports("avx2")) {
+    return detail::SumLogCosh_avx2(input);
+  } else {
+    return detail::SumLogCosh_generic(input);
+  }
+#else
+  return detail::SumLogCosh_avx2(input);
+#endif
+}
 }  // namespace netket
 
 #endif  // SOURCES_UTILS_LOG_COSH_HPP

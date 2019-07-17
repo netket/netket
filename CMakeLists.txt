@@ -275,24 +275,27 @@ set(NETKET_SOURCES
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
+    Sources/Utils/log_cosh.cc
     Sources/Utils/exceptions.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
 )
 
-add_library(log_cosh OBJECT Sources/Utils/log_cosh.cc)
-target_compile_options(log_cosh PRIVATE
-    -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
-set_property(TARGET log_cosh PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_compile_definitions(log_cosh PUBLIC
-    $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
-target_compile_options(log_cosh PUBLIC
-    $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
-target_include_directories(log_cosh PUBLIC
-    $<TARGET_PROPERTY:netket_lib,INTERFACE_INCLUDE_DIRECTORIES>)
-add_dependencies(log_cosh eigen_project)
+add_library(netket MODULE ${NETKET_SOURCES})
+
 if (NETKET_USE_SLEEF)
-    add_dependencies(log_cosh sleef_project)
+    add_library(log_cosh_avx2 OBJECT Sources/Utils/log_cosh_avx2.cc)
+    target_compile_options(log_cosh_avx2 PRIVATE
+        -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
+    set_property(TARGET log_cosh_avx2 PROPERTY POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(log_cosh_avx2 PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(log_cosh_avx2 PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
+    target_include_directories(log_cosh_avx2 PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_INCLUDE_DIRECTORIES>)
+    add_dependencies(log_cosh_avx2 eigen_project sleef_project)
+    target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh_avx2>)
 endif()
 
 # A workaround for missing __cpu_model bug in gcc-5 and Clangs earlier than 6
@@ -335,8 +338,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
 #     target_link_libraries(netket_lib INTERFACE ${NETKET_CLANG_RT})
 endif()
 
-add_library(netket MODULE ${NETKET_SOURCES})
-target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh>)
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
