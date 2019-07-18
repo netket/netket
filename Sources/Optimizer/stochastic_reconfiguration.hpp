@@ -34,6 +34,71 @@ namespace netket {
 
 // Generalized Stochastic Reconfiguration Updates
 class SR {
+ public:
+  using OkRef = Eigen::Ref<const Eigen::MatrixXcd>;
+  using GradRef = Eigen::Ref<const Eigen::VectorXcd>;
+  using OutputRef = Eigen::Ref<Eigen::VectorXcd>;
+
+  explicit SR(double diagshift = 0.01, bool use_iterative = false,
+              bool use_cholesky = true, bool is_holomorphic = true)
+      : sr_diag_shift_(diagshift),
+        use_iterative_(use_iterative),
+        use_cholesky_(use_cholesky),
+        is_holomorphic_(is_holomorphic) {
+    InfoMessage() << GetInfoString();
+  }
+
+  void ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP) {
+    double nsamp = Oks.rows();
+    SumOnNodes(nsamp);
+    // auto npar = grad.size();
+
+    if (is_holomorphic_) {
+      if (use_iterative_) {
+        SolveIterative<VectorXcd>(Oks, grad, deltaP, nsamp);
+      } else {
+        BuildSMatrix<MatrixXcd>(Oks.adjoint() * Oks, Scomplex_, nsamp);
+        SolveLeastSquares<MatrixXcd, VectorXcd>(Scomplex_, grad, deltaP);
+      }
+    } else {
+      if (use_iterative_) {
+        SolveIterative<VectorXd>(Oks, grad.real(), deltaP, nsamp);
+      } else {
+        BuildSMatrix<MatrixXd>((Oks.adjoint() * Oks).real(), Sreal_, nsamp);
+        SolveLeastSquares<MatrixXd, VectorXd>(Sreal_, grad.real(),
+                                              deltaP.real());
+      }
+      deltaP.imag().setZero();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  void SetParameters(double diagshift = 0.01, bool use_iterative = false,
+                     bool use_cholesky = true, bool is_holomorphic = true) {
+    sr_diag_shift_ = diagshift;
+    use_iterative_ = use_iterative;
+    use_cholesky_ = use_cholesky;
+    is_holomorphic_ = is_holomorphic;
+  }
+
+  std::string GetInfoString() {
+    std::stringstream str;
+    str << "Using the Stochastic reconfiguration method for "
+        << (is_holomorphic_ ? "holomorphic" : "real-parameter")
+        << "wavefunctions\n";
+    if (use_iterative_) {
+      str << "With iterative solver";
+    } else {
+      if (use_cholesky_) {
+        str << "Using Cholesky decomposition";
+      } else {
+        str << "Using BDCSVD decomposition";
+      }
+    }
+    return str.str();
+  }
+
+ private:
   double sr_diag_shift_;
   bool use_iterative_;
   bool use_cholesky_;
@@ -42,114 +107,57 @@ class SR {
   Eigen::MatrixXd Sreal_;
   Eigen::MatrixXcd Scomplex_;
 
- public:
-  SR() { setDefaultParameters(); }
+  template <class Mat>
+  void BuildSMatrix(Eigen::Ref<const Mat> S_local, Mat& S_out, double nsamp) {
+    static_assert(std::is_same<Mat, MatrixXd>::value ||
+                      std::is_same<Mat, MatrixXcd>::value,
+                  "S_out must be of type MatrixXd or MatrixXcd");
 
-  void ComputeUpdate(const Eigen::Ref<const Eigen::MatrixXcd> Oks,
-                     const Eigen::Ref<const Eigen::VectorXcd> grad,
-                     Eigen::Ref<Eigen::VectorXcd> deltaP) {
-    double nsamp = Oks.rows();
+    S_out = S_local;
+    SumOnNodes(S_out);
+    S_out /= nsamp;
 
-    SumOnNodes(nsamp);
-    auto npar = grad.size();
-    if (is_holomorphic_) {
-      if (!use_iterative_) {
-        // Explicit construction of the S matrix
-        Scomplex_.resize(npar, npar);
-        Scomplex_ = (Oks.adjoint() * Oks);
-        SumOnNodes(Scomplex_);
-        Scomplex_ /= nsamp;
+    S_out.diagonal().array() += sr_diag_shift_;
+  }
 
-        // Adding diagonal shift
-        Scomplex_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
+  template <class Vec>
+  void SolveIterative(OkRef Oks, Eigen::Ref<const Vec> grad, OutputRef deltaP,
+                      double nsamp) {
+    // Use SrMatrixReal iff Vec is a real vector, else SrMatrixComplex
+    using IsReal = std::is_same<typename Vec::Scalar, double>;
+    using SrMatrixType = typename std::conditional<IsReal::value, SrMatrixReal,
+                                                   SrMatrixComplex>::type;
+    // Make sure this code does not compile by accident if grad is a different
+    // type
+    static_assert(std::is_same<typename Vec::Scalar, double>::value ||
+                      std::is_same<typename Vec::Scalar, Complex>::value,
+                  "grad must be a real or complex vector");
 
-        if (use_cholesky_) {
-          deltaP = Scomplex_.llt().solve(grad);
-        } else {
-          auto bdcSvd = Scomplex_.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
-          deltaP = bdcSvd.solve(grad);
-        }
-      } else {
-        Eigen::ConjugateGradient<SrMatrixComplex, Eigen::Lower | Eigen::Upper,
-                                 Eigen::IdentityPreconditioner>
-            it_solver;
-        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-        // it_solver;
-        it_solver.setTolerance(1.0e-3);
-        SrMatrixComplex S;
-        S.attachMatrix(Oks);
-        S.setShift(sr_diag_shift_);
-        S.setScale(1. / nsamp);
+    SrMatrixType S;
+    S.attachMatrix(Oks);
+    S.setShift(sr_diag_shift_);
+    S.setScale(1. / nsamp);
 
-        it_solver.compute(S);
-        deltaP = it_solver.solve(grad);
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
+    using SolverType =
+        Eigen::ConjugateGradient<SrMatrixType, Eigen::Lower | Eigen::Upper,
+                                 Eigen::IdentityPreconditioner>;
+    SolverType it_solver;
+    it_solver.setTolerance(1.0e-3);
+    deltaP = it_solver.solve(grad);
+  }
+
+  template <class Mat, class Vec, class Out>
+  void SolveLeastSquares(Mat& A, Eigen::Ref<const Vec> b, Out&& deltaP) {
+    if (use_cholesky_) {
+      Eigen::LLT<Mat> llt(A);
+      deltaP = llt.solve(b);
     } else {
-      if (!use_iterative_) {
-        // Explicit construction of the S matrix
-        Sreal_.resize(npar, npar);
-        Sreal_ = (Oks.adjoint() * Oks).real();
-        SumOnNodes(Sreal_);
-        Sreal_ /= nsamp;
-
-        // Adding diagonal shift
-        Sreal_ += Eigen::MatrixXd::Identity(npar, npar) * sr_diag_shift_;
-
-        if (use_cholesky_) {
-          deltaP.real() = Sreal_.llt().solve(grad.real());
-        } else {
-          auto bdcSvd = Sreal_.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
-          deltaP.real() = bdcSvd.solve(grad.real());
-        }
-        deltaP.imag().setZero();
-      } else {
-        Eigen::ConjugateGradient<SrMatrixReal, Eigen::Lower | Eigen::Upper,
-                                 Eigen::IdentityPreconditioner>
-            it_solver;
-        // Eigen::GMRES<MatrixReplacement, Eigen::IdentityPreconditioner>
-        // it_solver;
-        it_solver.setTolerance(1.0e-3);
-        SrMatrixReal S;
-        S.attachMatrix(Oks);
-        S.setShift(sr_diag_shift_);
-        S.setScale(1. / nsamp);
-
-        it_solver.compute(S);
-        deltaP.real() = it_solver.solve(grad.real());
-        deltaP.imag().setZero();
-        MPI_Barrier(MPI_COMM_WORLD);
-      }
+      const constexpr auto options = Eigen::ComputeThinU | Eigen::ComputeThinV;
+      Eigen::BDCSVD<Mat> bdcsvd(A, options);
+      deltaP = bdcsvd.solve(b);
     }
   }
-
-  void setDefaultParameters() {
-    sr_diag_shift_ = 0.01;
-    use_iterative_ = false;
-    use_cholesky_ = true;
-    is_holomorphic_ = true;
-  }
-
-  void setParameters(double diagshift = 0.01, bool use_iterative = false,
-                     bool use_cholesky = true, bool is_holomorphic = true) {
-    sr_diag_shift_ = diagshift;
-    use_iterative_ = use_iterative;
-    use_cholesky_ = use_cholesky;
-    is_holomorphic_ = is_holomorphic;
-
-    InfoMessage() << "Using the Stochastic reconfiguration method\n";
-
-    if (use_iterative_) {
-      InfoMessage() << "With iterative solver" << std::endl;
-    } else {
-      if (use_cholesky_) {
-        InfoMessage() << "Using Cholesky decomposition" << std::endl;
-      } else {
-        InfoMessage() << "Using BDCSVD decomposition" << std::endl;
-      }
-    }
-  }
-};  // namespace netket
+};
 
 }  // namespace netket
 

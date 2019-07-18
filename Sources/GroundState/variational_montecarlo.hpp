@@ -53,8 +53,7 @@ class VariationalMonteCarlo {
   int mynode_;
 
   AbstractOptimizer &opt_;
-  SR sr_;
-  bool dosr_;
+  nonstd::optional<SR> sr_;
 
   std::vector<const AbstractOperator *> obs_;
   std::vector<std::string> obsnames_;
@@ -114,10 +113,10 @@ class VariationalMonteCarlo {
     }
 
     if (method == "Gd") {
-      dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      setSrParameters(diag_shift, use_iterative, use_cholesky);
+      sr_.emplace(diag_shift, use_iterative, use_cholesky,
+                  psi_.IsHolomorphic());
     }
 
     if (target_ != "energy" && target_ != "variance") {
@@ -223,8 +222,8 @@ class VariationalMonteCarlo {
 
     Eigen::VectorXcd deltap(npar_);
 
-    if (dosr_) {
-      sr_.ComputeUpdate(vmc_data_.LogDerivs()->transpose(), grad_, deltap);
+    if (sr_.has_value()) {
+      sr_->ComputeUpdate(vmc_data_.LogDerivs()->transpose(), grad_, deltap);
     } else {
       deltap = grad_;
     }
@@ -239,9 +238,12 @@ class VariationalMonteCarlo {
 
   void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
                        bool use_cholesky = true) {
-    dosr_ = true;
-    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
-                      psi_.IsHolomorphic());
+    if (!sr_.has_value()) {
+      throw InvalidInputError(
+          "Trying to set SR parameters in non-SR VMC driver.");
+    }
+    sr_->SetParameters(diag_shift, use_iterative, use_cholesky,
+                       psi_.IsHolomorphic());
   }
 
   AbstractMachine &GetMachine() { return psi_; }
