@@ -39,7 +39,6 @@ def _ExactTimePropagation_iter(self, dt, n_iter=None):
         yield i
 
 
-@_core.deprecated()
 class EdResult(object):
     def __init__(self, eigenvalues, eigenvectors):
         # NOTE: These conversions are required because our old C++ code stored
@@ -70,11 +69,6 @@ class EdResult(object):
         return numpy.vdot(x, operator(x))
 
 
-@_core.deprecated(
-    "use 'netket.Operator.to_linear_operator' to convert an operator "
-    "to a 'scipy.sparse.linalg.LinearOperator' and then call "
-    "'scipy.sparse.linalg.eigsh' directly"
-)
 def lanczos_ed(
     operator,
     matrix_free=False,
@@ -132,14 +126,9 @@ def lanczos_ed(
     return EdResult(result, None)
 
 
-@_core.deprecated(
-    "use 'netket.Operator.to_linear_operator' to convert an operator "
-    "to a 'scipy.sparse.linalg.LinearOperator' and then call "
-    "'scipy.sparse.linalg.eigsh' directly"
-)
 def full_ed(operator, first_n=1, compute_eigenvectors=False):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
-    of a Hermitian operator using the Lanczos method.
+    of a Hermitian operator by full diagonalization.
 
     Args:
         operator: Operator to diagnolize.
@@ -164,12 +153,19 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
         3
         ```
     """
-    return lanczos_ed(
-        operator,
-        matrix_free=False,
-        first_n=first_n,
-        compute_eigenvectors=compute_eigenvectors,
+    from scipy.linalg import eigh
+
+    dense_op = operator.to_dense()
+    result = eigh(
+        dense_op,
+        overwrite_a=True,
+        eigvals=(0, first_n - 1),
+        eigvals_only=not compute_eigenvectors,
     )
+    if compute_eigenvectors:
+        return EdResult(*result)
+    else:
+        return EdResult(result, None)
 
 
 ExactTimePropagation.iter = _ExactTimePropagation_iter
