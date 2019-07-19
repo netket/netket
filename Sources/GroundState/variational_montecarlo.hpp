@@ -256,6 +256,8 @@ class VariationalMonteCarlo {
     return observable_stats_;
   }
 
+  nonstd::optional<SR> &GetSR() { return sr_; }
+
   const vmc::Result &GetVmcData() const noexcept { return vmc_data_; }
 };
 

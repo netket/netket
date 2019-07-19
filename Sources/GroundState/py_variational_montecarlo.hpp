@@ -168,7 +168,57 @@ void AddVariationalMonteCarloModule(py::module &m) {
         Calculate and return the value of the operators stored as observables.
 
         )EOF")
-      .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData);
+      .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData)
+      .def_property(
+          "store_rank",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->StoreRankEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto& sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetStoreRank(enabled);
+          })
+      .def_property_readonly(
+          "last_rank",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<Index> {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->LastRank();
+          })
+      .def_property(
+          "store_S_matrix",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->StoreFullSMatrixEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto& sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetStoreFullSMatrix(enabled);
+          })
+      .def_property_readonly(
+          "last_S_matrix",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<MatrixXcd> {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->LastSMatrix();
+          });
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 

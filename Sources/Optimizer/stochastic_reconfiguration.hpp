@@ -132,6 +132,34 @@ class SR {
     return str.str();
   }
 
+  bool StoreRankEnabled() const { return store_rank_; }
+  void SetStoreRank(bool enabled) {
+    CheckSolverCompatibility(use_iterative_, solver_, enabled);
+    store_rank_ = enabled;
+    if (!enabled) {
+      last_rank_ = nonstd::nullopt;
+    }
+  }
+  /**
+   * Returns the rank of the S matrix computed during the last call to
+   * `ComputeUpdate` or `nullopt`, in case storing the rank is not enabled
+   * and before the first call to `ComputeUpdate`.
+   */
+  nonstd::optional<Index> LastRank() { return last_rank_; }
+
+  bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
+  void SetStoreFullSMatrix(bool enabled) {
+    if (use_iterative_ && enabled) {
+      throw std::logic_error{
+          "Cannot store full S matrix with `use_iterative = true`."};
+    }
+    store_full_S_matrix_ = enabled;
+    if (!enabled) {
+      last_S_ = nonstd::nullopt;
+    }
+  }
+  nonstd::optional<MatrixXcd> LastSMatrix() const { return last_S_; }
+
  private:
   LSQSolver solver_;
   double sr_diag_shift_;
@@ -140,6 +168,12 @@ class SR {
 
   Eigen::MatrixXd Sreal_;
   Eigen::MatrixXcd Scomplex_;
+
+  bool store_rank_ = false;
+  bool store_full_S_matrix_ = false;
+
+  nonstd::optional<Index> last_rank_;
+  nonstd::optional<MatrixXcd> last_S_;
 
   template <class Mat>
   void BuildSMatrix(Eigen::Ref<const Mat> S_local, Mat& S_out, double nsamp) {
@@ -182,19 +216,46 @@ class SR {
 
   template <class Mat, class Vec, class Out>
   void SolveLeastSquares(Mat& A, Eigen::Ref<const Vec> b, Out&& deltaP) {
+    if (store_full_S_matrix_) {
+      last_S_.emplace(A);
+    }
+
     if (solver_ == LLT) {
       Eigen::LLT<Mat> llt(A);
       deltaP = llt.solve(b);
     } else if (solver_ == ColPivHouseholder) {
       Eigen::ColPivHouseholderQR<Mat> qr(A);
       deltaP = qr.solve(A);
+      if (store_rank_) {
+        last_rank_ = qr.rank();
+      }
     } else if (solver_ == BDCSVD) {
       const constexpr auto options = Eigen::ComputeThinU | Eigen::ComputeThinV;
       Eigen::BDCSVD<Mat> bdcsvd(A, options);
       deltaP = bdcsvd.solve(b);
+      if (store_rank_) {
+        last_rank_ = bdcsvd.rank();
+      }
     } else {
       throw std::runtime_error{
           "Unknown LSQSolver enum value in SR. This should never happen."};
+    }
+  }
+
+  static void CheckSolverCompatibility(bool use_iterative, LSQSolver solver,
+                                       bool rank_enabled) {
+    if (!rank_enabled) {
+      return;
+    }
+    if (use_iterative) {
+      throw std::logic_error{
+          "SR cannot store matrix rank with interactive solver."};
+    }
+    if (solver == LLT) {
+      std::stringstream str;
+      str << "SR cannot store matrix rank: Solver " << SolverAsString(solver)
+          << " is not rank-revealing.";
+      throw std::logic_error{str.str()};
     }
   }
 };
