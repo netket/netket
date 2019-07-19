@@ -5,19 +5,19 @@ Variational Monte Carlo schemes to learn the ground state using stochastic recon
 Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
 sampler, optimizer, and the number of samples.
 
-|        Argument         |          Type           |                                                                                    Description                                                                                     |
-|-------------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|hamiltonian              |netket::AbstractOperator |The hamiltonian of the system.                                                                                                                                                      |
-|sampler                  |netket::AbstractSampler  |The sampler object to generate local exchanges.                                                                                                                                     |
-|optimizer                |netket::AbstractOptimizer|The optimizer object that determines how the VMC wavefunction is optimized.                                                                                                         |
-|n_samples                |int                      |Number of Markov Chain Monte Carlo sweeps to be performed at each step of the optimization.                                                                                         |
-|discarded_samples        |int=-1                   |Number of sweeps to be discarded at the beginning of the sampling, at each step of the optimization. Default is -1.                                                                 |
-|discarded_samples_on_init|int=0                    |Number of sweeps to be discarded in the first step of optimization, at the beginning of the sampling. The default is 0.                                                             |
-|target                   |str='energy'             |The chosen target to minimize. Possible choices are `energy`, and `variance`.                                                                                                       |
-|method                   |str='Sr'                 |The chosen method to learn the parameters of the wave-function. Possible choices are `Gd` (Regular Gradient descent), and `Sr` (Stochastic reconfiguration a.k.a. natural gradient).|
-|diag_shift               |float=0.01               |The regularization parameter in stochastic reconfiguration. The default is 0.01.                                                                                                    |
-|use_iterative            |bool=False               |Whether to use the iterative solver in the Sr method (this is extremely useful when the number of parameters to optimize is very large). The default is false.                      |
-|use_cholesky             |bool=True                |Whether to use cholesky decomposition. The default is true.                                                                                                                         |
+|        Argument         |          Type           |                                                                                                                                                                                                                         Description                                                                                                                                                                                                                          |
+|-------------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|hamiltonian              |netket::AbstractOperator |The hamiltonian of the system.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+|sampler                  |netket::AbstractSampler  |The sampler object to generate local exchanges.                                                                                                                                                                                                                                                                                                                                                                                                               |
+|optimizer                |netket::AbstractOptimizer|The optimizer object that determines how the VMC wavefunction is optimized.                                                                                                                                                                                                                                                                                                                                                                                   |
+|n_samples                |int                      |Number of Markov Chain Monte Carlo sweeps to be performed at each step of the optimization.                                                                                                                                                                                                                                                                                                                                                                   |
+|discarded_samples        |int = -1                 |Number of sweeps to be discarded at the beginning of the sampling, at each step of the optimization. Default is -1.                                                                                                                                                                                                                                                                                                                                           |
+|discarded_samples_on_init|int = 0                  |Number of sweeps to be discarded in the first step of optimization, at the beginning of the sampling. The default is 0.                                                                                                                                                                                                                                                                                                                                       |
+|target                   |str = 'energy'           |The chosen target to minimize. Possible choices are `energy`, and `variance`.                                                                                                                                                                                                                                                                                                                                                                                 |
+|method                   |str = 'Sr'               |The chosen method to learn the parameters of the wave-function. Possible choices are `Gd` (Regular Gradient descent), and `Sr` (Stochastic reconfiguration a.k.a. natural gradient).                                                                                                                                                                                                                                                                          |
+|diag_shift               |float = 0.01             |The regularization parameter in stochastic reconfiguration. The default is 0.01.                                                                                                                                                                                                                                                                                                                                                                              |
+|use_iterative            |bool = False             |Whether to use the iterative solver in the Sr method (this is extremely useful when the number of parameters to optimize is very large). The default is false.                                                                                                                                                                                                                                                                                                |
+|sr_lsq_solver            |str = 'BDCSVD'           |The solver used to solve the least-squares equation in the SR update. Only used if `method == "SR" and not use_iterative`. Available options are "BDCSVD", "ColPivHouseholder", "LDLT", and "LLT". See the [Eigen documentation](https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html) for a description of the available solvers. Also note that LLT and LDLT only work for positive definite or positive semidefinite S matrices, respectively.|
 
 ### Examples
 Optimizing a 1D wavefunction with Variational Mante Carlo.
@@ -58,9 +58,9 @@ Perform one or several iteration steps of the VMC calculation. In each step,
 energy and gradient will be estimated via VMC and subsequently, the variational
 parameters will be updated according to the configured method.
 
-|Argument|Type |          Description          |
-|--------|-----|-------------------------------|
-|steps   |int=1|Number of VMC steps to perform.|
+|Argument| Type  |          Description          |
+|--------|-------|-------------------------------|
+|steps   |int = 1|Number of VMC steps to perform.|
 
 ### get_observable_stats
 Calculate and return the value of the operators stored as observables.
@@ -82,12 +82,12 @@ after every step_size steps up to n_iter.
 ### run
 Optimize the Vmc wavefunction.
 
-|    Argument     |       Type       |                         Description                         |
-|-----------------|------------------|-------------------------------------------------------------|
-|output_prefix    |str               |The output file name, without extension.                     |
-|n_iter           |Optional[int]=None|The maximum number of iterations.                            |
-|step_size        |int=1             |Number of iterations performed at a time. Default is 1.      |
-|save_params_every|int=50            |Frequency to dump wavefunction parameters. The default is 50.|
+|    Argument     |        Type        |                         Description                         |
+|-----------------|--------------------|-------------------------------------------------------------|
+|output_prefix    |str                 |The output file name, without extension.                     |
+|n_iter           |Optional[int] = None|The maximum number of iterations.                            |
+|step_size        |int = 1             |Number of iterations performed at a time. Default is 1.      |
+|save_params_every|int = 50            |Frequency to dump wavefunction parameters. The default is 50.|
 
 ### Examples
 Running a simple Vmc calculation.
@@ -116,7 +116,11 @@ Running a simple Vmc calculation.
 
 ## Properties
 
-|Property|         Type         |                 Description                  |
-|--------|----------------------|----------------------------------------------|
-|machine |netket.machine.Machine| The machine used to express the wavefunction.|
-|vmc_data|                      |                                              |
+|   Property   |         Type         |                 Description                  |
+|--------------|----------------------|----------------------------------------------|
+|last_S_matrix |                      |                                              |
+|last_rank     |                      |                                              |
+|machine       |netket.machine.Machine| The machine used to express the wavefunction.|
+|store_S_matrix|                      |                                              |
+|store_rank    |                      |                                              |
+|vmc_data      |                      |                                              |

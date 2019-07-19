@@ -75,7 +75,11 @@ void AddVariationalMonteCarloModule(py::module &m) {
                    parameters to optimize is very large). The default is false.
                sr_lsq_solver: The solver used to solve the least-squares equation
                    in the SR update. Only used if `method == "SR" and not use_iterative`.
-                   Available options are "BDCSVD", "ColPivHouseholder", and "LLT".
+                   Available options are "BDCSVD", "ColPivHouseholder", "LDLT", and "LLT".
+                   See the [Eigen documentation](https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html)
+                   for a description of the available solvers.
+                   Also note that LLT and LDLT only work for positive definite
+                   or positive semidefinite S matrices, respectively.
 
            Example:
                Optimizing a 1D wavefunction with Variational Mante Carlo.

@@ -19,11 +19,11 @@ Simple Stochastic Gradient Descent Optimizer.
 ## Class Constructor
 Constructs a new ``Sgd`` optimizer.
 
-|  Argument   |  Type   |              Description              |
-|-------------|---------|---------------------------------------|
-|learning_rate|float    |The learning rate $$ \eta $$           |
-|l2_reg       |float=0  |The amount of $$ L_2 $$ regularization.|
-|decay_factor |float=1.0|The decay factor $$ \gamma $$.         |
+|  Argument   |   Type    |              Description              |
+|-------------|-----------|---------------------------------------|
+|learning_rate|float      |The learning rate $$ \eta $$           |
+|l2_reg       |float = 0  |The amount of $$ L_2 $$ regularization.|
+|decay_factor |float = 1.0|The decay factor $$ \gamma $$.         |
 
 ### Examples
 Simple SGD optimizer.
