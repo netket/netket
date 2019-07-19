@@ -190,8 +190,6 @@ endif()
 
 if(NETKET_USE_LAPACK)
     find_package(LAPACK REQUIRED)
-
-    include(cmake/FindLAPACKE.cmake)
     find_package(LAPACKE)
 
     if(LAPACKE_FOUND)
