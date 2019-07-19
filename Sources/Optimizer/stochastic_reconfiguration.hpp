@@ -42,11 +42,13 @@ class SR {
   using GradRef = Eigen::Ref<const Eigen::VectorXcd>;
   using OutputRef = Eigen::Ref<Eigen::VectorXcd>;
 
-  enum LSQSolver { LLT = 0, ColPivHouseholder = 1, BDCSVD = 2 };
+  enum LSQSolver { LLT = 0, LDLT = 1, ColPivHouseholder = 2, BDCSVD = 3 };
 
   static nonstd::optional<LSQSolver> SolverFromString(const std::string& name) {
     if (name == "LLT") {
       return LLT;
+    } else if (name == "LDLT") {
+      return LDLT;
     } else if (name == "ColPivHouseholder") {
       return ColPivHouseholder;
     } else if (name == "BDCSVD") {
@@ -57,7 +59,7 @@ class SR {
   }
 
   static const char* SolverAsString(LSQSolver solver) {
-    static const char* solvers[] = {"LLT", "ColPivHouseholder", "BCDSVD"};
+    static const char* solvers[] = {"LLT", "LDLT", "ColPivHouseholder", "BCDSVD"};
     return solvers[solver];
   }
 
@@ -223,6 +225,9 @@ class SR {
     if (solver_ == LLT) {
       Eigen::LLT<Mat> llt(A);
       deltaP = llt.solve(b);
+    } else if (solver_ == LDLT) {
+      Eigen::LDLT<Mat> ldlt(A);
+      deltaP = ldlt.solve(b);
     } else if (solver_ == ColPivHouseholder) {
       Eigen::ColPivHouseholderQR<Mat> qr(A);
       deltaP = qr.solve(A);
@@ -251,7 +256,7 @@ class SR {
       throw std::logic_error{
           "SR cannot store matrix rank with interactive solver."};
     }
-    if (solver == LLT) {
+    if (solver == LLT || solver == LDLT) {
       std::stringstream str;
       str << "SR cannot store matrix rank: Solver " << SolverAsString(solver)
           << " is not rank-revealing.";
