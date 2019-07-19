@@ -39,11 +39,40 @@ class SR {
   using GradRef = Eigen::Ref<const Eigen::VectorXcd>;
   using OutputRef = Eigen::Ref<Eigen::VectorXcd>;
 
-  explicit SR(double diagshift = 0.01, bool use_iterative = false,
-              bool use_cholesky = true, bool is_holomorphic = true)
-      : sr_diag_shift_(diagshift),
+  enum LSQSolver { LLT = 0, ColPivHouseholder = 1, BDCSVD = 2 };
+
+  static nonstd::optional<LSQSolver> SolverFromString(const std::string& name) {
+    if (name == "LLT") {
+      return LLT;
+    } else if (name == "ColPivHouseholder") {
+      return ColPivHouseholder;
+    } else if (name == "BDCSVD") {
+      return BDCSVD;
+    } else {
+      return nonstd::nullopt;
+    }
+  }
+
+  static const char* SolverAsString(LSQSolver solver) {
+    static const char* solvers[] = {"LLT", "ColPivHouseholder", "BCDSVD"};
+    return solvers[solver];
+  }
+
+  explicit SR(LSQSolver solver, double diagshift = 0.01,
+              bool use_iterative = false, bool is_holomorphic = true)
+      : solver_(solver),
+        sr_diag_shift_(diagshift),
         use_iterative_(use_iterative),
-        use_cholesky_(use_cholesky),
+        is_holomorphic_(is_holomorphic) {
+    InfoMessage() << GetInfoString();
+  }
+
+  explicit SR(double diagshift = 0.01,
+              bool use_iterative = false, bool use_cholesky = true,
+              bool is_holomorphic = true) __attribute__((deprecated))
+      : solver_(use_cholesky ? LLT : ColPivHouseholder),
+        sr_diag_shift_(diagshift),
+        use_iterative_(use_iterative),
         is_holomorphic_(is_holomorphic) {
     InfoMessage() << GetInfoString();
   }
@@ -73,11 +102,21 @@ class SR {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void SetParameters(double diagshift = 0.01, bool use_iterative = false,
-                     bool use_cholesky = true, bool is_holomorphic = true) {
+  void SetParameters(LSQSolver solver, double diagshift = 0.01,
+                     bool use_iterative = false, bool is_holomorphic = true) {
+    solver_ = solver;
     sr_diag_shift_ = diagshift;
     use_iterative_ = use_iterative;
-    use_cholesky_ = use_cholesky;
+    is_holomorphic_ = is_holomorphic;
+  }
+
+  void SetParameters(double diagshift = 0.01,
+                     bool use_iterative = false,
+                     bool use_cholesky = true,
+                     bool is_holomorphic = true) __attribute__((deprecated)) {
+    solver_ = use_cholesky ? LLT : ColPivHouseholder;
+    sr_diag_shift_ = diagshift;
+    use_iterative_ = use_iterative;
     is_holomorphic_ = is_holomorphic;
   }
 
@@ -89,19 +128,16 @@ class SR {
     if (use_iterative_) {
       str << "With iterative solver";
     } else {
-      if (use_cholesky_) {
-        str << "Using Cholesky decomposition";
-      } else {
-        str << "Using BDCSVD decomposition";
-      }
+      str << "Using " << SolverAsString(solver_) << " solver";
     }
+    str << "\n";
     return str.str();
   }
 
  private:
+  LSQSolver solver_;
   double sr_diag_shift_;
   bool use_iterative_;
-  bool use_cholesky_;
   bool is_holomorphic_;
 
   Eigen::MatrixXd Sreal_;
@@ -148,13 +184,19 @@ class SR {
 
   template <class Mat, class Vec, class Out>
   void SolveLeastSquares(Mat& A, Eigen::Ref<const Vec> b, Out&& deltaP) {
-    if (use_cholesky_) {
+    if (solver_ == LLT) {
       Eigen::LLT<Mat> llt(A);
       deltaP = llt.solve(b);
-    } else {
+    } else if (solver_ == ColPivHouseholder) {
+      Eigen::ColPivHouseholderQR<Mat> qr(A);
+      deltaP = qr.solve(A);
+    } else if (solver_ == BDCSVD) {
       const constexpr auto options = Eigen::ComputeThinU | Eigen::ComputeThinV;
       Eigen::BDCSVD<Mat> bdcsvd(A, options);
       deltaP = bdcsvd.solve(b);
+    } else {
+      throw std::runtime_error{
+          "Unknown LSQSolver enum value in SR. This should never happen."};
     }
   }
 };
