@@ -35,7 +35,9 @@
 
 namespace netket {
 
-// Generalized Stochastic Reconfiguration Updates
+/**
+ * Stochastic reconfiguration solver.
+ */
 class SR {
  public:
   using OkRef = Eigen::Ref<const Eigen::MatrixXcd>;
@@ -44,24 +46,8 @@ class SR {
 
   enum LSQSolver { LLT = 0, LDLT = 1, ColPivHouseholder = 2, BDCSVD = 3 };
 
-  static nonstd::optional<LSQSolver> SolverFromString(const std::string& name) {
-    if (name == "LLT") {
-      return LLT;
-    } else if (name == "LDLT") {
-      return LDLT;
-    } else if (name == "ColPivHouseholder") {
-      return ColPivHouseholder;
-    } else if (name == "BDCSVD") {
-      return BDCSVD;
-    } else {
-      return nonstd::nullopt;
-    }
-  }
-
-  static const char* SolverAsString(LSQSolver solver) {
-    static const char* solvers[] = {"LLT", "LDLT", "ColPivHouseholder", "BCDSVD"};
-    return solvers[solver];
-  }
+  static nonstd::optional<LSQSolver> SolverFromString(const std::string& name);
+  static const char* SolverAsString(LSQSolver solver);
 
   explicit SR(LSQSolver solver, double diagshift = 0.01,
               bool use_iterative = false, bool is_holomorphic = true)
@@ -78,89 +64,55 @@ class SR {
       : SR(use_cholesky ? LLT : ColPivHouseholder, diagshift, use_iterative,
            is_holomorphic) {}
 
-  void ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP) {
-    double nsamp = Oks.rows();
-    SumOnNodes(nsamp);
-    // auto npar = grad.size();
-
-    if (is_holomorphic_) {
-      if (use_iterative_) {
-        SolveIterative<VectorXcd>(Oks, grad, deltaP, nsamp);
-      } else {
-        BuildSMatrix<MatrixXcd>(Oks.adjoint() * Oks, Scomplex_, nsamp);
-        SolveLeastSquares<MatrixXcd, VectorXcd>(Scomplex_, grad, deltaP);
-      }
-    } else {
-      if (use_iterative_) {
-        SolveIterative<VectorXd>(Oks, grad.real(), deltaP, nsamp);
-      } else {
-        BuildSMatrix<MatrixXd>((Oks.adjoint() * Oks).real(), Sreal_, nsamp);
-        SolveLeastSquares<MatrixXd, VectorXd>(Sreal_, grad.real(),
-                                              deltaP.real());
-      }
-      deltaP.imag().setZero();
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
+  /**
+   * Solves the SR flow equation for the parameter update ẋ.
+   *
+   * The SR update is computed by solving the linear euqation
+   *    Sẋ = f
+   * where S is the covariance matrix of the partial derivatives
+   * O_i(v_j) = ∂/∂x_i log Ψ(v_j) and f is a generalized force (the loss
+   * gradient).
+   *
+   * @param Oks The matrix 𝕆 of centered log-derivatives,
+   *    𝕆_ij = O_i(v_j) - ⟨O_i⟩.
+   * @param grad The loss gradient f.
+   * @param deltaP Output parameter for the update ẋ.
+   */
+  void ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP);
 
   void SetParameters(LSQSolver solver, double diagshift = 0.01,
-                     bool use_iterative = false, bool is_holomorphic = true) {
-    CheckSolverCompatibility(use_iterative, solver, store_rank_);
-
-    solver_ = solver;
-    sr_diag_shift_ = diagshift;
-    use_iterative_ = use_iterative;
-    is_holomorphic_ = is_holomorphic;
-  }
-
+                     bool use_iterative = false, bool is_holomorphic = true);
   void SetParameters(double diagshift = 0.01, bool use_iterative = false,
                      bool use_cholesky = true, bool is_holomorphic = true)
-      __attribute__((deprecated)) {
-    SetParameters(use_cholesky ? LLT : ColPivHouseholder, diagshift,
-                  use_iterative, is_holomorphic);
-  }
+      __attribute__((deprecated));
 
-  std::string GetInfoString() {
-    std::stringstream str;
-    str << "Using the Stochastic reconfiguration method for "
-        << (is_holomorphic_ ? "holomorphic" : "real-parameter")
-        << " wavefunctions\n";
-    if (use_iterative_) {
-      str << "With iterative solver";
-    } else {
-      str << "Using " << SolverAsString(solver_) << " solver";
-    }
-    str << "\n";
-    return str.str();
-  }
+  /**
+   * Returns a string describing the current parameters of the SR class.
+   */
+  std::string GetInfoString();
 
-  bool StoreRankEnabled() const { return store_rank_; }
-  void SetStoreRank(bool enabled) {
-    CheckSolverCompatibility(use_iterative_, solver_, enabled);
-    store_rank_ = enabled;
-    if (!enabled) {
-      last_rank_ = nonstd::nullopt;
-    }
-  }
   /**
    * Returns the rank of the S matrix computed during the last call to
    * `ComputeUpdate` or `nullopt`, in case storing the rank is not enabled
    * and before the first call to `ComputeUpdate`.
+   *
+   * Storing the rank is enabled and disabled by `SetStoreRank` below.
    */
   nonstd::optional<Index> LastRank() { return last_rank_; }
+  bool StoreRankEnabled() const { return store_rank_; }
+  void SetStoreRank(bool enabled);
 
-  bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
-  void SetStoreFullSMatrix(bool enabled) {
-    if (use_iterative_ && enabled) {
-      throw std::logic_error{
-          "Cannot store full S matrix with `use_iterative = true`."};
-    }
-    store_full_S_matrix_ = enabled;
-    if (!enabled) {
-      last_S_ = nonstd::nullopt;
-    }
-  }
+  /**
+   * Returns the full S matrix computed during the last call to
+   * `ComputeUpdate` or `nullopt`, in case storing the S matgrix is not enabled
+   * and before the first call to `ComputeUpdate`.
+   *
+   * Storing the S matrix is enabled and disabled by `SetStoreFullSMatrix`
+   * below.
+   */
   nonstd::optional<MatrixXcd> LastSMatrix() const { return last_S_; }
+  bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
+  void SetStoreFullSMatrix(bool enabled);
 
  private:
   LSQSolver solver_;

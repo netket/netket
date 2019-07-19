@@ -229,6 +229,7 @@ set(NETKET_SOURCES
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
+    Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/json_utils.cc
