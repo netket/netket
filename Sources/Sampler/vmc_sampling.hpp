@@ -178,27 +178,6 @@ VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
                              const AbstractOperator &op);
 }  // namespace vmc
 
-struct StepsRange {
-  StepsRange(std::tuple<Index, Index, Index> const &steps)
-      : start_{std::get<0>(steps)},
-        end_{std::get<1>(steps)},
-        step_{std::get<2>(steps)} {
-    CheckValid();
-  }
-
-  Index start() const noexcept { return start_; }
-  Index end() const noexcept { return end_; }
-  Index step() const noexcept { return step_; }
-  Index size() const noexcept { return (end_ - start_ - 1) / step_ + 1; }
-
- private:
-  void CheckValid() const;
-
-  Index start_;
-  Index end_;
-  Index step_;
-};
-
 /**
  * @overload
  *
@@ -208,7 +187,7 @@ struct StepsRange {
  */
 std::tuple<RowMatrix<double>, Eigen::VectorXcd,
            nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(MetropolisLocalV2 &sampler, StepsRange const &steps,
+ComputeSamples(MetropolisLocalV2 &sampler, Index n_samples, Index n_discard,
                bool compute_gradients);
 
 /**

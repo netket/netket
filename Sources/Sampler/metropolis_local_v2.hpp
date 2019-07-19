@@ -45,7 +45,7 @@ class Flipper {
                  std::vector<double> local_states);
 
   Index BatchSize() const noexcept { return state_.rows(); }
-  Index SystemSize() const noexcept { return state_.cols(); }
+  Index Nvisible() const noexcept { return state_.cols(); }
   default_random_engine& Generator() noexcept { return engine_.Get(); }
 
   /// \brief Resets the flipper.
@@ -58,19 +58,23 @@ class Flipper {
   /// \param accept has length #BatchSize() and describes which flips were
   /// accepted and which weren't (`accept[i]==true` means that the `i`th flip
   /// was accepted).
-  inline void Next(nonstd::span<const bool> accept);
+  inline void Update(nonstd::span<const bool> accept);
 
-  /// \brief Returns the current state.
+  /// \brief Returns the current visible state.
   ///
   /// Each row of the matrix describes one visible configuration. There are
   /// #BatchSize() rows in the returned matrix.
-  const RowMatrix<double>& Current() const noexcept;
+  inline const RowMatrix<double>& Visible() const noexcept;
 
   /// \brief Returns next spins to try flipping.
-  inline nonstd::span<ConfDiff const> Read() const noexcept;
+  ///
+  /// \warning Don't call this function more than once per call to #Update()!
+  inline nonstd::span<ConfDiff const> Propose();
 
   /// \brief Similar to #Read() except that the result is written into \p x.
-  inline void Read(Eigen::Ref<RowMatrix<double>> x) const noexcept;
+  ///
+  /// \warning Don't call this function more than once per call to #Update()!
+  inline void Propose(Eigen::Ref<RowMatrix<double>> x);
 
  private:
   /// \brief Randomizes the state.
@@ -87,15 +91,15 @@ class Flipper {
   ///
   /// New values are chosen uniformly from all possible quantum numbers except
   /// the current one (to minimize staying in the same configuration).
-  inline void RandomValues();
+  inline void RandomNewValues();
 
   /// \brief A vector of size `BatchSize()` which indices of sites at which we
   /// suggest changing quantum numbers
   Vector<Index> sites_;
   /// \brief A vector of size `BatchSize()` which contains new (proposed)
   /// quantum numbers.
-  Vector<double> values_;
-  /// \brief A matrix of size `BatchSize() x SystemSize()` with the
+  Vector<double> new_values_;
+  /// \brief A matrix of size `BatchSize() x Nvisible()` with the
   /// current state of #BatchSize() different Markov chains.
   RowMatrix<double> state_;
   /// \brief Allowed values for quantum numbers
@@ -107,31 +111,38 @@ class Flipper {
 }  // namespace detail
 
 class MetropolisLocalV2 {
-  RbmSpinV2& machine_;
+  AbstractMachine& machine_;
   detail::Flipper flipper_;
   RowMatrix<double> proposed_X_;
   Eigen::ArrayXcd proposed_Y_;
   Eigen::ArrayXcd current_Y_;
   Eigen::ArrayXd randoms_;
   Eigen::Array<bool, Eigen::Dynamic, 1> accept_;
+  Index sweep_size_;
 
-  inline MetropolisLocalV2(RbmSpinV2& machine, Index batch_size,
-                           std::true_type);
+  inline MetropolisLocalV2(AbstractMachine& machine, Index batch_size,
+                           Index sweep_size, std::true_type);
+
+  /// Makes a step.
+  void Next();
 
  public:
-  MetropolisLocalV2(RbmSpinV2& machine, Index batch_size);
+  MetropolisLocalV2(AbstractMachine& machine, Index batch_size,
+                    Index sweep_size);
 
   Index BatchSize() const noexcept { return flipper_.BatchSize(); }
-  Index SystemSize() const noexcept { return flipper_.SystemSize(); }
-  RbmSpinV2& Machine() const noexcept { return machine_; }
+  Index Nvisible() const noexcept { return flipper_.Nvisible(); }
+  AbstractMachine& Machine() const noexcept { return machine_; }
+
+  Index SweepSize() const noexcept { return sweep_size_; }
+  void SweepSize(Index sweep_size);
 
   /// Returns a batch of current visible states and corresponding log values.
   std::pair<Eigen::Ref<const RowMatrix<double>>,
             Eigen::Ref<const Eigen::VectorXcd>>
-  Read();
+  CurrentState();
 
-  /// Makes a step.
-  void Next();
+  void Sweep();
 
   /// Resets the sampler.
   void Reset();

@@ -354,27 +354,25 @@ void AddVariationalMonteCarloModule(py::module &m) {
                op: Hermitian operator.
             )EOF");
 
-  m.def(
+  m_vmc.def(
       "compute_samples_v2",
-      [](MetropolisLocalV2 &sampler, std::tuple<Index, Index, Index> steps,
+      [](MetropolisLocalV2 &sampler, Index n_samples, Index n_discard,
          bool compute_gradients) {
-        return ComputeSamples(sampler, {steps}, compute_gradients);
+        return ComputeSamples(sampler, n_samples, n_discard, compute_gradients);
       },
-      py::arg{"sampler"}, py::arg{"steps"}, py::arg{"compute_logderivs"},
+      py::arg{"sampler"}, py::arg{"nsamples"}, py::arg{"ndiscard"},
+      py::arg{"compute_logderivs"},
       R"EOF(
       Same as `compute_samples` except that it uses batches to run multiple
       Markov Chains in parallel.
 
       Args:
           sampler: an instance of `MetropolisLocalV2`.
-          steps: a tuple `(start, stop, step)`. `start`, `stop`, and `step` have
-          the same meaning as in `builtin.range`. This allows the one to specify
-          the sweep size. Typical usage would be `(T, T + N * n // B, n)` where
-          `T` is number of samples to discard (thermalization time), `n` is the
-          size of the system, `N` is the number of samples to record, and `B` is
-          the batch size of the sampler.
+          nsamples: number of samples to record (returned number of samples
+              may differ from this value).
+          ndiscard: number of sweeps to discard.
           compute_logderivs: Whether to calculate gradients of the logarithm of
-          the wave function.
+              the wave function.
 
       Returns:
           A tuple `(samples, values, gradients)` if `compute_logderivs == True`
@@ -383,10 +381,10 @@ void AddVariationalMonteCarloModule(py::module &m) {
           corresponding values of the logarithm of the wavefunction.
       )EOF");
 
-  m.def("local_values_v2", &LocalValuesV2, py::arg{"samples"},
-        py::arg{"values"}, py::arg{"machine"}, py::arg{"op"},
-        py::arg{"batch_size"},
-        R"EOF(
+  m_vmc.def("local_values_v2", &LocalValuesV2, py::arg{"samples"},
+            py::arg{"values"}, py::arg{"machine"}, py::arg{"op"},
+            py::arg{"batch_size"},
+            R"EOF(
            Computes the local values of the operator `op` for all `samples`.
 
            Args:

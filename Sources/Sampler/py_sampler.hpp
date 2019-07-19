@@ -49,8 +49,13 @@ namespace netket {
 
 void AddMetropolisLocalV2(py::module m) {
   py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
-      .def(py::init<RbmSpinV2 &, Index>(), py::keep_alive<1, 2>{},
-           py::arg{"machine"}, py::arg{"batch_size"} = 128,
+      .def(py::init([](AbstractMachine& machine, Index batch_size,
+                       nonstd::optional<Index> sweep_size) {
+             return make_unique<MetropolisLocalV2>(
+                 machine, batch_size, sweep_size.value_or(machine.Nvisible()));
+           }),
+           py::keep_alive<1, 2>{}, py::arg{"machine"},
+           py::arg{"batch_size"} = 16, py::arg{"sweep_size"} = py::none(),
            R"EOF(See `MetropolisLocal` for information about the algorithm.
 
                  `MetropolisLocalV2` differs from `MetropolisLocal` in that it
@@ -61,7 +66,7 @@ void AddMetropolisLocalV2(py::module m) {
            )EOF");
 }
 
-void AddSamplerModule(py::module &m) {
+void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
 
   py::class_<AbstractSampler>(subm, "Sampler", R"EOF(

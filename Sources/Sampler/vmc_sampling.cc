@@ -182,39 +182,7 @@ VectorXcd GradientOfVariance(const Result& result, AbstractMachine& psi,
 }
 }  // namespace vmc
 
-void StepsRange::CheckValid() const {
-  const auto error = [this](const char* expected) {
-    std::ostringstream msg;
-    msg << "invalid steps range: (start=" << start_ << ", end=" << end_
-        << ", step=" << step_ << "); " << expected;
-    throw InvalidInputError{msg.str()};
-  };
-  if (start_ < 0) error("expected start >= 0");
-  if (end_ < 0) error("expected end >= 0");
-  if (step_ <= 0) error("expected step >= 1");
-  if (end_ < start_) error("expected start <= end");
-}
-
 namespace detail {
-// Main loop: iterations specified by `steps` are `record`ed, others are
-// `skip`ped.
-template <class Skip, class Record>
-void LoopV2(StepsRange const& steps, Skip&& skip, Record&& record) {
-  auto i = Index{0};
-  // Skipping [0, 1, ..., start)
-  for (; i < steps.start(); ++i) {
-    skip();
-  }
-  // Record [start]
-  record();
-  for (i += steps.step(); i < steps.end(); i += steps.step()) {
-    for (auto j = Index{1}; j < steps.step(); ++j) {
-      skip();
-    }
-    record();
-  }
-}
-
 void SubtractMean(RowMatrix<Complex>& gradients) {
   VectorXcd mean = gradients.colwise().mean();
   assert(mean.size() == gradients.cols());
@@ -225,23 +193,26 @@ void SubtractMean(RowMatrix<Complex>& gradients) {
 
 std::tuple<RowMatrix<double>, Eigen::VectorXcd,
            nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
+ComputeSamples(MetropolisLocalV2& sampler, Index num_samples, Index num_skipped,
                bool compute_gradients) {
+  NETKET_CHECK(num_samples >= 0, InvalidInputError,
+               "invalid number of samples: "
+                   << num_samples << "; expected a non-negative integer");
+  NETKET_CHECK(num_skipped >= 0, InvalidInputError,
+               "invalid number of samples to discard: "
+                   << num_skipped << "; expected a non-negative integer");
   sampler.Reset();
-  const auto num_samples = steps.size() * sampler.BatchSize();
 
-  RowMatrix<double> samples(num_samples, sampler.SystemSize());
+  const auto num_batches =
+      (num_samples + sampler.BatchSize() - 1) / sampler.BatchSize();
+  num_samples = num_batches * sampler.BatchSize();
+  RowMatrix<double> samples(num_samples, sampler.Machine().Nvisible());
   Eigen::VectorXcd values(num_samples);
   auto gradients =
       compute_gradients
           ? nonstd::optional<RowMatrix<Complex>>{nonstd::in_place, num_samples,
                                                  sampler.Machine().Npar()}
           : nonstd::nullopt;
-
-  struct Skip {
-    MetropolisLocalV2& sampler_;
-    void operator()() const { sampler_.Next(); }
-  };
 
   struct Record {
     MetropolisLocalV2& sampler_;
@@ -265,16 +236,23 @@ ComputeSamples(MetropolisLocalV2& sampler, StepsRange const& steps,
 
     void operator()() {
       assert(i_ * sampler_.BatchSize() < samples_.rows());
-      Batch() = sampler_.Read();
+      Batch() = sampler_.CurrentState();
       if (gradients_.has_value()) Gradients();
-      if (++i_ * sampler_.BatchSize() != samples_.rows()) {
-        sampler_.Next();
-      }
+      ++i_;
     }
-  };
+  } record{sampler, samples, values, gradients, 0};
 
-  detail::LoopV2(steps, Skip{sampler},
-                 Record{sampler, samples, values, gradients, 0});
+  for (auto i = Index{0}; i < num_skipped; ++i) {
+    sampler.Sweep();
+  }
+  if (num_batches > 0) {
+    record();
+    for (auto i = Index{1}; i < num_batches; ++i) {
+      sampler.Sweep();
+      record();
+    }
+  }
+
   if (gradients.has_value()) detail::SubtractMean(*gradients);
   return std::make_tuple(std::move(samples), std::move(values),
                          std::move(gradients));

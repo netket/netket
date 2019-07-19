@@ -27,12 +27,11 @@ void Flipper::RandomState() {
 
 void Flipper::RandomSites() {
   std::generate(sites_.data(), sites_.data() + sites_.size(), [this]() {
-    return std::uniform_int_distribution<Index>{0,
-                                                SystemSize() - 1}(Generator());
+    return std::uniform_int_distribution<Index>{0, Nvisible() - 1}(Generator());
   });
 }
 
-void Flipper::RandomValues() {
+void Flipper::RandomNewValues() {
   // `g` proposes new value for spin `sites_(j)` in Markov chain `j`. There
   // are `local_states_.size() - 1` possible values (minus one is because we
   // don't want to stay in the same state). Thus first, we generate a random
@@ -57,14 +56,14 @@ void Flipper::RandomValues() {
     return local_states_[idx + (local_states_[idx] >= state_(j, sites_(j)))];
   };
   for (auto j = Index{0}; j < BatchSize(); ++j) {
-    values_(j) = g(j);
+    new_values_(j) = g(j);
   }
 }
 
 Flipper::Flipper(std::pair<Index, Index> const shape,
                  std::vector<double> local_states)
     : sites_{},
-      values_{},
+      new_values_{},
       state_{},
       local_states_{std::move(local_states)},
       proposed_{},
@@ -89,44 +88,40 @@ Flipper::Flipper(std::pair<Index, Index> const shape,
   std::sort(local_states_.begin(), local_states_.end());
 
   sites_.resize(batch_size);
-  values_.resize(batch_size);
+  new_values_.resize(batch_size);
   state_.resize(batch_size, system_size);
   proposed_.resize(batch_size);
   for (auto j = Index{0}; j < BatchSize(); ++j) {
-    proposed_[j].values = {&values_(j), 1};
+    proposed_[j].values = {&new_values_(j), 1};
     proposed_[j].sites = {&sites_(j), 1};
   }
   Reset();
 }
 
-void Flipper::Reset() {
-  RandomState();
-  RandomSites();
-  RandomValues();
-}
+void Flipper::Reset() { RandomState(); }
 
-void Flipper::Next(nonstd::span<const bool> accept) {
+void Flipper::Update(nonstd::span<const bool> accept) {
   for (auto j = Index{0}; j < BatchSize(); ++j) {
     if (accept[j]) {
-      state_(j, sites_(j)) = values_(j);
+      state_(j, sites_(j)) = new_values_(j);
     }
   }
-  RandomSites();
-  RandomValues();
 }
 
-nonstd::span<ConfDiff const> Flipper::Read() const noexcept {
+nonstd::span<ConfDiff const> Flipper::Propose() {
   using span = nonstd::span<ConfDiff const>;
+  RandomSites();
+  RandomNewValues();
   return span{proposed_.data(),
               static_cast<span::index_type>(proposed_.size())};
 }
 
-const RowMatrix<double>& Flipper::Current() const noexcept { return state_; }
+const RowMatrix<double>& Flipper::Visible() const noexcept { return state_; }
 
-void Flipper::Read(Eigen::Ref<RowMatrix<double>> x) const noexcept {
-  assert(x.rows() == BatchSize() && x.cols() == SystemSize());
+void Flipper::Propose(Eigen::Ref<RowMatrix<double>> x) {
+  assert(x.rows() == BatchSize() && x.cols() == Nvisible());
   x = state_;
-  const auto updates = Read();
+  const auto updates = Propose();
   for (auto j = Index{0}; j < BatchSize(); ++j) {
     const auto& suggestion = updates[j];
     assert(suggestion.sites.size() == 1 && suggestion.values.size() == 1);
@@ -134,19 +129,31 @@ void Flipper::Read(Eigen::Ref<RowMatrix<double>> x) const noexcept {
   }
 }
 
-Index CheckBatchSize(const Index batch_size) {
+Index CheckBatchSize(const char* func, const Index batch_size) {
   if (batch_size <= 0) {
     std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size
+    msg << func << ": invalid batch size: " << batch_size
         << "; expected a positive number";
     throw InvalidInputError{msg.str()};
   }
   return batch_size;
 }
 
+Index CheckSweepSize(const char* func, const Index sweep_size) {
+  if (sweep_size <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid sweep size: " << sweep_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return sweep_size;
+}
+
 }  // namespace detail
 
-MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine, const Index batch_size,
+MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
+                                     const Index batch_size,
+                                     const Index sweep_size,
                                      std::true_type /*safe*/)
     : machine_{machine},
       flipper_{{batch_size, machine.Nvisible()},
@@ -155,26 +162,37 @@ MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine, const Index batch_size,
       proposed_Y_(batch_size),
       current_Y_(batch_size),
       randoms_(batch_size),
-      accept_(batch_size) {
-  machine_.LogVal(flipper_.Current(), current_Y_, {});
+      accept_(batch_size),
+      sweep_size_(sweep_size) {
+  machine_.LogVal(flipper_.Visible(), current_Y_, {});
 }
 
-MetropolisLocalV2::MetropolisLocalV2(RbmSpinV2& machine, const Index batch_size)
-    : MetropolisLocalV2{machine, detail::CheckBatchSize(batch_size), {}} {}
+MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
+                                     const Index batch_size,
+                                     const Index sweep_size)
+    : MetropolisLocalV2{machine,
+                        detail::CheckBatchSize(__FUNCTION__, batch_size),
+                        detail::CheckSweepSize(__FUNCTION__, sweep_size),
+                        {}} {}
 
 void MetropolisLocalV2::Reset() {
   flipper_.Reset();
-  machine_.LogVal(flipper_.Current(), current_Y_, {});
+  machine_.LogVal(flipper_.Visible(), current_Y_, {});
 }
 
 std::pair<Eigen::Ref<const RowMatrix<double>>,
           Eigen::Ref<const Eigen::VectorXcd>>
-MetropolisLocalV2::Read() {
-  return {flipper_.Current(), current_Y_};
+MetropolisLocalV2::CurrentState() {
+  return {flipper_.Visible(), current_Y_};
+}
+
+void MetropolisLocalV2::SweepSize(Index const sweep_size) {
+  detail::CheckSweepSize(__FUNCTION__, sweep_size);
+  sweep_size_ = sweep_size;
 }
 
 void MetropolisLocalV2::Next() {
-  flipper_.Read(proposed_X_);  // Now proposed_X_ contains next states `v'`
+  flipper_.Propose(proposed_X_);  // Now proposed_X_ contains next states `v'`
   machine_.LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
   std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
     return std::uniform_real_distribution<double>{}(flipper_.Generator());
@@ -184,7 +202,14 @@ void MetropolisLocalV2::Next() {
       randoms_ < (proposed_Y_ - current_Y_).real().exp().square().min(1.0);
   // Updates current state
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
-  flipper_.Next({accept_});
+  flipper_.Update({accept_});
+}
+
+void MetropolisLocalV2::Sweep() {
+  assert(sweep_size_ > 0);
+  for (auto i = Index{0}; i < sweep_size_; ++i) {
+    Next();
+  }
 }
 
 }  // namespace netket

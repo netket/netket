@@ -70,4 +70,14 @@ inline void CheckShape(const char *func, const char *arg,
 
 }  // namespace netket
 
+#define NETKET_CHECK(cond, type, ...)                                       \
+  do {                                                                      \
+    if (!static_cast<bool>(cond)) {                                         \
+      std::ostringstream msg;                                               \
+      msg << __FILE__ << ":" << __LINE__ << ": in " << __FUNCTION__ << ": " \
+          << __VA_ARGS__;                                                   \
+      throw type{msg.str()};                                                \
+    }                                                                       \
+  } while (false)
+
 #endif  // NETKET_EXCEPTIONS_HPP
