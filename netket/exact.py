@@ -132,11 +132,11 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 
     Args:
         operator: Operator to diagnolize.
-        first_n: Number of eigenvalues to compute.
+        first_n: (Deprecated) Number of eigenvalues to compute.
+            This has no performance impact, as full_ed will compute all
+            eigenvalues anyway.
         compute_eigenvectors: Whether or not to return the
-            eigenvectors of the operator. With ARPACK, not requiring the
-            eigenvectors has almost no performance benefits.
-
+            eigenvectors of the operator.
 
     Examples:
         Testing the numer of eigenvalues saved when solving a simple
@@ -153,19 +153,19 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
         3
         ```
     """
-    from scipy.linalg import eigh
+    from numpy.linalg import eigh, eigvalsh
 
     dense_op = operator.to_dense()
-    result = eigh(
-        dense_op,
-        overwrite_a=True,
-        eigvals=(0, first_n - 1),
-        eigvals_only=not compute_eigenvectors,
-    )
+
+    if not (1 <= first_n < dense_op.shape[0]):
+        raise ValueError("first_n must be in range 1..dim(operator)")
+
     if compute_eigenvectors:
-        return EdResult(*result)
+        w, v = eigh(dense_op)
+        return EdResult(w[:first_n], v[:, :first_n])
     else:
-        return EdResult(result, None)
+        w = eigvalsh(dense_op)
+        return EdResult(w[:first_n], None)
 
 
 ExactTimePropagation.iter = _ExactTimePropagation_iter
