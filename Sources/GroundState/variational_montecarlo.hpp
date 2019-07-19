@@ -82,19 +82,19 @@ class VariationalMonteCarlo {
                         const std::string &target = "energy",
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool use_iterative = false,
-                        bool use_cholesky = true)
+                        const std::string &sr_lsq_solver = "BCDSVD")
       : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
         target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
-         diag_shift, use_iterative, use_cholesky);
+         diag_shift, use_iterative, sr_lsq_solver);
   }
 
   void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
             const std::string &method, double diag_shift, bool use_iterative,
-            bool use_cholesky) {
+            const std::string &sr_lsq_solver) {
     npar_ = psi_.Npar();
     opt_.Init(npar_, psi_.IsHolomorphic());
     grad_.resize(npar_);
@@ -115,7 +115,11 @@ class VariationalMonteCarlo {
     if (method == "Gd") {
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      sr_.emplace(diag_shift, use_iterative, use_cholesky,
+      auto solver = SR::SolverFromString(sr_lsq_solver);
+      if (!solver.has_value()) {
+        throw InvalidInputError{"Invalid LSQ solver specified for SR"};
+      }
+      sr_.emplace(solver.value(), diag_shift, use_iterative,
                   psi_.IsHolomorphic());
     }
 

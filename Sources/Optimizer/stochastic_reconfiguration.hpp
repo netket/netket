@@ -19,12 +19,15 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
+#include <nonstd/optional.hpp>
 
+#include "Utils/messages.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
@@ -67,15 +70,11 @@ class SR {
     InfoMessage() << GetInfoString();
   }
 
-  explicit SR(double diagshift = 0.01,
-              bool use_iterative = false, bool use_cholesky = true,
-              bool is_holomorphic = true) __attribute__((deprecated))
-      : solver_(use_cholesky ? LLT : ColPivHouseholder),
-        sr_diag_shift_(diagshift),
-        use_iterative_(use_iterative),
-        is_holomorphic_(is_holomorphic) {
-    InfoMessage() << GetInfoString();
-  }
+  explicit SR(double diagshift = 0.01, bool use_iterative = false,
+              bool use_cholesky = true, bool is_holomorphic = true)
+      __attribute__((deprecated))
+      : SR(use_cholesky ? LLT : ColPivHouseholder, diagshift, use_iterative,
+           is_holomorphic) {}
 
   void ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP) {
     double nsamp = Oks.rows();
@@ -104,27 +103,26 @@ class SR {
 
   void SetParameters(LSQSolver solver, double diagshift = 0.01,
                      bool use_iterative = false, bool is_holomorphic = true) {
+    CheckSolverCompatibility(use_iterative, solver, store_rank_);
+
     solver_ = solver;
     sr_diag_shift_ = diagshift;
     use_iterative_ = use_iterative;
     is_holomorphic_ = is_holomorphic;
   }
 
-  void SetParameters(double diagshift = 0.01,
-                     bool use_iterative = false,
-                     bool use_cholesky = true,
-                     bool is_holomorphic = true) __attribute__((deprecated)) {
-    solver_ = use_cholesky ? LLT : ColPivHouseholder;
-    sr_diag_shift_ = diagshift;
-    use_iterative_ = use_iterative;
-    is_holomorphic_ = is_holomorphic;
+  void SetParameters(double diagshift = 0.01, bool use_iterative = false,
+                     bool use_cholesky = true, bool is_holomorphic = true)
+      __attribute__((deprecated)) {
+    SetParameters(use_cholesky ? LLT : ColPivHouseholder, diagshift,
+                  use_iterative, is_holomorphic);
   }
 
   std::string GetInfoString() {
     std::stringstream str;
     str << "Using the Stochastic reconfiguration method for "
         << (is_holomorphic_ ? "holomorphic" : "real-parameter")
-        << "wavefunctions\n";
+        << " wavefunctions\n";
     if (use_iterative_) {
       str << "With iterative solver";
     } else {

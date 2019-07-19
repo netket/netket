@@ -37,7 +37,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
-                    const std::string &, double, bool, bool>(),
+                    const std::string &, double, bool, const std::string &>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
            py::arg("optimizer"), py::arg("n_samples"),
@@ -45,7 +45,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0,
            py::arg("target") = "energy", py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
-           py::arg("use_cholesky") = true,
+           py::arg("sr_lsq_solver") = "BDCSVD",
            R"EOF(
            Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
            sampler, optimizer, and the number of samples.
@@ -73,8 +73,9 @@ void AddVariationalMonteCarloModule(py::module &m) {
                use_iterative: Whether to use the iterative solver in the Sr
                    method (this is extremely useful when the number of
                    parameters to optimize is very large). The default is false.
-               use_cholesky: Whether to use cholesky decomposition. The default
-                   is true.
+               sr_lsq_solver: The solver used to solve the least-squares equation
+                   in the SR update. Only used if `method == "SR" and not use_iterative`.
+                   Available options are "BDCSVD", "ColPivHouseholder", and "LLT".
 
            Example:
                Optimizing a 1D wavefunction with Variational Mante Carlo.
