@@ -216,12 +216,13 @@ void AddVariationalMonteCarloModule(py::module &m) {
           })
       .def_property_readonly(
           "last_S_matrix",
-          [](VariationalMonteCarlo &self) -> nonstd::optional<MatrixXcd> {
+          [](VariationalMonteCarlo &self) {
             auto sr = self.GetSR();
             if (!sr.has_value()) {
-              return nonstd::nullopt;
+              return py::object(py::none());
             }
-            return sr->LastSMatrix();
+            const auto* last_mat = sr->LastSMatrix();
+            return last_mat == nullptr ? py::object(py::none()) : py::cast(*last_mat);
           });
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
