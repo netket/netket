@@ -38,7 +38,7 @@ void AddNQSModule(py::module &m) {
       .def(py::init([](int nqubits) {
              return NQS{nqubits};
            }),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("nqubits"),
+           py::arg("nqubits"),
            R"EOF(
            Construct a NQS object with the given number of qubits.
 
@@ -95,6 +95,10 @@ void AddNQSModule(py::module &m) {
       .def("sample", &NQS::sample,
             R"EOF(
            Sample from the nqs.
+           )EOF")
+      .def("getPsiParams", &NQS::getPsiParams,
+            R"EOF(
+           Get parameters of the underlying Boltzmann machine.
            )EOF");
 }
 

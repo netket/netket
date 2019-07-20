@@ -21,6 +21,7 @@ from . import (
     hilbert,
     layer,
     machine,
+    nqs,
     operator,
     optimizer,
     output,
