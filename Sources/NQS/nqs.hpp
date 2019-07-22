@@ -15,17 +15,15 @@ class NQS {
 
     int nqubits_;
     Hypercube g;
-    /*
-    std::shared_ptr<Spin> hi;
+    Spin hi;
     RbmSpin psi;
     MetropolisLocal sa;
     AdaMax op;
-    */
 
     public:
 
         NQS(int nqubits)
-            : nqubits_(nqubits), g(1,1,false) {}
+            : nqubits_(nqubits), g(Hypercube(1,1,false)), hi(Spin(g, 0.5)), psi(std::make_shared<Spin>(hi), 0, 0, true, true), sa(MetropolisLocal(psi)), op(AdaMax()) {}
 
         void applyHadamard(int qubit) {}
         void applyPauliX(int qubit){}
