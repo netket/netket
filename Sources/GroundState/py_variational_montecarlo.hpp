@@ -193,7 +193,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             }
             sr->SetStoreRank(enabled);
           },
-          "Whether to save the rank of the S matrix in `self.last_rank`. "
+          "bool: Whether to save the rank of the S matrix in `self.last_rank`. "
           "This only works for rank-revealing LSQ solvers (not LLT or LDLT).")
       .def_property_readonly(
           "last_rank",
@@ -222,7 +222,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             }
             sr->SetStoreFullSMatrix(enabled);
           },
-          "Whether to save the full S matrix in `self.last_S_matrix`..")
+          "bool: Whether to save the full S matrix in `self.last_S_matrix`..")
       .def_property_readonly(
           "last_S_matrix",
           [](VariationalMonteCarlo &self) {
@@ -252,7 +252,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             }
             sr->SetScaleInvariantRegularization(enabled);
           },
-          R"EOF(Whether to use the scale-invariant regularization as described by "
+          R"EOF(bool: Whether to use the scale-invariant regularization as described by
                 Becca and Sorella (2017), pp. 143-144.
                 https://doi.org/10.1017/9781316417041")EOF");
 

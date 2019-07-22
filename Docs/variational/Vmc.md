@@ -117,11 +117,12 @@ Running a simple Vmc calculation.
 
 ## Properties
 
-|   Property   |         Type         |                 Description                  |
-|--------------|----------------------|----------------------------------------------|
-|last_S_matrix |                      |                                              |
-|last_rank     |                      |                                              |
-|machine       |netket.machine.Machine| The machine used to express the wavefunction.|
-|store_S_matrix|                      |                                              |
-|store_rank    |                      |                                              |
-|vmc_data      |                      |                                              |
+|             Property             |         Type         |                                                                                  Description                                                                                  |
+|----------------------------------|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|last_S_matrix                     |                      |If `self.store_S_matrix`, this property contains the full the S matrix computed in the last SR step.                                                                           |
+|last_rank                         |                      |If `self.store_rank`, this property contains the rank of the S matrix computed in the last SR step.                                                                            |
+|machine                           |netket.machine.Machine| The machine used to express the wavefunction.                                                                                                                                 |
+|store_S_matrix                    |bool                  | Whether to save the full S matrix in `self.last_S_matrix`..                                                                                                                   |
+|store_rank                        |bool                  | Whether to save the rank of the S matrix in `self.last_rank`. This only works for rank-revealing LSQ solvers (not LLT or LDLT).                                               |
+|use_scale_invariant_regularization|bool                  | Whether to use the scale-invariant regularization as described by                 Becca and Sorella (2017), pp. 143-144.                 https://doi.org/10.1017/9781316417041|
+|vmc_data                          |                      |                                                                                                                                                                               |
