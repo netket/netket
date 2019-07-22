@@ -94,7 +94,7 @@ class MetropolisLocalHadamard : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep() override {
+  void Sweep(int qubit) override {
     std::vector<int> tochange(1);
     std::vector<double> newconf(1);
 
@@ -119,8 +119,49 @@ class MetropolisLocalHadamard : public AbstractSampler {
         newconf[0] = localstates_[newstate];
       }
 
-      const auto lvd = GetMachine().LogValDiff(v_, tochange, newconf, lt_);
-      double ratio = this->GetMachineFunc()(std::exp(lvd));
+      double valueOfQubit = v_(qubit);
+      //set qubit to -1
+      v_(qubit) = -1.0;
+      double psi1Before = std::exp(GetMachine().LogVal(v_));
+      //set qubit to +1
+      v_(qubit) = +1.0;
+      double psi2Before = std::exp(GetMachine().LogVal(v_));
+      //reset
+      v_(qubit) = valueOfQubit;
+
+      double psiBefore;
+      //if qubit in sample is -1 ..
+      if(v_(qubit) == -1.0) {
+        //... add psi1 and psi2 (|0> -> |+>)
+        psiBefore = std::norm(psi1Before + psi2Before);
+      } else if(v_(qubit) == 1.0) {
+        //... else substract (|1> -> |->)
+        psiBefore = std::norm(psi1Before - psi2Before);
+      }
+
+      v_(tochange[0]) = newconf[0];
+      double valueOfQubit = v_(qubit);
+      //set qubit to -1
+      v_(qubit) = -1.0;
+      double psi1After = std::exp(GetMachine().LogVal(v_));
+      //set qubit to +1
+      v_(qubit) = +1.0;
+      double psi2After = std::exp(GetMachine().LogVal(v_));
+      //reset
+      v_(qubit) = valueOfQubit;
+
+      double psiAfter;
+
+      //if qubit in sample is -1 ..
+      if((tochange[0] == qubit && v_(qubit) == 1.0) || v_(qubit) == -1.0) {
+        //... add psi1 and psi2 (|0> -> |+>)
+        psiAfter = std::norm(psi1After + psi2After);
+      } else if((tochange[0] == qubit && v_(qubit) == -1.0) || v_(qubit) == 1.0) {
+        //... else substract (|1> -> |->)
+        psiAfter = std::norm(psi1After - psi2After);
+      }
+
+      double ratio = psiBefore / psiAfter;
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogVal(v_);
