@@ -37,7 +37,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
-                    const std::string &, double, bool, const std::string &>(),
+                    const std::string &, double, bool, nonstd::optional<bool>,
+                    const std::string &>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
            py::arg("optimizer"), py::arg("n_samples"),
@@ -45,7 +46,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0,
            py::arg("target") = "energy", py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
-           py::arg("sr_lsq_solver") = "BDCSVD",
+           py::arg("use_cholesky") = nonstd::nullopt,
+           py::arg("sr_lsq_solver") = "LLT",
            R"EOF(
            Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
            sampler, optimizer, and the number of samples.
@@ -73,13 +75,15 @@ void AddVariationalMonteCarloModule(py::module &m) {
                use_iterative: Whether to use the iterative solver in the Sr
                    method (this is extremely useful when the number of
                    parameters to optimize is very large). The default is false.
+               use_cholesky: (Deprecated) Use "LLT" solver (see below). If set to False,
+                   "ColPivHouseholder" is used. Please use sr_lsq_solver directly in
+                   new code.
                sr_lsq_solver: The solver used to solve the least-squares equation
                    in the SR update. Only used if `method == "SR" and not use_iterative`.
                    Available options are "BDCSVD", "ColPivHouseholder", "LDLT", and "LLT".
                    See the [Eigen documentation](https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html)
                    for a description of the available solvers.
-                   Also note that LLT and LDLT only work for positive definite
-                   or positive semidefinite S matrices, respectively.
+                   The default is "LLT".
 
            Example:
                Optimizing a 1D wavefunction with Variational Mante Carlo.
@@ -214,16 +218,15 @@ void AddVariationalMonteCarloModule(py::module &m) {
             }
             sr->SetStoreFullSMatrix(enabled);
           })
-      .def_property_readonly(
-          "last_S_matrix",
-          [](VariationalMonteCarlo &self) {
-            auto sr = self.GetSR();
-            if (!sr.has_value()) {
-              return py::object(py::none());
-            }
-            const auto* last_mat = sr->LastSMatrix();
-            return last_mat == nullptr ? py::object(py::none()) : py::cast(*last_mat);
-          });
+      .def_property_readonly("last_S_matrix", [](VariationalMonteCarlo &self) {
+        auto sr = self.GetSR();
+        if (!sr.has_value()) {
+          return py::object(py::none());
+        }
+        const auto *last_mat = sr->LastSMatrix();
+        return last_mat == nullptr ? py::object(py::none())
+                                   : py::cast(*last_mat);
+      });
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 

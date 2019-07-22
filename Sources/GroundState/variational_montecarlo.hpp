@@ -82,18 +82,21 @@ class VariationalMonteCarlo {
                         const std::string &target = "energy",
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool use_iterative = false,
-                        const std::string &sr_lsq_solver = "BCDSVD")
+                        /* for backwards compatibility: */
+                        nonstd::optional<bool> use_cholesky = nonstd::nullopt,
+                        const std::string &sr_lsq_solver = "LLT")
       : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
         target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
-         diag_shift, use_iterative, sr_lsq_solver);
+         diag_shift, use_iterative, use_cholesky, sr_lsq_solver);
   }
 
   void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
             const std::string &method, double diag_shift, bool use_iterative,
+            nonstd::optional<bool> use_cholesky,
             const std::string &sr_lsq_solver) {
     npar_ = psi_.Npar();
     opt_.Init(npar_, psi_.IsHolomorphic());
@@ -110,6 +113,22 @@ class VariationalMonteCarlo {
       ndiscard_ = 0.1 * nsamples_node_;
     } else {
       ndiscard_ = discarded_samples;
+    }
+
+    std::string solver_str{sr_lsq_solver};
+    if (use_cholesky.has_value()) {
+      WarningMessage()
+          << "SR: use_cholesky option is deprecated. Please use the "
+             "sr_lsq_solver option to specifiy the solver."
+          << std::endl;
+
+      if (use_cholesky.value() && sr_lsq_solver != "LLT") {
+        throw InvalidInputError{
+            "Inconsistent options specified: "
+            "`use_cholesky && sr_lsq_solver != 'LLT'`."};
+      } else {
+        solver_str = "ColPivHouseholder";
+      }
     }
 
     if (method == "Gd") {
