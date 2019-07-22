@@ -21,24 +21,31 @@ const char* SR::SolverAsString(LSQSolver solver) {
   return solvers[solver];
 }
 
-void SR::ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP) {
+void SR::ComputeUpdate(OkRef Oks, GradRef grad_ref, OutputRef deltaP) {
   double nsamp = Oks.rows();
   SumOnNodes(nsamp);
   // auto npar = grad.size();
+
+  // TODO: Is this copy avoidable?
+  VectorXcd grad = grad_ref;
 
   if (is_holomorphic_) {
     if (use_iterative_) {
       SolveIterative<VectorXcd>(Oks, grad, deltaP, nsamp);
     } else {
       BuildSMatrix<MatrixXcd>(Oks.adjoint() * Oks, Scomplex_, nsamp);
+      ApplyPreconditioning(Scomplex_, grad);
       SolveLeastSquares<MatrixXcd, VectorXcd>(Scomplex_, grad, deltaP);
+      RevertPreconditioning(deltaP);
     }
   } else {
     if (use_iterative_) {
       SolveIterative<VectorXd>(Oks, grad.real(), deltaP, nsamp);
     } else {
       BuildSMatrix<MatrixXd>((Oks.adjoint() * Oks).real(), Sreal_, nsamp);
+      ApplyPreconditioning(Sreal_, grad);
       SolveLeastSquares<MatrixXd, VectorXd>(Sreal_, grad.real(), deltaP.real());
+      RevertPreconditioning(deltaP);
     }
     deltaP.imag().setZero();
   }

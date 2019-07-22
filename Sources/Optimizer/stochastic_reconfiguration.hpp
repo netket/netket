@@ -92,6 +92,25 @@ class SR {
   std::string GetInfoString();
 
   /**
+   * Becca and Sorella (2017), pp. 143-144.
+   */
+  void SetScaleInvariantRegularization(bool enabled) {
+    if (use_iterative_ && enabled) {
+      // TODO: implement
+      throw std::runtime_error{
+          "Scale-invariant regularization is not implemented "
+          "for iterative solvers at the moment."};
+    }
+    if (enabled) {
+      InfoMessage() << "Using scale-invariant preconditioning." << std::endl;
+    }
+    scale_invariant_pc_ = enabled;
+  }
+  bool ScaleInvariantRegularizationEnabled() const {
+    return scale_invariant_pc_;
+  }
+
+  /**
    * Returns the rank of the S matrix computed during the last call to
    * `ComputeUpdate` or `nullopt`, in case storing the rank is not enabled
    * and before the first call to `ComputeUpdate`.
@@ -122,6 +141,9 @@ class SR {
   bool use_iterative_;
   bool is_holomorphic_;
 
+  bool scale_invariant_pc_ = false;
+  VectorXd diag_S_;
+
   Eigen::MatrixXd Sreal_;
   Eigen::MatrixXcd Scomplex_;
 
@@ -140,8 +162,36 @@ class SR {
     S_out = S_local;
     SumOnNodes(S_out);
     S_out /= nsamp;
+  }
 
-    S_out.diagonal().array() += sr_diag_shift_;
+  template <class Mat, class Vec>
+  void ApplyPreconditioning(Mat& S, Vec& grad) {
+    if (scale_invariant_pc_) {
+      // Even if S is complex, its diagonal elements should be real since it
+      // is Hermitian.
+      diag_S_ = S.diagonal().real().cwiseSqrt();
+
+      static const double CUTOFF = 1e-10;
+      for (Index i = 0; i < diag_S_.rows(); i++) {
+        if (diag_S_(i) <= CUTOFF) {
+          diag_S_(i) = 1.0;
+          S.col(i).setZero();
+          S.row(i).setZero();
+          S(i, i) = 1.0;
+        }
+      }
+
+      S.array() /= (diag_S_ * diag_S_.transpose()).array();
+      grad.array() /= diag_S_.array();
+    }
+    // Apply diagonal shift
+    S.diagonal().array() += sr_diag_shift_;
+  }
+
+  void RevertPreconditioning(OutputRef solution) {
+    if (scale_invariant_pc_) {
+      solution.array() /= diag_S_.array();
+    }
   }
 
   template <class Vec>

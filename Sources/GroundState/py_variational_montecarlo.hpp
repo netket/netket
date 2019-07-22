@@ -180,7 +180,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
       .def_property(
           "store_rank",
           [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
-            auto sr = self.GetSR();
+            auto &sr = self.GetSR();
             if (!sr.has_value()) {
               return nonstd::nullopt;
             }
@@ -192,20 +192,24 @@ void AddVariationalMonteCarloModule(py::module &m) {
               throw std::invalid_argument{"SR not enabled"};
             }
             sr->SetStoreRank(enabled);
-          })
+          },
+          "Whether to save the rank of the S matrix in `self.last_rank`. "
+          "This only works for rank-revealing LSQ solvers (not LLT or LDLT).")
       .def_property_readonly(
           "last_rank",
           [](VariationalMonteCarlo &self) -> nonstd::optional<Index> {
-            auto sr = self.GetSR();
+            auto &sr = self.GetSR();
             if (!sr.has_value()) {
               return nonstd::nullopt;
             }
             return sr->LastRank();
-          })
+          },
+          "If `self.store_rank`, this property contains the rank of the S "
+          "matrix computed in the last SR step.")
       .def_property(
           "store_S_matrix",
           [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
-            auto sr = self.GetSR();
+            auto &sr = self.GetSR();
             if (!sr.has_value()) {
               return nonstd::nullopt;
             }
@@ -217,16 +221,40 @@ void AddVariationalMonteCarloModule(py::module &m) {
               throw std::invalid_argument{"SR not enabled"};
             }
             sr->SetStoreFullSMatrix(enabled);
-          })
-      .def_property_readonly("last_S_matrix", [](VariationalMonteCarlo &self) {
-        auto sr = self.GetSR();
-        if (!sr.has_value()) {
-          return py::object(py::none());
-        }
-        const auto *last_mat = sr->LastSMatrix();
-        return last_mat == nullptr ? py::object(py::none())
-                                   : py::cast(*last_mat);
-      });
+          },
+          "Whether to save the full S matrix in `self.last_S_matrix`..")
+      .def_property_readonly(
+          "last_S_matrix",
+          [](VariationalMonteCarlo &self) {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return py::object(py::none());
+            }
+            const auto *last_mat = sr->LastSMatrix();
+            return last_mat == nullptr ? py::object(py::none())
+                                       : py::cast(*last_mat);
+          },
+          "If `self.store_S_matrix`, this property contains "
+          "the full the S matrix computed in the last SR step.")
+      .def_property(
+          "use_scale_invariant_regularization",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->ScaleInvariantRegularizationEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetScaleInvariantRegularization(enabled);
+          },
+          R"EOF(Whether to use the scale-invariant regularization as described by "
+                Becca and Sorella (2017), pp. 143-144.
+                https://doi.org/10.1017/9781316417041")EOF");
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 
