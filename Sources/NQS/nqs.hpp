@@ -2,7 +2,7 @@
 #include "Graph/hypercube.hpp"
 #include "Hilbert/spins.hpp"
 #include "Optimizer/ada_max.hpp"
-#include "Sampler/metropolis_local.hpp"
+#include "Sampler/metropolis_local_hadamard.hpp"
 #include <vector>
 
 
@@ -17,13 +17,13 @@ class NQS {
     Hypercube g;
     Spin hi;
     RbmSpin psi;
-    MetropolisLocal sa;
+    MetropolisLocalHadamard sa;
     AdaMax op;
 
     public:
 
         NQS(int nqubits)
-            : nqubits_(nqubits), g(Hypercube(1,1,false)), hi(Spin(g, 0.5)), psi(std::make_shared<Spin>(hi), 0, 0, true, true), sa(MetropolisLocal(psi)), op(AdaMax()) {}
+            : nqubits_(nqubits), g(Hypercube(1,1,false)), hi(Spin(g, 0.5)), psi(std::make_shared<Spin>(hi), 0, 0, true, true), sa(MetropolisLocalHadamard(psi)), op(AdaMax()) {}
 
         void applyHadamard(int qubit) {}
         void applyPauliX(int qubit){}

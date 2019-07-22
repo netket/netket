@@ -41,7 +41,6 @@ PYBIND11_MODULE(_C_netket, m) {
   AddGroundStateModule(m);
   AddHilbertModule(m);
   AddMachineModule(m);
-  AddNQSModule(m);
   AddOperatorModule(m);
   AddOptimizerModule(m);
   AddOutputModule(m);
@@ -50,6 +49,7 @@ PYBIND11_MODULE(_C_netket, m) {
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);
+  AddNQSModule(m);
 }  // PYBIND11_MODULE
 
 }  // namespace netket

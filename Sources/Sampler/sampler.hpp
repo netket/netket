@@ -32,5 +32,6 @@
 #include "metropolis_hop.hpp"
 #include "metropolis_local.hpp"
 #include "metropolis_local_pt.hpp"
+#include "metropolis_local_hadamard.hpp"
 
 #endif
