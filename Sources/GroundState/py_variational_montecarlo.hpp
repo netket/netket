@@ -37,7 +37,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
-                    const std::string &, double, bool, bool>(),
+                    const std::string &, double, bool, nonstd::optional<bool>,
+                    const std::string &>(),
            py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
            py::keep_alive<1, 4>(), py::arg("hamiltonian"), py::arg("sampler"),
            py::arg("optimizer"), py::arg("n_samples"),
@@ -45,7 +46,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
            py::arg("discarded_samples_on_init") = 0,
            py::arg("target") = "energy", py::arg("method") = "Sr",
            py::arg("diag_shift") = 0.01, py::arg("use_iterative") = false,
-           py::arg("use_cholesky") = true,
+           py::arg("use_cholesky") = nonstd::nullopt,
+           py::arg("sr_lsq_solver") = "LLT",
            R"EOF(
            Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
            sampler, optimizer, and the number of samples.
@@ -73,8 +75,15 @@ void AddVariationalMonteCarloModule(py::module &m) {
                use_iterative: Whether to use the iterative solver in the Sr
                    method (this is extremely useful when the number of
                    parameters to optimize is very large). The default is false.
-               use_cholesky: Whether to use cholesky decomposition. The default
-                   is true.
+               use_cholesky: (Deprecated) Use "LLT" solver (see below). If set to False,
+                   "ColPivHouseholder" is used. Please use sr_lsq_solver directly in
+                   new code.
+               sr_lsq_solver: The solver used to solve the least-squares equation
+                   in the SR update. Only used if `method == "SR" and not use_iterative`.
+                   Available options are "BDCSVD", "ColPivHouseholder", "LDLT", and "LLT".
+                   See the [Eigen documentation](https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html)
+                   for a description of the available solvers.
+                   The default is "LLT".
 
            Example:
                Optimizing a 1D wavefunction with Variational Mante Carlo.
@@ -167,7 +176,85 @@ void AddVariationalMonteCarloModule(py::module &m) {
         Calculate and return the value of the operators stored as observables.
 
         )EOF")
-      .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData);
+      .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData)
+      .def_property(
+          "store_rank",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->StoreRankEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto& sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetStoreRank(enabled);
+          },
+          "bool: Whether to save the rank of the S matrix in `self.last_rank`. "
+          "This only works for rank-revealing LSQ solvers (not LLT or LDLT).")
+      .def_property_readonly(
+          "last_rank",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<Index> {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->LastRank();
+          },
+          "If `self.store_rank`, this property contains the rank of the S "
+          "matrix computed in the last SR step.")
+      .def_property(
+          "store_S_matrix",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->StoreFullSMatrixEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto& sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetStoreFullSMatrix(enabled);
+          },
+          "bool: Whether to save the full S matrix in `self.last_S_matrix`..")
+      .def_property_readonly(
+          "last_S_matrix",
+          [](VariationalMonteCarlo &self) {
+            auto sr = self.GetSR();
+            if (!sr.has_value()) {
+              return py::object(py::none());
+            }
+            const auto *last_mat = sr->LastSMatrix();
+            return last_mat == nullptr ? py::object(py::none())
+                                       : py::cast(*last_mat);
+          },
+          "If `self.store_S_matrix`, this property contains "
+          "the full the S matrix computed in the last SR step.")
+      .def_property(
+          "use_scale_invariant_regularization",
+          [](VariationalMonteCarlo &self) -> nonstd::optional<bool> {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              return nonstd::nullopt;
+            }
+            return sr->ScaleInvariantRegularizationEnabled();
+          },
+          [](VariationalMonteCarlo &self, bool enabled) {
+            auto &sr = self.GetSR();
+            if (!sr.has_value()) {
+              throw std::invalid_argument{"SR not enabled"};
+            }
+            sr->SetScaleInvariantRegularization(enabled);
+          },
+          R"EOF(bool: Whether to use the scale-invariant regularization as described by
+                Becca and Sorella (2017), pp. 143-144.
+                https://doi.org/10.1017/9781316417041")EOF");
 
   py::class_<vmc::Result>(m_vmc, "_VmcResult");
 
