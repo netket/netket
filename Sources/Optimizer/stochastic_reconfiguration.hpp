@@ -215,7 +215,7 @@ class SR {
     using SolverType =
         Eigen::ConjugateGradient<SrMatrixType, Eigen::Lower | Eigen::Upper,
                                  Eigen::IdentityPreconditioner>;
-    SolverType it_solver;
+    SolverType it_solver(S);
     it_solver.setTolerance(1.0e-3);
     deltaP = it_solver.solve(grad);
   }
