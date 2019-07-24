@@ -103,8 +103,8 @@ def test_states_in_hilbert():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
         localstates = hi.local_states
 
         for sw in range(100):
@@ -138,8 +138,8 @@ def test_correct_sampling():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
 
         n_states = hi.n_states
 

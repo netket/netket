@@ -24,15 +24,17 @@ namespace netket {
 
 void AddMetropolisHamiltonianPt(py::module &subm) {
   using DerSampler = MetropolisHamiltonianPt<AbstractOperator>;
-  py::class_<DerSampler, AbstractSampler>(subm, "MetropolisHamiltonianPt",
-                                          R"EOF(
+  auto cls =
+      py::class_<DerSampler, AbstractSampler>(subm, "MetropolisHamiltonianPt",
+                                              R"EOF(
     This sampler performs parallel-tempering moves in addition to
     the local moves implemented in `MetropolisHamiltonian`.
     The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
     )EOF")
-      .def(py::init<AbstractMachine &, AbstractOperator &, int>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-           py::arg("hamiltonian"), py::arg("n_replicas"), R"EOF(
+          .def(py::init<AbstractMachine &, AbstractOperator &, int>(),
+               py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+               py::arg("machine"), py::arg("hamiltonian"),
+               py::arg("n_replicas"), R"EOF(
              Constructs a new ``MetropolisHamiltonianPt`` sampler given a machine,
              a Hamiltonian operator (or in general an arbitrary Operator), and the
              number of replicas.
@@ -65,6 +67,7 @@ void AddMetropolisHamiltonianPt(py::module &subm) {
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

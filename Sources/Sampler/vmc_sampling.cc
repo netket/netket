@@ -4,6 +4,7 @@
 namespace netket {
 namespace vmc {
 
+#if 0
 Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
                       bool compute_logderivs) {
   sampler.Reset();
@@ -21,8 +22,8 @@ Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
     log_derivs.emplace(npar, nsamples);
     for (Index i = 0; i < nsamples; i++) {
       sampler.Sweep();
-      samples.col(i) = sampler.Visible();
-      log_derivs->col(i) = sampler.DerLogVisible();
+      samples.col(i) = VisibleLegacy(sampler);
+      log_derivs->col(i) = sampler.GetMachine().DerLogSingle(samples.col(i));
     }
 
     // Compute "centered" log-derivatives, i.e., O_k ↦ O_k - ⟨O_k⟩
@@ -32,11 +33,12 @@ Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
   } else {
     for (Index i = 0; i < nsamples; i++) {
       sampler.Sweep();
-      samples.col(i) = sampler.Visible();
+      samples.col(i) = VisibleLegacy(sampler);
     }
   }
   return Result(std::move(samples), std::move(log_derivs));
 }
+#endif
 
 Complex LocalValue(const AbstractOperator& op, AbstractMachine& psi,
                    Eigen::Ref<const VectorXd> v) {
@@ -58,6 +60,7 @@ Complex LocalValue(const AbstractOperator& op, AbstractMachine& psi,
   return result;
 }
 
+#if 0
 VectorXcd LocalValues(const AbstractOperator& op, AbstractMachine& psi,
                       Eigen::Ref<const MatrixXd> vs) {
   VectorXcd out(vs.cols());
@@ -66,6 +69,7 @@ VectorXcd LocalValues(const AbstractOperator& op, AbstractMachine& psi,
   }
   return out;
 }
+#endif
 
 VectorXcd LocalValueDeriv(const AbstractOperator& op, AbstractMachine& psi,
                           Eigen::Ref<const VectorXd> v) {
@@ -193,7 +197,7 @@ void SubtractMean(RowMatrix<Complex>& gradients) {
 
 std::tuple<RowMatrix<double>, Eigen::VectorXcd,
            nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(MetropolisLocalV2& sampler, Index num_samples, Index num_skipped,
+ComputeSamples(AbstractSampler& sampler, Index num_samples, Index num_skipped,
                bool compute_gradients) {
   NETKET_CHECK(num_samples >= 0, InvalidInputError,
                "invalid number of samples: "
@@ -206,16 +210,16 @@ ComputeSamples(MetropolisLocalV2& sampler, Index num_samples, Index num_skipped,
   const auto num_batches =
       (num_samples + sampler.BatchSize() - 1) / sampler.BatchSize();
   num_samples = num_batches * sampler.BatchSize();
-  RowMatrix<double> samples(num_samples, sampler.Machine().Nvisible());
+  RowMatrix<double> samples(num_samples, sampler.GetMachine().Nvisible());
   Eigen::VectorXcd values(num_samples);
   auto gradients =
       compute_gradients
           ? nonstd::optional<RowMatrix<Complex>>{nonstd::in_place, num_samples,
-                                                 sampler.Machine().Npar()}
+                                                 sampler.GetMachine().Npar()}
           : nonstd::nullopt;
 
   struct Record {
-    MetropolisLocalV2& sampler_;
+    AbstractSampler& sampler_;
     RowMatrix<double>& samples_;
     VectorXcd& values_;
     nonstd::optional<RowMatrix<Complex>>& gradients_;
@@ -231,7 +235,7 @@ ComputeSamples(MetropolisLocalV2& sampler, Index num_samples, Index num_skipped,
       const auto n = sampler_.BatchSize();
       const auto X = samples_.block(i_ * n, 0, n, samples_.cols());
       const auto out = gradients_->block(i_ * n, 0, n, gradients_->cols());
-      sampler_.Machine().DerLog(X, out, any{});
+      sampler_.GetMachine().DerLog(X, out, any{});
     }
 
     void operator()() {
@@ -261,7 +265,7 @@ ComputeSamples(MetropolisLocalV2& sampler, Index num_samples, Index num_skipped,
 namespace detail {
 /// A helper class for forward propagation of batches through machines.
 struct Forward {
-  Forward(RbmSpinV2& m, Index batch_size)
+  Forward(AbstractMachine& m, Index batch_size)
       : machine_{m},
         X_(batch_size, m.Nvisible()),
         Y_(batch_size),
@@ -309,7 +313,7 @@ struct Forward {
   }
 
  private:
-  RbmSpinV2& machine_;
+  AbstractMachine& machine_;
   RowMatrix<double> X_;
   Eigen::VectorXcd Y_;
   Eigen::VectorXcd coeff_;
@@ -426,7 +430,7 @@ struct Accumulator {
 
 Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
                                Eigen::Ref<const Eigen::VectorXcd> values,
-                               RbmSpinV2& machine, AbstractOperator& op,
+                               AbstractMachine& machine, AbstractOperator& op,
                                Index batch_size) {
   if (batch_size < 1) {
     std::ostringstream msg;

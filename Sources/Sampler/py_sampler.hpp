@@ -26,10 +26,22 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Operator/operator.hpp"
+#include "Sampler/abstract_sampler.hpp"
+#include "Sampler/metropolis_local_v2.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/pybind_helpers.hpp"
-#include "abstract_sampler.hpp"
+
+namespace netket {
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "acceptance", [](const T& self) { return self.Acceptance(); }, R"EOF(
+        numpy.array: The measured acceptance rate for the sampling.
+        In the case of rejection-free sampling this is always equal to 1.)EOF");
+}
+}  // namespace netket
+
 #include "py_custom_sampler.hpp"
 #include "py_custom_sampler_pt.hpp"
 #include "py_exact_sampler.hpp"
@@ -40,8 +52,6 @@
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
 #include "py_metropolis_local_pt.hpp"
-
-#include "Sampler/metropolis_local_v2.hpp"
 
 namespace py = pybind11;
 
@@ -106,19 +116,16 @@ void AddSamplerModule(py::module& m) {
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
-      .def_property("visible", &AbstractSampler::Visible,
-                    &AbstractSampler::SetVisible,
-                    R"EOF(
+      .def_property_readonly(
+          "visible",
+          [](const AbstractSampler& self) { return VisibleLegacy(self); },
+          R"EOF(
                       numpy.array: The quantum numbers being sampled,
                        and distributed according to $$F(\Psi(v))$$ )EOF")
-      .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
-        numpy.array: The measured acceptance rate for the sampling.
-        In the case of rejection-free sampling this is always equal to 1.  )EOF")
-      .def_property_readonly("hilbert", &AbstractSampler::GetHilbertShared,
-                             R"EOF(
-        netket.hilbert: The Hilbert space used for the sampling.  )EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
+      .def_property_readonly("batch_size", &AbstractSampler::BatchSize, R"EOF(
+        int: Number of samples in a batch.)EOF")
       .def_property("machine_func", &AbstractSampler::GetMachineFunc,
                     &AbstractSampler::SetMachineFunc,
                     R"EOF(
@@ -136,7 +143,6 @@ void AddSamplerModule(py::module& m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddCustomSamplerPt(subm);
-
   AddMetropolisLocalV2(subm);
 }
 

@@ -22,14 +22,15 @@ namespace py = pybind11;
 
 namespace netket {
 
-void AddCustomSamplerPt(py::module &subm) {
-  py::class_<CustomSamplerPt, AbstractSampler>(subm, "CustomSamplerPt")
-      .def(py::init<AbstractMachine &, const LocalOperator &,
-                    const std::vector<double> &, int>(),
-           py::keep_alive<1, 2>(), py::arg("machine"),
-           py::arg("move_operators"),
-           py::arg("move_weights") = std::vector<double>(),
-           py::arg("n_replicas") = 1, R"EOF(
+void AddCustomSamplerPt(py::module subm) {
+  auto cls =
+      py::class_<CustomSamplerPt, AbstractSampler>(subm, "CustomSamplerPt")
+          .def(py::init<AbstractMachine &, const LocalOperator &,
+                        const std::vector<double> &, int>(),
+               py::keep_alive<1, 2>(), py::arg("machine"),
+               py::arg("move_operators"),
+               py::arg("move_weights") = std::vector<double>(),
+               py::arg("n_replicas") = 1, R"EOF(
              Constructs a new ``CustomSamplerPt`` given a machine and a list of local
              stochastic move (transition) operators.
 
@@ -64,9 +65,10 @@ void AddCustomSamplerPt(py::module &subm) {
 
                  ```
              )EOF")
-      .def_property("sweep_size", &CustomSamplerPt::GetSweepSize,
-                    &CustomSamplerPt::SetSweepSize, R"EOF(
+          .def_property("sweep_size", &CustomSamplerPt::GetSweepSize,
+                        &CustomSamplerPt::SetSweepSize, R"EOF(
                              The size of the sweep. Extra caution should be put in making sure that the number of sweeps is sufficient to have an ergodic sampling.)EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

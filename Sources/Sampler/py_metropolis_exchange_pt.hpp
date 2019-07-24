@@ -23,16 +23,18 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisExchangePt(py::module &subm) {
-  py::class_<MetropolisExchangePt, AbstractSampler>(
-      subm, "MetropolisExchangePt", R"EOF(
+  auto cls =
+      py::class_<MetropolisExchangePt, AbstractSampler>(
+          subm, "MetropolisExchangePt", R"EOF(
     This sampler performs parallel-tempering moves in addition to
     the local exchange moves implemented in `MetropolisExchange`.
     The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
     )EOF")
-      .def(py::init<const AbstractGraph &, AbstractMachine &, int, int>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-           py::arg("machine"), py::arg("d_max") = 1, py::arg("n_replicas") = 1,
-           R"EOF(
+          .def(py::init<const AbstractGraph &, AbstractMachine &, int, int>(),
+               py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
+               py::arg("machine"), py::arg("d_max") = 1,
+               py::arg("n_replicas") = 1,
+               R"EOF(
              Constructs a new ``MetropolisExchangePt`` sampler given a machine, a
              graph, and a number of replicas.
 
@@ -64,6 +66,7 @@ void AddMetropolisExchangePt(py::module &subm) {
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 
 }  // namespace netket

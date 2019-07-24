@@ -21,13 +21,13 @@ namespace detail {
 void Flipper::RandomState() {
   std::generate(state_.data(), state_.data() + state_.size(), [this]() {
     return local_states_[std::uniform_int_distribution<int>{
-        0, static_cast<int>(local_states_.size()) - 1}(Generator())];
+        0, static_cast<int>(local_states_.size()) - 1}(engine_)];
   });
 }
 
 void Flipper::RandomSites() {
   std::generate(sites_.data(), sites_.data() + sites_.size(), [this]() {
-    return std::uniform_int_distribution<Index>{0, Nvisible() - 1}(Generator());
+    return std::uniform_int_distribution<Index>{0, Nvisible() - 1}(engine_);
   });
 }
 
@@ -52,7 +52,7 @@ void Flipper::RandomNewValues() {
   // to increment indices by 1.
   const auto g = [this](const int j) {
     const auto idx = std::uniform_int_distribution<int>{
-        0, static_cast<int>(local_states_.size()) - 2}(engine_.Get());
+        0, static_cast<int>(local_states_.size()) - 2}(engine_);
     return local_states_[idx + (local_states_[idx] >= state_(j, sites_(j)))];
   };
   for (auto j = Index{0}; j < BatchSize(); ++j) {
@@ -61,13 +61,14 @@ void Flipper::RandomNewValues() {
 }
 
 Flipper::Flipper(std::pair<Index, Index> const shape,
-                 std::vector<double> local_states)
+                 std::vector<double> local_states,
+                 default_random_engine& engine)
     : sites_{},
       new_values_{},
       state_{},
       local_states_{std::move(local_states)},
       proposed_{},
-      engine_{} {
+      engine_{engine} {
   Index batch_size, system_size;
   std::tie(batch_size, system_size) = shape;
   if (batch_size < 1) {
@@ -118,6 +119,12 @@ nonstd::span<ConfDiff const> Flipper::Propose() {
 
 const RowMatrix<double>& Flipper::Visible() const noexcept { return state_; }
 
+RowMatrix<double>& Flipper::Visible() noexcept { return state_; }
+
+nonstd::span<const double> Flipper::LocalStates() const noexcept {
+  return local_states_;
+}
+
 void Flipper::Propose(Eigen::Ref<RowMatrix<double>> x) {
   assert(x.rows() == BatchSize() && x.cols() == Nvisible());
   x = state_;
@@ -155,16 +162,17 @@ MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
                                      const Index batch_size,
                                      const Index sweep_size,
                                      std::true_type /*safe*/)
-    : machine_{machine},
+    : AbstractSampler{machine},
       flipper_{{batch_size, machine.Nvisible()},
-               machine.GetHilbert().LocalStates()},
+               machine.GetHilbert().LocalStates(),
+               GetRandomEngine()},
       proposed_X_(batch_size, machine.Nvisible()),
       proposed_Y_(batch_size),
       current_Y_(batch_size),
       randoms_(batch_size),
       accept_(batch_size),
       sweep_size_(sweep_size) {
-  machine_.LogVal(flipper_.Visible(), current_Y_, {});
+  GetMachine().LogVal(flipper_.Visible(), current_Y_, {});
 }
 
 MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
@@ -175,15 +183,31 @@ MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
                         detail::CheckSweepSize(__FUNCTION__, sweep_size),
                         {}} {}
 
-void MetropolisLocalV2::Reset() {
-  flipper_.Reset();
-  machine_.LogVal(flipper_.Visible(), current_Y_, {});
+void MetropolisLocalV2::Reset(bool init_random) {
+  if (init_random) {
+    flipper_.Reset();
+    GetMachine().LogVal(flipper_.Visible(), current_Y_, {});
+  }
 }
 
 std::pair<Eigen::Ref<const RowMatrix<double>>,
           Eigen::Ref<const Eigen::VectorXcd>>
-MetropolisLocalV2::CurrentState() {
+MetropolisLocalV2::CurrentState() const {
   return {flipper_.Visible(), current_Y_};
+}
+
+void MetropolisLocalV2::SetVisible(Eigen::Ref<const RowMatrix<double>> x) {
+  auto& visible = flipper_.Visible();
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {visible.rows(), visible.cols()});
+  const auto local_states = flipper_.LocalStates();
+  const auto is_valid = [this, local_states](const double value) {
+    return std::find(local_states.begin(), local_states.end(), value) !=
+           local_states.end();
+  };
+  NETKET_CHECK(std::all_of(x.data(), x.data() + x.size(), std::cref(is_valid)),
+               InvalidInputError, "Invalid visible state");
+  visible = x;
 }
 
 void MetropolisLocalV2::SweepSize(Index const sweep_size) {
@@ -193,9 +217,9 @@ void MetropolisLocalV2::SweepSize(Index const sweep_size) {
 
 void MetropolisLocalV2::Next() {
   flipper_.Propose(proposed_X_);  // Now proposed_X_ contains next states `v'`
-  machine_.LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
+  GetMachine().LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
   std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
-    return std::uniform_real_distribution<double>{}(flipper_.Generator());
+    return std::uniform_real_distribution<double>{}(GetRandomEngine());
   });
   // Calculates acceptance probability
   accept_ =

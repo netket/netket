@@ -15,12 +15,10 @@
 #ifndef NETKET_METROPOLISEXCHANGE_HPP
 #define NETKET_METROPOLISEXCHANGE_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include "Utils/parallel_utils.hpp"
+#include <Eigen/Core>
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -32,11 +30,8 @@ class MetropolisExchange : public AbstractSampler {
   // states of visible units
   Eigen::VectorXd v_;
 
-  Eigen::VectorXd accept_;
-  Eigen::VectorXd moves_;
-
-  int mynode_;
-  int totalnodes_;
+  Index accept_;
+  Index moves_;
 
   // clusters to do updates
   std::vector<std::vector<int>> clusters_;
@@ -46,22 +41,18 @@ class MetropolisExchange : public AbstractSampler {
 
   int sweep_size_;
 
+  LogValAccumulator log_val_accumulator_;
+
  public:
   MetropolisExchange(const AbstractGraph &graph, AbstractMachine &psi,
                      int dmax = 1)
-      : AbstractSampler(psi), nv_(GetHilbert().Size()) {
+      : AbstractSampler(psi), nv_(GetMachine().GetHilbert().Size()) {
     Init(graph, dmax);
   }
 
   template <class G>
   void Init(const G &graph, int dmax) {
     v_.resize(nv_);
-
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    accept_.resize(1);
-    moves_.resize(1);
 
     GenerateClusters(graph, dmax);
 
@@ -97,14 +88,14 @@ class MetropolisExchange : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       if (initrandom) {
-        GetHilbert().RandomVals(v_, this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
       }
     }
 
     lt_ = GetMachine().InitLookup(v_);
-
-    accept_ = Eigen::VectorXd::Zero(1);
-    moves_ = Eigen::VectorXd::Zero(1);
+    log_val_accumulator_ = GetMachine().LogValSingle(v_, lt_);
+    accept_ = 0;
+    moves_ = 0;
   }
 
   void Sweep() override {
@@ -127,36 +118,34 @@ class MetropolisExchange : public AbstractSampler {
         newconf[0] = v_(sj);
         newconf[1] = v_(si);
 
-        auto explo =
-            std::exp(GetMachine().LogValDiff(v_, tochange, newconf, lt_));
+        const auto log_val_diff =
+            GetMachine().LogValDiff(v_, tochange, newconf, lt_);
+        auto explo = std::exp(log_val_diff);
 
         double ratio = this->GetMachineFunc()(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
-          accept_[0] += 1;
+          ++accept_;
           GetMachine().UpdateLookup(v_, tochange, newconf, lt_);
-          GetHilbert().UpdateConf(v_, tochange, newconf);
+          GetMachine().GetHilbert().UpdateConf(v_, tochange, newconf);
+          log_val_accumulator_ += log_val_diff;
         }
       }
-      moves_[0] += 1;
+      ++moves_;
     }
   }
 
-  const Eigen::VectorXd &Visible() const noexcept override { return v_; }
-
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLogSingle(v_, lt_);
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_.transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                &log_val_accumulator_.LogVal(), 1}};
   }
 
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
-      acc(i) /= moves_(i);
-    }
-    return acc;
-  }
+  Index BatchSize() const noexcept override { return 1; }
+
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_)
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accept_, moves_)
 };
 
 }  // namespace netket

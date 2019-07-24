@@ -15,13 +15,10 @@
 #ifndef NETKET_EXACT_SAMPLER_HPP
 #define NETKET_EXACT_SAMPLER_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include <limits>
-#include "Utils/parallel_utils.hpp"
+#include <Eigen/Core>
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -32,9 +29,7 @@ class ExactSampler : public AbstractSampler {
 
   // states of visible units
   Eigen::VectorXd v_;
-
-  Eigen::VectorXd accept_;
-  Eigen::VectorXd moves_;
+  int state_index_;
 
   int mynode_;
   int totalnodes_;
@@ -51,8 +46,8 @@ class ExactSampler : public AbstractSampler {
  public:
   explicit ExactSampler(AbstractMachine& psi)
       : AbstractSampler(psi),
-        nv_(GetHilbert().Size()),
-        hilbert_index_(GetHilbert().GetIndex()),
+        nv_(GetMachine().GetHilbert().Size()),
+        hilbert_index_(GetMachine().GetHilbert().GetIndex()),
         dim_(hilbert_index_.NStates()) {
     Init();
   }
@@ -63,14 +58,11 @@ class ExactSampler : public AbstractSampler {
     MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
 
-    if (!GetHilbert().IsDiscrete()) {
+    if (!GetMachine().GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Exact sampler works only for discrete "
           "Hilbert spaces");
     }
-
-    accept_.resize(1);
-    moves_.resize(1);
 
     Reset(true);
 
@@ -78,10 +70,6 @@ class ExactSampler : public AbstractSampler {
   }
 
   void Reset(bool initrandom) override {
-    if (initrandom) {
-      GetHilbert().RandomVals(v_, this->GetRandomEngine());
-    }
-
     double logmax = -std::numeric_limits<double>::infinity();
 
     logpsivals_.resize(dim_);
@@ -99,29 +87,34 @@ class ExactSampler : public AbstractSampler {
 
     dist_ = std::discrete_distribution<int>(psivals_.begin(), psivals_.end());
 
-    accept_ = Eigen::VectorXd::Zero(1);
-    moves_ = Eigen::VectorXd::Zero(1);
+    if (initrandom) {
+      state_index_ = dist_(this->GetRandomEngine());
+      v_ = hilbert_index_.NumberToState(state_index_);
+    }
   }
 
   void Sweep() override {
-    int newstate = dist_(this->GetRandomEngine());
-    v_ = hilbert_index_.NumberToState(newstate);
-
-    accept_(0) += 1;
-    moves_(0) += 1;
+    state_index_ = dist_(this->GetRandomEngine());
+    v_ = hilbert_index_.NumberToState(state_index_);
   }
 
-  const Eigen::VectorXd& Visible() const noexcept override { return v_; }
-
-  void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
-
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
-      acc(i) /= moves_(i);
-    }
-    return acc;
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_.transpose(),
+            Eigen::Map<const Eigen::VectorXcd>{&logpsivals_[state_index_], 1}};
   }
+
+  void SetVisible(Eigen::Ref<const RowMatrix<double>> v) override {
+    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+               {1, GetMachine().Nvisible()});
+    v_ = v.row(0);
+    state_index_ = hilbert_index_.StateToNumber(v_);
+  }
+
+  double Acceptance() const noexcept { return 1; }
+
+  Index BatchSize() const noexcept override { return 1; }
 
   void SetMachineFunc(MachineFunction machine_func) override {
     AbstractSampler::SetMachineFunc(machine_func);

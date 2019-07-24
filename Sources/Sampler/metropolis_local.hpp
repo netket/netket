@@ -33,11 +33,8 @@ class MetropolisLocal : public AbstractSampler {
   // states of visible units
   Eigen::VectorXd v_;
 
-  Eigen::VectorXd accept_;
-  Eigen::VectorXd moves_;
-
-  int mynode_;
-  int totalnodes_;
+  Index accept_;
+  Index moves_;
 
   // Look-up tables
   any lt_;
@@ -47,29 +44,25 @@ class MetropolisLocal : public AbstractSampler {
 
   int sweep_size_;
 
+  LogValAccumulator log_val_accumulator_;
+
  public:
   explicit MetropolisLocal(AbstractMachine& psi)
-      : AbstractSampler(psi), nv_(GetHilbert().Size()) {
+      : AbstractSampler(psi), nv_(GetMachine().GetHilbert().Size()) {
     Init();
   }
 
   void Init() {
     v_.resize(nv_);
 
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (!GetHilbert().IsDiscrete()) {
+    if (!GetMachine().GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Local Metropolis sampler works only for discrete "
           "Hilbert spaces");
     }
 
-    accept_.resize(1);
-    moves_.resize(1);
-
-    nstates_ = GetHilbert().LocalSize();
-    localstates_ = GetHilbert().LocalStates();
+    nstates_ = GetMachine().GetHilbert().LocalSize();
+    localstates_ = GetMachine().GetHilbert().LocalStates();
 
     Reset(true);
 
@@ -85,13 +78,14 @@ class MetropolisLocal : public AbstractSampler {
 
   void Reset(bool initrandom) override {
     if (initrandom) {
-      GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
     lt_ = GetMachine().InitLookup(v_);
+    log_val_accumulator_ = GetMachine().LogValSingle(v_, lt_);
 
-    accept_ = Eigen::VectorXd::Zero(1);
-    moves_ = Eigen::VectorXd::Zero(1);
+    accept_ = 0;
+    moves_ = 0;
   }
 
   void Sweep() override {
@@ -135,9 +129,10 @@ class MetropolisLocal : public AbstractSampler {
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
-        accept_[0] += 1;
+        ++accept_;
         GetMachine().UpdateLookup(v_, tochange, newconf, lt_);
-        GetHilbert().UpdateConf(v_, tochange, newconf);
+        GetMachine().GetHilbert().UpdateConf(v_, tochange, newconf);
+        log_val_accumulator_ += lvd;
 
 #ifndef NDEBUG
         const auto psival2 = GetMachine().LogValSingle(v_);
@@ -150,25 +145,21 @@ class MetropolisLocal : public AbstractSampler {
         }
 #endif
       }
-      moves_[0] += 1;
+      ++moves_;
     }
   }
 
-  const Eigen::VectorXd& Visible() const noexcept override { return v_; }
-
-  void SetVisible(const Eigen::VectorXd& v) override { v_ = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLogSingle(v_, lt_);
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_.transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                &log_val_accumulator_.LogVal(), 1}};
   }
 
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
-      acc(i) /= moves_(i);
-    }
-    return acc;
-  }
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_)
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accept_, moves_)
+
+  Index BatchSize() const noexcept override { return 1; }
 };
 
 }  // namespace netket

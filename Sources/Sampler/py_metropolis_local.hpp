@@ -23,7 +23,8 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisLocal(py::module &subm) {
-  py::class_<MetropolisLocal, AbstractSampler>(subm, "MetropolisLocal", R"EOF(
+  auto cls = py::class_<MetropolisLocal, AbstractSampler>(
+                 subm, "MetropolisLocal", R"EOF(
       This sampler acts locally only on one local degree of freedom $$s_i$$,
       and proposes a new state: $$ s_1 \dots s^\prime_i \dots s_N $$,
       where $$ s^\prime_i \neq s_i $$.
@@ -45,8 +46,8 @@ void AddMetropolisLocal(py::module &subm) {
       would pick a random local occupation number uniformly between $$0$$
       and $$n_{\mathrm{max}}$$.
       )EOF")
-      .def(py::init<AbstractMachine &>(), py::keep_alive<1, 2>(),
-           py::arg("machine"), R"EOF(
+                 .def(py::init<AbstractMachine &>(), py::keep_alive<1, 2>(),
+                      py::arg("machine"), R"EOF(
              Constructs a new ``MetropolisLocal`` sampler given a machine.
 
              Args:
@@ -74,6 +75,7 @@ void AddMetropolisLocal(py::module &subm) {
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

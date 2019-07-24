@@ -23,7 +23,7 @@
 #include <nonstd/span.hpp>
 
 #include "Machine/rbm_spin_v2.hpp"
-#include "Operator/abstract_operator.hpp"
+#include "Sampler/abstract_sampler.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -42,11 +42,11 @@ class Flipper {
   using Vector = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
   inline Flipper(std::pair<Index, Index> const shape,
-                 std::vector<double> local_states);
+                 std::vector<double> local_states,
+                 default_random_engine& engine);
 
   Index BatchSize() const noexcept { return state_.rows(); }
   Index Nvisible() const noexcept { return state_.cols(); }
-  default_random_engine& Generator() noexcept { return engine_.Get(); }
 
   /// \brief Resets the flipper.
   ///
@@ -66,6 +66,12 @@ class Flipper {
   /// #BatchSize() rows in the returned matrix.
   inline const RowMatrix<double>& Visible() const noexcept;
 
+  /// \brief Returns the current visible state.
+  ///
+  /// Each row of the matrix describes one visible configuration. There are
+  /// #BatchSize() rows in the returned matrix.
+  inline RowMatrix<double>& Visible() noexcept;
+
   /// \brief Returns next spins to try flipping.
   ///
   /// \warning Don't call this function more than once per call to #Update()!
@@ -75,6 +81,8 @@ class Flipper {
   ///
   /// \warning Don't call this function more than once per call to #Update()!
   inline void Propose(Eigen::Ref<RowMatrix<double>> x);
+
+  inline nonstd::span<const double> LocalStates() const noexcept;
 
  private:
   /// \brief Randomizes the state.
@@ -106,12 +114,11 @@ class Flipper {
   std::vector<double> local_states_;
 
   std::vector<ConfDiff> proposed_;
-  DistributedRandomEngine engine_;
+  default_random_engine& engine_;
 };
 }  // namespace detail
 
-class MetropolisLocalV2 {
-  AbstractMachine& machine_;
+class MetropolisLocalV2 : public AbstractSampler {
   detail::Flipper flipper_;
   RowMatrix<double> proposed_X_;
   Eigen::ArrayXcd proposed_Y_;
@@ -130,9 +137,8 @@ class MetropolisLocalV2 {
   MetropolisLocalV2(AbstractMachine& machine, Index batch_size,
                     Index sweep_size);
 
-  Index BatchSize() const noexcept { return flipper_.BatchSize(); }
+  Index BatchSize() const noexcept override { return flipper_.BatchSize(); }
   Index Nvisible() const noexcept { return flipper_.Nvisible(); }
-  AbstractMachine& Machine() const noexcept { return machine_; }
 
   Index SweepSize() const noexcept { return sweep_size_; }
   void SweepSize(Index sweep_size);
@@ -140,12 +146,14 @@ class MetropolisLocalV2 {
   /// Returns a batch of current visible states and corresponding log values.
   std::pair<Eigen::Ref<const RowMatrix<double>>,
             Eigen::Ref<const Eigen::VectorXcd>>
-  CurrentState();
+  CurrentState() const override;
 
-  void Sweep();
+  void SetVisible(Eigen::Ref<const RowMatrix<double>> x) override;
+
+  void Sweep() override;
 
   /// Resets the sampler.
-  void Reset();
+  void Reset(bool init_random) override;
 };
 
 }  // namespace netket

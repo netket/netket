@@ -23,7 +23,8 @@ namespace py = pybind11;
 namespace netket {
 
 void AddExactSampler(py::module &subm) {
-  py::class_<ExactSampler, AbstractSampler>(subm, "ExactSampler", R"EOF(
+  auto cls =
+      py::class_<ExactSampler, AbstractSampler>(subm, "ExactSampler", R"EOF(
     This sampler generates i.i.d. samples from $$|\Psi(s)|^2$$.
     In order to perform exact sampling, $$|\Psi(s)|^2$$ is precomputed an all
     the possible values of the quantum numbers $$s$$. This sampler has thus an
@@ -31,8 +32,8 @@ void AddExactSampler(py::module &subm) {
     for large systems, where Metropolis-based sampling are instead a viable
     option.
     )EOF")
-      .def(py::init<AbstractMachine &>(), py::keep_alive<1, 2>(),
-           py::arg("machine"), R"EOF(
+          .def(py::init<AbstractMachine &>(), py::keep_alive<1, 2>(),
+               py::arg("machine"), R"EOF(
              Constructs a new ``ExactSampler`` given a machine.
 
              Args:
@@ -57,6 +58,7 @@ void AddExactSampler(py::module &subm) {
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

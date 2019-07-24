@@ -167,7 +167,7 @@ class QuantumStateReconstruction {
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
-      vsamp_.row(i) = sampler_.Visible();
+      vsamp_.row(i) = VisibleLegacy(sampler_);
     }
   }
 
@@ -266,7 +266,9 @@ class QuantumStateReconstruction {
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
+#if 0
       obs_data["Acceptance"] = sampler_.Acceptance();
+#endif
 
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
@@ -338,7 +340,9 @@ class QuantumStateReconstruction {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
+#if 0
     obs_data["Acceptance"] = sampler_.Acceptance();
+#endif
 
     if (writer_.has_value()) {  // writer_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once

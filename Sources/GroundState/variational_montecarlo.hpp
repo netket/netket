@@ -209,7 +209,9 @@ class VariationalMonteCarlo {
       // written once
       if (writer.has_value()) {
         auto obs_data = json(observable_stats_);
+#if 0
         obs_data["Acceptance"] = sampler_.Acceptance();
+#endif
 
         writer->WriteLog(step, obs_data);
         writer->WriteState(step, psi_);
