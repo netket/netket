@@ -9,7 +9,7 @@ import tempfile
 SEED = 3141592
 
 
-def _setup_vmc():
+def _setup_vmc(**kwargs):
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
 
@@ -21,9 +21,7 @@ def _setup_vmc():
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    vmc = nk.variational.Vmc(
-        hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, diag_shift=0.01
-    )
+    vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
@@ -34,8 +32,21 @@ def _setup_vmc():
 
 
 def test_vmc_advance():
-    ma1, vmc1 = _setup_vmc()
-    ma2, vmc2 = _setup_vmc()
+    ma1, vmc1 = _setup_vmc(n_samples=500, diag_shift=0.01)
+    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01)
+
+    for i in range(10):
+        vmc1.advance()
+
+    for step in vmc2.iter(10):
+        pass
+
+    assert (ma1.parameters == ma2.parameters).all()
+
+
+def test_vmc_advance_iterative():
+    ma1, vmc1 = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
+    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
 
     for i in range(10):
         vmc1.advance()
@@ -47,7 +58,26 @@ def test_vmc_advance():
 
 
 def test_vmc_iterator():
-    ma, vmc = _setup_vmc()
+    ma, vmc = _setup_vmc(n_samples=500, diag_shift=0.01)
+
+    count = 0
+    last_obs = None
+    for i, step in enumerate(vmc.iter(300)):
+        count += 1
+        assert step == i
+        obs = vmc.get_observable_stats()
+        for name in "Energy", "EnergyVariance", "SigmaX":
+            assert name in obs
+            e = obs[name]
+            assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+        last_obs = obs
+
+    assert count == 300
+    assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)
+
+
+def test_vmc_iterator_iterative():
+    ma, vmc = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
 
     count = 0
     last_obs = None
@@ -66,7 +96,7 @@ def test_vmc_iterator():
 
 
 def test_vmc_run():
-    ma, vmc = _setup_vmc()
+    ma, vmc = _setup_vmc(n_samples=500, diag_shift=0.01)
 
     tempdir = tempfile.mkdtemp()
     print("Writing test output files to: {}".format(tempdir))
