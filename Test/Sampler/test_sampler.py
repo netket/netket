@@ -57,6 +57,7 @@ move_op = nk.operator.LocalOperator(
     hilbert=hi, operators=[X] * l, acting_on=[[i] for i in range(l)]
 )
 
+
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin"] = sa
 
@@ -138,7 +139,7 @@ def test_correct_sampling():
 
         n_states = hi.n_states
 
-        n_samples = max(10 * n_states, 40000)
+        n_samples = max(40 * n_states, 40000)
 
         for ord in (1, 2):
             if ord == 1:
