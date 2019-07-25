@@ -3,7 +3,7 @@ import networkx as nx
 import numpy as np
 import pytest
 from pytest import approx
-from scipy.stats import power_divergence
+from scipy.stats import power_divergence, combine_pvalues
 
 samplers = {}
 
@@ -150,23 +150,24 @@ def test_correct_sampling():
             ps = np.absolute(ma.to_array()) ** ord
             ps /= ps.sum()
 
-            hist_samp = np.zeros(n_states)
-            # fill in the histogram for sampler
-
-            for sw in range(n_samples):
-                sa.sweep()
-                visible = sa.visible
-                sttn = hi.state_to_number(visible)
-                hist_samp[sttn] += 1
-
             # expected frequencies
             f_exp = n_samples * ps
 
-            pvalue = np.zeros(3)
-            statistics, pvalue[0] = power_divergence(hist_samp, f_exp=f_exp, lambda_=0)
-            statistics, pvalue[1] = power_divergence(hist_samp, f_exp=f_exp, lambda_=1)
-            statistics, pvalue[2] = power_divergence(
-                hist_samp, f_exp=f_exp, lambda_=2 / 3
-            )
+            pvalues = np.zeros(3)
 
-            assert np.max(pvalue) > 0.01
+            for jrep in range(3):
+                hist_samp = np.zeros(n_states)
+                # fill in the histogram for sampler
+
+                for sw in range(n_samples):
+                    sa.sweep()
+                    visible = sa.visible
+                    sttn = hi.state_to_number(visible)
+                    hist_samp[sttn] += 1
+
+                statistics, pvalues[jrep] = power_divergence(
+                    hist_samp, f_exp=f_exp, lambda_=1
+                )
+
+            s, pval = combine_pvalues(pvalues, method="fisher")
+            assert pval > 0.01
