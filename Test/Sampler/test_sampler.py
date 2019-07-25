@@ -168,4 +168,4 @@ def test_correct_sampling():
                 hist_samp, f_exp=f_exp, lambda_=2 / 3
             )
 
-            assert np.max(pvalue) < 0.01
+            assert np.max(pvalue) > 0.01
