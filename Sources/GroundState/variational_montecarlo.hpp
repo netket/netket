@@ -38,7 +38,7 @@
 namespace netket {
 
 inline void to_json(json &j, const Stats &stats) {
-  j = json{{"Mean", stats.mean},
+  j = json{{"Mean", stats.mean.real()},
            {"Sigma", stats.error_of_mean},
            {"Variance", stats.variance},
            {"Taucorr", stats.correlation},

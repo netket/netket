@@ -42,7 +42,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
   py::class_<MCResult>(m_vmc, "MCResult")
       .def_readonly("samples", &MCResult::samples)
       .def_readonly("log_values", &MCResult::log_values)
-      .def_readonly("der_logs", &MCResult::der_logs);
+      .def_readonly("der_logs", &MCResult::der_logs)
+      .def_readonly("n_chains", &MCResult::num_chains);
 
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",

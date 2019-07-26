@@ -39,10 +39,21 @@ struct Stats {
   double R;
 };
 
+/// Class storing the result data of a MC run.
 struct MCResult {
+  /// \brief Visible configurations visited during sampling.
+  ///
+  /// Every row represents a visible configuration.
+  /// Samples from different Markov Chains are interleaved.
   RowMatrix<double> samples;
+  /// \brief Logarithm of the wavefunction.
+  ///
+  /// `log_values(i) == LogVal(samples.row(i))`.
   Eigen::VectorXcd log_values;
+  /// \brief Logarithmic derivatives with respect to variational parameters.
   nonstd::optional<RowMatrix<Complex>> der_logs;
+  /// \brief Number of Markov Chains interleaved in #samples.
+  Index num_chains;
 };
 
 #if 0
@@ -108,10 +119,6 @@ class Result {
  * @param n_discard Number of #Sweep() s for warming up.
  * @param compute_gradients Whether to compute logarithmic derivatives of the
  *                          wavefunction.
- *
- * @return a tuple of visible configurations, logarithms of wave function
- *         values, and (optionally) logarithmic derivatives with respect to
- *         variational parameters.
  */
 MCResult ComputeSamples(AbstractSampler &sampler, Index n_samples,
                         Index n_discard, bool compute_gradients);
@@ -134,7 +141,12 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
                              AbstractMachine &machine,
                              const AbstractOperator &op, Index batch_size = 32);
 
-Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
+/// Computes mean, variance, etc. given local estimators of an observable.
+///
+/// Since results from different markov chains are interleaved in `local_values`
+/// is is impotant to correctly specify `local_number_chains`. One can obtain it
+/// either from #AbstractSampler of #MCResult.
+Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> local_values,
                  Index local_number_chains);
 #if 0
 /**

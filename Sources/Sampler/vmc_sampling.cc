@@ -1,4 +1,3 @@
-#include <fstream>
 #include "Utils/messages.hpp"
 #include "vmc_sampling.hpp"
 
@@ -109,6 +108,8 @@ class MeanAndVarianceAccumulator {
   MeanAndVarianceAccumulator(nonstd::span<double> mu, nonstd::span<double> var)
       : mu_{mu}, M2_{var}, n_{0} {
     CheckShape(__FUNCTION__, "var", mu_.size(), M2_.size());
+    std::fill(mu_.begin(), mu_.end(), 0.0);
+    std::fill(M2_.begin(), M2_.end(), 0.0);
   }
 
   void operator()(nonstd::span<const double> xs) {
@@ -410,7 +411,8 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
   }
 
   if (gradients.has_value()) detail::SubtractMean(*gradients);
-  return {std::move(samples), std::move(values), std::move(gradients)};
+  return {std::move(samples), std::move(values), std::move(gradients),
+          sampler.BatchSize()};
 }
 #endif
 
@@ -551,7 +553,6 @@ struct Accumulator {
       accum_ = 0.0;
     }
     {
-      const auto& state = states_.back();
       for (; i < y.size(); ++i) {
         accum_ += y(i) * coeff(i);
       }
