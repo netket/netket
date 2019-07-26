@@ -211,10 +211,11 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const double lf1 = 2 * std::real(GetMachine().LogVal(v_[r1], lt_[r1]));
-    const double lf2 = 2 * std::real(GetMachine().LogVal(v_[r2], lt_[r2]));
+    const auto lf1 = GetMachine().LogVal(v_[r1], lt_[r1]);
+    const auto lf2 = GetMachine().LogVal(v_[r2], lt_[r2]);
 
-    return std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1));
+    return this->GetMachineFunc()(
+        std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1)));
   }
 
   void Exchange(int r1, int r2) {
