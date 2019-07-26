@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10.3)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
@@ -41,7 +41,6 @@ endif()
 #
 # Dependencies
 #
-
 # json
 ################################################################################
 ExternalProject_Add(
@@ -161,7 +160,9 @@ target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
 # MPI
 ################################################################################
 find_package(MPI REQUIRED)
-
+if(MPI_C_VERSION_MAJOR LESS 3)
+message( FATAL_ERROR "NetKet requires at least MPI 3." )
+endif()
 
 # OpenMP
 ################################################################################
@@ -221,7 +222,7 @@ set(NETKET_WARNING_FLAGS
     -Wall -Wextra -pedantic
     -Wshadow
 )
-target_compile_options(netket_lib INTERFACE ${NEKET_WARNING_FLAGS})
+target_compile_options(netket_lib INTERFACE ${NETKET_WARNING_FLAGS})
 
 if(${CMAKE_GENERATOR} STREQUAL "Ninja")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -237,10 +238,19 @@ if(NETKET_USE_BLAS)
     target_link_libraries(netket_lib INTERFACE ${BLAS_LIBRARIES})
 endif()
 
-if(NEKET_USE_LAPACK)
+if(NETKET_USE_LAPACK)
     find_package(LAPACK REQUIRED)
-    target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1 EIGEN_USE_LAPACKE=1)
-    target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
+    find_package(LAPACKE)
+
+    if(LAPACKE_FOUND)
+        message("Found LAPACKE.")
+        target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1 EIGEN_USE_LAPACKE=1)
+        target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES} ${LAPACKE_LIBRARIES})
+    else()
+        message(WARNING "Found LAPACK, but not LAPACKE.")
+        target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1)
+        target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
+    endif()
 endif()
 
 

@@ -39,7 +39,6 @@ def _ExactTimePropagation_iter(self, dt, n_iter=None):
         yield i
 
 
-@_core.deprecated()
 class EdResult(object):
     def __init__(self, eigenvalues, eigenvectors):
         # NOTE: These conversions are required because our old C++ code stored
@@ -70,11 +69,6 @@ class EdResult(object):
         return numpy.vdot(x, operator(x))
 
 
-@_core.deprecated(
-    "use 'netket.Operator.to_linear_operator' to convert an operator "
-    "to a 'scipy.sparse.linalg.LinearOperator' and then call "
-    "'scipy.sparse.linalg.eigsh' directly"
-)
 def lanczos_ed(
     operator,
     matrix_free=False,
@@ -132,22 +126,17 @@ def lanczos_ed(
     return EdResult(result, None)
 
 
-@_core.deprecated(
-    "use 'netket.Operator.to_linear_operator' to convert an operator "
-    "to a 'scipy.sparse.linalg.LinearOperator' and then call "
-    "'scipy.sparse.linalg.eigsh' directly"
-)
 def full_ed(operator, first_n=1, compute_eigenvectors=False):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
-    of a Hermitian operator using the Lanczos method.
+    of a Hermitian operator by full diagonalization.
 
     Args:
         operator: Operator to diagnolize.
-        first_n: Number of eigenvalues to compute.
+        first_n: (Deprecated) Number of eigenvalues to compute.
+            This has no performance impact, as full_ed will compute all
+            eigenvalues anyway.
         compute_eigenvectors: Whether or not to return the
-            eigenvectors of the operator. With ARPACK, not requiring the
-            eigenvectors has almost no performance benefits.
-
+            eigenvectors of the operator.
 
     Examples:
         Testing the numer of eigenvalues saved when solving a simple
@@ -164,12 +153,19 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
         3
         ```
     """
-    return lanczos_ed(
-        operator,
-        matrix_free=False,
-        first_n=first_n,
-        compute_eigenvectors=compute_eigenvectors,
-    )
+    from numpy.linalg import eigh, eigvalsh
+
+    dense_op = operator.to_dense()
+
+    if not (1 <= first_n < dense_op.shape[0]):
+        raise ValueError("first_n must be in range 1..dim(operator)")
+
+    if compute_eigenvectors:
+        w, v = eigh(dense_op)
+        return EdResult(w[:first_n], v[:, :first_n])
+    else:
+        w = eigvalsh(dense_op)
+        return EdResult(w[:first_n], None)
 
 
 ExactTimePropagation.iter = _ExactTimePropagation_iter
