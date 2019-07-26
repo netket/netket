@@ -34,7 +34,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   py::class_<Stats>(m_vmc, "Stats")
       .def_readonly("mean", &Stats::mean)
-      .def_readonly("error_on_mean", &Stats::error)
+      .def_readonly("error_of_mean", &Stats::error)
       .def_readonly("variance", &Stats::variance)
       .def_readonly("autocorrelation", &Stats::correlation)
       .def_readonly("R", &Stats::R);
@@ -199,7 +199,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             return sr->StoreRankEnabled();
           },
           [](VariationalMonteCarlo &self, bool enabled) {
-            auto& sr = self.GetSR();
+            auto &sr = self.GetSR();
             if (!sr.has_value()) {
               throw std::invalid_argument{"SR not enabled"};
             }
@@ -228,7 +228,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             return sr->StoreFullSMatrixEnabled();
           },
           [](VariationalMonteCarlo &self, bool enabled) {
-            auto& sr = self.GetSR();
+            auto &sr = self.GetSR();
             if (!sr.has_value()) {
               throw std::invalid_argument{"SR not enabled"};
             }
