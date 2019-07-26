@@ -29,7 +29,7 @@ struct Stats {
   Complex mean;
   /// Standard deviation of the mean values of all chains.
   /// TODO: Make this split chains into halfs.
-  double error;
+  double error_of_mean;
   /// Average of in-chain variances of the observable over all Markov Chains.
   double variance;
   /// ???

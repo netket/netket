@@ -23,7 +23,9 @@ namespace netket {
 
 class AbstractSampler {
  public:
-  using MachineFunction = std::function<double(const Complex&)>;
+  // using MachineFunction = std::function<double(const Complex&)>;
+  using MachineFunction =
+      std::function<void(nonstd::span<const Complex>, nonstd::span<double>)>;
 
   virtual void Reset(bool initrandom = false) = 0;
 
@@ -59,7 +61,13 @@ class AbstractSampler {
  protected:
   AbstractSampler(AbstractMachine& psi)
       : engine_{},
-        machine_func_{[](const Complex& z) { return std::norm(z); }},
+        machine_func_{
+            [](nonstd::span<const Complex> x, nonstd::span<double> out) {
+              CheckShape("AbstractSampler::machine_func_", "out", out.size(),
+                         x.size());
+              std::transform(x.begin(), x.end(), out.begin(),
+                             [](Complex z) { return std::norm(z); });
+            }},
         psi_{psi} {}
 
   default_random_engine& GetRandomEngine() { return engine_.Get(); }
@@ -68,7 +76,7 @@ class AbstractSampler {
   DistributedRandomEngine engine_;
   MachineFunction machine_func_;
   AbstractMachine& psi_;
-};
+};  // namespace netket
 
 inline Eigen::Ref<const Eigen::VectorXd> VisibleLegacy(
     const AbstractSampler& sampler) {
@@ -165,6 +173,14 @@ class LogValAccumulator {
                  "Cannot compute acceptance, because no moves were made"); \
     return (accepts.array() / moves.array()).matrix();                     \
   }
+
+#define NETKET_SAMPLER_APPLY_MACHINE_FUNC(expr)                \
+  [this](const Complex z) {                                    \
+    double result;                                             \
+    this->GetMachineFunc()(nonstd::span<const Complex>{&z, 1}, \
+                           nonstd::span<double>{&result, 1});  \
+    return result;                                             \
+  }(expr)
 
 }  // namespace netket
 #endif

@@ -126,9 +126,40 @@ void AddSamplerModule(py::module& m) {
         netket.machine: The machine used for the sampling.  )EOF")
       .def_property_readonly("batch_size", &AbstractSampler::BatchSize, R"EOF(
         int: Number of samples in a batch.)EOF")
-      .def_property("machine_func", &AbstractSampler::GetMachineFunc,
-                    &AbstractSampler::SetMachineFunc,
-                    R"EOF(
+      .def_property(
+          "machine_func",
+          [](const AbstractSampler& self) {
+            return py::cpp_function(
+                [&self](py::array_t<Complex, py::array::c_style> x,
+                        py::array_t<double, py::array::c_style> out) {
+                  const auto input = [&x]() {
+                    auto reference = x.unchecked<1>();
+                    return nonstd::span<const Complex>{reference.data(0),
+                                                       reference.size()};
+                  }();
+                  const auto output = [&out]() {
+                    auto reference = out.mutable_unchecked<1>();
+                    return nonstd::span<double>{reference.mutable_data(0),
+                                                reference.size()};
+                  }();
+                  self.GetMachineFunc()(input, output);
+                },
+                py::arg{"x"}.noconvert(), py::arg{"out"}.noconvert());
+          },
+          [](AbstractSampler& self, py::function func) {
+            self.SetMachineFunc([func](nonstd::span<const Complex> x,
+                                       nonstd::span<double> out) {
+              auto input = py::array_t<Complex>{static_cast<size_t>(x.size()),
+                                                x.data(), /*base=*/py::none()};
+              py::detail::array_proxy(input.ptr())->flags &=
+                  ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+              auto output = py::array_t<double>{static_cast<size_t>(out.size()),
+                                                out.data(),
+                                                /*base=*/py::none()};
+              func(input, output);
+            });
+          },
+          R"EOF(
                           function(complex): The function to be used for sampling.
                                        by default $$|\Psi(x)|^2$$ is sampled,
                                        however in general $$F(\Psi(v))$$  )EOF");

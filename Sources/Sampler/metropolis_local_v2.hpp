@@ -123,7 +123,8 @@ class MetropolisLocalV2 : public AbstractSampler {
   RowMatrix<double> proposed_X_;
   Eigen::ArrayXcd proposed_Y_;
   Eigen::ArrayXcd current_Y_;
-  Eigen::ArrayXd randoms_;
+  Eigen::ArrayXcd quotient_Y_;
+  Eigen::ArrayXd probability_;
   Eigen::Array<bool, Eigen::Dynamic, 1> accept_;
   Index sweep_size_;
 

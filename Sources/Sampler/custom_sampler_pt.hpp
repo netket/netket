@@ -166,7 +166,7 @@ class CustomSamplerPt : public AbstractSampler {
           v_[rep], tochange_[exit_state], newconfs_[exit_state], lt_[rep]);
       auto explo = std::exp(beta_[rep] * log_val_diff);
 
-      double ratio = this->GetMachineFunc()(explo);
+      double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(explo);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
@@ -218,7 +218,7 @@ class CustomSamplerPt : public AbstractSampler {
     const auto lf1 = GetMachine().LogValSingle(v_[r1], lt_[r1]);
     const auto lf2 = GetMachine().LogValSingle(v_[r2], lt_[r2]);
 
-    return this->GetMachineFunc()(
+    return NETKET_SAMPLER_APPLY_MACHINE_FUNC(
         std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1)));
   }
 

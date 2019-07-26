@@ -38,7 +38,11 @@
 namespace netket {
 
 inline void to_json(json &j, const Stats &stats) {
-  j = json{{"mean", stats.mean}, {"variance", stats.variance}, {"R", stats.R}};
+  j = json{{"Mean", stats.mean},
+           {"Sigma", stats.error_of_mean},
+           {"Variance", stats.variance},
+           {"Taucorr", stats.correlation},
+           {"R", stats.R}};
 }
 
 // Variational Monte Carlo schemes to learn the ground state

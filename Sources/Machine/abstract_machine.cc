@@ -73,7 +73,8 @@ AbstractMachine::VectorType AbstractMachine::LogVal(
 }
 
 void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                             Eigen::Ref<RowMatrixType> out, const any &cache) {
+                             Eigen::Ref<RowMatrixType> out,
+                             const any & /*cache*/) {
   CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {v.rows(), Npar()});

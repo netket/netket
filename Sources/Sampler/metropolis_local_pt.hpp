@@ -142,7 +142,8 @@ class MetropolisLocalPt : public AbstractSampler {
 
       const auto lvd =
           GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
-      double ratio = this->GetMachineFunc()(std::exp(beta_[rep] * lvd));
+      double ratio =
+          NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(beta_[rep] * lvd));
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogValSingle(v_[rep]);
@@ -216,7 +217,7 @@ class MetropolisLocalPt : public AbstractSampler {
     const auto lf1 = GetMachine().LogValSingle(v_[r1], lt_[r1]);
     const auto lf2 = GetMachine().LogValSingle(v_[r2], lt_[r2]);
 
-    return this->GetMachineFunc()(
+    return NETKET_SAMPLER_APPLY_MACHINE_FUNC(
         std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1)));
   }
 

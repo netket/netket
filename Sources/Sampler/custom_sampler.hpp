@@ -143,7 +143,7 @@ class CustomSampler : public AbstractSampler {
       const auto log_val_diff = GetMachine().LogValDiff(
           v_, tochange_[exit_state], newconfs_[exit_state], lt_);
       auto exlog = std::exp(log_val_diff);
-      double ratio = this->GetMachineFunc()(exlog);
+      const auto ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {

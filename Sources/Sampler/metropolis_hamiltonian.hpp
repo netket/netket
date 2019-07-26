@@ -115,7 +115,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       const auto lvd =
           GetMachine().LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
-      double ratio = this->GetMachineFunc()(std::exp(lvd)) * w1 / w2;
+      double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogValSingle(v_);

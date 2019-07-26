@@ -122,7 +122,7 @@ class MetropolisExchange : public AbstractSampler {
             GetMachine().LogValDiff(v_, tochange, newconf, lt_);
         auto explo = std::exp(log_val_diff);
 
-        double ratio = this->GetMachineFunc()(explo);
+        double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           ++accept_;

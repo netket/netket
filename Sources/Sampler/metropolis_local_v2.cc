@@ -169,7 +169,8 @@ MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,
       proposed_X_(batch_size, machine.Nvisible()),
       proposed_Y_(batch_size),
       current_Y_(batch_size),
-      randoms_(batch_size),
+      quotient_Y_(batch_size),
+      probability_(batch_size),
       accept_(batch_size),
       sweep_size_(sweep_size) {
   GetMachine().LogVal(flipper_.Visible(), current_Y_, {});
@@ -201,7 +202,7 @@ void MetropolisLocalV2::SetVisible(Eigen::Ref<const RowMatrix<double>> x) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {visible.rows(), visible.cols()});
   const auto local_states = flipper_.LocalStates();
-  const auto is_valid = [this, local_states](const double value) {
+  const auto is_valid = [local_states](const double value) {
     return std::find(local_states.begin(), local_states.end(), value) !=
            local_states.end();
   };
@@ -218,12 +219,15 @@ void MetropolisLocalV2::SweepSize(Index const sweep_size) {
 void MetropolisLocalV2::Next() {
   flipper_.Propose(proposed_X_);  // Now proposed_X_ contains next states `v'`
   GetMachine().LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
-  std::generate(randoms_.data(), randoms_.data() + randoms_.size(), [this]() {
-    return std::uniform_real_distribution<double>{}(GetRandomEngine());
-  });
   // Calculates acceptance probability
-  accept_ =
-      randoms_ < (proposed_Y_ - current_Y_).real().exp().square().min(1.0);
+  quotient_Y_ = (proposed_Y_ - current_Y_).exp();
+  GetMachineFunc()(quotient_Y_, probability_);
+  for (auto i = Index{0}; i < accept_.size(); ++i) {
+    accept_(i) = probability_(i) >= 1.0
+                     ? true
+                     : std::uniform_real_distribution<double>{}(
+                           GetRandomEngine()) < probability_(i);
+  }
   // Updates current state
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
   flipper_.Update({accept_});

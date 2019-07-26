@@ -34,7 +34,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   py::class_<Stats>(m_vmc, "Stats")
       .def_readonly("mean", &Stats::mean)
-      .def_readonly("error_of_mean", &Stats::error)
+      .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)
       .def_readonly("autocorrelation", &Stats::correlation)
       .def_readonly("R", &Stats::R);

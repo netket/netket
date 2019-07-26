@@ -82,7 +82,8 @@ class ExactSampler : public AbstractSampler {
     }
 
     for (int i = 0; i < dim_; ++i) {
-      psivals_[i] = this->GetMachineFunc()(std::exp(logpsivals_[i] - logmax));
+      psivals_[i] =
+          NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(logpsivals_[i] - logmax));
     }
 
     dist_ = std::discrete_distribution<int>(psivals_.begin(), psivals_.end());

@@ -114,7 +114,7 @@ class MetropolisLocal : public AbstractSampler {
       }
 
       const auto lvd = GetMachine().LogValDiff(v_, tochange, newconf, lt_);
-      double ratio = this->GetMachineFunc()(std::exp(lvd));
+      double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(lvd));
 
 #ifndef NDEBUG
       const auto psival1 = GetMachine().LogValSingle(v_);

@@ -124,18 +124,13 @@ def test_vmc_run():
     for i, obs in enumerate(output):
         step = obs["Iteration"]
         assert step == i
-        # TODO: Choose which version we want
-        # for name in "Energy", "EnergyVariance", "SigmaX":
-        #     assert name in obs
-        #     e = obs[name]
-        #     assert "Mean" in e and "Sigma" in e and "Taucorr" in e
         for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert "mean" in e and "variance" in e and "R" in e
+            assert "Mean" in e and "Sigma" in e and "Taucorr" in e
         last_obs = obs
 
-    assert last_obs["Energy"]["mean"][0] == approx(-10.25, abs=0.2)
+    assert last_obs["Energy"]["Mean"][0] == approx(-10.25, abs=0.2)
 
 
 def test_imag_time_propagation():
