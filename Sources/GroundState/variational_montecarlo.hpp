@@ -55,8 +55,7 @@ class VariationalMonteCarlo {
   int mynode_;
 
   AbstractOptimizer &opt_;
-  SR sr_;
-  bool dosr_;
+  nonstd::optional<SR> sr_;
 
   std::vector<const AbstractOperator *> obs_;
   std::vector<std::string> obsnames_;
@@ -85,21 +84,23 @@ class VariationalMonteCarlo {
                         const std::string &target = "energy",
                         const std::string &method = "Sr",
                         double diag_shift = 0.01, bool use_iterative = false,
-                        bool use_cholesky = true)
+                        /* for backwards compatibility: */
+                        nonstd::optional<bool> use_cholesky = nonstd::nullopt,
+                        const std::string &sr_lsq_solver = "LLT")
       : ham_(hamiltonian),
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
-        sr_(diag_shift, use_iterative, use_cholesky,
-            sampler.GetMachine().IsHolomorphic()),
+        sr_{nonstd::nullopt},
         target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
-         diag_shift, use_iterative, use_cholesky);
+         diag_shift, use_iterative, use_cholesky, sr_lsq_solver);
   }
 
   void Init(int nsamples, int discarded_samples, int discarded_samples_on_init,
             const std::string &method, double diag_shift, bool use_iterative,
-            bool use_cholesky) {
+            nonstd::optional<bool> use_cholesky,
+            const std::string &sr_lsq_solver) {
     npar_ = psi_.Npar();
     opt_.Init(npar_, psi_.IsHolomorphic());
     grad_.resize(npar_);
@@ -117,11 +118,31 @@ class VariationalMonteCarlo {
       ndiscard_ = discarded_samples;
     }
 
+    std::string solver_str{sr_lsq_solver};
+    if (use_cholesky.has_value()) {
+      WarningMessage()
+          << "SR: use_cholesky option is deprecated. Please use the "
+             "sr_lsq_solver option to specifiy the solver."
+          << std::endl;
+
+      if (use_cholesky.value() && sr_lsq_solver != "LLT") {
+        throw InvalidInputError{
+            "Inconsistent options specified: "
+            "`use_cholesky && sr_lsq_solver != 'LLT'`."};
+      } else {
+        solver_str = "ColPivHouseholder";
+      }
+    }
+
     if (method == "Gd") {
-      dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      dosr_ = true;
+      auto solver = SR::SolverFromString(sr_lsq_solver);
+      if (!solver.has_value()) {
+        throw InvalidInputError{"Invalid LSQ solver specified for SR"};
+      }
+      sr_.emplace(solver.value(), diag_shift, use_iterative,
+                  psi_.IsHolomorphic());
     }
 
     if (target_ != "energy" && target_ != "variance") {
@@ -233,10 +254,10 @@ class VariationalMonteCarlo {
 
     Eigen::VectorXcd deltap(npar_);
 
-    if (dosr_) {
-      // TODO: This copies data!!
+    if (sr_.has_value()) {
       assert(mc_data_.der_logs.has_value());
-      sr_.ComputeUpdate(*mc_data_.der_logs, grad_, deltap);
+      // TODO: This copies data!!
+      sr_->ComputeUpdate(*mc_data_.der_logs, grad_, deltap);
     } else {
       deltap = grad_;
     }
@@ -256,6 +277,8 @@ class VariationalMonteCarlo {
   }
 
   const MCResult &GetVmcData() const noexcept { return mc_data_; }
+
+  nonstd::optional<SR> &GetSR() { return sr_; }
 };
 
 }  // namespace netket

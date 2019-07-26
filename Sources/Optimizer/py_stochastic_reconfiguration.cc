@@ -15,10 +15,6 @@ void AddSR(py::module m) {
       .def(py::init<double, bool, bool, bool>(), py::arg{"diag_shift"} = 0.01,
            py::arg{"use_iterative"} = false, py::arg{"use_cholesky"} = true,
            py::arg{"is_holomorphic"} = true)
-      .def_readwrite("diag_shift", &SR::diag_shift)
-      .def_readwrite("use_iterative", &SR::use_iterative)
-      .def_readwrite("use_cholesky", &SR::use_cholesky)
-      .def_readwrite("is_holomorphic", &SR::is_holomorphic)
       .def(
           "compute_update",
           [](SR& self, Eigen::Ref<const MatrixXcd> Oks,

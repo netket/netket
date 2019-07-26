@@ -77,7 +77,7 @@ if (NETKET_USE_SLEEF)
     )
     add_library(Sleef INTERFACE)
     ExternalProject_Get_Property(sleef_project BINARY_DIR)
-    target_include_directories(Sleef INTERFACE ${BINARY_DIR}/include)
+    target_include_directories(Sleef SYSTEM INTERFACE ${BINARY_DIR}/include)
     target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
 endif()
 
@@ -280,6 +280,7 @@ set(NETKET_SOURCES
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
+    Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_local_v2.cc
     Sources/Optimizer/stochastic_reconfiguration.cc

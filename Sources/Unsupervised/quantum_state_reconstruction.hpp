@@ -40,8 +40,7 @@ class QuantumStateReconstruction {
   AbstractSampler &sampler_;
   AbstractMachine &psi_;
   AbstractOptimizer &opt_;
-  SR sr_;
-  bool dosr_;
+  nonstd::optional<SR> sr_;
 
   std::vector<AbstractOperator *> rotations_;
 
@@ -92,8 +91,7 @@ class QuantumStateReconstruction {
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         opt_(opt),
-        sr_(diag_shift, use_iterative, use_cholesky,
-            sampler_.GetMachine().IsHolomorphic()),
+        sr_{nonstd::nullopt},
         rotations_(rotations),
         trainingSamples_(trainingSamples),
         trainingBases_(trainingBases) {
@@ -124,10 +122,10 @@ class QuantumStateReconstruction {
     }
 
     if (method == "Gd") {
-      dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      dosr_ = true;
+      sr_.emplace(diag_shift, use_iterative, use_cholesky,
+                  psi_.IsHolomorphic());
     }
 
     InfoMessage() << "Quantum state reconstruction running on " << totalnodes_
@@ -298,8 +296,8 @@ class QuantumStateReconstruction {
 
     Eigen::VectorXcd deltap(npar_);
 
-    if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap);
+    if (sr_.has_value()) {
+      sr_->ComputeUpdate(Ok_, grad_, deltap);
     } else {
       deltap = grad_;
     }

@@ -38,8 +38,7 @@ class Supervised {
   AbstractMachine &psi_;
   AbstractOptimizer &opt_;
 
-  SR sr_;
-  bool dosr_;
+  nonstd::optional<SR> sr_;
 
   // Total batchsize
   int batchsize_;
@@ -91,7 +90,7 @@ class Supervised {
              bool use_iterative = false, bool use_cholesky = true)
       : psi_(psi),
         opt_(opt),
-        sr_(diag_shift, use_iterative, use_cholesky, psi.IsHolomorphic()),
+        sr_{nonstd::nullopt},
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
@@ -121,10 +120,10 @@ class Supervised {
         trainingTarget_values_.begin(), trainingTarget_values_.end());
 
     if (method == "Gd") {
-      dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      dosr_ = true;
+      sr_.emplace(diag_shift, use_iterative, use_cholesky,
+                  psi_.IsHolomorphic());
     }
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
@@ -372,8 +371,8 @@ class Supervised {
 
     Eigen::VectorXcd deltap(npar_);
 
-    if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap);
+    if (sr_.has_value()) {
+      sr_->ComputeUpdate(Ok_, grad_, deltap);
     } else {
       deltap = grad_;
     }

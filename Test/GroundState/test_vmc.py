@@ -72,3 +72,16 @@ def test_vmc_functions():
     data_without_logderivs = vmc.compute_samples(
         sampler, nsamples=10000, ndiscard=1000, compute_logderivs=False
     )
+
+
+def test_vmc_use_cholesky_compatibility():
+    ha, _, ma, sampler, _ = _setup_vmc()
+
+    op = nk.optimizer.Sgd(learning_rate=0.1)
+    with raises(
+        ValueError,
+        match="Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`.",
+    ):
+        vmc = nk.variational.Vmc(
+            ha, sampler, op, 1000, use_cholesky=True, sr_lsq_solver="BDCSVD"
+        )
