@@ -55,14 +55,19 @@ def test_vmc_iterator():
         count += 1
         assert step == i
         obs = vmc.get_observable_stats()
-        for name in "Energy", "EnergyVariance", "SigmaX":
+        # TODO: Choose which version we want
+        # for name in "Energy", "EnergyVariance", "SigmaX":
+        #     assert name in obs
+        #     e = obs[name]
+        #     assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+        for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R")
         last_obs = obs
 
     assert count == 300
-    assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)
+    assert last_obs["Energy"].mean == approx(-10.25, abs=0.2)
 
 
 def test_vmc_run():
@@ -85,13 +90,18 @@ def test_vmc_run():
     for i, obs in enumerate(output):
         step = obs["Iteration"]
         assert step == i
-        for name in "Energy", "EnergyVariance", "SigmaX":
+        # TODO: Choose which version we want
+        # for name in "Energy", "EnergyVariance", "SigmaX":
+        #     assert name in obs
+        #     e = obs[name]
+        #     assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+        for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+            assert "mean" in e and "variance" in e and "R" in e
         last_obs = obs
 
-    assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)
+    assert last_obs["Energy"]["mean"][0] == approx(-10.25, abs=0.2)
 
 
 def test_imag_time_propagation():

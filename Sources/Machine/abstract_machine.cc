@@ -44,7 +44,7 @@ void AbstractMachine::InitRandomPars(double sigma,
                                                      : ReallyRandomSeed()};
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
-                    std::normal_distribution<double> dist(0.0, sigma);
+                    std::normal_distribution<double> dist{0.0, sigma};
                     return Complex{dist(generator), dist(generator)};
                   });
   }

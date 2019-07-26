@@ -32,6 +32,18 @@ namespace netket {
 void AddVariationalMonteCarloModule(py::module &m) {
   auto m_vmc = m.def_submodule("variational");
 
+  py::class_<Stats>(m_vmc, "Stats")
+      .def_readonly("mean", &Stats::mean)
+      .def_readonly("error_on_mean", &Stats::error)
+      .def_readonly("variance", &Stats::variance)
+      .def_readonly("autocorrelation", &Stats::correlation)
+      .def_readonly("R", &Stats::R);
+
+  py::class_<MCResult>(m_vmc, "MCResult")
+      .def_readonly("samples", &MCResult::samples)
+      .def_readonly("log_values", &MCResult::log_values)
+      .def_readonly("der_logs", &MCResult::der_logs);
+
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",
       R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
@@ -169,10 +181,13 @@ void AddVariationalMonteCarloModule(py::module &m) {
         )EOF")
       .def_property_readonly("vmc_data", &VariationalMonteCarlo::GetVmcData);
 
+#if 0
   py::class_<vmc::Result>(m_vmc, "_VmcResult")
       .def_property_readonly("samples", &vmc::Result::SampleMatrix);
+#endif
 
-  m_vmc.def("compute_samples", vmc::ComputeSamples, py::arg("sampler"),
+#if 0
+  m_vmc.def("compute_samples", &ComputeSamples, py::arg("sampler"),
             py::arg("nsamples"), py::arg("ndiscard") = 0,
             py::arg("compute_logderivs") = true, R"EOF(
            Computes a sequence of visible configurations based on Monte Carlo sampling using `sampler`.
@@ -185,8 +200,36 @@ void AddVariationalMonteCarloModule(py::module &m) {
                     to store samples.
                compute_logderivs: Whether to store the logarithmic derivatives
                     of the wavefunction as part of the returned VMC result.
+           Returns:
+               A tuple `(samples, values, gradients)` if `compute_logderivs == True`
+               and a pair `(samples, values)` otherwise. `samples` are visible
+               configurations visited during sampling and `values` are the
+               corresponding values of the logarithm of the wavefunction.
             )EOF");
+#endif
 
+  m_vmc.def("compute_samples", &ComputeSamples, py::arg{"sampler"},
+            py::arg{"nsamples"}, py::arg{"ndiscard"},
+            py::arg{"compute_logderivs"} = true,
+            R"EOF(
+      Computes a sequence of visible configurations based on Monte Carlo sampling using `sampler`.
+
+      Args:
+          sampler: sampler to use for Monte Carlo sweeps.
+          nsamples: number of samples to record (returned number of samples
+              may differ from this value).
+          ndiscard: number of sweeps to discard.
+          compute_logderivs: Whether to calculate gradients of the logarithm of
+              the wave function.
+
+      Returns:
+          A tuple `(samples, values, gradients)` if `compute_logderivs == True`
+          and a pair `(samples, values)` otherwise. `samples` are visible
+          configurations visited during sampling and `values` are the
+          corresponding values of the logarithm of the wavefunction.
+      )EOF");
+
+#if 0
   m_vmc.def(
       "expectation",
       [](const vmc::Result &result, AbstractMachine &psi,
@@ -296,21 +339,21 @@ void AddVariationalMonteCarloModule(py::module &m) {
                  var = vmc.variance(data, psi, ham, ex["Mean"], lv)
                ```
             )EOF");
+#endif
 
-  using GradType1 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
-                                  const AbstractOperator &);
-  m_vmc.def("gradient", (GradType1)&vmc::Gradient, py::arg("vmc_data"),
-            py::arg("op"), py::arg("psi"), R"EOF(
+  m_vmc.def("gradient", &Gradient, py::arg{"local_values"},
+            py::arg{"gradients"},
+            R"EOF(
            Computes the gradient of the expecation value of a Hermitian operator
            `op` with respect to the wavefunction parameters based on provided VMC
            data.
 
            Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
+               loval_values: Local values of the operator.
+               gradients: Logarithmic derivatives of the wavefunction.
             )EOF");
 
+#if 0
   using GradType2 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
                                   const AbstractOperator &, const VectorXcd &);
   m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
@@ -326,8 +369,10 @@ void AddVariationalMonteCarloModule(py::module &m) {
                locvals: An array containing the local values of `op` for the
                    given VMC data.
             )EOF");
+#endif
 
-  m_vmc.def("local_value", &vmc::LocalValue, py::arg("op"), py::arg("psi"),
+#if 1
+  m_vmc.def("local_value", &LocalValueLegacy, py::arg("op"), py::arg("psi"),
             py::arg("v"), R"EOF(
            Computes the local value of the operator `op` in configuration `v`
            which is defined as O_loc(v) = ⟨v|op|Ψ⟩ / ⟨v|Ψ⟩.
@@ -337,7 +382,9 @@ void AddVariationalMonteCarloModule(py::module &m) {
                psi: Machine represenation of the wavefunction.
                v: Visible configuration.
             )EOF");
+#endif
 
+#if 0
   m_vmc.def(
       "local_values",
       [](Eigen::Ref<const Eigen::MatrixXd> result, AbstractMachine &psi,
@@ -353,37 +400,10 @@ void AddVariationalMonteCarloModule(py::module &m) {
                psi: Machine represenation of the wavefunction.
                op: Hermitian operator.
             )EOF");
+#endif
 
-  m_vmc.def(
-      "compute_samples_v2",
-      [](MetropolisLocalV2 &sampler, Index n_samples, Index n_discard,
-         bool compute_gradients) {
-        return ComputeSamples(sampler, n_samples, n_discard, compute_gradients);
-      },
-      py::arg{"sampler"}, py::arg{"nsamples"}, py::arg{"ndiscard"},
-      py::arg{"compute_logderivs"},
-      R"EOF(
-      Same as `compute_samples` except that it uses batches to run multiple
-      Markov Chains in parallel.
-
-      Args:
-          sampler: an instance of `MetropolisLocalV2`.
-          nsamples: number of samples to record (returned number of samples
-              may differ from this value).
-          ndiscard: number of sweeps to discard.
-          compute_logderivs: Whether to calculate gradients of the logarithm of
-              the wave function.
-
-      Returns:
-          A tuple `(samples, values, gradients)` if `compute_logderivs == True`
-          and a pair `(samples, values)` otherwise. `samples` are visible
-          configurations visited during sampling and `values` are the
-          corresponding values of the logarithm of the wavefunction.
-      )EOF");
-
-  m_vmc.def("local_values_v2", &LocalValuesV2, py::arg{"samples"},
-            py::arg{"values"}, py::arg{"machine"}, py::arg{"op"},
-            py::arg{"batch_size"},
+  m_vmc.def("local_values", &LocalValues, py::arg{"samples"}, py::arg{"values"},
+            py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
             R"EOF(
            Computes the local values of the operator `op` for all `samples`.
 
@@ -397,6 +417,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
           Returns:
               A numpy array of local values of the operator.
         )EOF");
+
+  m_vmc.def("statistics", &Statistics, py::arg{"values"}, py::arg{"n_chains"});
 }
 
 }  // namespace netket

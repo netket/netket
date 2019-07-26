@@ -41,28 +41,34 @@ def test_vmc_functions():
     for op, name, tol in (ha, "ha", 1e-6), (sx, "sx", 1e-2):
         print("Testing expectation of op={}".format(name))
 
-        exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
+        # exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
+        states = np.array(list(ma.hilbert.states()))
+        exact_locs = vmc.local_values(
+            states,
+            np.fromiter(
+                (ma.log_val(x) for x in states),
+                dtype=np.complex128,
+                count=states.shape[0],
+            ),
+            ma,
+            op,
+        )
         exact_ex = np.sum(exact_dist * exact_locs).real
 
         data = vmc.compute_samples(sampler, nsamples=10000, ndiscard=1000)
 
-        ex, lv = vmc.expectation(data, ma, op, return_locvals=True)
-        assert ex["Mean"] == approx(np.mean(lv).real, rel=tol)
-        assert ex["Mean"] == approx(exact_ex, rel=tol)
+        local_values = vmc.local_values(data.samples, data.log_values, ma, op)
+        ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
+        assert ex.mean == approx(np.mean(local_values).real, rel=tol)
+        assert ex.mean == approx(exact_ex, rel=tol)
 
-    var = vmc.variance(data, ma, ha)
-    assert var["Mean"] == approx(0.0, abs=2e-7)
-
-    grad = vmc.gradient(data, ma, ha)
+    local_values = vmc.local_values(data.samples, data.log_values, ma, ha)
+    # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
+    # assert ex.variance == approx(0.0, abs=2e-7)
+    grad = vmc.gradient(local_values, data.der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
     data_without_logderivs = vmc.compute_samples(
-        sampler, nsamples=10000, compute_logderivs=False
+        sampler, nsamples=10000, ndiscard=1000, compute_logderivs=False
     )
-    with raises(
-        RuntimeError,
-        match="vmc::Result does not contain log-derivatives, "
-        "which are required to compute gradients.",
-    ):
-        vmc.gradient(data_without_logderivs, ma, ha)

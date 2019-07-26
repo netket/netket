@@ -1,12 +1,12 @@
+#include <fstream>
 #include "Utils/messages.hpp"
 #include "vmc_sampling.hpp"
 
 namespace netket {
-namespace vmc {
 
 #if 0
-Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
-                      bool compute_logderivs) {
+MCResult ComputeSamples(AbstractSampler& sampler, Index nsamples,
+                        Index ndiscard, bool compute_logderivs) {
   sampler.Reset();
 
   for (Index i = 0; i < ndiscard; i++) {
@@ -16,6 +16,7 @@ Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
   const Index nvisible = sampler.GetMachine().Nvisible();
   const Index npar = sampler.GetMachine().Npar();
   MatrixXd samples(nvisible, nsamples);
+  VectorXcd log_vals(nsamples);
 
   nonstd::optional<MatrixXcd> log_derivs;
   if (compute_logderivs) {
@@ -24,7 +25,10 @@ Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
       sampler.Sweep();
       samples.col(i) = VisibleLegacy(sampler);
       log_derivs->col(i) = sampler.GetMachine().DerLogSingle(samples.col(i));
+      log_vals(i) = sampler.GetMachine().LogValSingle(samples.col(i));
     }
+    // std::ofstream out_file_3{"gradients_2.txt"};
+    // out_file_3 << *log_derivs << '\n';
 
     // Compute "centered" log-derivatives, i.e., O_k ↦ O_k - ⟨O_k⟩
     VectorXcd log_der_mean = log_derivs->rowwise().mean();
@@ -36,12 +40,14 @@ Result ComputeSamples(AbstractSampler& sampler, Index nsamples, Index ndiscard,
       samples.col(i) = VisibleLegacy(sampler);
     }
   }
-  return Result(std::move(samples), std::move(log_derivs));
+  return {RowMatrix<double>(std::move(samples).transpose()),
+          std::move(log_vals), RowMatrix<Complex>(log_derivs->transpose())};
 }
 #endif
 
-Complex LocalValue(const AbstractOperator& op, AbstractMachine& psi,
-                   Eigen::Ref<const VectorXd> v) {
+#if 0
+Complex LocalValueLegacy(const AbstractOperator& op, AbstractMachine& psi,
+                         Eigen::Ref<const VectorXd> v) {
   AbstractOperator::ConnectorsType tochange;
   AbstractOperator::NewconfsType newconf;
   AbstractOperator::MelType mels;
@@ -59,6 +65,7 @@ Complex LocalValue(const AbstractOperator& op, AbstractMachine& psi,
 
   return result;
 }
+#endif
 
 #if 0
 VectorXcd LocalValues(const AbstractOperator& op, AbstractMachine& psi,
@@ -71,8 +78,9 @@ VectorXcd LocalValues(const AbstractOperator& op, AbstractMachine& psi,
 }
 #endif
 
-VectorXcd LocalValueDeriv(const AbstractOperator& op, AbstractMachine& psi,
-                          Eigen::Ref<const VectorXd> v) {
+inline VectorXcd LocalValueDeriv(const AbstractOperator& op,
+                                 AbstractMachine& psi,
+                                 Eigen::Ref<const VectorXd> v) {
   AbstractOperator::ConnectorsType tochange;
   AbstractOperator::NewconfsType newconf;
   AbstractOperator::MelType mels;
@@ -91,6 +99,142 @@ VectorXcd LocalValueDeriv(const AbstractOperator& op, AbstractMachine& psi,
   return grad;
 }
 
+namespace detail {
+class MeanAndVarianceAccumulator {
+  nonstd::span<double> const mu_;
+  nonstd::span<double> const M2_;
+  Index n_;
+
+ public:
+  MeanAndVarianceAccumulator(nonstd::span<double> mu, nonstd::span<double> var)
+      : mu_{mu}, M2_{var}, n_{0} {
+    CheckShape(__FUNCTION__, "var", mu_.size(), M2_.size());
+  }
+
+  void operator()(nonstd::span<const double> xs) {
+    ++n_;
+    const auto kernel = [this](double& mu, double& M2, const double x) {
+      const auto delta = x - mu;
+      mu += delta / n_;
+      M2 += delta * (x - mu);
+    };
+    for (auto i = Index{0}; i < mu_.size(); ++i) {
+      kernel(mu_[i], M2_[i], xs[i]);
+    }
+  }
+
+  ~MeanAndVarianceAccumulator() {
+    if (n_ == 0) {
+      std::fill(mu_.begin(), mu_.end(),
+                std::numeric_limits<double>::quiet_NaN());
+      std::fill(M2_.begin(), M2_.end(),
+                std::numeric_limits<double>::quiet_NaN());
+    } else if (n_ == 1) {
+      std::fill(M2_.begin(), M2_.end(),
+                std::numeric_limits<double>::quiet_NaN());
+    } else {
+      // TODO: Are we __absolutely__ sure we want to divide by `n_` rather than
+      // `n_ - 1`?
+      const auto scale = 1.0 / static_cast<double>(n_);
+      std::for_each(M2_.begin(), M2_.end(), [scale](double& x) { x *= scale; });
+    }
+  }
+};
+}  // namespace detail
+
+/// \brief Computes in-chain means and variances.
+std::pair<Eigen::VectorXcd, Eigen::VectorXd> StatisticsLocal(
+    Eigen::Ref<const Eigen::VectorXcd> values, Index number_chains) {
+  NETKET_CHECK(number_chains > 0, InvalidInputError,
+               "invalid number of chains: " << number_chains
+                                            << "; expected a positive integer");
+  NETKET_CHECK(
+      values.size() % number_chains == 0, InvalidInputError,
+      "invalid number of chains: "
+          << number_chains
+          << "; `values.size()` must be a multiple of `number_chains`, but "
+          << values.size() << " % " << number_chains << " = "
+          << values.size() % number_chains);
+  Eigen::VectorXcd mean(number_chains);
+  // Buffer for variances of real and imaginary parts
+  Eigen::VectorXd var(2 * number_chains);
+  {
+    detail::MeanAndVarianceAccumulator acc{
+        nonstd::span<double>{reinterpret_cast<double*>(mean.data()),
+                             2 * mean.size()},
+        var};
+    const auto* p = reinterpret_cast<const double*>(values.data());
+    const auto n = values.size() / number_chains;
+    for (auto i = Index{0}; i < n; ++i, p += 2 * number_chains) {
+      acc({p, 2 * number_chains});
+    }
+    // Beware: destructor of acc does some work here!!
+  }
+  for (auto i = Index{0}; i < number_chains; ++i) {
+    var(i) = var(2 * i) + var(2 * i + 1);
+  }
+  var.conservativeResize(number_chains);
+  return std::make_pair(std::move(mean), std::move(var));
+}
+
+Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
+                 Index local_number_chains) {
+  NETKET_CHECK(values.size() >= local_number_chains, InvalidInputError,
+               "not enough samples to compute statistics");
+  constexpr auto NaN = std::numeric_limits<double>::quiet_NaN();
+  auto stats_local = StatisticsLocal(values, local_number_chains);
+  // Number of samples in each Markov Chain
+  const auto n = values.size() / local_number_chains;
+  // Total number of Markov Chains we have:
+  //   #processes x local_number_chains
+  const auto m = []() {
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    return static_cast<Index>(size);
+  }() * local_number_chains;
+
+  // Calculates the mean over all Markov Chains
+  const auto mean = [&stats_local, m]() {
+    // Sum over Markov Chains on this MPI node
+    Complex local_mean = stats_local.first.sum();
+    // Sum over all MPI nodes
+    Complex global_mean;
+    MPI_Allreduce(&local_mean, &global_mean, 1, MPI_DOUBLE_COMPLEX, MPI_SUM,
+                  MPI_COMM_WORLD);
+    // Average
+    return global_mean / static_cast<double>(m);
+  }();
+
+  // (B / n, W)
+  const auto var = [&stats_local, m, mean, NaN]() {
+    double local_var[2] = {(stats_local.first.array() - mean).abs2().sum(),
+                           stats_local.second.array().sum()};
+    double global_var[2];
+    MPI_Allreduce(&local_var, &global_var, 2, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+    assert(m > 0);
+    if (m == 1) {  // We can't estimate variance and error is there is only one
+                   // chain.
+      return std::make_pair(NaN, NaN);
+    }
+    // TODO: Are the coefficients here correct??
+    return std::make_pair(global_var[0] / static_cast<double>(m - 1),
+                          global_var[1] / static_cast<double>(m));
+  }();
+
+  if (!std::isnan(var.first) && !std::isnan(var.second)) {
+    const auto t = var.first / var.second;
+    auto correlation = 0.5 * (static_cast<double>(n) * t * t - 1.0);
+    if (correlation < 0.0) correlation = NaN;
+    const auto R =
+        std::sqrt(static_cast<double>(n - 1) / static_cast<double>(n) +
+                  var.first / var.second);
+    return {mean, std::sqrt(var.first), var.second, correlation, R};
+  }
+  return Stats{mean, NaN, NaN, NaN, NaN};
+}
+
+#if 0
 Stats Expectation(const Result& result, AbstractMachine& psi,
                   const AbstractOperator& op) {
   Binning<double> bin;
@@ -114,7 +258,9 @@ Stats Expectation(const Result& result, AbstractMachine& psi,
 
   return bin.AllStats();
 }
+#endif
 
+#if 0
 Stats Variance(const Result& result, AbstractMachine& psi,
                const AbstractOperator& op) {
   VectorXcd locvals;
@@ -131,7 +277,9 @@ Stats Variance(const Result& /*result*/, AbstractMachine& /*psi*/,
   }
   return bin_var.AllStats();
 }
+#endif
 
+#if 0
 VectorXcd Gradient(const Result& result, AbstractMachine& psi,
                    const AbstractOperator& op) {
   if (!result.LogDerivs().has_value()) {
@@ -149,7 +297,9 @@ VectorXcd Gradient(const Result& result, AbstractMachine& psi,
 
   return grad;
 }
+#endif
 
+#if 0
 VectorXcd Gradient(const Result& result, AbstractMachine& /*psi*/,
                    const AbstractOperator& /*op*/, const VectorXcd& locvals) {
   if (!result.LogDerivs().has_value()) {
@@ -163,28 +313,31 @@ VectorXcd Gradient(const Result& result, AbstractMachine& /*psi*/,
   MeanOnNodes<>(grad);
   return grad;
 }
+#endif
 
-VectorXcd GradientOfVariance(const Result& result, AbstractMachine& psi,
-                             const AbstractOperator& op) {
-  // TODO: This function can probably be implemented more efficiently (e.g., by
-  // computing local values and their gradients at the same time or reusing
+VectorXcd GradientOfVariance(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> local_values,
+                             AbstractMachine& psi, const AbstractOperator& op) {
+  CheckShape(__FUNCTION__, "samples", {samples.rows(), samples.cols()},
+             {std::ignore, psi.Nvisible()});
+  CheckShape(__FUNCTION__, "local_values", local_values.size(), samples.rows());
+  // TODO: This function can probably be implemented more efficiently (e.g.,
+  // by computing local values and their gradients at the same time or reusing
   // already computed local values)
-  MatrixXcd locval_deriv(psi.Npar(), result.NSamples());
-
-  for (int i = 0; i < result.NSamples(); i++) {
-    locval_deriv.col(i) = LocalValueDeriv(op, psi, result.Sample(i));
+  RowMatrix<Complex> locval_deriv(samples.rows(), psi.Npar());
+  for (auto i = Index{0}; i < samples.rows(); ++i) {
+    locval_deriv.row(i) =
+        LocalValueDeriv(op, psi, samples.row(i).transpose()).transpose();
   }
   VectorXcd locval_deriv_mean = locval_deriv.colwise().mean();
   MeanOnNodes<>(locval_deriv_mean);
   locval_deriv = locval_deriv.colwise() - locval_deriv_mean;
 
-  VectorXcd grad = locval_deriv.conjugate() *
-                   LocalValues(op, psi, result.SampleMatrix()) /
-                   double(result.NSamples());
+  VectorXcd grad = locval_deriv.conjugate() * local_values /
+                   static_cast<double>(samples.rows());
   MeanOnNodes<>(grad);
   return grad;
 }
-}  // namespace vmc
 
 namespace detail {
 void SubtractMean(RowMatrix<Complex>& gradients) {
@@ -195,10 +348,9 @@ void SubtractMean(RowMatrix<Complex>& gradients) {
 }
 }  // namespace detail
 
-std::tuple<RowMatrix<double>, Eigen::VectorXcd,
-           nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(AbstractSampler& sampler, Index num_samples, Index num_skipped,
-               bool compute_gradients) {
+#if 1
+MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
+                        Index num_skipped, bool compute_gradients) {
   NETKET_CHECK(num_samples >= 0, InvalidInputError,
                "invalid number of samples: "
                    << num_samples << "; expected a non-negative integer");
@@ -258,9 +410,9 @@ ComputeSamples(AbstractSampler& sampler, Index num_samples, Index num_skipped,
   }
 
   if (gradients.has_value()) detail::SubtractMean(*gradients);
-  return std::make_tuple(std::move(samples), std::move(values),
-                         std::move(gradients));
+  return {std::move(samples), std::move(values), std::move(gradients)};
 }
+#endif
 
 namespace detail {
 /// A helper class for forward propagation of batches through machines.
@@ -428,10 +580,10 @@ struct Accumulator {
 
 }  // namespace detail
 
-Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
-                               Eigen::Ref<const Eigen::VectorXcd> values,
-                               AbstractMachine& machine, AbstractOperator& op,
-                               Index batch_size) {
+Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> values,
+                             AbstractMachine& machine,
+                             const AbstractOperator& op, Index batch_size) {
   if (batch_size < 1) {
     std::ostringstream msg;
     msg << "invalid batch size: " << batch_size << "; expected >=1";
@@ -461,7 +613,8 @@ Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
   }
   Eigen::VectorXcd force(gradients.cols());
   Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
-      gradients.adjoint() * locals;
+      gradients.adjoint() * locals / gradients.rows();
+  MeanOnNodes<>(force);
   return force;
 }
 

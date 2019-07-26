@@ -58,7 +58,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisLocalV2(py::module m) {
-  py::class_<MetropolisLocalV2>(m, "MetropolisLocalV2")
+  py::class_<MetropolisLocalV2, AbstractSampler>(m, "MetropolisLocalV2")
       .def(py::init([](AbstractMachine& machine, Index batch_size,
                        nonstd::optional<Index> sweep_size) {
              return make_unique<MetropolisLocalV2>(

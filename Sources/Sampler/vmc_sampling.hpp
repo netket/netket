@@ -23,10 +23,29 @@
 #include "common_types.hpp"
 
 namespace netket {
-namespace vmc {
 
-using Stats = Binning<double>::Stats;
+struct Stats {
+  /// Mean value of the observable over all Markov Chains.
+  Complex mean;
+  /// Standard deviation of the mean values of all chains.
+  /// TODO: Make this split chains into halfs.
+  double error;
+  /// Average of in-chain variances of the observable over all Markov Chains.
+  double variance;
+  /// ???
+  double correlation;
+  /// Convergence estimator. The closer it is to 1, the better has the sampling
+  /// converged.
+  double R;
+};
 
+struct MCResult {
+  RowMatrix<double> samples;
+  Eigen::VectorXcd log_values;
+  nonstd::optional<RowMatrix<Complex>> der_logs;
+};
+
+#if 0
 /**
  * Class storing the result data of a VMC run, i.e., a Markov chain of visible
  * configurations and corresponding log-derivatives of the wavefunction.
@@ -77,23 +96,47 @@ class Result {
     return log_derivs_;
   }
 };
+#endif
 
 /**
- * Computes a sequence of visible configurations based on Monte Carlo sampling
- * using `sampler`.
+ * Runs Monte Carlo sampling.
  *
- * @param sampler The sampler used to perform the MC sweeps.
- * @param nsamples The number of MC samples that are stored (one MC sweep is
- * performed between each sample)
- * @param ndiscard The number of sweeps to be discarded before starting to store
- * the samples.
- * @param compute_logderivs Whether to store the logarithmic derivatives of
- *    the wavefunction as part of the returned VMC result.
- * @return A Result object containing the MC samples and auxillary information.
+ * @param sampler Sampler to use.
+ * @param n_samples Minimal number of samples to generate. The actual number of
+ *                  generated samples is \p n_samples rounded up to the closest
+ *                  multiple of `sampler.BatchSize()`.
+ * @param n_discard Number of #Sweep() s for warming up.
+ * @param compute_gradients Whether to compute logarithmic derivatives of the
+ *                          wavefunction.
+ *
+ * @return a tuple of visible configurations, logarithms of wave function
+ *         values, and (optionally) logarithmic derivatives with respect to
+ *         variational parameters.
  */
-Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
-                      Index ndiscard = 0, bool compute_logderivs = true);
+MCResult ComputeSamples(AbstractSampler &sampler, Index n_samples,
+                        Index n_discard, bool compute_gradients);
 
+/**
+ * Computes the local values of the operator `op` in configurations `samples`.
+ *
+ * @param samples A matrix of MC samples as returned by #ComputeSamples(). Every
+ *                row represents a single visible configuration.
+ * @param values Logarithms of wave function values as returned by
+ *               #ComputeSamples().
+ * @param machine Machine representation of the wavefunction.
+ * @param op Operator for which to compute the local values.
+ * @param batch_size Batch size to use internally.
+ *
+ * @return local values of \p op
+ */
+Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> values,
+                             AbstractMachine &machine,
+                             const AbstractOperator &op, Index batch_size = 32);
+
+Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
+                 Index local_number_chains);
+#if 0
 /**
  * Computes the local value of the operator `op` in configuration `v`
  * which is defined as O_loc(v) = ⟨v|op|Ψ⟩ / ⟨v|Ψ⟩.
@@ -103,9 +146,11 @@ Result ComputeSamples(AbstractSampler &sampler, Index nsamples,
  * @param v A many-body configuration.
  * @return The value of the local observable O_loc(v).
  */
-Complex LocalValue(const AbstractOperator &op, AbstractMachine &psi,
-                   Eigen::Ref<const VectorXd> v);
+Complex LocalValueLegacy(const AbstractOperator &op, AbstractMachine &psi,
+                         Eigen::Ref<const VectorXd> v);
+#endif
 
+#if 0
 /**
  * Computes the local values of the operator `op` in configurations `vs`.
  *
@@ -117,13 +162,16 @@ Complex LocalValue(const AbstractOperator &op, AbstractMachine &psi,
  */
 VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
                       Eigen::Ref<const MatrixXd> vs);
+#endif
 
+#if 0
 /**
  * Computes the gradient of the local value with respect to the variational
  * parameters, ∇ O_loc, for an operator `op`.
  */
 VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
                           Eigen::Ref<const VectorXd> v, VectorXcd &grad);
+
 /**
  * Computes the expectation value of an operator based on VMC results.
  */
@@ -152,7 +200,19 @@ Stats Variance(const Result &result, AbstractMachine &psi,
 Stats Variance(const Result &result, AbstractMachine &psi,
                const AbstractOperator &op, double expectation_value,
                const VectorXcd &locvals);
+#endif
 
+/**
+ * Computes gradient of an observable with respect to the variational parameters
+ * based on the given MC data.
+ *
+ * @param values Local values computed by #LocalValues().
+ * @gradients gradients Logarithmic derivatives returned by #ComputeSamples().
+ */
+Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
+                          Eigen::Ref<const RowMatrix<Complex>> gradients);
+
+#if 0
 /**
  * Computes the gradient of an observable with respect to the variational
  * parameters based on the given VMC data.
@@ -167,6 +227,7 @@ VectorXcd Gradient(const Result &result, AbstractMachine &psi,
  */
 VectorXcd Gradient(const Result &result, AbstractMachine &psi,
                    const AbstractOperator &op, const VectorXcd &locvals);
+#endif
 
 /**
  * Computes an approximation of the gradient of the variance of an operator.
@@ -174,44 +235,9 @@ VectorXcd Gradient(const Result &result, AbstractMachine &psi,
  * Specifically, the function returns ∇(σ²) = 2⟨∇O_loc (O_loc - ⟨O_loc⟩)⟩.
  * See Eq. (3) in Umrigar and Filippi, Phys. Rev. Lett. 94, 150201 (2005).
  */
-VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
-                             const AbstractOperator &op);
-}  // namespace vmc
-
-/**
- * @overload
- *
- * @return a tuple of visible configurations, logarithms of wave function
- * values, and (optionally) logarithmic derivatives with respect to variational
- * parameters.
- */
-std::tuple<RowMatrix<double>, Eigen::VectorXcd,
-           nonstd::optional<RowMatrix<Complex>>>
-ComputeSamples(MetropolisLocalV2 &sampler, Index n_samples, Index n_discard,
-               bool compute_gradients);
-
-/**
- * @overload
- *
- * @param samples A matrix of MC samples as returned by ComputeSamples.
- * @param values Logarithms of wave function values as returned by
- * ComputeSamples.
- * @param machine Machine representation of the wavefunction.
- * @param batch_size Batch size to use internally.
- */
-Eigen::VectorXcd LocalValuesV2(Eigen::Ref<const RowMatrix<double>> samples,
-                               Eigen::Ref<const Eigen::VectorXcd> values,
-                               RbmSpinV2 &machine, AbstractOperator &op,
-                               Index batch_size);
-
-/**
- * \overload
- *
- * @param values Local values computed by LocalValuesV2.
- * @gradients gradients Logarithmic derivatives returned by ComputeSamples.
- */
-Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
-                          Eigen::Ref<const RowMatrix<Complex>> gradients);
+VectorXcd GradientOfVariance(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> local_values,
+                             AbstractMachine &psi, const AbstractOperator &op);
 
 }  // namespace netket
 
