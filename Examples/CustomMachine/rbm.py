@@ -43,13 +43,16 @@ class PyRbm(netket.machine.CxxMachine):
         """
         # NOTE: The following call to __init__ is important!
         super(PyRbm, self).__init__(hilbert)
-        n = hilbert.size
+        self._nvisible = hilbert.size
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
-        m = int(round(alpha * n))
-        self._w = _np.empty([m, n], dtype=_np.complex128)
-        self._a = _np.empty(n, dtype=_np.complex128) if use_visible_bias else None
-        self._b = _np.empty(m, dtype=_np.complex128) if use_hidden_bias else None
+        self._nhidden = int(round(alpha * self._nvisible))
+        self._w = _np.empty(
+            [self._nhidden, self._nvisible], dtype=_np.complex128)
+        self._a = _np.empty(
+            self._nvisible, dtype=_np.complex128) if use_visible_bias else None
+        self._b = _np.empty(
+            self._nhidden, dtype=_np.complex128) if use_hidden_bias else None
 
     def _number_parameters(self):
         r"""Returns the number of parameters in the machine. We just sum the
@@ -102,52 +105,58 @@ class PyRbm(netket.machine.CxxMachine):
         """
         i = 0
         if self._a is not None:
-            self._a[:] = p[i : i + self._a.size]
+            self._a[:] = p[i: i + self._a.size]
             i += self._a.size
         if self._b is not None:
-            self._b[:] = p[i : i + self._b.size]
+            self._b[:] = p[i: i + self._b.size]
             i += self._b.size
 
-        self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
+        self._w[:] = p[i: i + self._w.size].reshape(self._w.shape, order="C")
 
     def log_val(self, x):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        r = _np.dot(self._w, x)
+        r = _np.dot(x, self._w.T)
         if self._b is not None:
             r += self._b
-        r = _np.sum(PyRbm._log_cosh(r))
+
+        r = _np.sum(PyRbm._log_cosh(r), axis=-1)
+
         if self._a is not None:
-            r += _np.dot(self._a, x)
+            r += _np.dot(x, self._a)
         # Officially, we should return
         #     self._w.shape[0] * 0.6931471805599453 + r
         # but the C++ implementation ignores the "constant factor"
         return r
 
-    def der_log(self, x):
+    def der_log(self, xb):
         r"""Computes the gradient of the logarithm of the wave function
         given a spin configuration ``x``.
         """
-        grad = _np.empty(self.n_par, dtype=_np.complex128)
+        x = xb if(xb.ndim != 1) else xb[_np.newaxis, :]
+
+        batch_size = x.shape[0]
+
+        grad = _np.empty((batch_size, self.n_par), dtype=_np.complex128)
         i = 0
 
         if self._a is not None:
-            grad[i : i + self._a.size] = x
-            i += self._a.size
+            grad[:, i: i + self._nvisible] = x
+            i += self._nvisible
 
-        tanh_stuff = _np.dot(self._w, x)
+        r = _np.dot(x, self._w.T)
         if self._b is not None:
-            tanh_stuff += self._b
-        tanh_stuff = _np.tanh(tanh_stuff, out=tanh_stuff)
+            r += self._b
+        _np.tanh(r, out=r)
 
         if self._b is not None:
-            grad[i : i + self._b.size] = tanh_stuff
-            i += self._b.size
+            grad[:, i: i + self._nhidden] = r
+            i += self._nhidden
 
-        out = grad[i : i + self._w.size]
-        out.shape = (tanh_stuff.size, x.size)
-        _np.outer(tanh_stuff, x, out=out)
+        out = grad[:, i: i + self._w.size]
+        out.shape = (batch_size, self._nhidden, self._nvisible)
+        _np.einsum('ij,il->ijl', r, x, out=out)
 
         return grad
 

@@ -7,6 +7,7 @@ import os
 
 from rbm import PyRbm
 
+
 def merge_dicts(x, y):
     z = x.copy()  # start with x's keys and values
     z.update(y)  # modifies z with y's keys and values & returns None
@@ -26,7 +27,8 @@ machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
 machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=1)
 
@@ -70,16 +72,20 @@ layers = (
 )
 
 # FFNN Machine
-machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
+machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(
+    hi, layers)
 
-machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(hi, bond_dim=3)
+machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(
+    hi, bond_dim=3)
 machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
-machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
+    hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
     hilbert=hi, n_hidden=10
 )
@@ -93,7 +99,8 @@ np.random.seed(12346)
 
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
-    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+    assert np.max(np.real(der_log - num_der_log)
+                  ) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
         0.0, rel=eps, abs=eps
@@ -172,14 +179,16 @@ def test_log_derivative():
         for i in range(100):
             hi.random_vals(v, rg)
 
-            randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+            randpars = 0.1 * (np.random.randn(npar) +
+                              1.0j * np.random.randn(npar))
             machine.parameters = randpars
             der_log = machine.der_log(v)
 
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-8, machine, v)
+            num_der_log = central_diff_grad(
+                log_val_f, randpars, 1.0e-8, machine, v)
 
             same_derivatives(der_log, num_der_log)
 
@@ -187,6 +196,37 @@ def test_log_derivative():
             # The check is done only on smaller subset of parameters, for speed
             if i % 10 == 0 and machine.is_holomorphic:
                 check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
+
+
+def test_batch_vals():
+    for name, machine in merge_dicts(machines, dm_machines).items():
+        print("Machine test: %s" % name)
+
+        hi = machine.hilbert
+
+        # generate a random state
+        batch_size = 32
+        rstate = np.zeros([batch_size, hi.size])
+
+        rg = nk.utils.RandomEngine(seed=1234)
+        for i in range(batch_size):
+            hi.random_vals(rstate[i], rg)
+
+        assert(rstate.shape == (batch_size, hi.size))
+
+        log_vals = machine.log_val(rstate)
+        der_vals = machine.der_log(rstate)
+
+        assert(log_vals.ndim == 1)
+        assert(der_vals.ndim == 2)
+
+        assert(log_vals.shape[0] == batch_size)
+        assert(der_vals.shape[0] == batch_size)
+        assert(der_vals.shape[1] == machine.n_par)
+
+        for i in range(batch_size):
+            assert(np.allclose(log_vals[i], machine.log_val(rstate[i])))
+            assert(np.allclose(der_vals[i], machine.der_log(rstate[i])))
 
 
 def test_log_val_diff():
@@ -216,7 +256,8 @@ def test_log_val_diff():
             for i in range(100):
                 n_change = np.random.randint(low=0, high=hi.size)
                 # generate n_change unique sites to be changed
-                tochange.append(np.random.choice(hi.size, n_change, replace=False))
+                tochange.append(np.random.choice(
+                    hi.size, n_change, replace=False))
                 newconfs.append(np.random.choice(local_states, n_change))
 
             ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
@@ -241,8 +282,10 @@ def test_log_val_diff():
 
                 assert np.max(np.real(ldiff_num - ldiff)) == approx(0.0)
                 # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-                assert np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
-                assert np.min(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
+                assert np.max(
+                    np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
+                assert np.min(
+                    np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
 
 
 def test_nvisible():

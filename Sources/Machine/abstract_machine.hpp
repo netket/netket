@@ -37,6 +37,8 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
+  using RowMatrixType =
+      Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
@@ -45,6 +47,10 @@ class AbstractMachine {
   using RealVectorType = Eigen::Matrix<double, Eigen::Dynamic, 1>;
   using RealMatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
   using RealVectorConstRefType = Eigen::Ref<const RealVectorType>;
+  using RealRowMatrixType =
+      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+  using RealRowVectorType =
+      Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor>;
 
   /**
   Member function returning the number of variational parameters.

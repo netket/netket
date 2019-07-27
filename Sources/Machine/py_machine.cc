@@ -575,16 +575,30 @@ void AddAbstractMachine(py::module m) {
                      parameters are drawn.
            )EOF")
       .def("log_val",
-           (Complex(AbstractMachine::*)(AbstractMachine::VisibleConstType)) &
-               AbstractMachine::LogVal,
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<
+                   Eigen::Ref<const AbstractMachine::RealRowVectorType>>();
+               return py::cast(self.LogVal(input));
+             }
+             auto input =
+                 x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+
+             AbstractMachine::VectorType out(input.rows());
+
+             for (Index i{0}; i < input.rows(); i++) {
+               out(i) = self.LogVal(input.row(i));
+             }
+
+             return py::cast(out);
+           },
            py::arg("v"),
            R"EOF(
-                 Member function to obtain log value of machine given an input
-                 vector.
-
-                 Args:
-                     v: Input vector to machine.
-           )EOF")
+                      Member function to obtain log value of machine given an input
+                      vector.
+                      Args:
+                          v: Input visible vectors to machine. v[i,:] is the i-th visible vector in a batch
+                )EOF")
       .def("log_val_diff",
            (AbstractMachine::VectorType(AbstractMachine::*)(
                AbstractMachine::VisibleConstType,
@@ -604,16 +618,30 @@ void AddAbstractMachine(py::module m) {
                          indices specified in tochange
            )EOF")
       .def("der_log",
-           (AbstractMachine::VectorType(AbstractMachine::*)(
-               AbstractMachine::VisibleConstType)) &
-               AbstractMachine::DerLog,
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<
+                   Eigen::Ref<const AbstractMachine::RealRowVectorType>>();
+               return py::cast(self.DerLog(input));
+             }
+             auto input =
+                 x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+
+             AbstractMachine::RowMatrixType out(input.rows(), self.Npar());
+
+             for (Index i{0}; i < input.rows(); i++) {
+               out.row(i) = self.DerLog(input.row(i));
+             }
+
+             return py::cast(out);
+           },
            py::arg("v"),
            R"EOF(
                  Member function to obtain the derivatives of log value of
                  machine given an input wrt the machine's parameters.
 
                  Args:
-                     v: Input vector to machine.
+                     v: Input visible vectors to machine. v[i,:] is the i-th visible vector in a batch
            )EOF")
       .def_property_readonly(
           "n_visible", &AbstractMachine::Nvisible,
@@ -640,32 +668,33 @@ void AddAbstractMachine(py::module m) {
                  Args:
                      filename: name of file to load parameters from.
            )EOF")
-      .def(
-          "to_array",
-          [](AbstractMachine &self, bool normalize) -> AbstractMachine::VectorType {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("to_array",
+           [](AbstractMachine &self,
+              bool normalize) -> AbstractMachine::VectorType {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogVal(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              vals(i) = std::exp(vals(i));
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
 
-            if (normalize) {
-                vals.normalize();
-            }
-            return vals;
-          }, py::arg("normalize") = true,
-          R"EOF(
+             if (normalize) {
+               vals.normalize();
+             }
+             return vals;
+           },
+           py::arg("normalize") = true,
+           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
                 Note that, in general, the size of the array is exponential
@@ -674,30 +703,29 @@ void AddAbstractMachine(py::module m) {
 
                 This method requires an indexable Hilbert space.
               )EOF")
-      .def(
-          "log_norm",
-          [](AbstractMachine &self) -> double {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("log_norm",
+           [](AbstractMachine &self) -> double {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogVal(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            double norpsi = 0;
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              norpsi += std::norm(std::exp(vals(i)));
-            }
+             double norpsi = 0;
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               norpsi += std::norm(std::exp(vals(i)));
+             }
 
-            return std::log(norpsi) + 2. * maxlog;
-          },
-          R"EOF(
+             return std::log(norpsi) + 2. * maxlog;
+           },
+           R"EOF(
                 Returns the log of the L2 norm of the wave-function.
                 This operation is a brute-force calculation, and should thus
                 only be performed for low-dimensional Hilbert spaces.

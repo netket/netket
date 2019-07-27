@@ -36,7 +36,8 @@ def steal_cmake_flags(args):
 
     if len(stolen_args) > 0:
         cmake_args = sum(
-            (shlex.split(_unquote(x[len(_ARG_PREFIX) :])) for x in stolen_args), []
+            (shlex.split(_unquote(x[len(_ARG_PREFIX):]))
+             for x in stolen_args), []
         )
     else:
         try:
@@ -96,15 +97,18 @@ class CMakeBuild(build_ext):
             # lib_dir is the directory, where the shared libraries will be
             # stored (it will probably be different from the build_temp
             # directory so that setuptools find the libraries)
-            lib_dir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+            lib_dir = os.path.abspath(os.path.dirname(
+                self.get_ext_fullpath(ext.name)))
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             # Options to pass to CMake during configuration
             cmake_args = _CMAKE_FLAGS
             cmake_args.append(
-                "-DNETKET_PYTHON_VERSION={}.{}.{}".format(*sys.version_info[:3])
+                "-DNETKET_PYTHON_VERSION={}.{}.{}".format(
+                    *sys.version_info[:3])
             )
-            cmake_args.append("-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(lib_dir))
+            cmake_args.append(
+                "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(lib_dir))
             if not _generator_specified(cmake_args) and _have_ninja():
                 cmake_args.append("-GNinja")
 
@@ -153,7 +157,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name="netket",
-    version="2.0b3",
+    version="2.0rc1",
     author="Giuseppe Carleo et al.",
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
