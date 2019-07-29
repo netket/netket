@@ -310,17 +310,17 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
 }
 
 Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
-                          Eigen::Ref<const RowMatrix<Complex>> gradients) {
-  if (locals.size() != gradients.rows()) {
+                          Eigen::Ref<const RowMatrix<Complex>> der_logs) {
+  if (locals.size() != der_logs.rows()) {
     std::ostringstream msg;
     msg << "incompatible dimensions: [" << locals.size() << "] and ["
-        << gradients.rows() << ", " << gradients.cols()
+        << der_logs.rows() << ", " << der_logs.cols()
         << "]; expected [N] and [N, ?]";
     throw InvalidInputError{msg.str()};
   }
-  Eigen::VectorXcd force(gradients.cols());
+  Eigen::VectorXcd force(der_logs.cols());
   Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
-      gradients.adjoint() * locals / gradients.rows();
+      der_logs.adjoint() * locals / der_logs.rows();
   MeanOnNodes<>(force);
   return force;
 }
