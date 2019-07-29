@@ -41,7 +41,7 @@ Sampling from a RBM machine in a 1D lattice of spin 1/2
 >>>
 >>> # Construct a MetropolisLocal Sampler
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
->>> print(sa.hilbert.size)
+>>> print(sa.machine.hilbert.size)
 100
 
 ```
