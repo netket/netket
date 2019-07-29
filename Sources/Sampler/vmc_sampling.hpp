@@ -47,29 +47,14 @@ struct MCResult {
  *                  generated samples is \p n_samples rounded up to the closest
  *                  multiple of `sampler.BatchSize()`.
  * @param n_discard Number of #Sweep() s for warming up.
- * @param compute_gradients Whether to compute logarithmic derivatives of the
- *                          wavefunction.
+ * @param der_logs  Whether to compute logarithmic derivatives of the
+ *                  wavefunction. `nullopt` means don't compute the derivatives,
+ *                  "normal" means compute the derivatives, and "centered" means
+ *                  center them after computing.
  */
 MCResult ComputeSamples(AbstractSampler &sampler, Index n_samples,
-                        Index n_discard, bool compute_gradients);
-
-/**
- * Computes the local values of the operator `op` in configurations `samples`.
- *
- * @param samples A matrix of MC samples as returned by #ComputeSamples(). Every
- *                row represents a single visible configuration.
- * @param values Logarithms of wave function values as returned by
- *               #ComputeSamples().
- * @param machine Machine representation of the wavefunction.
- * @param op Operator for which to compute the local values.
- * @param batch_size Batch size to use internally.
- *
- * @return local values of \p op
- */
-Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             Eigen::Ref<const Eigen::VectorXcd> values,
-                             AbstractMachine &machine,
-                             const AbstractOperator &op, Index batch_size = 32);
+                        Index n_discard,
+                        nonstd::optional<std::string> der_logs);
 
 /**
  * Computes gradient of an observable with respect to the variational parameters

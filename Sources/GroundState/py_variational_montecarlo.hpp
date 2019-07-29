@@ -291,7 +291,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   m_vmc.def("compute_samples", &ComputeSamples, py::arg{"sampler"},
             py::arg{"n_samples"}, py::arg{"n_discard"},
-            py::arg{"compute_logderivs"} = true,
+            py::arg{"der_logs"} = py::none(),
             R"EOF(Runs Monte Carlo sampling using `sampler`.
 
                   First `n_discard` sweeps are discarded. Results of the next
@@ -323,41 +323,17 @@ void AddVariationalMonteCarloModule(py::module &m) {
                   Returns:
                       A `MCResult` object with all the data obtained during sampling.)EOF");
 
-  m_vmc.def("gradient", &Gradient, py::arg{"local_values"},
-            py::arg{"gradients"},
+  m_vmc.def("gradient_of_expectation", &Gradient, py::arg{"local_values"},
+            py::arg{"der_logs"},
             R"EOF(Computes the gradient of the expecation value of a Hermitian
                   operator `op` with respect to the wavefunction parameters
                   based on provided Monte Carlo data.
 
                   Args:
                       loval_values: A vector of local values of the operator.
-                      gradients: A matrix of logarithmic derivatives of the
+                      der_logs: A matrix of logarithmic derivatives of the
                           wavefunction. Each row of the matrix must correspond
                           to a logarithmic derivative.)EOF");
-
-  m_vmc.def("local_values", &LocalValues, py::arg{"samples"},
-            py::arg{"log_values"}, py::arg{"machine"}, py::arg{"op"},
-            py::arg{"batch_size"} = 16,
-            R"EOF(Computes local values of the operator `op` for all `samples`.
-
-                  Args:
-                      samples: A matrix of visible configurations. Each row of
-                          the matrix must correspond to a visible configuration.
-                      log_values: Corresponding values of the logarithm of the wavefunction.
-                      machine: Wavefunction.
-                      op: Hermitian operator.
-                      batch_size: Batch size.
-
-                  Returns:
-                      A numpy array of local values of the operator.)EOF");
-
-  m_vmc.def("statistics", &Statistics, py::arg{"values"}, py::arg{"n_chains"},
-            R"EOF(Computes some statistics (see `Stats` class) of a sequence of
-                  local estimators obtained from Monte Carlo sampling.
-
-                  Args:
-                      values: A vector of local estimators.
-                      n_chains: Number of chains interleaved in `values`.)EOF");
 }
 
 }  // namespace netket

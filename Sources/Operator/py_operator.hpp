@@ -105,6 +105,22 @@ void AddOperatorModule(py::module m) {
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
+
+  subm.def("local_values", &LocalValues, py::arg{"samples"},
+           py::arg{"log_values"}, py::arg{"machine"}, py::arg{"op"},
+           py::arg{"batch_size"} = 16,
+           R"EOF(Computes local values of the operator `op` for all `samples`.
+
+                 Args:
+                     samples: A matrix of visible configurations. Each row of
+                         the matrix must correspond to a visible configuration.
+                     log_values: Corresponding values of the logarithm of the wavefunction.
+                     machine: Wavefunction.
+                     op: Hermitian operator.
+                     batch_size: Batch size.
+
+                 Returns:
+                     A numpy array of local values of the operator.)EOF");
 }
 
 }  // namespace netket

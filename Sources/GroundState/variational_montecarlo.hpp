@@ -197,7 +197,7 @@ class VariationalMonteCarlo {
     assert(steps > 0);
     for (Index i = 0; i < steps; ++i) {
       mc_data_ = ComputeSamples(sampler_, nsamples_node_, ndiscard_,
-                                /*compute_logders=*/true);
+                                /*der_logs=*/"centered");
 
       const auto local_values =
           LocalValues(mc_data_.samples, mc_data_.log_values, psi_, ham_,

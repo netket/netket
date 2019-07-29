@@ -43,7 +43,7 @@ def test_vmc_functions():
 
         # exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
         states = np.array(list(ma.hilbert.states()))
-        exact_locs = vmc.local_values(
+        exact_locs = nk.operator.local_values(
             states,
             np.fromiter(
                 (ma.log_val(x) for x in states),
@@ -55,22 +55,24 @@ def test_vmc_functions():
         )
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        data = vmc.compute_samples(sampler, n_samples=10000, n_discard=1000)
+        data = vmc.compute_samples(
+            sampler, n_samples=10000, n_discard=1000, der_logs="centered"
+        )
 
-        local_values = vmc.local_values(data.samples, data.log_values, ma, op)
-        ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
+        local_values = nk.operator.local_values(data.samples, data.log_values, ma, op)
+        ex = nk.stats.statistics(local_values, n_chains=sampler.batch_size)
         assert ex.mean == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean == approx(exact_ex, rel=tol)
 
-    local_values = vmc.local_values(data.samples, data.log_values, ma, ha)
+    local_values = nk.operator.local_values(data.samples, data.log_values, ma, ha)
     # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
     # assert ex.variance == approx(0.0, abs=2e-7)
-    grad = vmc.gradient(local_values, data.der_logs)
+    grad = vmc.gradient_of_expectation(local_values, data.der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
     data_without_logderivs = vmc.compute_samples(
-        sampler, n_samples=10000, n_discard=1000, compute_logderivs=False
+        sampler, n_samples=10000, n_discard=1000, der_logs=None
     )
 
 
