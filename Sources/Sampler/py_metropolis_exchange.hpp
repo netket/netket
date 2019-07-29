@@ -78,7 +78,7 @@ void AddMetropolisExchange(py::module &subm) {
                  >>>
                  >>> # Construct a MetropolisExchange Sampler
                  >>> sa = nk.sampler.MetropolisExchange(machine=ma,graph=g,d_max=1)
-                 >>> print(sa.hilbert.size)
+                 >>> print(sa.machine.hilbert.size)
                  100
 
                  ```

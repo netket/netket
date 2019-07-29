@@ -70,7 +70,7 @@ void AddMetropolisLocal(py::module &subm) {
                  >>>
                  >>> # Construct a MetropolisLocal Sampler
                  >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-                 >>> print(sa.hilbert.size)
+                 >>> print(sa.machine.hilbert.size)
                  100
 
                  ```

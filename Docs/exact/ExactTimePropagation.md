@@ -11,8 +11,8 @@ a time, and an initial state.
 |stepper         |netket._C_netket.dynamics.AbstractTimeStepper|Stepper (i.e. propagator) that transforms the state of the system from one timestep to the next.                                                  |
 |t0              |float                                        |The initial time.                                                                                                                                 |
 |initial_state   |numpy.ndarray[complex128[m, 1]]              |The initial state of the system (when propagation begins.)                                                                                        |
-|matrix_type     |str='sparse'                                 |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
-|propagation_type|str='exact'                                  |Specifies whether the imaginary or real-time Schroedinger equation is solved. Should be one of "real" or "imaginary".                             |
+|matrix_type     |str = 'sparse'                               |The type of matrix used for the Hamiltonian when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
+|propagation_type|str = 'real'                                 |Specifies whether the imaginary or real-time Schroedinger equation is solved. Should be one of "real" or "imaginary".                             |
 
 ### Examples
 Solving 1D Ising model with imaginary time propagation:
@@ -20,7 +20,7 @@ Solving 1D Ising model with imaginary time propagation:
 ```python
 >>> import netket as nk
 >>> import numpy as np
->>> L = 10
+>>> L = 8
 >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
 >>> hilbert = nk.hilbert.Spin(graph, 0.5)
 >>> n_states = hilbert.n_states
@@ -32,7 +32,7 @@ Solving 1D Ising model with imaginary time propagation:
 ...                                        initial_state=psi0,
 ...                                        propagation_type="imaginary")
 >>> driver.add_observable(hamiltonian, 'Hamiltonian')
->>> for step in driver.iter(dt=0.05, n_iter=10):
+>>> for step in driver.iter(dt=0.05, n_iter=20):
 ...     obs = driver.get_observable_stats()
 
 ```
@@ -48,7 +48,7 @@ iteration.
 |-----------|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 |observable |netket::AbstractOperator|The operator form of the observable.                                                                                                             |
 |name       |str                     |The name of the observable.                                                                                                                      |
-|matrix_type|str='sparse'            |The type of matrix used for the observable when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
+|matrix_type|str = 'sparse'          |The type of matrix used for the observable when creating the matrix wrapper. The default is `sparse`. The other choices are `dense` and `direct`.|
 
 ### advance
 Advance the time propagation by dt.
@@ -77,4 +77,5 @@ yielding after every step.
 
 |Property| Type |      Description       |
 |--------|------|------------------------|
+|state   |      |Current state.          |
 |t       |double| Time in the simulation.|

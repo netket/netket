@@ -10,8 +10,8 @@ be specified as well.
 |--------|--------------------------------|-----------------------------------|
 |hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.|
 |U       |float                           |The Hubbard interaction term.      |
-|V       |float=0.0                       |The hopping term.                  |
-|mu      |float=0.0                       |The chemical potential.            |
+|V       |float = 0.0                     |The hopping term.                  |
+|mu      |float = 0.0                     |The chemical potential.            |
 
 ### Examples
 Constructs a ``BoseHubbard`` operator for a 2D system.
@@ -48,6 +48,13 @@ low-dimensional Hilbert spaces.
 
 This method requires an indexable Hilbert space.
 
+
+
+### to_linear_operator
+Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+This method requires an indexable Hilbert space.
+  
 
 
 ### to_sparse

@@ -23,12 +23,12 @@ AmsGrad Optimizer.
 ## Class Constructor
 Constructs a new ``AmsGrad`` optimizer.
 
-|  Argument   |   Type    |         Description          |
-|-------------|-----------|------------------------------|
-|learning_rate|float=0.001|The learning rate $\eta$.     |
-|beta1        |float=0.9  |First exponential decay rate. |
-|beta2        |float=0.999|Second exponential decay rate.|
-|epscut       |float=1e-07|Small epsilon cutoff.         |
+|  Argument   |    Type     |         Description          |
+|-------------|-------------|------------------------------|
+|learning_rate|float = 0.001|The learning rate $\eta$.     |
+|beta1        |float = 0.9  |First exponential decay rate. |
+|beta2        |float = 0.999|Second exponential decay rate.|
+|epscut       |float = 1e-07|Small epsilon cutoff.         |
 
 ### Examples
 Simple AmsGrad optimizer.

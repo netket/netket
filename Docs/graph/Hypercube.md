@@ -5,11 +5,11 @@ A hypercube lattice of side L in d dimensions.
 ## Class Constructor [1]
 Constructs a new ``Hypercube`` given its side length and dimension.
 
-|Argument|  Type   |                                                           Description                                                            |
-|--------|---------|----------------------------------------------------------------------------------------------------------------------------------|
-|length  |int      |Side length of the hypercube. It must always be >=1, but if ``pbc==True`` then the minimal valid length is 3.                     |
-|n_dim   |int=1    |Dimension of the hypercube. It must be at least 1.                                                                                |
-|pbc     |bool=True|If ``True`` then the constructed hypercube will have periodic boundary conditions, otherwise open boundary conditions are imposed.|
+|Argument|   Type    |                                                           Description                                                            |
+|--------|-----------|----------------------------------------------------------------------------------------------------------------------------------|
+|length  |int        |Side length of the hypercube. It must always be >=1, but if ``pbc==True`` then the minimal valid length is 3.                     |
+|n_dim   |int = 1    |Dimension of the hypercube. It must be at least 1.                                                                                |
+|pbc     |bool = True|If ``True`` then the constructed hypercube will have periodic boundary conditions, otherwise open boundary conditions are imposed.|
 
 ### Examples
 A 10x10 square lattice with periodic boundary conditions can be

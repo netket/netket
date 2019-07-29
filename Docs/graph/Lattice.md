@@ -13,12 +13,12 @@ A generic lattice built translating a unit cell and adding edges between nearest
 ## Class Constructor
 Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
-|  Argument   |        Type        |                                                                    Description                                                                    |
-|-------------|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-|basis_vectors|List[List[float]]   |The basis vectors of the unit cell.                                                                                                                |
-|extent       |List[int]           |The number of copies of the unit cell.                                                                                                             |
-|pbc          |List[bool]=[]       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=``True``).|
-|atoms_coord  |List[List[float]]=[]|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
+|  Argument   |         Type         |                                                                    Description                                                                    |
+|-------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+|basis_vectors|List[List[float]]     |The basis vectors of the unit cell.                                                                                                                |
+|extent       |List[int]             |The number of copies of the unit cell.                                                                                                             |
+|pbc          |List[bool] = []       |If ``True`` then the constructed lattice will have periodic boundary conditions, otherwise open boundary conditions are imposed (default=``True``).|
+|atoms_coord  |List[List[float]] = []|The coordinates of different atoms in the unit cell (default=one atom at the origin).                                                              |
 
 ### Examples
 Constructs a rectangular 3X4 lattice with periodic boundary conditions.

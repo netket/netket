@@ -8,7 +8,7 @@ specified) a constant level shift.
 |Argument|              Type              |               Description               |
 |--------|--------------------------------|-----------------------------------------|
 |hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.      |
-|constant|float=0.0                       |Level shift for operator. Default is 0.0.|
+|constant|float = 0.0                     |Level shift for operator. Default is 0.0.|
 
 ### Examples
 Constructs a ``LocalOperator`` without any operators.
@@ -36,7 +36,7 @@ shift.
 |hilbert  |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.                       |
 |operators|List[List[List[complex]]]       |A list of operators, in matrix form.                      |
 |acting_on|List[List[int]]                 |A list of sites, which the corresponding operators act on.|
-|constant |float=0.0                       |Level shift for operator. Default is 0.0.                 |
+|constant |float = 0.0                     |Level shift for operator. Default is 0.0.                 |
 
 ### Examples
 Constructs a ``LocalOperator`` from a list of operators acting on
@@ -66,7 +66,7 @@ shift.
 |hilbert  |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.                       |
 |operator |List[List[complex]]             |An operator, in matrix form.                              |
 |acting_on|List[int]                       |A list of sites, which the corresponding operators act on.|
-|constant |float=0.0                       |Level shift for operator. Default is 0.0.                 |
+|constant |float = 0.0                     |Level shift for operator. Default is 0.0.                 |
 
 ### Examples
 Constructs a ``LocalOperator`` from a single operator acting on
@@ -111,6 +111,13 @@ low-dimensional Hilbert spaces.
 
 This method requires an indexable Hilbert space.
 
+
+
+### to_linear_operator
+Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+This method requires an indexable Hilbert space.
+  
 
 
 ### to_sparse

@@ -56,7 +56,7 @@ void AddMetropolisLocalPt(py::module &subm) {
                  >>>
                  >>> # Construct a MetropolisLocalPt Sampler
                  >>> sa = nk.sampler.MetropolisLocalPt(machine=ma,n_replicas=16)
-                 >>> print(sa.hilbert.size)
+                 >>> print(sa.machine.hilbert.size)
                  100
 
                  ```

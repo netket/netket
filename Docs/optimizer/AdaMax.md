@@ -21,12 +21,12 @@ AdaMax Optimizer.
 ## Class Constructor
 Constructs a new ``AdaMax`` optimizer.
 
-|Argument|   Type    |         Description          |
-|--------|-----------|------------------------------|
-|alpha   |float=0.001|The step size.                |
-|beta1   |float=0.9  |First exponential decay rate. |
-|beta2   |float=0.999|Second exponential decay rate.|
-|epscut  |float=1e-07|Small epsilon cutoff.         |
+|Argument|    Type     |         Description          |
+|--------|-------------|------------------------------|
+|alpha   |float = 0.001|The step size.                |
+|beta1   |float = 0.9  |First exponential decay rate. |
+|beta2   |float = 0.999|Second exponential decay rate.|
+|epscut  |float = 1e-07|Small epsilon cutoff.         |
 
 ### Examples
 Simple AdaMax optimizer.
