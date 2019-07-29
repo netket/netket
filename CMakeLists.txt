@@ -275,6 +275,7 @@ set(NETKET_SOURCES
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_local_v2.cc
+    Sources/Stats/mc_stats.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc

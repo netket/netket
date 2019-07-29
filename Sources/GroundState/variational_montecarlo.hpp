@@ -30,7 +30,7 @@
 #include "Output/json_output_writer.hpp"
 #include "Sampler/abstract_sampler.hpp"
 #include "Sampler/vmc_sampling.hpp"
-#include "Stats/stats.hpp"
+#include "Stats/mc_stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"

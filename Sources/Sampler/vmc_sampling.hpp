@@ -18,26 +18,9 @@
 #include "Machine/abstract_machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Sampler/abstract_sampler.hpp"
-#include "Sampler/metropolis_local_v2.hpp"
-#include "Stats/binning.hpp"
 #include "common_types.hpp"
 
 namespace netket {
-
-struct Stats {
-  /// Mean value of the observable over all Markov Chains.
-  Complex mean;
-  /// Standard deviation of the mean values of all chains.
-  /// TODO: Make this split chains into halfs.
-  double error_of_mean;
-  /// Average of in-chain variances of the observable over all Markov Chains.
-  double variance;
-  /// ???
-  double correlation;
-  /// Convergence estimator. The closer it is to 1, the better has the sampling
-  /// converged.
-  double R;
-};
 
 /// Class storing the result data of a MC run.
 struct MCResult {
@@ -55,59 +38,6 @@ struct MCResult {
   /// \brief Number of Markov Chains interleaved in #samples.
   Index num_chains;
 };
-
-#if 0
-/**
- * Class storing the result data of a VMC run, i.e., a Markov chain of visible
- * configurations and corresponding log-derivatives of the wavefunction.
- */
-class Result {
-  MatrixXd samples_;
-  nonstd::optional<MatrixXcd> log_derivs_;
-
- public:
-  Result() = default;
-  Result(Result &&) = default;
-  Result &operator=(Result &&) = default;
-  Result(const Result &) = delete;
-  Result &operator=(const Result &) = delete;
-
-  Result(MatrixXd samples, nonstd::optional<MatrixXcd> log_derivs)
-      : samples_(std::move(samples)), log_derivs_(std::move(log_derivs)) {}
-
-  /**
-   * Returns the number of samples stored.
-   */
-  Index NSamples() const { return samples_.cols(); }
-
-  /**
-   * Returns a reference to the sample matrix V. Each column v_j is a visible
-   * configuration vector.
-   */
-  const MatrixXd &SampleMatrix() const noexcept { return samples_; }
-
-  /**
-   * Returns a reference to a vector containing the j-th visible configuration
-   * in the Markov chain.
-   */
-  Eigen::Ref<const VectorXd> Sample(Index j) const {
-    assert(j >= 0 && j < NSamples());
-    return samples_.col(j);
-  }
-
-  /**
-   * Returns an optional reference to the matrix O of log-derivatives of the
-   * wavefunction, which is non-empty if the log-derivs are present.
-   * Define Δ_i(v_j) = ∂/∂x_i log Ψ(v_j). The values contained in O are
-   * centered, i.e.,
-   *      O_ij = Δ_i(v_j) - ⟨Δ_i⟩,
-   * where ⟨Δ_i⟩ denotes the average over all samples.
-   */
-  const nonstd::optional<MatrixXcd> &LogDerivs() const noexcept {
-    return log_derivs_;
-  }
-};
-#endif
 
 /**
  * Runs Monte Carlo sampling.
@@ -141,79 +71,6 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
                              AbstractMachine &machine,
                              const AbstractOperator &op, Index batch_size = 32);
 
-/// Computes mean, variance, etc. given local estimators of an observable.
-///
-/// Since results from different markov chains are interleaved in `local_values`
-/// is is impotant to correctly specify `local_number_chains`. One can obtain it
-/// either from #AbstractSampler of #MCResult.
-Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> local_values,
-                 Index local_number_chains);
-#if 0
-/**
- * Computes the local value of the operator `op` in configuration `v`
- * which is defined as O_loc(v) = ⟨v|op|Ψ⟩ / ⟨v|Ψ⟩.
- *
- * @param op Operator representing the observable.
- * @param psi Machine representation of the wavefunction.
- * @param v A many-body configuration.
- * @return The value of the local observable O_loc(v).
- */
-Complex LocalValueLegacy(const AbstractOperator &op, AbstractMachine &psi,
-                         Eigen::Ref<const VectorXd> v);
-#endif
-
-#if 0
-/**
- * Computes the local values of the operator `op` in configurations `vs`.
- *
- * @param op Operator representing the observable.
- * @param psi Machine representation of the wavefunction.
- * @param vs A matrix of MC samples as returned by Result::SampleMatrix.
- * @param out A vector which will be filled with o_i = O_loc(v_i).
- *    The output vector will be resized as needed by this function.
- */
-VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
-                      Eigen::Ref<const MatrixXd> vs);
-#endif
-
-#if 0
-/**
- * Computes the gradient of the local value with respect to the variational
- * parameters, ∇ O_loc, for an operator `op`.
- */
-VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
-                          Eigen::Ref<const VectorXd> v, VectorXcd &grad);
-
-/**
- * Computes the expectation value of an operator based on VMC results.
- */
-Stats Expectation(const Result &result, AbstractMachine &psi,
-                  const AbstractOperator &op);
-
-/**
- * Computes the expectation value of an operator based on VMC results.
- * The local value of the observable for each sampled configuration are stored
- * in the vector locvals and can be reused for further calculations.
- */
-Stats Expectation(const Result &result, AbstractMachine &psi,
-                  const AbstractOperator &op, VectorXcd &locvals);
-
-/**
- * Computes the variance of an observable based on the given VMC data.
- */
-Stats Variance(const Result &result, AbstractMachine &psi,
-               const AbstractOperator &op);
-
-/**
- * Computes variance of an observable based on the given VMC data.
- * This function reuses the precomputed expectation and local values of the
- * observable.
- */
-Stats Variance(const Result &result, AbstractMachine &psi,
-               const AbstractOperator &op, double expectation_value,
-               const VectorXcd &locvals);
-#endif
-
 /**
  * Computes gradient of an observable with respect to the variational parameters
  * based on the given MC data.
@@ -223,23 +80,6 @@ Stats Variance(const Result &result, AbstractMachine &psi,
  */
 Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> values,
                           Eigen::Ref<const RowMatrix<Complex>> gradients);
-
-#if 0
-/**
- * Computes the gradient of an observable with respect to the variational
- * parameters based on the given VMC data.
- */
-VectorXcd Gradient(const Result &result, AbstractMachine &psi,
-                   const AbstractOperator &op);
-
-/**
- * Computes the gradient of an observable with respect to the variational
- * parameters based on the given VMC data. This function reuses the precomputed
- * expectation and local values of the observable.
- */
-VectorXcd Gradient(const Result &result, AbstractMachine &psi,
-                   const AbstractOperator &op, const VectorXcd &locvals);
-#endif
 
 /**
  * Computes an approximation of the gradient of the variance of an operator.
