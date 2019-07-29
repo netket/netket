@@ -122,14 +122,21 @@ void PyAbstractMachine::SetParameters(VectorConstRefType pars) {
       pars);
 }
 
-Complex PyAbstractMachine::LogValSingle(VisibleConstType v,
-                                        const any & /*unused*/) {
-  PYBIND11_OVERLOAD_PURE_NAME(
-      Complex,          /* Return type */
-      AbstractMachine,  /* Parent class */
-      "log_val_single", /* Name of the function in Python */
-      LogValSingle,     /* Name of function in C++ */
-      v);
+void PyAbstractMachine::LogVal(Eigen::Ref<const RowMatrix<double>> v,
+                               Eigen::Ref<Eigen::VectorXcd> out,
+                               const any & /*unused*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(void,            /* Return type */
+                              AbstractMachine, /* Parent class */
+                              "log_val", /* Name of the function in Python */
+                              LogVal,    /* Name of function in C++ */
+                              v, out);
+}
+
+Complex PyAbstractMachine::LogValSingle(VisibleConstType v, const any &cache) {
+  Complex data;
+  auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
+  LogVal(v.transpose(), out, cache);
+  return data;
 }
 
 any PyAbstractMachine::InitLookup(VisibleConstType /*unused*/) { return {}; }
@@ -138,34 +145,6 @@ void PyAbstractMachine::UpdateLookup(VisibleConstType /*unused*/,
                                      const std::vector<int> & /*unused*/,
                                      const std::vector<double> & /*unused*/,
                                      any & /*unused*/) {}
-
-Complex PyAbstractMachine::LogValDiff(VisibleConstType old_v,
-                                      const std::vector<int> &to_change,
-                                      const std::vector<double> &new_conf) {
-  auto const old_value = LogValSingle(old_v, {});
-  VisibleType new_v{old_v};
-  GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  auto const new_value = LogValSingle(new_v, {});
-  return new_value - old_value;
-}
-
-PyAbstractMachine::VectorType PyAbstractMachine::LogValDiff(
-    VisibleConstType old_v, const std::vector<std::vector<int>> &to_change,
-    const std::vector<std::vector<double>> &new_conf) {
-  assert(to_change.size() == new_conf.size());
-  VectorType result(to_change.size());
-  for (auto i = size_t{0}; i < to_change.size(); ++i) {
-    result(i) = LogValDiff(old_v, to_change[i], new_conf[i]);
-  }
-  return result;
-}
-
-Complex PyAbstractMachine::LogValDiff(VisibleConstType v,
-                                      const std::vector<int> &to_change,
-                                      const std::vector<double> &new_conf,
-                                      const any & /*unused*/) {
-  return LogValDiff(v, to_change, new_conf);
-}
 
 PyAbstractMachine::VectorType PyAbstractMachine::DerLogSingle(
     VisibleConstType v, const any & /*lt*/) {

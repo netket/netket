@@ -39,11 +39,31 @@ void AddVariationalMonteCarloModule(py::module &m) {
       .def_readonly("autocorrelation", &Stats::correlation)
       .def_readonly("R", &Stats::R);
 
-  py::class_<MCResult>(m_vmc, "MCResult")
-      .def_readonly("samples", &MCResult::samples)
-      .def_readonly("log_values", &MCResult::log_values)
-      .def_readonly("der_logs", &MCResult::der_logs)
-      .def_readonly("n_chains", &MCResult::num_chains);
+  py::class_<MCResult>(m_vmc, "MCResult",
+                       R"EOF(Result of Monte Carlo sampling.)EOF")
+      .def_readonly("samples", &MCResult::samples,
+                    R"EOF(Visible configurations `{vᵢ}` visited during sampling.
+
+                    Visible configurations are represented by a row-major matrix
+                    of `float64` where every row is a visible configuration.)EOF")
+      .def_readonly("log_values", &MCResult::log_values,
+                    R"EOF(A vector of `complex128` representing `Ψ(vᵢ)` for all
+                    sampled visible configurations `vᵢ`.)EOF")
+      .def_readonly("der_logs", &MCResult::der_logs,
+                    R"EOF(A matrix of logarithmic derivatives.
+
+                    Each row in the matrix corresponds to the gradient of
+                    `Ψ(vᵢ)` with respect to variational parameters.)EOF")
+      .def_readonly("n_chains", &MCResult::num_chains,
+                    R"EOF(Number of Markov Chains which this object represents.
+
+                    If `n_chains > 1`, then the first visible configuration
+                    comes from the first Markov Chain, the second -- from the
+                    second Markov chain, etc. The `n_chains + 1`st visible
+                    configuration is again from the first Markov Chains.
+                    Wavefunction logarithms and derivatives are interleaved in a
+                    similar fashion.
+                    )EOF");
 
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",
@@ -269,244 +289,75 @@ void AddVariationalMonteCarloModule(py::module &m) {
                 Becca and Sorella (2017), pp. 143-144.
                 https://doi.org/10.1017/9781316417041")EOF");
 
-#if 0
-  py::class_<vmc::Result>(m_vmc, "_VmcResult")
-      .def_property_readonly("samples", &vmc::Result::SampleMatrix);
-#endif
-
-#if 0
-  m_vmc.def("compute_samples", &ComputeSamples, py::arg("sampler"),
-            py::arg("nsamples"), py::arg("ndiscard") = 0,
-            py::arg("compute_logderivs") = true, R"EOF(
-           Computes a sequence of visible configurations based on Monte Carlo sampling using `sampler`.
-
-           Args:
-               sampler: The sampler used to perform the MC sweeps.
-               nsamples: The number of MC samples that are stored (one MC sweep
-                    is performed between each sample)
-               ndiscard: The number of sweeps to be discarded before starting
-                    to store samples.
-               compute_logderivs: Whether to store the logarithmic derivatives
-                    of the wavefunction as part of the returned VMC result.
-           Returns:
-               A tuple `(samples, values, gradients)` if `compute_logderivs == True`
-               and a pair `(samples, values)` otherwise. `samples` are visible
-               configurations visited during sampling and `values` are the
-               corresponding values of the logarithm of the wavefunction.
-            )EOF");
-#endif
-
   m_vmc.def("compute_samples", &ComputeSamples, py::arg{"sampler"},
-            py::arg{"nsamples"}, py::arg{"ndiscard"},
+            py::arg{"n_samples"}, py::arg{"n_discard"},
             py::arg{"compute_logderivs"} = true,
-            R"EOF(
-      Computes a sequence of visible configurations based on Monte Carlo sampling using `sampler`.
+            R"EOF(Runs Monte Carlo sampling using `sampler`.
 
-      Args:
-          sampler: sampler to use for Monte Carlo sweeps.
-          nsamples: number of samples to record (returned number of samples
-              may differ from this value).
-          ndiscard: number of sweeps to discard.
-          compute_logderivs: Whether to calculate gradients of the logarithm of
-              the wave function.
+                  First `n_discard` sweeps are discarded. Results of the next
+                  `≈n_samples` sweeps are saved. Since samplers work with
+                  batches of specified size it may be impossible to sample
+                  exactly `n_samples` visible configurations (without throwing
+                  away useful data, of course). You can rely on
+                  `compute_samples` to return at least `n_samples` samples.
 
-      Returns:
-          A tuple `(samples, values, gradients)` if `compute_logderivs == True`
-          and a pair `(samples, values)` otherwise. `samples` are visible
-          configurations visited during sampling and `values` are the
-          corresponding values of the logarithm of the wavefunction.
-      )EOF");
+                  Exact number of performed sweeps and samples stored can be
+                  computed using the following functions:
 
-#if 0
-  m_vmc.def(
-      "expectation",
-      [](const vmc::Result &result, AbstractMachine &psi,
-         const AbstractOperator &op, bool return_locvals) {
-        if (return_locvals) {
-          VectorXcd locvals;
-          auto ex = vmc::Expectation(result, psi, op, locvals);
-          return static_cast<py::object>(py::make_tuple(ex, locvals));
-        } else {
-          return py::cast(vmc::Expectation(result, psi, op));
-        }
-      },
-      py::arg("vmc_data"), py::arg("psi"), py::arg("op"),
-      py::arg("return_locvals") = false, R"EOF(
-           Computes the expectation value of a Hermitian operator based on
-           provided VMC data.
+                  ```python
 
-           Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-               return_locvals: If `True`, this function will additionally
-                   return an array containing the local values of the observable
-                   for all visible configurations in `vmc_data`.
+                  def number_sweeps(sampler, n_samples):
+                      return (n_samples + sampler.batch_size - 1) // sampler.batch_size
 
-            Examples:
-               A very basic VMC loop in Python:
+                  def number_samples(sampler, n_samples):
+                      return sampler.batch_size * number_sweeps(sampler, n_samples)
+                  ```
 
-               ```python
-                 from netket.graph import Hypercube
-                 from netket.hilbert import Spin
-                 from netket.operator import Ising
-                 from netket.machine import RbmSpin
-                 from netket.sampler import MetropolisLocal
-                 from netket.variational import compute_samples, expectation, gradient
+                  Args:
+                      sampler: sampler to use for Monte Carlo sweeps.
+                      n_samples: number of samples to record.
+                      n_discard: number of sweeps to discard.
+                      compute_logderivs: Whether to calculate gradients of the logarithm of
+                          the wave function.
 
-                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
-                 ham = Ising(hi, h=1.0)
-                 psi = RbmSpin(hi, alpha=2)
-                 psi.init_random_parameters(sigma=0.1)
-                 sampler = MetropolisLocal(psi)
-
-                 for step in range(10):
-                     data = compute_samples(sampler, 10000, 1000)
-
-                     ex = expectation(data, psi, ham)
-                     print("E={Mean:.4f} ± {Sigma:.4f}".format(**ex))
-
-                     grad = gradient(data, psi, ham)
-                     psi.parameters -= 0.1 * grad
-               ```
-            )EOF");
-
-  using VarType1 = vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
-                                  const AbstractOperator &);
-  m_vmc.def("variance", (VarType1)&vmc::Variance, py::arg("vmc_data"),
-            py::arg("psi"), py::arg("op"), R"EOF(
-           Computes the variance value of a Hermitian operator, i.e.,
-                σ² = ⟨(O - ⟨O⟩)²⟩
-           based on provided VMC data.
-
-           Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-            )EOF");
-
-  using VarType2 =
-      vmc::Stats (*)(const vmc::Result &, AbstractMachine &,
-                     const AbstractOperator &, double, const VectorXcd &);
-  m_vmc.def("variance", (VarType2)&vmc::Variance, py::arg("vmc_data"),
-            py::arg("op"), py::arg("psi"), py::arg("expectation_value"),
-            py::arg("locvals"), R"EOF(
-           Computes the variance value of a Hermitian operator, i.e.,
-                σ² = ⟨(O - ⟨O⟩)²⟩
-           based on provided VMC data, reusing precomputed local values
-           and expectation of `op`.
-
-           Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-               expectation_value: The expectation of `op` for the given
-                   VMC data.
-               locvals: An array containing the local values of `op` for the
-                   given VMC data.
-
-            Examples:
-               Computing the variance using precomputed values.
-
-               ```python
-                 from netket.graph import Hypercube
-                 from netket.hilbert import Spin
-                 from netket.operator import Ising
-                 from netket.machine import RbmSpin
-                 from netket.sampler import MetropolisLocal
-                 import netket.variational as vmc
-
-                 hi = Spin(s=0.5, graph=Hypercube(8, 1))
-                 ham = Ising(hi, h=1.0)
-                 psi = RbmSpin(hi, alpha=2)
-                 psi.init_random_parameters(sigma=0.1)
-                 sampler = MetropolisLocal(psi)
-
-                 data = vmc.compute_samples(sampler, 10000, 1000)
-                 ex, lv = vmc.expectation(data, psi, ham, return_locvals=True)
-                 var = vmc.variance(data, psi, ham, ex["Mean"], lv)
-               ```
-            )EOF");
-#endif
+                  Returns:
+                      A `MCResult` object with all the data obtained during sampling.)EOF");
 
   m_vmc.def("gradient", &Gradient, py::arg{"local_values"},
             py::arg{"gradients"},
-            R"EOF(
-           Computes the gradient of the expecation value of a Hermitian operator
-           `op` with respect to the wavefunction parameters based on provided VMC
-           data.
+            R"EOF(Computes the gradient of the expecation value of a Hermitian
+                  operator `op` with respect to the wavefunction parameters
+                  based on provided Monte Carlo data.
 
-           Args:
-               loval_values: Local values of the operator.
-               gradients: Logarithmic derivatives of the wavefunction.
-            )EOF");
+                  Args:
+                      loval_values: A vector of local values of the operator.
+                      gradients: A matrix of logarithmic derivatives of the
+                          wavefunction. Each row of the matrix must correspond
+                          to a logarithmic derivative.)EOF");
 
-#if 0
-  using GradType2 = VectorXcd (*)(const vmc::Result &, AbstractMachine &,
-                                  const AbstractOperator &, const VectorXcd &);
-  m_vmc.def("gradient", (GradType2)&vmc::Gradient, py::arg("vmc_data"),
-            py::arg("op"), py::arg("psi"), py::arg("locvals"), R"EOF(
-           Computes the gradient of the expecation value of a Hermitian operator
-           `op` with respect to the wavefunction parameters based on provided VMC
-           data.
+  m_vmc.def("local_values", &LocalValues, py::arg{"samples"},
+            py::arg{"log_values"}, py::arg{"machine"}, py::arg{"op"},
+            py::arg{"batch_size"} = 16,
+            R"EOF(Computes local values of the operator `op` for all `samples`.
 
-           Args:
-               vmc_data: The VMC result data.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-               locvals: An array containing the local values of `op` for the
-                   given VMC data.
-            )EOF");
-#endif
+                  Args:
+                      samples: A matrix of visible configurations. Each row of
+                          the matrix must correspond to a visible configuration.
+                      log_values: Corresponding values of the logarithm of the wavefunction.
+                      machine: Wavefunction.
+                      op: Hermitian operator.
+                      batch_size: Batch size.
 
-#if 0
-  m_vmc.def("local_value", &LocalValueLegacy, py::arg("op"), py::arg("psi"),
-            py::arg("v"), R"EOF(
-           Computes the local value of the operator `op` in configuration `v`
-           which is defined as O_loc(v) = ⟨v|op|Ψ⟩ / ⟨v|Ψ⟩.
+                  Returns:
+                      A numpy array of local values of the operator.)EOF");
 
-           Args:
-               op: Hermitian operator.
-               psi: Machine represenation of the wavefunction.
-               v: Visible configuration.
-            )EOF");
-#endif
+  m_vmc.def("statistics", &Statistics, py::arg{"values"}, py::arg{"n_chains"},
+            R"EOF(Computes some statistics (see `Stats` class) of a sequence of
+                  local estimators obtained from Monte Carlo sampling.
 
-#if 0
-  m_vmc.def(
-      "local_values",
-      [](Eigen::Ref<const Eigen::MatrixXd> result, AbstractMachine &psi,
-         const AbstractOperator &op) {
-        return vmc::LocalValues(op, psi, result);
-      },
-      py::arg("vmc_data"), py::arg("psi"), py::arg("op"), R"EOF(
-           Computes the local values of the operator `op` for all visible
-           configurations stored in `vmc_data`.
-
-           Args:
-               vmc_data: Visible samples.
-               psi: Machine represenation of the wavefunction.
-               op: Hermitian operator.
-            )EOF");
-#endif
-
-  m_vmc.def("local_values", &LocalValues, py::arg{"samples"}, py::arg{"values"},
-            py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
-            R"EOF(
-           Computes the local values of the operator `op` for all `samples`.
-
-           Args:
-               samples: Visible configurations.
-               values: Corresponding values of the logarithm of the wavefunction.
-               machine: Wavefunction.
-               op: Hermitian operator.
-               batch_size: Batch size.
-
-          Returns:
-              A numpy array of local values of the operator.
-        )EOF");
-
-  m_vmc.def("statistics", &Statistics, py::arg{"values"}, py::arg{"n_chains"});
+                  Args:
+                      values: A vector of local estimators.
+                      n_chains: Number of chains interleaved in `values`.)EOF");
 }
 
 }  // namespace netket

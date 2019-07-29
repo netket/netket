@@ -81,6 +81,7 @@ class RbmSpinV2 : public AbstractMachine {
     return out;
   }
 
+#if 0
   /// Simply calls `LogVal` twice.
   ///
   /// \note performance of this function is pretty bad. Please, restructure your
@@ -110,6 +111,7 @@ class RbmSpinV2 : public AbstractMachine {
                      const any & /*unused*/) final {
     return LogValDiff(v, {tochange}, {newconf})(0);
   }
+#endif
 
   // Look-up stuff
   any InitLookup(VisibleConstType) final { return {}; }

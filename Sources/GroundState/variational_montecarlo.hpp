@@ -185,7 +185,7 @@ class VariationalMonteCarlo {
     for (std::size_t i = 0; i < obs_.size(); ++i) {
       auto local_values = LocalValues(mc_data_.samples, mc_data_.log_values,
                                       psi_, *obs_[i], sampler_.BatchSize());
-      auto stats = Statistics(local_values, sampler_.BatchSize());
+      auto stats = Statistics(local_values, mc_data_.num_chains);
       observable_stats_[obsnames_[i]] = stats;
     }
   }
@@ -202,7 +202,7 @@ class VariationalMonteCarlo {
       const auto local_values =
           LocalValues(mc_data_.samples, mc_data_.log_values, psi_, ham_,
                       sampler_.BatchSize());
-      const auto stats = Statistics(local_values, sampler_.BatchSize());
+      const auto stats = Statistics(local_values, mc_data_.num_chains);
 
       observable_stats_["Energy"] = stats;
 
@@ -242,9 +242,6 @@ class VariationalMonteCarlo {
       // written once
       if (writer.has_value()) {
         auto obs_data = json(observable_stats_);
-#if 0
-        obs_data["Acceptance"] = sampler_.Acceptance();
-#endif
 
         writer->WriteLog(step, obs_data);
         writer->WriteState(step, psi_);
@@ -282,7 +279,7 @@ class VariationalMonteCarlo {
 
   const MCResult &GetVmcData() const noexcept { return mc_data_; }
 
-  nonstd::optional<SR> &GetSR() { return sr_; }
+  nonstd::optional<SR> &GetSR() noexcept { return sr_; }
 };
 
 }  // namespace netket

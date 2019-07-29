@@ -47,12 +47,6 @@ inline std::pair<__m256d, __m256d> LogCosh(__m256d x, __m256d y) noexcept {
   return {p, q};
 }
 
-inline std::pair<__m256d, __m256d> Load(const Complex* data) noexcept {
-  static_assert(sizeof(__m256d) == 2 * sizeof(Complex), "");
-  const auto* p = reinterpret_cast<const double*>(data);
-  return {_mm256_loadu_pd(p), _mm256_loadu_pd(p + 4)};
-}
-
 inline Complex ToComplex(__m128d z) noexcept {
   static_assert(sizeof(__m128d) == sizeof(Complex), "");
   alignas(16) Complex r;
@@ -64,8 +58,8 @@ inline __m256d SumLogCoshKernel(__m256d z1, __m256d z2) noexcept {
   auto x = _mm256_unpacklo_pd(z1, z2);
   auto y = _mm256_unpackhi_pd(z1, z2);
   std::tie(x, y) = LogCosh(x, y);
-  z1 = _mm256_shuffle_pd(x, y, 0b0000);
-  z2 = _mm256_shuffle_pd(x, y, 0b1111);
+  z1 = _mm256_shuffle_pd(x, y, /*1b0000=*/0);
+  z2 = _mm256_shuffle_pd(x, y, /*1b1111=*/15);
   return _mm256_add_pd(z1, z2);
 }
 }  // namespace

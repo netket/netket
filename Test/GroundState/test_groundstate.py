@@ -130,7 +130,7 @@ def test_vmc_run():
             assert "Mean" in e and "Sigma" in e and "Taucorr" in e
         last_obs = obs
 
-    assert last_obs["Energy"]["Mean"][0] == approx(-10.25, abs=0.2)
+    assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)
 
 
 def test_imag_time_propagation():

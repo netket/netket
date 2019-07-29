@@ -118,10 +118,9 @@ void AddSamplerModule(py::module& m) {
       )EOF")
       .def_property_readonly(
           "visible",
-          [](const AbstractSampler& self) { return VisibleLegacy(self); },
-          R"EOF(
-                      numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$F(\Psi(v))$$ )EOF")
+          [](const AbstractSampler& self) { return self.CurrentState().first; },
+          R"EOF(A matrix of current visible configurations. Every row
+                corresponds to a visible configuration)EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
       .def_property_readonly("batch_size", &AbstractSampler::BatchSize, R"EOF(
@@ -159,10 +158,9 @@ void AddSamplerModule(py::module& m) {
               func(input, output);
             });
           },
-          R"EOF(
-                          function(complex): The function to be used for sampling.
-                                       by default $$|\Psi(x)|^2$$ is sampled,
-                                       however in general $$F(\Psi(v))$$  )EOF");
+          R"EOF(function(complex): The function to be used for sampling.
+                                   by default $$|\Psi(x)|^2$$ is sampled,
+                                   however in general $$F(\Psi(v))$$)EOF");
 
   AddMetropolisLocal(subm);
   AddMetropolisLocalPt(subm);

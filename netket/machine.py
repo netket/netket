@@ -9,33 +9,30 @@ class CxxMachine(Machine):
     def __init__(self, hilbert):
         super(CxxMachine, self).__init__(hilbert)
 
-    def log_val_single(self, v):
-        r"""Returns the logarithm of the wave function for a visible
-        configuration `v`.
+    def log_val(self, v, out=None):
+        r"""Computes the logarithm of the wave function for a batch of visible
+        configurations `v` and stores the result in `out`.
 
         Subclasses should implement this function.
 
         Args:
-            x: 1D vector of `float` of size `self.n_visible`.
+            x: 1D vector of `float` of size `self.n_visible` or a 2D matrix of
+            `float` of size `(batch_size, self.n_visible)`.
+            out: Destination vector.
         """
         raise NotImplementedError
-
-    def der_log_single(self, v):
-        r"""Returns the gradient of the logarithm of the wave function for
-        a visible configuration `v`.
-
-        Subclasses should implement this function.
-
-        Args:
-            x: 1D vector of `float` of size `self.n_visible`.
-        """
-        raise NotImplementedError
-
-    def log_val(self, v):
-        return self.log_val_single(v)
 
     def der_log(self, v):
-        return self.der_log_single(v)
+        r"""Returns the gradient of the logarithm of the wave function for
+        a batch of visible configurations `v`.
+
+        Subclasses should implement this function.
+
+        Args:
+            x: 1D vector of `float` of size `self.n_visible` or a 2D matrix of
+            `float` of size `(batch_size, self.n_visible)`.
+        """
+        raise NotImplementedError
 
     def save(self, filename):
         r"""Saves machine's state to file.

@@ -27,6 +27,7 @@
 #include "Utils/any.hpp"
 #include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 
@@ -39,8 +40,6 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-  using RowMatrixType =
-      Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
@@ -48,8 +47,6 @@ class AbstractMachine {
   using VisibleType = Eigen::VectorXd;
   using RealVectorType = Eigen::Matrix<double, Eigen::Dynamic, 1>;
   using RealMatrixType = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
-  using RealRowMatrixType =
-      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
   using RealVectorConstRefType = Eigen::Ref<const RealVectorType>;
 
   /**
@@ -90,17 +87,18 @@ class AbstractMachine {
    * @param v a matrix of size `batch_size x Nvisible()`. Each row of the matrix
    * is a visible configuration.
    */
-  virtual void LogVal(Eigen::Ref<const RealRowMatrixType> v,
+  virtual void LogVal(Eigen::Ref<const RowMatrix<double>> v,
                       Eigen::Ref<VectorType> out, const any &cache = any{});
 
-  virtual VectorType LogVal(Eigen::Ref<const RealRowMatrixType> v,
+  virtual VectorType LogVal(Eigen::Ref<const RowMatrix<double>> v,
                             const any &cache = any{});
 
-  virtual void DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                      Eigen::Ref<RowMatrixType> out, const any &cache = any{});
+  virtual void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                      Eigen::Ref<RowMatrix<Complex>> out,
+                      const any &cache = any{});
 
-  virtual RowMatrixType DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                               const any &cache = any{});
+  virtual RowMatrix<Complex> DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                                    const any &cache = any{});
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -151,6 +149,9 @@ class AbstractMachine {
   Member function computing the difference between the logarithm of the
   wave-function computed at different values of the visible units (v, and a set
   of v').
+
+  @note performance of the default implementation is pretty bad.
+
   @param v a constant reference to the current visible configuration.
   @param tochange a constant reference to a vector containing the indeces of the
   units to be modified.
@@ -161,12 +162,15 @@ class AbstractMachine {
   */
   virtual VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) = 0;
+      const std::vector<std::vector<double>> &newconf);
 
   /**
   Member function computing the difference between the logarithm of the
   wave-function computed at different values of the visible units (v, and a
   single v'). This version uses the look-up tables to speed-up the calculation.
+
+  @note performance of the default implementation is pretty bad.
+
   @param v a constant reference to the current visible configuration.
   @param tochange a constant reference to a vector containing the indeces of the
   units to be modified.
@@ -178,8 +182,7 @@ class AbstractMachine {
   */
   virtual Complex LogValDiff(VisibleConstType v,
                              const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             const any &lt) = 0;
+                             const std::vector<double> &newconf, const any &lt);
 
   /**
   Member function computing the derivative of the logarithm of the wave function

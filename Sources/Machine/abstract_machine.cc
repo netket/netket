@@ -54,7 +54,7 @@ void AbstractMachine::InitRandomPars(double sigma,
   SetParameters(parameters);
 }
 
-void AbstractMachine::LogVal(Eigen::Ref<const RealRowMatrixType> v,
+void AbstractMachine::LogVal(Eigen::Ref<const RowMatrix<double>> v,
                              Eigen::Ref<VectorType> out,
                              const any & /*unused*/) {
   CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
@@ -66,14 +66,14 @@ void AbstractMachine::LogVal(Eigen::Ref<const RealRowMatrixType> v,
 }
 
 AbstractMachine::VectorType AbstractMachine::LogVal(
-    Eigen::Ref<const RealRowMatrixType> v, const any &cache) {
+    Eigen::Ref<const RowMatrix<double>> v, const any &cache) {
   VectorType out(v.rows());
   LogVal(v, out, cache);
   return out;
 }
 
-void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
-                             Eigen::Ref<RowMatrixType> out,
+void AbstractMachine::DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                             Eigen::Ref<RowMatrix<Complex>> out,
                              const any & /*cache*/) {
   CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
              {std::ignore, Nvisible()});
@@ -83,9 +83,9 @@ void AbstractMachine::DerLog(Eigen::Ref<const RealRowMatrixType> v,
   }
 }
 
-AbstractMachine::RowMatrixType AbstractMachine::DerLog(
-    Eigen::Ref<const RealRowMatrixType> v, const any &cache) {
-  RowMatrixType out(v.rows(), Npar());
+RowMatrix<Complex> AbstractMachine::DerLog(
+    Eigen::Ref<const RowMatrix<double>> v, const any &cache) {
+  RowMatrix<Complex> out(v.rows(), Npar());
   DerLog(v, out, cache);
   return out;
 }
@@ -96,6 +96,27 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   VisibleType vp(v);
   hilbert_->UpdateConf(vp, tochange, newconf);
   return DerLogSingle(vp);
+}
+
+AbstractMachine::VectorType AbstractMachine::LogValDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf) {
+  RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
+  input = v.transpose().colwise().replicate(input.rows());
+  for (auto i = Index{0}; i < input.rows(); ++i) {
+    GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
+                            newconf[static_cast<size_t>(i)]);
+  }
+  auto x = AbstractMachine::LogVal(input, any{});
+  x.array() -= LogValSingle(v, any{});
+  return x;
+}
+
+Complex AbstractMachine::LogValDiff(VisibleConstType v,
+                                    const std::vector<int> &tochange,
+                                    const std::vector<double> &newconf,
+                                    const any & /*unused*/) {
+  return LogValDiff(v, {tochange}, {newconf})(0);
 }
 
 }  // namespace netket

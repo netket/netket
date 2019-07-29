@@ -599,8 +599,7 @@ void AddAbstractMachine(py::module m) {
               auto input = x.cast<Eigen::Ref<const VectorXd>>();
               return py::cast(self.LogValSingle(input));
             }
-            auto input =
-                x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
             return py::cast(self.LogVal(input, any{}));
           },
           py::arg("v"),
@@ -636,8 +635,7 @@ void AddAbstractMachine(py::module m) {
               auto input = x.cast<Eigen::Ref<const VectorXd>>();
               return py::cast(self.DerLogSingle(input));
             }
-            auto input =
-                x.cast<Eigen::Ref<const AbstractMachine::RealRowMatrixType>>();
+            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
             return py::cast(self.DerLog(input, any{}));
           },
           py::arg("v"),

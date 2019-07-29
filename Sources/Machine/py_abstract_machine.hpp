@@ -32,19 +32,14 @@ class PyAbstractMachine : public AbstractMachine {
   void SetParameters(VectorConstRefType pars) override;
 
   Complex LogValSingle(VisibleConstType v, const any & /*unused*/) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorXcd> out,
+              const any & /*unused*/) override;
 
   any InitLookup(VisibleConstType /*unused*/) override;
   void UpdateLookup(VisibleConstType /*unused*/,
                     const std::vector<int> & /*unused*/,
                     const std::vector<double> & /*unused*/,
                     any & /*unused*/) override;
-
-  VectorType LogValDiff(
-      VisibleConstType old_v, const std::vector<std::vector<int>> &to_change,
-      const std::vector<std::vector<double>> &new_conf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &to_change,
-                     const std::vector<double> &new_conf,
-                     const any & /*unused*/) override;
 
   VectorType DerLogSingle(VisibleConstType v, const any & /*lt*/) override;
   VectorType DerLogChanged(VisibleConstType old_v,
@@ -55,11 +50,6 @@ class PyAbstractMachine : public AbstractMachine {
   void Load(const std::string &filename) override;
 
   ~PyAbstractMachine() override = default;
-
- private:
-  inline Complex LogValDiff(VisibleConstType old_v,
-                            const std::vector<int> &to_change,
-                            const std::vector<double> &new_conf);
 };
 
 }  // namespace netket

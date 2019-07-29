@@ -109,8 +109,8 @@ def test_states_in_hilbert():
         for sw in range(100):
             sa.sweep()
             visible = sa.visible
-            assert len(visible) == hi.size
-            for v in visible:
+            assert visible.shape[1] == hi.size
+            for v in visible.reshape(-1):
                 assert v in localstates
 
             if hasattr(sa, "acceptance"):
@@ -181,8 +181,9 @@ def test_correct_sampling():
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
-                sttn = hi.state_to_number(visible)
-                hist_samp[sttn] += 1
+                for v in visible:
+                    sttn = hi.state_to_number(v)
+                    hist_samp[sttn] += 1
 
             statistics, pvalues[jrep] = power_divergence(
                 hist_samp, f_exp=f_exp, lambda_=3 / 2

@@ -20,14 +20,6 @@ option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
 
-# if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-#     set(NETKET_CAN_USE_SLEEF FALSE)
-#     message(STATUS
-#         "Clang ${CMAKE_CXX_COMPILER_VERSION} is very old: disabling "
-#         "Sleef. Code using RBMs will be slow!")
-# else()
-#     set(NETKET_CAN_USE_SLEEF TRUE)
-# endif()
 option(NETKET_USE_SLEEF "Use Sleef vector math library" ON)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
@@ -303,9 +295,12 @@ if (NETKET_USE_SLEEF)
         $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
     target_compile_options(log_cosh_avx2 PUBLIC
         $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
-    target_include_directories(log_cosh_avx2 PUBLIC
-        $<TARGET_PROPERTY:netket_lib,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_include_directories(log_cosh_avx2 PRIVATE Sources)
     add_dependencies(log_cosh_avx2 eigen_project sleef_project)
+    ExternalProject_Get_Property(sleef_project BINARY_DIR)
+    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${BINARY_DIR}/include)
+    ExternalProject_Get_Property(eigen_project SOURCE_DIR)
+    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${SOURCE_DIR})
     target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh_avx2>)
 endif()
 
