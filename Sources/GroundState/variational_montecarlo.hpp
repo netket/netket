@@ -185,7 +185,7 @@ class VariationalMonteCarlo {
     for (std::size_t i = 0; i < obs_.size(); ++i) {
       auto local_values = LocalValues(mc_data_.samples, mc_data_.log_values,
                                       psi_, *obs_[i], sampler_.BatchSize());
-      auto stats = Statistics(local_values, mc_data_.num_chains);
+      auto stats = Statistics(local_values, mc_data_.n_chains);
       observable_stats_[obsnames_[i]] = stats;
     }
   }
@@ -202,7 +202,7 @@ class VariationalMonteCarlo {
       const auto local_values =
           LocalValues(mc_data_.samples, mc_data_.log_values, psi_, ham_,
                       sampler_.BatchSize());
-      const auto stats = Statistics(local_values, mc_data_.num_chains);
+      const auto stats = Statistics(local_values, mc_data_.n_chains);
 
       observable_stats_["Energy"] = stats;
 

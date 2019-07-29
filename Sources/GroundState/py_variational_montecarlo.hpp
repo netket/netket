@@ -54,7 +54,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
                     Each row in the matrix corresponds to the gradient of
                     `Ψ(vᵢ)` with respect to variational parameters.)EOF")
-      .def_readonly("n_chains", &MCResult::num_chains,
+      .def_readonly("n_chains", &MCResult::n_chains,
                     R"EOF(Number of Markov Chains which this object represents.
 
                     If `n_chains > 1`, then the first visible configuration

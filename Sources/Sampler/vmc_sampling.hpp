@@ -36,7 +36,7 @@ struct MCResult {
   /// \brief Logarithmic derivatives with respect to variational parameters.
   nonstd::optional<RowMatrix<Complex>> der_logs;
   /// \brief Number of Markov Chains interleaved in #samples.
-  Index num_chains;
+  Index n_chains;
 };
 
 /**
