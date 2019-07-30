@@ -26,6 +26,7 @@
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
 #include "py_local_operator.hpp"
+#include "py_pauli_operator.hpp"
 
 namespace py = pybind11;
 
@@ -73,26 +74,25 @@ void AddOperatorModule(py::module m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def(
-              "to_linear_operator",
-              [](py::object py_self) {
-                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
-                const auto dtype =
-                    py::module::import("numpy").attr("complex128");
-                const auto linear_operator =
-                    py::module::import("scipy.sparse.linalg")
-                        .attr("LinearOperator");
-                const auto dim = cxx_self->Dimension();
-                return linear_operator(
-                    py::arg{"shape"} = std::make_tuple(dim, dim),
-                    py::arg{"matvec"} = py::cpp_function(
-                        // TODO: Does this copy data?
-                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
-                          return cxx_self->Apply(x);
-                        }),
-                    py::arg{"dtype"} = dtype);
-              },
-              R"EOF(
+          .def("to_linear_operator",
+               [](py::object py_self) {
+                 const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                 const auto dtype =
+                     py::module::import("numpy").attr("complex128");
+                 const auto linear_operator =
+                     py::module::import("scipy.sparse.linalg")
+                         .attr("LinearOperator");
+                 const auto dim = cxx_self->Dimension();
+                 return linear_operator(
+                     py::arg{"shape"} = std::make_tuple(dim, dim),
+                     py::arg{"matvec"} = py::cpp_function(
+                         // TODO: Does this copy data?
+                         [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                           return cxx_self->Apply(x);
+                         }),
+                     py::arg{"dtype"} = dtype);
+               },
+               R"EOF(
         Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
 
         This method requires an indexable Hilbert space.
@@ -105,6 +105,7 @@ void AddOperatorModule(py::module m) {
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
+  AddPauliOperator(subm);
 }
 
 }  // namespace netket
