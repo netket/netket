@@ -60,7 +60,7 @@ def test_vmc_functions():
         )
 
         local_values = nk.operator.local_values(data.samples, data.log_values, ma, op)
-        ex = nk.stats.statistics(local_values, n_chains=sampler.batch_size)
+        ex = nk.stats.statistics(local_values)
         assert ex.mean == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean == approx(exact_ex, rel=tol)
 

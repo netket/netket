@@ -29,6 +29,15 @@ namespace py = pybind11;
 
 namespace netket {
 
+namespace detail {
+template <class T, int ExtraFlags>
+py::array_t<T, ExtraFlags> as_readonly(py::array_t<T, ExtraFlags> array) {
+  py::detail::array_proxy(array.ptr())->flags &=
+      ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+  return array;
+}
+}  // namespace detail
+
 void AddVariationalMonteCarloModule(py::module &m) {
   auto m_vmc = m.def_submodule("variational");
 
@@ -41,19 +50,52 @@ void AddVariationalMonteCarloModule(py::module &m) {
 
   py::class_<MCResult>(m_vmc, "MCResult",
                        R"EOF(Result of Monte Carlo sampling.)EOF")
-      .def_readonly("samples", &MCResult::samples,
-                    R"EOF(Visible configurations `{vᵢ}` visited during sampling.
+      .def_property_readonly(
+          "samples",
+          [](const MCResult &self) {
+            assert(self.samples.rows() % self.n_chains == 0);
+            return detail::as_readonly(py::array_t<double, py::array::c_style>{
+                {self.samples.rows() / self.n_chains, self.n_chains,
+                 self.samples.cols()},
+                self.samples.data(),
+                py::none()});
+          },
+          py::keep_alive<1, 0>{},
+          R"EOF(Visible configurations `{vᵢ}` visited during sampling.
 
-                    Visible configurations are represented by a row-major matrix
-                    of `float64` where every row is a visible configuration.)EOF")
-      .def_readonly("log_values", &MCResult::log_values,
-                    R"EOF(A vector of `complex128` representing `Ψ(vᵢ)` for all
+                Visible configurations are represented by a row-major matrix
+                of `float64` where every row is a visible configuration.)EOF")
+      .def_property_readonly(
+          "log_values",
+          [](const MCResult &self) {
+            assert(self.log_values.rows() % self.n_chains == 0);
+            return detail::as_readonly(py::array_t<Complex, py::array::c_style>{
+                {self.log_values.rows() / self.n_chains, self.n_chains},
+                self.log_values.data(),
+                py::none()});
+          },
+          py::keep_alive<1, 0>{},
+          R"EOF(A vector of `complex128` representing `Ψ(vᵢ)` for all
                     sampled visible configurations `vᵢ`.)EOF")
-      .def_readonly("der_logs", &MCResult::der_logs,
-                    R"EOF(A matrix of logarithmic derivatives.
+      .def_property_readonly(
+          "der_logs",
+          [](const MCResult &self) -> py::object {
+            if (self.der_logs.has_value()) {
+              assert(self.der_logs->rows() % self.n_chains == 0);
+              return detail::as_readonly(
+                  py::array_t<Complex, py::array::c_style>{
+                      {self.der_logs->rows() / self.n_chains, self.n_chains,
+                       self.der_logs->cols()},
+                      self.der_logs->data(),
+                      py::none()});
+            }
+            return py::none();
+          },
+          py::keep_alive<1, 0>{},
+          R"EOF(A matrix of logarithmic derivatives.
 
-                    Each row in the matrix corresponds to the gradient of
-                    `Ψ(vᵢ)` with respect to variational parameters.)EOF")
+                Each row in the matrix corresponds to the gradient of
+                `Ψ(vᵢ)` with respect to variational parameters.)EOF")
       .def_readonly("n_chains", &MCResult::n_chains,
                     R"EOF(Number of Markov Chains which this object represents.
 
@@ -317,15 +359,48 @@ void AddVariationalMonteCarloModule(py::module &m) {
                       sampler: sampler to use for Monte Carlo sweeps.
                       n_samples: number of samples to record.
                       n_discard: number of sweeps to discard.
-                      compute_logderivs: Whether to calculate gradients of the logarithm of
-                          the wave function.
+                      der_logs: Whether to calculate gradients of the logarithm
+                          of the wave function. `None` means don't compute,
+                          "normal" means compute, and "centered" means compute
+                          and then center.
 
                   Returns:
                       A `MCResult` object with all the data obtained during sampling.)EOF");
 
-  m_vmc.def("gradient_of_expectation", &Gradient, py::arg{"local_values"},
-            py::arg{"der_logs"},
-            R"EOF(Computes the gradient of the expecation value of a Hermitian
+  m_vmc.def(
+      "gradient_of_expectation",
+      [](py::array_t<Complex, py::array::c_style> local_values,
+         py::array_t<Complex, py::array::c_style> der_logs) {
+        switch (local_values.ndim()) {
+          case 2:
+            NETKET_CHECK(der_logs.ndim() == 3, InvalidInputError,
+                         "der_logs has wrong dimension: " << der_logs.ndim()
+                                                          << "; expected 3.");
+            return Gradient(
+                Eigen::Map<const VectorXcd>{
+                    local_values.data(),
+                    local_values.shape(0) * local_values.shape(1)},
+                Eigen::Map<const RowMatrix<Complex>>{
+                    der_logs.data(), der_logs.shape(0) * der_logs.shape(1),
+                    der_logs.shape(2)});
+          case 1:
+            NETKET_CHECK(der_logs.ndim() == 2, InvalidInputError,
+                         "der_logs has wrong dimension: " << der_logs.ndim()
+                                                          << "; expected 2.");
+            return Gradient(
+                Eigen::Map<const VectorXcd>{local_values.data(),
+                                            local_values.shape(0)},
+                Eigen::Map<const RowMatrix<Complex>>{
+                    der_logs.data(), der_logs.shape(0), der_logs.shape(1)});
+          default:
+            NETKET_CHECK(false, InvalidInputError,
+                         "local_values has wrong dimension: "
+                             << local_values.ndim()
+                             << "; expected either 1 or 2.");
+        }  // end switch
+      },
+      py::arg{"local_values"}.noconvert(), py::arg{"der_logs"}.noconvert(),
+      R"EOF(Computes the gradient of the expecation value of a Hermitian
                   operator `op` with respect to the wavefunction parameters
                   based on provided Monte Carlo data.
 

@@ -106,10 +106,50 @@ void AddOperatorModule(py::module m) {
   AddLocalOperator(subm);
   AddGraphOperator(subm);
 
-  subm.def("local_values", &LocalValues, py::arg{"samples"},
-           py::arg{"log_values"}, py::arg{"machine"}, py::arg{"op"},
-           py::arg{"batch_size"} = 16,
-           R"EOF(Computes local values of the operator `op` for all `samples`.
+  subm.def(
+      "local_values",
+      [](py::array_t<double, py::array::c_style> samples,
+         py::array_t<Complex, py::array::c_style> log_values,
+         AbstractMachine& machine, AbstractOperator& op, Index batch_size) {
+        switch (log_values.ndim()) {
+          case 2: {
+            NETKET_CHECK(samples.ndim() == 3, InvalidInputError,
+                         "samples has wrong dimension: " << samples.ndim()
+                                                         << "; expected 3.");
+            NETKET_CHECK(samples.shape(1) == log_values.shape(1),
+                         InvalidInputError, "incompatible number of chains");
+            auto local_values = py::cast(LocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0) * samples.shape(1),
+                    samples.shape(2)},
+                Eigen::Map<const VectorXcd>{
+                    log_values.data(),
+                    log_values.shape(0) * log_values.shape(1)},
+                machine, op, batch_size));
+            local_values.attr("resize")(log_values.shape(0),
+                                        log_values.shape(1));
+            return local_values;
+          }
+          case 1:
+            NETKET_CHECK(samples.ndim() == 2, InvalidInputError,
+                         "samples has wrong dimension: " << samples.ndim()
+                                                         << "; expected 2.");
+            return py::cast(LocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0), samples.shape(1)},
+                Eigen::Map<const VectorXcd>{log_values.data(),
+                                            log_values.shape(0)},
+                machine, op, batch_size));
+          default:
+            NETKET_CHECK(false, InvalidInputError,
+                         "log_values has wrong dimension: "
+                             << log_values.ndim()
+                             << "; expected either 1 or 2.");
+        }
+      },
+      py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
+      py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
+      R"EOF(Computes local values of the operator `op` for all `samples`.
 
                  Args:
                      samples: A matrix of visible configurations. Each row of
