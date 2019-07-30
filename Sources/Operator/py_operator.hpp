@@ -26,6 +26,7 @@
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
 #include "py_local_operator.hpp"
+#include "py_pauli_operator.hpp"
 
 namespace py = pybind11;
 
@@ -105,6 +106,7 @@ void AddOperatorModule(py::module m) {
   AddBoseHubbard(subm);
   AddLocalOperator(subm);
   AddGraphOperator(subm);
+  AddPauliOperator(subm);
 
   subm.def(
       "local_values",
