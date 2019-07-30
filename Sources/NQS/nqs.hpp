@@ -14,16 +14,21 @@ class NQS {
     using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
 
     int nqubits_;
-    Hypercube g;
-    Spin hi;
-    RbmSpin psi;
-    MetropolisLocalHadamard sa;
-    AdaMax op;
+    Hypercube& g_;
+    Spin& hi_;
+    RbmSpin& psi_;
+    MetropolisLocal& sa_;
+    MetropolisLocalHadamard& saHadamard_;
+    AdaMax& op_;
 
     public:
 
         NQS(int nqubits)
-            : nqubits_(nqubits), g(Hypercube(1,1,false)), hi(Spin(g, 0.5)), psi(std::make_shared<Spin>(hi), 0, 0, true, true), sa(MetropolisLocalHadamard(psi)), op(AdaMax()) {}
+            : nqubits_(nqubits), g_(*new Hypercube(nqubits,1,false)),
+            hi_(*new Spin(g_, 0.5)), psi_(*new RbmSpin(std::make_shared<Spin>(hi_), 0, 0, true, true)),
+            sa_(*new MetropolisLocal(psi_)),
+            saHadamard_(*new MetropolisLocalHadamard(psi_)),
+            op_(*new AdaMax()) {}
 
         void applyHadamard(int qubit) {}
         void applyPauliX(int qubit){}
@@ -32,6 +37,7 @@ class NQS {
         void applySingleZRotation(int qubit, double theta){}
         void applyControlledZRotation(int controlQubit, int qubit, double theta){}
         void sample(){}
+
         VectorType getPsiParams(){}
 
     private:
