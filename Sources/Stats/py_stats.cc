@@ -52,15 +52,14 @@ void AddStatsModule(py::module m) {
         switch (local_values.ndim()) {
           case 2:
             return Statistics(
-                Eigen::Map<const Eigen::VectorXcd>{
-                    local_values.data(),
-                    local_values.shape(0) * local_values.shape(1)},
-                local_values.shape(1));
+                Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
+                                                   local_values.size()},
+                /*n_chains=*/local_values.shape(1));
           case 1:
             return Statistics(
                 Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
-                                                   local_values.shape(0)},
-                1);
+                                                   local_values.size()},
+                /*n_chains=*/1);
           default:
             NETKET_CHECK(false, InvalidInputError,
                          "local_values has wrong dimension: "
@@ -70,10 +69,17 @@ void AddStatsModule(py::module m) {
       },
       py::arg{"values"}.noconvert(),
       R"EOF(Computes some statistics (see `Stats` class) of a sequence of
-                 local estimators obtained from Monte Carlo sampling.
+            local estimators obtained from Monte Carlo sampling.
 
-                 Args:
-                     values: A tensor of local estimators.)EOF");
+            Args:
+                values: A tensor of local estimators. It can be either a rank-1
+                    or a rank-2 tensor of `complex128`. Rank-1 tensors represent
+                    data from a single Markov Chain, so e.g. `error_on_mean` will
+                    be `None`.
+
+                    Rank-2 tensors should have shape `(N, M)` where `N` is the
+                    number of samples in one Markov Chain and `M` is the number
+                    of Markov Chains. Data should be in row major order.)EOF");
 }
 }  // namespace detail
 }  // namespace netket

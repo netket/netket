@@ -377,9 +377,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
                          "der_logs has wrong dimension: " << der_logs.ndim()
                                                           << "; expected 3.");
             return Gradient(
-                Eigen::Map<const VectorXcd>{
-                    local_values.data(),
-                    local_values.shape(0) * local_values.shape(1)},
+                Eigen::Map<const VectorXcd>{local_values.data(),
+                                            local_values.size()},
                 Eigen::Map<const RowMatrix<Complex>>{
                     der_logs.data(), der_logs.shape(0) * der_logs.shape(1),
                     der_logs.shape(2)});
@@ -389,7 +388,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
                                                           << "; expected 2.");
             return Gradient(
                 Eigen::Map<const VectorXcd>{local_values.data(),
-                                            local_values.shape(0)},
+                                            local_values.size()},
                 Eigen::Map<const RowMatrix<Complex>>{
                     der_logs.data(), der_logs.shape(0), der_logs.shape(1)});
           default:
@@ -401,14 +400,22 @@ void AddVariationalMonteCarloModule(py::module &m) {
       },
       py::arg{"local_values"}.noconvert(), py::arg{"der_logs"}.noconvert(),
       R"EOF(Computes the gradient of the expecation value of a Hermitian
-                  operator `op` with respect to the wavefunction parameters
-                  based on provided Monte Carlo data.
+            operator `op` with respect to the wavefunction parameters based on
+            provided Monte Carlo data.
 
-                  Args:
-                      loval_values: A vector of local values of the operator.
-                      der_logs: A matrix of logarithmic derivatives of the
-                          wavefunction. Each row of the matrix must correspond
-                          to a logarithmic derivative.)EOF");
+            Args:
+                local_values: A vector (or a matrix) of local values of the
+                    operator. Shape of `local_values` should be `(N, M)` where
+                    `N` is the number of samples in every Markov Chain and `M`
+                    is the number of Markov Chains. A vector is considered to be
+                    an `(N, 1)` matrix.
+                der_logs: A matrix (or a rank-3 tensor) of logarithmic
+                    derivatives of the wavefunction. Each row of the matrix must
+                    correspond to a logarithmic derivative. If `der_logs` is a
+                    rank-3 tensor, its shape is `(N, M, #pars)` where `N` is the
+                    number of samples, `M` is the number of Markov Chains, and
+                    `#pars` is the number of parameters. A `(N, #pars)` matrix
+                    is treated an an `(N, 1, #pars)` tensor.)EOF");
 }
 
 }  // namespace netket

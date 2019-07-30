@@ -132,13 +132,8 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
 
 Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
                           Eigen::Ref<const RowMatrix<Complex>> der_logs) {
-  if (locals.size() != der_logs.rows()) {
-    std::ostringstream msg;
-    msg << "incompatible dimensions: [" << locals.size() << "] and ["
-        << der_logs.rows() << ", " << der_logs.cols()
-        << "]; expected [N] and [N, ?]";
-    throw InvalidInputError{msg.str()};
-  }
+  CheckShape(__FUNCTION__, "der_logs", {der_logs.rows(), der_logs.cols()},
+             {locals.size(), std::ignore});
   Eigen::VectorXcd force(der_logs.cols());
   Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
       der_logs.adjoint() * locals / der_logs.rows();
