@@ -41,13 +41,6 @@ py::array_t<T, ExtraFlags> as_readonly(py::array_t<T, ExtraFlags> array) {
 void AddVariationalMonteCarloModule(py::module &m) {
   auto m_vmc = m.def_submodule("variational");
 
-  py::class_<Stats>(m_vmc, "Stats")
-      .def_readonly("mean", &Stats::mean)
-      .def_readonly("error_of_mean", &Stats::error_of_mean)
-      .def_readonly("variance", &Stats::variance)
-      .def_readonly("tau_corr", &Stats::correlation)
-      .def_readonly("R", &Stats::R);
-
   py::class_<MCResult>(m_vmc, "MCResult",
                        R"EOF(Result of Monte Carlo sampling.)EOF")
       .def_property_readonly(
