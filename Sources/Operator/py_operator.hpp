@@ -151,16 +151,24 @@ void AddOperatorModule(py::module m) {
       py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
       R"EOF(Computes local values of the operator `op` for all `samples`.
 
-                 Args:
-                     samples: A matrix of visible configurations. Each row of
-                         the matrix must correspond to a visible configuration.
-                     log_values: Corresponding values of the logarithm of the wavefunction.
-                     machine: Wavefunction.
-                     op: Hermitian operator.
-                     batch_size: Batch size.
+            Args:
+                samples: A matrix (or a rank-3 tensor) of visible
+                    configurations. If it is a matrix, each row of the matrix
+                    must correspond to a visible configuration.  `samples` is a
+                    rank-3 tensor, its shape should be `(N, M, #visible)` where
+                    `N` is the number of samples, `M` is the number of Markov
+                    Chains, and `#visible` is the number of visible units.
+                log_values: Corresponding values of the logarithm of the
+                    wavefunction. If `samples` is a `(N, #visible)` matrix, then
+                    `log_values` should be a vector of `N` complex numbers. If
+                    `samples` is a rank-3 tensor, then the shape of `log_values`
+                    should be `(N, M)`.
+                machine: Wavefunction.
+                op: Hermitian operator.
+                batch_size: Batch size.
 
-                 Returns:
-                     A numpy array of local values of the operator.)EOF");
+            Returns:
+                A numpy array of local values of the operator.)EOF");
 }
 
 }  // namespace netket

@@ -45,7 +45,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)
-      .def_readonly("autocorrelation", &Stats::correlation)
+      .def_readonly("tau_corr", &Stats::correlation)
       .def_readonly("R", &Stats::R);
 
   py::class_<MCResult>(m_vmc, "MCResult",
@@ -60,11 +60,8 @@ void AddVariationalMonteCarloModule(py::module &m) {
                 self.samples.data(),
                 py::none()});
           },
-          py::keep_alive<1, 0>{},
-          R"EOF(Visible configurations `{vᵢ}` visited during sampling.
-
-                Visible configurations are represented by a row-major matrix
-                of `float64` where every row is a visible configuration.)EOF")
+          py::return_value_policy::reference_internal,
+          R"EOF(Visible configurations `{vᵢ}` visited during sampling.)EOF")
       .def_property_readonly(
           "log_values",
           [](const MCResult &self) {
@@ -74,9 +71,9 @@ void AddVariationalMonteCarloModule(py::module &m) {
                 self.log_values.data(),
                 py::none()});
           },
-          py::keep_alive<1, 0>{},
-          R"EOF(A vector of `complex128` representing `Ψ(vᵢ)` for all
-                    sampled visible configurations `vᵢ`.)EOF")
+          py::return_value_policy::reference_internal,
+          R"EOF(An array of `complex128` representing `Ψ(vᵢ)` for all
+                sampled visible configurations `vᵢ`.)EOF")
       .def_property_readonly(
           "der_logs",
           [](const MCResult &self) -> py::object {
@@ -91,25 +88,16 @@ void AddVariationalMonteCarloModule(py::module &m) {
             }
             return py::none();
           },
-          py::keep_alive<1, 0>{},
+          py::return_value_policy::reference_internal,
           R"EOF(A matrix of logarithmic derivatives.
 
                 Each row in the matrix corresponds to the gradient of
-                `Ψ(vᵢ)` with respect to variational parameters.)EOF")
-      .def_readonly("n_chains", &MCResult::n_chains,
-                    R"EOF(Number of Markov Chains which this object represents.
-
-                    If `n_chains > 1`, then the first visible configuration
-                    comes from the first Markov Chain, the second -- from the
-                    second Markov chain, etc. The `n_chains + 1`st visible
-                    configuration is again from the first Markov Chains.
-                    Wavefunction logarithms and derivatives are interleaved in a
-                    similar fashion.
-                    )EOF");
+                `Ψ(vᵢ)` with respect to variational parameters.)EOF");
 
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",
-      R"EOF(Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.)EOF")
+      R"EOF(Variational Monte Carlo schemes to learn the ground state using
+            stochastic reconfiguration and gradient descent optimizers.)EOF")
       .def(py::init<const AbstractOperator &, AbstractSampler &,
                     AbstractOptimizer &, int, int, int, const std::string &,
                     const std::string &, double, bool, nonstd::optional<bool>,
@@ -337,7 +325,7 @@ void AddVariationalMonteCarloModule(py::module &m) {
             R"EOF(Runs Monte Carlo sampling using `sampler`.
 
                   First `n_discard` sweeps are discarded. Results of the next
-                  `≈n_samples` sweeps are saved. Since samplers work with
+                  `≥n_samples` sweeps are saved. Since samplers work with
                   batches of specified size it may be impossible to sample
                   exactly `n_samples` visible configurations (without throwing
                   away useful data, of course). You can rely on
