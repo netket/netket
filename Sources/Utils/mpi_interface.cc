@@ -4,9 +4,42 @@
 #include <iostream>
 #include <memory>
 
-namespace netket {
-namespace detail {
+#include "Utils/exceptions.hpp"
 
+namespace netket {
+
+namespace detail {
+namespace {
+const char* MPIErrorMessage(const int code) {
+  constexpr auto buffer_capacity = MPI_MAX_ERROR_STRING + 1;
+  static thread_local char buffer[buffer_capacity];
+  int buffer_size;
+  const auto status = MPI_Error_string(code, buffer, &buffer_size);
+  if (status != MPI_SUCCESS) {
+    throw InvalidInputError{"invalid error code: " + std::to_string(status)};
+  }
+  assert(buffer_size < buffer_capacity);
+  buffer[buffer_size] = '\0';
+  return buffer;
+}
+}  // namespace
+}  // namespace detail
+
+std::string MPIError::make_message(const int status, const char* function) {
+  std::ostringstream msg;
+  msg << "MPI call to '" << function << "' failed with error code " << status
+      << ": " << detail::MPIErrorMessage(status);
+  return msg.str();
+}
+
+std::string MPIError::make_message(const int status) {
+  std::ostringstream msg;
+  msg << "MPI failed with error code " << status << ": "
+      << detail::MPIErrorMessage(status);
+  return msg.str();
+}
+
+namespace detail {
 namespace {
 struct Unload {
   void operator()(void* handle) {

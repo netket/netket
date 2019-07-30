@@ -20,10 +20,10 @@ AdaDelta Optimizer.
 ## Class Constructor
 Constructs a new ``AdaDelta`` optimizer.
 
-|Argument|   Type    |           Description           |
-|--------|-----------|---------------------------------|
-|rho     |float=0.95 |Exponential decay rate, in [0,1].|
-|epscut  |float=1e-07|Small $$\epsilon$$ cutoff.       |
+|Argument|    Type     |           Description           |
+|--------|-------------|---------------------------------|
+|rho     |float = 0.95 |Exponential decay rate, in [0,1].|
+|epscut  |float = 1e-07|Small $$\epsilon$$ cutoff.       |
 
 ### Examples
 Simple AdaDelta optimizer.

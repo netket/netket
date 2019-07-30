@@ -19,6 +19,8 @@ option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
+
+option(NETKET_USE_SLEEF "Use Sleef vector math library" ON)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -47,6 +49,30 @@ add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR}/nlohmann)
 
+# Sleef
+################################################################################
+if (NETKET_USE_SLEEF)
+    ExternalProject_Add(
+        sleef_project
+        SOURCE_DIR "${CMAKE_BINARY_DIR}/External/sleef/"
+        URL "https://github.com/shibatch/sleef/archive/3.4.0.tar.gz"
+        URL_HASH MD5=fdf620e232a56affaca90c107b70539b
+        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
+        CMAKE_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_BUILD_TYPE=Release
+        -DBUILD_SHARED_LIBS=OFF -DBUILD_DFT=OFF -DBUILD_GNUABI_LIBS=OFF
+        -DBUILD_TESTS=OFF -DBUILD_QUAD=OFF -DSLEEF_SHOW_CONFIG=ON
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        INSTALL_COMMAND ""
+        # NOTE: This is kind of a hack since we're explicitly specifying
+        # "sleef_project-prefix/...", but at least it works.
+        BUILD_BYPRODUCTS "sleef_project-prefix/src/sleef_project-build/lib/libsleef.a"
+    )
+    add_library(Sleef INTERFACE)
+    ExternalProject_Get_Property(sleef_project BINARY_DIR)
+    target_include_directories(Sleef SYSTEM INTERFACE ${BINARY_DIR}/include)
+    target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
+endif()
+
 # optional-lite
 ################################################################################
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/optional-lite/nonstd/optional.hpp")
@@ -69,6 +95,17 @@ endif()
 add_library(span_lite INTERFACE)
 target_include_directories(span_lite
     INTERFACE "${CMAKE_BINARY_DIR}/External/span-lite")
+
+# any
+################################################################################
+if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/any/any.hpp")
+    file(DOWNLOAD
+        "https://raw.githubusercontent.com/thelink2012/any/master/any.hpp"
+        "External/any/any.hpp")
+endif()
+add_library(linb_any INTERFACE)
+target_include_directories(linb_any
+    INTERFACE "${CMAKE_BINARY_DIR}/External/any")
 
 
 # Eigen3
@@ -162,10 +199,15 @@ target_link_libraries(netket_lib
         nlohmann_json
         optional_lite
         span_lite
+        linb_any
         ${CMAKE_DL_LIBS}
 )
 if(NETKET_USE_OPENMP)
     target_link_libraries(netket_lib INTERFACE OpenMP::OpenMP_CXX)
+endif()
+if(NETKET_USE_SLEEF)
+    target_link_libraries(netket_lib INTERFACE Sleef)
+    target_compile_definitions(netket_lib INTERFACE NETKET_USE_SLEEF)
 endif()
 
 set(NETKET_WARNING_FLAGS
@@ -226,17 +268,82 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_phase.cc
     Sources/Machine/rbm_spin_real.cc
     Sources/Machine/rbm_spin_symm.cc
+    Sources/Machine/rbm_spin_v2.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
-    Sources/Utils/mpi_interface.cc
+    Sources/Sampler/metropolis_local_v2.cc
+    Sources/Stats/mc_stats.cc
+    Sources/Stats/py_stats.cc
+    Sources/Optimizer/stochastic_reconfiguration.cc
+    Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
+    Sources/Utils/log_cosh.cc
+    Sources/Utils/exceptions.cc
+    Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
 )
 
 add_library(netket MODULE ${NETKET_SOURCES})
+
+if (NETKET_USE_SLEEF)
+    add_library(log_cosh_avx2 OBJECT Sources/Utils/log_cosh_avx2.cc)
+    target_compile_options(log_cosh_avx2 PRIVATE
+        -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
+    set_property(TARGET log_cosh_avx2 PROPERTY POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(log_cosh_avx2 PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(log_cosh_avx2 PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
+    target_include_directories(log_cosh_avx2 PRIVATE Sources)
+    add_dependencies(log_cosh_avx2 eigen_project sleef_project)
+    ExternalProject_Get_Property(sleef_project BINARY_DIR)
+    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${BINARY_DIR}/include)
+    ExternalProject_Get_Property(eigen_project SOURCE_DIR)
+    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${SOURCE_DIR})
+    target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh_avx2>)
+endif()
+
+# A workaround for missing __cpu_model bug in gcc-5 and Clangs earlier than 6
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0) 
+    target_link_libraries(netket_lib INTERFACE gcc_s gcc)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    string(REGEX REPLACE "^([0-9]+)\..*$" "\\1" NETKET_CLANG_MAJOR "${CMAKE_CXX_COMPILER_VERSION}")
+    string(REGEX REPLACE "^[0-9]+\.([0-9])+.*$" "\\1" NETKET_CLANG_MINOR "${CMAKE_CXX_COMPILER_VERSION}")
+    find_program(LLVM_CONFIG_EXECUTABLE
+        NAMES
+            llvm-config-${CMAKE_CXX_COMPILER_VERSION}
+            llvm-config-${NETKET_CLANG_MAJOR}.${NETKET_CLANG_MINOR}
+            llvm-config-${NETKET_CLANG_MAJOR})
+
+    if (NOT LLVM_CONFIG_EXECUTABLE)
+        message(FATAL_ERROR
+            "llvm-config: not found. Clang ${CMAKE_CXX_COMPILER_VERSION} has a bug. "
+            "A workaround for it involves linking against libclang_rt.builtins-x86_64. "
+            "To find that library, we need llvm-config.")
+    endif()
+    execute_process(
+        COMMAND ${LLVM_CONFIG_EXECUTABLE} --libdir
+        OUTPUT_VARIABLE NETKET_LLVM_LIBDIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    find_library(NETKET_CLANG_RT
+        NAMES clang_rt.builtins-x86_64
+        HINTS ${NETKET_LLVM_LIBDIR}/clang/${CMAKE_CXX_COMPILER_VERSION}/lib/linux)
+    if(NOT NETKET_CLANG_RT)
+        message(FATAL_ERROR
+            "clang_rt: not found. Compilation will fail because "
+            "of a known bug in Clang ${CMAKE_CXX_COMPILER_VERSION}")
+    endif()
+    message(STATUS "Found clang_rt: ${NETKET_CLANG_RT}")
+    target_link_libraries(netket_lib INTERFACE ${NETKET_CLANG_RT})
+endif()
+
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")

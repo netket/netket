@@ -15,12 +15,10 @@
 #ifndef NETKET_METROPOLISHAMILTONIAN_HPP
 #define NETKET_METROPOLISHAMILTONIAN_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include <limits>
+#include <Eigen/Core>
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -35,14 +33,11 @@ class MetropolisHamiltonian : public AbstractSampler {
   // states of visible units
   Eigen::VectorXd v_;
 
-  Eigen::VectorXd accept_;
-  Eigen::VectorXd moves_;
-
-  int mynode_;
-  int totalnodes_;
+  Index accept_;
+  Index moves_;
 
   // Look-up tables
-  typename AbstractMachine::LookupType lt_;
+  any lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
@@ -56,28 +51,24 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   int sweep_size_;
 
+  LogValAccumulator log_val_accumulator_;
+
  public:
   MetropolisHamiltonian(AbstractMachine &psi, H &hamiltonian)
       : AbstractSampler(psi),
         hamiltonian_(hamiltonian),
-        nv_(GetHilbert().Size()) {
+        nv_(GetMachine().GetHilbert().Size()) {
     Init();
   }
 
   void Init() {
     v_.resize(nv_);
 
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (!GetHilbert().IsDiscrete()) {
+    if (!GetMachine().GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
     }
-
-    accept_.resize(1);
-    moves_.resize(1);
 
     Reset(true);
 
@@ -93,13 +84,13 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    GetMachine().InitLookup(v_, lt_);
-
-    accept_ = Eigen::VectorXd::Zero(1);
-    moves_ = Eigen::VectorXd::Zero(1);
+    lt_ = GetMachine().InitLookup(v_);
+    log_val_accumulator_ = GetMachine().LogValSingle(v_, lt_);
+    accept_ = 0;
+    moves_ = 0;
   }
 
   void Sweep() override {
@@ -116,7 +107,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_;
-      GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      GetMachine().GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
@@ -124,55 +115,52 @@ class MetropolisHamiltonian : public AbstractSampler {
 
       const auto lvd =
           GetMachine().LogValDiff(v_, tochange_[si], newconfs_[si], lt_);
-      double ratio = this->GetMachineFunc()(std::exp(lvd)) * w1 / w2;
+      double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(lvd)) * w1 / w2;
 
 #ifndef NDEBUG
-      const auto psival1 = GetMachine().LogVal(v_);
-      if (std::abs(
-              std::exp(GetMachine().LogVal(v_) - GetMachine().LogVal(v_, lt_)) -
-              1.) > 1.0e-8) {
-        std::cerr << GetMachine().LogVal(v_) << "  and LogVal with Lt is "
-                  << GetMachine().LogVal(v_, lt_) << std::endl;
+      const auto psival1 = GetMachine().LogValSingle(v_);
+      if (std::abs(std::exp(GetMachine().LogValSingle(v_) -
+                            GetMachine().LogValSingle(v_, lt_)) -
+                   1.) > 1.0e-8) {
+        std::cerr << GetMachine().LogValSingle(v_) << "  and LogVal with Lt is "
+                  << GetMachine().LogValSingle(v_, lt_) << std::endl;
         std::abort();
       }
 #endif
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
-        accept_[0] += 1;
+        ++accept_;
         GetMachine().UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;
+        log_val_accumulator_ += lvd;
 
 #ifndef NDEBUG
-        const auto psival2 = GetMachine().LogVal(v_);
+        const auto psival2 = GetMachine().LogValSingle(v_);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << GetMachine().LogVal(v_, lt_) << std::endl;
+                    << GetMachine().LogValSingle(v_, lt_) << std::endl;
           std::abort();
         }
 #endif
       }
-      moves_[0] += 1;
+      ++moves_;
     }
   }
 
-  const Eigen::VectorXd &Visible() const noexcept override { return v_; }
-
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_, lt_);
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_.transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                &log_val_accumulator_.LogVal(), 1}};
   }
 
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
-      acc(i) /= moves_(i);
-    }
-    return acc;
-  }
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_)
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accept_, moves_)
+
+  Index BatchSize() const noexcept override { return 1; }
 };
 
 }  // namespace netket

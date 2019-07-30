@@ -188,15 +188,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
   int Npar() const override { return npar_; }
 
-  void InitRandomPars(int seed, double sigma) override {
-    RealVectorType par(npar_);
-
-    netket::RandomGaussian(par, seed, sigma);
-
-    SetParameters(VectorType(par));
-  }
-
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
+  any InitLookup(VisibleConstType v) override {
+    LookupType lt;
     if (lt.VectorSize() == 0) {
       lt.AddVector(h1_.size());  // row 1
       lt.AddVector(h2_.size());  // row 2
@@ -234,15 +227,16 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
     lt.V(4) = (0.5 * U1_.transpose() * (vr + vc) + d1_);
     lt.V(5) = (0.5 * U2_.transpose() * (vr - vc));
+    return any{std::move(lt)};
   }
 
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
+                    const std::vector<double> &newconf, any &lookup) override {
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
     if (tochange.size() != 0) {
+      auto &lt = any_cast_ref<LookupType>(lookup);
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
         if (sf < Nvisible()) {
@@ -263,13 +257,11 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    LookupType ltnew;
-    InitLookup(v, ltnew);
-    return DerLog(v, ltnew);
+  VectorType DerLogSingle(VisibleConstType v, const any &lookup) override {
+    return DerLogSingleImpl(v, lookup.empty() ? InitLookup(v) : lookup);
   }
 
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
+  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup) {
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
@@ -282,6 +274,7 @@ class NdmSpinPhase : public AbstractDensityMatrix {
       der.segment(impar, nv_) = I_ * 0.5 * (vr - vc);
     }
 
+    auto &lt = any_cast_ref<LookupType>(lookup);
     RbmSpin::tanh(lt.V(0).real(), lnthetas_r1_);
     RbmSpin::tanh(lt.V(1).real(), lnthetas_r2_);
     RbmSpin::tanh(lt.V(2).real(), lnthetas_c1_);
@@ -403,34 +396,34 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   }
 
   // Value of the logarithm of the wave-function
-  Complex LogVal(VisibleConstType v) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
-
-    RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
-    RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
-    RbmSpin::lncosh(W1_.transpose() * vc + h1_, lnthetas_c1_);
-    RbmSpin::lncosh(W2_.transpose() * vc + h2_, lnthetas_c2_);
-
-    thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
-    thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-    RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
-
-    auto gamma_1 =
-        0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
-
-    auto gamma_2 =
-        0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
-
-    return gamma_1 + I_ * gamma_2 + lnpi_.sum();
-  }
-
-  // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
+  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
+    if (lookup.empty()) {
+      VisibleConstType vr = v.head(GetHilbertPhysical().Size());
+      VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
+
+      RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
+      RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
+      RbmSpin::lncosh(W1_.transpose() * vc + h1_, lnthetas_c1_);
+      RbmSpin::lncosh(W2_.transpose() * vc + h2_, lnthetas_c2_);
+
+      thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
+      thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
+      RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
+
+      auto gamma_1 =
+          0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
+
+      auto gamma_2 =
+          0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
+
+      return gamma_1 + I_ * gamma_2 + lnpi_.sum();
+    }
+
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
+    auto &lt = any_cast_ref<LookupType>(lookup);
     RbmSpin::lncosh(lt.V(0).real(), lnthetas_r1_);
     RbmSpin::lncosh(lt.V(1).real(), lnthetas_r2_);
     RbmSpin::lncosh(lt.V(2).real(), lnthetas_c1_);
@@ -526,13 +519,14 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   // on a small number of spin flips
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override {
+                     const any &lookup) override {
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
     Complex logvaldiff = 0.;
 
     if (tochange.size() != 0) {
+      auto &lt = any_cast_ref<LookupType>(lookup);
       RbmSpin::lncosh(lt.V(0).real(), lnthetas_r1_);
       RbmSpin::lncosh(lt.V(1).real(), lnthetas_r2_);
       RbmSpin::lncosh(lt.V(2).real(), lnthetas_c1_);

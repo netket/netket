@@ -44,7 +44,7 @@ PYBIND11_MODULE(_C_netket, m) {
   AddOptimizerModule(m);
   AddOutputModule(m);
   AddSamplerModule(m);
-  AddStatsModule(m);
+  AddStatsModule(m.ptr());
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);

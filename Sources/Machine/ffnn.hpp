@@ -135,13 +135,8 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  void InitRandomPars(int seed, double sigma) override {
-    for (auto const layer : layers_) {
-      layer->InitRandomPars(seed, sigma);
-    }
-  }
-
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
+  any InitLookup(VisibleConstType v) override {
+    LookupType lt;
     // Do a forward pass to get the outputs of each layer.
     if (lt.VectorSize() == 0) {
       lt.AddVector(layersizes_[1]);  // contains the output of layer 0
@@ -157,11 +152,12 @@ class FFNN : public AbstractMachine {
         layers_[i]->Forward(lt.V(i - 1), lt.V(i));
       }
     }
+    return any{std::move(lt)};
   }
 
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
+                    const std::vector<double> &newconf, any &lookup) override {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     layers_[0]->UpdateLookup(
         v, tochange,
         Eigen::Map<const Eigen::VectorXd>(&newconf[0], newconf.size()), lt.V(0),
@@ -190,25 +186,24 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  Complex LogVal(VisibleConstType v) override {
-    LookupType lt;
-    InitLookup(v, lt);
+  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
     assert(nlayer_ > 0);
-    return (lt.V(nlayer_ - 1))(0);
+    if (lookup.empty()) {
+      auto lt = InitLookup(v);
+      return any_cast_ref<LookupType>(lt).V(nlayer_ - 1)(0);
+    }
+    return any_cast_ref<LookupType>(lookup).V(nlayer_ - 1)(0);
   }
 
-  Complex LogVal(VisibleConstType /*v*/, const LookupType &lt) override {
-    assert(nlayer_ > 0);
-    return (lt.V(nlayer_ - 1))(0);
+  VectorType DerLogSingle(VisibleConstType v, const any &lookup) override {
+    if (lookup.empty()) {
+      return DerLogSingleImpl(v, InitLookup(v));
+    }
+    return DerLogSingleImpl(v, lookup);
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    LookupType ltnew;
-    InitLookup(v, ltnew);
-    return DerLog(v, ltnew);
-  }
-
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
+  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     VectorType der(npar_);
 
     int start_idx = npar_;
@@ -243,17 +238,16 @@ class FFNN : public AbstractMachine {
       const std::vector<std::vector<double>> &newconf) override {
     const int nconn = tochange.size();
     VectorType logvaldiffs = VectorType::Zero(nconn);
-    LookupType lt;
-    InitLookup(v, lt);
-    auto current_val = LogVal(v, lt);
+    auto lt = InitLookup(v);
+    auto current_val = LogValSingle(v, lt);
 
     for (int k = 0; k < nconn; ++k) {
       logvaldiffs(k) = 0;
       if (tochange[k].size() != 0) {
-        LookupType ltnew = lt;
+        auto ltnew = lt;
         UpdateLookup(v, tochange[k], newconf[k], ltnew);
 
-        logvaldiffs(k) += LogVal(v, ltnew) - current_val;
+        logvaldiffs(k) += LogValSingle(v, ltnew) - current_val;
       }
     }
     return logvaldiffs;
@@ -261,12 +255,12 @@ class FFNN : public AbstractMachine {
 
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override {
+                     const any &lt) override {
     if (tochange.size() != 0) {
-      LookupType ltnew = lt;
+      auto ltnew = lt;
       UpdateLookup(v, tochange, newconf, ltnew);
 
-      return LogVal(v, ltnew) - LogVal(v, lt);
+      return LogValSingle(v, ltnew) - LogValSingle(v, lt);
     } else {
       return 0.0;
     }

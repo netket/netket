@@ -30,6 +30,7 @@
 #include "py_momentum.hpp"
 #include "py_rms_prop.hpp"
 #include "py_sgd.hpp"
+#include "py_stochastic_reconfiguration.hpp"
 
 namespace py = pybind11;
 
@@ -49,6 +50,7 @@ void AddOptimizerModule(py::module &m) {
   AddAdaMax(subm);
   AddAdaGrad(subm);
   AddAdaDelta(subm);
+  AddSR(subm.ptr());
 }
 
 }  // namespace netket

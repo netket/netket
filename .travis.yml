@@ -17,14 +17,38 @@ matrix:
     - os: linux
       dist: xenial
       python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS='-stdlib=libc++ -I/usr/include/libcxxabi -O1'"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS=-O1"
       addons:
         apt:
           sources:
-            - 'llvm-toolchain-4.0'
+            - 'ubuntu-toolchain-r-test'
           packages:
             - 'ninja-build'
             - 'clang-4.0'
+            - 'llvm-4.0'
+            - 'g++-7'
+            - 'gdb'
+            - 'libc++-dev'
+            - 'libc++abi-dev'
+            - 'libomp-dev'
+            - 'libmpich-dev'
+            - 'libopenblas-dev'
+
+    - os: linux
+      dist: xenial
+      python: 2.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-O1"
+      addons:
+        apt:
+          sources:
+            - 'llvm-toolchain-5.0'
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'ninja-build'
+            - 'clang-5.0'
+            - 'llvm-5.0'
+            - 'g++-7'
+            - 'gdb'
             - 'libc++-dev'
             - 'libc++abi-dev'
             - 'libomp-dev'
@@ -176,6 +200,7 @@ install:
 
 script:
   - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
+  - python -c 'import netket'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest -n 2 --verbose ../Test/
   - python -m pytest --verbose --doctest-glob='*.md' ../Docs/

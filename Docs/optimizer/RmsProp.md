@@ -16,11 +16,11 @@ RMSProp is a well-known update algorithm proposed by Geoff Hinton
 ## Class Constructor
 Constructs a new ``RmsProp`` optimizer.
 
-|  Argument   |   Type    |        Description         |
-|-------------|-----------|----------------------------|
-|learning_rate|float=0.001|The learning rate $$ \eta $$|
-|beta         |float=0.9  |Exponential decay rate.     |
-|epscut       |float=1e-07|Small cutoff value.         |
+|  Argument   |    Type     |        Description         |
+|-------------|-------------|----------------------------|
+|learning_rate|float = 0.001|The learning rate $$ \eta $$|
+|beta         |float = 0.9  |Exponential decay rate.     |
+|epscut       |float = 1e-07|Small cutoff value.         |
 
 ### Examples
 RmsProp optimizer.

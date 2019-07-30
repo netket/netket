@@ -23,8 +23,10 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisExchange(py::module &subm) {
-  py::class_<MetropolisExchange, AbstractSampler>(subm, "MetropolisExchange",
-                                                  R"EOF(
+  auto cls =
+      py::class_<MetropolisExchange, AbstractSampler>(subm,
+                                                      "MetropolisExchange",
+                                                      R"EOF(
     This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
     and proposes a new state: $$ s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N $$,
     where in general $$ s^\prime_i \neq s_i $$ and $$ s^\prime_j \neq s_j $$ .
@@ -46,9 +48,9 @@ void AddMetropolisExchange(py::module &subm) {
     region where $$ \sum_i s_i = \mathrm{constant} $$ is needed,
     otherwise the sampling would be strongly not ergodic.
     )EOF")
-      .def(py::init<const AbstractGraph &, AbstractMachine &, int>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-           py::arg("machine"), py::arg("d_max") = 1, R"EOF(
+          .def(py::init<const AbstractGraph &, AbstractMachine &, int>(),
+               py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
+               py::arg("machine"), py::arg("d_max") = 1, R"EOF(
              Constructs a new ``MetropolisExchange`` sampler given a machine and a
              graph.
 
@@ -76,11 +78,12 @@ void AddMetropolisExchange(py::module &subm) {
                  >>>
                  >>> # Construct a MetropolisExchange Sampler
                  >>> sa = nk.sampler.MetropolisExchange(machine=ma,graph=g,d_max=1)
-                 >>> print(sa.hilbert.size)
+                 >>> print(sa.machine.hilbert.size)
                  100
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

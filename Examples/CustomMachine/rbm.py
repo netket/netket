@@ -110,7 +110,7 @@ class PyRbm(netket.machine.CxxMachine):
 
         self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
 
-    def log_val(self, x):
+    def _log_val_single(self, x):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
@@ -125,11 +125,21 @@ class PyRbm(netket.machine.CxxMachine):
         # but the C++ implementation ignores the "constant factor"
         return r
 
-    def der_log(self, x):
-        r"""Computes the gradient of the logarithm of the wave function
-        given a spin configuration ``x``.
-        """
-        grad = _np.empty(self.n_par, dtype=_np.complex128)
+    def log_val(self, x, out=None):
+        if x.ndim == 2:
+            if out is None:
+                out = _np.empty(x.shape[0], dtype=_np.complex128)
+            for i in range(x.shape[0]):
+                out[i] = self._log_val_single(x[i])
+        else:
+            result = self._log_val_single(x)
+            if out is None:
+                out = result
+            else:
+                out[0] = result
+        return out
+
+    def _der_log_single(self, x, grad):
         i = 0
 
         if self._a is not None:
@@ -150,6 +160,20 @@ class PyRbm(netket.machine.CxxMachine):
         _np.outer(tanh_stuff, x, out=out)
 
         return grad
+
+    def der_log(self, x, out=None):
+        if x.ndim == 2:
+            if out is None:
+                out = _np.empty(
+                    (x.shape[0], self._number_parameters()), dtype=_np.complex128
+                )
+            for i in range(x.shape[0]):
+                self._der_log_single(x[i], out[i])
+        else:
+            if out is None:
+                out = _np.empty(self._number_parameters(), dtype=_np.complex128)
+            self._der_log_single(x, out)
+        return out
 
     def _is_holomorphic(self):
         r"""Complex valued RBM a holomorphic function.

@@ -60,15 +60,8 @@ void RbmSpin::Init() {
   InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
 }
 
-void RbmSpin::InitRandomPars(int seed, double sigma) {
-  VectorType par(npar_);
-
-  netket::RandomGaussian(par, seed, sigma);
-
-  SetParameters(par);
-}
-
-void RbmSpin::InitLookup(VisibleConstType v, LookupType &lt) {
+any RbmSpin::InitLookup(VisibleConstType v) {
+  LookupType lt;
   if (lt.VectorSize() == 0) {
     lt.AddVector(b_.size());
   }
@@ -77,10 +70,12 @@ void RbmSpin::InitLookup(VisibleConstType v, LookupType &lt) {
   }
 
   lt.V(0) = (W_.transpose() * v + b_);
+  return any{std::move(lt)};
 }
 
 void RbmSpin::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                           const std::vector<double> &newconf, LookupType &lt) {
+                           const std::vector<double> &newconf, any &lookup) {
+  auto &lt = any_cast_ref<LookupType>(lookup);
   if (tochange.size() != 0) {
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
@@ -89,13 +84,14 @@ void RbmSpin::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
   }
 }
 
-RbmSpin::VectorType RbmSpin::DerLog(VisibleConstType v) {
-  LookupType ltnew;
-  InitLookup(v, ltnew);
-  return DerLog(v, ltnew);
+RbmSpin::VectorType RbmSpin::DerLogSingle(VisibleConstType v,
+                                          const any &cache) {
+  return DerLogSingleImpl(v, cache.empty() ? InitLookup(v) : cache);
 }
 
-RbmSpin::VectorType RbmSpin::DerLog(VisibleConstType v, const LookupType &lt) {
+RbmSpin::VectorType RbmSpin::DerLogSingleImpl(VisibleConstType v,
+                                              const any &lookup) {
+  auto &lt = any_cast_ref<LookupType>(lookup);
   VectorType der(npar_);
 
   if (usea_) {
@@ -145,17 +141,14 @@ void RbmSpin::SetParameters(VectorConstRefType pars) {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmSpin::LogVal(VisibleConstType v) {
-  RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-
-  return (v.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpin::LogVal(VisibleConstType v, const LookupType &lt) {
+Complex RbmSpin::LogValSingle(VisibleConstType v, const any &lookup) {
+  if (lookup.empty()) {
+    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
+    return (v.dot(a_) + lnthetas_.sum());
+  }
+  auto &lt = any_cast_ref<LookupType>(lookup);
   RbmSpin::lncosh(lt.V(0), lnthetas_);
-
   return (v.dot(a_) + lnthetas_.sum());
 }
 
@@ -197,7 +190,8 @@ RbmSpin::VectorType RbmSpin::LogValDiff(
 Complex RbmSpin::LogValDiff(VisibleConstType v,
                             const std::vector<int> &tochange,
                             const std::vector<double> &newconf,
-                            const LookupType &lt) {
+                            const any &lookup) {
+  const auto &lt = any_cast_ref<LookupType>(lookup);
   Complex logvaldiff = 0.;
 
   if (tochange.size() != 0) {

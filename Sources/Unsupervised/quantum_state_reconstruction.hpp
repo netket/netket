@@ -91,6 +91,7 @@ class QuantumStateReconstruction {
       : sampler_(sampler),
         psi_(sampler_.GetMachine()),
         opt_(opt),
+        sr_{nonstd::nullopt},
         rotations_(rotations),
         trainingSamples_(trainingSamples),
         trainingBases_(trainingBases) {
@@ -164,7 +165,7 @@ class QuantumStateReconstruction {
 
     for (int i = 0; i < nsamples_node_; i++) {
       sampler_.Sweep();
-      vsamp_.row(i) = sampler_.Visible();
+      vsamp_.row(i) = VisibleLegacy(sampler_);
     }
   }
 
@@ -255,14 +256,17 @@ class QuantumStateReconstruction {
     }
     opt_.Reset();
 
-    for (Index step = 0; !n_iter.has_value() || step < *n_iter; step += step_size) {
+    for (Index step = 0; !n_iter.has_value() || step < *n_iter;
+         step += step_size) {
       Advance(step_size);
       ComputeObservables();
 
       // Note: This has to be called in all MPI processes, because converting
       // the ObsManager to JSON performs a MPI reduction.
       auto obs_data = json(obsmanager_);
+#if 0
       obs_data["Acceptance"] = sampler_.Acceptance();
+#endif
 
       // writer.has_value() iff the MPI rank is 0, so the output is only
       // written once
@@ -334,7 +338,9 @@ class QuantumStateReconstruction {
     // Note: This has to be called in all MPI processes, because converting
     // the ObsManager to JSON performs a MPI reduction.
     auto obs_data = json(obsmanager_);
+#if 0
     obs_data["Acceptance"] = sampler_.Acceptance();
+#endif
 
     if (writer_.has_value()) {  // writer_.has_value() iff the MPI rank is 0, so
                                 // the output is only written once
@@ -342,16 +348,6 @@ class QuantumStateReconstruction {
       writer_->WriteState(i, psi_);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
-    if (!sr_.has_value()) {
-      throw InvalidInputError(
-          "Trying to set SR parameters in non-SR VMC driver.");
-    }
-    sr_->SetParameters(diag_shift, use_iterative, use_cholesky,
-                       psi_.IsHolomorphic());
   }
 
   const ObsManager &GetObsManager() const { return obsmanager_; }
@@ -380,7 +376,7 @@ class QuantumStateReconstruction {
       }
 
       nnll -= std::log(std::norm(ratio));
-      nnll -= 2. * std::real(psi_.LogVal(state));
+      nnll -= 2. * std::real(psi_.LogValSingle(state));
     }
     nnll /= double(testSamples.size());
 

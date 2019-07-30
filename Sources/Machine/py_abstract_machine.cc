@@ -122,72 +122,38 @@ void PyAbstractMachine::SetParameters(VectorConstRefType pars) {
       pars);
 }
 
-void PyAbstractMachine::InitRandomPars(int const seed, double const sigma) {
-  VectorType par(Npar());
-  netket::RandomGaussian(par, seed, sigma);
-  SetParameters(par);
-}
-
-Complex PyAbstractMachine::LogVal(VisibleConstType v) {
-  PYBIND11_OVERLOAD_PURE_NAME(Complex,         /* Return type */
+void PyAbstractMachine::LogVal(Eigen::Ref<const RowMatrix<double>> v,
+                               Eigen::Ref<Eigen::VectorXcd> out,
+                               const any & /*unused*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(void,            /* Return type */
                               AbstractMachine, /* Parent class */
                               "log_val", /* Name of the function in Python */
                               LogVal,    /* Name of function in C++ */
-                              v);
+                              v, out);
 }
 
-Complex PyAbstractMachine::LogVal(VisibleConstType v,
-                                  const LookupType & /*unused*/) {
-  return LogVal(v);
+Complex PyAbstractMachine::LogValSingle(VisibleConstType v, const any &cache) {
+  Complex data;
+  auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
+  LogVal(v.transpose(), out, cache);
+  return data;
 }
 
-void PyAbstractMachine::InitLookup(VisibleConstType /*unused*/,
-                                   LookupType & /*unused*/) {}
+any PyAbstractMachine::InitLookup(VisibleConstType /*unused*/) { return {}; }
 
 void PyAbstractMachine::UpdateLookup(VisibleConstType /*unused*/,
                                      const std::vector<int> & /*unused*/,
                                      const std::vector<double> & /*unused*/,
-                                     LookupType & /*unused*/) {}
+                                     any & /*unused*/) {}
 
-Complex PyAbstractMachine::LogValDiff(VisibleConstType old_v,
-                                      const std::vector<int> &to_change,
-                                      const std::vector<double> &new_conf) {
-  auto const old_value = LogVal(old_v);
-  VisibleType new_v{old_v};
-  GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  auto const new_value = LogVal(new_v);
-  return new_value - old_value;
-}
-
-PyAbstractMachine::VectorType PyAbstractMachine::LogValDiff(
-    VisibleConstType old_v, const std::vector<std::vector<int>> &to_change,
-    const std::vector<std::vector<double>> &new_conf) {
-  assert(to_change.size() == new_conf.size());
-  VectorType result(to_change.size());
-  for (auto i = size_t{0}; i < to_change.size(); ++i) {
-    result(i) = LogValDiff(old_v, to_change[i], new_conf[i]);
-  }
-  return result;
-}
-
-Complex PyAbstractMachine::LogValDiff(VisibleConstType v,
-                                      const std::vector<int> &to_change,
-                                      const std::vector<double> &new_conf,
-                                      const LookupType & /*unused*/) {
-  return LogValDiff(v, to_change, new_conf);
-}
-
-PyAbstractMachine::VectorType PyAbstractMachine::DerLog(VisibleConstType v) {
-  PYBIND11_OVERLOAD_PURE_NAME(VectorType,      /* Return type */
-                              AbstractMachine, /* Parent class */
-                              "der_log", /* Name of the function in Python */
-                              DerLog,    /* Name of function in C++ */
-                              v);
-}
-
-PyAbstractMachine::VectorType PyAbstractMachine::DerLog(
-    VisibleConstType v, const LookupType & /*lt*/) {
-  return DerLog(v);
+PyAbstractMachine::VectorType PyAbstractMachine::DerLogSingle(
+    VisibleConstType v, const any & /*lt*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(
+      VectorType,       /* Return type */
+      AbstractMachine,  /* Parent class */
+      "der_log_single", /* Name of the function in Python */
+      DerLogSingle,     /* Name of function in C++ */
+      v);
 }
 
 PyAbstractMachine::VectorType PyAbstractMachine::DerLogChanged(
@@ -195,7 +161,7 @@ PyAbstractMachine::VectorType PyAbstractMachine::DerLogChanged(
     const std::vector<double> &new_conf) {
   VisibleType new_v{old_v};
   GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  return DerLog(new_v);
+  return DerLogSingle(new_v, {});
 }
 
 void PyAbstractMachine::Save(const std::string &filename) const {

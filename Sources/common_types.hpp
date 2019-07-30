@@ -20,6 +20,13 @@ using VectorXcd = Eigen::VectorXcd;
 using MatrixXd = Eigen::MatrixXd;
 using MatrixXcd = Eigen::MatrixXcd;
 
+template <class T>
+using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+
+template <class T>
+using RowMatrix =
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
 }  // namespace netket
 
 #endif  // NETKET_COMMON_TYPES_HPP

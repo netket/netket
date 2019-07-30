@@ -24,7 +24,8 @@ namespace netket {
 
 void AddMetropolisHamiltonian(py::module &subm) {
   using DerSampler = MetropolisHamiltonian<AbstractOperator>;
-  py::class_<DerSampler, AbstractSampler>(subm, "MetropolisHamiltonian", R"EOF(
+  auto cls = py::class_<DerSampler, AbstractSampler>(
+                 subm, "MetropolisHamiltonian", R"EOF(
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
 
@@ -40,9 +41,9 @@ void AddMetropolisHamiltonian(py::module &subm) {
     Notice that this sampler preserves by construction all the symmetries
     of the Hamiltonian. This is in generally not true for the local samplers instead.
     )EOF")
-      .def(py::init<AbstractMachine &, AbstractOperator &>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("machine"),
-           py::arg("hamiltonian"), R"EOF(
+                 .def(py::init<AbstractMachine &, AbstractOperator &>(),
+                      py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+                      py::arg("machine"), py::arg("hamiltonian"), R"EOF(
              Constructs a new ``MetropolisHamiltonian`` sampler given a machine
              and a Hamiltonian operator (or in general an arbitrary Operator).
 
@@ -73,6 +74,7 @@ void AddMetropolisHamiltonian(py::module &subm) {
 
                  ```
              )EOF");
+  AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

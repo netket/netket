@@ -26,6 +26,7 @@
 #include <nonstd/span.hpp>
 
 #include "Hilbert/hilbert.hpp"
+#include "Machine/abstract_machine.hpp"
 
 namespace netket {
 /**
@@ -204,6 +205,24 @@ std::pair<Complex, double> MeanVariance(Operator &&apply,
   const double var = state1.norm();
   return {mean, var};
 }
+
+/**
+ * Computes the local values of the operator `op` in configurations `samples`.
+ *
+ * @param samples A matrix of MC samples as returned by #ComputeSamples(). Every
+ *                row represents a single visible configuration.
+ * @param values Logarithms of wave function values as returned by
+ *               #ComputeSamples().
+ * @param machine Machine representation of the wavefunction.
+ * @param op Operator for which to compute the local values.
+ * @param batch_size Batch size to use internally.
+ *
+ * @return local values of \p op
+ */
+Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> values,
+                             AbstractMachine &machine,
+                             const AbstractOperator &op, Index batch_size);
 
 }  // namespace netket
 

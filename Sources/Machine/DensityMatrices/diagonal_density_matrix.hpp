@@ -80,21 +80,16 @@ class DiagonalDensityMatrix : public AbstractMachine {
   };
 
  public:
-  Complex LogVal(VisibleConstType v) override {
-    return density_matrix_.LogVal(DoubleVisibleConfig(v));
+  Complex LogValSingle(VisibleConstType v, const any &lt) override {
+    return density_matrix_.LogValSingle(DoubleVisibleConfig(v), lt);
   }
 
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override {
-    return density_matrix_.LogVal(DoubleVisibleConfig(v), lt);
-  }
-
-  void InitLookup(VisibleConstType v, LookupType &lt) override {
-    return density_matrix_.InitLookup(DoubleVisibleConfig(v), lt);
+  any InitLookup(VisibleConstType v) override {
+    return density_matrix_.InitLookup(DoubleVisibleConfig(v));
   }
 
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override {
+                    const std::vector<double> &newconf, any &lt) override {
     VisibleChangeInfo d_changes =
         DoubleVisibleChangeInfo(tochange, newconf, v.size());
     return density_matrix_.UpdateLookup(DoubleVisibleConfig(v), d_changes.first,
@@ -123,18 +118,14 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
                      const std::vector<double> &newconf,
-                     const LookupType &lt) override {
+                     const any &lt) override {
     VisibleChangeInfo d_changes =
         DoubleVisibleChangeInfo(tochange, newconf, v.size());
     return density_matrix_.LogValDiff(DoubleVisibleConfig(v), d_changes.first,
                                       d_changes.second, lt);
   }
 
-  VectorType DerLog(VisibleConstType v) override {
-    return density_matrix_.DerLog(DoubleVisibleConfig(v));
-  }
-
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override {
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override {
     return density_matrix_.DerLog(DoubleVisibleConfig(v), lt);
   }
 
@@ -154,10 +145,6 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   void SetParameters(VectorConstRefType pars) override {
     return density_matrix_.SetParameters(pars);
-  }
-
-  void InitRandomPars(int seed, double sigma) override {
-    return density_matrix_.InitRandomPars(seed, sigma);
   }
 
   int Nvisible() const override { return density_matrix_.Nvisible(); }

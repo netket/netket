@@ -90,6 +90,7 @@ class Supervised {
              bool use_iterative = false, bool use_cholesky = true)
       : psi_(psi),
         opt_(opt),
+        sr_{nonstd::nullopt},
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
@@ -145,7 +146,7 @@ class Supervised {
     double max_log_psi = 0;
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      Complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogValSingle(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -163,7 +164,7 @@ class Supervised {
       // Undo log
       t = exp(t);
 
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
@@ -202,7 +203,7 @@ class Supervised {
     double max_log_psi = -std::numeric_limits<double>::infinity();
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      Complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogValSingle(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -220,7 +221,7 @@ class Supervised {
       // Undo log
       t = exp(t);
 
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
@@ -262,7 +263,7 @@ class Supervised {
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract complex value of log(config)
       Eigen::VectorXd sample(batchSamples[i]);
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
 
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
@@ -396,7 +397,7 @@ class Supervised {
     double mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
 
       Eigen::VectorXcd target = trainingTargets_[i];
       Complex t(target[0].real(), target[0].imag());
@@ -426,7 +427,7 @@ class Supervised {
     double max_log_psi = -std::numeric_limits<double>::infinity();
 
     for (int i = 0; i < numSamples; i++) {
-      logpsi(i) = psi_.LogVal(trainingSamples_[i]);
+      logpsi(i) = psi_.LogValSingle(trainingSamples_[i]);
       if (std::real(logpsi(i)) > max_log_psi) {
         max_log_psi = std::real(logpsi(i));
       }
@@ -439,7 +440,7 @@ class Supervised {
       Eigen::VectorXcd target(trainingTargets_[i]);
 
       // Cast value and target to Complex and undo logs
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       value = exp(value - max_log_psi);
       Complex t(target[0].real(), target[0].imag());
       t = exp(t);
@@ -457,16 +458,6 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
-
-  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
-    if (!sr_.has_value()) {
-      throw InvalidInputError(
-          "Trying to set SR parameters in non-SR VMC driver.");
-    }
-    sr_->SetParameters(diag_shift, use_iterative, use_cholesky,
-                       psi_.IsHolomorphic());
-  }
 };
 
 }  // namespace netket

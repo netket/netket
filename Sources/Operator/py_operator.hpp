@@ -74,25 +74,26 @@ void AddOperatorModule(py::module m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def("to_linear_operator",
-               [](py::object py_self) {
-                 const auto* cxx_self = py_self.cast<AbstractOperator const*>();
-                 const auto dtype =
-                     py::module::import("numpy").attr("complex128");
-                 const auto linear_operator =
-                     py::module::import("scipy.sparse.linalg")
-                         .attr("LinearOperator");
-                 const auto dim = cxx_self->Dimension();
-                 return linear_operator(
-                     py::arg{"shape"} = std::make_tuple(dim, dim),
-                     py::arg{"matvec"} = py::cpp_function(
-                         // TODO: Does this copy data?
-                         [py_self, cxx_self](const Eigen::VectorXcd& x) {
-                           return cxx_self->Apply(x);
-                         }),
-                     py::arg{"dtype"} = dtype);
-               },
-               R"EOF(
+          .def(
+              "to_linear_operator",
+              [](py::object py_self) {
+                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                const auto dtype =
+                    py::module::import("numpy").attr("complex128");
+                const auto linear_operator =
+                    py::module::import("scipy.sparse.linalg")
+                        .attr("LinearOperator");
+                const auto dim = cxx_self->Dimension();
+                return linear_operator(
+                    py::arg{"shape"} = std::make_tuple(dim, dim),
+                    py::arg{"matvec"} = py::cpp_function(
+                        // TODO: Does this copy data?
+                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                          return cxx_self->Apply(x);
+                        }),
+                    py::arg{"dtype"} = dtype);
+              },
+              R"EOF(
         Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
 
         This method requires an indexable Hilbert space.
@@ -106,6 +107,70 @@ void AddOperatorModule(py::module m) {
   AddLocalOperator(subm);
   AddGraphOperator(subm);
   AddPauliOperator(subm);
+
+  subm.def(
+      "local_values",
+      [](py::array_t<double, py::array::c_style> samples,
+         py::array_t<Complex, py::array::c_style> log_values,
+         AbstractMachine& machine, AbstractOperator& op, Index batch_size) {
+        switch (log_values.ndim()) {
+          case 2: {
+            NETKET_CHECK(samples.ndim() == 3, InvalidInputError,
+                         "samples has wrong dimension: " << samples.ndim()
+                                                         << "; expected 3.");
+            NETKET_CHECK(samples.shape(1) == log_values.shape(1),
+                         InvalidInputError, "incompatible number of chains");
+            auto local_values = py::cast(LocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0) * samples.shape(1),
+                    samples.shape(2)},
+                Eigen::Map<const VectorXcd>{
+                    log_values.data(),
+                    log_values.shape(0) * log_values.shape(1)},
+                machine, op, batch_size));
+            local_values.attr("resize")(log_values.shape(0),
+                                        log_values.shape(1));
+            return local_values;
+          }
+          case 1:
+            NETKET_CHECK(samples.ndim() == 2, InvalidInputError,
+                         "samples has wrong dimension: " << samples.ndim()
+                                                         << "; expected 2.");
+            return py::cast(LocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0), samples.shape(1)},
+                Eigen::Map<const VectorXcd>{log_values.data(),
+                                            log_values.shape(0)},
+                machine, op, batch_size));
+          default:
+            NETKET_CHECK(false, InvalidInputError,
+                         "log_values has wrong dimension: "
+                             << log_values.ndim()
+                             << "; expected either 1 or 2.");
+        }
+      },
+      py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
+      py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
+      R"EOF(Computes local values of the operator `op` for all `samples`.
+
+            Args:
+                samples: A matrix (or a rank-3 tensor) of visible
+                    configurations. If it is a matrix, each row of the matrix
+                    must correspond to a visible configuration.  `samples` is a
+                    rank-3 tensor, its shape should be `(N, M, #visible)` where
+                    `N` is the number of samples, `M` is the number of Markov
+                    Chains, and `#visible` is the number of visible units.
+                log_values: Corresponding values of the logarithm of the
+                    wavefunction. If `samples` is a `(N, #visible)` matrix, then
+                    `log_values` should be a vector of `N` complex numbers. If
+                    `samples` is a rank-3 tensor, then the shape of `log_values`
+                    should be `(N, M)`.
+                machine: Wavefunction.
+                op: Hermitian operator.
+                batch_size: Batch size.
+
+            Returns:
+                A numpy array of local values of the operator.)EOF");
 }
 
 }  // namespace netket

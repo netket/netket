@@ -26,9 +26,22 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Operator/operator.hpp"
+#include "Sampler/abstract_sampler.hpp"
+#include "Sampler/metropolis_local_v2.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
-#include "abstract_sampler.hpp"
+#include "Utils/pybind_helpers.hpp"
+
+namespace netket {
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "acceptance", [](const T& self) { return self.Acceptance(); }, R"EOF(
+        numpy.array: The measured acceptance rate for the sampling.
+        In the case of rejection-free sampling this is always equal to 1.)EOF");
+}
+}  // namespace netket
+
 #include "py_custom_sampler.hpp"
 #include "py_custom_sampler_pt.hpp"
 #include "py_exact_sampler.hpp"
@@ -44,7 +57,26 @@ namespace py = pybind11;
 
 namespace netket {
 
-void AddSamplerModule(py::module &m) {
+void AddMetropolisLocalV2(py::module m) {
+  py::class_<MetropolisLocalV2, AbstractSampler>(m, "MetropolisLocalV2")
+      .def(py::init([](AbstractMachine& machine, Index batch_size,
+                       nonstd::optional<Index> sweep_size) {
+             return make_unique<MetropolisLocalV2>(
+                 machine, batch_size, sweep_size.value_or(machine.Nvisible()));
+           }),
+           py::keep_alive<1, 2>{}, py::arg{"machine"},
+           py::arg{"batch_size"} = 16, py::arg{"sweep_size"} = py::none(),
+           R"EOF(See `MetropolisLocal` for information about the algorithm.
+
+                 `MetropolisLocalV2` differs from `MetropolisLocal` in that it
+                 runs `batch_size` Markov Chains in parallel on one MPI node.
+                 Generating `batch_size` new samples requires only one call to
+                 `Machine.log_val` which helps to hide the latency associated
+                 with the call.
+           )EOF");
+}
+
+void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
 
   py::class_<AbstractSampler>(subm, "Sampler", R"EOF(
@@ -84,25 +116,51 @@ void AddSamplerModule(py::module &m) {
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
-      .def_property("visible", &AbstractSampler::Visible,
-                    &AbstractSampler::SetVisible,
-                    R"EOF(
-                      numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$F(\Psi(v))$$ )EOF")
-      .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
-        numpy.array: The measured acceptance rate for the sampling.
-        In the case of rejection-free sampling this is always equal to 1.  )EOF")
-      .def_property_readonly("hilbert", &AbstractSampler::GetHilbertShared,
-                             R"EOF(
-        netket.hilbert: The Hilbert space used for the sampling.  )EOF")
+      .def_property_readonly(
+          "visible",
+          [](const AbstractSampler& self) { return self.CurrentState().first; },
+          R"EOF(A matrix of current visible configurations. Every row
+                corresponds to a visible configuration)EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
-      .def_property("machine_func", &AbstractSampler::GetMachineFunc,
-                    &AbstractSampler::SetMachineFunc,
-                    R"EOF(
-                          function(complex): The function to be used for sampling.
-                                       by default $$|\Psi(x)|^2$$ is sampled,
-                                       however in general $$F(\Psi(v))$$  )EOF");
+      .def_property_readonly("batch_size", &AbstractSampler::BatchSize, R"EOF(
+        int: Number of samples in a batch.)EOF")
+      .def_property(
+          "machine_func",
+          [](const AbstractSampler& self) {
+            return py::cpp_function(
+                [&self](py::array_t<Complex, py::array::c_style> x,
+                        py::array_t<double, py::array::c_style> out) {
+                  const auto input = [&x]() {
+                    auto reference = x.unchecked<1>();
+                    return nonstd::span<const Complex>{reference.data(0),
+                                                       reference.size()};
+                  }();
+                  const auto output = [&out]() {
+                    auto reference = out.mutable_unchecked<1>();
+                    return nonstd::span<double>{reference.mutable_data(0),
+                                                reference.size()};
+                  }();
+                  self.GetMachineFunc()(input, output);
+                },
+                py::arg{"x"}.noconvert(), py::arg{"out"}.noconvert());
+          },
+          [](AbstractSampler& self, py::function func) {
+            self.SetMachineFunc([func](nonstd::span<const Complex> x,
+                                       nonstd::span<double> out) {
+              auto input = py::array_t<Complex>{static_cast<size_t>(x.size()),
+                                                x.data(), /*base=*/py::none()};
+              py::detail::array_proxy(input.ptr())->flags &=
+                  ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+              auto output = py::array_t<double>{static_cast<size_t>(out.size()),
+                                                out.data(),
+                                                /*base=*/py::none()};
+              func(input, output);
+            });
+          },
+          R"EOF(function(complex): The function to be used for sampling.
+                                   by default $$|\Psi(x)|^2$$ is sampled,
+                                   however in general $$F(\Psi(v))$$)EOF");
 
   AddMetropolisLocal(subm);
   AddMetropolisLocalPt(subm);
@@ -114,6 +172,7 @@ void AddSamplerModule(py::module &m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddCustomSamplerPt(subm);
+  AddMetropolisLocalV2(subm);
 }
 
 }  // namespace netket

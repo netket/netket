@@ -19,6 +19,9 @@ ma.init_random_parameters(seed=1234, sigma=0.2)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 samplers["MetropolisLocal RbmSpin"] = sa
 
+sa = nk.sampler.MetropolisLocalV2(machine=ma, batch_size=1)
+samplers["MetropolisLocalV2 RbmSpin"] = sa
+
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
 samplers["MetropolisLocalPt RbmSpin"] = sa
 
@@ -99,30 +102,35 @@ def test_states_in_hilbert():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
         localstates = hi.local_states
 
         for sw in range(100):
             sa.sweep()
             visible = sa.visible
-            assert len(visible) == hi.size
-            for v in visible:
+            assert visible.shape[1] == hi.size
+            for v in visible.reshape(-1):
                 assert v in localstates
 
-            assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
+            if hasattr(sa, "acceptance"):
+                assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
 
 
 def test_machine_func():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
-        sa.machine_func = lambda x: np.absolute(x) ** 2.0
-        maf = sa.machine_func(3.0 + 1.0j)
-        assert maf == approx(np.absolute(3.0 + 1.0j) ** 2.0)
+        def custom_machine_func(x, out):
+            out[:] = np.absolute(x)**2.0
+        sa.machine_func = custom_machine_func
+        x = np.array([3.0 + 1.0j])
+        out = np.empty(1)
+        sa.machine_func(x, out)
+        assert out[0] == approx(np.absolute(3.0 + 1.0j) ** 2.0)
 
         sa.machine_func = np.absolute
-        maf = sa.machine_func(3.0 + 1.0j)
-        assert maf == approx(np.absolute(3.0 + 1.0j))
+        sa.machine_func(x, out)
+        assert out[0] == approx(np.absolute(3.0 + 1.0j))
 
 
 # Testing that samples generated from direct sampling are compatible with those
@@ -136,8 +144,8 @@ def test_correct_sampling():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
 
         n_states = hi.n_states
 
@@ -149,7 +157,9 @@ def test_correct_sampling():
         if ord == 1:
             sa.machine_func = np.absolute
         if ord == 2:
-            sa.machine_func = lambda x: np.absolute(x) * np.absolute(x)
+            def _f(x, out):
+                out[:] = np.absolute(x) ** 2
+            sa.machine_func = _f
 
         ps = np.absolute(ma.to_array()) ** ord
         ps /= ps.sum()
@@ -171,8 +181,9 @@ def test_correct_sampling():
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
-                sttn = hi.state_to_number(visible)
-                hist_samp[sttn] += 1
+                for v in visible:
+                    sttn = hi.state_to_number(v)
+                    hist_samp[sttn] += 1
 
             statistics, pvalues[jrep] = power_divergence(
                 hist_samp, f_exp=f_exp, lambda_=3 / 2

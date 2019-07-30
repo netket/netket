@@ -22,10 +22,10 @@ AdaGrad Optimizer.
 ## Class Constructor
 Constructs a new ``AdaGrad`` optimizer.
 
-|  Argument   |   Type    |       Description        |
-|-------------|-----------|--------------------------|
-|learning_rate|float=0.001|Learning rate $$\eta$$.   |
-|epscut       |float=1e-07|Small $$\epsilon$$ cutoff.|
+|  Argument   |    Type     |       Description        |
+|-------------|-------------|--------------------------|
+|learning_rate|float = 0.001|Learning rate $$\eta$$.   |
+|epscut       |float = 1e-07|Small $$\epsilon$$ cutoff.|
 
 ### Examples
 Simple AdaDelta optimizer.

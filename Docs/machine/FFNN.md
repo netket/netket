@@ -40,17 +40,17 @@ for a one-dimensional L=20 spin-half system:
 Member function to obtain the derivatives of log value of
 machine given an input wrt the machine's parameters.
 
-|Argument|            Type            |      Description       |
-|--------|----------------------------|------------------------|
-|v       |numpy.ndarray[float64[m, 1]]|Input vector to machine.|
+|Argument|         Type         |      Description       |
+|--------|----------------------|------------------------|
+|v       |numpy.ndarray[float64]|Input vector to machine.|
 
 ### init_random_parameters
 Member function to initialise machine parameters.
 
-|Argument|  Type   |                               Description                                |
-|--------|---------|--------------------------------------------------------------------------|
-|seed    |int=1234 |The random number generator seed.                                         |
-|sigma   |float=0.1|Standard deviation of normal distribution from which parameters are drawn.|
+|Argument|        Type        |                               Description                                |
+|--------|--------------------|--------------------------------------------------------------------------|
+|seed    |Optional[int] = None|The random number generator seed.                                         |
+|sigma   |float = 0.1         |Standard deviation of normal distribution from which parameters are drawn.|
 
 ### load
 Member function to load machine parameters from a json file.
@@ -58,6 +58,11 @@ Member function to load machine parameters from a json file.
 |Argument|Type|             Description             |
 |--------|----|-------------------------------------|
 |filename|str |name of file to load parameters from.|
+
+### load_state_dict
+Loads machine's state from `state`.
+
+
 
 ### log_norm
 Returns the log of the L2 norm of the wave-function.
@@ -72,9 +77,9 @@ This method requires an indexable Hilbert space.
 Member function to obtain log value of machine given an input
 vector.
 
-|Argument|            Type            |      Description       |
-|--------|----------------------------|------------------------|
-|v       |numpy.ndarray[float64[m, 1]]|Input vector to machine.|
+|Argument|         Type         |      Description       |
+|--------|----------------------|------------------------|
+|v       |numpy.ndarray[float64]|Input vector to machine.|
 
 ### log_val_diff
 Member function to obtain difference in log value of machine
@@ -92,6 +97,11 @@ Member function to save the machine parameters.
 |Argument|Type|            Description            |
 |--------|----|-----------------------------------|
 |filename|str |name of file to save parameters to.|
+
+### state_dict
+Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.
+
+
 
 ### to_array
 Returns a numpy array representation of the machine.

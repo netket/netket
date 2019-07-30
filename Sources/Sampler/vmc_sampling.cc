@@ -1,80 +1,18 @@
+#include "Utils/messages.hpp"
 #include "vmc_sampling.hpp"
 
 namespace netket {
-namespace vmc {
 
-Result ComputeSamples(AbstractSampler &sampler, Index nsamples, Index ndiscard,
-                      bool compute_logderivs) {
-  sampler.Reset();
-
-  for (Index i = 0; i < ndiscard; i++) {
-    sampler.Sweep();
-  }
-
-  const Index nvisible = sampler.GetMachine().Nvisible();
-  const Index npar = sampler.GetMachine().Npar();
-  MatrixXd samples(nvisible, nsamples);
-
-  nonstd::optional<MatrixXcd> log_derivs;
-  if (compute_logderivs) {
-    log_derivs.emplace(npar, nsamples);
-    for (Index i = 0; i < nsamples; i++) {
-      sampler.Sweep();
-      samples.col(i) = sampler.Visible();
-      log_derivs->col(i) = sampler.DerLogVisible();
-    }
-
-    // Compute "centered" log-derivatives, i.e., O_k ↦ O_k - ⟨O_k⟩
-    VectorXcd log_der_mean = log_derivs->rowwise().mean();
-    MeanOnNodes<>(log_der_mean);
-    log_derivs = log_derivs->colwise() - log_der_mean;
-  } else {
-    for (Index i = 0; i < nsamples; i++) {
-      sampler.Sweep();
-      samples.col(i) = sampler.Visible();
-    }
-  }
-  return Result(std::move(samples), std::move(log_derivs));
-}
-
-Complex LocalValue(const AbstractOperator &op, AbstractMachine &psi,
-                   Eigen::Ref<const VectorXd> v) {
-  AbstractOperator::ConnectorsType tochange;
-  AbstractOperator::NewconfsType newconf;
-  AbstractOperator::MelType mels;
-
-  op.FindConn(v, mels, tochange, newconf);
-
-  auto logvaldiffs = psi.LogValDiff(v, tochange, newconf);
-
-  assert(mels.size() == std::size_t(logvaldiffs.size()));
-
-  Complex result = 0.0;
-  for (Index i = 0; i < logvaldiffs.size(); ++i) {
-    result += mels[i] * std::exp(logvaldiffs(i));  // O(v,v') * Ψ(v)/Ψ(v')
-  }
-
-  return result;
-}
-
-VectorXcd LocalValues(const AbstractOperator &op, AbstractMachine &psi,
-                      Eigen::Ref<const MatrixXd> vs) {
-  VectorXcd out(vs.cols());
-  for (Index i = 0; i < vs.cols(); ++i) {
-    out(i) = LocalValue(op, psi, vs.col(i));
-  }
-  return out;
-}
-
-VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
-                          Eigen::Ref<const VectorXd> v) {
+inline VectorXcd LocalValueDeriv(const AbstractOperator& op,
+                                 AbstractMachine& psi,
+                                 Eigen::Ref<const VectorXd> v) {
   AbstractOperator::ConnectorsType tochange;
   AbstractOperator::NewconfsType newconf;
   AbstractOperator::MelType mels;
   op.FindConn(v, mels, tochange, newconf);
 
   auto logvaldiffs = psi.LogValDiff(v, tochange, newconf);
-  auto log_deriv = psi.DerLog(v);
+  auto log_deriv = psi.DerLogSingle(v);
 
   VectorXcd grad(v.size());
   for (int i = 0; i < logvaldiffs.size(); i++) {
@@ -86,99 +24,121 @@ VectorXcd LocalValueDeriv(const AbstractOperator &op, AbstractMachine &psi,
   return grad;
 }
 
-Stats Expectation(const Result &result, AbstractMachine &psi,
-                  const AbstractOperator &op) {
-  Binning<double> bin;
-  for (Index i = 0; i < result.NSamples(); ++i) {
-    const Complex loc = LocalValue(op, psi, result.Sample(i));
-    bin << loc.real();
-  }
-  return bin.AllStats();
-}
-
-Stats Expectation(const Result &result, AbstractMachine &psi,
-                  const AbstractOperator &op, VectorXcd &locvals) {
-  locvals.resize(result.NSamples());
-
-  Binning<double> bin;
-  for (Index i = 0; i < result.NSamples(); ++i) {
-    const Complex loc = LocalValue(op, psi, result.Sample(i));
-    locvals(i) = loc;
-    bin << loc.real();
-  }
-
-  return bin.AllStats();
-}
-
-Stats Variance(const Result &result, AbstractMachine &psi,
-               const AbstractOperator &op) {
-  VectorXcd locvals;
-  auto ex = Expectation(result, psi, op, locvals);
-  return Variance(result, psi, op, ex.mean, locvals);
-}
-
-Stats Variance(const Result & /*result*/, AbstractMachine & /*psi*/,
-               const AbstractOperator & /*op*/, double expectation_value,
-               const VectorXcd &locvals) {
-  Binning<double> bin_var;
-  for (Index i = 0; i < locvals.size(); ++i) {
-    bin_var << std::norm(locvals(i) - expectation_value);
-  }
-  return bin_var.AllStats();
-}
-
-VectorXcd Gradient(const Result &result, AbstractMachine &psi,
-                   const AbstractOperator &op) {
-  if (!result.LogDerivs().has_value()) {
-    throw std::runtime_error{
-        "vmc::Result does not contain log-derivatives, which are required to "
-        "compute gradients."};
-  }
-
-  VectorXcd locvals;
-  Expectation(result, psi, op, locvals);
-
-  VectorXcd grad =
-      result.LogDerivs()->conjugate() * locvals / double(result.NSamples());
-  MeanOnNodes<>(grad);
-
-  return grad;
-}
-
-VectorXcd Gradient(const Result &result, AbstractMachine & /*psi*/,
-                   const AbstractOperator & /*op*/, const VectorXcd &locvals) {
-  if (!result.LogDerivs().has_value()) {
-    throw std::runtime_error{
-        "vmc::Result does not contain log-derivatives, which are required to "
-        "compute gradients."};
-  }
-
-  VectorXcd grad =
-      result.LogDerivs()->conjugate() * locvals / double(result.NSamples());
-  MeanOnNodes<>(grad);
-  return grad;
-}
-
-VectorXcd GradientOfVariance(const Result &result, AbstractMachine &psi,
-                             const AbstractOperator &op) {
-  // TODO: This function can probably be implemented more efficiently (e.g., by
-  // computing local values and their gradients at the same time or reusing
+VectorXcd GradientOfVariance(Eigen::Ref<const RowMatrix<double>> samples,
+                             Eigen::Ref<const Eigen::VectorXcd> local_values,
+                             AbstractMachine& psi, const AbstractOperator& op) {
+  CheckShape(__FUNCTION__, "samples", {samples.rows(), samples.cols()},
+             {std::ignore, psi.Nvisible()});
+  CheckShape(__FUNCTION__, "local_values", local_values.size(), samples.rows());
+  // TODO: This function can probably be implemented more efficiently (e.g.,
+  // by computing local values and their gradients at the same time or reusing
   // already computed local values)
-  MatrixXcd locval_deriv(psi.Npar(), result.NSamples());
-
-  for (int i = 0; i < result.NSamples(); i++) {
-    locval_deriv.col(i) = LocalValueDeriv(op, psi, result.Sample(i));
+  RowMatrix<Complex> locval_deriv(samples.rows(), psi.Npar());
+  for (auto i = Index{0}; i < samples.rows(); ++i) {
+    locval_deriv.row(i) =
+        LocalValueDeriv(op, psi, samples.row(i).transpose()).transpose();
   }
   VectorXcd locval_deriv_mean = locval_deriv.colwise().mean();
   MeanOnNodes<>(locval_deriv_mean);
   locval_deriv = locval_deriv.colwise() - locval_deriv_mean;
 
-  VectorXcd grad = locval_deriv.conjugate() *
-                   LocalValues(op, psi, result.SampleMatrix()) /
-                   double(result.NSamples());
+  VectorXcd grad = locval_deriv.conjugate() * local_values /
+                   static_cast<double>(samples.rows());
   MeanOnNodes<>(grad);
   return grad;
 }
 
-}  // namespace vmc
+namespace detail {
+void SubtractMean(RowMatrix<Complex>& gradients) {
+  VectorXcd mean = gradients.colwise().mean();
+  assert(mean.size() == gradients.cols());
+  MeanOnNodes<>(mean);
+  gradients.rowwise() -= mean.transpose();
+}
+}  // namespace detail
+
+MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
+                        Index num_skipped,
+                        nonstd::optional<std::string> der_logs) {
+  NETKET_CHECK(num_samples >= 0, InvalidInputError,
+               "invalid number of samples: "
+                   << num_samples << "; expected a non-negative integer");
+  NETKET_CHECK(num_skipped >= 0, InvalidInputError,
+               "invalid number of samples to discard: "
+                   << num_skipped << "; expected a non-negative integer");
+  NETKET_CHECK(
+      !der_logs.has_value() ||
+          (*der_logs == "normal" || *der_logs == "centered"),
+      InvalidInputError,
+      "invalid der_logs: " << *der_logs
+                           << "; possible values are 'normal' and 'centered'");
+  sampler.Reset();
+
+  const auto num_batches =
+      (num_samples + sampler.BatchSize() - 1) / sampler.BatchSize();
+  num_samples = num_batches * sampler.BatchSize();
+  RowMatrix<double> samples(num_samples, sampler.GetMachine().Nvisible());
+  Eigen::VectorXcd values(num_samples);
+  auto gradients =
+      der_logs.has_value()
+          ? nonstd::optional<RowMatrix<Complex>>{nonstd::in_place, num_samples,
+                                                 sampler.GetMachine().Npar()}
+          : nonstd::nullopt;
+
+  struct Record {
+    AbstractSampler& sampler_;
+    RowMatrix<double>& samples_;
+    VectorXcd& values_;
+    nonstd::optional<RowMatrix<Complex>>& gradients_;
+    Index i_;
+
+    std::pair<Eigen::Ref<RowMatrix<double>>, Eigen::Ref<VectorXcd>> Batch() {
+      const auto n = sampler_.BatchSize();
+      return {samples_.block(i_ * n, 0, n, samples_.cols()),
+              values_.segment(i_ * n, n)};
+    }
+
+    void Gradients() {
+      const auto n = sampler_.BatchSize();
+      const auto X = samples_.block(i_ * n, 0, n, samples_.cols());
+      const auto out = gradients_->block(i_ * n, 0, n, gradients_->cols());
+      sampler_.GetMachine().DerLog(X, out, any{});
+    }
+
+    void operator()() {
+      assert(i_ * sampler_.BatchSize() < samples_.rows());
+      Batch() = sampler_.CurrentState();
+      if (gradients_.has_value()) Gradients();
+      ++i_;
+    }
+  } record{sampler, samples, values, gradients, 0};
+
+  for (auto i = Index{0}; i < num_skipped; ++i) {
+    sampler.Sweep();
+  }
+  if (num_batches > 0) {
+    record();
+    for (auto i = Index{1}; i < num_batches; ++i) {
+      sampler.Sweep();
+      record();
+    }
+  }
+
+  if (der_logs.has_value() && *der_logs == "centered")
+    detail::SubtractMean(*gradients);
+  return {std::move(samples), std::move(values), std::move(gradients),
+          sampler.BatchSize()};
+}
+
+Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,
+                          Eigen::Ref<const RowMatrix<Complex>> der_logs) {
+  CheckShape(__FUNCTION__, "der_logs", {der_logs.rows(), der_logs.cols()},
+             {locals.size(), std::ignore});
+  Eigen::VectorXcd force(der_logs.cols());
+  Eigen::Map<VectorXcd>{force.data(), force.size()}.noalias() =
+      der_logs.adjoint() * locals / der_logs.rows();
+  MeanOnNodes<>(force);
+  return force;
+}
+
 }  // namespace netket

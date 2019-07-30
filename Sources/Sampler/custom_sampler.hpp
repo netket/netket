@@ -17,14 +17,14 @@
 #ifndef NETKET_CUSTOMSAMPLER_HPP
 #define NETKET_CUSTOMSAMPLER_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include <limits>
+#include <Eigen/Core>
+#include <set>
 #include "Operator/local_operator.hpp"
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -39,14 +39,11 @@ class CustomSampler : public AbstractSampler {
   // states of visible units
   Eigen::VectorXd v_;
 
-  Eigen::VectorXd accept_;
-  Eigen::VectorXd moves_;
-
-  int mynode_;
-  int totalnodes_;
+  Index accept_;
+  Index moves_;
 
   // Look-up tables
-  typename AbstractMachine::LookupType lt_;
+  any lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
@@ -57,19 +54,22 @@ class CustomSampler : public AbstractSampler {
 
   int sweep_size_;
 
+  LogValAccumulator log_val_accumulator_;
+
  public:
   CustomSampler(AbstractMachine &psi, const LocalOperator &move_operators,
                 const std::vector<double> &move_weights = {})
       : AbstractSampler(psi),
         move_operators_(move_operators),
-        nv_(GetHilbert().Size()) {
+        nv_(GetMachine().Nvisible()) {
     Init(move_weights);
   }
 
   void Init(const std::vector<double> &move_weights) {
     CheckMoveOperators(move_operators_);
 
-    if (GetHilbert().Size() != move_operators_.GetHilbert().Size()) {
+    if (GetMachine().GetHilbert().Size() !=
+        move_operators_.GetHilbert().Size()) {
       throw InvalidInputError(
           "Move operators in CustomSampler act on a different hilbert space "
           "than the Machine");
@@ -89,19 +89,13 @@ class CustomSampler : public AbstractSampler {
 
     v_.resize(nv_);
 
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (!GetHilbert().IsDiscrete()) {
+    if (!GetMachine().GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Custom Metropolis sampler works only for discrete Hilbert spaces");
     }
 
-    accept_.resize(1);
-    moves_.resize(1);
-
-    nstates_ = GetHilbert().LocalSize();
-    localstates_ = GetHilbert().LocalStates();
+    nstates_ = GetMachine().GetHilbert().LocalSize();
+    localstates_ = GetMachine().GetHilbert().LocalStates();
 
     // Always use odd sweep size to avoid possible ergodicity problems
     if (nv_ % 2 == 0) {
@@ -117,13 +111,13 @@ class CustomSampler : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
-    GetMachine().InitLookup(v_, lt_);
-
-    accept_ = Eigen::VectorXd::Zero(1);
-    moves_ = Eigen::VectorXd::Zero(1);
+    lt_ = GetMachine().InitLookup(v_);
+    log_val_accumulator_ = GetMachine().LogValSingle(v_, lt_);
+    accept_ = 0;
+    moves_ = 0;
   }
 
   void Sweep() override {
@@ -146,37 +140,33 @@ class CustomSampler : public AbstractSampler {
         cumulative_prob += std::real(mel_[exit_state]);
       }
 
-      auto exlog = std::exp(GetMachine().LogValDiff(
-          v_, tochange_[exit_state], newconfs_[exit_state], lt_));
-      double ratio = this->GetMachineFunc()(exlog);
+      const auto log_val_diff = GetMachine().LogValDiff(
+          v_, tochange_[exit_state], newconfs_[exit_state], lt_);
+      auto exlog = std::exp(log_val_diff);
+      const auto ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(exlog);
 
       // Metropolis acceptance test
       if (ratio > distu(this->GetRandomEngine())) {
-        accept_[0] += 1;
+        ++accept_;
         GetMachine().UpdateLookup(v_, tochange_[exit_state],
                                   newconfs_[exit_state], lt_);
-        GetHilbert().UpdateConf(v_, tochange_[exit_state],
-                                newconfs_[exit_state]);
+        GetMachine().GetHilbert().UpdateConf(v_, tochange_[exit_state],
+                                             newconfs_[exit_state]);
+        log_val_accumulator_ += log_val_diff;
       }
-      moves_[0] += 1;
+      ++moves_;
     }
   }
 
-  const Eigen::VectorXd &Visible() const noexcept override { return v_; }
-
-  void SetVisible(const Eigen::VectorXd &v) override { v_ = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_, lt_);
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_.transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                &log_val_accumulator_.LogVal(), 1}};
   }
 
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < 1; i++) {
-      acc(i) /= moves_(i);
-    }
-    return acc;
-  }
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_)
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accept_, moves_)
 
   void SetSweepSize(int sweep_size) {
     if (sweep_size <= 0) {
@@ -189,6 +179,8 @@ class CustomSampler : public AbstractSampler {
   }
 
   int GetSweepSize() const noexcept { return sweep_size_; }
+
+  Index BatchSize() const noexcept override { return 1; }
 
   static void CheckMoveOperators(const LocalOperator &move_operators) {
     if (move_operators.Size() == 0) {

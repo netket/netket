@@ -15,12 +15,10 @@
 #ifndef NETKET_METROPOLISEXCHANGEPT_HPP
 #define NETKET_METROPOLISEXCHANGEPT_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include "Utils/parallel_utils.hpp"
+#include <Eigen/Core>
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -47,14 +45,18 @@ class MetropolisExchangePt : public AbstractSampler {
   std::vector<std::vector<int>> clusters_;
 
   // Look-up tables
-  std::vector<typename AbstractMachine::LookupType> lt_;
+  std::vector<any> lt_;
 
   int sweep_size_;
+
+  LogValAccumulator log_val_accumulator_;
 
  public:
   MetropolisExchangePt(const AbstractGraph &graph, AbstractMachine &psi,
                        int dmax = 1, int nreplicas = 1)
-      : AbstractSampler(psi), nv_(GetHilbert().Size()), nrep_(nreplicas) {
+      : AbstractSampler(psi),
+        nv_(GetMachine().GetHilbert().Size()),
+        nrep_(nreplicas) {
     Init(graph, dmax);
   }
 
@@ -112,13 +114,14 @@ class MetropolisExchangePt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      GetMachine().InitLookup(v_[i], lt_[i]);
+      lt_[i] = GetMachine().InitLookup(v_[i]);
     }
+    log_val_accumulator_ = GetMachine().LogValSingle(v_[0], lt_[0]);
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
     moves_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -146,15 +149,18 @@ class MetropolisExchangePt : public AbstractSampler {
         newconf[0] = v_[rep](sj);
         newconf[1] = v_[rep](si);
 
-        auto explo =
-            std::exp(beta_[rep] * GetMachine().LogValDiff(v_[rep], tochange,
-                                                          newconf, lt_[rep]));
-        double ratio = this->GetMachineFunc()(explo);
+        const auto log_val_diff =
+            GetMachine().LogValDiff(v_[rep], tochange, newconf, lt_[rep]);
+        auto explo = std::exp(beta_[rep] * log_val_diff);
+        double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(explo);
 
         if (ratio > distu(this->GetRandomEngine())) {
           accept_(rep) += 1;
           GetMachine().UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
-          GetHilbert().UpdateConf(v_[rep], tochange, newconf);
+          GetMachine().GetHilbert().UpdateConf(v_[rep], tochange, newconf);
+          if (rep == 0) {
+            log_val_accumulator_ += log_val_diff;
+          }
         }
       }
 
@@ -194,33 +200,32 @@ class MetropolisExchangePt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const auto lf1 = GetMachine().LogVal(v_[r1], lt_[r1]);
-    const auto lf2 = GetMachine().LogVal(v_[r2], lt_[r2]);
+    const auto lf1 = GetMachine().LogValSingle(v_[r1], lt_[r1]);
+    const auto lf2 = GetMachine().LogValSingle(v_[r2], lt_[r2]);
 
-    return this->GetMachineFunc()(
+    return NETKET_SAMPLER_APPLY_MACHINE_FUNC(
         std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1)));
   }
 
   void Exchange(int r1, int r2) {
     std::swap(v_[r1], v_[r2]);
     std::swap(lt_[r1], lt_[r2]);
-  }
-
-  const Eigen::VectorXd &Visible() const noexcept override { return v_[0]; }
-
-  void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_[0], lt_[0]);
-  }
-
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < acc.size(); i++) {
-      acc(i) /= moves_(i);
+    if (r1 == 0 || r2 == 0) {
+      log_val_accumulator_ = GetMachine().LogValSingle(v_[0], lt_[0]);
     }
-    return acc;
   }
+
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_[0].transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                   &log_val_accumulator_.LogVal(), 1}};
+  }
+
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_[0])
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT_PT(accept_, moves_)
+
+  Index BatchSize() const noexcept override { return 1; }
 };
 
 }  // namespace netket

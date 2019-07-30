@@ -30,13 +30,20 @@
 #include "Output/json_output_writer.hpp"
 #include "Sampler/abstract_sampler.hpp"
 #include "Sampler/vmc_sampling.hpp"
-#include "Stats/stats.hpp"
+#include "Stats/mc_stats.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
 
-
 namespace netket {
+
+inline void to_json(json &j, const Stats &stats) {
+  j = json{{"Mean", stats.mean.real()},
+           {"Sigma", stats.error_of_mean},
+           {"Variance", stats.variance},
+           {"Taucorr", stats.correlation},
+           {"R", stats.R}};
+}
 
 // Variational Monte Carlo schemes to learn the ground state
 // Available methods:
@@ -48,7 +55,6 @@ class VariationalMonteCarlo {
   AbstractSampler &sampler_;
   AbstractMachine &psi_;
 
-
   int totalnodes_;
   int mynode_;
 
@@ -58,10 +64,10 @@ class VariationalMonteCarlo {
   std::vector<const AbstractOperator *> obs_;
   std::vector<std::string> obsnames_;
 
-  using StatsMap = std::unordered_map<std::string, vmc::Stats>;
+  using StatsMap = std::unordered_map<std::string, Stats>;
   StatsMap observable_stats_;
 
-  vmc::Result vmc_data_;
+  MCResult mc_data_;
   Eigen::VectorXcd locvals_;
   Eigen::VectorXcd grad_;
 
@@ -89,6 +95,7 @@ class VariationalMonteCarlo {
         sampler_(sampler),
         psi_(sampler.GetMachine()),
         opt_(optimizer),
+        sr_{nonstd::nullopt},
         target_(target) {
     Init(nsamples, discarded_samples, discarded_samples_on_init, method,
          diag_shift, use_iterative, use_cholesky, sr_lsq_solver);
@@ -176,8 +183,10 @@ class VariationalMonteCarlo {
    */
   void ComputeObservables() {
     for (std::size_t i = 0; i < obs_.size(); ++i) {
-      auto ex = vmc::Expectation(vmc_data_, psi_, *obs_[i]);
-      observable_stats_[obsnames_[i]] = ex;
+      auto local_values = LocalValues(mc_data_.samples, mc_data_.log_values,
+                                      psi_, *obs_[i], sampler_.BatchSize());
+      auto stats = Statistics(local_values, mc_data_.n_chains);
+      observable_stats_[obsnames_[i]] = stats;
     }
   }
 
@@ -187,19 +196,21 @@ class VariationalMonteCarlo {
   void Advance(Index steps = 1) {
     assert(steps > 0);
     for (Index i = 0; i < steps; ++i) {
-      vmc_data_ = vmc::ComputeSamples(sampler_, nsamples_node_, ndiscard_);
+      mc_data_ = ComputeSamples(sampler_, nsamples_node_, ndiscard_,
+                                /*der_logs=*/"centered");
 
-      const auto energy = vmc::Expectation(vmc_data_, psi_, ham_, locvals_);
-      const auto variance =
-          vmc::Variance(vmc_data_, psi_, ham_, energy.mean, locvals_);
+      const auto local_values =
+          LocalValues(mc_data_.samples, mc_data_.log_values, psi_, ham_,
+                      sampler_.BatchSize());
+      const auto stats = Statistics(local_values, mc_data_.n_chains);
 
-      observable_stats_["Energy"] = energy;
-      observable_stats_["EnergyVariance"] = variance;
+      observable_stats_["Energy"] = stats;
 
       if (target_ == "energy") {
-        grad_ = vmc::Gradient(vmc_data_, psi_, ham_, locvals_);
+        assert(mc_data_.der_logs.has_value());
+        grad_ = Gradient(local_values, *mc_data_.der_logs);
       } else if (target_ == "variance") {
-        grad_ = vmc::GradientOfVariance(vmc_data_, psi_, ham_);
+        grad_ = GradientOfVariance(mc_data_.samples, local_values, psi_, ham_);
       } else {
         throw std::runtime_error("This should not happen.");
       }
@@ -231,7 +242,6 @@ class VariationalMonteCarlo {
       // written once
       if (writer.has_value()) {
         auto obs_data = json(observable_stats_);
-        obs_data["Acceptance"] = sampler_.Acceptance();
 
         writer->WriteLog(step, obs_data);
         writer->WriteState(step, psi_);
@@ -246,7 +256,9 @@ class VariationalMonteCarlo {
     Eigen::VectorXcd deltap(npar_);
 
     if (sr_.has_value()) {
-      sr_->ComputeUpdate(vmc_data_.LogDerivs()->transpose(), grad_, deltap);
+      assert(mc_data_.der_logs.has_value());
+      // TODO: This copies data!!
+      sr_->ComputeUpdate(*mc_data_.der_logs, grad_, deltap);
     } else {
       deltap = grad_;
     }
@@ -265,9 +277,9 @@ class VariationalMonteCarlo {
     return observable_stats_;
   }
 
-  nonstd::optional<SR> &GetSR() { return sr_; }
+  const MCResult &GetVmcData() const noexcept { return mc_data_; }
 
-  const vmc::Result &GetVmcData() const noexcept { return vmc_data_; }
+  nonstd::optional<SR> &GetSR() noexcept { return sr_; }
 };
 
 }  // namespace netket

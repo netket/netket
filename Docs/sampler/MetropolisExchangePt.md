@@ -11,8 +11,8 @@ graph, and a number of replicas.
 |----------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |machine   |netket._C_netket.machine.Machine|A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
 |graph     |netket._C_netket.graph.Graph    |A graph used to define the distances among the degrees of freedom being sampled.                                                                                                     |
-|d_max     |int=1                           |The maximum graph distance allowed for exchanges.                                                                                                                                    |
-|n_replicas|int=1                           |The number of replicas used for parallel tempering.                                                                                                                                  |
+|d_max     |int = 1                         |The maximum graph distance allowed for exchanges.                                                                                                                                    |
+|n_replicas|int = 1                         |The number of replicas used for parallel tempering.                                                                                                                                  |
 
 ### Examples
 Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -39,9 +39,9 @@ nearest-neighbours exchanges.
 Resets the state of the sampler, including the acceptance rate statistics
 and optionally initializing at random the visible units being sampled.
 
-| Argument  |   Type   |                  Description                  |
-|-----------|----------|-----------------------------------------------|
-|init_random|bool=False|If ``True`` the quantum numbers (visible units)|
+| Argument  |    Type    |                  Description                  |
+|-----------|------------|-----------------------------------------------|
+|init_random|bool = False|If ``True`` the quantum numbers (visible units)|
 
 ### seed
 Seeds the random number generator used by the ``Sampler``.
@@ -58,10 +58,10 @@ consists of an extensive number of local moves.
 
 ## Properties
 
-|  Property  |                    Type                    |                                                                                          Description                                                                                          |
-|------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|acceptance  |         numpy.array                        | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.                                                                      |
-|hilbert     |         netket.hilbert                     | The Hilbert space used for the sampling.                                                                                                                                                      |
-|machine     |         netket.machine                     | The machine used for the sampling.                                                                                                                                                            |
-|machine_func|                           function(complex)| The function to be used for sampling.                                        by default $$\|\Psi(x)\|^2$$ is sampled,                                        however in general $$F(\Psi(v))$$  |
-|visible     |                       numpy.array          | The quantum numbers being sampled,                        and distributed according to $$F(\Psi(v))$$                                                                                         |
+|  Property  |         Type          |                                                                                     Description                                                                                     |
+|------------|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|acceptance  |         numpy.array   | The measured acceptance rate for the sampling.         In the case of rejection-free sampling this is always equal to 1.                                                            |
+|batch_size  |         int           | Number of samples in a batch.                                                                                                                                                       |
+|machine     |         netket.machine| The machine used for the sampling.                                                                                                                                                  |
+|machine_func|function(complex)      | The function to be used for sampling.                                    by default $$\|\Psi(x)\|^2$$ is sampled,                                    however in general $$F(\Psi(v))$$|
+|visible     |                       |A matrix of current visible configurations. Every row                 corresponds to a visible configuration                                                                         |

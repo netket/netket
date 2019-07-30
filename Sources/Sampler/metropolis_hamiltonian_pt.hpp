@@ -15,12 +15,10 @@
 #ifndef NETKET_METROPOLISHAMILTONIAN_PT_HPP
 #define NETKET_METROPOLISHAMILTONIAN_PT_HPP
 
-#include <mpi.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include <limits>
+#include <Eigen/Core>
+#include "Sampler/abstract_sampler.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
-#include "abstract_sampler.hpp"
 
 namespace netket {
 
@@ -42,11 +40,8 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   Eigen::VectorXd accept_;
   Eigen::VectorXd moves_;
 
-  int mynode_;
-  int totalnodes_;
-
   // Look-up tables
-  std::vector<typename AbstractMachine::LookupType> lt_;
+  std::vector<any> lt_;
 
   std::vector<std::vector<int>> tochange_;
   std::vector<std::vector<double>> newconfs_;
@@ -58,20 +53,19 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   int sweep_size_;
 
+  LogValAccumulator log_val_accumulator_;
+
  public:
   MetropolisHamiltonianPt(AbstractMachine &psi, H &hamiltonian, int nrep)
       : AbstractSampler(psi),
         hamiltonian_(hamiltonian),
-        nv_(GetHilbert().Size()),
+        nv_(GetMachine().GetHilbert().Size()),
         nrep_(nrep) {
     Init();
   }
 
   void Init() {
-    MPI_Comm_size(MPI_COMM_WORLD, &totalnodes_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mynode_);
-
-    if (!GetHilbert().IsDiscrete()) {
+    if (!GetMachine().GetHilbert().IsDiscrete()) {
       throw InvalidInputError(
           "Hamiltonian Metropolis sampler works only for discrete "
           "Hilbert spaces");
@@ -109,13 +103,14 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
       }
     }
 
     for (int i = 0; i < nrep_; i++) {
-      GetMachine().InitLookup(v_[i], lt_[i]);
+      lt_[i] = GetMachine().InitLookup(v_[i]);
     }
+    log_val_accumulator_ = GetMachine().LogValSingle(v_[0], lt_[0]);
 
     accept_ = Eigen::VectorXd::Zero(2 * nrep_);
     moves_ = Eigen::VectorXd::Zero(2 * nrep_);
@@ -135,7 +130,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
       // Inverse transition
       v1_ = v_[rep];
-      GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
+      GetMachine().GetHilbert().UpdateConf(v1_, tochange_[si], newconfs_[si]);
 
       hamiltonian_.FindConn(v1_, mel1_, tochange1_, newconfs1_);
 
@@ -144,15 +139,17 @@ class MetropolisHamiltonianPt : public AbstractSampler {
       const auto lvd = GetMachine().LogValDiff(v_[rep], tochange_[si],
                                                newconfs_[si], lt_[rep]);
       double ratio =
-          this->GetMachineFunc()(std::exp(beta_[rep] * lvd)) * w1 / w2;
+          NETKET_SAMPLER_APPLY_MACHINE_FUNC(std::exp(beta_[rep] * lvd)) * w1 /
+          w2;
 
 #ifndef NDEBUG
-      const auto psival1 = GetMachine().LogVal(v_[rep]);
-      if (std::abs(std::exp(GetMachine().LogVal(v_[rep]) -
-                            GetMachine().LogVal(v_[rep], lt_[rep])) -
+      const auto psival1 = GetMachine().LogValSingle(v_[rep]);
+      if (std::abs(std::exp(GetMachine().LogValSingle(v_[rep]) -
+                            GetMachine().LogValSingle(v_[rep], lt_[rep])) -
                    1.) > 1.0e-8) {
-        std::cerr << GetMachine().LogVal(v_[rep]) << "  and LogVal with Lt is "
-                  << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
+        std::cerr << GetMachine().LogValSingle(v_[rep])
+                  << "  and LogVal with Lt is "
+                  << GetMachine().LogValSingle(v_[rep], lt_[rep]) << std::endl;
         std::abort();
       }
 #endif
@@ -163,14 +160,18 @@ class MetropolisHamiltonianPt : public AbstractSampler {
         GetMachine().UpdateLookup(v_[rep], tochange_[si], newconfs_[si],
                                   lt_[rep]);
         v_[rep] = v1_;
+        if (rep == 0) {
+          log_val_accumulator_ += lvd;
+        }
 
 #ifndef NDEBUG
-        const auto psival2 = GetMachine().LogVal(v_[rep]);
+        const auto psival2 = GetMachine().LogValSingle(v_[rep]);
         if (std::abs(std::exp(psival2 - psival1 - lvd) - 1.) > 1.0e-8) {
           std::cerr << psival2 - psival1 << " and logvaldiff is " << lvd
                     << std::endl;
           std::cerr << psival2 << " and LogVal with Lt is "
-                    << GetMachine().LogVal(v_[rep], lt_[rep]) << std::endl;
+                    << GetMachine().LogValSingle(v_[rep], lt_[rep])
+                    << std::endl;
           std::abort();
         }
 #endif
@@ -211,33 +212,32 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 
   // computes the probability to exchange two replicas
   double ExchangeProb(int r1, int r2) {
-    const auto lf1 = GetMachine().LogVal(v_[r1], lt_[r1]);
-    const auto lf2 = GetMachine().LogVal(v_[r2], lt_[r2]);
+    const auto lf1 = GetMachine().LogValSingle(v_[r1], lt_[r1]);
+    const auto lf2 = GetMachine().LogValSingle(v_[r2], lt_[r2]);
 
-    return this->GetMachineFunc()(
+    return NETKET_SAMPLER_APPLY_MACHINE_FUNC(
         std::exp((beta_[r1] - beta_[r2]) * (lf2 - lf1)));
   }
 
   void Exchange(int r1, int r2) {
     std::swap(v_[r1], v_[r2]);
     std::swap(lt_[r1], lt_[r2]);
-  }
-
-  const Eigen::VectorXd &Visible() const noexcept override { return v_[0]; }
-
-  void SetVisible(const Eigen::VectorXd &v) override { v_[0] = v; }
-
-  AbstractMachine::VectorType DerLogVisible() override {
-    return GetMachine().DerLog(v_[0], lt_[0]);
-  }
-
-  Eigen::VectorXd Acceptance() const override {
-    Eigen::VectorXd acc = accept_;
-    for (int i = 0; i < acc.size(); i++) {
-      acc(i) /= moves_(i);
+    if (r1 == 0 || r2 == 0) {
+      log_val_accumulator_ = GetMachine().LogValSingle(v_[0], lt_[0]);
     }
-    return acc;
   }
+
+  std::pair<Eigen::Ref<const RowMatrix<double>>,
+            Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const override {
+    return {v_[0].transpose(), Eigen::Map<const Eigen::VectorXcd>{
+                                   &log_val_accumulator_.LogVal(), 1}};
+  }
+
+  NETKET_SAMPLER_SET_VISIBLE_DEFAULT(v_[0])
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT_PT(accept_, moves_)
+
+  Index BatchSize() const noexcept override { return 1; }
 };
 
 }  // namespace netket

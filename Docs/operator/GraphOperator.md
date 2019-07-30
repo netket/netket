@@ -10,9 +10,9 @@ desired. If none are specified, the bond operators act on all edges.
 |   Argument   |              Type              |                                                                               Description                                                                               |
 |--------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |hilbert       |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.                                                                                                                                      |
-|siteops       |List[List[List[complex]]]=[]    |A list of operators that act on the nodes of the graph. The default is an empty list. Note that if no siteops are specified, the user must give a list of bond operators.|
-|bondops       |List[List[List[complex]]]=[]    |A list of operators that act on the edges of the graph. The default is an empty list. Note that if no bondops are specified, the user must give a list of site operators.|
-|bondops_colors|List[int]=[]                    |A list of edge colors, specifying the color each bond operator acts on. The defualt is an empty list.                                                                    |
+|siteops       |List[List[List[complex]]] = []  |A list of operators that act on the nodes of the graph. The default is an empty list. Note that if no siteops are specified, the user must give a list of bond operators.|
+|bondops       |List[List[List[complex]]] = []  |A list of operators that act on the edges of the graph. The default is an empty list. Note that if no bondops are specified, the user must give a list of site operators.|
+|bondops_colors|List[int] = []                  |A list of edge colors, specifying the color each bond operator acts on. The defualt is an empty list.                                                                    |
 
 ### Examples
 Constructs a ``BosGraphOperator`` operator for a 2D system.
@@ -55,6 +55,13 @@ low-dimensional Hilbert spaces.
 
 This method requires an indexable Hilbert space.
 
+
+
+### to_linear_operator
+Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+This method requires an indexable Hilbert space.
+  
 
 
 ### to_sparse

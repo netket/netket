@@ -30,27 +30,18 @@ class PyAbstractMachine : public AbstractMachine {
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitRandomPars(int seed, double sigma) override;
 
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const LookupType & /*unused*/) override;
+  Complex LogValSingle(VisibleConstType v, const any & /*unused*/) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorXcd> out,
+              const any & /*unused*/) override;
 
-  void InitLookup(VisibleConstType /*unused*/,
-                  LookupType & /*unused*/) override;
+  any InitLookup(VisibleConstType /*unused*/) override;
   void UpdateLookup(VisibleConstType /*unused*/,
                     const std::vector<int> & /*unused*/,
                     const std::vector<double> & /*unused*/,
-                    LookupType & /*unused*/) override;
+                    any & /*unused*/) override;
 
-  VectorType LogValDiff(
-      VisibleConstType old_v, const std::vector<std::vector<int>> &to_change,
-      const std::vector<std::vector<double>> &new_conf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &to_change,
-                     const std::vector<double> &new_conf,
-                     const LookupType & /*unused*/) override;
-
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const LookupType & /*lt*/) override;
+  VectorType DerLogSingle(VisibleConstType v, const any & /*lt*/) override;
   VectorType DerLogChanged(VisibleConstType old_v,
                            const std::vector<int> &to_change,
                            const std::vector<double> &new_conf) override;
@@ -59,11 +50,6 @@ class PyAbstractMachine : public AbstractMachine {
   void Load(const std::string &filename) override;
 
   ~PyAbstractMachine() override = default;
-
- private:
-  inline Complex LogValDiff(VisibleConstType old_v,
-                            const std::vector<int> &to_change,
-                            const std::vector<double> &new_conf);
 };
 
 }  // namespace netket
