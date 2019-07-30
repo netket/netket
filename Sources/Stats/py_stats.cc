@@ -46,6 +46,13 @@ void AddStatsModule(py::module m) {
         return s + ">";
       });
 
+  py::class_<Stats>(subm, "Stats")
+      .def_readonly("mean", &Stats::mean)
+      .def_readonly("error_of_mean", &Stats::error_of_mean)
+      .def_readonly("variance", &Stats::variance)
+      .def_readonly("tau_corr", &Stats::correlation)
+      .def_readonly("R", &Stats::R);
+
   subm.def(
       "statistics",
       [](py::array_t<Complex, py::array::c_style> local_values) {
