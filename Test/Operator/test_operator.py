@@ -77,10 +77,6 @@ szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
 operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
-operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
-    ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
-)
-
 rg = nk.utils.RandomEngine(seed=1234)
 
 
@@ -135,12 +131,11 @@ def test_operator_is_hermitean():
                         assert meli == np.conj(mel)
                 assert foundinv
 
-
 def test_no_segfault():
     g = nk.graph.Hypercube(8, 1)
     hi = nk.hilbert.Spin(g, 0.5)
 
-    lo = nk.operator.LocalOperator(hi, [[1, 0], [0, 1]], [0])
+    lo = nk.operator.LocalOperator(hi, [[1,0],[0,1]], [0])
     lo = lo.transpose()
 
     hi = None

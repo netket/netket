@@ -19,6 +19,5 @@
 #include "Graph/custom_graph.hpp"
 #include "Graph/hypercube.hpp"
 #include "Graph/lattice.hpp"
-#include "Graph/set.hpp"
 
 #endif
