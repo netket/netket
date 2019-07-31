@@ -148,3 +148,10 @@ def test_no_segfault():
     lo = lo * lo
 
     assert True
+
+
+def test_deduced_hilbert_pauli():
+    op = nk.operator.PauliStrings(["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
+    assert op.hilbert.size == 3
+    assert len(op.hilbert.local_states) == 2
+    assert np.allclose(op.hilbert.local_states, (0, 1))
