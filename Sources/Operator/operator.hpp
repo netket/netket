@@ -24,6 +24,6 @@
 #include "bosonhubbard.hpp"
 #include "graph_operator.hpp"
 #include "local_operator.hpp"
-#include "pauli_strings.hpp"
+#include "pauli_operator.hpp"
 
 #endif

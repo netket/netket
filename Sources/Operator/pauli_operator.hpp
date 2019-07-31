@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PAULISTRINGS_HPP
-#define NETKET_PAULISTRINGS_HPP
+#ifndef NETKET_PAULIOPERATOR_HPP
+#define NETKET_PAULIOPERATOR_HPP
 
 #include <mpi.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <iostream>
 #include <vector>
-#include "Graph/set.hpp"
+#include "Graph/graph.hpp"
+#include "Hilbert/abstract_hilbert.hpp"
 #include "abstract_operator.hpp"
 
 namespace netket {
 
-// Pauli operator : i.e. sum of products of Pauli matrices
+// Heisenberg model on an arbitrary graph
 
-class PauliStrings : public AbstractOperator {
+class PauliOperator : public AbstractOperator {
   const int nqubits_;
   const int noperators_;
 
@@ -45,12 +46,12 @@ class PauliStrings : public AbstractOperator {
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  explicit PauliStrings(const std::vector<std::string> &ops,
-                        const std::vector<std::complex<double>> &opweights,
-                        double cutoff = 1e-10)
-      : AbstractOperator(std::make_shared<CustomHilbert>(
-            GraphFromOps(ops), std::vector<double>{0., 1.})),
-        nqubits_(GetHilbert().Size()),
+  explicit PauliOperator(std::shared_ptr<const AbstractHilbert> hilbert,
+                         const std::vector<std::string> &ops,
+                         const std::vector<std::complex<double>> &opweights,
+                         double cutoff = 1e-10)
+      : AbstractOperator(hilbert),
+        nqubits_(hilbert->Size()),
         noperators_(ops.size()),
         I_(std::complex<double>(0, 1)),
         cutoff_(cutoff) {
@@ -59,26 +60,24 @@ class PauliStrings : public AbstractOperator {
     std::vector<std::vector<int>> zcheck(noperators_);
     int nchanges = 0;
 
-    if (static_cast<int>(opweights.size()) != noperators_) {
-      throw InvalidInputError(
-          "Operator weights size is inconsistent with number of operators");
-    }
-
     for (int i = 0; i < noperators_; i++) {
+      if (ops[i].size() != std::size_t(nqubits_)) {
+        throw InvalidInputError(
+            "Operator size is inconsistent with number of qubits");
+      }
       for (int j = 0; j < nqubits_; j++) {
         if (ops[i][j] == 'X') {
           tochange[i].push_back(j);
           nchanges++;
-        } else if (ops[i][j] == 'Y') {
+        }
+        if (ops[i][j] == 'Y') {
           tochange[i].push_back(j);
           weights[i] *= I_;
           zcheck[i].push_back(j);
           nchanges++;
-        } else if (ops[i][j] == 'Z') {
+        }
+        if (ops[i][j] == 'Z') {
           zcheck[i].push_back(j);
-        } else if (ops[i][j] != 'I') {
-          throw InvalidInputError(
-              "Operator in string is not a Pauli or Identity");
         }
       }
     }
@@ -102,33 +101,15 @@ class PauliStrings : public AbstractOperator {
     InfoMessage() << "Noperators = " << noperators_ << std::endl;
   }
 
-  Set GraphFromOps(const std::vector<std::string> &ops) {
-    const auto nqubits = CheckOps(ops);
-    return Set(nqubits);
-  }
-
-  Index CheckOps(const std::vector<std::string> &ops) {
-    if (ops.size() == 0) {
-      throw InvalidInputError("No Pauli operators passed");
-    }
-
-    Index nqubits = ops[0].size();
-    for (const auto op : ops) {
-      if (static_cast<Index>(op.size()) != nqubits) {
-        throw InvalidInputError(
-            "Operator size is inconsistent with number of qubits");
-      }
-    }
-    return nqubits;
-  }
-
   void FindConn(VectorConstRefType v, std::vector<std::complex<double>> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
     assert(v.size() == nqubits_);
 
     connectors.resize(0);
+    newconfs.clear();
     newconfs.resize(0);
+    mel.clear();
     mel.resize(0);
     for (std::size_t i = 0; i < tochange_.size(); i++) {
       std::complex<double> mel_temp = 0.0;

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PYPAULISTRINGS_HPP
-#define NETKET_PYPAULISTRINGS_HPP
+#ifndef NETKET_PYPAULIOPERATOR_HPP
+#define NETKET_PYPAULIOPERATOR_HPP
 
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
@@ -22,27 +22,32 @@
 #include <pybind11/stl_bind.h>
 #include <complex>
 #include <vector>
-#include "pauli_strings.hpp"
+#include "bosonhubbard.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddPauliStrings(py::module &subm) {
-  py::class_<PauliStrings, AbstractOperator>(
-      subm, "PauliStrings",
-      R"EOF(A Hamiltonian consisiting of a product of Pauli operators.)EOF")
-      .def(py::init([](std::vector<std::string> ops,
+void AddPauliOperator(py::module &subm) {
+  py::class_<PauliOperator, AbstractOperator>(
+      subm, "PauliOperator",
+      R"EOF(A Hamiltonian consisiting of Pauli operators.)EOF")
+      .def(py::init([](std::shared_ptr<const AbstractHilbert> hi,
+                       std::vector<std::string> ops,
                        std::vector<std::complex<double>> opweights,
                        double cutoff) {
-             return PauliStrings{std::move(ops), std::move(opweights), cutoff};
+             return PauliOperator{hi, std::move(ops), std::move(opweights),
+                                  cutoff};
            }),
-           py::arg("operators"), py::arg("weights"), py::arg("cutoff") = 1e-10,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("operators"),
+           py::arg("weights"), py::arg("cutoff") = 1e-10,
            R"EOF(
-           Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
+           Constructs a new ``PauliOperator`` given a hilbert space, and a
+           set of Pauli operators.
 
            Args:
-               operators: A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
+               hilbert: Hilbert space the operator acts on.
+               operators: A list of Pauli operators, e.g. ['IXX', 'XZI'].
                weights: A list of amplitudes of the corresponding Pauli operator.
                cutoff: a cutoff to remove small matrix elements
 
@@ -51,9 +56,9 @@ void AddPauliStrings(py::module &subm) {
 
               ```python
               >>> import netket as nk
-              >>> op = nk.operator.PauliStrings(operators=['XX','ZZ'], weights=[1,1])
-              >>> op.hilbert.size
-              2
+              >>> g = nk.graph.Hypercube(length=2, n_dim=1, pbc=False)
+              >>> hi = nk.hilbert.Qubit(graph=g)
+              >>> op = nk.operator.PauliOperator(hilbert=hi, operators=['XX','ZZ'], weights=[1,1])
 
               ```
          )EOF");

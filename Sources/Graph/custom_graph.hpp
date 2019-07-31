@@ -21,6 +21,7 @@ namespace netket {
 
 /**
     Class for user-defined graphs
+    The list of edges and nodes is read from a json input file.
 */
 class CustomGraph : public AbstractGraph {
  public:
