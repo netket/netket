@@ -94,7 +94,9 @@ class MetropolisLocalHadamard : public AbstractSampler {
     moves_ = Eigen::VectorXd::Zero(1);
   }
 
-  void Sweep(int qubit) override {
+  void Sweep() override {}
+
+  void Sweep(int qubit) {
     std::vector<int> tochange(1);
     std::vector<double> newconf(1);
 
@@ -122,10 +124,10 @@ class MetropolisLocalHadamard : public AbstractSampler {
       double valueOfQubit = v_(qubit);
       //set qubit to -1
       v_(qubit) = -1.0;
-      double psi1Before = std::exp(GetMachine().LogVal(v_));
+      std::complex<double> psi1Before = std::exp(GetMachine().LogVal(v_));
       //set qubit to +1
       v_(qubit) = +1.0;
-      double psi2Before = std::exp(GetMachine().LogVal(v_));
+      std::complex<double> psi2Before = std::exp(GetMachine().LogVal(v_));
       //reset
       v_(qubit) = valueOfQubit;
 
@@ -140,13 +142,13 @@ class MetropolisLocalHadamard : public AbstractSampler {
       }
 
       v_(tochange[0]) = newconf[0];
-      double valueOfQubit = v_(qubit);
+      valueOfQubit = v_(qubit);
       //set qubit to -1
       v_(qubit) = -1.0;
-      double psi1After = std::exp(GetMachine().LogVal(v_));
+      std::complex<double> psi1After = std::exp(GetMachine().LogVal(v_));
       //set qubit to +1
       v_(qubit) = +1.0;
-      double psi2After = std::exp(GetMachine().LogVal(v_));
+      std::complex<double> psi2After = std::exp(GetMachine().LogVal(v_));
       //reset
       v_(qubit) = valueOfQubit;
 
