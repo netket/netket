@@ -16,7 +16,7 @@ def _setup_vmc():
     ma.init_random_parameters(seed=SEED, sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma, batch_size=100)
+    sa = nk.sampler.MetropolisLocalV2(machine=ma)
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
@@ -44,14 +44,14 @@ def test_vmc_functions():
         # exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
         states = np.array(list(ma.hilbert.states()))
         exact_locs = nk.operator.local_values(
+            op,
+            ma,
             states,
             np.fromiter(
                 (ma.log_val(x) for x in states),
                 dtype=np.complex128,
                 count=states.shape[0],
             ),
-            ma,
-            op,
         )
         exact_ex = np.sum(exact_dist * exact_locs).real
 
@@ -59,21 +59,38 @@ def test_vmc_functions():
             sampler, n_samples=15000, n_discard=1000, der_logs="centered"
         )
 
-        local_values = nk.operator.local_values(data.samples, data.log_values, ma, op)
+        local_values = nk.operator.local_values(op, ma, data.samples, data.log_values)
         ex = nk.stats.statistics(local_values)
         assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean.real == approx(exact_ex.real, rel=tol)
 
-    local_values = nk.operator.local_values(data.samples, data.log_values, ma, ha)
+        ex_hl = vmc.estimate_expectation(op, ma, data, return_gradient=False)
+        assert ex_hl.mean == ex.mean
+        assert ex_hl.variance == ex.variance
+        assert ex_hl.error_of_mean == ex.error_of_mean
+        assert ex_hl.R == ex.R
+
+    local_values = nk.operator.local_values(ha, ma, data.samples, data.log_values)
     # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
     # assert ex.variance == approx(0.0, abs=2e-7)
     grad = vmc.gradient_of_expectation(local_values, data.der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
+    _, grad_hl = vmc.estimate_expectation(ha, ma, data, return_gradient=True)
+    assert grad_hl.shape == (ma.n_par,)
+    assert np.all(grad == grad_hl)
+
     data_without_logderivs = vmc.compute_samples(
-        sampler, n_samples=10000, n_discard=1000, der_logs=None
+        sampler, n_samples=1, n_discard=1, der_logs=None
     )
+    with raises(
+        ValueError,
+        match=r"`return_gradient=True` passed to `estimate expectation`, but "
+        r"`mc_data.der_logs` is not available\. Call `compute_samples\(..., "
+        r"der_logs='centered'\)`",
+    ):
+        vmc.estimate_expectation(op, ma, data_without_logderivs, return_gradient=True)
 
 
 def test_vmc_use_cholesky_compatibility():

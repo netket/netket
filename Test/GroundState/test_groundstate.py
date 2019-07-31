@@ -72,7 +72,9 @@ def test_vmc_iterator():
             assert (
                 hasattr(e, "mean")
                 and hasattr(e, "error_of_mean")
+                and hasattr(e, "variance")
                 and hasattr(e, "tau_corr")
+                and hasattr(e, "R")
             )
         last_obs = obs
 
