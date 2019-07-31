@@ -36,7 +36,12 @@ class NQS {
         void applyPauliZ(int qubit){}
         void applySingleZRotation(int qubit, double theta){}
         void applyControlledZRotation(int controlQubit, int qubit, double theta){}
-        void sample(){}
+
+        const Eigen::VectorXd& sample(){
+            sa_.Reset(true);
+            sa_.Sweep();
+            return sa_.Visible();
+        }
 
         VectorType getPsiParams(){}
 
