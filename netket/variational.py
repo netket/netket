@@ -32,7 +32,7 @@ Vmc.iter = _Vmc_iter
 
 def estimate_expectation(op, psi, mc_data, return_gradient=False):
     """
-    estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, compute_gradient: bool=True) -> Stats
+    estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, return_gradient: bool=True) -> Stats
 
     For a linear opertor, compute a statistical estimate of the expectation value,
     variance, and optionally the gradient of the expectation value with respect to the
@@ -50,10 +50,11 @@ def estimate_expectation(op, psi, mc_data, return_gradient=False):
                 compute_samples(..., der_logs="centered")
 
     Returns:
-        stats: A Stats object containing mean, variance, and MC diagonstics for
-            the estimated expectation value of `op`.
-        grad: If `return_gradient=True`, the gradient of the expectation value
-            of `op` is returned as array of size `psi.n_par`.
+        Either `stats` or, if `return_gradient == True`, a tuple of `stats` and `grad`:
+            stats: A Stats object containing mean, variance, and MC diagonstics for
+                   the estimated expectation value of `op`.
+            grad: The gradient of the expectation value of `op`,
+                  as ndarray of shape `(psi.n_par,)`.
     """
 
     from ._C_netket import operator as nop
