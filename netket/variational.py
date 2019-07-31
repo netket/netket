@@ -26,3 +26,51 @@ def _Vmc_iter(self, n_iter=None, step_size=1):
 
 
 Vmc.iter = _Vmc_iter
+
+
+# Higher-level VMC functions:
+
+def estimate_expectation(op, psi, mc_data, return_gradient=False):
+    """
+    estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, compute_gradient: bool=True) -> Stats
+
+    For a linear opertor, compute a statistical estimate of the expectation value,
+    variance, and optionally the gradient of the expectation value with respect to the
+    variational parameters based on a Markov chain of configurations as obtained
+    from `compute_samples`.
+
+    Args:
+        op: Linear operator
+        psi: Variational wavefunction
+        mc_data: MC result obtained from `compute_samples`
+        return_gradient (bool): Whether to compute and return the gradient of the
+            expectation value of `op`. If True, `mc_data` needs to provide the
+            _centered_ (i.e., with subtracted mean) logarithmic derivatives of the
+            wavefunction, which can be obtained by calling
+                compute_samples(..., der_logs="centered")
+
+    Returns:
+        stats: A Stats object containing mean, variance, and MC diagonstics for
+            the estimated expectation value of `op`.
+        grad: If `return_gradient=True`, the gradient of the expectation value
+            of `op` is returned as array of size `psi.n_par`.
+    """
+
+    from ._C_netket import operator as nop
+    from ._C_netket.stats import statistics
+
+    local_values = nop.local_values(op, psi, mc_data.samples, mc_data.log_values)
+    stats = statistics(local_values)
+
+    if return_gradient:
+        if mc_data.der_logs is None:
+            raise ValueError(
+                "`return_gradient=True` passed to `estimate expectation`, but "
+                "`mc_data.der_logs` is not available. Call `compute_samples(...,"
+                " der_logs='centered')`."
+            )
+
+        grad = gradient_of_expectation(local_values, mc_data.der_logs)
+        return stats, grad
+    else:
+        return stats
