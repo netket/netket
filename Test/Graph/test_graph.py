@@ -34,6 +34,7 @@ graphs = [
         extent=[6, 7, 4],
         atoms_coord=[[0, 0, 0]],
     ),
+    nk.graph.Set(10),
 ]
 lattices = [
     nk.graph.Lattice(
@@ -172,6 +173,10 @@ def test_adjacency_list():
     for graph in graphs:
         neigh = []
         g = nx.Graph()
+
+        for i in range(graph.n_sites):
+            g.add_node(i)
+
         for edge in graph.edges:
             g.add_edge(edge[0], edge[1])
         for i in range(graph.n_sites):
