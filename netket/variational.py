@@ -30,14 +30,17 @@ Vmc.iter = _Vmc_iter
 
 # Higher-level VMC functions:
 
+
 def estimate_expectation(op, psi, mc_data, return_gradient=False):
     """
     estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, return_gradient: bool=True) -> Stats
 
-    For a linear opertor, compute a statistical estimate of the expectation value,
+    For a linear operator, computes a statistical estimate of the expectation value,
     variance, and optionally the gradient of the expectation value with respect to the
-    variational parameters based on a Markov chain of configurations as obtained
-    from `compute_samples`.
+    variational parameters.
+
+    The estimate is based on a Markov chain of configurations (`mc_data`), as
+    returned from `compute_samples`.
 
     Args:
         op: Linear operator
