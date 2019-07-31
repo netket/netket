@@ -43,7 +43,9 @@ class NQS {
             return sa_.Visible();
         }
 
-        VectorType getPsiParams(){}
+        VectorType getPsiParams(){
+            return psi_.GetParameters();
+        }
 
     private:
 
