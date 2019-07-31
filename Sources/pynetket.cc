@@ -21,6 +21,7 @@
 #include "GroundState/py_ground_state.hpp"
 #include "Hilbert/py_hilbert.hpp"
 #include "Machine/py_machine.hpp"
+#include "NQS/py_nqs.hpp"
 #include "Operator/py_operator.hpp"
 #include "Optimizer/py_optimizer.hpp"
 #include "Output/py_output.hpp"
@@ -48,6 +49,7 @@ PYBIND11_MODULE(_C_netket, m) {
   AddUtilsModule(m);
   AddSupervisedModule(m);
   AddUnsupervisedModule(m);
+  AddNQSModule(m);
 }  // PYBIND11_MODULE
 
 }  // namespace netket
