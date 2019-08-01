@@ -15,12 +15,15 @@
 #include "Machine/abstract_machine.hpp"
 
 #include <mpi.h>
-#include <nlohmann/json.hpp>
+#include <pybind11/eval.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
 
 #include <fstream>
 
 #include "Utils/exceptions.hpp"
 #include "Utils/mpi_interface.hpp"
+#include "Utils/pybind_helpers.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
@@ -117,6 +120,85 @@ Complex AbstractMachine::LogValDiff(VisibleConstType v,
                                     const std::vector<double> &newconf,
                                     const any & /*unused*/) {
   return LogValDiff(v, {tochange}, {newconf})(0);
+}
+
+PyObject *AbstractMachine::StateDict() const {
+  auto state = pybind11::reinterpret_steal<pybind11::object>(
+      const_cast<AbstractMachine &>(*this).StateDict());
+  for (auto value : state.attr("values")()) {
+    pybind11::detail::array_proxy(value.ptr())->flags &=
+        ~pybind11::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+  }
+  return state.release().ptr();
+}
+
+void AbstractMachine::StateDict(PyObject *other) {
+  auto globals = pybind11::module::import("__main__").attr("__dict__");
+  pybind11::dict locals;
+  locals["copyto"] = pybind11::module::import("numpy").attr("copyto");
+  locals["dst"] = pybind11::reinterpret_steal<pybind11::object>(StateDict());
+  locals["src"] = pybind11::reinterpret_borrow<pybind11::object>(other);
+  pybind11::exec(
+      R"(
+      for name, param in dst.items():
+          if name not in src:
+              raise ValueError("state is missing required field {!r}".format(name))
+          value = src[name]
+          if param is None:
+              if value is not None:
+                  raise ValueError("expected field {!r} to be None".format(name))
+          else:
+              copyto(param, value)
+              assert (param == value).all()
+      )",
+      globals, locals);
+}
+
+namespace detail {
+namespace {
+/// Loads a Python object from a file \par filename using pickle.
+//
+/// \note This is a hacky solution which should be implemented in pure Python.
+pybind11::object ReadFromFile(const std::string &filename) {
+  pybind11::dict scope;
+  scope["load"] = pybind11::module::import("pickle").attr("load");
+  scope["filename"] = pybind11::cast(filename);
+  scope["_return_value"] = pybind11::none();
+  pybind11::exec(
+      R"(
+      with open(filename, "rb") as input:
+          _return_value = load(input)
+      )",
+      pybind11::module::import("__main__").attr("__dict__"), scope);
+  return static_cast<pybind11::object>(scope["_return_value"]);
+}
+
+/// Saves Python object \par obj to a file \par filename using pickle.
+///
+/// \note This is a hacky solution which should be implemented in pure Python.
+void WriteToFile(const std::string &filename, pybind11::object obj) {
+  pybind11::dict scope;
+  scope["dump"] = pybind11::module::import("pickle").attr("dump");
+  scope["filename"] = pybind11::cast(filename);
+  scope["x"] = obj;
+  pybind11::exec(
+      R"(
+      with open(filename, "wb") as output:
+          dump(x, output)
+      )",
+      pybind11::module::import("__main__").attr("__dict__"), scope);
+}
+}  // namespace
+}  // namespace detail
+
+void AbstractMachine::Load(const std::string &filename) {
+  auto const state = detail::ReadFromFile(filename);
+  static_cast<AbstractMachine &>(*this).StateDict(state.ptr());
+}
+
+void AbstractMachine::Save(const std::string &filename) const {
+  detail::WriteToFile(
+      filename, pybind11::reinterpret_steal<pybind11::object>(StateDict()));
 }
 
 }  // namespace netket

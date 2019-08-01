@@ -65,8 +65,10 @@ class AbstractSampler {
             [](nonstd::span<const Complex> x, nonstd::span<double> out) {
               CheckShape("AbstractSampler::machine_func_", "out", out.size(),
                          x.size());
-              std::transform(x.begin(), x.end(), out.begin(),
-                             [](Complex z) { return std::norm(z); });
+              Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
+                  Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
+              // std::transform(x.begin(), x.end(), out.begin(),
+              //                [](Complex z) { return std::norm(z); });
             }},
         psi_{psi} {}
 

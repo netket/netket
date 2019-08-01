@@ -81,49 +81,12 @@ class RbmSpinV2 : public AbstractMachine {
     return out;
   }
 
-#if 0
-  /// Simply calls `LogVal` twice.
-  ///
-  /// \note performance of this function is pretty bad. Please, restructure your
-  /// code to avoid calling this function.
-  Eigen::VectorXcd LogValDiff(
-      Eigen::Ref<const Eigen::VectorXd> v,
-      const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) final {
-    RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
-    input = v.transpose().colwise().replicate(input.rows());
-    for (auto i = Index{0}; i < input.rows(); ++i) {
-      GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
-                              newconf[static_cast<size_t>(i)]);
-    }
-    auto x = AbstractMachine::LogVal(input, any{});
-    x.array() -= LogValSingle(v, any{});
-    return x;
-  }
-
-  /// Simply calls `LogVal` twice.
-  ///
-  /// \note performance of this function is pretty bad. Please, restructure your
-  /// code to avoid calling this function.
-  Complex LogValDiff(Eigen::Ref<const Eigen::VectorXd> v,
-                     const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any & /*unused*/) final {
-    return LogValDiff(v, {tochange}, {newconf})(0);
-  }
-#endif
-
   // Look-up stuff
   any InitLookup(VisibleConstType) final { return {}; }
   void UpdateLookup(VisibleConstType, const std::vector<int> &,
                     const std::vector<double> &, any &) final {}
 
-  void Save(const std::string &filename) const final;
-  void Load(const std::string &filename) final;
-
-  PyObject *StateDict() const final;
   PyObject *StateDict() final;
-  void StateDict(PyObject *obj) final;
 
   bool IsHolomorphic() const noexcept final { return true; }
 

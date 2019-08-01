@@ -214,20 +214,15 @@ class AbstractMachine {
 
   virtual bool IsHolomorphic() const noexcept = 0;
 
-  virtual PyObject *StateDict() const {
-    throw std::runtime_error{"Not implemented!"};
-  }
-
   virtual PyObject *StateDict() {
     throw std::runtime_error{"Not implemented!"};
   }
 
-  virtual void StateDict(PyObject * /*state*/) {
-    throw std::runtime_error{"Not implemented!"};
-  }
+  virtual PyObject *StateDict() const;
+  void StateDict(PyObject *);
 
-  virtual void Save(const std::string &filename) const = 0;
-  virtual void Load(const std::string &filename) = 0;
+  virtual void Save(const std::string &filename) const;
+  virtual void Load(const std::string &filename);
 
   const AbstractHilbert &GetHilbert() const { return *hilbert_; };
   std::shared_ptr<const AbstractHilbert> GetHilbertShared() const {
