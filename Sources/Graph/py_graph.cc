@@ -17,6 +17,7 @@
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
+#include "edgeless.hpp"
 #include "hypercube.hpp"
 #include "lattice.hpp"
 
@@ -398,6 +399,28 @@ void AddLattice(py::module subm) {
                 site_vector: The site vector.
             )EOF");
 }
+
+void AddEdgeless(py::module subm) {
+  py::class_<Edgeless, AbstractGraph>(subm, "Edgeless", R"EOF(
+      A set graph, i.e. a collection of unconnected vertices.)EOF")
+      .def(py::init<int>(), py::arg("n_vertices"), R"EOF(
+           Constructs a new set of given number of vertices.
+
+           Args:
+               n_vertices: The number of vertices.
+
+           Examples:
+               A 10-site set:
+
+               ```python
+               >>> import netket
+               >>> g=netket.graph.Edgeless(10)
+               >>> print(g.n_sites)
+               10
+
+               ```
+           )EOF");
+}
 }  // namespace
 
 void AddGraphModule(py::module m) {
@@ -407,6 +430,7 @@ void AddGraphModule(py::module m) {
   AddHypercube(subm);
   AddCustomGraph(subm);
   AddLattice(subm);
+  AddEdgeless(subm);
 }
 
 }  // namespace netket

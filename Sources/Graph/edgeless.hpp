@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,33 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_CUSTOM_GRAPH_HPP
-#define NETKET_CUSTOM_GRAPH_HPP
+#ifndef NETKET_EDGELESS_HPP
+#define NETKET_EDGELESS_HPP
 
 #include "abstract_graph.hpp"
 
 namespace netket {
 
 /**
-    Class for user-defined graphs
+    Edgeless graph (only vertices without edges)
 */
-class CustomGraph : public AbstractGraph {
+class Edgeless : public AbstractGraph {
  public:
   using AbstractGraph::ColorMap;
   using AbstractGraph::Edge;
 
  private:
-  std::vector<Edge> edges_;  ///< List of graph edges
-  ColorMap eclist_;          ///< Edge to color mapping
-  int n_sites_;              ///< Total number of nodes in the graph
-  bool is_connected_;        ///< Whether the graph is connected
-  bool is_bipartite_;        ///< Whether the graph is bipartite
+  int n_sites_;  ///< Total number of nodes in the graph
   std::vector<std::vector<int>> automorphisms_;
+  std::vector<Edge> edges_;
+  ColorMap cmap_;
 
  public:
-  CustomGraph(std::vector<Edge> edges, ColorMap colors = ColorMap(),
-              std::vector<std::vector<int>> automorphisms =
-                  std::vector<std::vector<int>>());
+  Edgeless(int n_vertices);
 
   int Nsites() const noexcept override;
   int Size() const noexcept override;
@@ -46,13 +42,8 @@ class CustomGraph : public AbstractGraph {
   std::vector<std::vector<int>> AdjacencyList() const override;
   const ColorMap &EdgeColors() const noexcept override;
   std::vector<std::vector<int>> SymmetryTable() const override;
-
- private:
-  /// Checks that for each edge (i, j): 0 <= i <= j and returns max(j) + 1, i.e.
-  /// the number of nodes
-  int CheckEdges() const;
-  void CheckAutomorph() const;
-  void CheckEdgeColors() const;
+  bool IsConnected() const noexcept override;
+  bool IsBipartite() const noexcept override;
 };
 
 }  // namespace netket

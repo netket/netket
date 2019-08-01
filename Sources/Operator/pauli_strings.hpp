@@ -12,53 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_GRAPH_OPERATOR_HPP
-#define NETKET_GRAPH_OPERATOR_HPP
+#ifndef NETKET_PAULISTRINGS_HPP
+#define NETKET_PAULISTRINGS_HPP
 
+#include <mpi.h>
 #include <Eigen/Dense>
-#include <array>
-#include <unordered_map>
+#include <algorithm>
+#include <iostream>
 #include <vector>
-#include "Graph/abstract_graph.hpp"
-#include "Hilbert/abstract_hilbert.hpp"
+#include "Graph/edgeless.hpp"
 #include "abstract_operator.hpp"
-#include "local_operator.hpp"
 
 namespace netket {
 
-// Graph Hamiltonian on an arbitrary graph
-class GraphOperator : public AbstractOperator {
-  // Arbitrary graph
-  const AbstractGraph &graph_;
+// Pauli operator : i.e. sum of products of Pauli matrices
 
-  LocalOperator operator_;
+class PauliStrings : public AbstractOperator {
+  const int nqubits_;
+  const int noperators_;
 
-  const int nvertices_;
+  std::vector<std::vector<int>> tochange_;
+  std::vector<std::vector<Complex>> weights_;
+
+  std::vector<std::vector<std::vector<int>>> zcheck_;
+
+  const Complex I_;
+
+  double cutoff_;
 
  public:
-  using SiteType = std::vector<int>;
-  using OMatType = LocalOperator::MatType;
-  using OVecType = std::vector<OMatType>;
   using VectorType = AbstractOperator::VectorType;
   using VectorRefType = AbstractOperator::VectorRefType;
   using VectorConstRefType = AbstractOperator::VectorConstRefType;
 
-  GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
-                OVecType siteops, OVecType bondops,
-                std::vector<int> bondops_colors);
+  PauliStrings(const std::vector<std::string> &ops,
+               const std::vector<Complex> &opweights, double cutoff);
 
-  // Constructor to be used when overloading operators
-  GraphOperator(std::shared_ptr<const AbstractHilbert> hilbert,
-                const LocalOperator &lop);
+  Edgeless GraphFromOps(const std::vector<std::string> &ops);
+
+  Index CheckOps(const std::vector<std::string> &ops);
 
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override;
+};
 
-  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override;
-
-  friend GraphOperator operator+(const GraphOperator &lhs,
-                                 const GraphOperator &rhs);
-};  // namespace netket
 }  // namespace netket
+
 #endif
