@@ -32,8 +32,8 @@ void AddExactSampler(py::module &subm) {
     for large systems, where Metropolis-based sampling are instead a viable
     option.
     )EOF")
-          .def(py::init<AbstractMachine &>(), py::keep_alive<1, 2>(),
-               py::arg("machine"), R"EOF(
+          .def(py::init<AbstractMachine &, Index>(), py::keep_alive<1, 2>(),
+               py::arg("machine"), py::arg("batch_size") = 16, R"EOF(
              Constructs a new ``ExactSampler`` given a machine.
 
              Args:
