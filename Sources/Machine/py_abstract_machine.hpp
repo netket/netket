@@ -24,32 +24,28 @@ class PyAbstractMachine : public AbstractMachine {
   PyAbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
       : AbstractMachine{std::move(hilbert)} {}
 
-  int Npar() const override;
-  int Nvisible() const override;
-  bool IsHolomorphic() const noexcept override;
-
+  int Nvisible() const override { return GetHilbert().Size(); }
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-
   Complex LogValSingle(VisibleConstType v, const any & /*unused*/) override;
-  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorXcd> out,
-              const any & /*unused*/) override;
-
   any InitLookup(VisibleConstType /*unused*/) override;
   void UpdateLookup(VisibleConstType /*unused*/,
                     const std::vector<int> & /*unused*/,
                     const std::vector<double> & /*unused*/,
                     any & /*unused*/) override;
-
   VectorType DerLogSingle(VisibleConstType v, const any & /*lt*/) override;
-  VectorType DerLogChanged(VisibleConstType old_v,
-                           const std::vector<int> &to_change,
-                           const std::vector<double> &new_conf) override;
+  ~PyAbstractMachine() override = default;
 
+  /// Functions which one needs to override from Python
+  int Npar() const override;
+  bool IsHolomorphic() const noexcept override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorXcd> out,
+              const any & /*unused*/) override;
+  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<RowMatrix<Complex>> out, const any &cache) override;
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
-
-  ~PyAbstractMachine() override = default;
+  PyObject *StateDict() override;
 };
 
 }  // namespace netket
