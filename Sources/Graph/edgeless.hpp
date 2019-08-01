@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_SET_HPP
-#define NETKET_SET_HPP
+#ifndef NETKET_EDGELESS_HPP
+#define NETKET_EDGELESS_HPP
 
 #include "abstract_graph.hpp"
 
 namespace netket {
 
 /**
-    Set graph (only vertices without edges)
+    Edgeless graph (only vertices without edges)
 */
-class Set : public AbstractGraph {
+class Edgeless : public AbstractGraph {
  public:
   using AbstractGraph::ColorMap;
   using AbstractGraph::Edge;
@@ -34,7 +34,7 @@ class Set : public AbstractGraph {
   ColorMap cmap_;
 
  public:
-  Set(int nedges);
+  Edgeless(int n_vertices);
 
   int Nsites() const noexcept override;
   int Size() const noexcept override;

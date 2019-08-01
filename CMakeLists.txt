@@ -252,7 +252,7 @@ set(NETKET_SOURCES
     Sources/Graph/hypercube.cc
     Sources/Graph/lattice.cc
     Sources/Graph/custom_graph.cc
-    Sources/Graph/set.cc
+    Sources/Graph/edgeless.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
     Sources/Hilbert/hilbert_index.cc
@@ -273,6 +273,8 @@ set(NETKET_SOURCES
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc
+    Sources/Operator/pauli_strings.cc
+    Sources/Operator/graph_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_local_v2.cc

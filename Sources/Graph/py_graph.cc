@@ -17,9 +17,9 @@
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
+#include "edgeless.hpp"
 #include "hypercube.hpp"
 #include "lattice.hpp"
-#include "set.hpp"
 
 namespace py = pybind11;
 
@@ -400,8 +400,8 @@ void AddLattice(py::module subm) {
             )EOF");
 }
 
-void AddSet(py::module subm) {
-  py::class_<Set, AbstractGraph>(subm, "Set", R"EOF(
+void AddEdgeless(py::module subm) {
+  py::class_<Edgeless, AbstractGraph>(subm, "Edgeless", R"EOF(
       A set graph, i.e. a collection of unconnected vertices.)EOF")
       .def(py::init<int>(), py::arg("n_vertices"), R"EOF(
            Constructs a new set of given number of vertices.
@@ -414,7 +414,7 @@ void AddSet(py::module subm) {
 
                ```python
                >>> import netket
-               >>> g=netket.graph.Set(10)
+               >>> g=netket.graph.Edgeless(10)
                >>> print(g.n_sites)
                10
 
@@ -430,7 +430,7 @@ void AddGraphModule(py::module m) {
   AddHypercube(subm);
   AddCustomGraph(subm);
   AddLattice(subm);
-  AddSet(subm);
+  AddEdgeless(subm);
 }
 
 }  // namespace netket

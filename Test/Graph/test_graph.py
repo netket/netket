@@ -34,7 +34,7 @@ graphs = [
         extent=[6, 7, 4],
         atoms_coord=[[0, 0, 0]],
     ),
-    nk.graph.Set(10),
+    nk.graph.Edgeless(10),
 ]
 lattices = [
     nk.graph.Lattice(

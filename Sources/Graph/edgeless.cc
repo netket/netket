@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "set.hpp"
+#include "edgeless.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -20,9 +20,9 @@
 
 namespace netket {
 
-Set::Set(int size) : n_sites_(size) {
+Edgeless::Edgeless(int size) : n_sites_(size) {
   if (size < 0) {
-    throw InvalidInputError{"Invalid size provided in Set."};
+    throw InvalidInputError{"Invalid size provided in Edgeless graph."};
   }
 
   automorphisms_.resize(1);
@@ -31,25 +31,29 @@ Set::Set(int size) : n_sites_(size) {
             std::end(automorphisms_.front()), 0);
 }
 
-int Set::Nsites() const noexcept { return n_sites_; }
+int Edgeless::Nsites() const noexcept { return n_sites_; }
 
-int Set::Size() const noexcept { return n_sites_; }
+int Edgeless::Size() const noexcept { return n_sites_; }
 
-bool Set::IsConnected() const noexcept { return false; }
+bool Edgeless::IsConnected() const noexcept { return false; }
 
-bool Set::IsBipartite() const noexcept { return false; }
+bool Edgeless::IsBipartite() const noexcept { return true; }
 
-std::vector<Set::Edge> const &Set::Edges() const noexcept { return edges_; }
+std::vector<Edgeless::Edge> const &Edgeless::Edges() const noexcept {
+  return edges_;
+}
 
-std::vector<std::vector<int>> Set::AdjacencyList() const {
+std::vector<std::vector<int>> Edgeless::AdjacencyList() const {
   return std::vector<std::vector<int>>(n_sites_);
 }
 
-const Set::ColorMap &Set::EdgeColors() const noexcept { return cmap_; }
+const Edgeless::ColorMap &Edgeless::EdgeColors() const noexcept {
+  return cmap_;
+}
 
 // Returns a list of permuted sites constituting an automorphism of the
 // graph
-std::vector<std::vector<int>> Set::SymmetryTable() const {
+std::vector<std::vector<int>> Edgeless::SymmetryTable() const {
   return automorphisms_;
 }
 
