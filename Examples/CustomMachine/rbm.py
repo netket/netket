@@ -51,7 +51,7 @@ class PyRbm(netket.machine.CxxMachine):
         self._a = _np.empty(n, dtype=_np.complex128) if use_visible_bias else None
         self._b = _np.empty(m, dtype=_np.complex128) if use_hidden_bias else None
 
-    def _number_parameters(self):
+    def _n_par(self):
         r"""Returns the number of parameters in the machine. We just sum the
         sizes of all the tensors we hold.
         """
@@ -61,140 +61,55 @@ class PyRbm(netket.machine.CxxMachine):
             + (self._b.size if self._b is not None else 0)
         )
 
-    def _number_visible(self):
-        r"""Returns the number of visible units.
-        """
-        return self._w.shape[1]
-
-    def _get_parameters(self):
-        r"""Returns the parameters as a 1D tensor.
-
-        This function tries to order parameters in the exact same way as
-        ``RbmSpin`` does so that we can do stuff like
-
-        >>> import netket
-        >>> import numpy
-        >>> hilbert = netket.hilbert.Spin(
-                graph=netket.graph.Hypercube(length=100, n_dim=1),
-                s=1/2.
-            )
-        >>> cxx_rbm = netket.machine.RbmSpin(hilbert, alpha=3)
-        >>> py_rbm = netket.machine.PyRbm(hilbert, alpha=3)
-        >>> cxx_rbm.init_random_parameters()
-        >>> # Order of parameters is the same, so we can assign one to the
-        >>> # other
-        >>> py_rbm.parameters = cxx_rbm.parameters
-        >>> x = np.array(hilbert.local_states, size=hilbert.size)
-        >>> assert numpy.isclose(py_rbm.log_val(x), cxx_rbm.log_val(x))
-        """
-        params = tuple()
-        if self._a is not None:
-            params += (self._a,)
-        if self._b is not None:
-            params += (self._b,)
-        params += (self._w.reshape(-1, order="C"),)
-        return _np.concatenate(params)
-
-    def _set_parameters(self, p):
-        r"""Sets parameters from a 1D tensor.
-
-        ``self._set_parameters(self._get_parameters())`` is an identity.
-        """
-        i = 0
-        if self._a is not None:
-            self._a[:] = p[i : i + self._a.size]
-            i += self._a.size
-        if self._b is not None:
-            self._b[:] = p[i : i + self._b.size]
-            i += self._b.size
-
-        self._w[:] = p[i : i + self._w.size].reshape(self._w.shape, order="C")
-
-    def _log_val_single(self, x):
+    def _log_val(self, x, out):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        r = _np.dot(self._w, x)
-        if self._b is not None:
-            r += self._b
-        r = _np.sum(PyRbm._log_cosh(r))
-        if self._a is not None:
-            r += _np.dot(self._a, x)
-        # Officially, we should return
-        #     self._w.shape[0] * 0.6931471805599453 + r
-        # but the C++ implementation ignores the "constant factor"
-        return r
+        for i in range(x.shape[0]):
+            r = _np.dot(self._w, x[i])
+            if self._b is not None:
+                r += self._b
+            r = _np.sum(PyRbm._log_cosh(r))
+            if self._a is not None:
+                r += _np.dot(self._a, x[i])
+            # Officially, we should return
+            #     self._w.shape[0] * 0.6931471805599453 + r
+            # but the C++ implementation ignores the "constant factor"
+            out[i] = r
 
-    def log_val(self, x, out=None):
-        if x.ndim == 2:
-            if out is None:
-                out = _np.empty(x.shape[0], dtype=_np.complex128)
-            for i in range(x.shape[0]):
-                out[i] = self._log_val_single(x[i])
-        else:
-            result = self._log_val_single(x)
-            if out is None:
-                out = result
-            else:
-                out[0] = result
-        return out
+    def _der_log(self, x, out):
+        for j in range(x.shape[0]):
+            grad = out[j]
+            i = 0
 
-    def _der_log_single(self, x, grad):
-        i = 0
+            if self._a is not None:
+                grad[i : i + self._a.size] = x[j]
+                i += self._a.size
 
-        if self._a is not None:
-            grad[i : i + self._a.size] = x
-            i += self._a.size
+            tanh_stuff = _np.dot(self._w, x[j])
+            if self._b is not None:
+                tanh_stuff += self._b
+            tanh_stuff = _np.tanh(tanh_stuff, out=tanh_stuff)
 
-        tanh_stuff = _np.dot(self._w, x)
-        if self._b is not None:
-            tanh_stuff += self._b
-        tanh_stuff = _np.tanh(tanh_stuff, out=tanh_stuff)
+            if self._b is not None:
+                grad[i : i + self._b.size] = tanh_stuff
+                i += self._b.size
 
-        if self._b is not None:
-            grad[i : i + self._b.size] = tanh_stuff
-            i += self._b.size
-
-        out = grad[i : i + self._w.size]
-        out.shape = (tanh_stuff.size, x.size)
-        _np.outer(tanh_stuff, x, out=out)
-
-        return grad
-
-    def der_log(self, x, out=None):
-        if x.ndim == 2:
-            if out is None:
-                out = _np.empty(
-                    (x.shape[0], self._number_parameters()), dtype=_np.complex128
-                )
-            for i in range(x.shape[0]):
-                self._der_log_single(x[i], out[i])
-        else:
-            if out is None:
-                out = _np.empty(self._number_parameters(), dtype=_np.complex128)
-            self._der_log_single(x, out)
-        return out
+            tail = grad[i : i + self._w.size]
+            tail.shape = (tanh_stuff.size, x[j].size)
+            _np.outer(tanh_stuff, x[j], out=tail)
 
     def _is_holomorphic(self):
         r"""Complex valued RBM a holomorphic function.
         """
         return True
 
-    def save(self, filename):
-        r"""Saves machine weights to ``filename`` using ``pickle``.
-        """
-        import pickle
+    def state_dict(self):
+        from collections import OrderedDict
 
-        with open(filename, "wb") as output_file:
-            pickle.dump((self._w, self._a, self._b), output_file)
-
-    def load(self, filename):
-        r"""Loads machine weights from ``filename`` using ``pickle``.
-        """
-        import pickle
-
-        with open(filename, "rb") as input_file:
-            self._w, self._a, self._b = pickle.load(input_file)
+        return OrderedDict(
+            [("a", self._a.view()), ("b", self._b.view()), ("w", self._w.view())]
+        )
 
     @staticmethod
     def _log_cosh(x):

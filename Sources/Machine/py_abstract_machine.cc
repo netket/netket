@@ -76,21 +76,13 @@ auto ShouldNotThrow(Function &&function, Args &&... args) noexcept
 }  // namespace detail
 
 int PyAbstractMachine::Npar() const {
-  PYBIND11_OVERLOAD_PURE_NAME(
-      int,                  /* Return type */
-      AbstractMachine,      /* Parent class */
-      "_number_parameters", /* Name of the function in Python */
-      Npar,                 /* Name of function in C++ */
-  );
-}
-
-int PyAbstractMachine::Nvisible() const {
-  PYBIND11_OVERLOAD_PURE_NAME(
-      int,               /* Return type */
-      AbstractMachine,   /* Parent class */
-      "_number_visible", /* Name of the function in Python */
-      Nvisible,          /* Name of function in C++ */
-  );
+  return detail::ShouldNotThrow([this]() {
+    PYBIND11_OVERLOAD_PURE_NAME(int,             /* Return type */
+                                AbstractMachine, /* Parent class */
+                                "_n_par", /* Name of the function in Python */
+                                Npar,     /* Name of function in C++ */
+    );
+  });
 }
 
 bool PyAbstractMachine::IsHolomorphic() const noexcept {
@@ -147,38 +139,52 @@ void PyAbstractMachine::UpdateLookup(VisibleConstType /*unused*/,
                                      any & /*unused*/) {}
 
 PyAbstractMachine::VectorType PyAbstractMachine::DerLogSingle(
-    VisibleConstType v, const any & /*lt*/) {
-  PYBIND11_OVERLOAD_PURE_NAME(
-      VectorType,       /* Return type */
-      AbstractMachine,  /* Parent class */
-      "der_log_single", /* Name of the function in Python */
-      DerLogSingle,     /* Name of function in C++ */
-      v);
+    VisibleConstType v, const any &cache) {
+  Eigen::VectorXcd out(Npar());
+  DerLog(v.transpose(),
+         Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
+  return out;
 }
 
-PyAbstractMachine::VectorType PyAbstractMachine::DerLogChanged(
-    VisibleConstType old_v, const std::vector<int> &to_change,
-    const std::vector<double> &new_conf) {
-  VisibleType new_v{old_v};
-  GetHilbert().UpdateConf(new_v, to_change, new_conf);
-  return DerLogSingle(new_v, {});
+void PyAbstractMachine::DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                               Eigen::Ref<RowMatrix<Complex>> out,
+                               const any & /*unused*/) {
+  PYBIND11_OVERLOAD_PURE_NAME(void,            /* Return type */
+                              AbstractMachine, /* Parent class */
+                              "der_log", /* Name of the function in Python */
+                              DerLog,    /* Name of function in C++ */
+                              v, out);
+}
+
+PyObject *PyAbstractMachine::StateDict() {
+  return [this]() {
+    PYBIND11_OVERLOAD_PURE_NAME(
+        pybind11::object, /* Return type */
+        AbstractMachine,  /* Parent class */
+        "state_dict",     /* Name of the function in Python */
+        StateDict,        /* Name of function in C++ */
+                          /*Arguments*/
+    );
+  }()
+             .release()
+             .ptr();
 }
 
 void PyAbstractMachine::Save(const std::string &filename) const {
-  PYBIND11_OVERLOAD_PURE_NAME(void,            /* Return type */
-                              AbstractMachine, /* Parent class */
-                              "save",  /* Name of the function in Python */
-                              Save,    /* Name of function in C++ */
-                              filename /*Arguments*/
+  PYBIND11_OVERLOAD_NAME(void,            /* Return type */
+                         AbstractMachine, /* Parent class */
+                         "save",          /* Name of the function in Python */
+                         Save,            /* Name of function in C++ */
+                         filename         /*Arguments*/
   );
 }
 
 void PyAbstractMachine::Load(const std::string &filename) {
-  PYBIND11_OVERLOAD_PURE_NAME(void,            /* Return type */
-                              AbstractMachine, /* Parent class */
-                              "load",  /* Name of the function in Python */
-                              Load,    /* Name of function in C++ */
-                              filename /*Arguments*/
+  PYBIND11_OVERLOAD_NAME(void,            /* Return type */
+                         AbstractMachine, /* Parent class */
+                         "load",          /* Name of the function in Python */
+                         Load,            /* Name of function in C++ */
+                         filename         /*Arguments*/
   );
 }
 
