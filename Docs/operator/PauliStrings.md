@@ -1,0 +1,70 @@
+# PauliStrings
+A Hamiltonian consisiting of a product of Pauli operators.
+
+## Class Constructor
+Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
+
+|Argument |    Type     |                          Description                           |
+|---------|-------------|----------------------------------------------------------------|
+|operators|List[str]    |A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].|
+|weights  |List[complex]|A list of amplitudes of the corresponding Pauli operator.       |
+|cutoff   |float = 1e-10|a cutoff to remove small matrix elements                        |
+
+### Examples
+Constructs a new ``PauliOperator`` operator.
+
+```python
+>>> import netket as nk
+>>> op = nk.operator.PauliStrings(operators=['XX','ZZ'], weights=[1,1])
+>>> op.hilbert.size
+2
+
+```
+
+
+
+## Class Methods 
+### get_conn
+Member function finding the connected elements of the Operator. Starting
+from a given visible state v, it finds all other visible states v' such
+that the matrix element O(v,v') is different from zero. In general there
+will be several different connected visible units satisfying this
+condition, and they are denoted here v'(k), for k=0,1...N_connected.
+
+|Argument|            Type            |                   Description                    |
+|--------|----------------------------|--------------------------------------------------|
+|v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
+
+### to_dense
+Returns the dense matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
+### to_linear_operator
+Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
+
+This method requires an indexable Hilbert space.
+  
+
+
+### to_sparse
+Returns the sparse matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+This method requires an indexable Hilbert space.
+
+
+
+## Properties
+
+|Property|         Type         |          Description          |
+|--------|----------------------|-------------------------------|
+|hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
+
