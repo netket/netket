@@ -27,6 +27,8 @@
 
 #include "Hilbert/hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
+#include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
 
 namespace netket {
 /**
