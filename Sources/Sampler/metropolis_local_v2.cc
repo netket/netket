@@ -136,26 +136,6 @@ void Flipper::Propose(Eigen::Ref<RowMatrix<double>> x) {
   }
 }
 
-Index CheckBatchSize(const char* func, const Index batch_size) {
-  if (batch_size <= 0) {
-    std::ostringstream msg;
-    msg << func << ": invalid batch size: " << batch_size
-        << "; expected a positive number";
-    throw InvalidInputError{msg.str()};
-  }
-  return batch_size;
-}
-
-Index CheckSweepSize(const char* func, const Index sweep_size) {
-  if (sweep_size <= 0) {
-    std::ostringstream msg;
-    msg << func << ": invalid sweep size: " << sweep_size
-        << "; expected a positive number";
-    throw InvalidInputError{msg.str()};
-  }
-  return sweep_size;
-}
-
 }  // namespace detail
 
 MetropolisLocalV2::MetropolisLocalV2(AbstractMachine& machine,

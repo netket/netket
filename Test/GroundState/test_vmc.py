@@ -16,7 +16,7 @@ def _setup_vmc():
     ma.init_random_parameters(seed=SEED, sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma)
+    sa = nk.sampler.ExactSampler(machine=ma, batch_size=100)
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
@@ -56,13 +56,13 @@ def test_vmc_functions():
         exact_ex = np.sum(exact_dist * exact_locs).real
 
         data = vmc.compute_samples(
-            sampler, n_samples=10000, n_discard=1000, der_logs="centered"
+            sampler, n_samples=15000, n_discard=1000, der_logs="centered"
         )
 
         local_values = nk.operator.local_values(data.samples, data.log_values, ma, op)
         ex = nk.stats.statistics(local_values)
-        assert ex.mean == approx(np.mean(local_values).real, rel=tol)
-        assert ex.mean == approx(exact_ex, rel=tol)
+        assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
+        assert ex.mean.real == approx(exact_ex.real, rel=tol)
 
     local_values = nk.operator.local_values(data.samples, data.log_values, ma, ha)
     # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
