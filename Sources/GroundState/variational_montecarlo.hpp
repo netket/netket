@@ -61,7 +61,7 @@ class VariationalMonteCarlo {
   AbstractOptimizer &opt_;
   nonstd::optional<SR> sr_;
 
-  std::vector<const AbstractOperator *> obs_;
+  std::vector<std::shared_ptr<const AbstractOperator>> obs_;
   std::vector<std::string> obsnames_;
 
   using StatsMap = std::unordered_map<std::string, Stats>;
@@ -160,8 +160,9 @@ class VariationalMonteCarlo {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
-  void AddObservable(AbstractOperator &ob, const std::string &obname) {
-    obs_.push_back(&ob);
+  void AddObservable(std::shared_ptr<const AbstractOperator> ob,
+                     const std::string &obname) {
+    obs_.push_back(ob);
     obsnames_.push_back(obname);
   }
 
