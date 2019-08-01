@@ -152,6 +152,28 @@ class LogValAccumulator {
   }
 };
 
+namespace detail {
+inline Index CheckBatchSize(const char* func, const Index batch_size) {
+  if (batch_size <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid batch size: " << batch_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return batch_size;
+}
+
+inline Index CheckSweepSize(const char* func, const Index sweep_size) {
+  if (sweep_size <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid sweep size: " << sweep_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return sweep_size;
+}
+}  // namespace detail
+
 #define NETKET_SAMPLER_SET_VISIBLE_DEFAULT(var)                     \
   void SetVisible(Eigen::Ref<const RowMatrix<double>> v) override { \
     CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},             \
