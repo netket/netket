@@ -201,7 +201,7 @@ class QuantumStateReconstruction {
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i)).conjugate();
+      Ok_.row(i) = psi_.DerLogSingle(vsamp_.row(i)).conjugate();
     }
     grad_ += 2.0 * (Ok_.colwise().mean());
 
@@ -328,7 +328,7 @@ class QuantumStateReconstruction {
       for (std::size_t j = 0; j < connectors_[k].size(); j++) {
         v(connectors_[k][j]) = newconfs_[k][j];
       }
-      num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLog(v);
+      num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLogSingle(v);
       den += mel_[k] * std::exp(logvaldiffs(k));
     }
     rotated_gradient = (num / den);

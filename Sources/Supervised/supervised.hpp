@@ -170,7 +170,7 @@ class Supervised {
       value = exp(value);
 
       // Compute derivative of log
-      auto der = psi_.DerLog(sample);
+      auto der = psi_.DerLogSingle(sample);
       Ok_.row(i) = der;
 
       der = der.conjugate();
@@ -227,7 +227,7 @@ class Supervised {
       value = exp(value);
 
       // Compute derivative of log
-      auto der = psi_.DerLog(sample);
+      auto der = psi_.DerLogSingle(sample);
       Ok_.row(i) = der;
       der = der.conjugate();
 
@@ -270,7 +270,7 @@ class Supervised {
       Complex t(target[0].real(), target[0].imag());
 
       // Compute derivative of log(psi)
-      auto partial_gradient = psi_.DerLog(sample);
+      auto partial_gradient = psi_.DerLogSingle(sample);
       Ok_.row(i) = partial_gradient;
 
       // MSE loss
