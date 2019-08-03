@@ -29,7 +29,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddGraphOperator(py::module &subm) {
-  py::class_<GraphOperator, AbstractOperator>(
+  py::class_<GraphOperator, AbstractOperator, std::shared_ptr<GraphOperator>>(
       subm, "GraphOperator", R"EOF(A custom graph based operator.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>,
                     GraphOperator::OVecType, GraphOperator::OVecType,

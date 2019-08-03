@@ -36,7 +36,8 @@ void AddOperatorModule(py::module m) {
   auto subm = m.def_submodule("operator");
 
   auto op =
-      py::class_<AbstractOperator>(m, "Operator", R"EOF(
+      py::class_<AbstractOperator, std::shared_ptr<AbstractOperator>>(
+          m, "Operator", R"EOF(
       Abstract class for quantum Operators. This class prototypes the methods
       needed by a class satisfying the Operator concept. Users interested in
       implementing new quantum Operators should derive they own class from this

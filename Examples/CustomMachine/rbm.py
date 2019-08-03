@@ -65,39 +65,39 @@ class PyRbm(netket.machine.CxxMachine):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        for i in range(x.shape[0]):
-            r = _np.dot(self._w, x[i])
-            if self._b is not None:
-                r += self._b
-            r = _np.sum(PyRbm._log_cosh(r))
-            if self._a is not None:
-                r += _np.dot(self._a, x[i])
-            # Officially, we should return
-            #     self._w.shape[0] * 0.6931471805599453 + r
-            # but the C++ implementation ignores the "constant factor"
-            out[i] = r
+        r = _np.dot(x, self._w.T)
+        if self._b is not None:
+            r += self._b
+
+        _np.sum(PyRbm._log_cosh(r), axis=-1, out=out)
+
+        if self._a is not None:
+            out += _np.dot(x, self._a)
+        # Officially, we should return
+        #     self._w.shape[0] * 0.6931471805599453 + r
+        # but the C++ implementation ignores the "constant factor"
 
     def _der_log(self, x, out):
-        for j in range(x.shape[0]):
-            grad = out[j]
-            i = 0
 
-            if self._a is not None:
-                grad[i : i + self._a.size] = x[j]
-                i += self._a.size
+        batch_size = x.shape[0]
 
-            tanh_stuff = _np.dot(self._w, x[j])
-            if self._b is not None:
-                tanh_stuff += self._b
-            tanh_stuff = _np.tanh(tanh_stuff, out=tanh_stuff)
+        i = 0
+        if self._a is not None:
+            out[:, i : i + x.shape[1]] = x
+            i += x.shape[1]
 
-            if self._b is not None:
-                grad[i : i + self._b.size] = tanh_stuff
-                i += self._b.size
+        r = _np.dot(x, self._w.T)
+        if self._b is not None:
+            r += self._b
+        _np.tanh(r, out=r)
 
-            tail = grad[i : i + self._w.size]
-            tail.shape = (tanh_stuff.size, x[j].size)
-            _np.outer(tanh_stuff, x[j], out=tail)
+        if self._b is not None:
+            out[:, i : i + self._b.shape[0]] = r
+            i += self._b.shape[0]
+
+        t = out[:, i : i + self._w.size]
+        t.shape = (batch_size, self._w.shape[0], self._w.shape[1])
+        _np.einsum("ij,il->ijl", r, x, out=t)
 
     def _is_holomorphic(self):
         r"""Complex valued RBM a holomorphic function.
