@@ -16,8 +16,9 @@ from collections import OrderedDict
 from functools import reduce
 from pickle import dump, load
 import random
-import numpy as _np
-import jax as _jax
+
+import numpy as np
+import jax as jax
 
 import netket
 
@@ -26,6 +27,21 @@ __all__ = ["JAXMachine"]
 
 class JAXMachine(netket.machine.CxxMachine):
     def __init__(self, hilbert, module, seed=None):
+        """
+        Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
+        so that it can be used as a NetKet machine.
+
+        Args:
+            hilbert: Hilbert space on which the state is defined. Should be a
+                subclass of `netket.hilbert.Hilbert`.
+            module: A pair `(init_fn, predict_fn)`. See the documentation of
+                `jax.experimental.stax` for more info.
+            seed: Seed to use to construct `jax.random.PRNGKey` for
+                initialisation of parameters. If `None` seed will be chosen
+                automatically (which is __not__ synchronized between MPI
+                processes so prefer `self.init_random_parameters` if you're
+                using multiple MPI tasks)
+        """
         # NOTE: The following call to __init__ is important!
         super(JAXMachine, self).__init__(hilbert)
         if seed is None:
@@ -33,12 +49,10 @@ class JAXMachine(netket.machine.CxxMachine):
             # to represent the seed. Hence the limit
             seed = random.randint(0, 2 ** 32 - 1)
         init_fn, self._forward_fn = module
-        # Chosen randomly. It'll change if we forward propagate `v` with a
-        # different leading dimension.
-        batch_size = 64
-        input_shape = (batch_size, hilbert.size)
-        output_shape, self._params = init_fn(_jax.random.PRNGKey(seed), input_shape)
-        if output_shape != (batch_size, 2):
+        self._forward_fn = jax.jit(self._forward_fn)
+        input_shape = (-1, hilbert.size)
+        output_shape, self._params = init_fn(jax.random.PRNGKey(seed), input_shape)
+        if output_shape != (-1, 2):
             raise ValueError("module's output_shape is weird, check your network")
         # Computes total number of parameters
         n_par = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
@@ -48,24 +62,35 @@ class JAXMachine(netket.machine.CxxMachine):
             raise ValueError("module parameters have different dtypes")
         self._dtype = next(iter(dtypes))
         self._complex_dtype = {
-            _np.dtype('float32'): _np.complex64,
-            _np.dtype('float64'): _np.complex128,
+            np.dtype("float32"): np.complex64,
+            np.dtype("float64"): np.complex128,
         }[self._dtype]
         assert all(
-            _np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
+            np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
         ), "sorry, column major order is not supported (yet)"
         self._n_par = lambda: n_par
-        self._jacobian = _jax.jacrev(self._forward_fn)
+        # Computes the Jacobian matrix using backprop
+        self._jacobian = jax.jacrev(self._forward_fn)
+        self._jacobian = jax.jit(self._jacobian)
 
     def _log_val(self, x, out):
+        """
+        Do not use this function directly! It's an implementation detail!
+
+        See `self.log_val`.
+        """
         out[:] = (
-            _np.asarray(self._forward_fn(self._params, x))
+            np.asarray(self._forward_fn(self._params, x))
             .view(dtype=self._complex_dtype)
             .squeeze()
         )
 
     def _der_log(self, x, out):
-        # Computes the Jacobian matrix
+        """
+        Do not use this function directly! It's an implementation detail!
+
+        See `self.log_val`.
+        """
         J = self._jacobian(self._params, x)
         batch_size = x.shape[0]
         i = 0
@@ -86,12 +111,12 @@ class JAXMachine(netket.machine.CxxMachine):
         for layer in self._params:
             layer_state = ()
             for p in layer:
-                if not _np.all(p.imag == 0):
+                if not np.all(p.imag == 0):
                     raise ValueError("parameters are purely real")
                 # NOTE: This relies on the fact that all our parameters are
                 # stored in row major order
                 layer_state += (
-                    _np.ascontiguousarray(
+                    np.ascontiguousarray(
                         new_parameters[i : i + p.size].real.reshape(p.shape)
                     ),
                 )
@@ -99,11 +124,18 @@ class JAXMachine(netket.machine.CxxMachine):
             state.append(layer_state)
         self._params = state
 
+    @property
+    def dtype(self):
+        """
+        Returns the datatype of the parameters.
+        """
+        return self._dtype
+
     def state_dict(self):
         state = []
         for i, layer in enumerate(self._params):
             for j, p in enumerate(layer):
-                state.append((str((i, j)), _np.asarray(p).view()))
+                state.append((str((i, j)), np.asarray(p).view()))
         return OrderedDict(state)
 
     def load_state_dict(self, other):

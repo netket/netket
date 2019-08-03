@@ -12,6 +12,7 @@ import jax.experimental
 import jax.experimental.stax
 from jax_wrapper import JAXMachine
 
+
 def merge_dicts(x, y):
     z = x.copy()  # start with x's keys and values
     z.update(y)  # modifies z with y's keys and values & returns None
@@ -29,27 +30,34 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 
 def randn():
-  def init(rng, shape):
-    x = jax.experimental.stax.randn()(rng, shape)
-    x = jax.numpy.asarray(x, dtype=jax.numpy.float64)
-    return x
-  return init
+    def init(rng, shape):
+        return jax.numpy.asarray(
+            jax.experimental.stax.randn()(rng, shape), dtype=jax.numpy.float64
+        )
+
+    return init
+
 
 def glorot():
-  def init(rng, shape):
-    x = jax.experimental.stax.glorot()(rng, shape)
-    x = jax.numpy.asarray(x, dtype=jax.numpy.float64)
-    return x
-  return init
+    def init(rng, shape):
+        return jax.numpy.asarray(
+            jax.experimental.stax.glorot()(rng, shape), dtype=jax.numpy.float64
+        )
 
-machines["JAX Machine"] = JAXMachine(hi,
+    return init
+
+
+machines["JAX Machine"] = JAXMachine(
+    hi,
     jax.experimental.stax.serial(
         jax.experimental.stax.Dense(16, glorot(), randn()),
         jax.experimental.stax.Relu,
         jax.experimental.stax.Dense(16, glorot(), randn()),
         jax.experimental.stax.Relu,
         jax.experimental.stax.Dense(2, glorot(), randn()),
-    ))
+    ),
+)
+assert machines["JAX Machine"].dtype == np.float64
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
