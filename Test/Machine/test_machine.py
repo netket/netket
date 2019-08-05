@@ -1,5 +1,4 @@
 import netket as nk
-import netket.machine.jax
 import networkx as nx
 import numpy as np
 import pytest
@@ -47,7 +46,7 @@ def glorot():
     return init
 
 
-machines["Jax"] = nk.machine.jax.Jax(
+machines["Jax"] = nk.machine.Jax(
     hi,
     jax.experimental.stax.serial(
         jax.experimental.stax.Dense(16, glorot(), randn()),
