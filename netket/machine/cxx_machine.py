@@ -1,10 +1,5 @@
-from ._C_netket.machine import *
+from .._C_netket.machine import Machine
 import numpy as _np
-
-
-def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
-    return MPSPeriodic(hilbert, bond_dim, diag=True, symperiod=symperiod)
-
 
 class CxxMachine(Machine):
     def __init__(self, hilbert):

@@ -1,4 +1,5 @@
 import netket as nk
+import netket.machine.jax
 import networkx as nx
 import numpy as np
 import pytest
@@ -10,7 +11,6 @@ from rbm import PyRbm
 import jax
 import jax.experimental
 import jax.experimental.stax
-from jax_wrapper import JAXMachine
 
 
 def merge_dicts(x, y):
@@ -47,7 +47,7 @@ def glorot():
     return init
 
 
-machines["JAX Machine"] = JAXMachine(
+machines["Jax"] = nk.machine.jax.Jax(
     hi,
     jax.experimental.stax.serial(
         jax.experimental.stax.Dense(16, glorot(), randn()),
@@ -57,7 +57,7 @@ machines["JAX Machine"] = JAXMachine(
         jax.experimental.stax.Dense(2, glorot(), randn()),
     ),
 )
-assert machines["JAX Machine"].dtype == np.float64
+assert machines["Jax"].dtype == np.float64
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
