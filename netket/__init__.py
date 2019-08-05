@@ -30,5 +30,6 @@ from . import (
     unsupervised,
     utils,
     variational,
+    _driver,
 )
 from ._C_netket import MPI, LookupReal, LookupComplex
