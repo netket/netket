@@ -7,6 +7,11 @@ import os
 
 from rbm import PyRbm
 
+import jax
+import jax.experimental
+import jax.experimental.stax
+
+
 def merge_dicts(x, y):
     z = x.copy()  # start with x's keys and values
     z.update(y)  # modifies z with y's keys and values & returns None
@@ -21,6 +26,37 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
+
+
+def randn():
+    def init(rng, shape):
+        return jax.numpy.asarray(
+            jax.experimental.stax.randn()(rng, shape), dtype=jax.numpy.float64
+        )
+
+    return init
+
+
+def glorot():
+    def init(rng, shape):
+        return jax.numpy.asarray(
+            jax.experimental.stax.glorot()(rng, shape), dtype=jax.numpy.float64
+        )
+
+    return init
+
+
+machines["Jax"] = nk.machine.Jax(
+    hi,
+    jax.experimental.stax.serial(
+        jax.experimental.stax.Dense(16, glorot(), randn()),
+        jax.experimental.stax.Relu,
+        jax.experimental.stax.Dense(16, glorot(), randn()),
+        jax.experimental.stax.Relu,
+        jax.experimental.stax.Dense(2, glorot(), randn()),
+    ),
+)
+assert machines["Jax"].dtype == np.float64
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
@@ -112,7 +148,10 @@ def central_diff_grad(func, x, eps, *args):
     epsd = np.zeros(len(x), dtype=complex)
     epsd[0] = eps
     for i in range(len(x)):
-        grad[i] = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args)) / eps
+        assert not np.any(np.isnan(x + epsd))
+        grad[i] = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
+        assert not np.isnan(grad[i])
+        grad[i] /= eps
         epsd = np.roll(epsd, 1)
     return grad
 
