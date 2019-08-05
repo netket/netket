@@ -5,6 +5,9 @@ from .cxx_machine import *
 
 def _has_jax():
     try:
+        import os
+
+        os.environ["JAX_ENABLE_X64"] = "1"
         import jax
 
         return True
