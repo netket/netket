@@ -21,6 +21,16 @@ py::dict GetItem(const ObsManager& self, const std::string& name) {
   return dict;
 }
 
+int GetPrecision(double /* value */, double error) {
+  const int loge = std::floor(std::log10(std::abs(error)));
+  return std::max(1 - loge, 0);
+}
+
+int GetPrecision(Complex value, double error) {
+  return GetPrecision(std::max(std::abs(value.real()), std::abs(value.imag())),
+                      error);
+}
+
 void AddStatsModule(py::module m) {
   auto subm = m.def_submodule("stats");
 
@@ -68,13 +78,14 @@ void AddStatsModule(py::module m) {
            [](const Stats& self) {
              std::ostringstream stream;
              const double imag = self.mean.imag();
+             const int precision = GetPrecision(self.mean, self.error_of_mean);
              // clang-format off
-             stream << std::setprecision(4)
+             stream << std::fixed << std::setprecision(precision)
                     << "(" << self.mean.real()
                     << (imag >= 0 ? " + " : " - ") << std::abs(imag)
                     << "i) ± " << self.error_of_mean
                     << " [var=" << self.variance
-                    << ", R=" << std::setprecision(6) << self.R
+                    << ", R=" << std::setprecision(5) << self.R
                     << "]";
              // clang-format on
              return stream.str();
