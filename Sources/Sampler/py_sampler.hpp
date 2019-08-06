@@ -49,6 +49,7 @@ pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
 #include "py_metropolis_exchange_pt.hpp"
 #include "py_metropolis_hamiltonian.hpp"
 #include "py_metropolis_hamiltonian_pt.hpp"
+#include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
 #include "py_metropolis_local_pt.hpp"
@@ -173,6 +174,7 @@ void AddSamplerModule(py::module& m) {
   AddCustomSampler(subm);
   AddCustomSamplerPt(subm);
   AddMetropolisLocalV2(subm);
+  AddMetropolisHastings(subm);
 }
 
 }  // namespace netket

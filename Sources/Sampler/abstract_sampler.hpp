@@ -23,7 +23,6 @@ namespace netket {
 
 class AbstractSampler {
  public:
-  // using MachineFunction = std::function<double(const Complex&)>;
   using MachineFunction =
       std::function<void(nonstd::span<const Complex>, nonstd::span<double>)>;
 

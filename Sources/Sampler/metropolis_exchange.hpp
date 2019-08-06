@@ -87,9 +87,7 @@ class MetropolisExchange : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      if (initrandom) {
-        GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
-      }
+      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
     }
 
     lt_ = GetMachine().InitLookup(v_);

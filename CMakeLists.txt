@@ -277,6 +277,7 @@ set(NETKET_SOURCES
     Sources/Operator/graph_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/vmc_sampling.cc
+    Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_local_v2.cc
     Sources/Stats/mc_stats.cc
     Sources/Stats/py_stats.cc
