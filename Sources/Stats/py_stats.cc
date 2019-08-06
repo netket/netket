@@ -1,5 +1,7 @@
 #include "Stats/stats.hpp"
 
+#include <iomanip>
+
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 
@@ -46,12 +48,38 @@ void AddStatsModule(py::module m) {
         return s + ">";
       });
 
+  auto as_dict = [](const Stats& self) {
+    py::dict d;
+    d["Mean"] = self.mean;
+    d["Sigma"] = self.error_of_mean;
+    d["Variance"] = self.variance;
+    d["R"] = self.R;
+    d["TauCorr"] = self.correlation;
+    return d;
+  };
+
   py::class_<Stats>(subm, "Stats")
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)
       .def_readonly("tau_corr", &Stats::correlation)
-      .def_readonly("R", &Stats::R);
+      .def_readonly("R", &Stats::R)
+      .def("__repr__",
+           [](const Stats& self) {
+             std::stringstream stream;
+             // clang-format off
+             stream << std::setprecision(4)
+                    << self.mean.real()
+                    << " ± " << self.error_of_mean
+                    << " (Im=" << self.mean.imag()
+                    << ", var=" << self.variance
+                    << ", R=" << std::setprecision(6) << self.R
+                    << ")";
+             // clang-format on
+             return stream.str();
+           })
+      .def("_asdict", as_dict)  //< compatibility with namedtuple
+      .def("asdict", as_dict);
 
   subm.def(
       "statistics",
