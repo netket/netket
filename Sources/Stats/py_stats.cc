@@ -66,15 +66,16 @@ void AddStatsModule(py::module m) {
       .def_readonly("R", &Stats::R)
       .def("__repr__",
            [](const Stats& self) {
-             std::stringstream stream;
+             std::ostringstream stream;
+             const double imag = self.mean.imag();
              // clang-format off
              stream << std::setprecision(4)
-                    << self.mean.real()
-                    << " ± " << self.error_of_mean
-                    << " (Im=" << self.mean.imag()
-                    << ", var=" << self.variance
+                    << "(" << self.mean.real()
+                    << (imag >= 0 ? " + " : " - ") << std::abs(imag)
+                    << "i) ± " << self.error_of_mean
+                    << " [var=" << self.variance
                     << ", R=" << std::setprecision(6) << self.R
-                    << ")";
+                    << "]";
              // clang-format on
              return stream.str();
            })
