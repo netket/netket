@@ -58,15 +58,17 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisLocalV2(py::module m) {
-  py::class_<MetropolisLocalV2, AbstractSampler>(m, "MetropolisLocalV2")
-      .def(py::init([](AbstractMachine& machine, Index batch_size,
-                       nonstd::optional<Index> sweep_size) {
-             return make_unique<MetropolisLocalV2>(
-                 machine, batch_size, sweep_size.value_or(machine.Nvisible()));
-           }),
-           py::keep_alive<1, 2>{}, py::arg{"machine"},
-           py::arg{"batch_size"} = 16, py::arg{"sweep_size"} = py::none(),
-           R"EOF(See `MetropolisLocal` for information about the algorithm.
+  auto v2 =
+      py::class_<MetropolisLocalV2, AbstractSampler>(m, "MetropolisLocalV2")
+          .def(py::init([](AbstractMachine& machine, Index batch_size,
+                           nonstd::optional<Index> sweep_size) {
+                 return make_unique<MetropolisLocalV2>(
+                     machine, batch_size,
+                     sweep_size.value_or(machine.Nvisible()));
+               }),
+               py::keep_alive<1, 2>{}, py::arg{"machine"},
+               py::arg{"batch_size"} = 16, py::arg{"sweep_size"} = py::none(),
+               R"EOF(See `MetropolisLocal` for information about the algorithm.
 
                  `MetropolisLocalV2` differs from `MetropolisLocal` in that it
                  runs `batch_size` Markov Chains in parallel on one MPI node.
@@ -74,6 +76,7 @@ void AddMetropolisLocalV2(py::module m) {
                  `Machine.log_val` which helps to hide the latency associated
                  with the call.
            )EOF");
+  AddAcceptance(v2);
 }
 
 void AddSamplerModule(py::module& m) {
