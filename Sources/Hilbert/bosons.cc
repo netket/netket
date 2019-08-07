@@ -62,24 +62,25 @@ std::vector<double> Boson::LocalStates() const { return local_; }
 
 const AbstractGraph &Boson::GetGraph() const noexcept { return graph_; }
 
-void Boson::RandomVals(Eigen::Ref<Eigen::VectorXd> state) const {
+void Boson::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
+                       netket::default_random_engine &rgen) const {
   assert(state.size() == nsites_);
 
   if (!constraintN_) {
     std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
     // unconstrained random
     for (int i = 0; i < state.size(); i++) {
-      state(i) = distribution(GetRandomEngine());
+      state(i) = distribution(rgen);
     }
   } else {
     state.setZero();
 
     std::uniform_int_distribution<int> distribution(0, nsites_ - 1);
     for (int i = 0; i < nbosons_; i++) {
-      int rsite = distribution(GetRandomEngine());
+      int rsite = distribution(rgen);
 
       while (state(rsite) >= nmax_) {
-        rsite = distribution(GetRandomEngine());
+        rsite = distribution(rgen);
       }
 
       state(rsite) += 1;

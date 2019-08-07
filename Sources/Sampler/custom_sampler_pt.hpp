@@ -131,7 +131,7 @@ class CustomSamplerPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetMachine().GetHilbert().RandomVals(v_[i]);
+        GetMachine().GetHilbert().RandomVals(v_[i], GetRandomEngine());
       }
     }
 

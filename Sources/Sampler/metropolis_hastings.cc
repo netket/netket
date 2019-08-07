@@ -43,7 +43,8 @@ MetropolisHastings::MetropolisHastings(
 void MetropolisHastings::Reset(bool init_random) {
   if (init_random) {
     for (Index i = 0; i < batch_size_; i++) {
-      GetMachine().GetHilbert().RandomVals(current_X_.row(i));
+      GetMachine().GetHilbert().RandomVals(current_X_.row(i),
+                                           GetRandomEngine());
     }
   }
   GetMachine().LogVal(current_X_, current_Y_, {});

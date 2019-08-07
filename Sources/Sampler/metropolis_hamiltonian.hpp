@@ -84,7 +84,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetMachine().GetHilbert().RandomVals(v_);
+      GetMachine().GetHilbert().RandomVals(v_, GetRandomEngine());
     }
 
     lt_ = GetMachine().InitLookup(v_);
