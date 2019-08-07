@@ -211,6 +211,10 @@ void MetropolisLocalV2::Next() {
   // Updates current state
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
   flipper_.Update({accept_});
+
+  // Update acceptance counters
+  accepted_samples_ += accept_.sum();
+  total_samples_ += accept_.size();
 }
 
 void MetropolisLocalV2::Sweep() {

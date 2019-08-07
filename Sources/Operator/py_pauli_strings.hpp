@@ -29,7 +29,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddPauliStrings(py::module &subm) {
-  py::class_<PauliStrings, AbstractOperator>(
+  py::class_<PauliStrings, AbstractOperator, std::shared_ptr<PauliStrings>>(
       subm, "PauliStrings",
       R"EOF(A Hamiltonian consisiting of a product of Pauli operators.)EOF")
       .def(py::init([](std::vector<std::string> ops,

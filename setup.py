@@ -158,7 +158,7 @@ setup(
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    packages=["netket"],
+    packages=["netket", "netket.machine"],
     ext_modules=[CMakeExtension("netket._C_netket")],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial

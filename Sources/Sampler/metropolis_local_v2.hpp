@@ -128,6 +128,9 @@ class MetropolisLocalV2 : public AbstractSampler {
   Eigen::Array<bool, Eigen::Dynamic, 1> accept_;
   Index sweep_size_;
 
+  std::size_t accepted_samples_ = 0;
+  std::size_t total_samples_ = 0;
+
   inline MetropolisLocalV2(AbstractMachine& machine, Index batch_size,
                            Index sweep_size, std::true_type);
 
@@ -155,6 +158,8 @@ class MetropolisLocalV2 : public AbstractSampler {
 
   /// Resets the sampler.
   void Reset(bool init_random) override;
+
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepted_samples_, total_samples_);
 };
 
 }  // namespace netket

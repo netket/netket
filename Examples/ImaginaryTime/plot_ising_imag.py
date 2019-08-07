@@ -20,7 +20,7 @@ while True:
     energy = []
     sigma = []
     evar = []
-    evarsig = []
+    
 
     data = json.load(open("test.log"))
     for iteration in data["Output"]:
@@ -28,8 +28,8 @@ while True:
         times.append(iteration["Time"])
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
-        evar.append(iteration["EnergyVariance"]["Mean"])
-        evarsig.append(iteration["EnergyVariance"]["Sigma"])
+        evar.append(iteration["Energy"]["Variance"])
+        
 
     nres = len(iters)
     cut = nres

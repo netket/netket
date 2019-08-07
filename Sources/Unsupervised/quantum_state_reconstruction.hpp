@@ -42,7 +42,7 @@ class QuantumStateReconstruction {
   AbstractOptimizer &opt_;
   nonstd::optional<SR> sr_;
 
-  std::vector<AbstractOperator *> rotations_;
+  std::vector<std::shared_ptr<const AbstractOperator>> rotations_;
 
   std::vector<std::vector<int>> connectors_;
   std::vector<std::vector<double>> newconfs_;
@@ -61,7 +61,7 @@ class QuantumStateReconstruction {
   int totalnodes_;
   int mynode_;
 
-  std::vector<AbstractOperator *> obs_;
+  std::vector<std::shared_ptr<const AbstractOperator>> obs_;
   std::vector<std::string> obsnames_;
   ObsManager obsmanager_;
 
@@ -82,7 +82,8 @@ class QuantumStateReconstruction {
  public:
   QuantumStateReconstruction(
       AbstractSampler &sampler, AbstractOptimizer &opt, int batchsize,
-      int nsamples, std::vector<AbstractOperator *> rotations,
+      int nsamples,
+      std::vector<std::shared_ptr<const AbstractOperator>> rotations,
       std::vector<Eigen::VectorXd> trainingSamples,
       std::vector<int> trainingBases, int ndiscardedsamples = -1,
       int discarded_samples_on_init = 0, const std::string &method = "Gd",
@@ -149,8 +150,9 @@ class QuantumStateReconstruction {
     }
   }
 
-  void AddObservable(AbstractOperator &ob, const std::string &obname) {
-    obs_.push_back(&ob);
+  void AddObservable(std::shared_ptr<const AbstractOperator> ob,
+                     const std::string &obname) {
+    obs_.push_back(ob);
     obsnames_.push_back(obname);
   }
 
@@ -201,7 +203,7 @@ class QuantumStateReconstruction {
     Ok_.resize(nsamp, psi_.Npar());
 
     for (int i = 0; i < nsamp; i++) {
-      Ok_.row(i) = psi_.DerLog(vsamp_.row(i)).conjugate();
+      Ok_.row(i) = psi_.DerLogSingle(vsamp_.row(i)).conjugate();
     }
     grad_ += 2.0 * (Ok_.colwise().mean());
 
@@ -328,7 +330,7 @@ class QuantumStateReconstruction {
       for (std::size_t j = 0; j < connectors_[k].size(); j++) {
         v(connectors_[k][j]) = newconfs_[k][j];
       }
-      num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLog(v);
+      num += mel_[k] * std::exp(logvaldiffs(k)) * psi_.DerLogSingle(v);
       den += mel_[k] * std::exp(logvaldiffs(k));
     }
     rotated_gradient = (num / den);
@@ -353,10 +355,10 @@ class QuantumStateReconstruction {
   const ObsManager &GetObsManager() const { return obsmanager_; }
 
   // Computes the NNLL on a given set of test samples
-  double NegativeLogLikelihood(std::vector<AbstractOperator *> rotations,
-                               std::vector<Eigen::VectorXd> testSamples,
-                               std::vector<int> trainingBases,
-                               const double &lognorm) {
+  double NegativeLogLikelihood(
+      std::vector<std::shared_ptr<const AbstractOperator>> rotations,
+      std::vector<Eigen::VectorXd> testSamples, std::vector<int> trainingBases,
+      const double &lognorm) {
     double nnll = 0;
 
     for (std::size_t i = 0; i < testSamples.size(); i++) {

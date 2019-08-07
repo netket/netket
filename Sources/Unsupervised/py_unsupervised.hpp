@@ -40,7 +40,9 @@ void AddUnsupervisedModule(py::module &m) {
                        int discarded_samples_on_init, const std::string &method,
                        double diag_shift, bool use_iterative,
                        bool use_cholesky) {
-             auto rots = py::cast<std::vector<AbstractOperator *>>(rotations);
+             auto rots =
+                 py::cast<std::vector<std::shared_ptr<const AbstractOperator>>>(
+                     rotations);
              return QuantumStateReconstruction{sa,
                                                op,
                                                batch_size,
@@ -93,7 +95,7 @@ void AddUnsupervisedModule(py::module &m) {
                  )EOF")
       .def("nll", &QuantumStateReconstruction::NegativeLogLikelihood,
            py::arg("rotations"), py::arg("samples"), py::arg("bases"),
-           py::arg("log_norm") = 0,
+           py::arg("log_norm") = 0, py::keep_alive<1, 2>(),
            R"EOF(
              Negative log-likelihood, $$\langle log(|Psi_b(x)|^2) \rangle$$,
              where the average is over the given samples, and $b$ denotes

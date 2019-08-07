@@ -29,7 +29,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddBoseHubbard(py::module &subm) {
-  py::class_<BoseHubbard, AbstractOperator>(
+  py::class_<BoseHubbard, AbstractOperator, std::shared_ptr<BoseHubbard>>(
       subm, "BoseHubbard",
       R"EOF(A Bose Hubbard model Hamiltonian operator.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, double, double,
