@@ -18,7 +18,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 # Defining a custom kernel for MetropolisHastings
 # Notice that this sampler exchanges two random sites
 # thus preservers the total magnetization
-def exchange_kernel(v, vnew, loprobcorr, n):
+def exchange_kernel(v, vnew, loprobcorr):
 
     vnew[:, :] = v[:, :]
     loprobcorr[:] = 0.0

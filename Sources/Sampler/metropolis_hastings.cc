@@ -43,8 +43,7 @@ MetropolisHastings::MetropolisHastings(
 void MetropolisHastings::Reset(bool init_random) {
   if (init_random) {
     for (Index i = 0; i < batch_size_; i++) {
-      GetMachine().GetHilbert().RandomVals(current_X_.row(i),
-                                           this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(current_X_.row(i));
     }
   }
   GetMachine().LogVal(current_X_, current_Y_, {});
@@ -66,8 +65,8 @@ void MetropolisHastings::SetVisible(Eigen::Ref<const RowMatrix<double>> x) {
 
 void MetropolisHastings::OneStep() {
   transition_kernel_(
-      current_X_, proposed_X_, log_acceptance_correction_,
-      this->GetRandomEngine());  // Now proposed_X_ contains next states `v'`
+      current_X_, proposed_X_,
+      log_acceptance_correction_);  // Now proposed_X_ contains next states `v'`
 
   GetMachine().LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
 
@@ -81,14 +80,13 @@ void MetropolisHastings::OneStep() {
                      ? true
                      : std::uniform_real_distribution<double>{}(
                            GetRandomEngine()) < probability_(i);
-  }
-  // Updates current state
 
-  for (Index i = 0; i < accept_.size(); i++) {
+    // Updates current state
     if (accept_(i)) {
       current_X_.row(i) = proposed_X_.row(i);
     }
   }
+
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
 }
 

@@ -114,7 +114,7 @@ class MetropolisExchangePt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i]);
       }
     }
 
@@ -136,7 +136,7 @@ class MetropolisExchangePt : public AbstractSampler {
     std::vector<double> newconf(2);
 
     for (int i = 0; i < sweep_size_; i++) {
-      int rcl = distcl(this->GetRandomEngine());
+      int rcl = distcl(GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -154,7 +154,7 @@ class MetropolisExchangePt : public AbstractSampler {
         auto explo = std::exp(beta_[rep] * log_val_diff);
         double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(explo);
 
-        if (ratio > distu(this->GetRandomEngine())) {
+        if (ratio > distu(GetRandomEngine())) {
           accept_(rep) += 1;
           GetMachine().UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
           GetMachine().GetHilbert().UpdateConf(v_[rep], tochange, newconf);
@@ -178,7 +178,7 @@ class MetropolisExchangePt : public AbstractSampler {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -188,7 +188,7 @@ class MetropolisExchangePt : public AbstractSampler {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

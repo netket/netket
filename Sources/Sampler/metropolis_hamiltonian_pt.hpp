@@ -103,7 +103,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i]);
       }
     }
 
@@ -126,7 +126,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
       std::uniform_real_distribution<double> distu(0, 1);
 
       // picking a random state to transit to
-      int si = distrs(this->GetRandomEngine());
+      int si = distrs(GetRandomEngine());
 
       // Inverse transition
       v1_ = v_[rep];
@@ -155,7 +155,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         accept_(rep) += 1;
         GetMachine().UpdateLookup(v_[rep], tochange_[si], newconfs_[si],
                                   lt_[rep]);
@@ -190,7 +190,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -200,7 +200,7 @@ class MetropolisHamiltonianPt : public AbstractSampler {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

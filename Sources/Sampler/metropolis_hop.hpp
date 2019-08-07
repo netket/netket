@@ -92,7 +92,7 @@ class MetropolisHop : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_);
     }
 
     lt_ = GetMachine().InitLookup(v_);
@@ -112,7 +112,7 @@ class MetropolisHop : public AbstractSampler {
     std::uniform_int_distribution<int> diststate(0, nstates_ - 1);
 
     for (int i = 0; i < sweep_size_; i++) {
-      int rcl = distcl(this->GetRandomEngine());
+      int rcl = distcl(GetRandomEngine());
       assert(rcl < int(clusters_.size()));
       int si = clusters_[rcl][0];
       int sj = clusters_[rcl][1];
@@ -123,7 +123,7 @@ class MetropolisHop : public AbstractSampler {
 
       // picking a random state
       for (int k = 0; k < 2; k++) {
-        newstates[k] = diststate(this->GetRandomEngine());
+        newstates[k] = diststate(GetRandomEngine());
         newconf[k] = localstates_[newstates[k]];
       }
 
@@ -133,7 +133,7 @@ class MetropolisHop : public AbstractSampler {
              std::abs(newconf[1] - v_(sj)) <
                  std::numeric_limits<double>::epsilon()) {
         for (int k = 0; k < 2; k++) {
-          newstates[k] = diststate(this->GetRandomEngine());
+          newstates[k] = diststate(GetRandomEngine());
           newconf[k] = localstates_[newstates[k]];
         }
       }
@@ -152,7 +152,7 @@ class MetropolisHop : public AbstractSampler {
       }
 #endif
 
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         ++accept_;
         GetMachine().UpdateLookup(v_, tochange, newconf, lt_);
         GetMachine().GetHilbert().UpdateConf(v_, tochange, newconf);

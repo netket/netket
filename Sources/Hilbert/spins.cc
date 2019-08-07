@@ -79,8 +79,7 @@ std::vector<double> Spin::LocalStates() const { return local_; }
 
 const AbstractGraph &Spin::GetGraph() const noexcept { return graph_; }
 
-void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                      netket::default_random_engine &rgen) const {
+void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state) const {
   std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
 
   assert(state.size() == nspins_);
@@ -88,7 +87,7 @@ void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
   if (!constraintSz_) {
     // unconstrained random
     for (int i = 0; i < state.size(); i++) {
-      state(i) = 2. * (distribution(rgen) - S_);
+      state(i) = 2. * (distribution(GetRandomEngine()) - S_);
     }
   } else if (S_ == 0.5) {
     using std::begin;
@@ -109,7 +108,7 @@ void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
     int ndown = (nspins_ - m) / 2;
     std::fill_n(state.data(), nup, 1.0);
     std::fill_n(state.data() + nup, ndown, -1.0);
-    std::shuffle(state.data(), state.data() + nspins_, rgen);
+    std::shuffle(state.data(), state.data() + nspins_, GetRandomEngine());
     return;
   } else {
     std::vector<int> sites;
@@ -120,7 +119,7 @@ void Spin::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
 
     for (int i = 0; i < S_ * nspins_ + totalS_; ++i) {
       std::uniform_int_distribution<int> distribution_ss(0, ss - 1);
-      int s = distribution_ss(rgen);
+      int s = distribution_ss(GetRandomEngine());
       state(sites[s]) += 2;
       if (state(sites[s]) > std::round(2 * S_ - 1)) {
         sites.erase(sites.begin() + s);

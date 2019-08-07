@@ -101,7 +101,7 @@ class MetropolisLocalPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i]);
       }
     }
 
@@ -125,18 +125,18 @@ class MetropolisLocalPt : public AbstractSampler {
 
     for (int i = 0; i < sweep_size_; i++) {
       // picking a random site to be changed
-      int si = distrs(this->GetRandomEngine());
+      int si = distrs(GetRandomEngine());
       assert(si < nv_);
       tochange[0] = si;
 
       // picking a random state
-      int newstate = diststate(this->GetRandomEngine());
+      int newstate = diststate(GetRandomEngine());
       newconf[0] = localstates_[newstate];
 
       // make sure that the new state is not equal to the current one
       while (std::abs(newconf[0] - v_[rep](si)) <
              std::numeric_limits<double>::epsilon()) {
-        newstate = diststate(this->GetRandomEngine());
+        newstate = diststate(GetRandomEngine());
         newconf[0] = localstates_[newstate];
       }
 
@@ -157,7 +157,7 @@ class MetropolisLocalPt : public AbstractSampler {
       }
 #endif
       // Metropolis acceptance test
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         accept_(rep) += 1;
 
         GetMachine().UpdateLookup(v_[rep], tochange, newconf, lt_[rep]);
@@ -192,7 +192,7 @@ class MetropolisLocalPt : public AbstractSampler {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -202,7 +202,7 @@ class MetropolisLocalPt : public AbstractSampler {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

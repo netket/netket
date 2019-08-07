@@ -40,8 +40,7 @@ class Spin : public AbstractHilbert {
   std::vector<double> LocalStates() const override;
   const AbstractGraph &GetGraph() const noexcept override;
 
-  void RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                  netket::default_random_engine &rgen) const override;
+  void RandomVals(Eigen::Ref<Eigen::VectorXd> state) const override;
 
   void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
                   nonstd::span<const int> tochange,

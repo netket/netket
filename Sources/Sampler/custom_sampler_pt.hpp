@@ -131,7 +131,7 @@ class CustomSamplerPt : public AbstractSampler {
   void Reset(bool initrandom = false) override {
     if (initrandom) {
       for (int i = 0; i < nrep_; i++) {
-        GetMachine().GetHilbert().RandomVals(v_[i], this->GetRandomEngine());
+        GetMachine().GetHilbert().RandomVals(v_[i]);
       }
     }
 
@@ -151,10 +151,10 @@ class CustomSamplerPt : public AbstractSampler {
     for (int i = 0; i < sweep_size_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
-      int op = disc_dist(this->GetRandomEngine());
+      int op = disc_dist(GetRandomEngine());
       move_operators_.FindConn(op, v_[rep], mel_, tochange_, newconfs_);
 
-      double p = distu(this->GetRandomEngine());
+      double p = distu(GetRandomEngine());
       std::size_t exit_state = 0;
       double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
@@ -169,7 +169,7 @@ class CustomSamplerPt : public AbstractSampler {
       double ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(explo);
 
       // Metropolis acceptance test
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         accept_(rep) += 1;
         GetMachine().UpdateLookup(v_[rep], tochange_[exit_state],
                                   newconfs_[exit_state], lt_[rep]);
@@ -193,7 +193,7 @@ class CustomSamplerPt : public AbstractSampler {
     std::uniform_real_distribution<double> distribution(0, 1);
 
     for (int r = 1; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;
@@ -203,7 +203,7 @@ class CustomSamplerPt : public AbstractSampler {
     }
 
     for (int r = 2; r < nrep_; r += 2) {
-      if (ExchangeProb(r, r - 1) > distribution(this->GetRandomEngine())) {
+      if (ExchangeProb(r, r - 1) > distribution(GetRandomEngine())) {
         Exchange(r, r - 1);
         accept_(nrep_ + r) += 1.;
         accept_(nrep_ + r - 1) += 1;

@@ -84,7 +84,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_);
     }
 
     lt_ = GetMachine().InitLookup(v_);
@@ -103,7 +103,7 @@ class MetropolisHamiltonian : public AbstractSampler {
       std::uniform_real_distribution<double> distu;
 
       // picking a random state to transit to
-      int si = distrs(this->GetRandomEngine());
+      int si = distrs(GetRandomEngine());
 
       // Inverse transition
       v1_ = v_;
@@ -129,7 +129,7 @@ class MetropolisHamiltonian : public AbstractSampler {
 #endif
 
       // Metropolis acceptance test
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         ++accept_;
         GetMachine().UpdateLookup(v_, tochange_[si], newconfs_[si], lt_);
         v_ = v1_;

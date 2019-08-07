@@ -39,7 +39,7 @@ class AbstractSampler {
   virtual ~AbstractSampler() {}
 
   void Seed(DistributedRandomEngine::ResultType base_seed) {
-    engine_.Seed(base_seed);
+    GetDistributedRandomEngine().Seed(base_seed);
     this->Reset(true);
   }
 
@@ -59,22 +59,18 @@ class AbstractSampler {
 
  protected:
   AbstractSampler(AbstractMachine& psi)
-      : engine_{},
-        machine_func_{
-            [](nonstd::span<const Complex> x, nonstd::span<double> out) {
-              CheckShape("AbstractSampler::machine_func_", "out", out.size(),
-                         x.size());
-              Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
-                  Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
-              // std::transform(x.begin(), x.end(), out.begin(),
-              //                [](Complex z) { return std::norm(z); });
-            }},
+      : machine_func_{[](nonstd::span<const Complex> x,
+                         nonstd::span<double> out) {
+          CheckShape("AbstractSampler::machine_func_", "out", out.size(),
+                     x.size());
+          Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
+              Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
+          // std::transform(x.begin(), x.end(), out.begin(),
+          //                [](Complex z) { return std::norm(z); });
+        }},
         psi_{psi} {}
 
-  default_random_engine& GetRandomEngine() { return engine_.Get(); }
-
  private:
-  DistributedRandomEngine engine_;
   MachineFunction machine_func_;
   AbstractMachine& psi_;
 };  // namespace netket

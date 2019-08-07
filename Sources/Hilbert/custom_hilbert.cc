@@ -31,15 +31,14 @@ int CustomHilbert::Size() const { return size_; }
 
 std::vector<double> CustomHilbert::LocalStates() const { return local_; }
 
-void CustomHilbert::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
-                               netket::default_random_engine &rgen) const {
+void CustomHilbert::RandomVals(Eigen::Ref<Eigen::VectorXd> state) const {
   std::uniform_int_distribution<int> distribution(0, nstates_ - 1);
 
   assert(state.size() == size_);
 
   // unconstrained random
   for (int i = 0; i < state.size(); i++) {
-    state(i) = local_[distribution(rgen)];
+    state(i) = local_[distribution(GetRandomEngine())];
   }
 }
 

@@ -111,7 +111,7 @@ class CustomSampler : public AbstractSampler {
 
   void Reset(bool initrandom = false) override {
     if (initrandom) {
-      GetMachine().GetHilbert().RandomVals(v_, this->GetRandomEngine());
+      GetMachine().GetHilbert().RandomVals(v_);
     }
 
     lt_ = GetMachine().InitLookup(v_);
@@ -128,11 +128,11 @@ class CustomSampler : public AbstractSampler {
     for (int i = 0; i < sweep_size_; i++) {
       // pick a random operator in possible ones according to the provided
       // weights
-      int op = disc_dist(this->GetRandomEngine());
+      int op = disc_dist(GetRandomEngine());
 
       move_operators_.FindConn(op, v_, mel_, tochange_, newconfs_);
 
-      double p = distu(this->GetRandomEngine());
+      double p = distu(GetRandomEngine());
       std::size_t exit_state = 0;
       double cumulative_prob = std::real(mel_[0]);
       while (p > cumulative_prob) {
@@ -146,7 +146,7 @@ class CustomSampler : public AbstractSampler {
       const auto ratio = NETKET_SAMPLER_APPLY_MACHINE_FUNC(exlog);
 
       // Metropolis acceptance test
-      if (ratio > distu(this->GetRandomEngine())) {
+      if (ratio > distu(GetRandomEngine())) {
         ++accept_;
         GetMachine().UpdateLookup(v_, tochange_[exit_state],
                                   newconfs_[exit_state], lt_);

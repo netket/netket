@@ -189,13 +189,12 @@ void AddHilbertModule(py::module m) {
               "graph", &AbstractHilbert::GetGraph,
               R"EOF(netket.graph.Graph: The Graph used to construct this Hilbert space.)EOF")
           .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
-               py::arg("rgen"), R"EOF(
+               R"EOF(
        Member function generating uniformely distributed local random states.
 
        Args:
            state: A reference to a visible configuration, in output this
                contains the random state.
-           rgen: The random number generator.
 
        Examples:
            Test that a new random state is a possible state for the hilbert

@@ -287,6 +287,7 @@ set(NETKET_SOURCES
     Sources/Utils/exceptions.cc
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
+    Sources/Utils/random_utils.cc
 )
 
 add_library(netket MODULE ${NETKET_SOURCES})

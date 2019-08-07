@@ -56,14 +56,13 @@ class LocalKernel {
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction,
-                  default_random_engine& random_engine) {
+                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
     vnew = v;
 
     for (int i = 0; i < v.rows(); i++) {
       // picking a random site to be changed
-      Index si = dist_random_sites_(random_engine);
-      Index rs = dist_random_states_(random_engine);
+      Index si = dist_random_sites_(GetRandomEngine());
+      Index rs = dist_random_states_(GetRandomEngine());
       vnew(i, si) = local_states_[rs + (local_states_[rs] >= v(i, si))];
     }
 
