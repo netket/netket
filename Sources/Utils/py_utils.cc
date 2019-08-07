@@ -43,10 +43,11 @@ void AddUtilsModule(py::module m) {
   py::class_<Lookup<Complex>>(m, "LookupComplex").def(py::init<>());
 
   py::class_<MPIHelpers>(m, "MPI")
-      .def("rank", &MPIHelpers::MPIRank,
-           R"EOF(int: The MPI rank for the current process.  )EOF")
-      .def("size", &MPIHelpers::MPISize,
-           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
+      .def_static("rank", &MPIHelpers::MPIRank,
+                  R"EOF(int: The MPI rank for the current process.  )EOF")
+      .def_static(
+          "size", &MPIHelpers::MPISize,
+          R"EOF(int: The total number of MPI ranks currently active.  )EOF");
 }
 
 }  // namespace netket
