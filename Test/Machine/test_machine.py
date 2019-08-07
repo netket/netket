@@ -1,9 +1,11 @@
+import torch
 import netket as nk
 import networkx as nx
 import numpy as np
 import pytest
 from pytest import approx
 import os
+import tempfile
 
 from rbm import PyRbm
 
@@ -57,6 +59,16 @@ machines["Jax"] = nk.machine.Jax(
     ),
 )
 assert machines["Jax"].dtype == np.float64
+
+with tempfile.NamedTemporaryFile() as f:
+    torch.jit.trace(torch.nn.Sequential(
+        torch.nn.Linear(hi.size, 16),
+        torch.nn.ReLU(),
+        torch.nn.Linear(16, 16),
+        torch.nn.ReLU(),
+        torch.nn.Linear(16, 2),
+    ).double(), torch.rand(10, hi.size).double()).save(f.name)
+    machines["Torch"] = nk.machine.Torch(hi, f.name)
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
@@ -168,6 +180,8 @@ def test_set_get_parameters():
         assert machine.n_par > 0
         npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
+        if name == "Torch":
+            randpars.imag[:] = 0.0
         machine.parameters = randpars
         if machine.is_holomorphic:
             assert np.array_equal(machine.parameters, randpars)
@@ -181,6 +195,8 @@ def test_save_load_parameters(tmpdir):
         assert machine.n_par > 0
         n_par = machine.n_par
         randpars = np.random.randn(n_par) + 1.0j * np.random.randn(n_par)
+        if name == "Torch":
+            randpars.imag[:] = 0.0
 
         machine.parameters = np.copy(randpars)
         fn = tmpdir.mkdir("datawf").join("test.wf")
@@ -200,6 +216,8 @@ def test_save_load_parameters(tmpdir):
 
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
+        if name == "Torch":
+            continue
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -236,6 +254,8 @@ def test_log_val_diff():
 
         npar = machine.n_par
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        if name == "Torch":
+            randpars.imag[:] = 0.0
         machine.parameters = randpars
 
         hi = machine.hilbert

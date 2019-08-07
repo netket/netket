@@ -13,6 +13,12 @@
 # limitations under the License.
 
 from __future__ import absolute_import
+try:
+    # We need to import torch before we import _C_netket, because torch loads
+    # libtorch.so which we rely on.
+    import torch
+except ImportError:
+    pass
 from . import (
     _C_netket,
     dynamics,
