@@ -32,12 +32,9 @@ class ExchangeKernel {
 
   std::uniform_int_distribution<Index> distcl_;
 
-  default_random_engine &random_engine_;
-
  public:
-  ExchangeKernel(AbstractMachine &psi, default_random_engine &engine,
-                 int dmax = 1)
-      : nv_(psi.GetHilbert().Size()), random_engine_(engine) {
+  explicit ExchangeKernel(const AbstractMachine &psi, Index dmax = 1)
+      : nv_(psi.GetHilbert().Size()) {
     Init(psi.GetHilbert().GetGraph(), dmax);
   }
 
@@ -69,11 +66,12 @@ class ExchangeKernel {
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
+                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction,
+                  default_random_engine &random_engine) {
     vnew = v;
 
     for (int i = 0; i < v.rows(); i++) {
-      Index rcl = distcl_(random_engine_);
+      Index rcl = distcl_(random_engine);
 
       Index si = clusters_[rcl][0];
       Index sj = clusters_[rcl][1];

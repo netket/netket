@@ -16,74 +16,89 @@
 #define NETKET_PY_METROPOLISEXCHANGE_HPP
 
 #include <pybind11/pybind11.h>
-#include "metropolis_exchange.hpp"
+#include "exchange_kernel.hpp"
+#include "metropolis_hastings.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
 void AddMetropolisExchange(py::module &subm) {
-  auto cls =
-      py::class_<MetropolisExchange, AbstractSampler>(subm,
-                                                      "MetropolisExchange",
-                                                      R"EOF(
-    This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
-    and proposes a new state: $$ s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N $$,
-    where in general $$ s^\prime_i \neq s_i $$ and $$ s^\prime_j \neq s_j $$ .
-    The sites $$ i $$ and $$ j $$ are also chosen to be within a maximum graph
-    distance of $$ d_{\mathrm{max}} $$.
+  subm.def(
+      "MetropolisExchange",
+      [](AbstractMachine &m, nonstd::optional<AbstractGraph *> g, Index dmax,
+         Index batch_size, nonstd::optional<Index> sweep_size) {
+        if (g.has_value()) {
+          WarningMessage()
+              << "graph argument is deprecated and does not have any effect "
+                 "here. The graph is deduced automatically from machine.\n";
+        }
+        return MetropolisHastings(m, ExchangeKernel{m, dmax},
+                                  sweep_size.value_or(m.Nvisible()),
+                                  batch_size);
+      },
+      py::keep_alive<1, 2>(), py::arg("machine"), py::arg("graph") = py::none(),
+      py::arg("d_max") = 1, py::arg("batch_size") = 16,
+      py::arg{"sweep_size"} = py::none(),
+      R"EOF(
+          This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
+          and proposes a new state: $$ s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N $$,
+          where in general $$ s^\prime_i \neq s_i $$ and $$ s^\prime_j \neq s_j $$ .
+          The sites $$ i $$ and $$ j $$ are also chosen to be within a maximum graph
+          distance of $$ d_{\mathrm{max}} $$.
 
-    The transition probability associated to this sampler can
-    be decomposed into two steps:
+          The transition probability associated to this sampler can
+          be decomposed into two steps:
 
-    1. A pair of indices $$ i,j = 1\dots N $$, and such
-    that $$ \mathrm{dist}(i,j) \leq d_{\mathrm{max}} $$,
-    is chosen with uniform probability.
-    2. The sites are exchanged, i.e. $$ s^\prime_i = s_j $$ and $$ s^\prime_j = s_i $$.
+          1. A pair of indices $$ i,j = 1\dots N $$, and such
+          that $$ \mathrm{dist}(i,j) \leq d_{\mathrm{max}} $$,
+          is chosen with uniform probability.
+          2. The sites are exchanged, i.e. $$ s^\prime_i = s_j $$ and $$ s^\prime_j = s_i $$.
 
-    Notice that this sampling method generates random permutations of the quantum
-    numbers, thus global quantities such as the sum of the local quantum n
-    umbers are conserved during the sampling.
-    This scheme should be used then only when sampling in a
-    region where $$ \sum_i s_i = \mathrm{constant} $$ is needed,
-    otherwise the sampling would be strongly not ergodic.
-    )EOF")
-          .def(py::init<const AbstractGraph &, AbstractMachine &, int>(),
-               py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-               py::arg("machine"), py::arg("d_max") = 1, R"EOF(
-             Constructs a new ``MetropolisExchange`` sampler given a machine and a
-             graph.
+          Notice that this sampling method generates random permutations of the quantum
+          numbers, thus global quantities such as the sum of the local quantum n
+          umbers are conserved during the sampling.
+          This scheme should be used then only when sampling in a
+          region where $$ \sum_i s_i = \mathrm{constant} $$ is needed,
+          otherwise the sampling would be strongly not ergodic.
 
-             Args:
-                 machine: A machine $$\Psi(s)$$ used for the sampling.
-                          The probability distribution being sampled
-                          from is $$F(\Psi(s))$$, where the function
-                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
-                 graph: A graph used to define the distances among the degrees
-                        of freedom being sampled.
-                 d_max: The maximum graph distance allowed for exchanges.
 
-             Examples:
-                 Sampling from a RBM machine in a 1D lattice of spin 1/2, using
-                 nearest-neighbours exchanges.
+          Args:
+              machine: A machine $$\Psi(s)$$ used for the sampling.
+                       The probability distribution being sampled
+                       from is $$F(\Psi(s))$$, where the function
+                       $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
-                 ```python
-                 >>> import netket as nk
-                 >>>
-                 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-                 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
-                 >>>
-                 >>> # RBM Spin Machine
-                 >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
-                 >>>
-                 >>> # Construct a MetropolisExchange Sampler
-                 >>> sa = nk.sampler.MetropolisExchange(machine=ma,graph=g,d_max=1)
-                 >>> print(sa.machine.hilbert.size)
-                 100
+              graph: DEPRECATED argument
+              sweep_size: The number of exchanges that compose a single sweep.
+                          If not specified, sweep_size is equal to the number of degrees of freedom (n_visible).
+              batch_size: The number of Markov Chain to be run in parallel on a single process.
+              d_max: The maximum graph distance allowed for exchanges.
 
-                 ```
-             )EOF");
-  AddAcceptance(cls);
+          Examples:
+              Sampling from a RBM machine in a 1D lattice of spin 1/2, using
+              nearest-neighbours exchanges.
+
+              ```python
+              >>> import netket as nk
+              >>>
+              >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+              >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
+              >>>
+              >>> # RBM Spin Machine
+              >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+              >>>
+              >>> # Construct a MetropolisExchange Sampler
+              >>> sa = nk.sampler.MetropolisExchange(machine=ma)
+              >>> print(sa.machine.hilbert.size)
+              100
+
+              ```
+
+
+          )EOF");
+
+  // AddAcceptance(cls);
 }
 }  // namespace netket
 #endif

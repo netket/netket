@@ -12,16 +12,13 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.RbmSpinSymm(alpha=1, hilbert=hi)
+ma = nk.machine.RbmSpinV2(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# Metropolis Exchange Sampling
-# Notice that this sampler exchanges two neighboring sites
+# Defining a custom kernel for MetropolisHastings
+# Notice that this sampler exchanges two random sites
 # thus preservers the total magnetization
-# sa = nk.sampler.MetropolisExchange(machine=ma, graph=g)
-
-
-def exchange_kernel(v, vnew, loprobcorr):
+def exchange_kernel(v, vnew, loprobcorr, n):
 
     vnew[:, :] = v[:, :]
     loprobcorr[:] = 0.0
@@ -35,7 +32,7 @@ def exchange_kernel(v, vnew, loprobcorr):
         vnew[i, iss], vnew[i, jss] = vnew[i, jss], vnew[i, iss]
 
 
-sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, 10, 16)
+sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, batch_size=16, sweep_size=20)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)

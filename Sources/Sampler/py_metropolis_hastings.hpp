@@ -23,18 +23,24 @@ namespace py = pybind11;
 
 namespace netket {
 
-void AddMetropolisHastings(py::module &subm) {
-  auto cls =
-      py::class_<MetropolisHastings, AbstractSampler>(subm,
-                                                      "MetropolisHastings",
-                                                      R"EOF(
+void AddMetropolisHastings(py::module& subm) {
+  auto cls = py::class_<MetropolisHastings, AbstractSampler>(
+                 subm, "MetropolisHastings",
+                 R"EOF(
 
     )EOF")
-          .def(py::init<AbstractMachine &, MetropolisHastings::TransitionKernel,
-                        Index, Index>(),
-               py::keep_alive<1, 2>(), py::arg("machine"),
-               py::arg("transition_kernel"), py::arg("sweep_size"),
-               py::arg("batch_size"), R"EOF(
+                 .def(py::init([](AbstractMachine& machine,
+                                  MetropolisHastings::TransitionKernel tk,
+                                  Index batch_size,
+                                  nonstd::optional<Index> sweep_size) {
+                        return make_unique<MetropolisHastings>(
+                            machine, tk, batch_size,
+                            sweep_size.value_or(machine.Nvisible()));
+                      }),
+                      py::keep_alive<1, 2>(), py::arg("machine"),
+                      py::arg("transition_kernel"), py::arg("batch_size") = 16,
+                      py::arg("sweep_size") = py::none(),
+                      R"EOF(
              Constructs a new ``MetropolisHastings`` sampler given a machine and
              a transition kernel.
 

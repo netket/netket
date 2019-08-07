@@ -19,8 +19,8 @@ namespace netket {
 
 MetropolisHastings::MetropolisHastings(
     AbstractMachine& machine,
-    MetropolisHastings::TransitionKernel transition_kernel, Index sweep_size,
-    Index batch_size)
+    MetropolisHastings::TransitionKernel transition_kernel, Index batch_size,
+    Index sweep_size)
     : AbstractSampler(machine),
       transition_kernel_(transition_kernel),
       sweep_size_(sweep_size),
@@ -66,8 +66,8 @@ void MetropolisHastings::SetVisible(Eigen::Ref<const RowMatrix<double>> x) {
 
 void MetropolisHastings::OneStep() {
   transition_kernel_(
-      current_X_, proposed_X_,
-      log_acceptance_correction_);  // Now proposed_X_ contains next states `v'`
+      current_X_, proposed_X_, log_acceptance_correction_,
+      this->GetRandomEngine());  // Now proposed_X_ contains next states `v'`
 
   GetMachine().LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
 
