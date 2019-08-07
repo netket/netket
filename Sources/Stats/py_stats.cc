@@ -1,5 +1,7 @@
 #include "Stats/stats.hpp"
 
+#include <iomanip>
+
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 
@@ -17,6 +19,16 @@ py::dict GetItem(const ObsManager& self, const std::string& name) {
   py::dict dict;
   self.InsertAllStats(name, dict);
   return dict;
+}
+
+int GetPrecision(double /* value */, double error) {
+  const int loge = std::floor(std::log10(std::abs(error)));
+  return std::max(1 - loge, 0);
+}
+
+int GetPrecision(Complex value, double error) {
+  return GetPrecision(std::max(std::abs(value.real()), std::abs(value.imag())),
+                      error);
 }
 
 void AddStatsModule(py::module m) {
@@ -46,12 +58,40 @@ void AddStatsModule(py::module m) {
         return s + ">";
       });
 
+  auto as_dict = [](const Stats& self) {
+    py::dict d;
+    d["Mean"] = self.mean;
+    d["Sigma"] = self.error_of_mean;
+    d["Variance"] = self.variance;
+    d["R"] = self.R;
+    d["TauCorr"] = self.correlation;
+    return d;
+  };
+
   py::class_<Stats>(subm, "Stats")
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)
       .def_readonly("tau_corr", &Stats::correlation)
-      .def_readonly("R", &Stats::R);
+      .def_readonly("R", &Stats::R)
+      .def("__repr__",
+           [](const Stats& self) {
+             std::ostringstream stream;
+             const double imag = self.mean.imag();
+             const int precision = GetPrecision(self.mean, self.error_of_mean);
+             // clang-format off
+             stream << std::fixed << std::setprecision(precision)
+                    << "(" << self.mean.real()
+                    << (imag >= 0 ? " + " : " - ") << std::abs(imag)
+                    << "i) ± " << self.error_of_mean
+                    << " [var=" << self.variance
+                    << ", R=" << std::setprecision(5) << self.R
+                    << "]";
+             // clang-format on
+             return stream.str();
+           })
+      .def("_asdict", as_dict)  //< compatibility with namedtuple
+      .def("asdict", as_dict);
 
   subm.def(
       "statistics",
