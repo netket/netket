@@ -16,7 +16,6 @@
 #define NETKET_EXCHANGE_KERNEL_HPP
 
 #include <Eigen/Core>
-#include "Sampler/abstract_sampler.hpp"
 #include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -38,17 +37,7 @@ class ExchangeKernel {
     Init(psi.GetHilbert().GetGraph(), dmax);
   }
 
-  template <class G>
-  void Init(const G &graph, int dmax) {
-    GenerateClusters(graph, dmax);
-
-    InfoMessage() << "Exchange Kernel is ready " << std::endl;
-    InfoMessage() << dmax << " is the maximum distance for exchanges"
-                  << std::endl;
-  }
-
-  template <class G>
-  void GenerateClusters(const G &graph, int dmax) {
+  void Init(const AbstractGraph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
     assert(int(dist.size()) == nv_);

@@ -33,9 +33,8 @@ void AddMetropolisExchange(py::module &subm) {
               << "graph argument is deprecated and does not have any effect "
                  "here. The graph is deduced automatically from machine.\n";
         }
-        return MetropolisHastings(m, ExchangeKernel{m, dmax},
-                                  sweep_size.value_or(m.Nvisible()),
-                                  batch_size);
+        return MetropolisHastings(m, ExchangeKernel{m, dmax}, batch_size,
+                                  sweep_size.value_or(m.Nvisible()));
       },
       py::keep_alive<1, 2>(), py::arg("machine"), py::arg("graph") = py::none(),
       py::arg("d_max") = 1, py::arg("batch_size") = 16,
@@ -70,10 +69,10 @@ void AddMetropolisExchange(py::module &subm) {
                        $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
               graph: DEPRECATED argument
-              sweep_size: The number of exchanges that compose a single sweep.
-                          If not specified, sweep_size is equal to the number of degrees of freedom (n_visible).
-              batch_size: The number of Markov Chain to be run in parallel on a single process.
               d_max: The maximum graph distance allowed for exchanges.
+              batch_size: The number of Markov Chain to be run in parallel on a single process.
+              sweep_size: The number of exchanges that compose a single sweep.
+                          If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
           Examples:
               Sampling from a RBM machine in a 1D lattice of spin 1/2, using

@@ -23,8 +23,8 @@ MetropolisHastings::MetropolisHastings(
     Index sweep_size)
     : AbstractSampler(machine),
       transition_kernel_(transition_kernel),
-      sweep_size_(sweep_size),
-      batch_size_(batch_size) {
+      batch_size_(batch_size),
+      sweep_size_(sweep_size) {
   detail::CheckBatchSize(__FUNCTION__, batch_size);
   detail::CheckSweepSize(__FUNCTION__, sweep_size);
 
