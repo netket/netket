@@ -78,7 +78,7 @@ class AbstractMachine {
   Member function returning the number of visible units.
   @return Number of visible units in the Machine.
   */
-  virtual int Nvisible() const = 0;
+  virtual int Nvisible() const { return GetHilbert().Size(); }
 
   /**
    * Computes logarithm of the wave function for a batch of visible
@@ -238,6 +238,25 @@ class AbstractMachine {
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
+
+#define NETKET_MACHINE_DISABLE_LOOKUP                                         \
+  Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v, const any &cache) \
+      final {                                                                 \
+    Complex data;                                                             \
+    auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);                        \
+    LogVal(v.transpose(), out, cache);                                        \
+    return data;                                                              \
+  }                                                                           \
+  Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,          \
+                                const any &cache) final {                     \
+    Eigen::VectorXcd out(Npar());                                             \
+    DerLog(v.transpose(),                                                     \
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache); \
+    return out;                                                               \
+  }                                                                           \
+  any InitLookup(VisibleConstType) final { return {}; }                       \
+  void UpdateLookup(VisibleConstType, const std::vector<int> &,               \
+                    const std::vector<double> &, any &) final {}
 
 }  // namespace netket
 

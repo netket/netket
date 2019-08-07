@@ -19,6 +19,7 @@ option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
+option(NETKET_USE_TORCH "Use PyTorch" ON)
 
 option(NETKET_USE_SLEEF "Use Sleef vector math library" ON)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
@@ -184,6 +185,38 @@ if (BUILD_TESTING AND NETKET_BUILD_TESTING)
         INTERFACE "${CMAKE_BINARY_DIR}/External/Catch2/catch2")
 endif()
 
+# PyTorch
+################################################################################
+if (NETKET_USE_TORCH)
+    add_library(Torch INTERFACE)
+    find_package(PythonInterp ${NETKET_PYTHON_VERSION} REQUIRED)
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+        "from torch.utils.cpp_extension import include_paths;
+print(';'.join(include_paths()), end='')"
+        RESULT_VARIABLE _PYTHON_SUCCESS
+        OUTPUT_VARIABLE _PYTHON_VALUE
+        ERROR_VARIABLE _PYTHON_ERROR_VALUE)
+    if(NOT _PYTHON_SUCCESS MATCHES 0)
+        message(FATAL_ERROR
+            "Could not find PyTorch include directories:\n${_PYTHON_ERROR_VALUE}")
+        return()
+    endif()
+    target_include_directories(Torch SYSTEM INTERFACE ${_PYTHON_VALUE})
+    target_include_directories(Torch SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
+    message(STATUS "[Torch] include directories: ${_PYTHON_VALUE}")
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+        "from torch.utils.cpp_extension import library_paths;
+print(';'.join(library_paths()), end='')"
+        RESULT_VARIABLE _PYTHON_SUCCESS
+        OUTPUT_VARIABLE _PYTHON_VALUE
+        ERROR_VARIABLE _PYTHON_ERROR_VALUE)
+    if(NOT _PYTHON_SUCCESS MATCHES 0)
+        message(FATAL_ERROR
+            "Could not find PyTorch library paths:\n${_PYTHON_ERROR_VALUE}")
+        return()
+    endif()
+    target_link_libraries(Torch INTERFACE ${_PYTHON_VALUE})
+endif()
 
 #
 # NetKet
@@ -207,7 +240,16 @@ if(NETKET_USE_OPENMP)
 endif()
 if(NETKET_USE_SLEEF)
     target_link_libraries(netket_lib INTERFACE Sleef)
-    target_compile_definitions(netket_lib INTERFACE NETKET_USE_SLEEF)
+    target_compile_definitions(netket_lib INTERFACE NETKET_USE_SLEEF=1)
+endif()
+if(NETKET_USE_TORCH)
+    target_link_libraries(netket_lib INTERFACE Torch)
+    target_compile_definitions(netket_lib INTERFACE
+        NETKET_USE_TORCH=1
+        TORCH_API_INCLUDE_EXTENSION_H=1
+        TORCH_EXTENSION_NAME="_C_netket"
+        _GLIBCXX_USE_CXX11_ABI=0
+    )
 endif()
 
 set(NETKET_WARNING_FLAGS
@@ -307,6 +349,21 @@ if (NETKET_USE_SLEEF)
     ExternalProject_Get_Property(eigen_project SOURCE_DIR)
     target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${SOURCE_DIR})
     target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh_avx2>)
+endif()
+
+if (NETKET_USE_TORCH)
+    add_library(torch_machine OBJECT Sources/Machine/py_torch.cc Sources/Machine/torch.cc)
+    set_property(TARGET torch_machine PROPERTY POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(torch_machine PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(torch_machine PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
+    target_include_directories(torch_machine SYSTEM PUBLIC
+        $<TARGET_PROPERTY:netket_lib,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_include_directories(torch_machine SYSTEM PUBLIC
+        $<TARGET_PROPERTY:Torch,INTERFACE_INCLUDE_DIRECTORIES>)
+    add_dependencies(torch_machine eigen_project pybind11_project)
+    target_sources(netket PRIVATE $<TARGET_OBJECTS:torch_machine>)
 endif()
 
 # A workaround for missing __cpu_model bug in gcc-5 and Clangs earlier than 6

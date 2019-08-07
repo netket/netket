@@ -57,38 +57,11 @@ class RbmSpinV2 : public AbstractMachine {
   void DerLog(Eigen::Ref<const RowMatrix<double>> v,
               Eigen::Ref<RowMatrix<Complex>> out, const any & /*unused*/) final;
 
-  /// Simply calls `LogVal` with a batch size of 1.
-  ///
-  /// \note performance of this function is pretty bad. Please, use `LogVal`
-  /// with batch sizes greater than 1 if at all possible.
-  Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                       const any &cache) final {
-    Complex data;
-    auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
-    LogVal(v.transpose(), out, cache);
-    return data;
-  }
-
-  /// Simply calls `DerLog` with a batch size of 1.
-  ///
-  /// \note performance of this function is pretty bad. Please, use `DerLog`
-  /// with batch sizes greater than 1 if at all possible.
-  Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                                const any &cache) final {
-    Eigen::VectorXcd out(Npar());
-    DerLog(v.transpose(),
-           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
-    return out;
-  }
-
-  // Look-up stuff
-  any InitLookup(VisibleConstType) final { return {}; }
-  void UpdateLookup(VisibleConstType, const std::vector<int> &,
-                    const std::vector<double> &, any &) final {}
-
   PyObject *StateDict() final;
 
   bool IsHolomorphic() const noexcept final { return true; }
+
+  NETKET_MACHINE_DISABLE_LOOKUP
 
  private:
   /// Performs `out := log(cosh(out + b))`.

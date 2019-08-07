@@ -41,6 +41,10 @@
 #include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
 
+#if defined(NETKET_USE_TORCH)
+#include "Machine/py_torch.hpp"
+#endif
+
 namespace py = pybind11;
 
 namespace netket {
@@ -680,7 +684,7 @@ void AddAbstractMachine(py::module m) {
            )EOF")
       .def(
           "load_state_dict",
-          [](AbstractMachine &self, py::dict state) {
+          [](AbstractMachine &self, py::object state) {
             self.StateDict(state.ptr());
           },
           R"EOF(Loads machine's state from `state`.
@@ -771,6 +775,9 @@ void AddMachineModule(py::module m) {
   AddFFNN(subm);
   AddLayerModule(m);
   AddDensityMatrixModule(subm);
+#if defined(NETKET_USE_TORCH)
+  AddPyTorchMachine(subm.ptr());
+#endif
 }
 
 }  // namespace netket
