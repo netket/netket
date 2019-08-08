@@ -24,23 +24,20 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisHastings(py::module& subm) {
-  auto cls = py::class_<MetropolisHastings, AbstractSampler>(
-                 subm, "MetropolisHastings",
-                 R"EOF(
+  py::class_<MetropolisHastings, AbstractSampler>(subm, "MetropolisHastings",
+                                                  R"EOF(
 
-    )EOF")
-                 .def(py::init([](AbstractMachine& machine,
-                                  MetropolisHastings::TransitionKernel tk,
-                                  Index batch_size,
-                                  nonstd::optional<Index> sweep_size) {
-                        return make_unique<MetropolisHastings>(
-                            machine, tk, batch_size,
-                            sweep_size.value_or(machine.Nvisible()));
-                      }),
-                      py::keep_alive<1, 2>(), py::arg("machine"),
-                      py::arg("transition_kernel"), py::arg("batch_size") = 16,
-                      py::arg("sweep_size") = py::none(),
-                      R"EOF(
+                 )EOF")
+      .def(py::init([](AbstractMachine& machine,
+                       MetropolisHastings::TransitionKernel tk,
+                       Index batch_size, nonstd::optional<Index> sweep_size) {
+             return MetropolisHastings(machine, tk, batch_size,
+                                       sweep_size.value_or(machine.Nvisible()));
+           }),
+           py::keep_alive<1, 2>(), py::arg("machine"),
+           py::arg("transition_kernel"), py::arg("batch_size") = 16,
+           py::arg("sweep_size") = py::none(),
+           R"EOF(
              Constructs a new ``MetropolisHastings`` sampler given a machine and
              a transition kernel.
 
@@ -73,6 +70,34 @@ void AddMetropolisHastings(py::module& subm) {
 
                  ```
              )EOF");
+
+  py::class_<MetropolisHastingsPt, AbstractSampler>(subm,
+                                                    "MetropolisHastingsPt",
+                                                    R"EOF(
+
+                 )EOF")
+      .def(py::init([](AbstractMachine& machine,
+                       MetropolisHastings::TransitionKernel tk,
+                       Index n_replicas, nonstd::optional<Index> sweep_size) {
+             return MetropolisHastingsPt(
+                 machine, tk, n_replicas,
+                 sweep_size.value_or(machine.Nvisible()));
+           }),
+           py::keep_alive<1, 2>(), py::arg("machine"),
+           py::arg("transition_kernel"), py::arg("n_replicas") = 16,
+           py::arg("sweep_size") = py::none(),
+           R"EOF(
+                        This sampler performs parallel-tempering
+                        moves in addition to the moves implemented in `MetropolisHastings`.
+                        The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+
+                        Args:
+                        machine: A machine $$\Psi(s)$$ used for the sampling.
+                                 The probability distribution being sampled
+                                 from is $$F(\Psi(s))$$, where the function
+                                 $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+                        n_replicas: The number of replicas used for parallel tempering.
+                )EOF");
 }
 }  // namespace netket
 #endif

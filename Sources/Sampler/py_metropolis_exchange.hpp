@@ -18,6 +18,7 @@
 #include <pybind11/pybind11.h>
 #include "exchange_kernel.hpp"
 #include "metropolis_hastings.hpp"
+#include "metropolis_hastings_pt.hpp"
 
 namespace py = pybind11;
 
@@ -36,7 +37,7 @@ void AddMetropolisExchange(py::module &subm) {
         return MetropolisHastings(m, ExchangeKernel{m, dmax}, batch_size,
                                   sweep_size.value_or(m.Nvisible()));
       },
-      py::keep_alive<1, 2>(), py::arg("machine"), py::arg("graph") = py::none(),
+      py::keep_alive<0, 1>(), py::arg("machine"), py::arg("graph") = py::none(),
       py::arg("d_max") = 1, py::arg("batch_size") = 16,
       py::arg{"sweep_size"} = py::none(),
       R"EOF(
@@ -96,6 +97,59 @@ void AddMetropolisExchange(py::module &subm) {
 
 
           )EOF");
+  subm.def(
+      "MetropolisExchangePt",
+      [](AbstractMachine &m, nonstd::optional<AbstractGraph *> g, Index dmax,
+         Index n_replicas, nonstd::optional<Index> sweep_size) {
+        if (g.has_value()) {
+          WarningMessage()
+              << "graph argument is deprecated and does not have any effect "
+                 "here. The graph is deduced automatically from machine.\n";
+        }
+        return MetropolisHastingsPt(m, ExchangeKernel{m, dmax}, n_replicas,
+                                    sweep_size.value_or(m.Nvisible()));
+      },
+      py::keep_alive<0, 1>(), py::arg("machine"), py::arg("graph") = py::none(),
+      py::arg("d_max") = 1, py::arg("n_replicas") = 16,
+      py::arg{"sweep_size"} = py::none(),
+      R"EOF(
+        This sampler performs parallel-tempering
+        moves in addition to the local moves implemented in `MetropolisExchange`.
+        The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+
+
+            Args:
+                machine: A machine $$\Psi(s)$$ used for the sampling.
+                         The probability distribution being sampled
+                         from is $$F(\Psi(s))$$, where the function
+                         $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+
+                graph: DEPRECATED argument
+                d_max: The maximum graph distance allowed for exchanges.
+                n_replicas: The number of replicas used for parallel tempering.
+                sweep_size: The number of exchanges that compose a single sweep.
+                            If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+
+            Examples:
+                Sampling from a RBM machine in a 1D lattice of spin 1/2, using
+                nearest-neighbours exchanges.
+
+                ```python
+                >>> import netket as nk
+                >>>
+                >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+                >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
+                >>>
+                >>> # RBM Spin Machine
+                >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+                >>>
+                >>> # Construct a MetropolisExchange Sampler with parallel tempering
+                >>> sa = nk.sampler.MetropolisExchangePt(machine=ma,n_replicas=24)
+                >>> print(sa.machine.hilbert.size)
+                100
+
+                ```
+              )EOF");
 
   // AddAcceptance(cls);
 }

@@ -44,7 +44,7 @@ ma.init_random_parameters(seed=1234, sigma=0.1)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 samplers["MetropolisLocal Boson"] = sa
 
-sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=5)
+sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=2)
 samplers["MetropolisLocalPt Boson"] = sa
 
 hi = nk.hilbert.Spin(s=0.5, graph=g)

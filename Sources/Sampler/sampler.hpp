@@ -29,6 +29,7 @@
 #include "metropolis_hamiltonian.hpp"
 #include "metropolis_hamiltonian_pt.hpp"
 #include "metropolis_hastings.hpp"
+#include "metropolis_hastings_pt.hpp"
 #include "metropolis_local_pt.hpp"
 
 #endif

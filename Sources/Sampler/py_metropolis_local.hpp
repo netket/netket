@@ -17,6 +17,8 @@
 
 #include <pybind11/pybind11.h>
 #include "local_kernel.hpp"
+#include "metropolis_hastings.hpp"
+#include "metropolis_hastings_pt.hpp"
 
 namespace py = pybind11;
 
@@ -29,7 +31,7 @@ void AddMetropolisLocal(py::module &subm) {
              return MetropolisHastings(m, LocalKernel{m}, batch_size,
                                        sweep_size.value_or(m.Nvisible()));
            },
-           py::keep_alive<1, 2>(), py::arg("machine"),
+           py::keep_alive<0, 1>(), py::arg("machine"),
            py::arg("batch_size") = 16, py::arg{"sweep_size"} = py::none(),
            R"EOF(
 
@@ -86,6 +88,46 @@ void AddMetropolisLocal(py::module &subm) {
 
                  ```
              )EOF");
+
+  subm.def("MetropolisLocalPt",
+           [](AbstractMachine &m, Index n_replicas,
+              nonstd::optional<Index> sweep_size) {
+             return MetropolisHastingsPt(m, LocalKernel{m}, n_replicas,
+                                         sweep_size.value_or(m.Nvisible()));
+           },
+           py::keep_alive<0, 1>(), py::arg("machine"),
+           py::arg("n_replicas") = 16, py::arg{"sweep_size"} = py::none(),
+           R"EOF(
+             This sampler performs parallel-tempering
+             moves in addition to the local moves implemented in `MetropolisLocal`.
+             The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+
+             Args:
+                 machine: A machine $$\Psi(s)$$ used for the sampling.
+                          The probability distribution being sampled
+                          from is $$F(\Psi(s))$$, where the function
+                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+                 n_replicas: The number of replicas used for parallel tempering.
+
+             Examples:
+                 Sampling from a RBM machine in a 1D lattice of spin 1/2
+
+                 ```python
+                 >>> import netket as nk
+                 >>>
+                 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+                 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
+                 >>>
+                 >>> # RBM Spin Machine
+                 >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+                 >>>
+                 >>> # Construct a MetropolisLocalPt Sampler
+                 >>> sa = nk.sampler.MetropolisLocalPt(machine=ma,n_replicas=16)
+                 >>> print(sa.machine.hilbert.size)
+                 100
+
+                 ```
+           )EOF");
   // AddAcceptance(cls);
 }
 }  // namespace netket

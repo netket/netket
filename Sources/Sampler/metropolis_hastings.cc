@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "Sampler/metropolis_hastings.hpp"
-#include "Utils/mpi_interface.hpp"
 
 namespace netket {
 

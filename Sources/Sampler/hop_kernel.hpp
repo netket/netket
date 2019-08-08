@@ -51,7 +51,7 @@ class HopKernel {
   void GenerateClusters(const AbstractGraph &graph, int dmax) {
     auto dist = graph.AllDistances();
 
-    assert((dist.size()) == nv_);
+    assert(Index(dist.size()) == nv_);
 
     for (Index i = 0; i < nv_; i++) {
       for (Index j = 0; j < nv_; j++) {
@@ -73,7 +73,7 @@ class HopKernel {
 
     for (int i = 0; i < v.rows(); i++) {
       Index rcl = distcl_(GetRandomEngine());
-      assert(rcl < clusters_.size());
+      assert(rcl < Index(clusters_.size()));
       Index si = clusters_[rcl][0];
       Index sj = clusters_[rcl][1];
 

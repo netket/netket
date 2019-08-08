@@ -45,13 +45,11 @@ pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
 #include "py_custom_sampler_pt.hpp"
 #include "py_exact_sampler.hpp"
 #include "py_metropolis_exchange.hpp"
-#include "py_metropolis_exchange_pt.hpp"
 #include "py_metropolis_hamiltonian.hpp"
 #include "py_metropolis_hamiltonian_pt.hpp"
 #include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
-#include "py_metropolis_local_pt.hpp"
 
 namespace py = pybind11;
 
@@ -144,12 +142,10 @@ void AddSamplerModule(py::module& m) {
                                    however in general $$F(\Psi(v))$$)EOF");
 
   AddMetropolisLocal(subm);
-  AddMetropolisLocalPt(subm);
   AddMetropolisHop(subm);
   AddMetropolisHamiltonian(subm);
   AddMetropolisHamiltonianPt(subm);
   AddMetropolisExchange(subm);
-  AddMetropolisExchangePt(subm);
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddCustomSamplerPt(subm);
