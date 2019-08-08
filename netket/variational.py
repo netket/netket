@@ -61,7 +61,7 @@ def estimate_expectation(op, psi, mc_data, return_gradient=False):
     """
 
     from ._C_netket import operator as nop
-    from ._C_netket.stats import statistics
+    from ._C_netket.stats import covariance_sv, statistics
 
     local_values = nop.local_values(op, psi, mc_data.samples, mc_data.log_values)
     stats = statistics(local_values)
