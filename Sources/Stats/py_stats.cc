@@ -133,12 +133,19 @@ void AddStatsModule(py::module m) {
   subm.def(
       "covariance_sv",
       [](py::array_t<Complex, py::array::c_style> s_values,
-         py::array_t<Complex, py::array::c_style> v_values) {
+         py::array_t<Complex, py::array::c_style> v_values, bool center_s) {
         Eigen::Map<const VectorXcd> s_vector{s_values.data(), s_values.size()};
 
-        // Compute S -> S - E[S]
-        Complex mean = s_vector.mean();
-        MeanOnNodes(mean);
+        // Compute S -> S - 𝔼[S]
+        const Complex mean = [&s_vector, center_s]() -> Complex {
+          if (center_s) {
+            Complex mean = s_vector.mean();
+            MeanOnNodes(mean);
+            return mean;
+          } else {
+            return 0.;
+          }
+        }();
 
         switch (s_values.ndim()) {
           case 2:
@@ -165,6 +172,7 @@ void AddStatsModule(py::module m) {
         }  // end switch
       },
       py::arg{"s"}.noconvert(), py::arg{"v"}.noconvert(),
+      py::arg{"center_s"} = true,
       R"EOF(Computes the covariance of two random variables S, V from MCMC
             data. Note that while S has to be a complex scalar variable,
             V = (v[1], ..., v[m]) can be vector-valued. This is because this
@@ -186,6 +194,10 @@ void AddStatsModule(py::module m) {
                     is the number of samples, `M` is the number of Markov Chains,
                     and `m` is the dimension of V. A `(N, m)` matrix
                     is treated an an `(N, 1, m)` array.
+                center_s (bool=True): Whether S should be centered, i.e.,
+                    computing S - 𝔼[S]. If set to False, this function will
+                    only return the mathematical covariance if either S or all
+                    v[i] are already centered, i.e., have zero mean.
 
         )EOF");
 }
