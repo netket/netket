@@ -73,13 +73,13 @@ def test_vmc_functions():
     local_values = nk.operator.local_values(ha, ma, data.samples, data.log_values)
     # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
     # assert ex.variance == approx(0.0, abs=2e-7)
-    grad = vmc.gradient_of_expectation(local_values, data.der_logs)
+    grad = vmc.covariance_sv(local_values, data.der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
     _, grad_hl = vmc.estimate_expectation(ha, ma, data, return_gradient=True)
     assert grad_hl.shape == (ma.n_par,)
-    assert np.all(grad == grad_hl)
+    assert np.allclose(grad, grad_hl)
 
     data_without_logderivs = vmc.compute_samples(
         sampler, n_samples=1, n_discard=1, der_logs=None
