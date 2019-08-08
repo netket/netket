@@ -74,7 +74,7 @@ def estimate_expectation(op, psi, mc_data, return_gradient=False):
                 " der_logs='centered')`."
             )
 
-        grad = gradient_of_expectation(local_values, mc_data.der_logs)
+        grad = covariance_sv(local_values, mc_data.der_logs)
         return stats, grad
     else:
         return stats
