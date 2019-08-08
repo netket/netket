@@ -71,9 +71,7 @@ def test_vmc_functions():
         assert ex_hl.R == ex.R
 
     local_values = nk.operator.local_values(ha, ma, data.samples, data.log_values)
-    # ex = vmc.statistics(local_values, n_chains=sampler.batch_size)
-    # assert ex.variance == approx(0.0, abs=2e-7)
-    grad = vmc.covariance_sv(local_values, data.der_logs)
+    grad = nk.stats.covariance_sv(local_values, data.der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
