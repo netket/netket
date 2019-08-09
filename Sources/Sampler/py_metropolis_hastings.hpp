@@ -27,6 +27,19 @@ void AddMetropolisHastings(py::module& subm) {
   py::class_<MetropolisHastings, AbstractSampler>(subm, "MetropolisHastings",
                                                   R"EOF(
 
+            ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
+            a local transition kernel to perform moves in the Markov Chain.
+            The transition kernel is used to generate
+            a proposed state $$ s^\prime $$, starting from the current state $$ s $$.
+            The move is accepted with probability
+
+            $$
+            A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
+            $$
+
+            where the probability being sampled is $$ F(\Psi(s)) $$ (by default $$ F(x)=|x|^2 $$)
+            and $L(s,s^\prime)$ is a correcting factor computed by the transition kernel.
+
                  )EOF")
       .def(py::init([](AbstractMachine& machine,
                        MetropolisHastings::TransitionKernel tk,
@@ -46,27 +59,58 @@ void AddMetropolisHastings(py::module& subm) {
                           The probability distribution being sampled
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
-                 graph: A graph used to define the distances among the degrees
-                        of freedom being sampled.
-                 d_max: The maximum graph distance allowed for exchanges.
+                 transition_kernel: A function to generate a transition.
+                          This should take as an input the current state (in batches)
+                          and return a modified state (also in batches).
+                          This function must also return an array containing the
+                          `log_prob_corrections` $$L(s,s^\prime)$$.
+                 batch_size: The number of Markov Chain to be run in parallel on a single process.
+                 sweep_size: The number of exchanges that compose a single sweep.
+                             If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2, using
-                 nearest-neighbours exchanges.
+                 nearest-neighbours exchanges with a custom kernel.
 
                  ```python
-                 >>> import netket as nk
-                 >>>
-                 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-                 >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
-                 >>>
-                 >>> # RBM Spin Machine
-                 >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
-                 >>>
-                 >>> # Construct a MetropolisExchange Sampler
-                 >>> sa = nk.sampler.MetropolisExchange(machine=ma,graph=g,d_max=1)
-                 >>> print(sa.machine.hilbert.size)
-                 100
+                 import netket as nk
+                 import numpy as np
+
+                 # 1D Lattice
+                 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+
+                 # Hilbert space of spins on the graph
+                 # with total Sz equal to 0
+                 hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+
+                 # Heisenberg hamiltonian
+                 ha = nk.operator.Heisenberg(hilbert=hi)
+
+                 # Symmetric RBM Spin Machine
+                 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+                 ma.init_random_parameters(seed=1234, sigma=0.01)
+
+                 # Defining a custom kernel for MetropolisHastings
+                 # Notice that this sampler exchanges two random sites
+                 # thus preserving the total magnetization
+                 # Also notice that it is not recommended to define custom kernels in python
+                 # For speed reasons it is better to define exchange kernels using CustomSampler
+                 def exchange_kernel(v, vnew, logprobcorr):
+
+                     vnew[:, :] = v[:, :]
+                     logprobcorr[:] = 0.0
+
+                     rands = np.random.randint(v.shape[1], size=(v.shape[0], 2))
+
+                     for i in range(v.shape[0]):
+                         iss = rands[i, 0]
+                         jss = rands[i, 1]
+
+                         vnew[i, iss], vnew[i, jss] = vnew[i, jss], vnew[i, iss]
+
+
+                 sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, batch_size=16, sweep_size=20)
+
 
                  ```
              )EOF");
@@ -74,8 +118,10 @@ void AddMetropolisHastings(py::module& subm) {
   py::class_<MetropolisHastingsPt, AbstractSampler>(subm,
                                                     "MetropolisHastingsPt",
                                                     R"EOF(
-
-                 )EOF")
+            This sampler performs parallel-tempering
+            moves in addition to the moves implemented in `MetropolisHastings`.
+            The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+            )EOF")
       .def(py::init([](AbstractMachine& machine,
                        MetropolisHastings::TransitionKernel tk,
                        Index n_replicas, nonstd::optional<Index> sweep_size) {
@@ -87,17 +133,24 @@ void AddMetropolisHastings(py::module& subm) {
            py::arg("transition_kernel"), py::arg("n_replicas") = 16,
            py::arg("sweep_size") = py::none(),
            R"EOF(
-                        This sampler performs parallel-tempering
-                        moves in addition to the moves implemented in `MetropolisHastings`.
-                        The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+            Constructs a new ``MetropolisHastingsPt`` sampler.
 
-                        Args:
-                        machine: A machine $$\Psi(s)$$ used for the sampling.
-                                 The probability distribution being sampled
-                                 from is $$F(\Psi(s))$$, where the function
-                                 $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
-                        n_replicas: The number of replicas used for parallel tempering.
-                )EOF");
+            Args:
+                machine: A machine $$\Psi(s)$$ used for the sampling.
+                         The probability distribution being sampled
+                         from is $$F(\Psi(s))$$, where the function
+                         $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+                transition_kernel: A function to generate a transition.
+                         This should take as an input the current state (in batches)
+                         and return a modified state (also in batches).
+                         This function must also return an array containing the
+                         `log_prob_corrections` $$L(s,s^\prime)$$.
+                n_replicas: The number of replicas used for parallel tempering.
+                sweep_size: The number of exchanges that compose a single sweep.
+                            If None, sweep_size is equal to the number of degrees
+                            of freedom (n_visible).
+
+            )EOF");
 }
 }  // namespace netket
 #endif

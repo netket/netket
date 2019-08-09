@@ -44,10 +44,10 @@ machine given an input wrt the machine's parameters.
 ### init_random_parameters
 Member function to initialise machine parameters.
 
-|Argument|        Type        |                               Description                                |
-|--------|--------------------|--------------------------------------------------------------------------|
-|seed    |Optional[int] = None|The random number generator seed.                                         |
-|sigma   |float = 0.1         |Standard deviation of normal distribution from which parameters are drawn.|
+|Argument|        Type        |                                                 Description                                                 |
+|--------|--------------------|-------------------------------------------------------------------------------------------------------------|
+|seed    |Optional[int] = None|The random number generator seed. If not given, the global random generator (with its current state) is used.|
+|sigma   |float = 0.1         |Standard deviation of normal distribution from which parameters are drawn.                                   |
 
 ### load
 Member function to load machine parameters from a json file.

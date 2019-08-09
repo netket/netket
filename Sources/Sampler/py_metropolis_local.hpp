@@ -108,6 +108,8 @@ void AddMetropolisLocal(py::module &subm) {
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                  n_replicas: The number of replicas used for parallel tempering.
+                 sweep_size: The number of exchanges that compose a single sweep.
+                             If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2

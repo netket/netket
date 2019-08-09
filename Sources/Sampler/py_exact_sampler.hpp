@@ -42,6 +42,8 @@ void AddExactSampler(py::module &subm) {
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
+                 batch_size: The number of Markov Chains to be run in parallel on a single process.          
+
              Examples:
                  Exact sampling from a RBM machine in a 1D lattice of spin 1/2
 
