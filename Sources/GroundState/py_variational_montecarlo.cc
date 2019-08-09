@@ -239,26 +239,37 @@ void AddVariationalMonteCarloModule(PyObject *module) {
       "compute_samples",
       [](AbstractSampler &sampler, Index n_samples, Index n_discard,
          nonstd::optional<std::string> der_logs) {
-    MCResult result = ComputeSamples(sampler, n_samples, n_discard, der_logs);
+        // Helper types and lambda for writing the shapes in a clean way:
+        using Shape2 = std::array<std::size_t, 2>;
+        using Shape3 = std::array<std::size_t, 3>;
+        const auto _ = [](Index i) { return static_cast<std::size_t>(i); };
 
-    const auto shape = {result.samples.rows() / result.n_chains,
-                        result.n_chains, result.samples.cols()};
-    auto samples =
-        py::array_t<double, py::array::c_style>{shape, result.samples.data()};
-    auto logvals = py::array_t<Complex, py::array::c_style>{
-        shape, result.log_values.data()};
+        MCResult result =
+            ComputeSamples(sampler, n_samples, n_discard, der_logs);
 
-    if (!der_logs) {
-      return py::make_tuple(samples, logvals);
-    } else {
-      const auto dl_shape = {result.der_logs->rows() / result.n_chains,
-                             result.n_chains, result.der_logs->cols()};
-      auto dl = py::array_t<Complex, py::array::c_style> {
-        {dl_shape, *result.der_logs};
+        const Shape3 sample_shape = {_(result.samples.rows() / result.n_chains),
+                                     _(result.n_chains),
+                                     _(result.samples.cols())};
+        auto samples = py::array_t<double, py::array::c_style>{
+            sample_shape, result.samples.data()};
 
-        return py::make_tuple(samples, logvals, der_logs);
-      }
-    },
+        const Shape2 logval_shape = {_(result.samples.rows() / result.n_chains),
+                                     _(result.n_chains)};
+        auto logvals = py::array_t<Complex, py::array::c_style>{
+            logval_shape, result.log_values.data()};
+
+        if (!result.der_logs.has_value()) {
+          return py::make_tuple(samples, logvals);
+        } else {
+          const Shape3 dl_shape = {_(result.der_logs->rows() / result.n_chains),
+                                   _(result.n_chains),
+                                   _(result.der_logs->cols())};
+          auto der_logs = py::array_t<Complex, py::array::c_style>{
+              dl_shape, result.der_logs->data()};
+
+          return py::make_tuple(samples, logvals, der_logs);
+        }
+      },
       py::arg{"sampler"}, py::arg{"n_samples"}, py::arg{"n_discard"},
       py::arg{"der_logs"} = py::none(),
       R"EOF(Runs Monte Carlo sampling using `sampler`.

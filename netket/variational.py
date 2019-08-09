@@ -31,7 +31,7 @@ Vmc.iter = _Vmc_iter
 # Higher-level VMC functions:
 
 
-def estimate_expectation(op, psi, mc_data, return_gradient=False):
+def estimate_expectation(op, psi, samples, log_values, der_logs=None):
     """
     estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, return_gradient: bool=True) -> Stats
 
@@ -39,21 +39,32 @@ def estimate_expectation(op, psi, mc_data, return_gradient=False):
     variance, and optionally the gradient of the expectation value with respect to the
     variational parameters.
 
-    The estimate is based on a Markov chain of configurations (`mc_data`), as
-    returned from `compute_samples`.
+    The estimate is based on a Markov chain of configurations obtained from
+    `netket.variational.compute_samples`.
 
     Args:
         op: Linear operator
         psi: Variational wavefunction
-        mc_data: MC result obtained from `compute_samples`
-        return_gradient (bool): Whether to compute and return the gradient of the
-            expectation value of `op`. If True, `mc_data` needs to provide the
-            _centered_ (i.e., with subtracted mean) logarithmic derivatives of the
-            wavefunction, which can be obtained by calling
-                compute_samples(..., der_logs="centered")
+        samples: A matrix (or a rank-3 tensor) of visible
+            configurations. If it is a matrix, each row of the matrix
+            must correspond to a visible configuration.  `samples` is a
+            rank-3 tensor, its shape should be `(N, M, #visible)` where
+            `N` is the number of samples, `M` is the number of Markov
+            Chains, and `#visible` is the number of visible units.
+        log_values: Corresponding values of the logarithm of the
+            wavefunction. If `samples` is a `(N, #visible)` matrix, then
+            `log_values` should be a vector of `N` complex numbers. If
+            `samples` is a rank-3 tensor, then the shape of `log_values`
+            should be `(N, M)`.
+        der_logs: Logarithmic derivatives of the wavefunction
+            If `samples` is a `(N, #visible)` matrix, `der_logs` should have
+            shape `(N, psi.n_par)`. If `samples` is a rank-3 tensor, the shape
+            of `der_logs` should be `(N, M, psi.n_par)`.
+            This argument is optional; if it is not passed, the gradient will
+            not be computed.
 
     Returns:
-        Either `stats` or, if `return_gradient == True`, a tuple of `stats` and `grad`:
+        Either `stats` or, if `der_logs` is passed, a tuple of `stats` and `grad`:
             stats: A Stats object containing mean, variance, and MC diagonstics for
                    the estimated expectation value of `op`.
             grad: The gradient of the expectation value of `op`,
@@ -63,18 +74,11 @@ def estimate_expectation(op, psi, mc_data, return_gradient=False):
     from ._C_netket import operator as nop
     from ._C_netket.stats import covariance_sv, statistics
 
-    local_values = nop.local_values(op, psi, mc_data.samples, mc_data.log_values)
+    local_values = nop.local_values(op, psi, samples, log_values)
     stats = statistics(local_values)
 
-    if return_gradient:
-        if mc_data.der_logs is None:
-            raise ValueError(
-                "`return_gradient=True` passed to `estimate expectation`, but "
-                "`mc_data.der_logs` is not available. Call `compute_samples(...,"
-                " der_logs='centered')`."
-            )
-
-        grad = covariance_sv(local_values, mc_data.der_logs)
+    if der_logs is not None:
+        grad = covariance_sv(local_values, der_logs)
         return stats, grad
     else:
         return stats

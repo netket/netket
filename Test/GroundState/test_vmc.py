@@ -55,40 +55,31 @@ def test_vmc_functions():
         )
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        data = vmc.compute_samples(
+        samples, log_values, der_logs = vmc.compute_samples(
             sampler, n_samples=15000, n_discard=1000, der_logs="centered"
         )
 
-        local_values = nk.operator.local_values(op, ma, data.samples, data.log_values)
+        print(samples.shape)
+        print(log_values.shape)
+        print(der_logs.shape)
+
+        local_values = nk.operator.local_values(op, ma, samples, log_values)
         ex = nk.stats.statistics(local_values)
         assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean.real == approx(exact_ex.real, rel=tol)
 
-        ex_hl = vmc.estimate_expectation(op, ma, data, return_gradient=False)
-        assert ex_hl.mean == ex.mean
-        assert ex_hl.variance == ex.variance
-        assert ex_hl.error_of_mean == ex.error_of_mean
-        assert ex_hl.R == ex.R
+        ex_hl = vmc.estimate_expectation(op, ma, samples, log_values)
+        assert ex_hl.mean.real == approx(np.mean(local_values).real, rel=tol)
+        assert ex_hl.mean.real == approx(exact_ex.real, rel=tol)
 
-    local_values = nk.operator.local_values(ha, ma, data.samples, data.log_values)
-    grad = nk.stats.covariance_sv(local_values, data.der_logs)
+    local_values = nk.operator.local_values(ha, ma, samples, log_values)
+    grad = nk.stats.covariance_sv(local_values, der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
-    _, grad_hl = vmc.estimate_expectation(ha, ma, data, return_gradient=True)
+    _, grad_hl = vmc.estimate_expectation(ha, ma, samples, log_values, der_logs)
     assert grad_hl.shape == (ma.n_par,)
     assert np.allclose(grad, grad_hl)
-
-    data_without_logderivs = vmc.compute_samples(
-        sampler, n_samples=1, n_discard=1, der_logs=None
-    )
-    with raises(
-        ValueError,
-        match=r"`return_gradient=True` passed to `estimate expectation`, but "
-        r"`mc_data.der_logs` is not available\. Call `compute_samples\(..., "
-        r"der_logs='centered'\)`",
-    ):
-        vmc.estimate_expectation(op, ma, data_without_logderivs, return_gradient=True)
 
 
 def test_vmc_use_cholesky_compatibility():
