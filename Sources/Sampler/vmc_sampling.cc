@@ -1,5 +1,5 @@
-#include "Utils/messages.hpp"
 #include "vmc_sampling.hpp"
+#include "Utils/messages.hpp"
 
 namespace netket {
 
