@@ -54,9 +54,7 @@ class SR {
       : solver_(solver),
         sr_diag_shift_(diagshift),
         use_iterative_(use_iterative),
-        is_holomorphic_(is_holomorphic) {
-    InfoMessage() << LongDesc();
-  }
+        is_holomorphic_(is_holomorphic) {}
 
   explicit SR(double diagshift = 0.01, bool use_iterative = false,
               bool use_cholesky = true, bool is_holomorphic = true)

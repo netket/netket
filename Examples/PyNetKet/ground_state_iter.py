@@ -46,8 +46,8 @@ def output(vmc, step):
         variance = obs["Energy"].variance
         rhat = obs["Energy"].R
 
-        # S = vmc._sr.last_covariance_matrix
-        # w = eigvalsh(S)
+        S = vmc._sr.last_covariance_matrix
+        w = eigvalsh(S)
 
         print(
             FORMAT_STRING.format(
@@ -56,10 +56,10 @@ def output(vmc, step):
                 sigma,
                 variance,
                 rhat,
-                1,  # sa.acceptance,
-                0,  # vmc._sr.last_rank,
-                0,  # w.min(),
-                0,  # w.max(),
+                sa.acceptance,
+                vmc._sr.last_rank,
+                w.min(),
+                w.max(),
             )
         )
         # Print output to the console immediately
@@ -72,9 +72,9 @@ def run_vmc(steps, step_size, diag_shift, n_samples):
     opt = jaxopt.sgd(step_size)
     # opt = nk.optimizer.Sgd(step_size)
 
-    sr = nk.optimizer.SR(use_iterative=True, diag_shift=diag_shift)
-    sr.store_rank_enabled = False
-    sr.store_covariance_matrix_enabled = False
+    sr = nk.optimizer.SR(solver="BDCSVD", use_iterative=True, diag_shift=diag_shift)
+    sr.store_rank_enabled = True
+    sr.store_covariance_matrix_enabled = True
 
     vmc = nk._driver.VmcDriver(
         hamiltonian=ha,

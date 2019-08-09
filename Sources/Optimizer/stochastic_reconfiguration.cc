@@ -70,7 +70,7 @@ void SR::SetParameters(double diagshift, bool use_iterative, bool use_cholesky,
 
 std::string SR::LongDesc(Index depth) const {
   auto indent = [&depth]() { return std::string(4 * depth, ' '); };
-  std::stringstream str;
+  std::ostringstream str;
   str << indent() << "Stochastic reconfiguration method for "
       << (is_holomorphic_ ? "holomorphic" : "real-parameter")
       << " wavefunctions\n"

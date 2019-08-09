@@ -75,7 +75,7 @@ def make_optimizer_fn(arg):
         )
 
 
-class VmcDriver:
+class VmcDriver(object):
     """
     Driver class for Energy minimization using Variational Monte Carlo (VMC).
     """
@@ -113,7 +113,7 @@ class VmcDriver:
                 the optimizer. If this parameter is not passed or None, SR is not used.
 
         Example:
-            Optimizing a 1D wavefunction with Variational Mante Carlo.
+            Optimizing a 1D wavefunction with Variational Monte Carlo.
 
             ```python
             >>> import netket as nk
