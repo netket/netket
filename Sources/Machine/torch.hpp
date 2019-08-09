@@ -59,6 +59,10 @@ class PyTorchMachine final : public AbstractMachine {
               Eigen::Ref<RowMatrix<Complex>> out,
               const any & /*unused*/) override;
 
+  void JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<const VectorXcd> delta,
+              Eigen::Ref<VectorXcd> out) override;
+
   Eigen::VectorXcd GetParameters() override;
   void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) override;
   PyObject *StateDict() override;

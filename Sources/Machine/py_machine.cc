@@ -650,6 +650,14 @@ void AddAbstractMachine(py::module m) {
                  Args:
                      v: Input vector to machine.
            )EOF")
+      .def(
+          "jvp_log",
+          [](AbstractMachine &self, Eigen::Ref<const RowMatrix<double>> v,
+             Eigen::Ref<const VectorXcd> delta) {
+            return self.JvpLog(v, delta);
+          },
+          R"EOF( Pong! )EOF", py::arg{"v"}.noconvert(),
+          py::arg{"delta"}.noconvert())
       .def_property_readonly(
           "n_visible", &AbstractMachine::Nvisible,
           R"EOF(int: The number of inputs into the machine aka visible units in

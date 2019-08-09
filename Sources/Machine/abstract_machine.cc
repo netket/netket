@@ -101,6 +101,22 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   return DerLogSingle(vp);
 }
 
+void AbstractMachine::JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+                             Eigen::Ref<const VectorXcd> delta,
+                             Eigen::Ref<VectorXcd> out) {
+  // Other shapes are checked in DerLog
+  CheckShape(__FUNCTION__, "delta", delta.size(), v.rows());
+  CheckShape(__FUNCTION__, "out", out.size(), Npar());
+  out.noalias() = DerLog(v).transpose() * delta;
+}
+
+VectorXcd AbstractMachine::JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+                                  Eigen::Ref<const VectorXcd> delta) {
+  VectorXcd out(Npar());
+  JvpLog(v, delta, out);
+  return out;
+}
+
 AbstractMachine::VectorType AbstractMachine::LogValDiff(
     VisibleConstType v, const std::vector<std::vector<int>> &tochange,
     const std::vector<std::vector<double>> &newconf) {

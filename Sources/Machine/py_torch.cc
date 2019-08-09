@@ -14,6 +14,7 @@
 
 #include "Machine/py_torch.hpp"
 
+#include <ATen/Parallel.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -27,6 +28,9 @@ namespace py = pybind11;
 namespace netket {
 
 void AddPyTorchMachine(PyObject* raw) {
+  // at::set_num_threads(1);
+  // at::set_num_interop_threads(1);
+
   auto m = py::module{py::reinterpret_borrow<py::object>(raw)};
   py::class_<PyTorchMachine, AbstractMachine>(m, "Torch",
                                               R"EOF(

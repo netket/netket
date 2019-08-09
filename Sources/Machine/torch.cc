@@ -107,6 +107,83 @@ void PyTorchMachine::DerLog(Eigen::Ref<const RowMatrix<double>> /*unused*/,
   NETKET_CHECK(false, RuntimeError, "not yet implemented");
 }
 
+void PyTorchMachine::JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+                            Eigen::Ref<const VectorXcd> delta,
+                            Eigen::Ref<VectorXcd> out) {
+  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+             {std::ignore, this->Nvisible()});
+  CheckShape(__FUNCTION__, "delta", delta.size(), v.rows());
+  CheckShape(__FUNCTION__, "out", out.size(), Npar());
+
+  const auto write_to_out = [this, &out](bool is_imag) {
+    torch::NoGradGuard no_grad;
+    // offset is 1 for imaginary part and 0 for real
+    auto* ptr =
+        const_cast<double*>(reinterpret_cast<const double*>(out.data())) +
+        /*offset=*/is_imag;
+    auto go = [&ptr](const torch::jit::script::Slot& slot) {
+      auto src = slot.value().toTensor().grad().flatten();
+      auto dst = torch::from_blob(ptr, src.sizes(), {2}, torch::kFloat64);
+      dst.copy_(src);
+      ptr += 2 * src.numel();
+    };
+    detail::ForEveryParameter(*module_, std::cref(go));
+  };
+  const auto zero_grad = [this]() {
+    torch::NoGradGuard no_grad;
+    py::print("<zero_grad>");
+    auto go = [](const torch::jit::script::Slot& slot) {
+      auto g = slot.value().toTensor().grad();
+      if (g.defined()) g.zero_();
+    };
+    detail::ForEveryParameter(*module_, std::cref(go));
+    py::print("</zero_grad>");
+  };
+
+  auto grad = torch::empty({delta.size(), 2}, torch::kFloat64);
+  const auto get_delta = [&delta, &grad](bool is_imag) {
+    py::print("<get_delta>");
+    if (!is_imag) {
+      grad.slice(/*dim=*/1, /*start=*/0, /*end=*/1)
+          .squeeze()
+          .copy_(torch::from_blob(
+              const_cast<double*>(
+                  reinterpret_cast<const double*>(delta.data()) +
+                  /*offset=*/is_imag),
+              {delta.size()}, {2}));
+      grad.slice(/*dim=*/1, /*start=*/1, /*end=*/2).zero_();
+    } else {
+      grad.slice(/*dim=*/1, /*start=*/1, /*end=*/2)
+          .squeeze()
+          .copy_(torch::from_blob(
+              const_cast<double*>(
+                  reinterpret_cast<const double*>(delta.data()) +
+                  /*offset=*/is_imag),
+              {delta.size()}, {2}));
+      grad.slice(/*dim=*/1, /*start=*/0, /*end=*/1).zero_();
+    }
+    py::print("</get_delta>");
+    return grad;
+  };
+
+  auto y = forward_({detail::AsTensor(v)}).toTensor();
+  y.backward(torch::randn({v.rows(), 2}, torch::kFloat64));
+  assert(y.requires_grad());
+  py::print("hello 1");
+  zero_grad();
+  py::print("hello 2");
+  y.backward(get_delta(/*is_imag=*/false), /*keep_graph=*/true);
+  py::print("hello 3");
+  write_to_out(/*is_imag=*/false);
+  py::print("hello 4");
+  zero_grad();
+  py::print("hello 5");
+  y.backward(get_delta(/*is_imag=*/true), /*keep_graph=*/false);
+  py::print("hello 6");
+  write_to_out(/*is_imag=*/true);
+  py::print("hello 7");
+}
+
 VectorXcd PyTorchMachine::GetParameters() {
   // First of all, we construct a list of all the parameters by running DFS on
   // the model

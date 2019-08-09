@@ -101,6 +101,17 @@ class AbstractMachine {
                                     const any &cache = any{});
 
   /**
+   * Computes the `J · delta` product where `J` is the Jacobian matrix of the
+   * logarithm of the wavefunction at points `v`. Result is written to `out`.
+   */
+  virtual void JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+                      Eigen::Ref<const VectorXcd> delta,
+                      Eigen::Ref<VectorXcd> out);
+
+  virtual VectorXcd JvpLog(Eigen::Ref<const RowMatrix<double>> v,
+                           Eigen::Ref<const VectorXcd> delta);
+
+  /**
   Member function computing the logarithm of the wave function for a given
   visible vector. Given the current set of parameters, this function should
   comput the value of the logarithm of the wave function using the information

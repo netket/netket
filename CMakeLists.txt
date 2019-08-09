@@ -190,9 +190,10 @@ endif()
 if (NETKET_USE_TORCH)
     add_library(Torch INTERFACE)
     find_package(PythonInterp ${NETKET_PYTHON_VERSION} REQUIRED)
-    execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
-        "from torch.utils.cpp_extension import include_paths;
-print(';'.join(include_paths()), end='')"
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c
+        "from __future__ import print_function;
+from torch.utils.cpp_extension import include_paths;
+print(';'.join(include_paths()), end='')" 2>/dev/null | tail -n 1
         RESULT_VARIABLE _PYTHON_SUCCESS
         OUTPUT_VARIABLE _PYTHON_VALUE
         ERROR_VARIABLE _PYTHON_ERROR_VALUE)
@@ -204,9 +205,10 @@ print(';'.join(include_paths()), end='')"
     target_include_directories(Torch SYSTEM INTERFACE ${_PYTHON_VALUE})
     target_include_directories(Torch SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
     message(STATUS "[Torch] include directories: ${_PYTHON_VALUE}")
-    execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
-        "from torch.utils.cpp_extension import library_paths;
-print(';'.join(library_paths()), end='')"
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c
+        "from __future__ import print_function;
+from torch.utils.cpp_extension import library_paths;
+print(';'.join(library_paths()), end='')" 2>/dev/null | tail -n 1
         RESULT_VARIABLE _PYTHON_SUCCESS
         OUTPUT_VARIABLE _PYTHON_VALUE
         ERROR_VARIABLE _PYTHON_ERROR_VALUE)
@@ -216,6 +218,7 @@ print(';'.join(library_paths()), end='')"
         return()
     endif()
     target_link_libraries(Torch INTERFACE ${_PYTHON_VALUE})
+    message(STATUS "[Torch] libraries: ${_PYTHON_VALUE}")
 endif()
 
 #

@@ -14,9 +14,20 @@ def _has_jax():
     except ImportError:
         return False
 
+def _has_torch():
+    try:
+        import torch
+
+        return True
+    except ImportError:
+        return False
+
 
 if _has_jax():
     from .jax import *
+
+if _has_torch():
+    from .torch import *
 
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
