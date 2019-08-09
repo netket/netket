@@ -16,6 +16,7 @@
 
 #include "Machine/rbm_spin.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/log_cosh.hpp"
 #include "Utils/messages.hpp"
 
 namespace netket {
@@ -138,13 +139,8 @@ void RbmSpinReal::SetParameters(VectorConstRefType pars) {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any &lt) {
-  if (lt.empty()) {
-    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-    return (v.dot(a_) + lnthetas_.sum());
-  }
-  RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
-  return (v.dot(a_) + lnthetas_.sum());
+Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any & /*lt*/) {
+  return (v.dot(a_) + SumLogCosh(W_.transpose() * v + b_));
 }
 
 // Difference between logarithms of values, when one or more visible

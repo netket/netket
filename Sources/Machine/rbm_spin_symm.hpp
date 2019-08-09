@@ -58,9 +58,7 @@ class RbmSpinSymm : public AbstractMachine {
   VectorType bsymm_;
 
   VectorType thetas_;
-  VectorType lnthetas_;
   VectorType thetasnew_;
-  VectorType lnthetasnew_;
 
   Eigen::MatrixXd DerMatSymm_;
 
@@ -74,9 +72,6 @@ class RbmSpinSymm : public AbstractMachine {
   int Npar() const override;
   int Nvisible() const override;
   int Nhidden() const { return nh_; }
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
 
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
@@ -84,13 +79,6 @@ class RbmSpinSymm : public AbstractMachine {
   void SetParameters(VectorConstRefType pars) override;
 
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
@@ -101,7 +89,6 @@ class RbmSpinSymm : public AbstractMachine {
   inline void Init(const AbstractGraph &graph);
 
   VectorType BareDerLog(VisibleConstType v);
-  VectorType BareDerLog(VisibleConstType v, const any &lt);
   void SetBareParameters();
 };
 

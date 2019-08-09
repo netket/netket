@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
 #include "Utils/log_cosh.hpp"
+#include <cmath>
 
 namespace netket {
 namespace detail {
@@ -56,5 +56,6 @@ Complex SumLogCosh_generic(
   }
   return total;
 }
+
 }  // namespace detail
 }  // namespace netket

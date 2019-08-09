@@ -65,6 +65,11 @@ inline Complex SumLogCosh(
   return detail::SumLogCosh_generic(input);
 #endif
 }
+
+inline double SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> input) noexcept {
+  return (input.array() + (-2. * input).array().exp().log1p()).sum();
+}
 }  // namespace netket
 
 #endif  // SOURCES_UTILS_LOG_COSH_HPP

@@ -122,7 +122,7 @@ class AbstractMachine {
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual any InitLookup(VisibleConstType v) = 0;
+  virtual any InitLookup(VisibleConstType v);
 
   /**
   Member function updating the look-up tables.
@@ -143,7 +143,7 @@ class AbstractMachine {
   */
   virtual void UpdateLookup(VisibleConstType v,
                             const std::vector<int> &tochange,
-                            const std::vector<double> &newconf, any &lt) = 0;
+                            const std::vector<double> &newconf, any &lt);
 
   /**
   Member function computing the difference between the logarithm of the

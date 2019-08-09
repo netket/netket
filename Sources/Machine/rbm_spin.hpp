@@ -59,27 +59,11 @@ class RbmSpin : public AbstractMachine {
   int Npar() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped Version using pre-computed look-up tables for efficiency
-  // on a small number of spin flips
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

@@ -122,6 +122,11 @@ Complex AbstractMachine::LogValDiff(VisibleConstType v,
   return LogValDiff(v, {tochange}, {newconf})(0);
 }
 
+any AbstractMachine::InitLookup(VisibleConstType v) { return any{}; }
+
+void AbstractMachine::UpdateLookup(VisibleConstType, const std::vector<int> &,
+                                   const std::vector<double> &, any &) {}
+
 PyObject *AbstractMachine::StateDict() const {
   auto state = pybind11::reinterpret_steal<pybind11::object>(
       const_cast<AbstractMachine &>(*this).StateDict());
