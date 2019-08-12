@@ -37,9 +37,6 @@ void Jastrow::Init() {
 
   npar_ = (nv_ * (nv_ - 1)) / 2;
 
-  thetas_.resize(nv_);
-  thetasnew_.resize(nv_);
-
   InfoMessage() << "Jastrow WF Initizialized with nvisible = " << nv_
                 << " and nparams = " << npar_ << std::endl;
 }
@@ -76,90 +73,18 @@ void Jastrow::SetParameters(VectorConstRefType pars) {
   }
 }
 
-any Jastrow::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  if (lt.VectorSize() == 0) {
-    lt.AddVector(v.size());
-  }
-  if (lt.V(0).size() != v.size()) {
-    lt.V(0).resize(v.size());
-  }
+// Value of the logarithm of the wave-function on a batched x
+void Jastrow::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                     Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
 
-  lt.V(0) = (W_.transpose() * v);  // does not matter the transpose W is symm
-  return any{std::move(lt)};
+  out = 0.5 * (x * W_).cwiseProduct(x).rowwise().sum();
 }
 
-// same as for the RBM
-void Jastrow::UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                           const std::vector<double> &newconf, any &lookup) {
-  auto &lt = any_cast_ref<LookupType>(lookup);
-  if (tochange.size() != 0) {
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
-// Value of the logarithm of the wave-function
-// using pre-computed look-up tables for efficiency
-Complex Jastrow::LogValSingle(VisibleConstType v, const any &lt) {
-  if (lt.empty()) return 0.5 * v.dot(W_ * v);
-  return 0.5 * v.dot(any_cast_ref<LookupType>(lt).V(0));
-}
-
-// Difference between logarithms of values, when one or more visible variables
-// are being flipped
-Jastrow::VectorType Jastrow::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
-  const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
-
-  thetas_ = (W_.transpose() * v);
-  Complex logtsum = 0.5 * v.dot(thetas_);
-
-  for (std::size_t k = 0; k < nconn; k++) {
-    if (tochange[k].size() != 0) {
-      thetasnew_ = thetas_;
-      Eigen::VectorXd vnew(v);
-
-      for (std::size_t s = 0; s < tochange[k].size(); s++) {
-        const int sf = tochange[k][s];
-
-        thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-        vnew(sf) = newconf[k][s];
-      }
-
-      logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
-    }
-  }
-  return logvaldiffs;
-}
-
-Complex Jastrow::LogValDiff(VisibleConstType v,
-                            const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            const any &lookup) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    const auto &lt = any_cast_ref<LookupType>(lookup);
-    Complex logtsum = 0.5 * v.dot(lt.V(0));
-    thetasnew_ = lt.V(0);
-    Eigen::VectorXd vnew(v);
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-
-      thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-      vnew(sf) = newconf[s];
-    }
-
-    logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
-  }
-
-  return logvaldiff;
+Complex Jastrow::LogValSingle(VisibleConstType x, const any &) {
+  return 0.5 * x.dot(W_ * x);
 }
 
 Jastrow::VectorType Jastrow::DerLogSingle(VisibleConstType v,

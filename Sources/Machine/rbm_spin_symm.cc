@@ -235,6 +235,19 @@ Complex RbmSpinSymm::LogValSingle(VisibleConstType v, const any & /*lt*/) {
   return v.dot(a_) + SumLogCosh(W_.transpose() * v + b_);
 }
 
+void RbmSpinSymm::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                         Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
+
+  SumLogCosh((x * W_).rowwise() + b_.transpose(), out);
+
+  if (usea_) {
+    out += x * a_;
+  }
+}
+
 void RbmSpinSymm::Save(const std::string &filename) const {
   json state;
   state["Name"] = "RbmSpinSymm";

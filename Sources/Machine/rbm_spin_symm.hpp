@@ -80,6 +80,9 @@ class RbmSpinSymm : public AbstractMachine {
 
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
+
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
 

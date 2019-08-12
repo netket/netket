@@ -81,11 +81,6 @@ class RbmSpinV2 : public AbstractMachine {
     return out;
   }
 
-  // Look-up stuff
-  any InitLookup(VisibleConstType) final { return {}; }
-  void UpdateLookup(VisibleConstType, const std::vector<int> &,
-                    const std::vector<double> &, any &) final {}
-
   PyObject *StateDict() final;
 
   bool IsHolomorphic() const noexcept final { return true; }

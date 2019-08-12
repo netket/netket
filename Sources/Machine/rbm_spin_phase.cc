@@ -78,30 +78,6 @@ int RbmSpinPhase::Nvisible() const { return nv_; }
 
 int RbmSpinPhase::Npar() const { return npar_; }
 
-any RbmSpinPhase::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  lt.AddVector(b1_.size());
-  lt.AddVector(b2_.size());
-
-  lt.V(0) = (W1_.transpose() * v + b1_);
-  lt.V(1) = (W2_.transpose() * v + b2_);
-  return any{std::move(lt)};
-}
-
-void RbmSpinPhase::UpdateLookup(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                any &lookup) {
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W1_.row(sf) * (newconf[s] - v(sf));
-      lt.V(1) += W2_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
 RbmSpinPhase::VectorType RbmSpinPhase::DerLogSingle(VisibleConstType v,
                                                     const any & /*lookup*/) {
   VectorType der(npar_);
@@ -186,6 +162,21 @@ void RbmSpinPhase::SetParameters(VectorConstRefType pars) {
 Complex RbmSpinPhase::LogValSingle(VisibleConstType v, const any & /*lookup*/) {
   return (v.dot(a1_) + SumLogCosh(W1_.transpose() * v + b1_) +
           I_ * (v.dot(a2_) + SumLogCosh(W2_.transpose() * v + b2_)));
+}
+
+void RbmSpinPhase::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                          Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
+
+  SumLogCoshReIm((x * W1_).rowwise() + b1_.transpose(),
+                 (x * W2_).rowwise() + b2_.transpose(), out);
+
+  if (usea_) {
+    out.real() += x * a1_;
+    out.imag() += x * a2_;
+  }
 }
 
 void RbmSpinPhase::Save(const std::string &filename) const {

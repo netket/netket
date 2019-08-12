@@ -62,40 +62,15 @@ int RbmSpinReal::Nvisible() const { return nv_; }
 
 int RbmSpinReal::Npar() const { return npar_; }
 
-any RbmSpinReal::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  lt.AddVector(b_.size());
-  lt.V(0) = (W_.transpose() * v + b_);
-  return any{std::move(lt)};
-}
-
-void RbmSpinReal::UpdateLookup(VisibleConstType v,
-                               const std::vector<int> &tochange,
-                               const std::vector<double> &newconf,
-                               any &lookup) {
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
 RbmSpinReal::VectorType RbmSpinReal::DerLogSingle(VisibleConstType v,
-                                                  const any &cache) {
-  return DerLogSingleImpl(v, cache.empty() ? InitLookup(v) : cache);
-}
-
-RbmSpinReal::VectorType RbmSpinReal::DerLogSingleImpl(VisibleConstType v,
-                                                      const any &lt) {
+                                                  const any &) {
   VectorType der(npar_);
 
   if (usea_) {
     der.head(nv_) = v;
   }
 
-  RbmSpin::tanh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
+  RbmSpin::tanh((W_.transpose() * v + b_).real(), lnthetas_);
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas_;
@@ -139,8 +114,21 @@ void RbmSpinReal::SetParameters(VectorConstRefType pars) {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any & /*lt*/) {
+Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any &) {
   return (v.dot(a_) + SumLogCosh(W_.transpose() * v + b_));
+}
+
+void RbmSpinReal::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                         Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
+
+  SumLogCosh((x * W_).rowwise() + b_.transpose(), out);
+
+  if (usea_) {
+    out += x * a_;
+  }
 }
 
 // Difference between logarithms of values, when one or more visible
@@ -173,35 +161,6 @@ RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
     }
   }
   return logvaldiffs;
-}
-
-// Difference between logarithms of values, when one or more visible
-// variables are being flipped Version using pre-computed look-up tables for
-// efficiency on a small number of spin flips
-Complex RbmSpinReal::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                const any &lookup) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
-
-    thetasnew_ = lt.V(0).real();
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-
-      logvaldiff += a_(sf) * (newconf[s] - v(sf));
-
-      thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-    }
-
-    RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-    logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
-  }
-  return logvaldiff;
 }
 
 void RbmSpinReal::Save(const std::string &filename) const {

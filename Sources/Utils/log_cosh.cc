@@ -37,7 +37,7 @@ inline Complex LogCosh(Complex x) noexcept {
 }
 }  // namespace
 
-Complex SumLogCosh_generic(
+Complex SumLogCoshBias_generic(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
   auto total = Complex{0.0, 0.0};

@@ -95,12 +95,12 @@ class RbmSpin : public AbstractMachine {
 
   static void tanh(VectorConstRefType x, VectorType &y) {
     assert(y.size() >= x.size());
-    y = Eigen::tanh(x.array());
+    y = x.array().tanh();
   }
 
   static void tanh(RealVectorConstRefType x, RealVectorType &y) {
     assert(y.size() >= x.size());
-    y = Eigen::tanh(x.array());
+    y = x.array().tanh();
   }
 
   static void lncosh(VectorConstRefType x, VectorType &y) {

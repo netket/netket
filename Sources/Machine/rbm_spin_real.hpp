@@ -58,10 +58,6 @@ class RbmSpinReal : public AbstractMachine {
   int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
-
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
@@ -71,9 +67,9 @@ class RbmSpinReal : public AbstractMachine {
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
+
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
