@@ -39,6 +39,8 @@ MetropolisHastingsPt::MetropolisHastingsPt(
   beta_.resize(n_replicas);
   proposed_beta_.resize(n_replicas);
 
+  accepted_samples_.resize(n_replicas);
+
   // Linearly spaced inverse temperature
   for (Index i = 0; i < n_replicas; i++) {
     beta_(i) = (1. - double(i) / double(n_replicas));
@@ -57,6 +59,12 @@ void MetropolisHastingsPt::Reset(bool init_random) {
     }
   }
   GetMachine().LogVal(current_X_, current_Y_, {});
+
+  accepted_samples_.setZero();
+  total_samples_ = 0;
+  total_exchange_steps_ = 0;
+  beta1_av_ = 0;
+  beta1_av_sq_ = 0;
 }
 
 std::pair<Eigen::Ref<const RowMatrix<double>>,
@@ -95,10 +103,14 @@ void MetropolisHastingsPt::OneStep() {
     // Updates current state
     if (accept_(i)) {
       current_X_.row(i) = proposed_X_.row(i);
+      // Update acceptance counters
+      accepted_samples_(i) += 1.0;
     }
   }
 
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
+
+  total_samples_ += 1;
 }
 
 void MetropolisHastingsPt::ExchangeStep() {
@@ -123,6 +135,7 @@ void MetropolisHastingsPt::ExchangeStep() {
     // Updates current state
     if (accept_(i)) {
       std::swap(beta_(i), beta_(inn));
+      std::swap(accepted_samples_(i), accepted_samples_(inn));
 
       // Keep track of the position of beta=1
       if (beta1_ind_ == i) {
@@ -132,6 +145,14 @@ void MetropolisHastingsPt::ExchangeStep() {
       }
     }
   }
+
+  total_exchange_steps_ += 1.0;
+
+  // Update statistics to compute diffusion coefficient of replicas
+  double delta = beta1_ind_ - beta1_av_;
+  beta1_av_ += delta / total_exchange_steps_;
+  double delta2 = beta1_ind_ - beta1_av_;
+  beta1_av_sq_ += delta * delta2;
 }
 
 Index MetropolisHastingsPt::BatchSize() const noexcept { return 1; }
@@ -170,6 +191,33 @@ void MetropolisHastingsPt::ProposePairwiseSwap(
     vout(0) = vin(vin.size() - 1);
     vout(vout.size() - 1) = vin(0);
   }
+}
+
+std::map<std::string, double> MetropolisHastingsPt::Stats() const {
+  NETKET_CHECK(total_samples_ > 0 && total_exchange_steps_ > 0, RuntimeError,
+               "Cannot compute sampler stats, because no moves were made");
+
+  std::map<std::string, double> stats;
+
+  Eigen::ArrayXd accept =
+      accepted_samples_ / static_cast<double>(total_samples_);
+
+  stats["mean_acceptance"] = accept.mean();
+  stats["min_acceptance"] = accept.minCoeff();
+  stats["max_acceptance"] = accept.maxCoeff();
+
+  // Average position of beta=1
+  // This is normalized and centered around zero
+  // In the ideal case the average should be zero
+  stats["normalized_beta=1_position"] =
+      beta1_av_ / static_cast<double>(n_replicas_ - 1) - 0.5;
+
+  // Average variance on the position of beta=1
+  // In the ideal case this quantity should be of order ~ [0.2, 1]
+  stats["normalized_beta=1_diffusion"] =
+      std::sqrt(beta1_av_sq_ / total_exchange_steps_) /
+      static_cast<double>(n_replicas_);
+  return stats;
 }
 
 }  // namespace netket

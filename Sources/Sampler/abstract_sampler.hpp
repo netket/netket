@@ -171,26 +171,11 @@ inline Index CheckSweepSize(const char* func, const Index sweep_size) {
 }
 }  // namespace detail
 
-#define NETKET_SAMPLER_SET_VISIBLE_DEFAULT(var)                     \
-  void SetVisible(Eigen::Ref<const RowMatrix<double>> v) override { \
-    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},             \
-               {1, GetMachine().Nvisible()});                       \
-    var = v.row(0);                                                 \
-    Reset(false);                                                   \
-  }
-
 #define NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepts, moves)                  \
   double Acceptance() const {                                              \
     NETKET_CHECK(moves > 0, RuntimeError,                                  \
                  "Cannot compute acceptance, because no moves were made"); \
     return static_cast<double>(accepts) / static_cast<double>(moves);      \
-  }
-
-#define NETKET_SAMPLER_ACCEPTANCE_DEFAULT_PT(accepts, moves)               \
-  Eigen::VectorXd Acceptance() const {                                     \
-    NETKET_CHECK((moves.array() > 0).all(), RuntimeError,                  \
-                 "Cannot compute acceptance, because no moves were made"); \
-    return (accepts.array() / moves.array()).matrix();                     \
   }
 
 #define NETKET_SAMPLER_APPLY_MACHINE_FUNC(expr)                \

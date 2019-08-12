@@ -18,6 +18,8 @@
 #include <Eigen/Core>
 #include <functional>
 #include <limits>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "Sampler/abstract_sampler.hpp"
@@ -59,6 +61,12 @@ class MetropolisHastingsPt : public AbstractSampler {
   // Index holding the position of beta=1
   Index beta1_ind_;
 
+  Eigen::ArrayXd accepted_samples_;
+  Index total_samples_;
+  Index total_exchange_steps_;
+  double beta1_av_;
+  double beta1_av_sq_;
+
  public:
   MetropolisHastingsPt(AbstractMachine& ma, TransitionKernel tk,
                        Index n_replicas, Index sweep_size);
@@ -86,6 +94,10 @@ class MetropolisHastingsPt : public AbstractSampler {
 
   void ProposePairwiseSwap(Eigen::Ref<const Eigen::ArrayXd>,
                            Eigen::Ref<Eigen::ArrayXd>, int);
+
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepted_samples_.mean(), total_samples_);
+
+  std::map<std::string, double> Stats() const;
 };
 
 namespace detail {

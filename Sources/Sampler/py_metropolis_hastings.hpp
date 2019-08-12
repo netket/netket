@@ -24,8 +24,9 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisHastings(py::module& subm) {
-  py::class_<MetropolisHastings, AbstractSampler>(subm, "MetropolisHastings",
-                                                  R"EOF(
+  auto mh = py::class_<MetropolisHastings, AbstractSampler>(
+                subm, "MetropolisHastings",
+                R"EOF(
 
             ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
             a local transition kernel to perform moves in the Markov Chain.
@@ -41,16 +42,18 @@ void AddMetropolisHastings(py::module& subm) {
             and $L(s,s^\prime)$ is a correcting factor computed by the transition kernel.
 
                  )EOF")
-      .def(py::init([](AbstractMachine& machine,
-                       MetropolisHastings::TransitionKernel tk,
-                       Index batch_size, nonstd::optional<Index> sweep_size) {
-             return MetropolisHastings(machine, tk, batch_size,
-                                       sweep_size.value_or(machine.Nvisible()));
-           }),
-           py::keep_alive<1, 2>(), py::arg("machine"),
-           py::arg("transition_kernel"), py::arg("batch_size") = 16,
-           py::arg("sweep_size") = py::none(),
-           R"EOF(
+                .def(py::init([](AbstractMachine& machine,
+                                 MetropolisHastings::TransitionKernel tk,
+                                 Index batch_size,
+                                 nonstd::optional<Index> sweep_size) {
+                       return MetropolisHastings(
+                           machine, tk, batch_size,
+                           sweep_size.value_or(machine.Nvisible()));
+                     }),
+                     py::keep_alive<1, 2>(), py::arg("machine"),
+                     py::arg("transition_kernel"), py::arg("batch_size") = 16,
+                     py::arg("sweep_size") = py::none(),
+                     R"EOF(
              Constructs a new ``MetropolisHastings`` sampler given a machine and
              a transition kernel.
 
@@ -115,24 +118,28 @@ void AddMetropolisHastings(py::module& subm) {
                  ```
              )EOF");
 
-  py::class_<MetropolisHastingsPt, AbstractSampler>(subm,
-                                                    "MetropolisHastingsPt",
-                                                    R"EOF(
+  AddAcceptance(mh);
+
+  auto mh_pt =
+      py::class_<MetropolisHastingsPt, AbstractSampler>(subm,
+                                                        "MetropolisHastingsPt",
+                                                        R"EOF(
             This sampler performs parallel-tempering
             moves in addition to the moves implemented in `MetropolisHastings`.
             The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
             )EOF")
-      .def(py::init([](AbstractMachine& machine,
-                       MetropolisHastings::TransitionKernel tk,
-                       Index n_replicas, nonstd::optional<Index> sweep_size) {
-             return MetropolisHastingsPt(
-                 machine, tk, n_replicas,
-                 sweep_size.value_or(machine.Nvisible()));
-           }),
-           py::keep_alive<1, 2>(), py::arg("machine"),
-           py::arg("transition_kernel"), py::arg("n_replicas") = 16,
-           py::arg("sweep_size") = py::none(),
-           R"EOF(
+          .def(py::init([](AbstractMachine& machine,
+                           MetropolisHastings::TransitionKernel tk,
+                           Index n_replicas,
+                           nonstd::optional<Index> sweep_size) {
+                 return MetropolisHastingsPt(
+                     machine, tk, n_replicas,
+                     sweep_size.value_or(machine.Nvisible()));
+               }),
+               py::keep_alive<1, 2>(), py::arg("machine"),
+               py::arg("transition_kernel"), py::arg("n_replicas") = 16,
+               py::arg("sweep_size") = py::none(),
+               R"EOF(
             Constructs a new ``MetropolisHastingsPt`` sampler.
 
             Args:
@@ -151,6 +158,9 @@ void AddMetropolisHastings(py::module& subm) {
                             of freedom (n_visible).
 
             )EOF");
+
+  AddAcceptance(mh_pt);
+  AddSamplerStats(mh_pt);
 }
 }  // namespace netket
 #endif

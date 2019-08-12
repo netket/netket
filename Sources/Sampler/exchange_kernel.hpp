@@ -16,6 +16,7 @@
 #define NETKET_EXCHANGE_KERNEL_HPP
 
 #include <Eigen/Core>
+#include <array>
 #include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -27,7 +28,7 @@ class ExchangeKernel {
   const int nv_;
 
   // clusters to do updates
-  std::vector<std::vector<Index>> clusters_;
+  std::vector<std::array<Index, 2>> clusters_;
 
   std::uniform_int_distribution<Index> distcl_;
 
