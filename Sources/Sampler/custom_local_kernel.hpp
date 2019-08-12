@@ -98,7 +98,7 @@ class CustomLocalKernel {
                   Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
     vnew = v;
 
-    for (int i = 0; i < v.rows(); i++) {
+    for (Index i{0}; i < v.rows(); i++) {
       // pick a random operator in possible ones according to the provided
       // weights
       Index op = disc_dist_(GetRandomEngine());

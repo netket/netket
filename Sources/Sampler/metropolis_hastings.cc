@@ -47,6 +47,9 @@ void MetropolisHastings::Reset(bool init_random) {
     }
   }
   GetMachine().LogVal(current_X_, current_Y_, {});
+
+  accepted_samples_ = 0;
+  total_samples_ = 0;
 }
 
 std::pair<Eigen::Ref<const RowMatrix<double>>,
@@ -84,10 +87,14 @@ void MetropolisHastings::OneStep() {
     // Updates current state
     if (accept_(i)) {
       current_X_.row(i) = proposed_X_.row(i);
+      accepted_samples_ += 1;
     }
   }
 
   current_Y_ = accept_.select(proposed_Y_, current_Y_);
+
+  // Update acceptance counters
+  total_samples_ += accept_.size();
 }
 
 Index MetropolisHastings::BatchSize() const noexcept { return batch_size_; }

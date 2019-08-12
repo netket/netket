@@ -51,6 +51,9 @@ class MetropolisHastings : public AbstractSampler {
   Index batch_size_;
   Index sweep_size_;
 
+  Index accepted_samples_;
+  Index total_samples_;
+
  public:
   MetropolisHastings(AbstractMachine &ma, TransitionKernel tk, Index batch_size,
                      Index sweep_size);
@@ -73,6 +76,8 @@ class MetropolisHastings : public AbstractSampler {
 
   /// Resets the sampler.
   void Reset(bool init_random) override;
+
+  NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepted_samples_, total_samples_);
 };
 
 }  // namespace netket

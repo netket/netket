@@ -36,8 +36,14 @@ template <class T, class... Args>
 pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
   return cls.def_property_readonly(
       "acceptance", [](const T& self) { return self.Acceptance(); }, R"EOF(
-        numpy.array: The measured acceptance rate for the sampling.
+        float or numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.)EOF");
+}
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "stats", [](const T& self) { return self.Stats(); }, R"EOF(
+      Internal statistics for the sampling procedure.)EOF");
 }
 }  // namespace netket
 
