@@ -153,7 +153,8 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
     const auto R =
         std::sqrt(static_cast<double>(n - 1) / static_cast<double>(n) +
                   var.first / var.second);
-    return {mean, std::sqrt(var.first), var.second, correlation, R};
+    return {mean, std::sqrt(var.first / static_cast<double>(m - 1)), var.second,
+            correlation, R};
   }
   return Stats{mean, NaN, NaN, NaN, NaN};
 }
