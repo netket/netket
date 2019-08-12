@@ -27,8 +27,8 @@ struct Stats {
   double error_of_mean;
   /// Average of in-chain variances of the observable over all Markov Chains.
   double variance;
-  /// Autocorrelation
-  double correlation;
+  /// Autocorrelation time
+  int correlation;
   /// Convergence estimator. The closer it is to 1, the better has the sampling
   /// converged.
   double R;

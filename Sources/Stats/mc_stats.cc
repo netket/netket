@@ -15,6 +15,7 @@
 #include "Stats/mc_stats.hpp"
 
 #include <mpi.h>
+#include <cmath>
 #include <nonstd/span.hpp>
 
 #include "Utils/exceptions.hpp"
@@ -106,6 +107,7 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
   NETKET_CHECK(values.size() >= local_number_chains, InvalidInputError,
                "not enough samples to compute statistics");
   constexpr auto NaN = std::numeric_limits<double>::quiet_NaN();
+  constexpr auto iNaN = std::numeric_limits<int>::quiet_NaN();
   auto stats_local = StatisticsLocal(values, local_number_chains);
   // Number of samples in each Markov Chain
   const auto n = values.size() / local_number_chains;
@@ -141,22 +143,22 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
                    // chain.
       return std::make_pair(NaN, NaN);
     }
-    // TODO: Are the coefficients here correct??
-    return std::make_pair(global_var[0] / static_cast<double>(m - 1),
+
+    return std::make_pair(global_var[0] / static_cast<double>(m),
                           global_var[1] / static_cast<double>(m));
   }();
 
   if (!std::isnan(var.first) && !std::isnan(var.second)) {
     const auto t = var.first / var.second;
-    auto correlation = 0.5 * (static_cast<double>(n) * t * t - 1.0);
-    if (correlation < 0.0) correlation = NaN;
+    auto correlation = 0.5 * (t * static_cast<double>(n) - 1.0);
+    if (correlation < 0.0) correlation = 0;
     const auto R =
         std::sqrt(static_cast<double>(n - 1) / static_cast<double>(n) +
                   var.first / var.second);
-    return {mean, std::sqrt(var.first / static_cast<double>(m - 1)), var.second,
-            correlation, R};
+    return {mean, std::sqrt(var.first / static_cast<double>(m)), var.second,
+            static_cast<int>(std::round(correlation)), R};
   }
-  return Stats{mean, NaN, NaN, NaN, NaN};
+  return Stats{mean, NaN, NaN, iNaN, NaN};
 }
 
 }  // namespace netket
