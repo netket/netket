@@ -107,7 +107,7 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
   NETKET_CHECK(values.size() >= local_number_chains, InvalidInputError,
                "not enough samples to compute statistics");
   constexpr auto NaN = std::numeric_limits<double>::quiet_NaN();
-  constexpr auto iNaN = std::numeric_limits<int>::quiet_NaN();
+
   auto stats_local = StatisticsLocal(values, local_number_chains);
   // Number of samples in each Markov Chain
   const auto n = values.size() / local_number_chains;
@@ -156,9 +156,9 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
         std::sqrt(static_cast<double>(n - 1) / static_cast<double>(n) +
                   var.first / var.second);
     return {mean, std::sqrt(var.first / static_cast<double>(m)), var.second,
-            static_cast<int>(std::round(correlation)), R};
+            std::round(correlation), R};
   }
-  return Stats{mean, NaN, NaN, iNaN, NaN};
+  return Stats{mean, NaN, NaN, NaN, NaN};
 }
 
 }  // namespace netket
