@@ -74,39 +74,8 @@ class SumOutput : public AbstractLayer {
 
   void SetParameters(VectorConstRefType /*pars*/) override {}
 
-  void UpdateLookup(const VectorType &input,
-                    const std::vector<int> &input_changes,
-                    const VectorType &new_input, const VectorType &output,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = input_changes.size();
-    if (num_of_changes == in_size_) {
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      Forward(new_input, new_output);
-    } else if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output = output;
-      UpdateOutput(input, input_changes, new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   void Forward(const VectorType &input, VectorType &output) override {
     output(0) = input.sum();
-  }
-
-  inline void UpdateOutput(const VectorType &v,
-                           const std::vector<int> &input_changes,
-                           const VectorType &new_input,
-                           VectorType &new_output) {
-    const int num_of_changes = input_changes.size();
-    for (int s = 0; s < num_of_changes; s++) {
-      const int sf = input_changes[s];
-      new_output(0) += (new_input(s) - v(sf));
-    }
   }
 
   void Backprop(const VectorType & /*prev_layer_output*/,

@@ -65,26 +65,6 @@ class Activation : public AbstractLayer {
 
   void SetParameters(VectorConstRefType /*pars*/) override {}
 
-  void UpdateLookup(const VectorType & /*input*/,
-                    const std::vector<int> &input_changes,
-                    const VectorType &new_input, const VectorType & /*output*/,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = input_changes.size();
-    if (num_of_changes == size_) {
-      output_changes.resize(size_);
-      new_output.resize(size_);
-      activation_.operator()(new_input, new_output);
-    } else if (num_of_changes > 0) {
-      output_changes = input_changes;
-      new_output.resize(num_of_changes);
-      activation_.operator()(new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     activation_.operator()(input, output);

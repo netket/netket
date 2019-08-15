@@ -46,6 +46,8 @@ class FFNN : public AbstractMachine {
 
   std::unique_ptr<SumOutput> sum_output_layer_;
 
+  std::vector<VectorType> Vforward_;
+
  public:
   explicit FFNN(std::shared_ptr<const AbstractHilbert> hilbert,
                 std::vector<AbstractLayer *> layers)
@@ -93,6 +95,10 @@ class FFNN : public AbstractMachine {
       ltnew_.AddVV(1);
     }
 
+    for (int i = 0; i < nlayer_; ++i) {
+      Vforward_.push_back(VectorXcd(layersizes_[i + 1]));
+    }
+
     changed_nodes_.resize(nlayer_);
     new_output_.resize(nlayer_);
 
@@ -135,135 +141,52 @@ class FFNN : public AbstractMachine {
     }
   }
 
-  any InitLookup(VisibleConstType v) override {
-    LookupType lt;
-    // Do a forward pass to get the outputs of each layer.
-    if (lt.VectorSize() == 0) {
-      lt.AddVector(layersizes_[1]);  // contains the output of layer 0
-      layers_[0]->Forward(v, lt.V(0));
-      for (int i = 1; i < nlayer_; ++i) {
-        lt.AddVector(layersizes_[i + 1]);  // contains the output of layer i
-        layers_[i]->Forward(lt.V(i - 1), lt.V(i));
-      }
-    } else {
-      assert((int(lt.VectorSize()) == nlayer_));
-      layers_[0]->Forward(v, lt.V(0));
-      for (int i = 1; i < nlayer_; ++i) {
-        layers_[i]->Forward(lt.V(i - 1), lt.V(i));
-      }
-    }
-    return any{std::move(lt)};
-  }
-
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lookup) override {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    layers_[0]->UpdateLookup(
-        v, tochange,
-        Eigen::Map<const Eigen::VectorXd>(&newconf[0], newconf.size()), lt.V(0),
-        changed_nodes_[0], new_output_[0]);
+  void Forward(VisibleConstType v) {
+    layers_[0]->Forward(v, Vforward_[0]);
     for (int i = 1; i < nlayer_; ++i) {
-      layers_[i]->UpdateLookup(lt.V(i - 1), changed_nodes_[i - 1],
-                               new_output_[i - 1], lt.V(i), changed_nodes_[i],
-                               new_output_[i]);
-      UpdateOutput(lt.V(i - 1), changed_nodes_[i - 1], new_output_[i - 1]);
-    }
-    UpdateOutput(lt.V(nlayer_ - 1), changed_nodes_[nlayer_ - 1],
-                 new_output_[nlayer_ - 1]);
-  }
-
-  void UpdateOutput(VectorType &v, const std::vector<int> &tochange,
-                    VectorType &newconf) {
-    int num_of_changes = tochange.size();
-    if (num_of_changes == v.size()) {
-      assert(int(newconf.size()) == num_of_changes);
-      v.swap(newconf);  // this is done for efficiency
-    } else {
-      for (int s = 0; s < num_of_changes; s++) {
-        const int sf = tochange[s];
-        v(sf) = newconf(s);
-      }
+      layers_[i]->Forward(Vforward_[i - 1], Vforward_[i]);
     }
   }
 
-  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
-    assert(nlayer_ > 0);
-    if (lookup.empty()) {
-      auto lt = InitLookup(v);
-      return any_cast_ref<LookupType>(lt).V(nlayer_ - 1)(0);
-    }
-    return any_cast_ref<LookupType>(lookup).V(nlayer_ - 1)(0);
+  Complex LogValSingle(VisibleConstType v, const any & /*lookup*/) override {
+    Forward(v);
+    return Vforward_[nlayer_ - 1](0);
   }
 
-  VectorType DerLogSingle(VisibleConstType v, const any &lookup) override {
-    if (lookup.empty()) {
-      return DerLogSingleImpl(v, InitLookup(v));
-    }
-    return DerLogSingleImpl(v, lookup);
+  VectorType DerLogSingle(VisibleConstType v, const any & /*lookup*/) override {
+    Forward(v);
+    return DerLogSingleImpl(v);
   }
 
-  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
+  VectorType DerLogSingleImpl(VisibleConstType v) {
     VectorType der(npar_);
 
-    int start_idx = npar_;
-    int num_of_pars;
+    Index start_idx = npar_;
+    Index num_of_pars;
+
     // Backpropagation
     if (nlayer_ > 1) {
       num_of_pars = layers_[nlayer_ - 1]->Npar();
       start_idx -= num_of_pars;
       // Last Layer
-      layers_[nlayer_ - 1]->Backprop(lt.V(nlayer_ - 2), lt.V(nlayer_ - 1),
-                                     din_.back(), din_[nlayer_ - 1],
-                                     der.segment(start_idx, num_of_pars));
+      layers_[nlayer_ - 1]->Backprop(
+          Vforward_[nlayer_ - 2], Vforward_[nlayer_ - 1], din_.back(),
+          din_[nlayer_ - 1], der.segment(start_idx, num_of_pars));
       // Middle Layers
       for (int i = nlayer_ - 2; i > 0; --i) {
         num_of_pars = layers_[i]->Npar();
         start_idx -= num_of_pars;
-        layers_[i]->Backprop(lt.V(i - 1), lt.V(i), din_[i + 1], din_[i],
-                             der.segment(start_idx, num_of_pars));
+        layers_[i]->Backprop(Vforward_[i - 1], Vforward_[i], din_[i + 1],
+                             din_[i], der.segment(start_idx, num_of_pars));
       }
       // First Layer
-      layers_[0]->Backprop(v, lt.V(0), din_[1], din_[0],
+      layers_[0]->Backprop(v, Vforward_[0], din_[1], din_[0],
                            der.segment(0, layers_[0]->Npar()));
     } else {
       // Only 1 layer
-      layers_[0]->Backprop(v, lt.V(0), din_.back(), din_[0], der);
+      layers_[0]->Backprop(v, Vforward_[0], din_.back(), din_[0], der);
     }
     return der;
-  }
-
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
-    const int nconn = tochange.size();
-    VectorType logvaldiffs = VectorType::Zero(nconn);
-    auto lt = InitLookup(v);
-    auto current_val = LogValSingle(v, lt);
-
-    for (int k = 0; k < nconn; ++k) {
-      logvaldiffs(k) = 0;
-      if (tochange[k].size() != 0) {
-        auto ltnew = lt;
-        UpdateLookup(v, tochange[k], newconf[k], ltnew);
-
-        logvaldiffs(k) += LogValSingle(v, ltnew) - current_val;
-      }
-    }
-    return logvaldiffs;
-  }
-
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override {
-    if (tochange.size() != 0) {
-      auto ltnew = lt;
-      UpdateLookup(v, tochange, newconf, ltnew);
-
-      return LogValSingle(v, ltnew) - LogValSingle(v, lt);
-    } else {
-      return 0.0;
-    }
   }
 
   void Save(std::string const &filename) const override {

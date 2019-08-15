@@ -221,29 +221,6 @@ class ConvolutionalHypercube : public AbstractLayer {
     }
   }
 
-  void UpdateLookup(const VectorType &input,
-                    const std::vector<int> &input_changes,
-                    const VectorType &new_input, const VectorType &output,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    // At the moment the light cone structure of the convolution is not
-    // exploited. To do so we would to change the part
-    // else if (num_of_changes >0) {...}
-    const int num_of_changes = input_changes.size();
-    if (num_of_changes == in_size_) {
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      Forward(new_input, new_output);
-    } else if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output = output;
-      UpdateOutput(input, input_changes, new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     Convolve(input, output);
@@ -273,26 +250,6 @@ class ConvolutionalHypercube : public AbstractLayer {
     }
     Eigen::Map<MatrixType> output_image(z.data(), nout_, out_channels_);
     output_image.noalias() = lowered_image_.transpose() * kernels_;
-  }
-
-  inline void UpdateOutput(const VectorType &v,
-                           const std::vector<int> &input_changes,
-                           const VectorType &new_input,
-                           VectorType &new_output) {
-    const int num_of_changes = input_changes.size();
-    for (int s = 0; s < num_of_changes; ++s) {
-      const int sf = input_changes[s];
-      int kout = 0;
-      for (int out = 0; out < out_channels_; ++out) {
-        for (int k = 0; k < kernel_size_; ++k) {
-          if (flipped_nodes_[sf][k] >= 0) {
-            new_output(flipped_nodes_[sf][k] + kout) +=
-                kernels_(k, out) * (new_input(s) - v(sf));
-          }
-        }
-        kout += nout_;
-      }
-    }
   }
 
   void Backprop(const VectorType &prev_layer_output,
