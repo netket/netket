@@ -294,7 +294,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_uni_(GetRandomEngine());
+        index = distribution_uni_(this->GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }
@@ -302,7 +302,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_phi_(GetRandomEngine());
+        index = distribution_phi_(this->GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }

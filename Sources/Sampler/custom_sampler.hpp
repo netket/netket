@@ -14,8 +14,8 @@
 
 // authors: Hugo Théveniaut and Fabien Alet
 
-#ifndef NETKET_CUSTOM_LOCAL_KERNEL_HPP
-#define NETKET_CUSTOM_LOCAL_KERNEL_HPP
+#ifndef NETKET_CUSTOMSAMPLER_HPP
+#define NETKET_CUSTOMSAMPLER_HPP
 
 #include <Eigen/Core>
 #include <set>
@@ -30,7 +30,7 @@
 namespace netket {
 
 // Metropolis sampling using custom moves provided by user
-class CustomLocalKernel {
+class CustomSampler : public AbstractSampler {
   LocalOperator move_operators_;
   std::vector<double> operatorsweights_;
 
@@ -38,11 +38,10 @@ class CustomLocalKernel {
   std::vector<std::vector<double>> newconfs_;
   std::vector<Complex> mel_;
 
-  Index nstates_;
-
+  int nstates_;
   std::vector<double> localstates_;
 
-  std::discrete_distribution<Index> disc_dist_;
+  int sweep_size_;
 
  public:
   CustomLocalKernel(const AbstractMachine &psi,

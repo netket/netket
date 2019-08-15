@@ -28,6 +28,13 @@
 
 namespace netket {
 
+namespace {
+inline unsigned ReallyRandomSeed() {
+  std::random_device rd;
+  return rd();
+}
+}  // namespace
+
 void AbstractMachine::InitRandomPars(double sigma,
                                      nonstd::optional<unsigned> seed) {
   VectorType parameters(Npar());
@@ -35,16 +42,9 @@ void AbstractMachine::InitRandomPars(double sigma,
   constexpr auto root = 0;
   int rank;
   MPI_Comm_rank(comm, &rank);
-
-  default_random_engine generator;
-
   if (rank == root) {
-    if (seed.has_value()) {
-      generator = default_random_engine(*seed);
-    } else {
-      generator = GetRandomEngine();
-    }
-
+    default_random_engine generator{seed.has_value() ? *seed
+                                                     : ReallyRandomSeed()};
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
                     std::normal_distribution<double> dist{0.0, sigma};

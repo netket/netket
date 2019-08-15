@@ -33,3 +33,4 @@ A 10-site set:
 |is_bipartite  |       bool      | Whether the graph is bipartite.                                                                                           |
 |is_connected  |       bool      | Whether the graph is connected.                                                                                           |
 |n_sites       |       int       | The number of vertices in the graph.                                                                                      |
+

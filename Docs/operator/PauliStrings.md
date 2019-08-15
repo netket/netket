@@ -67,3 +67,4 @@ This method requires an indexable Hilbert space.
 |Property|         Type         |          Description          |
 |--------|----------------------|-------------------------------|
 |hilbert |netket.hilbert.Hilbert| ``Hilbert`` space of operator.|
+

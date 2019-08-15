@@ -120,9 +120,6 @@ class DistributedRandomEngine {
   }
 };
 
-DistributedRandomEngine &GetDistributedRandomEngine();
-default_random_engine &GetRandomEngine();
-
 }  // namespace netket
 
 #endif

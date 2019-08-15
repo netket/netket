@@ -30,14 +30,6 @@ void AddUtilsModule(py::module m) {
                        netket::default_random_engine::result_type)>(
                        &netket::default_random_engine::seed));
 
-  subm.def(
-      "seed",
-      [](const DistributedRandomEngine::ResultType &seed) {
-        GetDistributedRandomEngine().Seed(seed);
-      },
-      py::arg("seed") = netket::default_random_engine::default_seed,
-      R"EOF(seed: The chosen seed for the distributed random number generator.  )EOF");
-
   py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
 
   py::class_<Lookup<Complex>>(m, "LookupComplex").def(py::init<>());
