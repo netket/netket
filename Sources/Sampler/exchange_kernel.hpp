@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #include <Eigen/Core>
 #include <array>
+#include "Machine/abstract_machine.hpp"
 #include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
 
@@ -30,48 +31,15 @@ class ExchangeKernel {
   // clusters to do updates
   std::vector<std::array<Index, 2>> clusters_;
 
-  std::uniform_int_distribution<Index> distcl_;
-
  public:
-  explicit ExchangeKernel(const AbstractMachine &psi, Index dmax = 1)
-      : nv_(psi.GetHilbert().Size()) {
-    Init(psi.GetHilbert().GetGraph(), dmax);
-  }
-
-  void Init(const AbstractGraph &graph, int dmax) {
-    auto dist = graph.AllDistances();
-
-    assert(int(dist.size()) == nv_);
-
-    for (int i = 0; i < nv_; i++) {
-      for (int j = 0; j < nv_; j++) {
-        if (dist[i][j] <= dmax && i != j) {
-          clusters_.push_back({i, j});
-        }
-      }
-    }
-
-    distcl_ = std::uniform_int_distribution<Index>(0, clusters_.size() - 1);
-  }
+  explicit ExchangeKernel(const AbstractMachine &psi, Index dmax = 1);
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
-    vnew = v;
+                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction);
 
-    for (int i = 0; i < v.rows(); i++) {
-      Index rcl = distcl_(GetRandomEngine());
-
-      Index si = clusters_[rcl][0];
-      Index sj = clusters_[rcl][1];
-
-      assert(si < nv_ && sj < nv_);
-
-      std::swap(vnew(i, si), vnew(i, sj));
-    }
-
-    log_acceptance_correction.setZero();
-  }
+ private:
+  void Init(const AbstractGraph &graph, int dmax);
 };
 
 }  // namespace netket
