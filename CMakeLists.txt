@@ -274,7 +274,6 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_phase.cc
     Sources/Machine/rbm_spin_real.cc
     Sources/Machine/rbm_spin_symm.cc
-    Sources/Machine/rbm_spin_v2.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc

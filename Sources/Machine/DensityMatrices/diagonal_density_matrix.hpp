@@ -84,18 +84,6 @@ class DiagonalDensityMatrix : public AbstractMachine {
     return density_matrix_.LogValSingle(DoubleVisibleConfig(v), lt);
   }
 
-  any InitLookup(VisibleConstType v) override {
-    return density_matrix_.InitLookup(DoubleVisibleConfig(v));
-  }
-
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override {
-    VisibleChangeInfo d_changes =
-        DoubleVisibleChangeInfo(tochange, newconf, v.size());
-    return density_matrix_.UpdateLookup(DoubleVisibleConfig(v), d_changes.first,
-                                        d_changes.second, lt);
-  }
-
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override {
@@ -114,15 +102,6 @@ class DiagonalDensityMatrix : public AbstractMachine {
     }
     return density_matrix_.LogValDiff(DoubleVisibleConfig(v), tochange_d,
                                       newconf_d);
-  }
-
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override {
-    VisibleChangeInfo d_changes =
-        DoubleVisibleChangeInfo(tochange, newconf, v.size());
-    return density_matrix_.LogValDiff(DoubleVisibleConfig(v), d_changes.first,
-                                      d_changes.second, lt);
   }
 
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override {

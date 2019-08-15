@@ -46,23 +46,21 @@ def glorot():
     return init
 
 
-machines["Jax"] = nk.machine.Jax(
-    hi,
-    jax.experimental.stax.serial(
-        jax.experimental.stax.Dense(16, glorot(), randn()),
-        jax.experimental.stax.Relu,
-        jax.experimental.stax.Dense(16, glorot(), randn()),
-        jax.experimental.stax.Relu,
-        jax.experimental.stax.Dense(2, glorot(), randn()),
-    ),
-)
-assert machines["Jax"].dtype == np.float64
+# machines["Jax"] = nk.machine.Jax(
+#     hi,
+#     jax.experimental.stax.serial(
+#         jax.experimental.stax.Dense(16, glorot(), randn()),
+#         jax.experimental.stax.Relu,
+#         jax.experimental.stax.Dense(16, glorot(), randn()),
+#         jax.experimental.stax.Relu,
+#         jax.experimental.stax.Dense(2, glorot(), randn()),
+#     ),
+# )
+# assert machines["Jax"].dtype == np.float64
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
 machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
-
-machines["BatchedRbm 1d Hypercube spin"] = nk.machine.RbmSpinV2(hilbert=hi, alpha=3)
 
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
@@ -208,10 +206,10 @@ def test_log_derivative():
         hi = machine.hilbert
         assert hi.size > 0
         rg = nk.utils.RandomEngine(seed=1234)
-        v = np.zeros(hi.size)
+        v = np.zeros((1, hi.size))
 
         for i in range(100):
-            hi.random_vals(v, rg)
+            hi.random_vals(v[0], rg)
 
             randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
             machine.parameters = randpars

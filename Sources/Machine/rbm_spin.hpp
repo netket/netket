@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,122 +12,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_RBM_SPIN_HPP
-#define NETKET_RBM_SPIN_HPP
+#ifndef SOURCES_MACHINE_RBM_SPIN_HPP
+#define SOURCES_MACHINE_RBM_SPIN_HPP
 
 #include <cmath>
-#include <unordered_map>
+#include <memory>
+
+#include <Eigen/Core>
+#include <nonstd/optional.hpp>
+
+#include "Hilbert/abstract_hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
-#include "Utils/array_hasher.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 
-/** Restricted Boltzmann machine class with spin 1/2 hidden units.
- *
- */
 class RbmSpin : public AbstractMachine {
-  // number of visible units
-  int nv_;
-
-  // number of hidden units
-  int nh_;
-
-  // number of parameters
-  int npar_;
-
-  // weights
-  MatrixType W_;
-
-  // visible units bias
-  VectorType a_;
-
-  // hidden units bias
-  VectorType b_;
-
-  VectorType lnthetas_;
-
-  bool usea_;
-  bool useb_;
-
-  bool cache_vals_;
-
-  std::unordered_map<VisibleType, Complex, EigenArrayHasher<VisibleType>,
-                     EigenArrayEqualityComparison<VisibleType>>
-      log_vals_cache_;
-
  public:
-  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden,
-          int alpha, bool usea, bool useb, bool cache_vals);
+  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
+          Index alpha, bool usea, bool useb);
 
-  int Nvisible() const override;
-  int Npar() const override;
-  /*constexpr*/ int Nhidden() const noexcept { return nh_; }
+  int Npar() const final {
+    return W_.size() + (a_.has_value() ? a_->size() : 0) +
+           (b_.has_value() ? b_->size() : 0);
+  }
+  int Nvisible() const final { return W_.rows(); }
+  int Nhidden() const noexcept { return W_.cols(); }
 
-  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
-  Complex LogValSingle(VisibleConstType v, const any &lt) override;
+  VectorType GetParameters() final;
+  void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) final;
 
-  VectorType GetParameters() override;
-  void SetParameters(VectorConstRefType pars) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<Eigen::VectorXcd> out, const any & /*unused*/) final;
 
-  void Save(const std::string &filename) const override;
-  void Load(const std::string &filename) override;
+  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<RowMatrix<Complex>> out, const any & /*unused*/) final;
 
-  bool IsHolomorphic() const noexcept override;
-
-  Complex LogValImpl(VisibleConstType v);
-
-  static double lncosh(double x) {
-    const double xp = std::abs(x);
-    if (xp <= 12.) {
-      return std::log(std::cosh(xp));
-    } else {
-      const static double log2v = std::log(2.);
-      return xp - log2v;
-    }
+  /// Simply calls `LogVal` with a batch size of 1.
+  ///
+  /// \note performance of this function is pretty bad. Please, use `LogVal`
+  /// with batch sizes greater than 1 if at all possible.
+  Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
+                       const any &cache) final {
+    Complex data;
+    auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
+    LogVal(v.transpose(), out, cache);
+    return data;
   }
 
-  // ln(cos(x)) for std::complex argument
-  // the modulus is computed by means of the previously defined function
-  // for real argument
-  static Complex lncosh(Complex x) {
-    const double xr = x.real();
-    const double xi = x.imag();
-
-    Complex res = RbmSpin::lncosh(xr);
-    res += std::log(Complex(std::cos(xi), std::tanh(xr) * std::sin(xi)));
-
-    return res;
+  /// Simply calls `DerLog` with a batch size of 1.
+  ///
+  /// \note performance of this function is pretty bad. Please, use `DerLog`
+  /// with batch sizes greater than 1 if at all possible.
+  Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
+                                const any &cache) final {
+    Eigen::VectorXcd out(Npar());
+    DerLog(v.transpose(),
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
+    return out;
   }
 
-  static void tanh(VectorConstRefType x, VectorType &y) {
-    assert(y.size() >= x.size());
-    y = x.array().tanh();
-  }
+  PyObject *StateDict() final;
 
-  static void tanh(RealVectorConstRefType x, RealVectorType &y) {
-    assert(y.size() >= x.size());
-    y = x.array().tanh();
-  }
-
-  static void lncosh(VectorConstRefType x, VectorType &y) {
-    assert(y.size() >= x.size());
-    for (int i = 0; i < x.size(); i++) {
-      y(i) = lncosh(x(i));
-    }
-  }
-
-  static void lncosh(RealVectorConstRefType x, RealVectorType &y) {
-    assert(y.size() >= x.size());
-    for (int i = 0; i < x.size(); i++) {
-      y(i) = lncosh(x(i));
-    }
-  }
+  bool IsHolomorphic() const noexcept final { return true; }
 
  private:
-  inline void Init();
-  VectorType DerLogSingleImpl(VisibleConstType v, const any &lookup);
+  /// Performs `out := log(cosh(out + b))`.
+  void ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const;
+
+  Eigen::MatrixXcd W_;             ///< weights
+  nonstd::optional<VectorXcd> a_;  ///< visible units bias
+  nonstd::optional<VectorXcd> b_;  ///< hidden units bias
+
+  /// Caches
+  RowMatrix<Complex> theta_;
+
+  /// Returns current batch size.
+  Index BatchSize() const noexcept;
+
+  /// \brief Updates the batch size.
+  void BatchSize(Index batch_size);
 };
 
 }  // namespace netket
 
-#endif
+#endif  // SOURCES_MACHINE_RBM_SPIN_V2_HPP

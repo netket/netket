@@ -72,7 +72,8 @@ class AbstractMachine {
   @param seed is the seed of the random number generator. If seed is `nullopt`,
   one is generated using `std::random_device`.
   */
-  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed);
+  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed,
+                              default_random_engine *given_gen);
 
   /**
   Member function returning the number of visible units.

@@ -131,7 +131,7 @@ RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v) {
     }
   }
 
-  RbmSpin::tanh(W_.transpose() * v + b_, thetas_);
+  thetas_ = (W_.transpose() * v + b_).array().tanh();
 
   if (useb_) {
     for (int p = 0; p < nh_; p++) {

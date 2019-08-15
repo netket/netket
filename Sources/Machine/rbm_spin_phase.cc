@@ -89,8 +89,8 @@ RbmSpinPhase::VectorType RbmSpinPhase::DerLogSingle(VisibleConstType v,
     der.segment(impar, nv_) = I_ * v;
   }
 
-  RbmSpin::tanh(W1_.transpose() * v + b1_, lnthetas1_);
-  RbmSpin::tanh(W2_.transpose() * v + b2_, lnthetas2_);
+  lnthetas1_ = (W1_.transpose() * v + b1_).array().tanh();
+  lnthetas2_ = (W2_.transpose() * v + b2_).array().tanh();
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas1_;

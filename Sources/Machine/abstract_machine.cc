@@ -22,6 +22,7 @@
 #include <fstream>
 
 #include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/mpi_interface.hpp"
 #include "Utils/pybind_helpers.hpp"
 #include "Utils/random_utils.hpp"
@@ -29,7 +30,8 @@
 namespace netket {
 
 void AbstractMachine::InitRandomPars(double sigma,
-                                     nonstd::optional<unsigned> seed) {
+                                     nonstd::optional<unsigned> seed,
+                                     default_random_engine *given_gen) {
   VectorType parameters(Npar());
   const auto comm = MPI_COMM_WORLD;
   constexpr auto root = 0;
@@ -39,12 +41,19 @@ void AbstractMachine::InitRandomPars(double sigma,
   default_random_engine generator;
 
   if (rank == root) {
-    if (seed.has_value()) {
-      generator = default_random_engine(*seed);
+    if (given_gen != nullptr) {
+      generator = *given_gen;
+      if (seed.has_value()) {
+        InfoMessage() << "Warning: the given seed does not have any effect"
+                      << std::endl;
+      }
     } else {
-      generator = GetRandomEngine();
+      if (seed.has_value()) {
+        generator = default_random_engine(*seed);
+      } else {
+        generator = GetRandomEngine();
+      }
     }
-
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
                     std::normal_distribution<double> dist{0.0, sigma};

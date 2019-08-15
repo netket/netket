@@ -20,6 +20,7 @@
 #include <vector>
 #include "Machine/rbm_spin.hpp"
 #include "Utils/all_utils.hpp"
+#include "Utils/log_cosh.hpp"
 #include "Utils/lookup.hpp"
 #include "abstract_density_matrix.hpp"
 
@@ -275,10 +276,10 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
 
     auto &lt = any_cast_ref<LookupType>(lookup);
-    RbmSpin::tanh(lt.V(0).real(), lnthetas_r1_);
-    RbmSpin::tanh(lt.V(1).real(), lnthetas_r2_);
-    RbmSpin::tanh(lt.V(2).real(), lnthetas_c1_);
-    RbmSpin::tanh(lt.V(3).real(), lnthetas_c2_);
+    lnthetas_r1_ = lt.V(0).array().real().tanh();
+    lnthetas_r2_ = lt.V(1).array().real().tanh();
+    lnthetas_c1_ = lt.V(2).array().real().tanh();
+    lnthetas_c2_ = lt.V(3).array().real().tanh();
 
     if (useh_) {
       der.segment(useb_ * nv_, nh_) = 0.5 * (lnthetas_r1_ + lnthetas_c1_);
@@ -288,7 +289,7 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
     thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
     thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-    RbmSpin::tanh(lt.V(4).real() + I_ * lt.V(5).real(), lnpi_);
+    lnpi_ = (lt.V(4).array().real() + I_ * lt.V(5).array().real()).tanh();
 
     if (used_) {
       der.segment(useb_ * nv_ + useh_ * nh_, na_) = lnpi_;
@@ -397,195 +398,25 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
   // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogValSingle(VisibleConstType v, const any &lookup) override {
-    if (lookup.empty()) {
-      VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-      VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
-
-      RbmSpin::lncosh(W1_.transpose() * vr + h1_, lnthetas_r1_);
-      RbmSpin::lncosh(W2_.transpose() * vr + h2_, lnthetas_r2_);
-      RbmSpin::lncosh(W1_.transpose() * vc + h1_, lnthetas_c1_);
-      RbmSpin::lncosh(W2_.transpose() * vc + h2_, lnthetas_c2_);
-
-      thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
-      thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-      RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
-
-      auto gamma_1 =
-          0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
-
-      auto gamma_2 =
-          0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
-
-      return gamma_1 + I_ * gamma_2 + lnpi_.sum();
-    }
-
+  Complex LogValSingle(VisibleConstType v, const any & /*lookup*/) override {
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    RbmSpin::lncosh(lt.V(0).real(), lnthetas_r1_);
-    RbmSpin::lncosh(lt.V(1).real(), lnthetas_r2_);
-    RbmSpin::lncosh(lt.V(2).real(), lnthetas_c1_);
-    RbmSpin::lncosh(lt.V(3).real(), lnthetas_c2_);
-    RbmSpin::lncosh(lt.V(4).real() + I_ * lt.V(5).real(), lnpi_);
-
-    auto gamma_1 =
-        0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum() + (vr + vc).dot(b1_));
-    auto gamma_2 =
-        0.5 * (lnthetas_r2_.sum() - lnthetas_c2_.sum() + (vr - vc).dot(b2_));
-
-    return gamma_1 + I_ * gamma_2 + lnpi_.sum();
-  }
-
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
-
-    const std::size_t nconn = tochange.size();
-
-    thetas_r1_ = (W1_.transpose() * vr + h1_);
-    thetas_r2_ = (W2_.transpose() * vr + h2_);
-    thetas_c1_ = (W1_.transpose() * vc + h1_);
-    thetas_c2_ = (W2_.transpose() * vc + h2_);
-
-    RbmSpin::lncosh(thetas_r1_, lnthetas_r1_);
-    RbmSpin::lncosh(thetas_r2_, lnthetas_r2_);
-    RbmSpin::lncosh(thetas_c1_, lnthetas_c1_);
-    RbmSpin::lncosh(thetas_c2_, lnthetas_c2_);
+    auto r1s = SumLogCosh(W1_.transpose() * vr + h1_);
+    auto r2s = SumLogCosh(W2_.transpose() * vr + h2_);
+    auto c1s = SumLogCosh(W1_.transpose() * vc + h1_);
+    auto c2s = SumLogCosh(W2_.transpose() * vc + h2_);
 
     thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
     thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-    RbmSpin::lncosh(thetas_a1_ + I_ * thetas_a2_, lnpi_);
 
-    Complex logtsum = 0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum()) +
-                      0.5 * I_ * (lnthetas_r2_.sum() - lnthetas_c2_.sum()) +
-                      lnpi_.sum();
+    auto lnpis = SumLogCosh(thetas_a1_ + I_ * thetas_a2_);
 
-    VectorType logvaldiffs = VectorType::Zero(nconn);
-    for (std::size_t k = 0; k < nconn; k++) {
-      if (tochange[k].size() != 0) {
-        thetasnew_r1_ = thetas_r1_;
-        thetasnew_r2_ = thetas_r2_;
-        thetasnew_c1_ = thetas_c1_;
-        thetasnew_c2_ = thetas_c2_;
+    auto gamma_1 = 0.5 * (r1s + c1s + (vr + vc).dot(b1_));
 
-        thetasnew_a1_ = thetas_a1_;
-        thetasnew_a2_ = thetas_a2_;
+    auto gamma_2 = 0.5 * (r2s - c2s + (vr - vc).dot(b2_));
 
-        for (std::size_t s = 0; s < tochange[k].size(); s++) {
-          const int sf = tochange[k][s];
-
-          if (sf < Nvisible()) {
-            logvaldiffs(k) += 0.5 * b1_(sf) * (newconf[k][s] - vr(sf));
-            logvaldiffs(k) += 0.5 * I_ * b2_(sf) * (newconf[k][s] - vr(sf));
-
-            thetasnew_r1_ += W1_.row(sf) * (newconf[k][s] - vr(sf));
-            thetasnew_r2_ += W2_.row(sf) * (newconf[k][s] - vr(sf));
-            thetasnew_a1_ += 0.5 * U1_.row(sf) * (newconf[k][s] - vr(sf));
-            thetasnew_a2_ += 0.5 * U2_.row(sf) * (newconf[k][s] - vr(sf));
-          } else {
-            const int sfc = tochange[k][s] - Nvisible();
-            logvaldiffs(k) += 0.5 * b1_(sfc) * (newconf[k][s] - vc(sfc));
-            logvaldiffs(k) -= 0.5 * I_ * b2_(sfc) * (newconf[k][s] - vc(sfc));
-
-            thetasnew_c1_ += W1_.row(sfc) * (newconf[k][s] - vc(sfc));
-            thetasnew_c2_ += W2_.row(sfc) * (newconf[k][s] - vc(sfc));
-            thetasnew_a1_ += 0.5 * U1_.row(sfc) * (newconf[k][s] - vc(sfc));
-            thetasnew_a2_ -= 0.5 * U2_.row(sfc) * (newconf[k][s] - vc(sfc));
-          }
-        }
-        RbmSpin::lncosh(thetasnew_r1_, lnthetasnew_r1_);
-        RbmSpin::lncosh(thetasnew_r2_, lnthetasnew_r2_);
-        RbmSpin::lncosh(thetasnew_c1_, lnthetasnew_c1_);
-        RbmSpin::lncosh(thetasnew_c2_, lnthetasnew_c2_);
-        RbmSpin::lncosh(thetasnew_a1_ + I_ * thetasnew_a2_, lnpinew_);
-
-        logvaldiffs(k) +=
-            0.5 * (lnthetasnew_r1_.sum() + lnthetasnew_c1_.sum()) +
-            0.5 * I_ * (lnthetasnew_r2_.sum() - lnthetasnew_c2_.sum()) +
-            lnpinew_.sum() - logtsum;
-      }
-    }
-    return logvaldiffs;
-  }
-
-  // Difference between logarithms of values, when one or more visible variables
-  // are being flipped Version using pre-computed look-up tables for efficiency
-  // on a small number of spin flips
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lookup) override {
-    VisibleConstType vr = v.head(GetHilbertPhysical().Size());
-    VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
-
-    Complex logvaldiff = 0.;
-
-    if (tochange.size() != 0) {
-      auto &lt = any_cast_ref<LookupType>(lookup);
-      RbmSpin::lncosh(lt.V(0).real(), lnthetas_r1_);
-      RbmSpin::lncosh(lt.V(1).real(), lnthetas_r2_);
-      RbmSpin::lncosh(lt.V(2).real(), lnthetas_c1_);
-      RbmSpin::lncosh(lt.V(3).real(), lnthetas_c2_);
-      RbmSpin::lncosh(lt.V(4).real() + I_ * lt.V(5).real(), lnpi_);
-
-      thetasnew_r1_ = lt.V(0).real();
-      thetasnew_r2_ = lt.V(1).real();
-      thetasnew_c1_ = lt.V(2).real();
-      thetasnew_c2_ = lt.V(3).real();
-      thetasnew_a1_ = lt.V(4).real();
-      thetasnew_a2_ = lt.V(5).real();
-
-      for (std::size_t s = 0; s < tochange.size(); s++) {
-        const int sf = tochange[s];
-
-        if (sf < Nvisible()) {
-          logvaldiff += 0.5 * b1_(sf) * (newconf[s] - vr(sf));
-          logvaldiff += 0.5 * I_ * b2_(sf) * (newconf[s] - vr(sf));
-
-          thetasnew_r1_ += W1_.row(sf) * (newconf[s] - vr(sf));
-          thetasnew_r2_ += W2_.row(sf) * (newconf[s] - vr(sf));
-          thetasnew_a1_ += 0.5 * U1_.row(sf) * (newconf[s] - vr(sf));
-          thetasnew_a2_ += 0.5 * U2_.row(sf) * (newconf[s] - vr(sf));
-        } else {
-          const int sfc = tochange[s] - Nvisible();
-          logvaldiff += 0.5 * b1_(sfc) * (newconf[s] - vc(sfc));
-          logvaldiff -= 0.5 * I_ * b2_(sfc) * (newconf[s] - vc(sfc));
-
-          thetasnew_c1_ += W1_.row(sfc) * (newconf[s] - vc(sfc));
-          thetasnew_c2_ += W2_.row(sfc) * (newconf[s] - vc(sfc));
-          thetasnew_a1_ += 0.5 * U1_.row(sfc) * (newconf[s] - vc(sfc));
-          thetasnew_a2_ -= 0.5 * U2_.row(sfc) * (newconf[s] - vc(sfc));
-        }
-      }
-
-      RbmSpin::lncosh(thetasnew_r1_, lnthetasnew_r1_);
-      RbmSpin::lncosh(thetasnew_r2_, lnthetasnew_r2_);
-      RbmSpin::lncosh(thetasnew_c1_, lnthetasnew_c1_);
-      RbmSpin::lncosh(thetasnew_c2_, lnthetasnew_c2_);
-      RbmSpin::lncosh(thetasnew_a1_ + I_ * thetasnew_a2_, lnpinew_);
-
-      logvaldiff += 0.5 * (lnthetasnew_r1_.sum() + lnthetasnew_c1_.sum());
-      logvaldiff -= 0.5 * (lnthetas_r1_.sum() + lnthetas_c1_.sum());
-      logvaldiff += 0.5 * I_ * (lnthetasnew_r2_.sum() - lnthetasnew_c2_.sum());
-      logvaldiff -= 0.5 * I_ * (lnthetas_r2_.sum() - lnthetas_c2_.sum());
-      logvaldiff += (lnpinew_.sum() - lnpi_.sum());
-    }
-    return logvaldiff;
-  }
-
-  inline static double lncosh(double x) {
-    const double xp = std::abs(x);
-    if (xp <= 12.) {
-      return std::log(std::cosh(xp));
-    } else {
-      const static double log2v = std::log(2.);
-      return xp - log2v;
-    }
+    return (gamma_1 + I_ * gamma_2 + lnpis);
   }
 
   void Save(const std::string &filename) const override {

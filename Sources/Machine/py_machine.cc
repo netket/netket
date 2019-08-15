@@ -36,16 +36,15 @@
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
-#include "Utils/pybind_helpers.hpp"
-
-#include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
 namespace {
+
 void AddRbmSpin(py::module subm) {
   py::class_<RbmSpin, AbstractMachine>(subm, "RbmSpin", R"EOF(
           A fully connected Restricted Boltzmann Machine (RBM). This type of
@@ -55,11 +54,11 @@ void AddRbmSpin(py::module subm) {
              \left(\sum_i^N W_{ij} s_i + b_j \right) $$
 
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool, bool>(),
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
+                    bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true, py::arg("cache_vals") = false,
+           py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpin`` machine:
 
@@ -73,8 +72,6 @@ void AddRbmSpin(py::module subm) {
                        use_hidden_bias: If ``True`` then there would be a
                                        bias on the visible units.
                                        Default ``True``.
-                       cache_vals: If ``True`` then forward computations are
-                                   sped up using cached values 
 
                    Examples:
                        A ``RbmSpin`` machine with hidden unit density
@@ -559,20 +556,6 @@ void AddLayerModule(py::module m) {
   }
 }
 
-void AddRbmSpinV2(py::module m) {
-  py::class_<RbmSpinV2, AbstractMachine>(m, "RbmSpinV2")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
-                    bool, Index>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 64)
-      .def_property("batch_size",
-                    [](const RbmSpinV2 &self) { return self.BatchSize(); },
-                    [](RbmSpinV2 &self, Index const batch_size) {
-                      self.BatchSize(batch_size);
-                    });
-}
-
 void AddAbstractMachine(py::module m) {
   py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
       .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
@@ -586,13 +569,19 @@ void AddAbstractMachine(py::module m) {
             Read and write)EOF")
       .def("init_random_parameters", &AbstractMachine::InitRandomPars,
            py::arg{"sigma"} = 0.1, py::arg{"seed"} = py::none(),
+           py::arg{"rand_gen"} = py::none(),
            R"EOF(
              Member function to initialise machine parameters.
 
              Args:
-                 seed: The random number generator seed. If not given, the global random generator (with its current state) is used.
                  sigma: Standard deviation of normal distribution from which
-                     parameters are drawn.
+                        parameters are drawn.
+                 seed: The random number generator seed. If not given, rand_gen
+                       is considered instead.
+                 rand_gen: The random number generator (netket.RandomEngine) to be used.
+                           If not given, the global random generator (with its current state)
+                           is used.
+
            )EOF")
       .def("log_val",
            [](AbstractMachine &self, py::array_t<double> x) {
@@ -761,7 +750,6 @@ void AddMachineModule(py::module m) {
   AddRbmMultival(subm);
   AddRbmSpinReal(subm);
   AddRbmSpinPhase(subm);
-  AddRbmSpinV2(subm);
   AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);

@@ -70,7 +70,7 @@ RbmSpinReal::VectorType RbmSpinReal::DerLogSingle(VisibleConstType v,
     der.head(nv_) = v;
   }
 
-  RbmSpin::tanh((W_.transpose() * v + b_).real(), lnthetas_);
+  lnthetas_ = (W_.transpose() * v + b_).array().real().tanh();
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas_;
@@ -140,9 +140,8 @@ RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
   VectorType logvaldiffs = VectorType::Zero(nconn);
 
   thetas_ = (W_.transpose() * v + b_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
 
-  Complex logtsum = lnthetas_.sum();
+  Complex logtsum = SumLogCosh(thetas_);
 
   for (std::size_t k = 0; k < nconn; k++) {
     if (tochange[k].size() != 0) {
@@ -156,8 +155,8 @@ RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
         thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
       }
 
-      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-      logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
+      logvaldiffs(k) += SumLogCosh(thetasnew_);
+      -logtsum;
     }
   }
   return logvaldiffs;

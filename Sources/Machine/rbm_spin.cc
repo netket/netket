@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,193 +12,165 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "rbm_spin.hpp"
+#include "Machine/rbm_spin.hpp"
 
-#include "Utils/json_utils.hpp"
+#include <pybind11/eigen.h>
+#include <pybind11/eval.h>
+
 #include "Utils/log_cosh.hpp"
-#include "Utils/messages.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 namespace netket {
 
-RbmSpin::RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden,
-                 int alpha, bool usea, bool useb, bool cache_vals)
-    : AbstractMachine(hilbert),
-      nv_(hilbert->Size()),
-      usea_(usea),
-      useb_(useb),
-      cache_vals_(cache_vals) {
-  nh_ = std::max(nhidden, alpha * nv_);
-  Init();
+RbmSpin::RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
+                 Index alpha, bool usea, bool useb)
+    : AbstractMachine{std::move(hilbert)},
+      W_{},
+      a_{nonstd::nullopt},
+      b_{nonstd::nullopt},
+      theta_{} {
+  const auto nvisible = GetHilbert().Size();
+  assert(nvisible >= 0 && "AbstractHilbert::Size is broken");
+
+  NETKET_CHECK(nhidden >= 0, InvalidInputError,
+               "invalid number of hidden units: "
+                   << nhidden << "; expected a non-negative number");
+
+  NETKET_CHECK(alpha >= 0, InvalidInputError,
+               "invalid density of hidden units: "
+                   << alpha << "; expected a non-negative number");
+
+  if (nhidden > 0 && alpha > 0) {
+    NETKET_CHECK(nhidden == alpha * nvisible, InvalidInputError,
+                 "number and density of hidden units are incompatible: "
+                     << nhidden << " != " << alpha << " * " << nvisible);
+  }
+  nhidden = std::max(nhidden, alpha * nvisible);
+
+  W_.resize(nvisible, nhidden);
+  if (usea) {
+    a_.emplace(nvisible);
+  }
+  if (useb) {
+    b_.emplace(nhidden);
+  }
 }
 
-int RbmSpin::Nvisible() const { return nv_; }
+Index RbmSpin::BatchSize() const noexcept { return theta_.rows(); }
 
-int RbmSpin::Npar() const { return npar_; }
+void RbmSpin::BatchSize(Index batch_size) {
+  if (batch_size <= 0) {
+    std::ostringstream msg;
+    msg << "invalid batch size: " << batch_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  if (batch_size != BatchSize()) {
+    theta_.resize(batch_size, theta_.cols());
+  }
+}
 
-void RbmSpin::Init() {
-  W_.resize(nv_, nh_);
-  a_.resize(nv_);
-  b_.resize(nh_);
+Eigen::VectorXcd RbmSpin::GetParameters() {
+  Eigen::VectorXcd parameters(Npar());
+  Index i = 0;
+  if (a_.has_value()) {
+    parameters.segment(i, a_->size()) = *a_;
+    i += a_->size();
+  }
+  if (b_.has_value()) {
+    parameters.segment(i, b_->size()) = *b_;
+    i += b_->size();
+  }
+  parameters.segment(i, W_.size()) =
+      Eigen::Map<Eigen::VectorXcd>(W_.data(), W_.size());
+  return parameters;
+}
 
-  lnthetas_.resize(nh_);
+void RbmSpin::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
+  CheckShape(__FUNCTION__, "parameters", parameters.size(), Npar());
+  Index i = 0;
+  if (a_.has_value()) {
+    *a_ = parameters.segment(i, a_->size());
+    i += a_->size();
+  }
+  if (b_.has_value()) {
+    *b_ = parameters.segment(i, b_->size());
+    i += b_->size();
+  }
+  Eigen::Map<Eigen::VectorXcd>(W_.data(), W_.size()) =
+      parameters.segment(i, W_.size());
+}
 
-  npar_ = nv_ * nh_;
-
-  if (usea_) {
-    npar_ += nv_;
+void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                     Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
+  BatchSize(x.rows());
+  if (a_.has_value()) {
+    out.noalias() = x * (*a_);
   } else {
-    a_.setZero();
+    out.setZero();
+  }
+  theta_.noalias() = x * W_;
+  ApplyBiasAndActivation(out);
+}
+
+void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
+                     Eigen::Ref<RowMatrix<Complex>> out,
+                     const any & /*unused*/) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {x.rows(), Npar()});
+  BatchSize(x.rows());
+
+  auto i = Index{0};
+  if (a_.has_value()) {
+    out.block(0, i, BatchSize(), a_->size()) = x;
+    i += a_->size();
   }
 
-  if (useb_) {
-    npar_ += nh_;
+  Eigen::Map<RowMatrix<Complex>>{theta_.data(), theta_.rows(), theta_.cols()}
+      .noalias() = x * W_;
+  if (b_.has_value()) {
+    theta_.array() = (theta_ + b_->transpose().colwise().replicate(BatchSize()))
+                         .array()
+                         .tanh();
+    out.block(0, i, BatchSize(), b_->size()) = theta_;
+    i += b_->size();
   } else {
-    b_.setZero();
+    theta_.array() = theta_.array().tanh();
   }
 
-  log_vals_cache_.clear();
-
-  InfoMessage() << "RBM Initizialized with nvisible = " << nv_
-                << " and nhidden = " << nh_ << std::endl;
-  InfoMessage() << "Using visible bias = " << usea_ << std::endl;
-  InfoMessage() << "Using hidden bias  = " << useb_ << std::endl;
+  // TODO: Rewrite this using tensors
+  omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i), W_.rows(), W_.cols()}.noalias() =
+        x.row(j).transpose() * theta_.row(j);
+  }
 }
 
-RbmSpin::VectorType RbmSpin::DerLogSingle(VisibleConstType v,
-                                          const any & /*lookup*/) {
-  VectorType der(npar_);
-
-  if (usea_) {
-    der.head(nv_) = v;
-  }
-
-  RbmSpin::tanh(W_.transpose() * v + b_, lnthetas_);
-
-  if (useb_) {
-    der.segment(usea_ * nv_, nh_) = lnthetas_;
-  }
-
-  MatrixType wder = (v * lnthetas_.transpose());
-  der.tail(nv_ * nh_) = Eigen::Map<VectorType>(wder.data(), nv_ * nh_);
-
-  return der;
-}
-
-RbmSpin::VectorType RbmSpin::GetParameters() {
-  VectorType pars(npar_);
-
-  if (usea_) {
-    pars.head(nv_) = a_;
-  }
-
-  if (useb_) {
-    pars.segment(usea_ * nv_, nh_) = b_;
-  }
-
-  pars.tail(nv_ * nh_) = Eigen::Map<VectorType>(W_.data(), nv_ * nh_);
-
-  return pars;
-}
-
-void RbmSpin::SetParameters(VectorConstRefType pars) {
-  if (usea_) {
-    a_ = pars.head(nv_);
-  }
-
-  if (useb_) {
-    b_ = pars.segment(usea_ * nv_, nh_);
-  }
-
-  VectorType Wpars = pars.tail(nv_ * nh_);
-
-  W_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_);
-
-  log_vals_cache_.clear();
-}
-
-Complex RbmSpin::LogValImpl(VisibleConstType v) {
-  return v.dot(a_) + SumLogCosh(W_.transpose() * v + b_);
-}
-
-// Value of the logarithm of the wave-function
-// using pre-computed look-up tables for efficiency
-Complex RbmSpin::LogValSingle(VisibleConstType v, const any & /*unused*/) {
-  if (!cache_vals_) {
-    return LogValImpl(v);
-  }
-  auto it = log_vals_cache_.find(v);
-
-  if (it != log_vals_cache_.end()) {
-    return it->second;
+void RbmSpin::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
+  if (b_.has_value()) {
+    omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      out(j) += SumLogCoshBias(theta_.row(j), (*b_));  // total;
+    }
   } else {
-    Complex logval = LogValImpl(v);
-
-    log_vals_cache_[v] = logval;
-
-    return logval;
+    omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+    for (auto j = Index{0}; j < BatchSize(); ++j) {
+      out(j) += SumLogCosh(theta_.row(j));
+    }
   }
 }
 
-void RbmSpin::Save(const std::string &filename) const {
-  json state;
-  state["Name"] = "RbmSpin";
-  state["Nvisible"] = nv_;
-  state["Nhidden"] = nh_;
-  state["UseVisibleBias"] = usea_;
-  state["UseHiddenBias"] = useb_;
-  state["a"] = a_;
-  state["b"] = b_;
-  state["W"] = W_;
-  WriteJsonToFile(state, filename);
+PyObject *RbmSpin::StateDict() {
+  return ToStateDict(std::make_tuple(std::make_pair("a", std::ref(a_)),
+                                     std::make_pair("b", std::ref(b_)),
+                                     std::make_pair("w", std::ref(W_))));
 }
-
-void RbmSpin::Load(const std::string &filename) {
-  auto const pars = ReadJsonFromFile(filename);
-  std::string name = FieldVal<std::string>(pars, "Name");
-  if (name != "RbmSpin") {
-    throw InvalidInputError(
-        "Error while constructing RbmSpin from input parameters");
-  }
-
-  if (FieldExists(pars, "Nvisible")) {
-    nv_ = FieldVal<int>(pars, "Nvisible");
-  }
-  if (nv_ != GetHilbert().Size()) {
-    throw InvalidInputError(
-        "Number of visible units is incompatible with given "
-        "Hilbert space");
-  }
-
-  if (FieldExists(pars, "Nhidden")) {
-    nh_ = FieldVal<int>(pars, "Nhidden");
-  } else {
-    nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
-  }
-
-  usea_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
-  useb_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
-
-  Init();
-
-  // Loading parameters, if defined in the input
-  if (FieldExists(pars, "a")) {
-    a_ = FieldVal<VectorType>(pars, "a");
-  } else {
-    a_.setZero();
-  }
-
-  if (FieldExists(pars, "b")) {
-    b_ = FieldVal<VectorType>(pars, "b");
-  } else {
-    b_.setZero();
-  }
-  if (FieldExists(pars, "W")) {
-    W_ = FieldVal<MatrixType>(pars, "W");
-  }
-
-  log_vals_cache_.clear();
-}
-
-bool RbmSpin::IsHolomorphic() const noexcept { return true; }
 
 }  // namespace netket
