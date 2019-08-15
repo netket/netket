@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_SAMPLER_HPP
-#define NETKET_SAMPLER_HPP
+#include "random_utils.hpp"
 
-#include "abstract_sampler.hpp"
-#include "exact_sampler.hpp"
-#include "metropolis_hastings.hpp"
-#include "metropolis_hastings_pt.hpp"
+namespace netket {
 
-#endif
+DistributedRandomEngine& GetDistributedRandomEngine() {
+  static DistributedRandomEngine dre;
+  return dre;
+}
+
+default_random_engine& GetRandomEngine() {
+  return GetDistributedRandomEngine().Get();
+}
+
+}  // namespace netket
