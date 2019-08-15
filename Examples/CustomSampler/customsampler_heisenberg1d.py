@@ -12,81 +12,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
+import numpy as np
 
-from __future__ import print_function
-import json
+# 1D Lattice
+l = 20
+g = nk.graph.Hypercube(length=l, n_dim=1, pbc=True)
 
-pars = {}
+# Hilbert space of spins on the graph
+# with total Sz equal to 0
+hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 
-# Tutorial for defining a custom sampler
-# taking L=20 Heisenberg spin chain as example
-# (adapted from Heisenberg1d tutorial)
-# (you can use plot_heis.py from Heisenberg1d folder identically here to plot results)
+# Heisenberg hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi)
 
-L = 20
+# Symmetric RBM Spin Machine
+ma = nk.machine.RbmSpinSymm(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the hilbert space
-pars["Hilbert"] = {"Name": "Spin", "S": 0.5}
-
-# defining the lattice
-pars["Graph"] = {"Name": "Hypercube", "L": L, "Dimension": 1, "Pbc": True}
-
-# defining the hamiltonian
-pars["Hamiltonian"] = {"Name": "Heisenberg"}
-
-# defining the wave function
-pars["Machine"] = {"Name": "RbmSpinSymm", "Alpha": 1.0}
 
 # defining the custom sampler
-# here we use two types of moves : local spin flip, and exchange flip between two sites
+# here we use two types of moves : 2-spin exchange between two random neighboring sites,
+# and 4-spin exchanges between 4 random neighboring sites
 # note that each line and column have to add up to 1.0 (stochastic matrices)
-# we also choose a relative frequency of 2 for local-spin flips with respect to exchange flips
-spin_flip = [[0, 1], [1, 0]]
-exchange_flip = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
-weight_spin_flip = 1.0
-weight_exchange_flip = 2.0
 
-# adding both types of flip for all sites in the chain
-operators = []
-sites = []
-weights = []
-for i in range(L):
-    operators.append(exchange_flip)
-    sites.append([i, (i + 1) % L])
-    weights.append(weight_exchange_flip)
-    operators.append(spin_flip)
-    sites.append([i])
-    weights.append(weight_spin_flip)
+one_exchange_operator = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
+two_exchange_operator = np.kron(one_exchange_operator, one_exchange_operator)
 
-# now we define the custom sampler accordingly
-pars["Sampler"] = {
-    "MoveOperators": operators,
-    "ActingOn": sites,
-    "MoveWeights": weights,
-    # parallel tempering is also possible with custom sampler (uncomment the following line)
-    #'Nreplicas' : 12,
-}
 
-# defining the Optimizer
-# here we use AdaMax
-pars["Optimizer"] = {"Name": "AdaMax"}
+ops = [one_exchange_operator] * l + [two_exchange_operator] * l
 
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars["GroundState"] = {
-    "Method": "Sr",
-    "Nsamples": 1.0e3,
-    "NiterOpt": 4000,
-    "Diagshift": 0.1,
-    "UseIterative": False,
-    "OutputFile": "test",
-}
+# Single exchange operator acts on pairs of neighboring sites
+acting_on = [[i, (i + 1) % l] for i in range(l)]
 
-json_file = "customsampler_heisenberg1d.json"
-with open(json_file, "w") as outfile:
-    json.dump(pars, outfile)
+# Double exchange operator acts on cluster of 4 neighboring sites
+acting_on += [[i, (i + 1) % l, (i + 2) % l, (i + 3) % l] for i in range(l)]
 
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+
+move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_on)
+
+sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
+
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.05)
+
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method="Sr",
+)
+
+gs.run(output_prefix="test", n_iter=300)

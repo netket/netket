@@ -74,8 +74,6 @@ class QuantumStateReconstruction {
 
   int npar_;
 
-  DistributedRandomEngine engine_;
-
   std::vector<Eigen::VectorXd> trainingSamples_;
   std::vector<int> trainingBases_;
 
@@ -180,7 +178,7 @@ class QuantumStateReconstruction {
         0, trainingSamples_.size() - 1);
 
     for (int k = 0; k < batchsize_node_; k++) {
-      const auto index = distribution(engine_.Get());
+      const auto index = distribution(GetRandomEngine());
       batchSamples[k] = trainingSamples_[index];
       batchBases[k] = trainingBases_[index];
     }

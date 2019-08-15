@@ -564,11 +564,11 @@ void AddRbmSpinV2(py::module m) {
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 64)
-      .def_property(
-          "batch_size", [](const RbmSpinV2 &self) { return self.BatchSize(); },
-          [](RbmSpinV2 &self, Index const batch_size) {
-            self.BatchSize(batch_size);
-          });
+      .def_property("batch_size",
+                    [](const RbmSpinV2 &self) { return self.BatchSize(); },
+                    [](RbmSpinV2 &self, Index const batch_size) {
+                      self.BatchSize(batch_size);
+                    });
 }
 
 void AddAbstractMachine(py::module m) {
@@ -588,22 +588,21 @@ void AddAbstractMachine(py::module m) {
              Member function to initialise machine parameters.
 
              Args:
-                 seed: The random number generator seed.
+                 seed: The random number generator seed. If not given, the global random generator (with its current state) is used.
                  sigma: Standard deviation of normal distribution from which
                      parameters are drawn.
            )EOF")
-      .def(
-          "log_val",
-          [](AbstractMachine &self, py::array_t<double> x) {
-            if (x.ndim() == 1) {
-              auto input = x.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.LogValSingle(input));
-            }
-            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-            return py::cast(self.LogVal(input, any{}));
-          },
-          py::arg("v"),
-          R"EOF(
+      .def("log_val",
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.LogValSingle(input));
+             }
+             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+             return py::cast(self.LogVal(input, any{}));
+           },
+           py::arg("v"),
+           R"EOF(
                  Member function to obtain log value of machine given an input
                  vector.
 
@@ -628,18 +627,17 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
-      .def(
-          "der_log",
-          [](AbstractMachine &self, py::array_t<double> x) {
-            if (x.ndim() == 1) {
-              auto input = x.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.DerLogSingle(input));
-            }
-            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-            return py::cast(self.DerLog(input, any{}));
-          },
-          py::arg("v"),
-          R"EOF(
+      .def("der_log",
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.DerLogSingle(input));
+             }
+             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+             return py::cast(self.DerLog(input, any{}));
+           },
+           py::arg("v"),
+           R"EOF(
                  Member function to obtain the derivatives of log value of
                  machine given an input wrt the machine's parameters.
 
@@ -678,41 +676,39 @@ void AddAbstractMachine(py::module m) {
           },
           R"EOF(Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.
            )EOF")
-      .def(
-          "load_state_dict",
-          [](AbstractMachine &self, py::dict state) {
-            self.StateDict(state.ptr());
-          },
-          R"EOF(Loads machine's state from `state`.
+      .def("load_state_dict",
+           [](AbstractMachine &self, py::dict state) {
+             self.StateDict(state.ptr());
+           },
+           R"EOF(Loads machine's state from `state`.
            )EOF")
-      .def(
-          "to_array",
-          [](AbstractMachine &self,
-             bool normalize) -> AbstractMachine::VectorType {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("to_array",
+           [](AbstractMachine &self,
+              bool normalize) -> AbstractMachine::VectorType {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogValSingle(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              vals(i) = std::exp(vals(i));
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
 
-            if (normalize) {
-              vals.normalize();
-            }
-            return vals;
-          },
-          py::arg("normalize") = true,
-          R"EOF(
+             if (normalize) {
+               vals.normalize();
+             }
+             return vals;
+           },
+           py::arg("normalize") = true,
+           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
                 Note that, in general, the size of the array is exponential
@@ -721,30 +717,29 @@ void AddAbstractMachine(py::module m) {
 
                 This method requires an indexable Hilbert space.
               )EOF")
-      .def(
-          "log_norm",
-          [](AbstractMachine &self) -> double {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("log_norm",
+           [](AbstractMachine &self) -> double {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogValSingle(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            double norpsi = 0;
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              norpsi += std::norm(std::exp(vals(i)));
-            }
+             double norpsi = 0;
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               norpsi += std::norm(std::exp(vals(i)));
+             }
 
-            return std::log(norpsi) + 2. * maxlog;
-          },
-          R"EOF(
+             return std::log(norpsi) + 2. * maxlog;
+           },
+           R"EOF(
                 Returns the log of the L2 norm of the wave-function.
                 This operation is a brute-force calculation, and should thus
                 only be performed for low-dimensional Hilbert spaces.
