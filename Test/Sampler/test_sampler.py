@@ -16,9 +16,11 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=3)
+sa = nk.sampler.MetropolisLocal(machine=ma)
 samplers["MetropolisLocal RbmSpin"] = sa
 
+sa = nk.sampler.MetropolisLocalV2(machine=ma, batch_size=1)
+samplers["MetropolisLocalV2 RbmSpin"] = sa
 
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
 samplers["MetropolisLocalPt RbmSpin"] = sa
@@ -30,7 +32,7 @@ samplers["MetropolisHamiltonian RbmSpin"] = sa
 # Test with uniform probability
 maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 maz.init_random_parameters(seed=1234, sigma=0)
-sa = nk.sampler.MetropolisLocal(machine=maz, sweep_size=hi.size + 1, batch_size=2)
+sa = nk.sampler.MetropolisLocal(machine=maz)
 samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
 
 mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
@@ -44,7 +46,7 @@ ma.init_random_parameters(seed=1234, sigma=0.1)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 samplers["MetropolisLocal Boson"] = sa
 
-sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=2)
+sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=5)
 samplers["MetropolisLocalPt Boson"] = sa
 
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -118,10 +120,8 @@ def test_states_in_hilbert():
 def test_machine_func():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
-
         def custom_machine_func(x, out):
-            out[:] = np.absolute(x) ** 2.0
-
+            out[:] = np.absolute(x)**2.0
         sa.machine_func = custom_machine_func
         x = np.array([3.0 + 1.0j])
         out = np.empty(1)
@@ -157,14 +157,15 @@ def test_correct_sampling():
         if ord == 1:
             sa.machine_func = np.absolute
         if ord == 2:
-
             def _f(x, out):
                 out[:] = np.absolute(x) ** 2
-
             sa.machine_func = _f
 
         ps = np.absolute(ma.to_array()) ** ord
         ps /= ps.sum()
+
+        # expected frequencies
+        f_exp = n_samples * ps
 
         n_rep = 6
         pvalues = np.zeros(n_rep)
@@ -177,18 +178,12 @@ def test_correct_sampling():
             for sw in range(n_samples // 10):
                 sa.sweep()
 
-            n_s = 0
             for sw in range(n_samples):
                 sa.sweep()
                 visible = sa.visible
-
                 for v in visible:
                     sttn = hi.state_to_number(v)
                     hist_samp[sttn] += 1
-                    n_s += 1
-
-            # expected frequencies
-            f_exp = n_s * ps
 
             statistics, pvalues[jrep] = power_divergence(
                 hist_samp, f_exp=f_exp, lambda_=3 / 2

@@ -109,7 +109,6 @@ def test_consistent_size():
 
 def test_random_states():
     """"""
-    nk.utils.seed(12345)
 
     for name, hi in hilberts.items():
         assert hi.size > 0
@@ -118,11 +117,11 @@ def test_random_states():
 
         if hi.is_discrete:
             rstate = np.zeros(hi.size)
-
+            rg = nk.utils.RandomEngine(seed=1234)
             local_states = hi.local_states
 
             for i in range(100):
-                hi.random_vals(rstate)
+                hi.random_vals(rstate, rg)
                 for state in rstate:
                     assert state in local_states
 

@@ -12,47 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PY_METROPOLISEXCHANGE_HPP
-#define NETKET_PY_METROPOLISEXCHANGE_HPP
+#ifndef NETKET_PY_METROPOLISEXCHANGEPT_HPP
+#define NETKET_PY_METROPOLISEXCHANGEPT_HPP
 
 #include <pybind11/pybind11.h>
-#include "metropolis_exchange.hpp"
+#include "metropolis_exchange_pt.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddMetropolisExchange(py::module &subm) {
+void AddMetropolisExchangePt(py::module &subm) {
   auto cls =
-      py::class_<MetropolisExchange, AbstractSampler>(subm,
-                                                      "MetropolisExchange",
-                                                      R"EOF(
-    This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
-    and proposes a new state: $$ s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N $$,
-    where in general $$ s^\prime_i \neq s_i $$ and $$ s^\prime_j \neq s_j $$ .
-    The sites $$ i $$ and $$ j $$ are also chosen to be within a maximum graph
-    distance of $$ d_{\mathrm{max}} $$.
-
-    The transition probability associated to this sampler can
-    be decomposed into two steps:
-
-    1. A pair of indices $$ i,j = 1\dots N $$, and such
-    that $$ \mathrm{dist}(i,j) \leq d_{\mathrm{max}} $$,
-    is chosen with uniform probability.
-    2. The sites are exchanged, i.e. $$ s^\prime_i = s_j $$ and $$ s^\prime_j = s_i $$.
-
-    Notice that this sampling method generates random permutations of the quantum
-    numbers, thus global quantities such as the sum of the local quantum n
-    umbers are conserved during the sampling.
-    This scheme should be used then only when sampling in a
-    region where $$ \sum_i s_i = \mathrm{constant} $$ is needed,
-    otherwise the sampling would be strongly not ergodic.
+      py::class_<MetropolisExchangePt, AbstractSampler>(
+          subm, "MetropolisExchangePt", R"EOF(
+    This sampler performs parallel-tempering moves in addition to
+    the local exchange moves implemented in `MetropolisExchange`.
+    The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
     )EOF")
-          .def(py::init<const AbstractGraph &, AbstractMachine &, int>(),
+          .def(py::init<const AbstractGraph &, AbstractMachine &, int, int>(),
                py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("graph"),
-               py::arg("machine"), py::arg("d_max") = 1, R"EOF(
-             Constructs a new ``MetropolisExchange`` sampler given a machine and a
-             graph.
+               py::arg("machine"), py::arg("d_max") = 1,
+               py::arg("n_replicas") = 1,
+               R"EOF(
+             Constructs a new ``MetropolisExchangePt`` sampler given a machine, a
+             graph, and a number of replicas.
 
              Args:
                  machine: A machine $$\Psi(s)$$ used for the sampling.
@@ -62,6 +46,7 @@ void AddMetropolisExchange(py::module &subm) {
                  graph: A graph used to define the distances among the degrees
                         of freedom being sampled.
                  d_max: The maximum graph distance allowed for exchanges.
+                 n_replicas: The number of replicas used for parallel tempering.
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -76,14 +61,13 @@ void AddMetropolisExchange(py::module &subm) {
                  >>> # RBM Spin Machine
                  >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
                  >>>
-                 >>> # Construct a MetropolisExchange Sampler
-                 >>> sa = nk.sampler.MetropolisExchange(machine=ma,graph=g,d_max=1)
-                 >>> print(sa.machine.hilbert.size)
-                 100
+                 >>> # Construct a MetropolisExchange Sampler with parallel tempering
+                 >>> sa = nk.sampler.MetropolisExchangePt(machine=ma,graph=g,d_max=1,n_replicas=16)
 
                  ```
              )EOF");
   AddAcceptance(cls);
 }
+
 }  // namespace netket
 #endif
