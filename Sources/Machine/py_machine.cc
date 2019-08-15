@@ -56,10 +56,10 @@ void AddRbmSpin(py::module subm) {
 
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool>(),
+                    bool, bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
+           py::arg("use_hidden_bias") = true, py::arg("cache_vals") = false,
            R"EOF(
                    Constructs a new ``RbmSpin`` machine:
 
@@ -73,6 +73,8 @@ void AddRbmSpin(py::module subm) {
                        use_hidden_bias: If ``True`` then there would be a
                                        bias on the visible units.
                                        Default ``True``.
+                       cache_vals: If ``True`` then forward computations are
+                                   sped up using cached values 
 
                    Examples:
                        A ``RbmSpin`` machine with hidden unit density

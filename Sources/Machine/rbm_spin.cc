@@ -21,8 +21,12 @@
 namespace netket {
 
 RbmSpin::RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden,
-                 int alpha, bool usea, bool useb)
-    : AbstractMachine(hilbert), nv_(hilbert->Size()), usea_(usea), useb_(useb) {
+                 int alpha, bool usea, bool useb, bool cache_vals)
+    : AbstractMachine(hilbert),
+      nv_(hilbert->Size()),
+      usea_(usea),
+      useb_(useb),
+      cache_vals_(cache_vals) {
   nh_ = std::max(nhidden, alpha * nv_);
   Init();
 }
@@ -36,10 +40,7 @@ void RbmSpin::Init() {
   a_.resize(nv_);
   b_.resize(nh_);
 
-  thetas_.resize(nh_);
   lnthetas_.resize(nh_);
-  thetasnew_.resize(nh_);
-  lnthetasnew_.resize(nh_);
 
   npar_ = nv_ * nh_;
 
@@ -54,6 +55,8 @@ void RbmSpin::Init() {
   } else {
     b_.setZero();
   }
+
+  log_vals_cache_.clear();
 
   InfoMessage() << "RBM Initizialized with nvisible = " << nv_
                 << " and nhidden = " << nh_ << std::endl;
@@ -109,12 +112,31 @@ void RbmSpin::SetParameters(VectorConstRefType pars) {
   VectorType Wpars = pars.tail(nv_ * nh_);
 
   W_ = Eigen::Map<MatrixType>(Wpars.data(), nv_, nh_);
+
+  log_vals_cache_.clear();
+}
+
+Complex RbmSpin::LogValImpl(VisibleConstType v) {
+  return v.dot(a_) + SumLogCosh(W_.transpose() * v + b_);
 }
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
 Complex RbmSpin::LogValSingle(VisibleConstType v, const any & /*unused*/) {
-  return v.dot(a_) + SumLogCosh(W_.transpose() * v + b_);
+  if (!cache_vals_) {
+    return LogValImpl(v);
+  }
+  auto it = log_vals_cache_.find(v);
+
+  if (it != log_vals_cache_.end()) {
+    return it->second;
+  } else {
+    Complex logval = LogValImpl(v);
+
+    log_vals_cache_[v] = logval;
+
+    return logval;
+  }
 }
 
 void RbmSpin::Save(const std::string &filename) const {
@@ -173,6 +195,8 @@ void RbmSpin::Load(const std::string &filename) {
   if (FieldExists(pars, "W")) {
     W_ = FieldVal<MatrixType>(pars, "W");
   }
+
+  log_vals_cache_.clear();
 }
 
 bool RbmSpin::IsHolomorphic() const noexcept { return true; }

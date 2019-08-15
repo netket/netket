@@ -16,8 +16,9 @@
 #define NETKET_RBM_SPIN_HPP
 
 #include <cmath>
-
+#include <unordered_map>
 #include "Machine/abstract_machine.hpp"
+#include "Utils/array_hasher.hpp"
 
 namespace netket {
 
@@ -43,17 +44,20 @@ class RbmSpin : public AbstractMachine {
   // hidden units bias
   VectorType b_;
 
-  VectorType thetas_;
   VectorType lnthetas_;
-  VectorType thetasnew_;
-  VectorType lnthetasnew_;
 
   bool usea_;
   bool useb_;
 
+  bool cache_vals_;
+
+  std::unordered_map<VisibleType, Complex, EigenArrayHasher<VisibleType>,
+                     EigenArrayEqualityComparison<VisibleType>>
+      log_vals_cache_;
+
  public:
-  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden = 0,
-          int alpha = 0, bool usea = true, bool useb = true);
+  RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, int nhidden,
+          int alpha, bool usea, bool useb, bool cache_vals);
 
   int Nvisible() const override;
   int Npar() const override;
@@ -69,6 +73,8 @@ class RbmSpin : public AbstractMachine {
   void Load(const std::string &filename) override;
 
   bool IsHolomorphic() const noexcept override;
+
+  Complex LogValImpl(VisibleConstType v);
 
   static double lncosh(double x) {
     const double xp = std::abs(x);
