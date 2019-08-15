@@ -23,6 +23,7 @@ namespace netket {
 
 class AbstractSampler {
  public:
+  // using MachineFunction = std::function<double(const Complex&)>;
   using MachineFunction =
       std::function<void(nonstd::span<const Complex>, nonstd::span<double>)>;
 
@@ -39,7 +40,7 @@ class AbstractSampler {
   virtual ~AbstractSampler() {}
 
   void Seed(DistributedRandomEngine::ResultType base_seed) {
-    GetDistributedRandomEngine().Seed(base_seed);
+    engine_.Seed(base_seed);
     this->Reset(true);
   }
 
@@ -59,18 +60,22 @@ class AbstractSampler {
 
  protected:
   AbstractSampler(AbstractMachine& psi)
-      : machine_func_{[](nonstd::span<const Complex> x,
-                         nonstd::span<double> out) {
-          CheckShape("AbstractSampler::machine_func_", "out", out.size(),
-                     x.size());
-          Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
-              Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
-          // std::transform(x.begin(), x.end(), out.begin(),
-          //                [](Complex z) { return std::norm(z); });
-        }},
+      : engine_{},
+        machine_func_{
+            [](nonstd::span<const Complex> x, nonstd::span<double> out) {
+              CheckShape("AbstractSampler::machine_func_", "out", out.size(),
+                         x.size());
+              Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
+                  Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
+              // std::transform(x.begin(), x.end(), out.begin(),
+              //                [](Complex z) { return std::norm(z); });
+            }},
         psi_{psi} {}
 
+  default_random_engine& GetRandomEngine() { return engine_.Get(); }
+
  private:
+  DistributedRandomEngine engine_;
   MachineFunction machine_func_;
   AbstractMachine& psi_;
 };  // namespace netket
@@ -171,11 +176,26 @@ inline Index CheckSweepSize(const char* func, const Index sweep_size) {
 }
 }  // namespace detail
 
+#define NETKET_SAMPLER_SET_VISIBLE_DEFAULT(var)                     \
+  void SetVisible(Eigen::Ref<const RowMatrix<double>> v) override { \
+    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},             \
+               {1, GetMachine().Nvisible()});                       \
+    var = v.row(0);                                                 \
+    Reset(false);                                                   \
+  }
+
 #define NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepts, moves)                  \
   double Acceptance() const {                                              \
     NETKET_CHECK(moves > 0, RuntimeError,                                  \
                  "Cannot compute acceptance, because no moves were made"); \
     return static_cast<double>(accepts) / static_cast<double>(moves);      \
+  }
+
+#define NETKET_SAMPLER_ACCEPTANCE_DEFAULT_PT(accepts, moves)               \
+  Eigen::VectorXd Acceptance() const {                                     \
+    NETKET_CHECK((moves.array() > 0).all(), RuntimeError,                  \
+                 "Cannot compute acceptance, because no moves were made"); \
+    return (accepts.array() / moves.array()).matrix();                     \
   }
 
 #define NETKET_SAMPLER_APPLY_MACHINE_FUNC(expr)                \

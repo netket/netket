@@ -9,10 +9,9 @@ This sampler generates i.i.d. samples from $$|\Psi(s)|^2$$.
 ## Class Constructor
 Constructs a new ``ExactSampler`` given a machine.
 
-| Argument |              Type              |                                                                                     Description                                                                                     |
-|----------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|machine   |netket._C_netket.machine.Machine|A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
-|batch_size|int = 16                        |The number of Markov Chains to be run in parallel on a single process.                                                                                                               |
+|Argument|              Type              |                                                                                     Description                                                                                     |
+|--------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|machine |netket._C_netket.machine.Machine|A machine $$\Psi(s)$$ used for the sampling. The probability distribution being sampled from is $$F(\Psi(s))$$, where the function $$F(X)$$, is arbitrary, by default $$F(X)=\|X\|^2$$.|
 
 ### Examples
 Exact sampling from a RBM machine in a 1D lattice of spin 1/2

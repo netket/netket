@@ -12,49 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NETKET_PY_EXACTSAMPLER_HPP
-#define NETKET_PY_EXACTSAMPLER_HPP
+#ifndef NETKET_PY_METROPOLISLOCALPT_HPP
+#define NETKET_PY_METROPOLISLOCALPT_HPP
 
 #include <pybind11/pybind11.h>
-#include "exact_sampler.hpp"
+#include "metropolis_local_pt.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddExactSampler(py::module &subm) {
+void AddMetropolisLocalPt(py::module &subm) {
   auto cls =
-      py::class_<ExactSampler, AbstractSampler>(subm, "ExactSampler", R"EOF(
-    This sampler generates i.i.d. samples from $$|\Psi(s)|^2$$.
-    In order to perform exact sampling, $$|\Psi(s)|^2$$ is precomputed an all
-    the possible values of the quantum numbers $$s$$. This sampler has thus an
-    exponential cost with the number of degrees of freedom, and cannot be used
-    for large systems, where Metropolis-based sampling are instead a viable
-    option.
-    )EOF")
-          .def(py::init<AbstractMachine &, Index>(), py::keep_alive<1, 2>(),
-               py::arg("machine"), py::arg("batch_size") = 16, R"EOF(
-             Constructs a new ``ExactSampler`` given a machine.
+      py::class_<MetropolisLocalPt, AbstractSampler>(subm, "MetropolisLocalPt",
+                                                     R"EOF(
+    This sampler performs parallel-tempering
+    moves in addition to the local moves implemented in `MetropolisLocal`.
+    The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
+      )EOF")
+          .def(py::init<AbstractMachine &, int>(), py::keep_alive<1, 2>(),
+               py::arg("machine"), py::arg("n_replicas") = 1, R"EOF(
+             Constructs a new ``MetropolisLocalPt`` sampler given a machine
+             and the number of replicas.
 
              Args:
                  machine: A machine $$\Psi(s)$$ used for the sampling.
                           The probability distribution being sampled
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+                 n_replicas: The number of replicas used for parallel tempering.
 
              Examples:
-                 Exact sampling from a RBM machine in a 1D lattice of spin 1/2
+                 Sampling from a RBM machine in a 1D lattice of spin 1/2
 
                  ```python
                  >>> import netket as nk
                  >>>
-                 >>> g=nk.graph.Hypercube(length=8,n_dim=1,pbc=True)
+                 >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
                  >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
                  >>>
                  >>> # RBM Spin Machine
                  >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
                  >>>
-                 >>> sa = nk.sampler.ExactSampler(machine=ma)
+                 >>> # Construct a MetropolisLocalPt Sampler
+                 >>> sa = nk.sampler.MetropolisLocalPt(machine=ma,n_replicas=16)
+                 >>> print(sa.machine.hilbert.size)
+                 100
 
                  ```
              )EOF");

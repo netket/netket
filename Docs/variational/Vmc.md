@@ -1,6 +1,5 @@
 # Vmc
-Variational Monte Carlo schemes to learn the ground state using
- stochastic reconfiguration and gradient descent optimizers.
+Variational Monte Carlo schemes to learn the ground state using stochastic reconfiguration and gradient descent optimizers.
 
 ## Class Constructor
 Constructs a ``VariationalMonteCarlo`` object given a hamiltonian,
