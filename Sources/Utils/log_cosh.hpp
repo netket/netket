@@ -70,7 +70,8 @@ inline Complex SumLogCosh(
 // |x| + log(1+exp(-2*|x|))
 inline double SumLogCosh(
     Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> input) noexcept {
-  return (input.array().abs() + (-2. * input.array().abs()).exp().log1p())
+  return (Eigen::abs(input.array()) +
+          Eigen::log1p(Eigen::exp(-2. * Eigen::abs(input.array()))))
       .sum();
 }
 

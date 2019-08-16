@@ -54,6 +54,8 @@ RbmSpin::RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
   if (useb) {
     b_.emplace(nhidden);
   }
+
+  theta_.resize(1, nhidden);
 }
 
 Index RbmSpin::BatchSize() const noexcept { return theta_.rows(); }

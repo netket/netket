@@ -105,7 +105,7 @@ class DiagonalDensityMatrix : public AbstractMachine {
   }
 
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override {
-    return density_matrix_.DerLog(DoubleVisibleConfig(v), lt);
+    return density_matrix_.DerLogSingle(DoubleVisibleConfig(v), lt);
   }
 
   VectorType DerLogChanged(VisibleConstType v, const std::vector<int> &tochange,

@@ -33,10 +33,7 @@ void RbmSpinReal::Init() {
   a_.resize(nv_);
   b_.resize(nh_);
 
-  thetas_.resize(nh_);
   lnthetas_.resize(nh_);
-  thetasnew_.resize(nh_);
-  lnthetasnew_.resize(nh_);
 
   npar_ = nv_ * nh_;
 
@@ -129,37 +126,6 @@ void RbmSpinReal::LogVal(Eigen::Ref<const RowMatrix<double>> x,
   if (usea_) {
     out += x * a_;
   }
-}
-
-// Difference between logarithms of values, when one or more visible
-// variables are being flipped
-RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
-  const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
-
-  thetas_ = (W_.transpose() * v + b_);
-
-  Complex logtsum = SumLogCosh(thetas_);
-
-  for (std::size_t k = 0; k < nconn; k++) {
-    if (tochange[k].size() != 0) {
-      thetasnew_ = thetas_;
-
-      for (std::size_t s = 0; s < tochange[k].size(); s++) {
-        const int sf = tochange[k][s];
-
-        logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
-
-        thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-      }
-
-      logvaldiffs(k) += SumLogCosh(thetasnew_);
-      -logtsum;
-    }
-  }
-  return logvaldiffs;
 }
 
 void RbmSpinReal::Save(const std::string &filename) const {

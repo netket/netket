@@ -1,4 +1,4 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2018-2019 The Simons Foundation, Inc. - All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,70 +12,73 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
 
-from __future__ import print_function
-import json
+# 1D Lattice
+L = 20
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
-pars = {}
+# Hilbert space of spins on the graph
+# with total Sz equal to 0
+hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 
-# defining the hilbert space
-pars["Hilbert"] = {"Name": "Spin", "S": 0.5, "TotalSz": 0}
+# Heisenberg hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi)
 
-# defining the lattice
-pars["Graph"] = {"Name": "Hypercube", "L": 20, "Dimension": 1, "Pbc": True}
 
-# defining the hamiltonian
-pars["Hamiltonian"] = {"Name": "Heisenberg"}
+# Convnet machine with 7 layers (of which 3 are convolutions)
+layers = (
+    nk.layer.ConvolutionalHypercube(
+        length=L,
+        n_dim=1,
+        input_channels=1,
+        output_channels=2,
+        stride=1,
+        kernel_length=10,
+        use_bias=True,
+    ),
+    nk.layer.Relu(input_size=2 * L),
+    nk.layer.ConvolutionalHypercube(
+        length=L,
+        n_dim=1,
+        input_channels=2,
+        output_channels=2,
+        stride=1,
+        kernel_length=5,
+        use_bias=True,
+    ),
+    nk.layer.Relu(input_size=(2 * L)),
+    nk.layer.ConvolutionalHypercube(
+        length=L,
+        n_dim=1,
+        input_channels=2,
+        output_channels=1,
+        stride=1,
+        kernel_length=3,
+        use_bias=True,
+    ),
+    nk.layer.Relu(input_size=(L)),
+    nk.layer.SumOutput(input_size=(L)),
+)
+for layer in layers:
+    layer.init_random_parameters(seed=12345, sigma=0.01)
 
-# defining the wave function
-pars["Machine"] = {
-    "Name": "FFNN",
-    "Alpha": 1,
-    "Layers": [
-        {
-            "Name": "Convolutional",
-            "InputChannels": 1,
-            "OutputChannels": 2,
-            "Distance": 2,
-            "UseBias": True,
-            "Activation": "Lncosh",
-        },
-        {
-            "Name": "Convolutional",
-            "InputChannels": 2,
-            "OutputChannels": 1,
-            "Distance": 2,
-            "UseBias": True,
-            "Activation": "Lncosh",
-        },
-        {"Name": "Sum", "Inputs": 20},
-    ],
-}
+ffnn = nk.machine.FFNN(hi, layers)
 
-# defining the sampler
-# here we use Metropolis sampling
-# using moves from the matrix elements of the hamiltonian
-pars["Sampler"] = {"Name": "MetropolisHamiltonian"}
+sa = nk.sampler.MetropolisExchange(machine=ffnn)
 
-# defining the Optimizer
-pars["Optimizer"] = {"Name": "Sgd", "LearningRate": 0.01}
 
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars["GroundState"] = {
-    "Method": "Sr",
-    "Nsamples": 1.0e3,
-    "NiterOpt": 1000,
-    "Diagshift": 0.01,
-    "UseIterative": False,
-    "OutputFile": "test",
-}
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.01)
 
-json_file = "heisenberg1d.json"
-with open(json_file, "w") as outfile:
-    json.dump(pars, outfile)
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method="Sr",
+)
 
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run(output_prefix="test", n_iter=300)
