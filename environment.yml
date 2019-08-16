@@ -1,0 +1,13 @@
+name: mybinder-env
+channels:
+  - anaconda
+dependencies:
+  - python=3.5.3
+  - pip
+  - scipy
+  - numpy
+  - matplotlib
+  - openmpi
+  - cmake
+  - cython
+  - pytest-cov
