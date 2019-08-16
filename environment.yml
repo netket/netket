@@ -10,4 +10,6 @@ dependencies:
   - openmpi
   - cmake
   - cython
+  - lapack
+  - blas
   - pytest-cov

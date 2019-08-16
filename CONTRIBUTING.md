@@ -11,8 +11,8 @@ Before sending your pull requests, make sure you followed this list.
 
 - Read [contributing guidelines](CONTRIBUTING.md).
 - Read [Code of Conduct](CODE_OF_CONDUCT.md).
-- Check if my changes are consistent with the [guidelines](CONTRIBUTING.md#general-guidelines-and-philosophy-for-contribution).
-- Changes are consistent with the [Coding Style](CONTRIBUTING.md#c-coding-style).
+- Check if your changes are consistent with the [guidelines](CONTRIBUTING.md#general-guidelines-and-philosophy-for-contribution).
+- Check if your changes are consistent with the [C++](CONTRIBUTING.md#c-coding-style) and [Python](CONTRIBUTING.md#python-coding-style) code style and run the code formatters clang-format and/or Black as needed.
 - Run [Unit Tests](CONTRIBUTING.md#running-unit-tests).
 
 ## How to become a contributor and submit your own code
@@ -103,6 +103,20 @@ which can be configured with Google style.
 To do so, after having installed the plugin, go to
 `Atom -> Preferences... -> Packages -> clang-format -> Settings` and type `google` in the `Style` field.
 
+#### Python coding style
+
+Python code should follow [PEP 8](https://www.python.org/dev/peps/pep-0008/).
+For consistency, we use the [Black](https://github.com/python/black) code formatter, which you can install in your Python environment using `pip install black`.
+If you edit Python code, you should run Black on the affected files.
+On the command line, this can be done via
+```bash
+# to reformat a specific file
+black Path/To/The/file.py
+# to reformat all files below the specified directories
+black Test/ Examples/
+```
+before creating a pull request.
+There are other options of running Black: For example, an [Atom package](https://atom.io/packages/python-black) is available and Black is integrated into the [VS Code Python extension](https://code.visualstudio.com/docs/python/editing#_formatting).
 
 #### Running sanity check
 

@@ -12,81 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
 
-from __future__ import print_function
-import json
-
-pars = {}
+# 1D Lattice
 L = 20
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
-# defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-}
+# Hilbert space of spins on the graph
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
-# defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L': L,
-    'Dimension': 1,
-    'Pbc': True,
-}
+# Ising spin hamiltonian
+ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Ising',
-    'h': 1.0,
-}
+# RBM Spin Machine
+ma = nk.machine.RbmSpinReal(alpha=1, hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpin',
-    'Alpha': 1.0,
-}
+# Metropolis Local Sampling
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
-# defining the sampler
-# here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisLocal',
-}
+# Optimizer
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
-sigmaxop = []
-sites = []
-for i in range(L):
-    # \sum_i sigma^x(i)
-    sigmaxop.append([[0, 1], [1, 0]])
-    sites.append([i])
+# Stochastic reconfiguration
+gs = nk.variational.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    diag_shift=0.1,
+    method="Sr",
+)
 
-pars['Observables'] = {
-    'Operators': sigmaxop,
-    'ActingOn': sites,
-    'Name': 'SigmaX',
-}
+# Adding an observable
+# The sum of sigma_x on all sites
+X = [[0, 1], [1, 0]]
+sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
+gs.add_observable(sx, "SigmaX")
 
-# defining the Optimizer
-# here we use the Stochastic Gradient Descent
-pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.1,
-}
-
-# defining the GroundState method
-# here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 500,
-    'Diagshift': 0.1,
-    'UseIterative': False,
-    'OutputFile': "test",
-}
-
-json_file = "sigmax.json"
-with open(json_file, 'w') as outfile:
-    json.dump(pars, outfile)
-
-print("\nGenerated Json input file: ", json_file)
-print("\nNow you have two options to run NetKet: ")
-print("\n1) Serial mode: netket " + json_file)
-print("\n2) Parallel mode: mpirun -n N_proc netket " + json_file)
+gs.run(output_prefix="test", n_iter=300)

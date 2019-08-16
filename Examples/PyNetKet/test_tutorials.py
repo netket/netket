@@ -33,8 +33,10 @@ def test_machine():
 def test_observable():
     import graph
 
+
 def test_sampler():
     import graph
+
 
 def test_ffnn():
     import ffnn

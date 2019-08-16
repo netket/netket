@@ -30,7 +30,7 @@ def load(path_to_samples, path_to_targets):
     training_targets = []
     for i in range(len(tsamples)):
         training_samples.append(tsamples[i].tolist())
-        #training_targets.append([ttargets[i]])
+        # training_targets.append([ttargets[i]])
         training_targets.append([np.log(ttargets[i])])
 
     return hi, training_samples, training_targets

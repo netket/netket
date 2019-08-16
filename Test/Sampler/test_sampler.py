@@ -25,10 +25,15 @@ ha = nk.operator.Ising(hilbert=hi, h=1.0)
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 samplers["MetropolisHamiltonian RbmSpin"] = sa
 
-ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
-sa = nk.sampler.MetropolisHamiltonianPt(
-    machine=ma, hamiltonian=ha, n_replicas=4)
+# Test with uniform probability
+maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+maz.init_random_parameters(seed=1234, sigma=0)
+sa = nk.sampler.MetropolisLocal(machine=maz)
+samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
+
+mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
+mas.init_random_parameters(seed=1234, sigma=0.2)
+sa = nk.sampler.MetropolisHamiltonianPt(machine=mas, hamiltonian=ha, n_replicas=4)
 samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
 
 hi = nk.hilbert.Boson(graph=g, n_max=4)
@@ -51,40 +56,47 @@ g = nk.graph.Hypercube(length=6, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 l = hi.size
-X = [[0, 1],
-     [1, 0]]
+X = [[0, 1], [1, 0]]
 
-move_op = nk.operator.LocalOperator(hilbert=hi,
-                                    operators=[X] * l,
-                                    acting_on=[[i] for i in range(l)])
+move_op = nk.operator.LocalOperator(
+    hilbert=hi, operators=[X] * l, acting_on=[[i] for i in range(l)]
+)
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin"] = sa
 
 
-sa = nk.sampler.CustomSamplerPt(
-    machine=ma, move_operators=move_op, n_replicas=4)
+sa = nk.sampler.CustomSamplerPt(machine=ma, move_operators=move_op, n_replicas=4)
 samplers["CustomSamplerPt Spin"] = sa
 
 # Two types of custom moves
 # single spin flips and nearest-neighbours exchanges
-spsm = [[1, 0, 0, 0],
-        [0, 0, 1, 0],
-        [0, 1, 0, 0],
-        [0, 0, 0, 1]]
+spsm = [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]
 
 ops = [X] * l
 ops += [spsm] * l
 
 acting_on = [[i] for i in range(l)]
-acting_on += ([[i, (i + 1) % l] for i in range(l)])
+acting_on += [[i, (i + 1) % l] for i in range(l)]
 
-move_op = nk.operator.LocalOperator(hilbert=hi,
-                                    operators=ops,
-                                    acting_on=acting_on)
+move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_on)
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin 2 moves"] = sa
+
+# Diagonal density matrix sampling
+ma = nk.machine.NdmSpinPhase(
+    hilbert=hi,
+    alpha=1,
+    beta=1,
+    use_visible_bias=True,
+    use_hidden_bias=True,
+    use_ancilla_bias=True,
+)
+ma.init_random_parameters(seed=1234, sigma=0.2)
+dm = nk.machine.DiagonalDensityMatrix(ma)
+sa = nk.sampler.MetropolisLocal(machine=dm)
+samplers["Diagonal Density Matrix"] = sa
 
 
 def test_states_in_hilbert():
@@ -98,12 +110,23 @@ def test_states_in_hilbert():
         for sw in range(100):
             sa.sweep()
             visible = sa.visible
-            assert(len(visible) == hi.size)
+            assert len(visible) == hi.size
             for v in visible:
-                assert(v in localstates)
+                assert v in localstates
 
-            assert(np.min(sa.acceptance) >= 0 and np.max(
-                sa.acceptance) <= 1.0)
+            assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
+
+
+def test_machine_func():
+    for name, sa in samplers.items():
+        print("Sampler test: %s" % name)
+        sa.machine_func = lambda x: np.absolute(x) ** 2.0
+        maf = sa.machine_func(3.0 + 1.0j)
+        assert maf == approx(np.absolute(3.0 + 1.0j) ** 2.0)
+
+        sa.machine_func = np.absolute
+        maf = sa.machine_func(3.0 + 1.0j)
+        assert maf == approx(np.absolute(3.0 + 1.0j))
 
 
 # Testing that samples generated from direct sampling are compatible with those
@@ -118,34 +141,43 @@ def test_correct_sampling():
         hi = sa.hilbert
         ma = sa.machine
 
-        hilb_index = nk.hilbert.HilbertIndex(hi)
-        n_states = hilb_index.n_states
+        n_states = hi.n_states
 
         n_samples = max(10 * n_states, 10000)
 
-        hist_samp = np.zeros(n_states)
-        # fill in the histogram for sampler
-        for sw in range(n_samples):
-            sa.sweep()
-            visible = sa.visible
-            hist_samp[hilb_index.state_to_number(visible)] += 1
+        for ord in (1, 2):
+            if ord == 1:
+                sa.machine_func = np.absolute
+            if ord == 2:
+                sa.machine_func = lambda x: np.absolute(x) * np.absolute(x)
 
-        hist_exsamp = np.zeros(n_states)
-        sa = nk.sampler.ExactSampler(machine=ma)
-        # fill in histogram for exact sampler
-        for sw in range(n_samples):
-            sa.sweep()
-            visible = sa.visible
-            hist_exsamp[hilb_index.state_to_number(visible)] += 1
+            hist_samp = np.zeros(n_states)
+            # fill in the histogram for sampler
 
-        print(hist_exsamp)
-        print(hist_samp)
+            for sw in range(n_samples):
+                sa.sweep()
+                visible = sa.visible
+                hist_samp[hi.state_to_number(visible)] += 1
 
-        # now test that histograms are close in norm
-        delta = hist_samp - hist_exsamp
-        z = np.sum(delta * delta - hist_exsamp - hist_samp)
-        z = np.sqrt(np.abs(z)) / float(n_samples)
+            hist_exsamp = np.zeros(n_states)
 
-        eps = np.sqrt(1. / float(n_samples))
+            sa = nk.sampler.ExactSampler(machine=ma)
+            if ord == 1:
+                sa.machine_func = np.absolute
+            if ord == 2:
+                sa.machine_func = lambda x: np.absolute(x) * np.absolute(x)
 
-        assert(z == approx(0., rel=5 * eps, abs=5 * eps))
+            # fill in histogram for exact sampler
+            for sw in range(n_samples):
+                sa.sweep()
+                visible = sa.visible
+                hist_exsamp[hi.state_to_number(visible)] += 1
+
+            # now test that histograms are close in norm
+            delta = hist_samp - hist_exsamp
+            z = np.sum(delta * delta - hist_exsamp - hist_samp)
+            z = np.sqrt(np.abs(z)) / float(n_samples)
+
+            eps = np.sqrt(1.0 / float(n_samples))
+
+            assert z == approx(0.0, rel=10 * eps, abs=10 * eps)

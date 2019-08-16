@@ -20,52 +20,39 @@ pars = {}
 N = 20
 
 # defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L'   : N,
-    'Dimension': 1,
-    'Pbc': True,
-}
+pars["Graph"] = {"Name": "Hypercube", "L": N, "Dimension": 1, "Pbc": True}
 
 # defining the hamiltonian
-pars['Hamiltonian']={
-    'Name'           : 'Heisenberg',
-    'TotalSz'        : 0,
-}
+pars["Hamiltonian"] = {"Name": "Heisenberg", "TotalSz": 0}
 
 # defining the wave function
-pars['Machine'] = {
-    'Name': 'MPSperiodic',
-    'BondDim': 5,
-    'SymmetryPeriod': 1,
-    'SigmaRand' : 0.01,
-    'Diagonal': False
+pars["Machine"] = {
+    "Name": "MPSperiodic",
+    "BondDim": 5,
+    "SymmetryPeriod": 1,
+    "SigmaRand": 0.01,
+    "Diagonal": False,
 }
 
 # defining the sampler
 # here we use Metropolis sampling with single spin flips
-pars['Sampler'] = {
-    'Name': 'MetropolisHamiltonian',
-}
+pars["Sampler"] = {"Name": "MetropolisHamiltonian"}
 
 # defining the Optimizer
 # here we use the Stochastic Gradient Descent
-pars['Optimizer'] = {
-    'Name': 'Sgd',
-    'LearningRate': 0.02,
+pars["Optimizer"] = {"Name": "Sgd", "LearningRate": 0.02}
+
+pars["GroundState"] = {
+    "Method": "Sr",
+    "Nsamples": 1.0e3,
+    "NiterOpt": 500,
+    "Diagshift": 0.1,
+    "UseIterative": True,
+    "OutputFile": "test",
 }
 
-pars['GroundState']={
-    'Method'         : 'Sr',
-    'Nsamples'       : 1.0e3,
-    'NiterOpt'       : 500,
-    'Diagshift'      : 0.1,
-    'UseIterative'   : True,
-    'OutputFile'     : 'test',
-}
-
-json_file = "MPS_heisenberg1d_N%d.json"%N
-with open(json_file, 'w') as outfile:
+json_file = "MPS_heisenberg1d_N%d.json" % N
+with open(json_file, "w") as outfile:
     json.dump(pars, outfile)
 
 print("\nGenerated Json input file: ", json_file)
