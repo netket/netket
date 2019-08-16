@@ -29,14 +29,14 @@ import netket as nk
 
 # Exact ground state energy of AKLT model is zero by construction, see above references.
 
-Sz  = [[1, 0, 0], [0, 0, 0], [0, 0, -1]]
+Sz = [[1, 0, 0], [0, 0, 0], [0, 0, -1]]
 Sup = [[0, np.sqrt(2), 0], [0, 0, np.sqrt(2)], [0, 0, 0]]
 Sdn = [[0, 0, 0], [np.sqrt(2), 0, 0], [0, np.sqrt(2), 0]]
 
 # Heisenberg term
-heisenberg = 0.5*(np.kron(Sup, Sdn) + np.kron(Sdn, Sup)) + np.kron(Sz, Sz)
+heisenberg = 0.5 * (np.kron(Sup, Sdn) + np.kron(Sdn, Sup)) + np.kron(Sz, Sz)
 # AKLT two-site projector
-P2_AKLT = 0.5*heisenberg + np.dot(heisenberg, heisenberg)/6. + np.identity(9)/3.
+P2_AKLT = 0.5 * heisenberg + np.dot(heisenberg, heisenberg) / 6.0 + np.identity(9) / 3.0
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)

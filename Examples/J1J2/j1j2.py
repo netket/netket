@@ -17,7 +17,7 @@ import netket as nk
 
 # Sigma^z*Sigma^z interactions
 sigmaz = np.array([[1, 0], [0, -1]])
-mszsz = (np.kron(sigmaz, sigmaz))
+mszsz = np.kron(sigmaz, sigmaz)
 
 # Exchange interactions
 exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
@@ -37,7 +37,7 @@ for i in range(L):
         sites.append([i, (i + d + 1) % L])
 
         # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        mats.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
+        mats.append(((-1.0) ** (d + 1) * J[d] * exchange).tolist())
         sites.append([i, (i + d + 1) % L])
 
 # Custom Graph
@@ -56,8 +56,7 @@ ma = nk.machine.RbmSpin(hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisHamiltonianPt(
-    machine=ma, hamiltonian=op, n_replicas=16)
+sa = nk.sampler.MetropolisHamiltonianPt(machine=ma, hamiltonian=op, n_replicas=16)
 
 # Optimizer
 opt = nk.optimizer.Sgd(learning_rate=0.01)
@@ -69,6 +68,7 @@ gs = nk.variational.Vmc(
     optimizer=opt,
     n_samples=1000,
     use_iterative=True,
-    method='Sr')
+    method="Sr",
+)
 
-gs.run(output_prefix='test', n_iter=10000)
+gs.run(output_prefix="test", n_iter=10000)

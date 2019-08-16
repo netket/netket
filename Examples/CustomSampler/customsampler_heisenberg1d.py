@@ -23,32 +23,19 @@ pars = {}
 # (adapted from Heisenberg1d tutorial)
 # (you can use plot_heis.py from Heisenberg1d folder identically here to plot results)
 
-L=20
+L = 20
 
 # defining the hilbert space
-pars['Hilbert'] = {
-    'Name': 'Spin',
-    'S': 0.5,
-}
+pars["Hilbert"] = {"Name": "Spin", "S": 0.5}
 
 # defining the lattice
-pars['Graph'] = {
-    'Name': 'Hypercube',
-    'L': L,
-    'Dimension': 1,
-    'Pbc': True,
-}
+pars["Graph"] = {"Name": "Hypercube", "L": L, "Dimension": 1, "Pbc": True}
 
 # defining the hamiltonian
-pars['Hamiltonian'] = {
-    'Name': 'Heisenberg',
-}
+pars["Hamiltonian"] = {"Name": "Heisenberg"}
 
 # defining the wave function
-pars['Machine'] = {
-    'Name': 'RbmSpinSymm',
-    'Alpha': 1.0,
-}
+pars["Machine"] = {"Name": "RbmSpinSymm", "Alpha": 1.0}
 
 # defining the custom sampler
 # here we use two types of moves : local spin flip, and exchange flip between two sites
@@ -64,41 +51,39 @@ operators = []
 sites = []
 weights = []
 for i in range(L):
-     operators.append(exchange_flip)
-     sites.append([i, (i + 1) % L])
-     weights.append(weight_exchange_flip)
-     operators.append(spin_flip)
-     sites.append([i])
-     weights.append(weight_spin_flip)
+    operators.append(exchange_flip)
+    sites.append([i, (i + 1) % L])
+    weights.append(weight_exchange_flip)
+    operators.append(spin_flip)
+    sites.append([i])
+    weights.append(weight_spin_flip)
 
 # now we define the custom sampler accordingly
-pars['Sampler'] = {
-    'MoveOperators' : operators,
-    'ActingOn' : sites,
-    'MoveWeights' : weights,
+pars["Sampler"] = {
+    "MoveOperators": operators,
+    "ActingOn": sites,
+    "MoveWeights": weights,
     # parallel tempering is also possible with custom sampler (uncomment the following line)
     #'Nreplicas' : 12,
 }
 
 # defining the Optimizer
 # here we use AdaMax
-pars['Optimizer'] = {
-    'Name': 'AdaMax',
-}
+pars["Optimizer"] = {"Name": "AdaMax"}
 
 # defining the GroundState method
 # here we use the Stochastic Reconfiguration Method
-pars['GroundState'] = {
-    'Method': 'Sr',
-    'Nsamples': 1.0e3,
-    'NiterOpt': 4000,
-    'Diagshift': 0.1,
-    'UseIterative': False,
-    'OutputFile': 'test',
+pars["GroundState"] = {
+    "Method": "Sr",
+    "Nsamples": 1.0e3,
+    "NiterOpt": 4000,
+    "Diagshift": 0.1,
+    "UseIterative": False,
+    "OutputFile": "test",
 }
 
 json_file = "customsampler_heisenberg1d.json"
-with open(json_file, 'w') as outfile:
+with open(json_file, "w") as outfile:
     json.dump(pars, outfile)
 
 print("\nGenerated Json input file: ", json_file)

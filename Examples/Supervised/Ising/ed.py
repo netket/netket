@@ -33,9 +33,8 @@ def load_ed_data(L):
     ttargets = []
 
     tsamples = []
-    hind = nk.hilbert.HilbertIndex(hi)
-    for i in range(hind.n_states):
-        tsamples.append(hind.number_to_state(i).tolist())
+    for i, state in enumerate(hi.states()):
+        tsamples.append(state.tolist())
         ttargets.append([np.log(res.eigenvectors[0][i])])
 
     return hi, tsamples, ttargets

@@ -19,14 +19,13 @@ import netket as nk
 def load_ed_data(L, J2=0.4):
     # Sigma^z*Sigma^z interactions
     sigmaz = np.array([[1, 0], [0, -1]])
-    mszsz = (np.kron(sigmaz, sigmaz))
+    mszsz = np.kron(sigmaz, sigmaz)
 
     # Exchange interactions
-    exchange = np.asarray(
-        [[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+    exchange = np.asarray([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
 
     # Couplings J1 and J2
-    J = [1., J2]
+    J = [1.0, J2]
 
     mats = []
     sites = []
@@ -38,7 +37,7 @@ def load_ed_data(L, J2=0.4):
             sites.append([i, (i + d + 1) % L])
 
             # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-            mats.append(((-1.)**(d + 1) * J[d] * exchange).tolist())
+            mats.append(((-1.0) ** (d + 1) * J[d] * exchange).tolist())
             sites.append([i, (i + d + 1) % L])
 
     # 1D Lattice
@@ -59,14 +58,12 @@ def load_ed_data(L, J2=0.4):
     ttargets = []
 
     tsamples = []
-    hind = nk.hilbert.HilbertIndex(hi)
 
-    for i in range(hind.n_states):
-        visible = hind.number_to_state(i)
+    for i, state in enumerate(hi.states()):
         # only pick zero-magnetization states
-        mag = np.sum(visible)
-        if(np.abs(mag) < 1.0e-4):
-            tsamples.append(visible.tolist())
+        mag = np.sum(state)
+        if np.abs(mag) < 1.0e-4:
+            tsamples.append(state.tolist())
             ttargets.append([np.log(res.eigenvectors[0][i])])
 
     return hi, tsamples, ttargets

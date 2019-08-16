@@ -37,7 +37,8 @@ spvsd = nk.supervised.Supervised(
     optimizer=op,
     batch_size=400,
     samples=training_samples,
-    targets=training_targets)
+    targets=training_targets,
+)
 
 n_iter = 1000
 
@@ -51,8 +52,8 @@ for i in range(n_iter):
 
 if nk.MPI.rank() == 0:
     plt.plot(overlaps)
-    plt.ylabel('Overlap')
-    plt.xlabel('Iteration #')
-    plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color='k', label='1')
-    plt.title(r'Transverse-field Ising model, $L=' + str(L) + '$')
+    plt.ylabel("Overlap")
+    plt.xlabel("Iteration #")
+    plt.axhline(y=1, xmin=0, xmax=n_iter, linewidth=2, color="k", label="1")
+    plt.title(r"Transverse-field Ising model, $L=" + str(L) + "$")
     plt.show()

@@ -6,88 +6,107 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       language: generic
-      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
+      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-O1"
 
     - os: osx
-      osx_image: xcode10.1
+      osx_image: xcode10.2
       language: generic
-      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
-
-    - os: osx
-      osx_image: xcode10.1
-      language: generic
-      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++"
+      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
 
     # The oldest supported configurations
     - os: linux
-      dist: trusty
+      dist: xenial
       python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS=-stdlib=libc++"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS='-stdlib=libc++ -I/usr/include/libcxxabi -O1'"
       addons:
         apt:
           sources:
-            - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-trusty'
-            - 'llvm-toolchain-trusty-4.0'
+            - 'llvm-toolchain-4.0'
           packages:
+            - 'ninja-build'
             - 'clang-4.0'
             - 'libc++-dev'
+            - 'libc++abi-dev'
+            - 'libomp-dev'
             - 'libmpich-dev'
+            - 'libopenblas-dev'
 
     - os: linux
-      dist: trusty
+      dist: xenial
       python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-5"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5 -DCMAKE_CXX_FLAGS=-O1"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
           packages:
+            - 'ninja-build'
             - 'g++-5'
             - 'libmpich-dev'
+            - 'libatlas-base-dev'
 
     # Not too old toolsets
     - os: linux
-      dist: trusty
-      python: 3.6
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-6.0"
+      dist: xenial
+      python: 3.5
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-trusty-6.0'
+            - 'llvm-toolchain-6.0'
           packages:
+            - 'ninja-build'
             - 'g++-7'
             - 'clang-6.0'
+            - 'libomp-dev'
             - 'libmpich-dev'
+            - 'libopenblas-dev'
 
     - os: linux
-      dist: trusty
+      dist: xenial
       python: 3.6
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++-7"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-7 -DCMAKE_CXX_COMPILER=g++-7 -DNETKET_USE_BLAS=OFF -DNETKET_USE_LAPACK=OFF -DCMAKE_CXX_FLAGS=-O1"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
           packages:
+            - 'ninja-build'
             - 'g++-7'
-              # NOTE: For some reason using libopenmpi-dev here gives errors
-            - 'libmpich-dev'
+            - 'libopenmpi-dev'
 
     # Modern toolsets
     - os: linux
       dist: xenial
       python: 3.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-7 -DCMAKE_CXX_FLAGS=-std=c++17"
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O2"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-xenial-7'
+            - 'llvm-toolchain-xenial-8'
           packages:
-            - 'clang-7'
-            - 'g++-8'
+            - 'ninja-build'
+            - 'clang-8'
+            - 'g++-9'
+            - 'libomp-dev'
             - 'libmpich-dev'
+            - 'libopenblas-dev'
+
+    - os: linux
+      dist: xenial
+      python: 3.7
+      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_CXX_FLAGS=-O1"
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+          packages:
+            - 'ninja-build'
+            - 'g++-9'
+            - 'libopenmpi-dev'
+            - 'libopenblas-dev'
 
 before_install:
   - |
@@ -98,6 +117,8 @@ before_install:
        brew ls --versions cmake && brew upgrade cmake || brew install cmake
        brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
        brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
+       brew ls --versions openmpi && brew upgrade libomp || brew install libomp
+       brew ls --versions openmpi && brew upgrade ninja-build || brew install ninja
      fi
   - |
      # Force OS X to use the correct python version. This is only because
@@ -146,11 +167,15 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy networkx pytest numdifftools python-igraph
+  - python -m pip install numpy scipy networkx pytest python-igraph mpi4py
+  - python -m pip install -U pytest
+  - python -m pip install pytest-xdist
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
+  - mkdir workdir && cd workdir
 
 script:
+  - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
-  - python -m pytest --verbose Test/
-  - python -m pytest --verbose --doctest-glob='*.md' Docs/
+  - python -m pytest -n 2 --verbose ../Test/
+  - python -m pytest --verbose --doctest-glob='*.md' ../Docs/

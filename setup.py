@@ -19,7 +19,7 @@ def steal_cmake_flags(args):
     accumulated. If there are no arguments of the specified form,
     ``NETKET_CMAKE_FLAGS`` environment variable is used instead.
     """
-    _ARG_PREFIX = '--cmake-args='
+    _ARG_PREFIX = "--cmake-args="
 
     def _unquote(x):
         m = re.match(r"'(.*)'", x)
@@ -29,16 +29,18 @@ def steal_cmake_flags(args):
         if m:
             return m.group(1)
         return x
+
     stolen_args = [x for x in args if x.startswith(_ARG_PREFIX)]
     for x in stolen_args:
         args.remove(x)
 
     if len(stolen_args) > 0:
         cmake_args = sum(
-            (shlex.split(_unquote(x[len(_ARG_PREFIX):])) for x in stolen_args), [])
+            (shlex.split(_unquote(x[len(_ARG_PREFIX) :])) for x in stolen_args), []
+        )
     else:
         try:
-            cmake_args = shlex.split(os.environ['NETKET_CMAKE_FLAGS'])
+            cmake_args = shlex.split(os.environ["NETKET_CMAKE_FLAGS"])
         except KeyError:
             cmake_args = []
     return cmake_args
@@ -51,9 +53,32 @@ _CMAKE_FLAGS = steal_cmake_flags(sys.argv)
 
 
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=''):
+    def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
+
+
+def _have_ninja():
+    """
+    Returns `True` if the [ninja](https://ninja-build.org/) build system is
+    available on the system.
+    """
+    with open(os.devnull, "wb") as devnull:
+        try:
+            subprocess.check_call("ninja --version".split(), stdout=devnull)
+        except OSError:
+            return False
+        else:
+            return True
+
+
+def _generator_specified(args):
+    """
+    Returns `True` if `-G` flag was given to CMake.
+    """
+    for _ in filter(lambda f: f.startswith("-G"), args):
+        return True
+    return False
 
 
 class CMakeBuild(build_ext):
@@ -71,15 +96,17 @@ class CMakeBuild(build_ext):
             # lib_dir is the directory, where the shared libraries will be
             # stored (it will probably be different from the build_temp
             # directory so that setuptools find the libraries)
-            lib_dir = os.path.abspath(self.build_lib)
+            lib_dir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
             if not os.path.exists(lib_dir):
                 os.makedirs(lib_dir)
             # Options to pass to CMake during configuration
             cmake_args = _CMAKE_FLAGS
             cmake_args.append(
-                '-DNETKET_PYTHON_VERSION={}.{}.{}'.format(*sys.version_info[:3]))
-            cmake_args.append(
-                '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(lib_dir))
+                "-DNETKET_PYTHON_VERSION={}.{}.{}".format(*sys.version_info[:3])
+            )
+            cmake_args.append("-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}".format(lib_dir))
+            if not _generator_specified(cmake_args) and _have_ninja():
+                cmake_args.append("-GNinja")
 
             def _decode(x):
                 if sys.version_info >= (3, 0):
@@ -92,22 +119,27 @@ class CMakeBuild(build_ext):
             try:
                 # Configuration step
                 output = subprocess.check_output(
-                    ['cmake', ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT)
+                    ["cmake", ext.sourcedir] + cmake_args, stderr=subprocess.STDOUT
+                )
                 if self.distribution.verbose:
                     log.info(_decode(output))
                 if not self.distribution.dry_run:
                     # Build step
                     output = subprocess.check_output(
-                        ['cmake', '--build', '.'], stderr=subprocess.STDOUT)
+                        ["cmake", "--build", "."], stderr=subprocess.STDOUT
+                    )
                     if self.distribution.verbose:
                         log.info(_decode(output))
             except subprocess.CalledProcessError as e:
-                if hasattr(ext, 'optional'):
+                if hasattr(ext, "optional"):
                     if not ext.optional:
                         self.warn(_decode(e.output))
                         raise
-                    self.warn('building extension "{}" failed:\n{}'.format(
-                        ext.name, _decode(e.output)))
+                    self.warn(
+                        'building extension "{}" failed:\n{}'.format(
+                            ext.name, _decode(e.output)
+                        )
+                    )
                 else:
                     self.warn(_decode(e.output))
                     raise
@@ -118,24 +150,20 @@ class CMakeBuild(build_ext):
             else:
                 super(build_ext, self).build_extension(ext)
 
-        extdir = os.path.abspath(os.path.dirname(
-            self.get_ext_fullpath(ext.name)))
-        cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
-
 
 setup(
-    name='netket',
-    version='2.0b1',
-    author='Giuseppe Carleo et al.',
-    url='http://github.com/netket/netket',
-    author_email='netket@netket.org',
-    license='Apache 2.0',
-    ext_modules=[CMakeExtension('netket')],
-    install_requires=['cmake', 'numpy'],
+    name="netket",
+    version="2.0b3",
+    author="Giuseppe Carleo et al.",
+    url="http://github.com/netket/netket",
+    author_email="netket@netket.org",
+    license="Apache 2.0",
+    packages=["netket"],
+    ext_modules=[CMakeExtension("netket._C_netket")],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
+    install_requires=["numpy>=1.16", "cmake>=3.10.3", "scipy>=1.2.1"],
 )

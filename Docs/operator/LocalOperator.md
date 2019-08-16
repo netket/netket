@@ -5,11 +5,10 @@ A custom local operator.
 Constructs a new ``LocalOperator`` given a hilbert space and (if
 specified) a constant level shift.
 
-|Argument|         Type         |               Description               |
-|--------|----------------------|-----------------------------------------|
-|hilbert |netket.hilbert.Hilbert|Hilbert space the operator acts on.      |
-|constant|float=0.0             |Level shift for operator. Default is 0.0.|
-
+|Argument|              Type              |               Description               |
+|--------|--------------------------------|-----------------------------------------|
+|hilbert |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.      |
+|constant|float=0.0                       |Level shift for operator. Default is 0.0.|
 
 ### Examples
 Constructs a ``LocalOperator`` without any operators.
@@ -32,13 +31,12 @@ Constructs a new ``LocalOperator`` given a hilbert space, a vector of
 operators, a vector of sites, and (if specified) a constant level
 shift.
 
-|Argument |          Type           |                       Description                        |
-|---------|-------------------------|----------------------------------------------------------|
-|hilbert  |netket.hilbert.Hilbert   |Hilbert space the operator acts on.                       |
-|operators|List[List[List[complex]]]|A list of operators, in matrix form.                      |
-|acting_on|List[List[int]]          |A list of sites, which the corresponding operators act on.|
-|constant |float=0.0                |Level shift for operator. Default is 0.0.                 |
-
+|Argument |              Type              |                       Description                        |
+|---------|--------------------------------|----------------------------------------------------------|
+|hilbert  |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.                       |
+|operators|List[List[List[complex]]]       |A list of operators, in matrix form.                      |
+|acting_on|List[List[int]]                 |A list of sites, which the corresponding operators act on.|
+|constant |float=0.0                       |Level shift for operator. Default is 0.0.                 |
 
 ### Examples
 Constructs a ``LocalOperator`` from a list of operators acting on
@@ -63,13 +61,12 @@ Constructs a new ``LocalOperator`` given a hilbert space, an
 operator, a site, and (if specified) a constant level
 shift.
 
-|Argument |         Type         |                       Description                        |
-|---------|----------------------|----------------------------------------------------------|
-|hilbert  |netket.hilbert.Hilbert|Hilbert space the operator acts on.                       |
-|operator |List[List[complex]]   |An operator, in matrix form.                              |
-|acting_on|List[int]             |A list of sites, which the corresponding operators act on.|
-|constant |float=0.0             |Level shift for operator. Default is 0.0.                 |
-
+|Argument |              Type              |                       Description                        |
+|---------|--------------------------------|----------------------------------------------------------|
+|hilbert  |netket._C_netket.hilbert.Hilbert|Hilbert space the operator acts on.                       |
+|operator |List[List[complex]]             |An operator, in matrix form.                              |
+|acting_on|List[int]                       |A list of sites, which the corresponding operators act on.|
+|constant |float=0.0                       |Level shift for operator. Default is 0.0.                 |
 
 ### Examples
 Constructs a ``LocalOperator`` from a single operator acting on
@@ -91,6 +88,10 @@ a single site.
 
 
 ## Class Methods 
+### conjugate
+Returns the complex conjugation of this operator
+
+
 ### get_conn
 Member function finding the connected elements of the Operator. Starting
 from a given visible state v, it finds all other visible states v' such
@@ -102,6 +103,29 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |--------|----------------------------|--------------------------------------------------|
 |v       |numpy.ndarray[float64[m, 1]]|A constant reference to the visible configuration.|
 
+### to_dense
+Returns the dense matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces.
+
+This method requires an indexable Hilbert space.
+
+
+
+### to_sparse
+Returns the sparse matrix representation of the operator. Note that, in general,
+the size of the matrix is exponential in the number of quantum
+numbers, and this operation should thus only be performed for
+low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+This method requires an indexable Hilbert space.
+
+
+
+### transpose
+Returns the transpose of this operator
+
 
 ## Properties
 
@@ -110,4 +134,3 @@ condition, and they are denoted here v'(k), for k=0,1...N_connected.
 |acting_on     |list[list]            | A list of the sites that each local matrix acts on.|
 |hilbert       |netket.hilbert.Hilbert| ``Hilbert`` space of operator.                     |
 |local_matrices|list[list]            | A list of the local matrices.                      |
-

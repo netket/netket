@@ -32,8 +32,7 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 # Graph Operator
-op = nk.operator.GraphOperator(
-    hi, siteops=site_operator, bondops=bond_operator)
+op = nk.operator.GraphOperator(hi, siteops=site_operator, bondops=bond_operator)
 
 # Restricted Boltzmann Machine
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
@@ -52,6 +51,7 @@ gs = nk.variational.Vmc(
     optimizer=opt,
     n_samples=1000,
     diag_shift=0.1,
-    method='Gd')
+    method="Gd",
+)
 
-gs.run(output_prefix='test', n_iter=30000)
+gs.run(output_prefix="test", n_iter=30000)
