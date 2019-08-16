@@ -24,50 +24,15 @@ namespace netket {
 // Metropolis sampling generating local moves in hilbert space
 class LocalKernel {
   std::vector<double> local_states_;
-
-  std::uniform_int_distribution<Index> dist_random_sites_;
-  std::uniform_int_distribution<Index> dist_random_states_;
+  const Index n_states_;
+  const Index nv_;
 
  public:
-  explicit LocalKernel(const AbstractMachine& psi) { Init(psi); }
-
-  void Init(const AbstractMachine& psi) {
-    if (!psi.GetHilbert().IsDiscrete()) {
-      throw InvalidInputError(
-          "Local Kernel sampler works only for discrete "
-          "Hilbert spaces");
-    }
-
-    auto nstates = psi.GetHilbert().LocalSize();
-    auto nv = psi.GetHilbert().Size();
-    local_states_ = psi.GetHilbert().LocalStates();
-
-    // #RandomValues() relies on the fact that locat_states_ are sorted.
-    std::sort(local_states_.begin(), local_states_.end());
-
-    dist_random_sites_ = std::uniform_int_distribution<Index>(0, nv - 1);
-
-    // There are `local_states_.size() - 1` possible values (minus one is
-    // because we don't want to stay in the same state). Thus first, we generate
-    // a random number in `[0, local_states_.size() - 2]`. Next step is to
-    // transform the result to avoid the gap.
-    dist_random_states_ = std::uniform_int_distribution<Index>(0, nstates - 2);
-  }
+  explicit LocalKernel(const AbstractMachine& psi);
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
-    vnew = v;
-
-    for (int i = 0; i < v.rows(); i++) {
-      // picking a random site to be changed
-      Index si = dist_random_sites_(GetRandomEngine());
-      Index rs = dist_random_states_(GetRandomEngine());
-      vnew(i, si) = local_states_[rs + (local_states_[rs] >= v(i, si))];
-    }
-
-    log_acceptance_correction.setZero();
-  }
+                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction);
 };
 
 }  // namespace netket

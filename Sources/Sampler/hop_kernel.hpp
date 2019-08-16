@@ -1,4 +1,4 @@
-// Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+// Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 #define NETKET_HOP_KERNEL_HPP
 
 #include <Eigen/Core>
+#include "Graph/abstract_graph.hpp"
+#include "Machine/abstract_machine.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
@@ -31,59 +33,17 @@ class HopKernel {
   Index nstates_;
   std::vector<double> localstates_;
 
-  std::uniform_int_distribution<Index> distcl_;
   std::uniform_int_distribution<Index> diststate_;
 
  public:
-  HopKernel(const AbstractMachine &psi, Index dmax = 1)
-      : nv_(psi.GetHilbert().Size()) {
-    Init(psi, psi.GetHilbert().GetGraph(), dmax);
-  }
-
-  void Init(const AbstractMachine &psi, const AbstractGraph &graph,
-            Index dmax) {
-    nstates_ = psi.GetHilbert().LocalSize();
-    localstates_ = psi.GetHilbert().LocalStates();
-
-    GenerateClusters(graph, dmax);
-  }
-
-  void GenerateClusters(const AbstractGraph &graph, int dmax) {
-    auto dist = graph.AllDistances();
-
-    assert(Index(dist.size()) == nv_);
-
-    for (Index i = 0; i < nv_; i++) {
-      for (Index j = 0; j < nv_; j++) {
-        if (dist[i][j] <= dmax && i != j) {
-          clusters_.push_back({i, j});
-          clusters_.push_back({j, i});
-        }
-      }
-    }
-
-    distcl_ = std::uniform_int_distribution<Index>(0, clusters_.size() - 1);
-    diststate_ = std::uniform_int_distribution<Index>(0, nstates_ - 1);
-  }
+  HopKernel(const AbstractMachine &psi, Index dmax = 1);
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
-    vnew = v;
+                  Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction);
 
-    for (int i = 0; i < v.rows(); i++) {
-      Index rcl = distcl_(GetRandomEngine());
-      assert(rcl < Index(clusters_.size()));
-      Index si = clusters_[rcl][0];
-      Index sj = clusters_[rcl][1];
-
-      assert(si < nv_ && sj < nv_);
-
-      vnew(i, si) = localstates_[diststate_(GetRandomEngine())];
-      vnew(i, sj) = localstates_[diststate_(GetRandomEngine())];
-    }
-    log_acceptance_correction.setZero();
-  }
+ private:
+  void GenerateClusters(const AbstractGraph &graph, Index dmax);
 };
 
 }  // namespace netket

@@ -16,6 +16,7 @@
 #define NETKET_HAMILTONIAN_KERNEL_HPP
 
 #include <Eigen/Core>
+#include "Machine/abstract_machine.hpp"
 #include "Operator/abstract_operator.hpp"
 #include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
@@ -34,45 +35,11 @@ class HamiltonianKernel {
   std::vector<Complex> mel_;
 
  public:
-  HamiltonianKernel(const AbstractMachine &psi, AbstractOperator &hamiltonian)
-      : hamiltonian_(hamiltonian), nv_(psi.GetHilbert().Size()) {
-    Init(psi);
-  }
-
-  void Init(const AbstractMachine &psi) {
-    if (!psi.GetHilbert().IsDiscrete()) {
-      throw InvalidInputError(
-          "Hamiltonian Metropolis sampler works only for discrete "
-          "Hilbert spaces");
-    }
-  }
+  HamiltonianKernel(const AbstractMachine &psi, AbstractOperator &hamiltonian);
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
-                  Eigen::Ref<Eigen::ArrayXd> acceptance_correction) {
-    vnew = v;
-
-    for (Index i = 0; i < v.rows(); i++) {
-      hamiltonian_.FindConn(v.row(i), mel_, tochange_, newconfs_);
-
-      auto w1 = static_cast<double>(tochange_.size());
-
-      std::uniform_int_distribution<Index> distrs(0, tochange_.size() - 1);
-
-      // picking a random state to transit to
-      Index si = distrs(GetRandomEngine());
-
-      // Inverse transition
-      hamiltonian_.GetHilbert().UpdateConf(vnew.row(i), tochange_[si],
-                                           newconfs_[si]);
-
-      hamiltonian_.FindConn(vnew.row(i), mel_, tochange_, newconfs_);
-
-      auto w2 = static_cast<double>(tochange_.size());
-
-      acceptance_correction(i) = std::log(w1 / w2);
-    }
-  }
+                  Eigen::Ref<Eigen::ArrayXd> acceptance_correction);
 };
 
 }  // namespace netket
