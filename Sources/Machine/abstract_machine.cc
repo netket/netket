@@ -38,13 +38,12 @@ void AbstractMachine::InitRandomPars(double sigma,
 
   default_random_engine generator;
 
+  if (seed.has_value()) {
+    generator = default_random_engine(*seed);
+  } else {
+    generator = GetRandomEngine();
+  }
   if (rank == root) {
-    if (seed.has_value()) {
-      generator = default_random_engine(*seed);
-    } else {
-      generator = GetRandomEngine();
-    }
-
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
                     std::normal_distribution<double> dist{0.0, sigma};
