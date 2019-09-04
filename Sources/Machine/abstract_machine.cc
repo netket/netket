@@ -39,21 +39,21 @@ void AbstractMachine::InitRandomPars(double sigma,
   MPI_Comm_rank(comm, &rank);
 
   default_random_engine generator;
+  if (given_gen != nullptr) {
+    generator = *given_gen;
+    if (seed.has_value()) {
+      InfoMessage() << "Warning: the given seed does not have any effect"
+                    << std::endl;
+    }
+  } else {
+    if (seed.has_value()) {
+      generator = default_random_engine(*seed);
+    } else {
+      generator = GetRandomEngine();
+    }
+  }
 
   if (rank == root) {
-    if (given_gen != nullptr) {
-      generator = *given_gen;
-      if (seed.has_value()) {
-        InfoMessage() << "Warning: the given seed does not have any effect"
-                      << std::endl;
-      }
-    } else {
-      if (seed.has_value()) {
-        generator = default_random_engine(*seed);
-      } else {
-        generator = GetRandomEngine();
-      }
-    }
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
                     std::normal_distribution<double> dist{0.0, sigma};
