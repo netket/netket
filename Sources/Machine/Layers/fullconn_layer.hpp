@@ -21,8 +21,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {

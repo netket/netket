@@ -64,6 +64,8 @@ class RbmMultival : public AbstractMachine {
 
   std::map<double, int> confindex_;
 
+  using LookupType = VectorType;
+
  public:
   explicit RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert,
                        int nhidden = 0, int alpha = 0, bool usea = true,
@@ -90,7 +92,6 @@ class RbmMultival : public AbstractMachine {
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
-
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

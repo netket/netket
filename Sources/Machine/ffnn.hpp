@@ -26,7 +26,6 @@
 #include "Layers/layer.hpp"
 #include "Machine/abstract_machine.hpp"
 #include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
 
 namespace netket {
 
@@ -42,7 +41,6 @@ class FFNN : public AbstractMachine {
 
   std::vector<std::vector<int>> changed_nodes_;
   std::vector<VectorType> new_output_;
-  LookupType ltnew_;
 
   std::unique_ptr<SumOutput> sum_output_layer_;
 
@@ -88,11 +86,6 @@ class FFNN : public AbstractMachine {
     npar_ = 0;
     for (int i = 0; i < nlayer_; ++i) {
       npar_ += layers_[i]->Npar();
-    }
-
-    for (int i = 0; i < nlayer_; ++i) {
-      ltnew_.AddVector(layersizes_[i + 1]);
-      ltnew_.AddVV(1);
     }
 
     for (int i = 0; i < nlayer_; ++i) {

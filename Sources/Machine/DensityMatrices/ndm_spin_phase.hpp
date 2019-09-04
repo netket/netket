@@ -21,7 +21,6 @@
 #include "Machine/rbm_spin.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/log_cosh.hpp"
-#include "Utils/lookup.hpp"
 #include "abstract_density_matrix.hpp"
 
 namespace netket {
@@ -94,6 +93,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   bool used_;
 
   const Complex I_;
+
+  using LookupType = std::vector<RealVectorType>;
 
  public:
   explicit NdmSpinPhase(std::shared_ptr<const AbstractHilbert> hilbert,
@@ -191,43 +192,43 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
   any InitLookup(VisibleConstType v) override {
     LookupType lt;
-    if (lt.VectorSize() == 0) {
-      lt.AddVector(h1_.size());  // row 1
-      lt.AddVector(h2_.size());  // row 2
-      lt.AddVector(h1_.size());  // col 1
-      lt.AddVector(h2_.size());  // col 2
-      lt.AddVector(d1_.size());  // ancilla modulus
-      lt.AddVector(d1_.size());  // ancilla phase
+    if (lt.size() == 0) {
+      lt.push_back(h1_);  // row 1
+      lt.push_back(h2_);  // row 2
+      lt.push_back(h1_);  // col 1
+      lt.push_back(h2_);  // col 2
+      lt.push_back(d1_);  // ancilla modulus
+      lt.push_back(d1_);  // ancilla phase
     }
-    if (lt.V(0).size() != h1_.size()) {
-      lt.V(0).resize(h1_.size());
+    if (lt[0].size() != h1_.size()) {
+      lt[0].resize(h1_.size());
     }
-    if (lt.V(1).size() != h2_.size()) {
-      lt.V(1).resize(h2_.size());
+    if (lt[1].size() != h2_.size()) {
+      lt[1].resize(h2_.size());
     }
-    if (lt.V(2).size() != h1_.size()) {
-      lt.V(2).resize(h1_.size());
+    if (lt[2].size() != h1_.size()) {
+      lt[2].resize(h1_.size());
     }
-    if (lt.V(3).size() != h2_.size()) {
-      lt.V(3).resize(h2_.size());
+    if (lt[3].size() != h2_.size()) {
+      lt[3].resize(h2_.size());
     }
-    if (lt.V(4).size() != d1_.size()) {
-      lt.V(4).resize(d1_.size());
+    if (lt[4].size() != d1_.size()) {
+      lt[4].resize(d1_.size());
     }
-    if (lt.V(5).size() != d1_.size()) {
-      lt.V(5).resize(d1_.size());
+    if (lt[5].size() != d1_.size()) {
+      lt[5].resize(d1_.size());
     }
 
     VisibleConstType vr = v.head(GetHilbertPhysical().Size());
     VisibleConstType vc = v.tail(GetHilbertPhysical().Size());
 
-    lt.V(0) = (W1_.transpose() * vr + h1_);
-    lt.V(1) = (W2_.transpose() * vr + h2_);
-    lt.V(2) = (W1_.transpose() * vc + h1_);
-    lt.V(3) = (W2_.transpose() * vc + h2_);
+    lt[0] = (W1_.transpose() * vr + h1_);
+    lt[1] = (W2_.transpose() * vr + h2_);
+    lt[2] = (W1_.transpose() * vc + h1_);
+    lt[3] = (W2_.transpose() * vc + h2_);
 
-    lt.V(4) = (0.5 * U1_.transpose() * (vr + vc) + d1_);
-    lt.V(5) = (0.5 * U2_.transpose() * (vr - vc));
+    lt[4] = (0.5 * U1_.transpose() * (vr + vc) + d1_);
+    lt[5] = (0.5 * U2_.transpose() * (vr - vc));
     return any{std::move(lt)};
   }
 
@@ -241,18 +242,18 @@ class NdmSpinPhase : public AbstractDensityMatrix {
       for (std::size_t s = 0; s < tochange.size(); s++) {
         const int sf = tochange[s];
         if (sf < Nvisible()) {
-          lt.V(0) += W1_.row(sf) * (newconf[s] - vr(sf));
-          lt.V(1) += W2_.row(sf) * (newconf[s] - vr(sf));
+          lt[0] += W1_.row(sf) * (newconf[s] - vr(sf));
+          lt[1] += W2_.row(sf) * (newconf[s] - vr(sf));
 
-          lt.V(4) += 0.5 * U1_.row(sf) * (newconf[s] - vr(sf));
-          lt.V(5) += 0.5 * U2_.row(sf) * (newconf[s] - vr(sf));
+          lt[4] += 0.5 * U1_.row(sf) * (newconf[s] - vr(sf));
+          lt[5] += 0.5 * U2_.row(sf) * (newconf[s] - vr(sf));
         } else {
           const int sfc = sf - Nvisible();
-          lt.V(2) += W1_.row(sfc) * (newconf[s] - vc(sfc));
-          lt.V(3) += W2_.row(sfc) * (newconf[s] - vc(sfc));
+          lt[2] += W1_.row(sfc) * (newconf[s] - vc(sfc));
+          lt[3] += W2_.row(sfc) * (newconf[s] - vc(sfc));
 
-          lt.V(4) += 0.5 * U1_.row(sfc) * (newconf[s] - vc(sfc));
-          lt.V(5) -= 0.5 * U2_.row(sfc) * (newconf[s] - vc(sfc));
+          lt[4] += 0.5 * U1_.row(sfc) * (newconf[s] - vc(sfc));
+          lt[5] -= 0.5 * U2_.row(sfc) * (newconf[s] - vc(sfc));
         }
       }
     }
@@ -276,10 +277,10 @@ class NdmSpinPhase : public AbstractDensityMatrix {
     }
 
     auto &lt = any_cast_ref<LookupType>(lookup);
-    lnthetas_r1_ = lt.V(0).array().real().tanh();
-    lnthetas_r2_ = lt.V(1).array().real().tanh();
-    lnthetas_c1_ = lt.V(2).array().real().tanh();
-    lnthetas_c2_ = lt.V(3).array().real().tanh();
+    lnthetas_r1_ = lt[0].array().tanh();
+    lnthetas_r2_ = lt[1].array().tanh();
+    lnthetas_c1_ = lt[2].array().tanh();
+    lnthetas_c2_ = lt[3].array().tanh();
 
     if (useh_) {
       der.segment(useb_ * nv_, nh_) = 0.5 * (lnthetas_r1_ + lnthetas_c1_);
@@ -289,7 +290,7 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
     thetas_a1_ = 0.5 * U1_.transpose() * (vr + vc) + d1_;
     thetas_a2_ = 0.5 * U2_.transpose() * (vr - vc);
-    lnpi_ = (lt.V(4).array().real() + I_ * lt.V(5).array().real()).tanh();
+    lnpi_ = (lt[4].array() + I_ * lt[5].array()).tanh();
 
     if (used_) {
       der.segment(useb_ * nv_ + useh_ * nh_, na_) = lnpi_;

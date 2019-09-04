@@ -25,7 +25,6 @@
 
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/any.hpp"
-#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
 
@@ -40,7 +39,6 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-  using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;

@@ -20,7 +20,6 @@
 #include <vector>
 #include "Utils/all_utils.hpp"
 #include "Utils/log_cosh.hpp"
-#include "Utils/lookup.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -96,8 +95,8 @@ int RbmMultival::Npar() const { return npar_; }
 
 any RbmMultival::InitLookup(VisibleConstType v) {
   LookupType lt;
-  lt.AddVector(b_.size());
-  ComputeTheta(v, lt.V(0));
+  lt.resize(b_.size());
+  ComputeTheta(v, lt);
   return any{std::move(lt)};
 }
 
@@ -112,8 +111,8 @@ void RbmMultival::UpdateLookup(VisibleConstType v,
       const int oldtilde = confindex_[v[sf]];
       const int newtilde = confindex_[newconf[s]];
 
-      lt.V(0) -= W_.row(ls_ * sf + oldtilde);
-      lt.V(0) += W_.row(ls_ * sf + newtilde);
+      lt -= W_.row(ls_ * sf + oldtilde);
+      lt += W_.row(ls_ * sf + newtilde);
     }
   }
 }
@@ -138,7 +137,7 @@ RbmMultival::VectorType RbmMultival::DerLogSingleImpl(VisibleConstType v,
     }
   }
 
-  lnthetas_ = (any_cast_ref<LookupType>(lookup).V(0)).array().tanh();
+  lnthetas_ = (any_cast_ref<LookupType>(lookup)).array().tanh();
 
   if (useb_) {
     for (int p = 0; p < nh_; p++) {
@@ -218,7 +217,7 @@ Complex RbmMultival::LogValSingle(VisibleConstType v, const any &lt) {
   }
 
   ComputeVtilde(v, vtilde_);
-  return (vtilde_.dot(a_) + SumLogCosh(any_cast_ref<LookupType>(lt).V(0)));
+  return (vtilde_.dot(a_) + SumLogCosh(any_cast_ref<LookupType>(lt)));
 }
 
 // Difference between logarithms of values, when one or more visible variables

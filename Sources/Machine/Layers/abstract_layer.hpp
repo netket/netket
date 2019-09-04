@@ -24,7 +24,6 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "Machine/abstract_machine.hpp"
-#include "Utils/lookup.hpp"
 
 namespace netket {
 /**
@@ -34,7 +33,6 @@ class AbstractLayer {
  public:
   using VectorType = AbstractMachine::VectorType;
   using MatrixType = AbstractMachine::MatrixType;
-  using LookupType = AbstractMachine::LookupType;
   using VectorRefType = AbstractMachine::VectorRefType;
   using VectorConstRefType = AbstractMachine::VectorConstRefType;
   using VisibleConstType = AbstractMachine::VisibleConstType;

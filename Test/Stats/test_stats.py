@@ -13,7 +13,7 @@ def _setup():
 
     ham = nk.operator.Heisenberg(hi)
 
-    ma = nk.machine.RbmSpinV2(hi, alpha=2)
+    ma = nk.machine.RbmSpin(hi, alpha=2)
     ma.init_random_parameters()
 
     return hi, ham, ma

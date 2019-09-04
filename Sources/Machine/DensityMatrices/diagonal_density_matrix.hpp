@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 #include "Machine/abstract_machine.hpp"
-#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 #include "density_matrix_machine.hpp"
 
