@@ -19,6 +19,7 @@ option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
+option(NETKET_NATIVE "Use -march=native" OFF)
 
 option(NETKET_USE_SLEEF "Use Sleef vector math library" ON)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
@@ -216,6 +217,10 @@ set(NETKET_WARNING_FLAGS
 )
 target_compile_options(netket_lib INTERFACE ${NETKET_WARNING_FLAGS})
 
+if(NETKET_NATIVE)
+    target_compile_options(netket_lib INTERFACE "-march=native")
+endif()
+
 if(${CMAKE_GENERATOR} STREQUAL "Ninja")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         target_compile_options(netket_lib INTERFACE -fcolor-diagnostics)
@@ -269,7 +274,6 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_phase.cc
     Sources/Machine/rbm_spin_real.cc
     Sources/Machine/rbm_spin_symm.cc
-    Sources/Machine/rbm_spin_v2.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
     Sources/Operator/abstract_operator.cc

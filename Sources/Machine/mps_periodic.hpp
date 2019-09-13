@@ -58,6 +58,8 @@ class MPSPeriodic : public AbstractMachine {
   // Identity Matrix
   MatrixType identity_mat_;
 
+  using LookupType = std::vector<MatrixType>;
+
  public:
   MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert, int bond_dim,
               bool diag, int symperiod = -1);
@@ -95,7 +97,7 @@ class MPSPeriodic : public AbstractMachine {
   // identities in every matrix
   inline void SetParametersIdentity(VectorConstRefType pars);
   // Auxiliary function
-  inline void _InitLookup_check(LookupType &lt, int i);
+  inline void _InitLookup_check(LookupType &lt, Index i);
   // Auxiliary function for sorting indeces
   // (copied from stackexchange - original answer by Lukasz Wiklendt)
   inline std::vector<std::size_t> sort_indeces(const std::vector<int> &v);

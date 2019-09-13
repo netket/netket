@@ -16,6 +16,7 @@
 
 #include "Machine/rbm_spin.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/log_cosh.hpp"
 #include "Utils/messages.hpp"
 
 namespace netket {
@@ -32,10 +33,7 @@ void RbmSpinReal::Init() {
   a_.resize(nv_);
   b_.resize(nh_);
 
-  thetas_.resize(nh_);
   lnthetas_.resize(nh_);
-  thetasnew_.resize(nh_);
-  lnthetasnew_.resize(nh_);
 
   npar_ = nv_ * nh_;
 
@@ -61,40 +59,15 @@ int RbmSpinReal::Nvisible() const { return nv_; }
 
 int RbmSpinReal::Npar() const { return npar_; }
 
-any RbmSpinReal::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  lt.AddVector(b_.size());
-  lt.V(0) = (W_.transpose() * v + b_);
-  return any{std::move(lt)};
-}
-
-void RbmSpinReal::UpdateLookup(VisibleConstType v,
-                               const std::vector<int> &tochange,
-                               const std::vector<double> &newconf,
-                               any &lookup) {
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
 RbmSpinReal::VectorType RbmSpinReal::DerLogSingle(VisibleConstType v,
-                                                  const any &cache) {
-  return DerLogSingleImpl(v, cache.empty() ? InitLookup(v) : cache);
-}
-
-RbmSpinReal::VectorType RbmSpinReal::DerLogSingleImpl(VisibleConstType v,
-                                                      const any &lt) {
+                                                  const any &) {
   VectorType der(npar_);
 
   if (usea_) {
     der.head(nv_) = v;
   }
 
-  RbmSpin::tanh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
+  lnthetas_ = (W_.transpose() * v + b_).array().real().tanh();
 
   if (useb_) {
     der.segment(usea_ * nv_, nh_) = lnthetas_;
@@ -138,74 +111,21 @@ void RbmSpinReal::SetParameters(VectorConstRefType pars) {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any &lt) {
-  if (lt.empty()) {
-    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-    return (v.dot(a_) + lnthetas_.sum());
-  }
-  RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0).real(), lnthetas_);
-  return (v.dot(a_) + lnthetas_.sum());
+Complex RbmSpinReal::LogValSingle(VisibleConstType v, const any &) {
+  return (v.dot(a_) + SumLogCosh(W_.transpose() * v + b_));
 }
 
-// Difference between logarithms of values, when one or more visible
-// variables are being flipped
-RbmSpinReal::VectorType RbmSpinReal::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
-  const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+void RbmSpinReal::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                         Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
 
-  thetas_ = (W_.transpose() * v + b_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
+  SumLogCosh((x * W_).rowwise() + b_.transpose(), out);
 
-  Complex logtsum = lnthetas_.sum();
-
-  for (std::size_t k = 0; k < nconn; k++) {
-    if (tochange[k].size() != 0) {
-      thetasnew_ = thetas_;
-
-      for (std::size_t s = 0; s < tochange[k].size(); s++) {
-        const int sf = tochange[k][s];
-
-        logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
-
-        thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-      }
-
-      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-      logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
-    }
+  if (usea_) {
+    out += x * a_;
   }
-  return logvaldiffs;
-}
-
-// Difference between logarithms of values, when one or more visible
-// variables are being flipped Version using pre-computed look-up tables for
-// efficiency on a small number of spin flips
-Complex RbmSpinReal::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                const any &lookup) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    RbmSpin::lncosh(lt.V(0).real(), lnthetas_);
-
-    thetasnew_ = lt.V(0).real();
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-
-      logvaldiff += a_(sf) * (newconf[s] - v(sf));
-
-      thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-    }
-
-    RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-    logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
-  }
-  return logvaldiff;
 }
 
 void RbmSpinReal::Save(const std::string &filename) const {

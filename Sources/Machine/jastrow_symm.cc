@@ -127,27 +127,6 @@ int JastrowSymm::Nvisible() const { return nv_; }
 
 int JastrowSymm::Npar() const { return npar_; }
 
-any JastrowSymm::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  lt.AddVector(v.size());
-  lt.V(0) = (W_.transpose() * v);  // does not matter the transpose W is symm
-  return any{std::move(lt)};
-}
-
-// same as RBM
-void JastrowSymm::UpdateLookup(VisibleConstType v,
-                               const std::vector<int> &tochange,
-                               const std::vector<double> &newconf,
-                               any &lookup) {
-  auto &lt = any_cast_ref<LookupType>(lookup);
-  if (tochange.size() != 0) {
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
 JastrowSymm::VectorType JastrowSymm::BareDerLog(VisibleConstType v) {
   VectorType der(nbarepar_);
 
@@ -203,9 +182,18 @@ void JastrowSymm::SetBareParameters() {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex JastrowSymm::LogValSingle(VisibleConstType v, const any &lt) {
-  if (lt.empty()) return 0.5 * v.dot(W_ * v);
-  return 0.5 * v.dot(any_cast_ref<LookupType>(lt).V(0));
+Complex JastrowSymm::LogValSingle(VisibleConstType v, const any &) {
+  return 0.5 * v.dot(W_ * v);
+}
+
+// Value of the logarithm of the wave-function on a batched x
+void JastrowSymm::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                         Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
+
+  out = 0.5 * (x * W_).cwiseProduct(x).rowwise().sum();
 }
 
 // Difference between logarithms of values, when one or more visible
@@ -236,31 +224,6 @@ JastrowSymm::VectorType JastrowSymm::LogValDiff(
   }
 
   return logvaldiffs;
-}
-
-Complex JastrowSymm::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                const any &lookup) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    const auto &lt = any_cast_ref<LookupType>(lookup);
-    Complex logtsum = 0.5 * v.dot(lt.V(0));
-    thetasnew_ = lt.V(0);
-    Eigen::VectorXd vnew(v);
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-
-      thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-      vnew(sf) = newconf[s];
-    }
-
-    logvaldiff = 0.5 * vnew.dot(thetasnew_) - logtsum;
-  }
-
-  return logvaldiff;
 }
 
 bool JastrowSymm::IsHolomorphic() const noexcept { return true; }

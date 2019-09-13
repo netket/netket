@@ -23,13 +23,13 @@ namespace netket {
 
 namespace detail {
 #ifdef NETKET_USE_SLEEF
-Complex SumLogCosh_avx2(
+Complex SumLogCoshBias_avx2(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
 Complex SumLogCosh_avx2(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
 #endif
-Complex SumLogCosh_generic(
+Complex SumLogCoshBias_generic(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
 Complex SumLogCosh_generic(
@@ -37,17 +37,17 @@ Complex SumLogCosh_generic(
 }  // namespace detail
 
 /// Returns `∑log(cosh(inputᵢ + biasᵢ))`
-inline Complex SumLogCosh(
+inline Complex SumLogCoshBias(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
 #ifdef NETKET_USE_SLEEF
   if (__builtin_cpu_supports("avx2")) {
-    return detail::SumLogCosh_avx2(input, bias);
+    return detail::SumLogCoshBias_avx2(input, bias);
   } else {
-    return detail::SumLogCosh_generic(input, bias);
+    return detail::SumLogCoshBias_generic(input, bias);
   }
 #else
-  return detail::SumLogCosh_generic(input, bias);
+  return detail::SumLogCoshBias_generic(input, bias);
 #endif
 }
 
@@ -65,6 +65,45 @@ inline Complex SumLogCosh(
   return detail::SumLogCosh_generic(input);
 #endif
 }
+
+// For real values Sum Log cosh is evaluated as
+// |x| + log(1+exp(-2*|x|))
+inline double SumLogCosh(
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> input) noexcept {
+  return (Eigen::abs(input.array()) +
+          Eigen::log1p(Eigen::exp(-2. * Eigen::abs(input.array()))))
+      .sum();
+}
+
+inline void SumLogCosh(Eigen::Ref<const MatrixXd> input,
+                       Eigen::Ref<VectorXcd> output) noexcept {
+  omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+  for (auto i = 0; i < output.size(); i++) {
+    output(i) = SumLogCosh(input.row(i));
+  }
+}
+
+inline void SumLogCosh(Eigen::Ref<const MatrixXcd> input,
+                       Eigen::Ref<VectorXcd> output) noexcept {
+  omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+  for (auto i = 0; i < output.size(); i++) {
+    output(i) = SumLogCosh(input.row(i));
+  }
+}
+
+inline void SumLogCoshReIm(Eigen::Ref<const MatrixXd> inputr,
+                           Eigen::Ref<const MatrixXd> inputi,
+                           Eigen::Ref<VectorXcd> output) noexcept {
+  constexpr std::complex<double> I(0, 1);
+  omp_set_num_threads(2);
+#pragma omp parallel for schedule(static)
+  for (auto i = 0; i < output.size(); i++) {
+    output(i) = SumLogCosh(inputr.row(i)) + I * SumLogCosh(inputi.row(i));
+  }
+}
+
 }  // namespace netket
 
 #endif  // SOURCES_UTILS_LOG_COSH_HPP

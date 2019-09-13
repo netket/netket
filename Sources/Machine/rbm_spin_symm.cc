@@ -16,6 +16,7 @@
 
 #include "Machine/rbm_spin.hpp"
 #include "Utils/json_utils.hpp"
+#include "Utils/log_cosh.hpp"
 #include "Utils/messages.hpp"
 
 namespace netket {
@@ -46,9 +47,7 @@ void RbmSpinSymm::RbmSpinSymm::Init(const AbstractGraph &graph) {
   b_.resize(nh_);
 
   thetas_.resize(nh_);
-  lnthetas_.resize(nh_);
   thetasnew_.resize(nh_);
-  lnthetasnew_.resize(nh_);
 
   Wsymm_.resize(nv_, alpha_);
   bsymm_.resize(alpha_);
@@ -121,32 +120,7 @@ int RbmSpinSymm::Nvisible() const { return nv_; }
 
 int RbmSpinSymm::Npar() const { return npar_; }
 
-any RbmSpinSymm::InitLookup(VisibleConstType v) {
-  LookupType lt;
-  lt.AddVector(b_.size());
-  lt.V(0) = (W_.transpose() * v + b_);
-  return any{std::move(lt)};
-}
-
-void RbmSpinSymm::UpdateLookup(VisibleConstType v,
-                               const std::vector<int> &tochange,
-                               const std::vector<double> &newconf,
-                               any &lookup) {
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      lt.V(0) += W_.row(sf) * (newconf[s] - v(sf));
-    }
-  }
-}
-
 RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v) {
-  return BareDerLog(v, InitLookup(v));
-}
-
-RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v,
-                                                const any &lt) {
   VectorType der(nbarepar_);
 
   int k = 0;
@@ -157,18 +131,18 @@ RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v,
     }
   }
 
-  RbmSpin::tanh(any_cast_ref<LookupType>(lt).V(0), lnthetas_);
+  thetas_ = (W_.transpose() * v + b_).array().tanh();
 
   if (useb_) {
     for (int p = 0; p < nh_; p++) {
-      der(k) = lnthetas_(p);
+      der(k) = thetas_(p);
       k++;
     }
   }
 
   for (int i = 0; i < nv_; i++) {
     for (int j = 0; j < nh_; j++) {
-      der(k) = lnthetas_(j) * v(i);
+      der(k) = thetas_(j) * v(i);
       k++;
     }
   }
@@ -176,9 +150,8 @@ RbmSpinSymm::VectorType RbmSpinSymm::BareDerLog(VisibleConstType v,
 }
 
 RbmSpinSymm::VectorType RbmSpinSymm::DerLogSingle(VisibleConstType v,
-                                                  const any &lt) {
-  if (lt.empty()) return DerMatSymm_ * BareDerLog(v);
-  return DerMatSymm_ * BareDerLog(v, lt);
+                                                  const any & /*lt*/) {
+  return DerMatSymm_ * BareDerLog(v);
 }
 
 RbmSpinSymm::VectorType RbmSpinSymm::GetParameters() {
@@ -258,74 +231,21 @@ void RbmSpinSymm::SetBareParameters() {
 
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmSpinSymm::LogValSingle(VisibleConstType v, const any &lt) {
-  if (lt.empty()) {
-    RbmSpin::lncosh(W_.transpose() * v + b_, lnthetas_);
-    return (v.dot(a_) + lnthetas_.sum());
-  }
-  RbmSpin::lncosh(any_cast_ref<LookupType>(lt).V(0), lnthetas_);
-  return (v.dot(a_) + lnthetas_.sum());
+Complex RbmSpinSymm::LogValSingle(VisibleConstType v, const any & /*lt*/) {
+  return v.dot(a_) + SumLogCosh(W_.transpose() * v + b_);
 }
 
-// Difference between logarithms of values, when one or more visible variables
-// are being flipped
-RbmSpinSymm::VectorType RbmSpinSymm::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
-  const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+void RbmSpinSymm::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                         Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+  CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "out", out.size(), x.rows());
 
-  thetas_ = (W_.transpose() * v + b_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
+  SumLogCosh((x * W_).rowwise() + b_.transpose(), out);
 
-  Complex logtsum = lnthetas_.sum();
-
-  for (std::size_t k = 0; k < nconn; k++) {
-    if (tochange[k].size() != 0) {
-      thetasnew_ = thetas_;
-
-      for (std::size_t s = 0; s < tochange[k].size(); s++) {
-        const int sf = tochange[k][s];
-
-        logvaldiffs(k) += a_(sf) * (newconf[k][s] - v(sf));
-
-        thetasnew_ += W_.row(sf) * (newconf[k][s] - v(sf));
-      }
-
-      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-      logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
-    }
+  if (usea_) {
+    out += x * a_;
   }
-  return logvaldiffs;
-}
-
-// Difference between logarithms of values, when one or more visible variables
-// are being flipped Version using pre-computed look-up tables for efficiency
-// on a small number of spin flips
-Complex RbmSpinSymm::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                const any &lookup) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    auto &lt = any_cast_ref<LookupType>(lookup);
-    RbmSpin::lncosh(lt.V(0), lnthetas_);
-
-    thetasnew_ = lt.V(0);
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-
-      logvaldiff += a_(sf) * (newconf[s] - v(sf));
-
-      thetasnew_ += W_.row(sf) * (newconf[s] - v(sf));
-    }
-
-    RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-    logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
-  }
-  return logvaldiff;
 }
 
 void RbmSpinSymm::Save(const std::string &filename) const {
