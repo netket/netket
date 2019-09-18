@@ -41,6 +41,8 @@ void AddVariationalMonteCarloModule(PyObject *module) {
 
   m.def("test_create_array", &detail::TestCreateArray);
 
+  m_vmc.def("_subtract_mean", &SubtractMean, py::arg{"values"}.noconvert());
+
   py::class_<MCResult>(m_vmc, "MCResult",
                        R"EOF(Result of Monte Carlo sampling.)EOF")
       .def_property_readonly(
@@ -66,26 +68,7 @@ void AddVariationalMonteCarloModule(PyObject *module) {
           },
           py::return_value_policy::reference_internal,
           R"EOF(An array of `complex128` representing `Ψ(vᵢ)` for all
-                sampled visible configurations `vᵢ`.)EOF")
-      .def_property_readonly(
-          "der_logs",
-          [](const MCResult &self) -> py::object {
-            if (self.der_logs.has_value()) {
-              assert(self.der_logs->rows() % self.n_chains == 0);
-              return detail::as_readonly(
-                  py::array_t<Complex, py::array::c_style>{
-                      {self.der_logs->rows() / self.n_chains, self.n_chains,
-                       self.der_logs->cols()},
-                      self.der_logs->data(),
-                      py::none()});
-            }
-            return py::none();
-          },
-          py::return_value_policy::reference_internal,
-          R"EOF(A matrix of logarithmic derivatives.
-
-                Each row in the matrix corresponds to the gradient of
-                `Ψ(vᵢ)` with respect to variational parameters.)EOF");
+                sampled visible configurations `vᵢ`.)EOF");
 
   py::class_<VariationalMonteCarlo>(
       m_vmc, "Vmc",
@@ -237,15 +220,15 @@ void AddVariationalMonteCarloModule(PyObject *module) {
 
   m_vmc.def(
       "compute_samples",
-      [](AbstractSampler &sampler, Index n_samples, Index n_discard,
-         nonstd::optional<std::string> der_logs) {
+      [](AbstractSampler &sampler, Index n_samples, Index n_discard) {
         // Helper types and lambda for writing the shapes in a clean way:
         using Shape2 = std::array<std::size_t, 2>;
         using Shape3 = std::array<std::size_t, 3>;
         const auto _ = [](Index i) { return static_cast<std::size_t>(i); };
 
         MCResult result =
-            ComputeSamples(sampler, n_samples, n_discard, der_logs);
+            ComputeSamples(sampler, n_samples, n_discard,
+            /*der_logs=*/nonstd::nullopt);
 
         const Shape3 sample_shape = {_(result.samples.rows() / result.n_chains),
                                      _(result.n_chains),
@@ -258,20 +241,9 @@ void AddVariationalMonteCarloModule(PyObject *module) {
         auto logvals = py::array_t<Complex, py::array::c_style>{
             logval_shape, result.log_values.data()};
 
-        if (!result.der_logs.has_value()) {
-          return py::make_tuple(samples, logvals);
-        } else {
-          const Shape3 dl_shape = {_(result.der_logs->rows() / result.n_chains),
-                                   _(result.n_chains),
-                                   _(result.der_logs->cols())};
-          auto der_logs = py::array_t<Complex, py::array::c_style>{
-              dl_shape, result.der_logs->data()};
-
-          return py::make_tuple(samples, logvals, der_logs);
-        }
+        return py::make_tuple(samples, logvals);
       },
       py::arg{"sampler"}, py::arg{"n_samples"}, py::arg{"n_discard"},
-      py::arg{"der_logs"} = py::none(),
       R"EOF(Runs Monte Carlo sampling using `sampler`.
 
                   First `n_discard` sweeps are discarded. Results of the next

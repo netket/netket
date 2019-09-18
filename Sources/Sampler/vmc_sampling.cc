@@ -48,14 +48,12 @@ VectorXcd GradientOfVariance(Eigen::Ref<const RowMatrix<double>> samples,
   return grad;
 }
 
-namespace detail {
-void SubtractMean(RowMatrix<Complex>& gradients) {
+void SubtractMean(Eigen::Ref<RowMatrix<Complex>> gradients) {
   VectorXcd mean = gradients.colwise().mean();
   assert(mean.size() == gradients.cols());
   MeanOnNodes<>(mean);
   gradients.rowwise() -= mean.transpose();
 }
-}  // namespace detail
 
 MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
                         Index num_skipped,
@@ -124,8 +122,9 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
     }
   }
 
-  if (der_logs.has_value() && *der_logs == "centered")
-    detail::SubtractMean(*gradients);
+  if (der_logs.has_value() && *der_logs == "centered") {
+    SubtractMean(*gradients);
+  }
   return {std::move(samples), std::move(values), std::move(gradients),
           sampler.BatchSize()};
 }

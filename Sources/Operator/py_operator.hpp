@@ -148,8 +148,9 @@ void AddOperatorModule(py::module m) {
                              << "; expected either 1 or 2.");
         }
       },
+      py::arg{"op"}, py::arg{"machine"},
       py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
-      py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
+      py::arg{"batch_size"} = 16,
       R"EOF(Computes local values of the operator `op` for all `samples`.
 
             Args:

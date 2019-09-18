@@ -1,4 +1,5 @@
 from ._C_netket.variational import *
+from ._C_netket.variational import _subtract_mean
 
 import itertools
 
@@ -26,6 +27,25 @@ def _Vmc_iter(self, n_iter=None, step_size=1):
 
 
 Vmc.iter = _Vmc_iter
+
+
+def log_derivatives(ma, samples, centered=False):
+    if samples.ndim <= 2:
+        vs = samples
+    elif samples.ndim == 3:
+        s = samples.shape
+        vs = samples.reshape(s[0] * s[1], s[2])
+    else:
+        raise ValueError("Argument `samples` has invalid shape")
+
+    derlogs = ma.der_log(vs)
+    if centered:
+        _subtract_mean(derlogs)
+
+    if samples.ndim == 3:
+        return derlogs.reshape(s[0], s[1], derlogs.shape[-1])
+    else:
+        return derlogs
 
 
 # Higher-level VMC functions:
@@ -72,13 +92,13 @@ def estimate_expectation(op, psi, samples, log_values, der_logs=None):
     """
 
     from ._C_netket import operator as nop
-    from ._C_netket.stats import covariance_sv, statistics
+    from ._C_netket import stats as nst
 
     local_values = nop.local_values(op, psi, samples, log_values)
-    stats = statistics(local_values)
+    stats = nst.statistics(local_values)
 
     if der_logs is not None:
-        grad = covariance_sv(local_values, der_logs)
+        grad = nst.covariance_sv(local_values, der_logs)
         return stats, grad
     else:
         return stats

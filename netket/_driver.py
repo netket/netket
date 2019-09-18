@@ -5,7 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
-from netket.stats import statistics as _statistics
+from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
 import netket.variational as _vmc
 
 
@@ -150,9 +150,7 @@ class VmcDriver(object):
         self.step_count = 0
 
     def _get_mc_stats(self, op):
-        loc = _local_values(
-            self._mc_data.samples, self._mc_data.log_values, self._machine, op
-        )
+        loc = _local_values(op, self._machine, self._samples, self._logvals)
         return loc, _statistics(loc)
 
     def advance(self, n_steps=1):
@@ -164,8 +162,11 @@ class VmcDriver(object):
         """
 
         def update_samples():
-            self._mc_data = _vmc.compute_samples(
-                self._sampler, self.n_samples, self.n_discard, der_logs="centered"
+            self._samples, self._logvals = _vmc.compute_samples(
+                self._sampler, self.n_samples, self.n_discard
+            )
+            self._derlogs = _vmc.log_derivatives(
+                self._machine, self._samples, centered=True
             )
 
         if not self._mc_data:
@@ -174,17 +175,13 @@ class VmcDriver(object):
         for _ in range(n_steps):
             # Estimate energy
             eloc, self._stats = self._get_mc_stats(self._ham)
-
             # Estimate energy gradient
-            grad = _vmc.gradient_of_expectation(eloc, self._mc_data.der_logs)
-
+            grad = _covariance_sv(eloc, self._derlogs)
             # Perform update
             if self._sr:
                 dp = _np.empty(self._npar, dtype=_np.complex128)
-                dshape = self._mc_data.der_logs.shape
-                der_logs = self._mc_data.der_logs.reshape(
-                    dshape[0] * dshape[1], dshape[2]
-                )
+                shp = self._derlogs.shape
+                der_logs = self._derlogs.reshape(shp[0] * shp[1], shp[2])
                 self._sr.compute_update(der_logs, grad, dp)
             else:
                 dp = grad
