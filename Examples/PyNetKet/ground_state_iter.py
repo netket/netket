@@ -8,7 +8,7 @@ import jax.experimental.optimizers as jaxopt
 SEED = 3141592
 
 # Constructing a 1d lattice
-N = 64
+N = 16
 g = nk.graph.Hypercube(length=N, n_dim=1)
 
 # Hilbert space of spins from given graph
@@ -18,11 +18,11 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # Machine
-ma = nk.machine.RbmSpinV2(hilbert=hi, alpha=2)
+ma = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 ma.init_random_parameters(seed=SEED, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocalV2(machine=ma, batch_size=32)
+sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=32)
 sa.seed(SEED)
 
 mpi_rank = nk.MPI.rank()
@@ -72,7 +72,7 @@ def run_vmc(steps, step_size, diag_shift, n_samples):
     opt = jaxopt.sgd(step_size)
     # opt = nk.optimizer.Sgd(step_size)
 
-    sr = nk.optimizer.SR(solver="BDCSVD", use_iterative=True, diag_shift=diag_shift)
+    sr = nk.optimizer.SR(lsq_solver="BDCSVD", diag_shift=diag_shift)
     sr.store_rank_enabled = True
     sr.store_covariance_matrix_enabled = True
 
@@ -87,7 +87,7 @@ def run_vmc(steps, step_size, diag_shift, n_samples):
     )
 
     if mpi_rank == 0:
-        print(vmc)
+        print(vmc.info())
         print(HEADER_STRING)
 
     for step in vmc.iter(steps, 1):

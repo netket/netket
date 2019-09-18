@@ -259,4 +259,4 @@ class VmcDriver(object):
                 ("SR solver", self._sr),
             ]
         ]
-        return "\n  ".join([self.info()] + lines)
+        return "\n  ".join([str(self)] + lines)
