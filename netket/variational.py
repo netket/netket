@@ -1,5 +1,5 @@
 from ._C_netket.variational import *
-from ._C_netket.variational import _subtract_mean
+from ._C_netket.utils import _subtract_mean
 
 import itertools
 
@@ -60,7 +60,7 @@ def estimate_expectation(op, psi, samples, log_values, der_logs=None):
     variational parameters.
 
     The estimate is based on a Markov chain of configurations obtained from
-    `netket.variational.compute_samples`.
+    `netket.sampler.compute_samples`.
 
     Args:
         op: Linear operator

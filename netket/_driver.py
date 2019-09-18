@@ -5,6 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
+from netket.sampler import compute_samples as _compute_samples
 from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
 import netket.variational as _vmc
 
@@ -162,7 +163,7 @@ class VmcDriver(object):
         """
 
         def update_samples():
-            self._samples, self._logvals = _vmc.compute_samples(
+            self._samples, self._logvals = _compute_samples(
                 self._sampler, self.n_samples, self.n_discard
             )
             self._derlogs = _vmc.log_derivatives(

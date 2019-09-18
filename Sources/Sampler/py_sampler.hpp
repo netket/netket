@@ -59,6 +59,15 @@ namespace py = pybind11;
 
 namespace netket {
 
+namespace detail {
+template <class T, int ExtraFlags>
+py::array_t<T, ExtraFlags> as_readonly(py::array_t<T, ExtraFlags> array) {
+  py::detail::array_proxy(array.ptr())->flags &=
+      ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+  return array;
+}
+}
+
 void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
 
@@ -152,6 +161,94 @@ void AddSamplerModule(py::module& m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
+
+
+  py::class_<MCResult>(subm, "MCResult",
+                       R"EOF(Result of Monte Carlo sampling.)EOF")
+      .def_property_readonly(
+          "samples",
+          [](const MCResult &self) {
+            assert(self.samples.rows() % self.n_chains == 0);
+            return detail::as_readonly(py::array_t<double, py::array::c_style>{
+                {self.samples.rows() / self.n_chains, self.n_chains,
+                 self.samples.cols()},
+                self.samples.data(),
+                py::none()});
+          },
+          py::return_value_policy::reference_internal,
+          R"EOF(Visible configurations `{vᵢ}` visited during sampling.)EOF")
+      .def_property_readonly(
+          "log_values",
+          [](const MCResult &self) {
+            assert(self.log_values.rows() % self.n_chains == 0);
+            return detail::as_readonly(py::array_t<Complex, py::array::c_style>{
+                {self.log_values.rows() / self.n_chains, self.n_chains},
+                self.log_values.data(),
+                py::none()});
+          },
+          py::return_value_policy::reference_internal,
+          R"EOF(An array of `complex128` representing `Ψ(vᵢ)` for all
+                sampled visible configurations `vᵢ`.)EOF");
+
+  subm.def(
+      "compute_samples",
+      [](AbstractSampler &sampler, Index n_samples, Index n_discard) {
+        // Helper types and lambda for writing the shapes in a clean way:
+        using Shape2 = std::array<std::size_t, 2>;
+        using Shape3 = std::array<std::size_t, 3>;
+        const auto _ = [](Index i) { return static_cast<std::size_t>(i); };
+
+        MCResult result =
+            ComputeSamples(sampler, n_samples, n_discard,
+            /*der_logs=*/nonstd::nullopt);
+
+        const Shape3 sample_shape = {_(result.samples.rows() / result.n_chains),
+                                     _(result.n_chains),
+                                     _(result.samples.cols())};
+        auto samples = py::array_t<double, py::array::c_style>{
+            sample_shape, result.samples.data()};
+
+        const Shape2 logval_shape = {_(result.samples.rows() / result.n_chains),
+                                     _(result.n_chains)};
+        auto logvals = py::array_t<Complex, py::array::c_style>{
+            logval_shape, result.log_values.data()};
+
+        return py::make_tuple(samples, logvals);
+      },
+      py::arg{"sampler"}, py::arg{"n_samples"}, py::arg{"n_discard"},
+      R"EOF(Runs Monte Carlo sampling using `sampler`.
+
+                  First `n_discard` sweeps are discarded. Results of the next
+                  `≥n_samples` sweeps are saved. Since samplers work with
+                  batches of specified size it may be impossible to sample
+                  exactly `n_samples` visible configurations (without throwing
+                  away useful data, of course). You can rely on
+                  `compute_samples` to return at least `n_samples` samples.
+
+                  Exact number of performed sweeps and samples stored can be
+                  computed using the following functions:
+
+                  ```python
+
+                  def number_sweeps(sampler, n_samples):
+                      return (n_samples + sampler.batch_size - 1) // sampler.batch_size
+
+                  def number_samples(sampler, n_samples):
+                      return sampler.batch_size * number_sweeps(sampler, n_samples)
+                  ```
+
+                  Args:
+                      sampler: sampler to use for Monte Carlo sweeps.
+                      n_samples: number of samples to record.
+                      n_discard: number of sweeps to discard.
+                      der_logs: Whether to calculate gradients of the logarithm
+                          of the wave function. `None` means don't compute,
+                          "normal" means compute, and "centered" means compute
+                          and then center.
+
+                  Returns:
+                      A `MCResult` object with all the data obtained during sampling.)EOF");
+
 }
 
 }  // namespace netket

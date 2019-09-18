@@ -55,9 +55,10 @@ def test_vmc_functions():
         )
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        samples, log_values, der_logs = vmc.compute_samples(
-            sampler, n_samples=15000, n_discard=1000, der_logs="centered"
+        samples, log_values = nk.sampler.compute_samples(
+            sampler, n_samples=15000, n_discard=1000
         )
+        der_logs = nk.variational.log_derivatives(ma, samples, centered=True)
 
         print(samples.shape)
         print(log_values.shape)
