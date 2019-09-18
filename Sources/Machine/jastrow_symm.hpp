@@ -56,22 +56,19 @@ class JastrowSymm : public AbstractMachine {
   int Nvisible() const override;
   int Npar() const override;
 
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
-
   VectorType DerLogSingle(VisibleConstType v, const any &cache) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
-  Complex LogValSingle(VisibleConstType v, const any &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &) override;
+
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
+
   VectorType LogValDiff(
       VisibleConstType v, const std::vector<std::vector<int>> &tochange,
       const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

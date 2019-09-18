@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath>
 #include "Utils/log_cosh.hpp"
+#include <cmath>
 
 namespace netket {
 namespace detail {
@@ -37,7 +37,7 @@ inline Complex LogCosh(Complex x) noexcept {
 }
 }  // namespace
 
-Complex SumLogCosh_generic(
+Complex SumLogCoshBias_generic(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
   auto total = Complex{0.0, 0.0};
@@ -56,5 +56,6 @@ Complex SumLogCosh_generic(
   }
   return total;
 }
+
 }  // namespace detail
 }  // namespace netket

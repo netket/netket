@@ -30,15 +30,20 @@ void AddUtilsModule(py::module m) {
                        netket::default_random_engine::result_type)>(
                        &netket::default_random_engine::seed));
 
-  py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
-
-  py::class_<Lookup<Complex>>(m, "LookupComplex").def(py::init<>());
+  subm.def(
+      "seed",
+      [](const DistributedRandomEngine::ResultType &seed) {
+        GetDistributedRandomEngine().Seed(seed);
+      },
+      py::arg("seed") = netket::default_random_engine::default_seed,
+      R"EOF(seed: The chosen seed for the distributed random number generator.  )EOF");
 
   py::class_<MPIHelpers>(m, "MPI")
-      .def("rank", &MPIHelpers::MPIRank,
-           R"EOF(int: The MPI rank for the current process.  )EOF")
-      .def("size", &MPIHelpers::MPISize,
-           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
+      .def_static("rank", &MPIHelpers::MPIRank,
+                  R"EOF(int: The MPI rank for the current process.  )EOF")
+      .def_static(
+          "size", &MPIHelpers::MPISize,
+          R"EOF(int: The total number of MPI ranks currently active.  )EOF");
 }
 
 }  // namespace netket

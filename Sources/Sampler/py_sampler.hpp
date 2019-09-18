@@ -27,7 +27,6 @@
 #include "Graph/graph.hpp"
 #include "Operator/operator.hpp"
 #include "Sampler/abstract_sampler.hpp"
-#include "Sampler/metropolis_local_v2.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/pybind_helpers.hpp"
@@ -37,47 +36,28 @@ template <class T, class... Args>
 pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
   return cls.def_property_readonly(
       "acceptance", [](const T& self) { return self.Acceptance(); }, R"EOF(
-        numpy.array: The measured acceptance rate for the sampling.
+        float or numpy.array: The measured acceptance rate for the sampling.
         In the case of rejection-free sampling this is always equal to 1.)EOF");
+}
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "stats", [](const T& self) { return self.Stats(); }, R"EOF(
+      Internal statistics for the sampling procedure.)EOF");
 }
 }  // namespace netket
 
 #include "py_custom_sampler.hpp"
-#include "py_custom_sampler_pt.hpp"
 #include "py_exact_sampler.hpp"
 #include "py_metropolis_exchange.hpp"
-#include "py_metropolis_exchange_pt.hpp"
 #include "py_metropolis_hamiltonian.hpp"
-#include "py_metropolis_hamiltonian_pt.hpp"
+#include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
-#include "py_metropolis_local_pt.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
-
-void AddMetropolisLocalV2(py::module m) {
-  auto v2 =
-      py::class_<MetropolisLocalV2, AbstractSampler>(m, "MetropolisLocalV2")
-          .def(py::init([](AbstractMachine& machine, Index batch_size,
-                           nonstd::optional<Index> sweep_size) {
-                 return make_unique<MetropolisLocalV2>(
-                     machine, batch_size,
-                     sweep_size.value_or(machine.Nvisible()));
-               }),
-               py::keep_alive<1, 2>{}, py::arg{"machine"},
-               py::arg{"batch_size"} = 16, py::arg{"sweep_size"} = py::none(),
-               R"EOF(See `MetropolisLocal` for information about the algorithm.
-
-                 `MetropolisLocalV2` differs from `MetropolisLocal` in that it
-                 runs `batch_size` Markov Chains in parallel on one MPI node.
-                 Generating `batch_size` new samples requires only one call to
-                 `Machine.log_val` which helps to hide the latency associated
-                 with the call.
-           )EOF");
-  AddAcceptance(v2);
-}
 
 void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
@@ -166,16 +146,12 @@ void AddSamplerModule(py::module& m) {
                                    however in general $$F(\Psi(v))$$)EOF");
 
   AddMetropolisLocal(subm);
-  AddMetropolisLocalPt(subm);
   AddMetropolisHop(subm);
   AddMetropolisHamiltonian(subm);
-  AddMetropolisHamiltonianPt(subm);
   AddMetropolisExchange(subm);
-  AddMetropolisExchangePt(subm);
   AddExactSampler(subm);
   AddCustomSampler(subm);
-  AddCustomSamplerPt(subm);
-  AddMetropolisLocalV2(subm);
+  AddMetropolisHastings(subm);
 }
 
 }  // namespace netket

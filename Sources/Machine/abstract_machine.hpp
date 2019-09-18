@@ -25,7 +25,6 @@
 
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/any.hpp"
-#include "Utils/lookup.hpp"
 #include "Utils/random_utils.hpp"
 #include "common_types.hpp"
 
@@ -40,7 +39,6 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-  using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
@@ -72,7 +70,8 @@ class AbstractMachine {
   @param seed is the seed of the random number generator. If seed is `nullopt`,
   one is generated using `std::random_device`.
   */
-  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed);
+  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed,
+                              default_random_engine *given_gen);
 
   /**
   Member function returning the number of visible units.
@@ -122,7 +121,7 @@ class AbstractMachine {
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual any InitLookup(VisibleConstType v) = 0;
+  virtual any InitLookup(VisibleConstType v);
 
   /**
   Member function updating the look-up tables.
@@ -143,7 +142,7 @@ class AbstractMachine {
   */
   virtual void UpdateLookup(VisibleConstType v,
                             const std::vector<int> &tochange,
-                            const std::vector<double> &newconf, any &lt) = 0;
+                            const std::vector<double> &newconf, any &lt);
 
   /**
   Member function computing the difference between the logarithm of the

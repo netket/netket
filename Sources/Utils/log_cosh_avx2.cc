@@ -94,7 +94,7 @@ Complex SumLogCosh_avx2(
                               _mm256_extractf128_pd(total, 1)));
 }
 
-Complex SumLogCosh_avx2(
+Complex SumLogCoshBias_avx2(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input,
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept {
   assert(input.size() == bias.size() && "incompatible sizes");

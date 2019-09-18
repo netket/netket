@@ -241,28 +241,28 @@ void MPSPeriodic::SetParametersIdentity(VectorConstRefType pars) {
 
 any MPSPeriodic::InitLookup(VisibleConstType v) {
   LookupType lt;
-  for (int k = 0; k < Nleaves_; k++) {
+  for (Index k = 0; k < Nleaves_; k++) {
     _InitLookup_check(lt, k);
     if (leaf_contractions_[k][0] < N_) {
       if (leaf_contractions_[k][1] < N_) {
-        lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][0])]],
-                       W_[leaf_contractions_[k][1] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][1])]]);
+        lt[k] = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][0])]],
+                     W_[leaf_contractions_[k][1] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][1])]]);
       } else {
-        lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][0])]],
-                       lt.M(leaf_contractions_[k][1] - N_));
+        lt[k] = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][0])]],
+                     lt[leaf_contractions_[k][1] - N_]);
       }
 
     } else {
       if (leaf_contractions_[k][1] < N_) {
-        lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
-                       W_[leaf_contractions_[k][1] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][1])]]);
+        lt[k] = prod(lt[leaf_contractions_[k][0] - N_],
+                     W_[leaf_contractions_[k][1] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][1])]]);
       } else {
-        lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
-                       lt.M(leaf_contractions_[k][1] - N_));
+        lt[k] = prod(lt[leaf_contractions_[k][0] - N_],
+                     lt[leaf_contractions_[k][1] - N_]);
       }
     }
   }
@@ -270,11 +270,11 @@ any MPSPeriodic::InitLookup(VisibleConstType v) {
 }
 
 // Auxiliary function
-void MPSPeriodic::_InitLookup_check(LookupType &lt, int i) {
-  if (lt.MatrixSize() == i) {
-    lt.AddMatrix(D_, Dsec_);
+void MPSPeriodic::_InitLookup_check(LookupType &lt, Index i) {
+  if (static_cast<Index>(lt.size()) == i) {
+    lt.push_back(MatrixType(D_, Dsec_));
   } else {
-    lt.M(i).resize(D_, Dsec_);
+    lt[i].resize(D_, Dsec_);
   }
 }
 
@@ -325,15 +325,15 @@ void MPSPeriodic::UpdateLookup(VisibleConstType v,
               base_mat[lc] = &(W_[lc % symperiod_][confindex_[v(lc)]]);
             }
           } else {
-            base_mat[lc] = &(lt.M(lc - N_));
+            base_mat[lc] = &(lt[lc - N_]);
           }
         }
       }
     }
   }
   for (auto leaf : leaves2update) {
-    lt.M(leaf - N_) = prod(*(base_mat[leaf_contractions_[leaf - N_][0]]),
-                           *(base_mat[leaf_contractions_[leaf - N_][1]]));
+    lt[leaf - N_] = prod(*(base_mat[leaf_contractions_[leaf - N_][0]]),
+                         *(base_mat[leaf_contractions_[leaf - N_][1]]));
   }
 }
 
@@ -350,7 +350,7 @@ MPSPeriodic::MatrixType MPSPeriodic::mps_contraction(VisibleConstType v,
 
 Complex MPSPeriodic::LogValSingle(VisibleConstType v, const any &lt) {
   if (lt.empty()) return std::log(trace(mps_contraction(v, 0, N_)));
-  return std::log(trace(any_cast_ref<LookupType>(lt).M(Nleaves_ - 1)));
+  return std::log(trace(any_cast_ref<LookupType>(lt)[Nleaves_ - 1]));
 }
 
 MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
@@ -455,13 +455,13 @@ Complex MPSPeriodic::LogValDiff(VisibleConstType v,
         if (lc < N_) {
           m[i] = W_[lc % symperiod_][confindex_[v(lc)]];
         } else {
-          m[i] = lt.M(lc - N_);
+          m[i] = lt[lc - N_];
         }
       }
     }
     ltpM[leaf] = prod(m[0], m[1]);
   }
-  return std::log(trace(ltpM[Nleaves_ + N_ - 1]) / trace(lt.M(Nleaves_ - 1)));
+  return std::log(trace(ltpM[Nleaves_ + N_ - 1]) / trace(lt[Nleaves_ - 1]));
 }
 
 // Derivative with full calculation

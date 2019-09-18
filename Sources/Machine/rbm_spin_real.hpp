@@ -42,10 +42,7 @@ class RbmSpinReal : public AbstractMachine {
   // hidden units bias
   RealVectorType b_;
 
-  RealVectorType thetas_;
   RealVectorType lnthetas_;
-  RealVectorType thetasnew_;
-  RealVectorType lnthetasnew_;
 
   bool usea_;
   bool useb_;
@@ -58,22 +55,15 @@ class RbmSpinReal : public AbstractMachine {
   int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
-
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
+
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

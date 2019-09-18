@@ -7,9 +7,7 @@ import os
 
 from rbm import PyRbm
 
-import jax
-import jax.experimental
-import jax.experimental.stax
+test_jax = False
 
 
 def merge_dicts(x, y):
@@ -46,23 +44,26 @@ def glorot():
     return init
 
 
-machines["Jax"] = nk.machine.Jax(
-    hi,
-    jax.experimental.stax.serial(
-        jax.experimental.stax.Dense(16, glorot(), randn()),
-        jax.experimental.stax.Relu,
-        jax.experimental.stax.Dense(16, glorot(), randn()),
-        jax.experimental.stax.Relu,
-        jax.experimental.stax.Dense(2, glorot(), randn()),
-    ),
-)
-assert machines["Jax"].dtype == np.float64
+if test_jax:
+    import jax
+    import jax.experimental
+    import jax.experimental.stax
+
+    machines["Jax"] = nk.machine.Jax(
+        hi,
+        jax.experimental.stax.serial(
+            jax.experimental.stax.Dense(4, glorot(), randn()),
+            jax.experimental.stax.Relu,
+            jax.experimental.stax.Dense(2, glorot(), randn()),
+            jax.experimental.stax.Relu,
+            jax.experimental.stax.Dense(2, glorot(), randn()),
+        ),
+    )
+    assert machines["Jax"].dtype == np.float64
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
 machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
-
-machines["BatchedRbm 1d Hypercube spin"] = nk.machine.RbmSpinV2(hilbert=hi, alpha=3)
 
 machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
@@ -196,6 +197,50 @@ def test_save_load_parameters(tmpdir):
             assert np.array_equal(machine.parameters, randpars)
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
+
+
+def test_batched_versions():
+    for name, machine in merge_dicts(machines, dm_machines).items():
+        print("Machine test: %s" % name)
+        npar = machine.n_par
+        assert machine.n_par > 0
+
+        hi = machine.hilbert
+        assert hi.size > 0
+
+        randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
+        machine.parameters = randpars
+
+        rg = nk.utils.RandomEngine(seed=1234)
+        v = np.zeros((100, hi.size))
+
+        for i in range(100):
+            hi.random_vals(v[i], rg)
+
+        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        machine.parameters = randpars
+
+        log_val_batch = machine.log_val(v)
+        log_val = np.zeros(100, dtype=complex)
+
+        for i in range(100):
+            log_val[i] = machine.log_val(v[i])
+
+        assert log_val.shape == log_val_batch.shape
+        assert np.allclose(log_val_batch, log_val)
+
+        der_log_batch = machine.der_log(v)
+
+        der_log = np.zeros((100, npar), dtype=complex)
+
+        assert der_log.shape == der_log_batch.shape
+
+        for i in range(100):
+            dr = machine.der_log(v[i])
+            assert dr.size == (npar)
+            der_log[i, :] = dr
+
+        assert np.allclose(der_log_batch, der_log)
 
 
 def test_log_derivative():

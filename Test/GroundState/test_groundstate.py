@@ -10,15 +10,16 @@ SEED = 3141592
 
 
 def _setup_vmc(**kwargs):
+    nk.utils.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-    ma.init_random_parameters(seed=SEED, sigma=0.01)
+    ma.init_random_parameters(sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.MetropolisLocal(machine=ma)
-    sa.seed(SEED)
+
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
     vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
@@ -33,11 +34,10 @@ def _setup_vmc(**kwargs):
 
 def test_vmc_advance():
     ma1, vmc1 = _setup_vmc(n_samples=500, diag_shift=0.01)
-    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01)
-
     for i in range(10):
         vmc1.advance()
 
+    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01)
     for step in vmc2.iter(10):
         pass
 
@@ -46,11 +46,10 @@ def test_vmc_advance():
 
 def test_vmc_advance_iterative():
     ma1, vmc1 = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
-    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
-
     for i in range(10):
         vmc1.advance()
 
+    ma2, vmc2 = _setup_vmc(n_samples=500, diag_shift=0.01, use_iterative=True)
     for step in vmc2.iter(10):
         pass
 

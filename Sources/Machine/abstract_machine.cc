@@ -22,29 +22,38 @@
 #include <fstream>
 
 #include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/mpi_interface.hpp"
 #include "Utils/pybind_helpers.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
 
-namespace {
-inline unsigned ReallyRandomSeed() {
-  std::random_device rd;
-  return rd();
-}
-}  // namespace
-
 void AbstractMachine::InitRandomPars(double sigma,
-                                     nonstd::optional<unsigned> seed) {
+                                     nonstd::optional<unsigned> seed,
+                                     default_random_engine *given_gen) {
   VectorType parameters(Npar());
   const auto comm = MPI_COMM_WORLD;
   constexpr auto root = 0;
   int rank;
   MPI_Comm_rank(comm, &rank);
+
+  default_random_engine generator;
+  if (given_gen != nullptr) {
+    generator = *given_gen;
+    if (seed.has_value()) {
+      InfoMessage() << "Warning: the given seed does not have any effect"
+                    << std::endl;
+    }
+  } else {
+    if (seed.has_value()) {
+      generator = default_random_engine(*seed);
+    } else {
+      generator = GetRandomEngine();
+    }
+  }
+
   if (rank == root) {
-    default_random_engine generator{seed.has_value() ? *seed
-                                                     : ReallyRandomSeed()};
     std::generate(parameters.data(), parameters.data() + parameters.size(),
                   [&generator, sigma]() {
                     std::normal_distribution<double> dist{0.0, sigma};
@@ -121,6 +130,11 @@ Complex AbstractMachine::LogValDiff(VisibleConstType v,
                                     const any & /*unused*/) {
   return LogValDiff(v, {tochange}, {newconf})(0);
 }
+
+any AbstractMachine::InitLookup(VisibleConstType v) { return any{}; }
+
+void AbstractMachine::UpdateLookup(VisibleConstType, const std::vector<int> &,
+                                   const std::vector<double> &, any &) {}
 
 PyObject *AbstractMachine::StateDict() const {
   auto state = pybind11::reinterpret_steal<pybind11::object>(

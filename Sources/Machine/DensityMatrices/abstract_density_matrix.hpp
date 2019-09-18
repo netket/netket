@@ -103,6 +103,30 @@ class AbstractDensityMatrix : public AbstractMachine {
   const AbstractHilbert &GetHilbertPhysical() const noexcept {
     return *hilbert_physical_;
   }
+
+  // Batched version of LogVal
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorType> out,
+              const any &) override {
+    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+               {std::ignore, 2 * Nvisible()});
+    CheckShape(__FUNCTION__, "out", out.size(), v.rows());
+    for (auto i = Index{0}; i < v.rows(); ++i) {
+      out(i) = LogValSingle(v.row(i));
+    }
+  }
+
+  // Batched version of DerLog
+  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<RowMatrix<Complex>> out,
+              const any & /*cache*/) override {
+    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+               {std::ignore, 2 * Nvisible()});
+    CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()},
+               {v.rows(), Npar()});
+    for (auto i = Index{0}; i < v.rows(); ++i) {
+      out.row(i) = DerLogSingle(v.row(i));
+    }
+  }
 };
 }  // namespace netket
 

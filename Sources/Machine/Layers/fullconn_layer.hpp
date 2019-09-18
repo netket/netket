@@ -21,8 +21,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
 #include "abstract_layer.hpp"
 
 namespace netket {
@@ -132,43 +130,10 @@ class FullyConnected : public AbstractLayer {
                 in_size_ * out_size_ * scalar_bytesize_);
   }
 
-  void UpdateLookup(const VectorType &input,
-                    const std::vector<int> &input_changes,
-                    const VectorType &new_input, const VectorType &output,
-                    std::vector<int> &output_changes,
-                    VectorType &new_output) override {
-    const int num_of_changes = input_changes.size();
-    if (num_of_changes == in_size_) {
-      output_changes.resize(out_size_);
-      new_output.resize(out_size_);
-      Forward(new_input, new_output);
-    } else if (num_of_changes > 0) {
-      output_changes.resize(out_size_);
-      new_output = output;
-      UpdateOutput(input, input_changes, new_input, new_output);
-    } else {
-      output_changes.resize(0);
-      new_output.resize(0);
-    }
-  }
-
   // Feedforward
   void Forward(const VectorType &input, VectorType &output) override {
     output = bias_;
     output.noalias() += weight_.transpose() * input;
-  }
-
-  // Updates theta given the input v, the change in the input (input_changes and
-  // prev_input)
-  inline void UpdateOutput(const VectorType &v,
-                           const std::vector<int> &input_changes,
-                           const VectorType &new_input,
-                           VectorType &new_output) {
-    const int num_of_changes = input_changes.size();
-    for (int s = 0; s < num_of_changes; s++) {
-      const int sf = input_changes[s];
-      new_output += weight_.row(sf) * (new_input(s) - v(sf));
-    }
   }
 
   // Computes derivative.

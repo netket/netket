@@ -34,10 +34,6 @@ class Jastrow : public AbstractMachine {
   // weights
   MatrixType W_;
 
-  // buffers
-  VectorType thetas_;
-  VectorType thetasnew_;
-
   inline void Init();
 
  public:
@@ -48,20 +44,13 @@ class Jastrow : public AbstractMachine {
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  any InitLookup(VisibleConstType v) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf, any &lt) override;
-  Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
 
   VectorType DerLogSingle(VisibleConstType v, const any & /*unused*/) override;
+
+  Complex LogValSingle(VisibleConstType v, const any &) override;
 
   void Save(std::string const &filename) const override;
   void Load(std::string const &filename) override;

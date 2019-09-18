@@ -32,4 +32,4 @@ from . import (
     variational,
     _driver,
 )
-from ._C_netket import MPI, LookupReal, LookupComplex
+from ._C_netket import MPI

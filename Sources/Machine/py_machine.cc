@@ -36,16 +36,15 @@
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
-#include "Utils/pybind_helpers.hpp"
-
-#include "Machine/rbm_spin_v2.hpp"
 #include "Utils/log_cosh.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
 namespace {
+
 void AddRbmSpin(py::module subm) {
   py::class_<RbmSpin, AbstractMachine>(subm, "RbmSpin", R"EOF(
           A fully connected Restricted Boltzmann Machine (RBM). This type of
@@ -55,7 +54,7 @@ void AddRbmSpin(py::module subm) {
              \left(\sum_i^N W_{ij} s_i + b_j \right) $$
 
           for arbitrary local quantum numbers $$ s_i $$.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
                     bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
@@ -557,20 +556,6 @@ void AddLayerModule(py::module m) {
   }
 }
 
-void AddRbmSpinV2(py::module m) {
-  py::class_<RbmSpinV2, AbstractMachine>(m, "RbmSpinV2")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
-                    bool, Index>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true, py::arg{"batch_size"} = 64)
-      .def_property(
-          "batch_size", [](const RbmSpinV2 &self) { return self.BatchSize(); },
-          [](RbmSpinV2 &self, Index const batch_size) {
-            self.BatchSize(batch_size);
-          });
-}
-
 void AddAbstractMachine(py::module m) {
   py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
       .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
@@ -584,26 +569,31 @@ void AddAbstractMachine(py::module m) {
             Read and write)EOF")
       .def("init_random_parameters", &AbstractMachine::InitRandomPars,
            py::arg{"sigma"} = 0.1, py::arg{"seed"} = py::none(),
+           py::arg{"rand_gen"} = py::none(),
            R"EOF(
              Member function to initialise machine parameters.
 
              Args:
-                 seed: The random number generator seed.
                  sigma: Standard deviation of normal distribution from which
-                     parameters are drawn.
+                        parameters are drawn.
+                 seed: The random number generator seed. If not given, rand_gen
+                       is considered instead.
+                 rand_gen: The random number generator (netket.RandomEngine) to be used.
+                           If not given, the global random generator (with its current state)
+                           is used.
+
            )EOF")
-      .def(
-          "log_val",
-          [](AbstractMachine &self, py::array_t<double> x) {
-            if (x.ndim() == 1) {
-              auto input = x.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.LogValSingle(input));
-            }
-            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-            return py::cast(self.LogVal(input, any{}));
-          },
-          py::arg("v"),
-          R"EOF(
+      .def("log_val",
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.LogValSingle(input));
+             }
+             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+             return py::cast(self.LogVal(input, any{}));
+           },
+           py::arg("v"),
+           R"EOF(
                  Member function to obtain log value of machine given an input
                  vector.
 
@@ -628,18 +618,17 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
-      .def(
-          "der_log",
-          [](AbstractMachine &self, py::array_t<double> x) {
-            if (x.ndim() == 1) {
-              auto input = x.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.DerLogSingle(input));
-            }
-            auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-            return py::cast(self.DerLog(input, any{}));
-          },
-          py::arg("v"),
-          R"EOF(
+      .def("der_log",
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.DerLogSingle(input));
+             }
+             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+             return py::cast(self.DerLog(input, any{}));
+           },
+           py::arg("v"),
+           R"EOF(
                  Member function to obtain the derivatives of log value of
                  machine given an input wrt the machine's parameters.
 
@@ -678,41 +667,39 @@ void AddAbstractMachine(py::module m) {
           },
           R"EOF(Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.
            )EOF")
-      .def(
-          "load_state_dict",
-          [](AbstractMachine &self, py::dict state) {
-            self.StateDict(state.ptr());
-          },
-          R"EOF(Loads machine's state from `state`.
+      .def("load_state_dict",
+           [](AbstractMachine &self, py::dict state) {
+             self.StateDict(state.ptr());
+           },
+           R"EOF(Loads machine's state from `state`.
            )EOF")
-      .def(
-          "to_array",
-          [](AbstractMachine &self,
-             bool normalize) -> AbstractMachine::VectorType {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("to_array",
+           [](AbstractMachine &self,
+              bool normalize) -> AbstractMachine::VectorType {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogValSingle(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              vals(i) = std::exp(vals(i));
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
 
-            if (normalize) {
-              vals.normalize();
-            }
-            return vals;
-          },
-          py::arg("normalize") = true,
-          R"EOF(
+             if (normalize) {
+               vals.normalize();
+             }
+             return vals;
+           },
+           py::arg("normalize") = true,
+           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
                 Note that, in general, the size of the array is exponential
@@ -721,30 +708,29 @@ void AddAbstractMachine(py::module m) {
 
                 This method requires an indexable Hilbert space.
               )EOF")
-      .def(
-          "log_norm",
-          [](AbstractMachine &self) -> double {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("log_norm",
+           [](AbstractMachine &self) -> double {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogValSingle(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            double norpsi = 0;
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              norpsi += std::norm(std::exp(vals(i)));
-            }
+             double norpsi = 0;
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               norpsi += std::norm(std::exp(vals(i)));
+             }
 
-            return std::log(norpsi) + 2. * maxlog;
-          },
-          R"EOF(
+             return std::log(norpsi) + 2. * maxlog;
+           },
+           R"EOF(
                 Returns the log of the L2 norm of the wave-function.
                 This operation is a brute-force calculation, and should thus
                 only be performed for low-dimensional Hilbert spaces.
@@ -764,7 +750,6 @@ void AddMachineModule(py::module m) {
   AddRbmMultival(subm);
   AddRbmSpinReal(subm);
   AddRbmSpinPhase(subm);
-  AddRbmSpinV2(subm);
   AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
