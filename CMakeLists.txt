@@ -18,7 +18,7 @@ option(NETKET_BUILD_TESTING "Build unit tests." OFF)
 option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
-option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
+option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" OFF)
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
 if(NOT CMAKE_BUILD_TYPE)
