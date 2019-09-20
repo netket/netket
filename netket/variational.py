@@ -30,22 +30,10 @@ Vmc.iter = _Vmc_iter
 
 
 def log_derivatives(ma, samples, centered=False):
-    if samples.ndim <= 2:
-        vs = samples
-    elif samples.ndim == 3:
-        s = samples.shape
-        vs = samples.reshape(s[0] * s[1], s[2])
-    else:
-        raise ValueError("Argument `samples` has invalid shape")
-
-    derlogs = ma.der_log(vs)
+    derlogs = ma.der_log(samples)
     if centered:
-        _subtract_mean(derlogs)
-
-    if samples.ndim == 3:
-        return derlogs.reshape(s[0], s[1], derlogs.shape[-1])
-    else:
-        return derlogs
+        _subtract_mean(derlogs.reshape(-1, derlogs.shape[-1]))
+    return derlogs
 
 
 # Higher-level VMC functions:

@@ -588,9 +588,19 @@ void AddAbstractMachine(py::module m) {
              if (x.ndim() == 1) {
                auto input = x.cast<Eigen::Ref<const VectorXd>>();
                return py::cast(self.LogValSingle(input));
+             } else if (x.ndim() == 2) {
+               auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.LogVal(input, any{}));
+             } else if (x.ndim() == 3) {
+               auto input = Eigen::Map<const RowMatrix<double>>{
+                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result = py::cast(self.DerLog(input, any{}));
+               result.resize({x.shape(0), x.shape(1),
+                              static_cast<pybind11::ssize_t>(self.Npar())});
+               return py::object(result);
+             } else {
+               throw InvalidInputError{"Invalid input dimension"};
              }
-             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-             return py::cast(self.LogVal(input, any{}));
            },
            py::arg("v"),
            R"EOF(
@@ -623,9 +633,19 @@ void AddAbstractMachine(py::module m) {
              if (x.ndim() == 1) {
                auto input = x.cast<Eigen::Ref<const VectorXd>>();
                return py::cast(self.DerLogSingle(input));
+             } else if (x.ndim() == 2) {
+               auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.DerLog(input, any{}));
+             } else if (x.ndim() == 3) {
+               auto input = Eigen::Map<const RowMatrix<double>>{
+                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result = py::cast(self.DerLog(input, any{}));
+               result.resize({x.shape(0), x.shape(1),
+                              static_cast<pybind11::ssize_t>(self.Npar())});
+               return py::object(result);
+             } else {
+               throw InvalidInputError{"Invalid input dimension"};
              }
-             auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
-             return py::cast(self.DerLog(input, any{}));
            },
            py::arg("v"),
            R"EOF(
