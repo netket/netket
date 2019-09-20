@@ -162,34 +162,6 @@ void AddSamplerModule(py::module& m) {
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
 
-
-  py::class_<MCResult>(subm, "MCResult",
-                       R"EOF(Result of Monte Carlo sampling.)EOF")
-      .def_property_readonly(
-          "samples",
-          [](const MCResult &self) {
-            assert(self.samples.rows() % self.n_chains == 0);
-            return detail::as_readonly(py::array_t<double, py::array::c_style>{
-                {self.samples.rows() / self.n_chains, self.n_chains,
-                 self.samples.cols()},
-                self.samples.data(),
-                py::none()});
-          },
-          py::return_value_policy::reference_internal,
-          R"EOF(Visible configurations `{vᵢ}` visited during sampling.)EOF")
-      .def_property_readonly(
-          "log_values",
-          [](const MCResult &self) {
-            assert(self.log_values.rows() % self.n_chains == 0);
-            return detail::as_readonly(py::array_t<Complex, py::array::c_style>{
-                {self.log_values.rows() / self.n_chains, self.n_chains},
-                self.log_values.data(),
-                py::none()});
-          },
-          py::return_value_policy::reference_internal,
-          R"EOF(An array of `complex128` representing `Ψ(vᵢ)` for all
-                sampled visible configurations `vᵢ`.)EOF");
-
   subm.def(
       "compute_samples",
       [](AbstractSampler &sampler, Index n_samples, Index n_discard) {

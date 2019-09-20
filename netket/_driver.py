@@ -7,6 +7,7 @@ from netket._core import deprecated
 from netket.operator import local_values as _local_values
 from netket.sampler import compute_samples as _compute_samples
 from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
+from netket.utils import subtract_mean as _subtract_mean
 import netket.variational as _vmc
 
 
@@ -166,9 +167,8 @@ class VmcDriver(object):
             self._samples, self._logvals = _compute_samples(
                 self._sampler, self.n_samples, self.n_discard
             )
-            self._derlogs = _vmc.log_derivatives(
-                self._machine, self._samples, centered=True
-            )
+            self._derlogs = self._machine.der_log(self._samples)
+            _subtract_mean(self._derlogs)
 
         if not self._mc_data:
             update_samples()
@@ -177,13 +177,13 @@ class VmcDriver(object):
             # Estimate energy
             eloc, self._stats = self._get_mc_stats(self._ham)
             # Estimate energy gradient
-            grad = _covariance_sv(eloc, self._derlogs)
+            grad = _covariance_sv(eloc, self._derlogs, center_s=False)
             # Perform update
             if self._sr:
                 dp = _np.empty(self._npar, dtype=_np.complex128)
-                shp = self._derlogs.shape
-                der_logs = self._derlogs.reshape(shp[0] * shp[1], shp[2])
-                self._sr.compute_update(der_logs, grad, dp)
+                # flatten MC chain dimensions:
+                derlogs = self._derlogs.reshape(-1, self._derlogs.shape[-1])
+                self._sr.compute_update(derlogs, grad, dp)
             else:
                 dp = grad
 

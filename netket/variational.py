@@ -1,5 +1,4 @@
 from ._C_netket.variational import *
-from ._C_netket.utils import _subtract_mean
 
 import itertools
 
@@ -27,13 +26,6 @@ def _Vmc_iter(self, n_iter=None, step_size=1):
 
 
 Vmc.iter = _Vmc_iter
-
-
-def log_derivatives(ma, samples, centered=False):
-    derlogs = ma.der_log(samples)
-    if centered:
-        _subtract_mean(derlogs.reshape(-1, derlogs.shape[-1]))
-    return derlogs
 
 
 # Higher-level VMC functions:

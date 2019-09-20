@@ -58,7 +58,8 @@ def test_vmc_functions():
         samples, log_values = nk.sampler.compute_samples(
             sampler, n_samples=15000, n_discard=1000
         )
-        der_logs = nk.variational.log_derivatives(ma, samples, centered=True)
+        der_logs = ma.der_log(samples)
+        nk.utils.subtract_mean(der_logs)
 
         print(samples.shape)
         print(log_values.shape)
