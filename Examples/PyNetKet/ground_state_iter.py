@@ -73,10 +73,10 @@ def run_vmc(steps, step_size, diag_shift, n_samples):
     # opt = nk.optimizer.Sgd(step_size)
 
     sr = nk.optimizer.SR(lsq_solver="BDCSVD", diag_shift=diag_shift)
-    sr.store_rank_enabled = True
+    sr.store_rank_enabled = False  # not supported by BDCSVD
     sr.store_covariance_matrix_enabled = True
 
-    vmc = nk._driver.VmcDriver(
+    vmc = nk.Vmc(
         hamiltonian=ha,
         machine=ma,
         sampler=sa,

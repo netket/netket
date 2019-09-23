@@ -31,54 +31,53 @@ Vmc.iter = _Vmc_iter
 # Higher-level VMC functions:
 
 
-def estimate_expectation(op, psi, samples, log_values, der_logs=None):
+def estimate_expectations(
+    ops, sampler, n_samples, n_discard=None, compute_gradients=False
+):
     """
     estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, return_gradient: bool=True) -> Stats
 
-    For a linear operator, computes a statistical estimate of the expectation value,
-    variance, and optionally the gradient of the expectation value with respect to the
-    variational parameters.
+    For a sequence of linear operators, computes a statistical estimate of the
+    respective expectation values, variances, and optionally gradients of the
+    expectation values with respect to the variational parameters.
 
-    The estimate is based on a Markov chain of configurations obtained from
-    `netket.sampler.compute_samples`.
+    The estimate is based on a Markov chain of `n_samples` configurations
+    obtained from `netket.variational.compute_samples`.
 
     Args:
-        op: Linear operator
-        psi: Variational wavefunction
-        samples: A matrix (or a rank-3 tensor) of visible
-            configurations. If it is a matrix, each row of the matrix
-            must correspond to a visible configuration.  `samples` is a
-            rank-3 tensor, its shape should be `(N, M, #visible)` where
-            `N` is the number of samples, `M` is the number of Markov
-            Chains, and `#visible` is the number of visible units.
-        log_values: Corresponding values of the logarithm of the
-            wavefunction. If `samples` is a `(N, #visible)` matrix, then
-            `log_values` should be a vector of `N` complex numbers. If
-            `samples` is a rank-3 tensor, then the shape of `log_values`
-            should be `(N, M)`.
-        der_logs: Logarithmic derivatives of the wavefunction
-            If `samples` is a `(N, #visible)` matrix, `der_logs` should have
-            shape `(N, psi.n_par)`. If `samples` is a rank-3 tensor, the shape
-            of `der_logs` should be `(N, M, psi.n_par)`.
-            This argument is optional; if it is not passed, the gradient will
-            not be computed.
+        ops: Sequence of linear operators
+        sampler: A NetKet sampler
+        n_samples: Number of MC samples used to estimate expectation values
+        n_discard: Number of MC samples dropped from the start of the
+            chain (burn-in). Defaults to `n_samples //10`.
+        compute_gradients: Whether to compute the gradients of the
+            observables.
 
     Returns:
         Either `stats` or, if `der_logs` is passed, a tuple of `stats` and `grad`:
-            stats: A Stats object containing mean, variance, and MC diagonstics for
-                   the estimated expectation value of `op`.
-            grad: The gradient of the expectation value of `op`,
-                  as ndarray of shape `(psi.n_par,)`.
+            stats: A sequence of Stats object containing mean, variance,
+                and MC diagonstics for each operator in `ops`.
+            grad: A sequence of gradients of the expectation value of `op`,
+                  as ndarray of shape `(psi.n_par,)`, for each `op` in `ops`.
     """
 
     from ._C_netket import operator as nop
     from ._C_netket import stats as nst
+    from ._C_netket.sampler import compute_samples
 
-    local_values = nop.local_values(op, psi, samples, log_values)
-    stats = nst.statistics(local_values)
+    psi = sampler.machine
 
-    if der_logs is not None:
-        grad = nst.covariance_sv(local_values, der_logs)
+    if not n_discard:
+        n_discard = n_samples // 10
+
+    samples, log_values = compute_samples(sampler, n_samples, n_discard)
+
+    local_values = [nop.local_values(op, psi, samples, log_values) for op in ops]
+    stats = [nst.statistics(lv) for lv in local_values]
+
+    if compute_gradients:
+        der_logs = psi.der_log(samples)
+        grad = [nst.covariance_sv(lv, der_logs) for lv in local_values]
         return stats, grad
     else:
         return stats

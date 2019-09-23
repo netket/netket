@@ -30,6 +30,9 @@ from . import (
     unsupervised,
     utils,
     variational,
-    _driver,
+    _vmc_driver,
 )
 from ._C_netket import MPI
+
+# Main applications
+from ._vmc_driver import VmcDriver as Vmc
