@@ -73,7 +73,7 @@ def test_vmc_functions():
         stats = vmc.estimate_expectations(
             [op], sampler, n_samples=15000, n_discard=1000
         )
-        print(stats)
+
         assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
         assert stats[0].mean.real == approx(exact_ex.real, rel=tol)
 
