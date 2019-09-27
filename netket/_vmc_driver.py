@@ -83,21 +83,13 @@ class VmcDriver(object):
     """
 
     def __init__(
-        self,
-        hamiltonian,
-        machine,
-        sampler,
-        optimizer,
-        n_samples,
-        n_discard=None,
-        sr=None,
+        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None
     ):
         """
         Initializes the driver class.
 
         Args:
             hamiltonian: The Hamiltonian of the system.
-            machine: The variational wavefunction.
             sampler: The Monte Carlo sampler.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient. This parameter supports three different kinds of inputs,
@@ -135,13 +127,13 @@ class VmcDriver(object):
             ```
         """
         self._ham = hamiltonian
-        self._machine = machine
+        self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(optimizer)
 
-        self._npar = machine.n_par
+        self._npar = self._machine.n_par
         self._mc_data = None
 
         self.n_samples = n_samples

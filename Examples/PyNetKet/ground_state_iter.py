@@ -2,7 +2,7 @@ from __future__ import print_function
 import netket as nk
 import sys
 
-from numpy.linalg import eigvalsh
+from numpy.linalg import eigvalsh, matrix_rank
 import jax.experimental.optimizers as jaxopt
 
 SEED = 3141592
@@ -28,8 +28,7 @@ sa.seed(SEED)
 mpi_rank = nk.MPI.rank()
 
 if mpi_rank == 0:
-    e0 = -1.27455 * N
-    # e0 = nk.exact.lanczos_ed(ha).eigenvalues[0]
+    e0 = nk.exact.lanczos_ed(ha).eigenvalues[0]
     print("  E0 = {: 10.4f}".format(e0))
 
 FORMAT_STRING = (
@@ -48,6 +47,7 @@ def output(vmc, step):
 
         S = vmc._sr.last_covariance_matrix
         w = eigvalsh(S)
+        r = matrix_rank(S)
 
         print(
             FORMAT_STRING.format(
@@ -57,7 +57,7 @@ def output(vmc, step):
                 variance,
                 rhat,
                 sa.acceptance,
-                vmc._sr.last_rank,
+                r,
                 w.min(),
                 w.max(),
             )
@@ -78,7 +78,6 @@ def run_vmc(steps, step_size, diag_shift, n_samples):
 
     vmc = nk.Vmc(
         hamiltonian=ha,
-        machine=ma,
         sampler=sa,
         optimizer=opt,
         n_samples=n_samples,
