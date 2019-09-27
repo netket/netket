@@ -96,12 +96,9 @@ class VmcDriver(object):
                 which are described in the docs of `make_optimizer_fn`.
             n_samples: Number of Markov Chain Monte Carlo sweeps to be
                 performed at each step of the optimization.
-            discarded_samples (int): Number of sweeps to be discarded at the
+            n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
                 Defaults to 10% of n_samples.
-            discarded_samples_on_init (int): Number of sweeps to be discarded in
-                the first step of optimization, at the beginning of the
-                sampling.
             sr (SR, optional): Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
@@ -120,10 +117,7 @@ class VmcDriver(object):
             >>> sa = nk.sampler.MetropolisLocal(machine=ma)
             >>> sa.seed(SEED)
             >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> vmc = nk.variational.Vmc(hamiltonian=ha, machine=ma, sampler=sa,
-            ... optimizer=op, n_samples=500)
-            >>> print(ma.n_visible)
-            8
+            >>> vmc = nk.Vmc(ha, sa, op, 200)
             ```
         """
         self._ham = hamiltonian
@@ -135,6 +129,15 @@ class VmcDriver(object):
 
         self._npar = self._machine.n_par
         self._mc_data = None
+
+        if n_samples <= 0:
+            raise ValueError(
+                "Invalid number of samples: n_samples={}".format(n_samples)
+            )
+        if n_discard is not None and n_discard <= 0:
+            raise ValueError(
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+            )
 
         self.n_samples = n_samples
         self.n_discard = n_discard if n_discard else n_samples // 10

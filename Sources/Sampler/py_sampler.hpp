@@ -219,7 +219,12 @@ void AddSamplerModule(py::module& m) {
                           and then center.
 
                   Returns:
-                      A `MCResult` object with all the data obtained during sampling.)EOF");
+                      A tuple of (samples, logvals) where
+                        samples: A rank-3 array s where s[i,b,:] is the b-th
+                          sample in the i-th batch. Note that each s[:,b,:] for
+                          fixed b is an independent Markov chain of samples.
+                        logvals: A rank-3 array ξ where ξ[i,b,:] is the output
+                          of the machine for sample s[i,b,:].)EOF");
 
 }
 
