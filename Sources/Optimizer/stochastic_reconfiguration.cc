@@ -68,17 +68,31 @@ void SR::SetParameters(double diagshift, bool use_iterative, bool use_cholesky,
                 use_iterative, is_holomorphic);
 }
 
-std::string SR::GetInfoString() {
-  std::stringstream str;
-  str << "Using the Stochastic reconfiguration method for "
+std::string SR::LongDesc(Index depth) const {
+  auto indent = [&depth]() { return std::string(4 * depth, ' '); };
+  std::ostringstream str;
+  str << indent() << "Stochastic reconfiguration method for "
       << (is_holomorphic_ ? "holomorphic" : "real-parameter")
-      << " wavefunctions\n";
+      << " wavefunctions\n"
+      << indent() << "Solver: ";
   if (use_iterative_) {
-    str << "With iterative solver";
+    str << "iterative (Conjugate Gradient)";
   } else {
-    str << "Using " << SolverAsString(solver_) << " solver";
+    str << SolverAsString(solver_);
   }
   str << "\n";
+  return str.str();
+}
+
+std::string SR::ShortDesc() const {
+  std::stringstream str;
+  str << "SR(solver=";
+  if (use_iterative_) {
+    str << "iterative";
+  } else {
+    str << SolverAsString(solver_) << ", diag_shift=" << sr_diag_shift_;
+  }
+  str << ", is_holomorphic=" << (is_holomorphic_ ? "True" : "False") << ")";
   return str.str();
 }
 

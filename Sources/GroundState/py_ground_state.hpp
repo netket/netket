@@ -24,7 +24,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddGroundStateModule(py::module &m) {
-  AddVariationalMonteCarloModule(m);
+  AddVariationalMonteCarloModule(m.ptr());
   AddExactModule(m);
 }
 

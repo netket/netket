@@ -110,9 +110,8 @@ void AddOperatorModule(py::module m) {
 
   subm.def(
       "local_values",
-      [](py::array_t<double, py::array::c_style> samples,
-         py::array_t<Complex, py::array::c_style> log_values,
-         AbstractMachine& machine, AbstractOperator& op, Index batch_size) {
+      [](AbstractOperator& op, AbstractMachine& machine, py::array_t<double, py::array::c_style> samples,
+         py::array_t<Complex, py::array::c_style> log_values, Index batch_size) {
         switch (log_values.ndim()) {
           case 2: {
             NETKET_CHECK(samples.ndim() == 3, InvalidInputError,
@@ -149,8 +148,9 @@ void AddOperatorModule(py::module m) {
                              << "; expected either 1 or 2.");
         }
       },
+      py::arg{"op"}, py::arg{"machine"},
       py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
-      py::arg{"machine"}, py::arg{"op"}, py::arg{"batch_size"} = 16,
+      py::arg{"batch_size"} = 16,
       R"EOF(Computes local values of the operator `op` for all `samples`.
 
             Args:

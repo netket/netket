@@ -25,10 +25,12 @@ def _test_stats_mean_std(hi, ham, ma, batch_size):
     n_samples = 16000
     num_samples_per_chain = n_samples // batch_size
 
-    res = vmc.compute_samples(sampler, n_samples=n_samples, n_discard=6400)
-    assert res.samples.shape == (num_samples_per_chain, batch_size, hi.size)
+    samples, log_values = nk.sampler.compute_samples(
+        sampler, n_samples=n_samples, n_discard=6400
+    )
+    assert samples.shape == (num_samples_per_chain, batch_size, hi.size)
 
-    eloc = local_values(res.samples, res.log_values, ma, ham)
+    eloc = local_values(ham, ma, samples, log_values)
     assert eloc.shape == (num_samples_per_chain, batch_size)
 
     stats = statistics(eloc)

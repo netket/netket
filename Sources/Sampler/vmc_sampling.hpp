@@ -76,6 +76,8 @@ VectorXcd GradientOfVariance(Eigen::Ref<const RowMatrix<double>> samples,
                              Eigen::Ref<const Eigen::VectorXcd> local_values,
                              AbstractMachine &psi, const AbstractOperator &op);
 
+void SubtractMean(Eigen::Ref<RowMatrix<Complex>> gradients);
+
 }  // namespace netket
 
 #endif  // NETKET_VMC_SAMPLING_HPP

@@ -47,7 +47,7 @@ class JsonOutputWriter {
                    << std::endl;
 #endif
     assert(save_every >= 0);
-    log_stream_ << _s_start;
+    log_stream_ << "{\"Output\": [  ]}";
     log_stream_.flush();
   }
 
@@ -77,7 +77,7 @@ class JsonOutputWriter {
     const long pos = log_stream_.tellp();
     log_stream_.seekp(pos - 4);
     // Only write a comma after the first iteration
-    if (pos > static_cast<std::ptrdiff_t>(_s_start.size())) {
+    if (pos > static_cast<std::ptrdiff_t>(16)) {
       log_stream_ << ",\n";
     } else {
       log_stream_ << "\n";
@@ -119,15 +119,11 @@ class JsonOutputWriter {
     WriteJsonToFile(j, filename);
   }
 
-  static std::string _s_start;
-
   std::ofstream log_stream_;
   std::string wf_stream_name_;
 
   int save_every_;
 };
-
-std::string JsonOutputWriter::_s_start = "{\"Output\": [  ]}";
 
 }  // namespace netket
 

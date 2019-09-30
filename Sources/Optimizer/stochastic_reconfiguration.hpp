@@ -40,9 +40,9 @@ namespace netket {
  */
 class SR {
  public:
-  using OkRef = Eigen::Ref<const Eigen::MatrixXcd>;
-  using GradRef = Eigen::Ref<const Eigen::VectorXcd>;
-  using OutputRef = Eigen::Ref<Eigen::VectorXcd>;
+  using OkRef = Eigen::Ref<const RowMatrixXcd>;
+  using GradRef = Eigen::Ref<const VectorXcd>;
+  using OutputRef = Eigen::Ref<VectorXcd>;
 
   enum LSQSolver { LLT = 0, LDLT = 1, ColPivHouseholder = 2, BDCSVD = 3 };
 
@@ -54,9 +54,7 @@ class SR {
       : solver_(solver),
         sr_diag_shift_(diagshift),
         use_iterative_(use_iterative),
-        is_holomorphic_(is_holomorphic) {
-    InfoMessage() << GetInfoString();
-  }
+        is_holomorphic_(is_holomorphic) {}
 
   explicit SR(double diagshift = 0.01, bool use_iterative = false,
               bool use_cholesky = true, bool is_holomorphic = true)
@@ -89,7 +87,8 @@ class SR {
   /**
    * Returns a string describing the current parameters of the SR class.
    */
-  std::string GetInfoString();
+  std::string LongDesc(Index depth = 0) const;
+  std::string ShortDesc() const;
 
   /**
    * Becca and Sorella (2017), pp. 143-144.

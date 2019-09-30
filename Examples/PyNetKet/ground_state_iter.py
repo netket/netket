@@ -2,12 +2,13 @@ from __future__ import print_function
 import netket as nk
 import sys
 
-from numpy.linalg import eigvalsh
+from numpy.linalg import eigvalsh, matrix_rank
+import jax.experimental.optimizers as jaxopt
 
 SEED = 3141592
 
 # Constructing a 1d lattice
-N = 20
+N = 16
 g = nk.graph.Hypercube(length=N, n_dim=1)
 
 # Hilbert space of spins from given graph
@@ -17,48 +18,46 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # Machine
-ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=4)
+ma = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 ma.init_random_parameters(seed=SEED, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=32)
 sa.seed(SEED)
-
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
 
 mpi_rank = nk.MPI.rank()
 
 if mpi_rank == 0:
-    e0 = -1.27455 * N
+    e0 = nk.exact.lanczos_ed(ha).eigenvalues[0]
     print("  E0 = {: 10.4f}".format(e0))
 
 FORMAT_STRING = (
-    "{: 4} | {: 10.4f} ± {:.4f} | {:9.4f} ± {:.4f} | {:.4f} | {: 7} | {:.2e} | {:.2e}"
+    "{: 4} | {: 10.4f} ± {:.4f} | {:9.4f} | {:.4f} | {:.4f} | {: 7} | {:.2e} | {:.2e}"
 )
-HEADER_STRING = "step | E          ± σ(E)   | (ΔE)^2    ± σ(...) | Accept | rank(S) | λ_min(S) | λ_max(S)"
+HEADER_STRING = "step | E          ± σ(E)   | (ΔE)^2    | Rhat   | Accept | rank(S) | λ_min(S) | λ_max(S)"
 
 
 def output(vmc, step):
     obs = vmc.get_observable_stats()
     if mpi_rank == 0:
-        energy = obs["Energy"]["Mean"]
-        sigma = obs["Energy"]["Sigma"]
-        variance = obs["EnergyVariance"]["Mean"]
-        vsigma = obs["EnergyVariance"]["Sigma"]
+        energy = obs["Energy"].mean
+        sigma = obs["Energy"].error_of_mean
+        variance = obs["Energy"].variance
+        rhat = obs["Energy"].R
 
-        S = vmc.last_S_matrix
+        S = vmc._sr.last_covariance_matrix
         w = eigvalsh(S)
+        r = matrix_rank(S)
 
         print(
             FORMAT_STRING.format(
                 step,
-                energy,
+                energy.real,
                 sigma,
                 variance,
-                vsigma,
-                sa.acceptance[0],
-                vmc.last_rank,
+                rhat,
+                sa.acceptance,
+                r,
                 w.min(),
                 w.max(),
             )
@@ -69,29 +68,34 @@ def output(vmc, step):
         ma.save("test.wf")
 
 
-def run_vmc(steps, step_size, diag_shift):
-    op = nk.optimizer.Sgd(step_size)
-    vmc = nk.variational.Vmc(
+def run_vmc(steps, step_size, diag_shift, n_samples):
+    opt = jaxopt.sgd(step_size)
+    # opt = nk.optimizer.Sgd(step_size)
+
+    sr = nk.optimizer.SR(lsq_solver="BDCSVD", diag_shift=diag_shift)
+    sr.store_rank_enabled = False  # not supported by BDCSVD
+    sr.store_covariance_matrix_enabled = True
+
+    vmc = nk.Vmc(
         hamiltonian=ha,
         sampler=sa,
-        optimizer=op,
-        n_samples=2000,
-        diag_shift=diag_shift,
-        method="Sr",
+        optimizer=opt,
+        n_samples=n_samples,
+        n_discard=min(n_samples // 10, 200),
+        sr=sr,
     )
-    vmc.store_rank = True
-    vmc.store_S_matrix = True
 
     if mpi_rank == 0:
+        print(vmc.info())
         print(HEADER_STRING)
 
-    for step in vmc.iter(steps):
+    for step in vmc.iter(steps, 1):
         output(vmc, step)
 
 
-run_vmc(50, 0.05, 1e-9)
-run_vmc(50, 0.04, 1e-9)
-run_vmc(50, 0.03, 1e-9)
-run_vmc(50, 0.02, 1e-9)
-run_vmc(100, 0.01, 1e-9)
-run_vmc(100, 0.005, 1e-9)
+run_vmc(50, 0.02, 1e-3, 256)
+run_vmc(50, 0.05, 1e-3, 1024)
+run_vmc(50, 0.03, 1e-3, 2048)
+run_vmc(50, 0.02, 1e-3, 4096)
+run_vmc(100, 0.01, 1e-3, 16384)
+run_vmc(100, 0.005, 1e-3, 32768)

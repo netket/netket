@@ -260,6 +260,7 @@ set(NETKET_SOURCES
     Sources/Graph/edgeless.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
+    Sources/GroundState/py_variational_montecarlo.cc
     Sources/Hilbert/hilbert_index.cc
     Sources/Hilbert/bosons.cc
     Sources/Hilbert/spins.cc

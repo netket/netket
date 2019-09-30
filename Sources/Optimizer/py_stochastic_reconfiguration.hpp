@@ -15,12 +15,12 @@
 #ifndef NETKET_SOURCES_OPTIMIZER_PY_STOCHASTIC_RECONFIGURATION_HPP
 #define NETKET_SOURCES_OPTIMIZER_PY_STOCHASTIC_RECONFIGURATION_HPP
 
-#include <Python.h>
+#include <pybind11/pybind11.h>
 #include "Optimizer/stochastic_reconfiguration.hpp"
 
 namespace netket {
 
-void AddSR(PyObject* module);
+void AddSR(pybind11::module &m);
 
 }  // namespace netket
 
