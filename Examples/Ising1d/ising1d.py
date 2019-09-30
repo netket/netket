@@ -35,7 +35,12 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, diag_shift=0.1
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    method="Sr",
+    diag_shift=0.1,
 )
 
 gs.run(output_prefix="test", n_iter=300)
