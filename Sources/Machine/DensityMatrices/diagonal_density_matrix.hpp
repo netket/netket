@@ -83,9 +83,10 @@ class DiagonalDensityMatrix : public AbstractMachine {
     return density_matrix_.LogValSingle(DoubleVisibleConfig(v), lt);
   }
 
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override {
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd> output) override {
     auto tochange_d = std::vector<std::vector<int>>(tochange.size());
     auto newconf_d = std::vector<std::vector<double>>(newconf.size());
     // double every element in tochange and newconf
@@ -99,8 +100,8 @@ class DiagonalDensityMatrix : public AbstractMachine {
         newconf_d[i] = d_changes.second;
       }
     }
-    return density_matrix_.LogValDiff(DoubleVisibleConfig(v), tochange_d,
-                                      newconf_d);
+    density_matrix_.LogValDiff(DoubleVisibleConfig(v), tochange_d, newconf_d,
+                               output);
   }
 
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override {

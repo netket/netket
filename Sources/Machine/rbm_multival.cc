@@ -222,11 +222,12 @@ Complex RbmMultival::LogValSingle(VisibleConstType v, const any &lt) {
 
 // Difference between logarithms of values, when one or more visible variables
 // are being changed
-RbmMultival::VectorType RbmMultival::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void RbmMultival::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
 
   ComputeTheta(v, thetas_);
 
@@ -251,7 +252,6 @@ RbmMultival::VectorType RbmMultival::LogValDiff(
       logvaldiffs(k) += SumLogCosh(thetasnew_) - logtsum;
     }
   }
-  return logvaldiffs;
 }
 
 #if 0

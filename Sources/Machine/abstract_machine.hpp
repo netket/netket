@@ -160,22 +160,28 @@ class AbstractMachine {
   the new visible state.
   @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
   */
-  virtual VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf);
+  VectorType LogValDiff(VisibleConstType v,
+                        const std::vector<std::vector<int>> &tochange,
+                        const std::vector<std::vector<double>> &newconf);
+
+  virtual void LogValDiff(VisibleConstType v,
+                          const std::vector<std::vector<int>> &tochange,
+                          const std::vector<std::vector<double>> &newconf,
+                          Eigen::Ref<Eigen::VectorXcd> output);
 
   /**
   Member function computing the difference between the logarithm of the
   wave-function computed at different values of the visible units (v, and a
-  single v'). This version uses the look-up tables to speed-up the calculation.
+  single v'). This version uses the look-up tables to speed-up the
+  calculation.
 
   @note performance of the default implementation is pretty bad.
 
   @param v a constant reference to the current visible configuration.
-  @param tochange a constant reference to a vector containing the indeces of the
-  units to be modified.
-  @param newconf a constant reference to a vector containing the new values of
-  the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
+  @param tochange a constant reference to a vector containing the indeces of
+  the units to be modified.
+  @param newconf a constant reference to a vector containing the new values
+  of the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
   visible state.
   @param lt a constant eference to the look-up table.
   @return The value of log(Psi(v')) - log(Psi(v))

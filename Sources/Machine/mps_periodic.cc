@@ -353,13 +353,14 @@ Complex MPSPeriodic::LogValSingle(VisibleConstType v, const any &lt) {
   return std::log(trace(any_cast_ref<LookupType>(lt)[Nleaves_ - 1]));
 }
 
-MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void MPSPeriodic::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
 
   std::vector<std::size_t> sorted_ind;
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
   Complex current_psi = trace(mps_contraction(v, 0, N_));
   MatrixType new_prods(D_, Dsec_);
 
@@ -391,7 +392,6 @@ MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
       logvaldiffs(k) = std::log(trace(new_prods) / current_psi);
     }
   }
-  return logvaldiffs;
 }
 
 Complex MPSPeriodic::LogValDiff(VisibleConstType v,

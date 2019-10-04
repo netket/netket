@@ -113,15 +113,28 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
 AbstractMachine::VectorType AbstractMachine::LogValDiff(
     VisibleConstType v, const std::vector<std::vector<int>> &tochange,
     const std::vector<std::vector<double>> &newconf) {
+  Eigen::VectorXcd output(static_cast<Index>(tochange.size()));
+  LogValDiff(v, tochange, newconf, output);
+  return output;
+}
+
+void AbstractMachine::LogValDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf,
+    Eigen::Ref<Eigen::VectorXcd> output) {
   RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
   input = v.transpose().colwise().replicate(input.rows());
+
+  CheckShape(__FUNCTION__, "out", {output.rows()},
+             {static_cast<int>(newconf.size())});
+
   for (auto i = Index{0}; i < input.rows(); ++i) {
     GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
                             newconf[static_cast<size_t>(i)]);
   }
-  auto x = AbstractMachine::LogVal(input, any{});
-  x.array() -= LogValSingle(v, any{});
-  return x;
+  output.resize(input.rows());
+  AbstractMachine::LogVal(input, output, any{});
+  output.array() -= LogValSingle(v, any{});
 }
 
 Complex AbstractMachine::LogValDiff(VisibleConstType v,

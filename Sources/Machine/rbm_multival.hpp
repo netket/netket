@@ -89,9 +89,10 @@ class RbmMultival : public AbstractMachine {
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
