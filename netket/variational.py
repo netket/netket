@@ -35,7 +35,7 @@ def estimate_expectations(
     ops, sampler, n_samples, n_discard=None, compute_gradients=False
 ):
     """
-    estimate_expectation(op: AbstractOperator, psi: AbstractMachine, mc_data: MCResult, return_gradient: bool=True) -> Stats
+    estimate_expectation(op: AbstractOperator, sampler: AbstractSampler, n_samples: int, compute_gradients: bool=False) -> Stats
 
     For a sequence of linear operators, computes a statistical estimate of the
     respective expectation values, variances, and optionally gradients of the

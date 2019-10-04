@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import json
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -24,23 +25,34 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+ma = nk.machine.RbmSpin(alpha=4, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+ma.max_batch_size = 8
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=16, sweep_size=20)
+sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=8, sweep_size=20)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.05)
 
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    method="Sr",
-    diag_shift=0.1,
+# # Stochastic reconfiguration
+# gs = nk.variational.Vmc(
+#     hamiltonian=ha,
+#     sampler=sa,
+#     optimizer=op,
+#     n_samples=1000,
+#     method="Sr",
+#     diag_shift=0.1,
+# )
+#
+# gs.run(output_prefix="test", n_iter=300)
+sr = nk.optimizer.SR(diag_shift=0.1)
+vmc = nk._vmc_driver.VmcDriver(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr
 )
 
-gs.run(output_prefix="test", n_iter=300)
+stats = []
+for k in vmc.iter(300):
+    stats.append(vmc.get_observable_stats())
+    print(k, stats[-1])

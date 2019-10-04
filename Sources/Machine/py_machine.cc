@@ -593,8 +593,9 @@ void AddAbstractMachine(py::module m) {
                return py::cast(self.LogVal(input, any{}));
              } else if (x.ndim() == 3) {
                auto input = Eigen::Map<const RowMatrix<double>>{
-                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
-               py::array_t<Complex> result = py::cast(self.DerLog(input, any{}));
+                   x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.DerLog(input, any{}));
                result.resize({x.shape(0), x.shape(1),
                               static_cast<pybind11::ssize_t>(self.Npar())});
                return py::object(result);
@@ -638,8 +639,9 @@ void AddAbstractMachine(py::module m) {
                return py::cast(self.DerLog(input, any{}));
              } else if (x.ndim() == 3) {
                auto input = Eigen::Map<const RowMatrix<double>>{
-                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
-               py::array_t<Complex> result = py::cast(self.DerLog(input, any{}));
+                   x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.DerLog(input, any{}));
                result.resize({x.shape(0), x.shape(1),
                               static_cast<pybind11::ssize_t>(self.Npar())});
                return py::object(result);
@@ -666,6 +668,10 @@ void AddAbstractMachine(py::module m) {
           "is_holomorphic", &AbstractMachine::IsHolomorphic,
           R"EOF(bool: Whether the given wave-function is a holomorphic function of
             its parameters )EOF")
+      .def_property(
+          "max_batch_size", &AbstractMachine::GetMaxBatchSize,
+          &AbstractMachine::SetMaxBatchSize,
+          R"EOF(int: The maximum batch size for calls to log_val and der_log.)EOF")
       .def("save", &AbstractMachine::Save, py::arg("filename"),
            R"EOF(
                  Member function to save the machine parameters.

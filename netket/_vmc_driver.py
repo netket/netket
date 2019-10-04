@@ -8,7 +8,6 @@ from netket.operator import local_values as _local_values
 from netket.sampler import compute_samples as _compute_samples
 from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
 from netket.utils import subtract_mean as _subtract_mean
-import netket.variational as _vmc
 
 
 def info(obj, depth=None):
@@ -25,7 +24,7 @@ def make_optimizer_fn(arg):
     It currently supports three kinds of inputs:
 
     1. A NetKet optimizer, i.e., a subclass of `netket.optimizer.Optimizer`.
-    
+
     2. A 3-tuple (init, update, get) of optimizer functions as used by the JAX
        optimizer submodule (jax.experimental.optimizers).
 

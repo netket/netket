@@ -42,21 +42,39 @@ class RbmSpin : public AbstractMachine {
   VectorType GetParameters() final;
   void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) final;
 
-  void LogVal(Eigen::Ref<const RowMatrix<double>> v,
-              Eigen::Ref<Eigen::VectorXcd> out, const any & /*unused*/) final;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) final {
+    SubBatch<Eigen::Ref<const RowMatrix<double>>, Eigen::Ref<Eigen::VectorXcd>>(
+        std::bind(&RbmSpin::LogValImpl, this, std::placeholders::_1,
+                  std::placeholders::_2),
+        x, out);
+  }
 
-  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
-              Eigen::Ref<RowMatrix<Complex>> out, const any & /*unused*/) final;
+  void DerLog(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<RowMatrix<Complex>> out,
+              const any & /*unused*/) final {
+    SubBatch<Eigen::Ref<const RowMatrix<double>>,
+             Eigen::Ref<RowMatrix<Complex>>>(
+        std::bind(&RbmSpin::DerLogImpl, this, std::placeholders::_1,
+                  std::placeholders::_2),
+        x, out);
+  }
+
+  void LogValImpl(Eigen::Ref<const RowMatrix<double>> x,
+                  Eigen::Ref<Eigen::VectorXcd> out);
+
+  void DerLogImpl(Eigen::Ref<const RowMatrix<double>> x,
+                  Eigen::Ref<RowMatrix<Complex>> out);
 
   /// Simply calls `LogVal` with a batch size of 1.
   ///
   /// \note performance of this function is pretty bad. Please, use `LogVal`
   /// with batch sizes greater than 1 if at all possible.
   Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                       const any &cache) final {
+                       const any & /*unused*/) final {
     Complex data;
     auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
-    LogVal(v.transpose(), out, cache);
+    LogValImpl(v.transpose(), out);
     return data;
   }
 
@@ -65,10 +83,10 @@ class RbmSpin : public AbstractMachine {
   /// \note performance of this function is pretty bad. Please, use `DerLog`
   /// with batch sizes greater than 1 if at all possible.
   Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                                const any &cache) final {
+                                const any & /*unused*/) final {
     Eigen::VectorXcd out(Npar());
-    DerLog(v.transpose(),
-           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
+    DerLogImpl(v.transpose(),
+               Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()});
     return out;
   }
 
