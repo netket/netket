@@ -17,7 +17,7 @@ def info(obj, depth=None):
         return str(obj)
 
 
-def make_optimizer_fn(arg):
+def make_optimizer_fn(arg, ma):
     """
     Utility function to create the optimizer step function for VMC drivers.
 
@@ -48,6 +48,8 @@ def make_optimizer_fn(arg):
         return optimize_fn, desc
 
     elif issubclass(type(arg), _nk.optimizer.Optimizer):
+
+        arg.init(ma.n_par, ma.is_holomorphic)
 
         def optimize_fn(_, grad, p):
             arg.update(grad, p)
@@ -124,7 +126,9 @@ class VmcDriver(object):
         self._sampler = sampler
         self._sr = sr
 
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(optimizer)
+        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
+            optimizer, self._machine
+        )
 
         self._npar = self._machine.n_par
         self._mc_data = None
