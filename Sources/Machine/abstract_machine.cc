@@ -126,7 +126,7 @@ void AbstractMachine::LogValDiff(
   input = v.transpose().colwise().replicate(input.rows());
 
   CheckShape(__FUNCTION__, "out", {output.rows()},
-             {static_cast<int>(newconf.size())});
+             {static_cast<Index>(newconf.size())});
 
   for (auto i = Index{0}; i < input.rows(); ++i) {
     GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],

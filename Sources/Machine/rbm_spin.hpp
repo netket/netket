@@ -44,19 +44,18 @@ class RbmSpin : public AbstractMachine {
 
   void LogVal(Eigen::Ref<const RowMatrix<double>> x,
               Eigen::Ref<Eigen::VectorXcd> out, const any &) final {
-    SubBatch<Eigen::Ref<const RowMatrix<double>>, Eigen::Ref<Eigen::VectorXcd>>(
-        std::bind(&RbmSpin::LogValImpl, this, std::placeholders::_1,
-                  std::placeholders::_2),
+    SubBatch(
+        [this](Eigen::Ref<const RowMatrix<double>> xp,
+               Eigen::Ref<Eigen::VectorXcd> outp) { LogValImpl(xp, outp); },
         x, out);
   }
 
   void DerLog(Eigen::Ref<const RowMatrix<double>> x,
               Eigen::Ref<RowMatrix<Complex>> out,
               const any & /*unused*/) final {
-    SubBatch<Eigen::Ref<const RowMatrix<double>>,
-             Eigen::Ref<RowMatrix<Complex>>>(
-        std::bind(&RbmSpin::DerLogImpl, this, std::placeholders::_1,
-                  std::placeholders::_2),
+    SubBatch(
+        [this](Eigen::Ref<const RowMatrix<double>> xp,
+               Eigen::Ref<RowMatrix<Complex>> outp) { DerLogImpl(xp, outp); },
         x, out);
   }
 
