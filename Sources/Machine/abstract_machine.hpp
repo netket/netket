@@ -254,8 +254,9 @@ class AbstractMachine {
   // Function to dispatch sub batches call
   // This is useful to make sure that batched calls on matrices are never called
   // for more than max_batch_size_ rows at the time
-  template <class T1, class T2, typename Function>
-  void SubBatch(Function &&f, T1 v, T2 out) {
+  template <class VectorOrRowMatrix, typename Function>
+  void SubBatch(Function &&f, Eigen::Ref<const RowMatrix<double>> v,
+                VectorOrRowMatrix out) {
     Index imax = v.rows() / max_batch_size_;
 
     for (Index i = 0; i < imax; i++) {
