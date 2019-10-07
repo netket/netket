@@ -47,12 +47,3 @@ gs = nk.variational.Vmc(
 )
 
 gs.run(output_prefix="test", n_iter=300)
-# sr = nk.optimizer.SR(diag_shift=0.1)
-# vmc = nk._vmc_driver.VmcDriver(
-#     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr
-# )
-
-# stats = []
-# for k in vmc.iter(300):
-#     stats.append(vmc.get_observable_stats())
-#     print(k, stats[-1])
