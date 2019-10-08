@@ -128,13 +128,25 @@ void AbstractMachine::LogValDiff(
   CheckShape(__FUNCTION__, "out", {output.rows()},
              {static_cast<Index>(newconf.size())});
 
+  nonstd::optional<Index> log_val_single_ind;
+
   for (auto i = Index{0}; i < input.rows(); ++i) {
     GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
                             newconf[static_cast<size_t>(i)]);
+
+    // One of the states is equal to v ?
+    if (tochange[static_cast<size_t>(i)].size() == 0) {
+      log_val_single_ind = i;
+    }
   }
   output.resize(input.rows());
   AbstractMachine::LogVal(input, output, any{});
-  output.array() -= LogValSingle(v, any{});
+
+  if (log_val_single_ind.has_value()) {
+    output.array() -= output(log_val_single_ind.value());
+  } else {
+    output.array() -= LogValSingle(v, any{});
+  }
 }
 
 Complex AbstractMachine::LogValDiff(VisibleConstType v,
