@@ -140,20 +140,13 @@ void AbstractMachine::LogValDiff(
     }
   }
   output.resize(input.rows());
-  AbstractMachine::LogVal(input, output, any{});
+  LogVal(input, output, any{});
 
   if (log_val_single_ind.has_value()) {
     output.array() -= output(log_val_single_ind.value());
   } else {
     output.array() -= LogValSingle(v, any{});
   }
-}
-
-Complex AbstractMachine::LogValDiff(VisibleConstType v,
-                                    const std::vector<int> &tochange,
-                                    const std::vector<double> &newconf,
-                                    const any & /*unused*/) {
-  return LogValDiff(v, {tochange}, {newconf})(0);
 }
 
 any AbstractMachine::InitLookup(VisibleConstType v) { return any{}; }

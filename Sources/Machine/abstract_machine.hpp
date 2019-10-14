@@ -170,27 +170,6 @@ class AbstractMachine {
                           Eigen::Ref<Eigen::VectorXcd> output);
 
   /**
-  Member function computing the difference between the logarithm of the
-  wave-function computed at different values of the visible units (v, and a
-  single v'). This version uses the look-up tables to speed-up the
-  calculation.
-
-  @note performance of the default implementation is pretty bad.
-
-  @param v a constant reference to the current visible configuration.
-  @param tochange a constant reference to a vector containing the indeces of
-  the units to be modified.
-  @param newconf a constant reference to a vector containing the new values
-  of the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
-  visible state.
-  @param lt a constant eference to the look-up table.
-  @return The value of log(Psi(v')) - log(Psi(v))
-  */
-  virtual Complex LogValDiff(VisibleConstType v,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf, const any &lt);
-
-  /**
   Member function computing the derivative of the logarithm of the wave function
   for a given visible vector.
   @param v a constant reference to a visible configuration.
