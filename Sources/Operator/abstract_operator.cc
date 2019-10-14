@@ -18,15 +18,28 @@
 
 namespace netket {
 
-std::tuple<AbstractOperator::MelType, AbstractOperator::ConnectorsType,
-           AbstractOperator::NewconfsType>
-AbstractOperator::GetConn(VectorConstRefType v) const {
-  MelType mel;
-  ConnectorsType connectors;
-  NewconfsType newconfs;
-  FindConn(v, mel, connectors, newconfs);
-  return std::make_tuple(std::move(mel), std::move(connectors),
-                         std::move(newconfs));
+void AbstractOperator::FindConn(VectorConstRefType v,
+                                Eigen::SparseMatrix<double>& delta_v,
+                                Eigen::VectorXcd& mels) const {
+  delta_v.setZero();
+
+  std::vector<Complex> weights;
+  std::vector<std::vector<int>> connectors;
+  std::vector<std::vector<double>> newconfs;
+
+  FindConn(v, weights, connectors, newconfs);
+
+  delta_v.resize(connectors.size(), v.size());
+
+  mels.resize(connectors.size());
+
+  for (size_t k = 0; k < connectors.size(); k++) {
+    for (size_t c = 0; c < connectors[k].size(); c++) {
+      delta_v.insert(k, connectors[k][c]) =
+          newconfs[k][c] - v[connectors[k][c]];
+    }
+    mels(k) = weights[k];
+  }
 }
 
 void AbstractOperator::ForEachConn(VectorConstRefType v,
@@ -44,7 +57,7 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
 }
 
 Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             Eigen::Ref<const Eigen::VectorXcd> values,
+                             Eigen::Ref<const Eigen::VectorXcd> /*log_values*/,
                              AbstractMachine& machine,
                              const AbstractOperator& op, Index batch_size) {
   if (batch_size < 1) {

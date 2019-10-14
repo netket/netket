@@ -97,14 +97,10 @@ def test_produce_elements_in_hilbert():
         for i in range(1000):
             hi.random_vals(rstate, rg)
 
-            conns = ha.get_conn(rstate)
+            delta, _ = ha.get_conn(rstate)
+            rstatet = rstate + delta
 
-            for connector, newconf in zip(conns[1], conns[2]):
-                rstatet = np.array(rstate)
-                hi.update_conf(rstatet, connector, newconf)
-
-                for rs in rstatet:
-                    assert rs in local_states
+            assert np.all(np.isin(rstatet, local_states))
 
 
 def test_operator_is_hermitean():
@@ -119,21 +115,21 @@ def test_operator_is_hermitean():
 
         for i in range(100):
             hi.random_vals(rstate, rg)
-            conns = ha.get_conn(rstate)
+            delta, mels = ha.get_conn(rstate)
 
-            for mel, connector, newconf in zip(conns[0], conns[1], conns[2]):
-                rstatet = np.array(rstate)
-                hi.update_conf(rstatet, connector, newconf)
+            rstatet = rstate + delta
+            for k, state in enumerate(rstatet):
+                state = np.array(state)
+                delta1, mels1 = ha.get_conn(state.flatten())
+                invstates = np.array(state + delta1)
+                found = False
+                for kp, invstate in enumerate(invstates):
+                    if np.array_equal(rstate, invstate.flatten()):
+                        found = True
+                        assert mels1[kp] == np.conj(mels[k])
+                        break
 
-                conns1 = ha.get_conn(rstatet)
-                foundinv = False
-                for meli, connectori, newconfi in zip(conns1[0], conns1[1], conns1[2]):
-                    rstatei = np.array(rstatet)
-                    hi.update_conf(rstatei, connectori, newconfi)
-                    if np.array_equal(rstatei, rstate):
-                        foundinv = True
-                        assert meli == np.conj(mel)
-                assert foundinv
+                assert found
 
 
 def test_no_segfault():

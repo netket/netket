@@ -20,7 +20,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 #include <complex>
+#include <tuple>
 #include <vector>
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
@@ -43,7 +46,18 @@ void AddOperatorModule(py::module m) {
       implementing new quantum Operators should derive they own class from this
       class
        )EOF")
-          .def("get_conn", &AbstractOperator::GetConn, py::arg("v"), R"EOF(
+          .def(
+              "get_conn",
+              [](AbstractOperator& op, AbstractOperator::VectorConstRefType v)
+                  -> std::tuple<Eigen::SparseMatrix<double>, Eigen::VectorXcd> {
+                Eigen::SparseMatrix<double> delta_v;
+                Eigen::VectorXcd mels;
+                op.FindConn(v, delta_v, mels);
+                return std::tuple<Eigen::SparseMatrix<double>,
+                                  Eigen::VectorXcd>{std::move(delta_v),
+                                                    std::move(mels)};
+              },
+              py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such
        that the matrix element O(v,v') is different from zero. In general there
@@ -110,8 +124,10 @@ void AddOperatorModule(py::module m) {
 
   subm.def(
       "local_values",
-      [](AbstractOperator& op, AbstractMachine& machine, py::array_t<double, py::array::c_style> samples,
-         py::array_t<Complex, py::array::c_style> log_values, Index batch_size) {
+      [](AbstractOperator& op, AbstractMachine& machine,
+         py::array_t<double, py::array::c_style> samples,
+         py::array_t<Complex, py::array::c_style> log_values,
+         Index batch_size) {
         switch (log_values.ndim()) {
           case 2: {
             NETKET_CHECK(samples.ndim() == 3, InvalidInputError,
@@ -148,9 +164,8 @@ void AddOperatorModule(py::module m) {
                              << "; expected either 1 or 2.");
         }
       },
-      py::arg{"op"}, py::arg{"machine"},
-      py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
-      py::arg{"batch_size"} = 16,
+      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
+      py::arg{"log_values"}.noconvert(), py::arg{"batch_size"} = 16,
       R"EOF(Computes local values of the operator `op` for all `samples`.
 
             Args:

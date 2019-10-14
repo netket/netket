@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 #include <Eigen/SparseCore>
 #include <nonstd/span.hpp>
 
@@ -29,6 +30,7 @@
 #include "Machine/abstract_machine.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/messages.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 /**
@@ -65,25 +67,25 @@ class AbstractOperator {
 
   /**
   Member function finding the connected elements of the Operator.
-  Starting from a given visible state v, it finds all other visible states v'
-  such that the matrix element O(v,v') is different from zero.
-  In general there will be several different connected visible units satisfying
-  this condition, and they are denoted here v'(k), for k=0,1...N_connected.
+  Starting from a given visible state v, it finds all other visible states
+  v' such that the matrix element O(v,v') is different from zero. In general
+  there will be several different connected visible units satisfying this
+  condition, and they are denoted here v'(k), for k=0,1...N_connected.
   @param v a constant reference to the visible configuration.
   @param mel(k) is modified to contain matrix elements O(v,v'(k)).
-  @param connector(k) for each k contains a list of sites that should be changed
-  to obtain v'(k) starting from v.
-  @param newconfs(k) is a vector containing the new values of the visible units
-  on the affected sites, such that: v'(k,connectors(k,j))=newconfs(k,j). For the
-  other sites v'(k)=v, i.e. they are equal to the starting visible
-  configuration.
+  @param connector(k) for each k contains a list of sites that should be
+  changed to obtain v'(k) starting from v.
+  @param newconfs(k) is a vector containing the new values of the visible
+  units on the affected sites, such that:
+  v'(k,connectors(k,j))=newconfs(k,j). For the other sites v'(k)=v, i.e.
+  they are equal to the starting visible configuration.
   */
   virtual void FindConn(VectorConstRefType v, MelType &mel,
                         ConnectorsType &connectors,
                         NewconfsType &newconfs) const = 0;
 
-  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
-      VectorConstRefType v) const;
+  void FindConn(VectorConstRefType v, Eigen::SparseMatrix<double> &delta_v,
+                Eigen::VectorXcd &mel) const;
 
   /**
    * Iterates over all states reachable from a given visible configuration v,
