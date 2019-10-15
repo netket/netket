@@ -668,10 +668,6 @@ void AddAbstractMachine(py::module m) {
           "is_holomorphic", &AbstractMachine::IsHolomorphic,
           R"EOF(bool: Whether the given wave-function is a holomorphic function of
             its parameters )EOF")
-      .def_property(
-          "max_batch_size", &AbstractMachine::GetMaxBatchSize,
-          &AbstractMachine::SetMaxBatchSize,
-          R"EOF(int: The maximum batch size for calls to log_val and der_log.)EOF")
       .def("save", &AbstractMachine::Save, py::arg("filename"),
            R"EOF(
                  Member function to save the machine parameters.

@@ -45,14 +45,17 @@ void AddMetropolisHastings(py::module& subm) {
                  )EOF")
           .def(py::init([](AbstractMachine& machine,
                            MetropolisHastings::TransitionKernel tk,
-                           Index n_chains, nonstd::optional<Index> sweep_size) {
+                           Index n_chains, nonstd::optional<Index> sweep_size,
+                           nonstd::optional<Index> batch_size) {
                  return MetropolisHastings(
                      machine, tk, n_chains,
-                     sweep_size.value_or(machine.Nvisible()));
+                     sweep_size.value_or(machine.Nvisible()),
+                     batch_size.value_or(n_chains));
                }),
                py::keep_alive<1, 2>(), py::arg("machine"),
                py::arg("transition_kernel"), py::arg("n_chains") = 16,
                py::arg("sweep_size") = py::none(),
+               py::arg("batch_size") = py::none(),
                R"EOF(
              Constructs a new ``MetropolisHastings`` sampler given a machine and
              a transition kernel.
@@ -70,6 +73,8 @@ void AddMetropolisHastings(py::module& subm) {
                  n_chains: The number of Markov Chain to be run in parallel on a single process.
                  sweep_size: The number of exchanges that compose a single sweep.
                              If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+                 batch_size: The batch size to be used when calling log_val on the given Machine.
+                             If None, batch_size is equal to the number Markov chains (n_chains).
 
              Examples:
                  Sampling from a RBM machine in a 1D lattice of spin 1/2, using

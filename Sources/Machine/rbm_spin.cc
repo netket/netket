@@ -103,8 +103,8 @@ void RbmSpin::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
       parameters.segment(i, W_.size());
 }
 
-void RbmSpin::LogValImpl(Eigen::Ref<const RowMatrix<double>> x,
-                         Eigen::Ref<Eigen::VectorXcd> out) {
+void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
+                     Eigen::Ref<Eigen::VectorXcd> out, const any & /*lt*/) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", out.size(), x.rows());
@@ -118,8 +118,8 @@ void RbmSpin::LogValImpl(Eigen::Ref<const RowMatrix<double>> x,
   ApplyBiasAndActivation(out);
 }
 
-void RbmSpin::DerLogImpl(Eigen::Ref<const RowMatrix<double>> x,
-                         Eigen::Ref<RowMatrix<Complex>> out) {
+void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
+                     Eigen::Ref<RowMatrix<Complex>> out, const any & /*lt*/) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {x.rows(), Npar()});

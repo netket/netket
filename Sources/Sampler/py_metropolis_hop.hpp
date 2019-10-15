@@ -26,12 +26,15 @@ namespace netket {
 void AddMetropolisHop(py::module &subm) {
   subm.def("MetropolisHop",
            [](AbstractMachine &m, Index dmax, Index n_chains,
-              nonstd::optional<Index> sweep_size) {
+              nonstd::optional<Index> sweep_size,
+              nonstd::optional<Index> batch_size) {
              return MetropolisHastings(m, HopKernel{m, dmax}, n_chains,
-                                       sweep_size.value_or(m.Nvisible()));
+                                       sweep_size.value_or(m.Nvisible()),
+                                       batch_size.value_or(n_chains));
            },
            py::keep_alive<1, 2>(), py::arg("machine"), py::arg("d_max") = 1,
            py::arg("n_chains") = 16, py::arg{"sweep_size"} = py::none(),
+           py::arg{"batch_size"} = py::none(),
            R"EOF(
           This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
           and proposes a new state picking up uniformely from the local degrees of freedom.
@@ -50,6 +53,8 @@ void AddMetropolisHop(py::module &subm) {
               n_chains: The number of Markov Chain to be run in parallel on a single process.
               sweep_size: The number of exchanges that compose a single sweep.
                           If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+              batch_size: The batch size to be used when calling log_val on the given Machine.
+                          If None, batch_size is equal to the number Markov chains (n_chains).
 
           Examples:
               Sampling from a RBM machine in a 1D lattice of spin 1/2, using

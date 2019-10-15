@@ -43,37 +43,20 @@ class RbmSpin : public AbstractMachine {
   void SetParameters(Eigen::Ref<const Eigen::VectorXcd> pars) final;
 
   void LogVal(Eigen::Ref<const RowMatrix<double>> x,
-              Eigen::Ref<Eigen::VectorXcd> out, const any &) final {
-    SubBatch(
-        [this](Eigen::Ref<const RowMatrix<double>> xp,
-               Eigen::Ref<Eigen::VectorXcd> outp) { LogValImpl(xp, outp); },
-        x, out);
-  }
+              Eigen::Ref<Eigen::VectorXcd> out, const any &lt = any{}) final;
 
   void DerLog(Eigen::Ref<const RowMatrix<double>> x,
-              Eigen::Ref<RowMatrix<Complex>> out,
-              const any & /*unused*/) final {
-    SubBatch(
-        [this](Eigen::Ref<const RowMatrix<double>> xp,
-               Eigen::Ref<RowMatrix<Complex>> outp) { DerLogImpl(xp, outp); },
-        x, out);
-  }
-
-  void LogValImpl(Eigen::Ref<const RowMatrix<double>> x,
-                  Eigen::Ref<Eigen::VectorXcd> out);
-
-  void DerLogImpl(Eigen::Ref<const RowMatrix<double>> x,
-                  Eigen::Ref<RowMatrix<Complex>> out);
+              Eigen::Ref<RowMatrix<Complex>> out, const any &lt = any{}) final;
 
   /// Simply calls `LogVal` with a batch size of 1.
   ///
   /// \note performance of this function is pretty bad. Please, use `LogVal`
   /// with batch sizes greater than 1 if at all possible.
   Complex LogValSingle(Eigen::Ref<const Eigen::VectorXd> v,
-                       const any & /*unused*/) final {
+                       const any &lt) final {
     Complex data;
     auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
-    LogValImpl(v.transpose(), out);
+    LogVal(v.transpose(), out, lt);
     return data;
   }
 
@@ -84,8 +67,8 @@ class RbmSpin : public AbstractMachine {
   Eigen::VectorXcd DerLogSingle(Eigen::Ref<const Eigen::VectorXd> v,
                                 const any & /*unused*/) final {
     Eigen::VectorXcd out(Npar());
-    DerLogImpl(v.transpose(),
-               Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()});
+    DerLog(v.transpose(),
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()});
     return out;
   }
 

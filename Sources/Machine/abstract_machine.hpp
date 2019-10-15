@@ -216,42 +216,12 @@ class AbstractMachine {
 
   virtual ~AbstractMachine() = default;
 
-  void SetMaxBatchSize(Index max_batch_size) {
-    NETKET_CHECK(max_batch_size >= 1, InvalidInputError,
-                 "invalid maximum batch size: "
-                     << max_batch_size
-                     << "; expected a number larger than one");
-    max_batch_size_ = max_batch_size;
-  }
-
-  Index GetMaxBatchSize() const { return max_batch_size_; }
-
  protected:
   AbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
-      : hilbert_(std::move(hilbert)), max_batch_size_(32) {}
-
-  // Function to dispatch sub batches call
-  // This is useful to make sure that batched calls on matrices are never called
-  // for more than max_batch_size_ rows at the time
-  template <class VectorOrRowMatrix, typename Function>
-  void SubBatch(Function &&f, Eigen::Ref<const RowMatrix<double>> v,
-                VectorOrRowMatrix out) {
-    Index imax = v.rows() / max_batch_size_;
-
-    for (Index i = 0; i < imax; i++) {
-      f(v.block(i * max_batch_size_, 0, max_batch_size_, v.cols()),
-        out.block(i * max_batch_size_, 0, max_batch_size_, out.cols()));
-    }
-
-    if (max_batch_size_ * imax < v.rows()) {
-      f(v.bottomRows(v.rows() - max_batch_size_ * imax),
-        out.bottomRows(v.rows() - max_batch_size_ * imax));
-    }
-  }
+      : hilbert_(std::move(hilbert)) {}
 
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
-  Index max_batch_size_;
 };
 
 }  // namespace netket

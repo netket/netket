@@ -22,6 +22,7 @@
 
 #include "Sampler/abstract_sampler.hpp"
 #include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
 #include "Utils/random_utils.hpp"
 
 namespace netket {
@@ -50,18 +51,21 @@ class MetropolisHastings : public AbstractSampler {
 
   Index n_chains_;
   Index sweep_size_;
+  Index batch_size_;
 
   Index accepted_samples_;
   Index total_samples_;
 
  public:
-  MetropolisHastings(AbstractMachine &ma, TransitionKernel tk, Index n_chains,
-                     Index sweep_size);
+  MetropolisHastings(AbstractMachine& ma, TransitionKernel tk, Index n_chains,
+                     Index sweep_size, Index batch_size);
 
   Index BatchSize() const noexcept override;
 
   Index SweepSize() const noexcept;
   void SweepSize(Index sweep_size);
+
+  Index NChains() const noexcept;
 
   /// Returns a batch of current visible states and corresponding log values.
   std::pair<Eigen::Ref<const RowMatrix<double>>,
@@ -78,7 +82,35 @@ class MetropolisHastings : public AbstractSampler {
   void Reset(bool init_random) override;
 
   NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepted_samples_, total_samples_);
+
+ private:
+  void LogValBatched(Eigen::Ref<const RowMatrix<double>> v,
+                     Eigen::Ref<AbstractMachine::VectorType> out,
+                     const any& cache);
 };
+
+namespace detail {
+inline Index CheckBatchSize(const char* func, const Index batch_size,
+                            const Index n_chains) {
+  if (batch_size <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid batch size: " << batch_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  if (n_chains % batch_size != 0) {
+    WarningMessage()
+        << "The total number of chains is not an integer multiple of the "
+           "batch_size, this can lead to suboptimal performance. \n";
+  }
+  if (n_chains < batch_size) {
+    WarningMessage()
+        << "The requested batch size is larger than the number of chains, the "
+           "effective batch size used will be n_chains. \n";
+  }
+  return batch_size;
+}
+}  // namespace detail
 
 }  // namespace netket
 

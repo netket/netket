@@ -114,6 +114,7 @@ inline Index CheckSweepSize(const char* func, const Index sweep_size) {
   }
   return sweep_size;
 }
+
 }  // namespace detail
 
 #define NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepts, moves)                  \
