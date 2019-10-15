@@ -18,30 +18,30 @@ namespace netket {
 
 MetropolisHastings::MetropolisHastings(
     AbstractMachine& machine,
-    MetropolisHastings::TransitionKernel transition_kernel, Index batch_size,
+    MetropolisHastings::TransitionKernel transition_kernel, Index n_chains,
     Index sweep_size)
     : AbstractSampler(machine),
       transition_kernel_(transition_kernel),
-      batch_size_(batch_size),
+      n_chains_(n_chains),
       sweep_size_(sweep_size) {
-  detail::CheckBatchSize(__FUNCTION__, batch_size);
+  detail::CheckNChains(__FUNCTION__, n_chains);
   detail::CheckSweepSize(__FUNCTION__, sweep_size);
 
-  current_X_.resize(batch_size, machine.Nvisible());
-  proposed_X_.resize(batch_size, machine.Nvisible());
-  current_Y_.resize(batch_size);
-  proposed_Y_.resize(batch_size);
-  quotient_Y_.resize(batch_size);
-  probability_.resize(batch_size);
-  accept_.resize(batch_size);
-  log_acceptance_correction_.resize(batch_size);
+  current_X_.resize(n_chains, machine.Nvisible());
+  proposed_X_.resize(n_chains, machine.Nvisible());
+  current_Y_.resize(n_chains);
+  proposed_Y_.resize(n_chains);
+  quotient_Y_.resize(n_chains);
+  probability_.resize(n_chains);
+  accept_.resize(n_chains);
+  log_acceptance_correction_.resize(n_chains);
 
   Reset(true);
 }
 
 void MetropolisHastings::Reset(bool init_random) {
   if (init_random) {
-    for (Index i = 0; i < batch_size_; i++) {
+    for (Index i = 0; i < n_chains_; i++) {
       GetMachine().GetHilbert().RandomVals(current_X_.row(i),
                                            GetRandomEngine());
     }
@@ -97,7 +97,7 @@ void MetropolisHastings::OneStep() {
   total_samples_ += accept_.size();
 }
 
-Index MetropolisHastings::BatchSize() const noexcept { return batch_size_; }
+Index MetropolisHastings::BatchSize() const noexcept { return n_chains_; }
 
 Index MetropolisHastings::SweepSize() const noexcept { return sweep_size_; }
 

@@ -28,7 +28,7 @@ namespace netket {
 class ExactSampler : public AbstractSampler {
   // number of visible units
   const int nv_;
-  Index batch_size_;
+  Index n_chains_;
 
   // states of visible units
   RowMatrix<double> current_v_;
@@ -45,13 +45,13 @@ class ExactSampler : public AbstractSampler {
   std::vector<Complex> all_log_psi_vals_;
   std::vector<double> probability_mass_;
 
-  ExactSampler(AbstractMachine& psi, Index batch_size, std::true_type)
+  ExactSampler(AbstractMachine& psi, Index n_chains, std::true_type)
       : AbstractSampler(psi),
         nv_(psi.GetHilbert().Size()),
-        batch_size_(batch_size),
-        current_v_(batch_size, nv_),
-        current_log_psi_(batch_size),
-        state_index_(batch_size),
+        n_chains_(n_chains),
+        current_v_(n_chains, nv_),
+        current_log_psi_(n_chains),
+        state_index_(n_chains),
         hilbert_index_(psi.GetHilbert().GetIndex()),
         dim_(psi.GetHilbert().GetIndex().NStates()) {
     NETKET_CHECK(psi.GetHilbert().IsDiscrete(), InvalidInputError,
@@ -61,9 +61,8 @@ class ExactSampler : public AbstractSampler {
   }
 
  public:
-  ExactSampler(AbstractMachine& psi, Index batch_size)
-      : ExactSampler(psi, detail::CheckBatchSize("ExactSampler", batch_size),
-                     {}) {}
+  ExactSampler(AbstractMachine& psi, Index n_chains)
+      : ExactSampler(psi, detail::CheckNChains("ExactSampler", n_chains), {}) {}
 
   void Reset(bool initrandom) override {
     double logmax = -std::numeric_limits<double>::infinity();
@@ -91,7 +90,7 @@ class ExactSampler : public AbstractSampler {
   }
 
   void Sweep() override {
-    for (Index i = 0; i < batch_size_; ++i) {
+    for (Index i = 0; i < n_chains_; ++i) {
       const auto idx = dist_(GetRandomEngine());
       state_index_[i] = idx;
       current_log_psi_(i) = all_log_psi_vals_[idx];
@@ -106,16 +105,16 @@ class ExactSampler : public AbstractSampler {
   }
 
   void SetVisible(Eigen::Ref<const RowMatrix<double>> v) override {
-    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()}, {batch_size_, nv_});
+    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()}, {n_chains_, nv_});
     current_v_ = v;
-    for (Index i = 0; i < batch_size_; i++) {
+    for (Index i = 0; i < n_chains_; i++) {
       state_index_[i] = hilbert_index_.StateToNumber(current_v_.row(i));
     }
   }
 
   double Acceptance() const noexcept { return 1; }
 
-  Index BatchSize() const noexcept override { return batch_size_; }
+  Index BatchSize() const noexcept override { return n_chains_; }
 
   void SetMachineFunc(MachineFunction machine_func) override {
     AbstractSampler::SetMachineFunc(machine_func);

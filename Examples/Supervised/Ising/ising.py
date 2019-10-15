@@ -35,7 +35,7 @@ op = nk.optimizer.AdaDelta()
 spvsd = nk.supervised.Supervised(
     machine=ma,
     optimizer=op,
-    batch_size=400,
+    n_chains=400,
     samples=training_samples,
     targets=training_targets,
 )

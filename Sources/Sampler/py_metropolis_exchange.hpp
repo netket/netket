@@ -28,17 +28,17 @@ void AddMetropolisExchange(py::module &subm) {
   subm.def(
       "MetropolisExchange",
       [](AbstractMachine &m, nonstd::optional<AbstractGraph *> g, Index dmax,
-         Index batch_size, nonstd::optional<Index> sweep_size) {
+         Index n_chains, nonstd::optional<Index> sweep_size) {
         if (g.has_value()) {
           WarningMessage()
               << "graph argument is deprecated and does not have any effect "
                  "here. The graph is deduced automatically from machine.\n";
         }
-        return MetropolisHastings(m, ExchangeKernel{m, dmax}, batch_size,
+        return MetropolisHastings(m, ExchangeKernel{m, dmax}, n_chains,
                                   sweep_size.value_or(m.Nvisible()));
       },
       py::keep_alive<0, 1>(), py::arg("machine"), py::arg("graph") = py::none(),
-      py::arg("d_max") = 1, py::arg("batch_size") = 16,
+      py::arg("d_max") = 1, py::arg("n_chains") = 16,
       py::arg{"sweep_size"} = py::none(),
       R"EOF(
           This sampler acts locally only on two local degree of freedom $$ s_i $$ and $$ s_j $$,
@@ -71,7 +71,7 @@ void AddMetropolisExchange(py::module &subm) {
 
               graph: DEPRECATED argument
               d_max: The maximum graph distance allowed for exchanges.
-              batch_size: The number of Markov Chain to be run in parallel on a single process.
+              n_chains: The number of Markov Chain to be run in parallel on a single process.
               sweep_size: The number of exchanges that compose a single sweep.
                           If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 

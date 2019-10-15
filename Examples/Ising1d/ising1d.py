@@ -31,7 +31,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 ma.max_batch_size = 24
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=8, sweep_size=20)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8, sweep_size=20)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)

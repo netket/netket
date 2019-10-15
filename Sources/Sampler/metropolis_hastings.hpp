@@ -48,14 +48,14 @@ class MetropolisHastings : public AbstractSampler {
 
   TransitionKernel transition_kernel_;
 
-  Index batch_size_;
+  Index n_chains_;
   Index sweep_size_;
 
   Index accepted_samples_;
   Index total_samples_;
 
  public:
-  MetropolisHastings(AbstractMachine &ma, TransitionKernel tk, Index batch_size,
+  MetropolisHastings(AbstractMachine &ma, TransitionKernel tk, Index n_chains,
                      Index sweep_size);
 
   Index BatchSize() const noexcept override;

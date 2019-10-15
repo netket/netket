@@ -22,7 +22,7 @@ ma = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 ma.init_random_parameters(seed=SEED, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=32)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=32)
 sa.seed(SEED)
 
 mpi_rank = nk.MPI.rank()

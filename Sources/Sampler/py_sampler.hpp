@@ -66,7 +66,7 @@ py::array_t<T, ExtraFlags> as_readonly(py::array_t<T, ExtraFlags> array) {
       ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
   return array;
 }
-}
+}  // namespace detail
 
 void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
@@ -115,8 +115,8 @@ void AddSamplerModule(py::module& m) {
                 corresponds to a visible configuration)EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
-      .def_property_readonly("batch_size", &AbstractSampler::BatchSize, R"EOF(
-        int: Number of samples in a batch.)EOF")
+      .def_property_readonly("n_chains", &AbstractSampler::BatchSize, R"EOF(
+        int: Number of independent chains being sampled.)EOF")
       .def_property(
           "machine_func",
           [](const AbstractSampler& self) {
@@ -164,15 +164,14 @@ void AddSamplerModule(py::module& m) {
 
   subm.def(
       "compute_samples",
-      [](AbstractSampler &sampler, Index n_samples, Index n_discard) {
+      [](AbstractSampler& sampler, Index n_samples, Index n_discard) {
         // Helper types and lambda for writing the shapes in a clean way:
         using Shape2 = std::array<std::size_t, 2>;
         using Shape3 = std::array<std::size_t, 3>;
         const auto _ = [](Index i) { return static_cast<std::size_t>(i); };
 
-        MCResult result =
-            ComputeSamples(sampler, n_samples, n_discard,
-            /*der_logs=*/nonstd::nullopt);
+        MCResult result = ComputeSamples(sampler, n_samples, n_discard,
+                                         /*der_logs=*/nonstd::nullopt);
 
         const Shape3 sample_shape = {_(result.samples.rows() / result.n_chains),
                                      _(result.n_chains),
@@ -203,10 +202,10 @@ void AddSamplerModule(py::module& m) {
                   ```python
 
                   def number_sweeps(sampler, n_samples):
-                      return (n_samples + sampler.batch_size - 1) // sampler.batch_size
+                      return (n_samples + sampler.n_chains - 1) // sampler.n_chains
 
                   def number_samples(sampler, n_samples):
-                      return sampler.batch_size * number_sweeps(sampler, n_samples)
+                      return sampler.n_chains * number_sweeps(sampler, n_samples)
                   ```
 
                   Args:
@@ -225,7 +224,6 @@ void AddSamplerModule(py::module& m) {
                           fixed b is an independent Markov chain of samples.
                         logvals: A rank-3 array ξ where ξ[i,b,:] is the output
                           of the machine for sample s[i,b,:].)EOF");
-
 }
 
 }  // namespace netket

@@ -16,7 +16,7 @@ def _setup_vmc():
     ma.init_random_parameters(seed=SEED, sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma, batch_size=100)
+    sa = nk.sampler.ExactSampler(machine=ma, n_chains=100)
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
