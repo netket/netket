@@ -125,6 +125,7 @@ class VmcDriver(object):
         self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
+        self._stats = None
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
             optimizer, self._machine
@@ -137,7 +138,7 @@ class VmcDriver(object):
             raise ValueError(
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
-        if n_discard is not None and n_discard <= 0:
+        if n_discard is not None and n_discard < 0:
             raise ValueError(
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
@@ -165,6 +166,7 @@ class VmcDriver(object):
             self._samples, self._logvals = _compute_samples(
                 self._sampler, self.n_samples, self.n_discard
             )
+
             self._derlogs = self._machine.der_log(self._samples)
             _subtract_mean(self._derlogs)
 

@@ -116,6 +116,8 @@ class ExactSampler : public AbstractSampler {
 
   Index BatchSize() const noexcept override { return n_chains_; }
 
+  Index NChains() const noexcept override { return n_chains_; }
+
   void SetMachineFunc(MachineFunction machine_func) override {
     AbstractSampler::SetMachineFunc(machine_func);
     Reset(true);

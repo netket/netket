@@ -155,8 +155,8 @@ void MetropolisHastingsPt::ExchangeStep() {
   beta1_av_sq_ += delta * delta2;
 }
 
-Index MetropolisHastingsPt::BatchSize() const noexcept { return 1; }
-
+Index MetropolisHastingsPt::BatchSize() const noexcept { return n_replicas_; }
+Index MetropolisHastingsPt::NChains() const noexcept { return 1; }
 Index MetropolisHastingsPt::SweepSize() const noexcept { return sweep_size_; }
 
 void MetropolisHastingsPt::SweepSize(Index const sweep_size) {

@@ -72,7 +72,7 @@ class MetropolisHastingsPt : public AbstractSampler {
                        Index n_replicas, Index sweep_size);
 
   Index BatchSize() const noexcept override;
-
+  Index NChains() const noexcept override;
   Index SweepSize() const noexcept;
   void SweepSize(Index sweep_size);
 

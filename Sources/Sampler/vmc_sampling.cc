@@ -73,8 +73,8 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
   sampler.Reset();
 
   const auto num_batches =
-      (num_samples + sampler.BatchSize() - 1) / sampler.BatchSize();
-  num_samples = num_batches * sampler.BatchSize();
+      (num_samples + sampler.NChains() - 1) / sampler.NChains();
+  num_samples = num_batches * sampler.NChains();
   RowMatrix<double> samples(num_samples, sampler.GetMachine().Nvisible());
   Eigen::VectorXcd values(num_samples);
   auto gradients =
@@ -91,20 +91,20 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
     Index i_;
 
     std::pair<Eigen::Ref<RowMatrix<double>>, Eigen::Ref<VectorXcd>> Batch() {
-      const auto n = sampler_.BatchSize();
+      const auto n = sampler_.NChains();
       return {samples_.block(i_ * n, 0, n, samples_.cols()),
               values_.segment(i_ * n, n)};
     }
 
     void Gradients() {
-      const auto n = sampler_.BatchSize();
+      const auto n = sampler_.NChains();
       const auto X = samples_.block(i_ * n, 0, n, samples_.cols());
       const auto out = gradients_->block(i_ * n, 0, n, gradients_->cols());
       sampler_.GetMachine().DerLog(X, out, any{});
     }
 
     void operator()() {
-      assert(i_ * sampler_.BatchSize() < samples_.rows());
+      assert(i_ * sampler_.NChains() < samples_.rows());
       Batch() = sampler_.CurrentState();
       if (gradients_.has_value()) Gradients();
       ++i_;
@@ -126,7 +126,7 @@ MCResult ComputeSamples(AbstractSampler& sampler, Index num_samples,
     SubtractMean(*gradients);
   }
   return {std::move(samples), std::move(values), std::move(gradients),
-          sampler.BatchSize()};
+          sampler.NChains()};
 }
 
 Eigen::VectorXcd Gradient(Eigen::Ref<const Eigen::VectorXcd> locals,

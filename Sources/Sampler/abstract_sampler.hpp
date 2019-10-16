@@ -57,6 +57,8 @@ class AbstractSampler {
 
   virtual Index BatchSize() const noexcept = 0;
 
+  virtual Index NChains() const noexcept = 0;
+
  protected:
   AbstractSampler(AbstractMachine& psi)
       : machine_func_{[](nonstd::span<const Complex> x,

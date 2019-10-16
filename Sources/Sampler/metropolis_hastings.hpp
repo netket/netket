@@ -65,7 +65,7 @@ class MetropolisHastings : public AbstractSampler {
   Index SweepSize() const noexcept;
   void SweepSize(Index sweep_size);
 
-  Index NChains() const noexcept;
+  Index NChains() const noexcept override;
 
   /// Returns a batch of current visible states and corresponding log values.
   std::pair<Eigen::Ref<const RowMatrix<double>>,
