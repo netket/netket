@@ -63,7 +63,7 @@ def estimate_expectations(
 
     from ._C_netket import operator as nop
     from ._C_netket import stats as nst
-    from ._C_netket.sampler import compute_samples
+    from netket.sampler import compute_samples
 
     psi = sampler.machine
 
