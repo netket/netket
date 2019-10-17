@@ -113,6 +113,11 @@ void AddSamplerModule(py::module& m) {
           [](const AbstractSampler& self) { return self.CurrentState().first; },
           R"EOF(A matrix of current visible configurations. Every row
                 corresponds to a visible configuration)EOF")
+      .def_property_readonly(
+          "current_state",
+          [](const AbstractSampler& self) { return self.CurrentState(); },
+          R"EOF(The current sampling state of the sampler. This contains a pair
+            (visible,log_val) where log_val is the result of machine.log_val(visible))EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
       .def_property_readonly("n_chains", &AbstractSampler::BatchSize, R"EOF(
@@ -161,69 +166,6 @@ void AddSamplerModule(py::module& m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
-
-  subm.def(
-      "compute_samples",
-      [](AbstractSampler& sampler, Index n_samples, Index n_discard) {
-        // Helper types and lambda for writing the shapes in a clean way:
-        using Shape2 = std::array<std::size_t, 2>;
-        using Shape3 = std::array<std::size_t, 3>;
-        const auto _ = [](Index i) { return static_cast<std::size_t>(i); };
-
-        MCResult result = ComputeSamples(sampler, n_samples, n_discard,
-                                         /*der_logs=*/nonstd::nullopt);
-
-        const Shape3 sample_shape = {_(result.samples.rows() / result.n_chains),
-                                     _(result.n_chains),
-                                     _(result.samples.cols())};
-        auto samples = py::array_t<double, py::array::c_style>{
-            sample_shape, result.samples.data()};
-
-        const Shape2 logval_shape = {_(result.samples.rows() / result.n_chains),
-                                     _(result.n_chains)};
-        auto logvals = py::array_t<Complex, py::array::c_style>{
-            logval_shape, result.log_values.data()};
-
-        return py::make_tuple(samples, logvals);
-      },
-      py::arg{"sampler"}, py::arg{"n_samples"}, py::arg{"n_discard"},
-      R"EOF(Runs Monte Carlo sampling using `sampler`.
-
-                  First `n_discard` sweeps are discarded. Results of the next
-                  `≥n_samples` sweeps are saved. Since samplers work with
-                  batches of specified size it may be impossible to sample
-                  exactly `n_samples` visible configurations (without throwing
-                  away useful data, of course). You can rely on
-                  `compute_samples` to return at least `n_samples` samples.
-
-                  Exact number of performed sweeps and samples stored can be
-                  computed using the following functions:
-
-                  ```python
-
-                  def number_sweeps(sampler, n_samples):
-                      return (n_samples + sampler.n_chains - 1) // sampler.n_chains
-
-                  def number_samples(sampler, n_samples):
-                      return sampler.n_chains * number_sweeps(sampler, n_samples)
-                  ```
-
-                  Args:
-                      sampler: sampler to use for Monte Carlo sweeps.
-                      n_samples: number of samples to record.
-                      n_discard: number of sweeps to discard.
-                      der_logs: Whether to calculate gradients of the logarithm
-                          of the wave function. `None` means don't compute,
-                          "normal" means compute, and "centered" means compute
-                          and then center.
-
-                  Returns:
-                      A tuple of (samples, logvals) where
-                        samples: A rank-3 array s where s[i,b,:] is the b-th
-                          sample in the i-th batch. Note that each s[:,b,:] for
-                          fixed b is an independent Markov chain of samples.
-                        logvals: A rank-3 array ξ where ξ[i,b,:] is the output
-                          of the machine for sample s[i,b,:].)EOF");
 }
 
 }  // namespace netket

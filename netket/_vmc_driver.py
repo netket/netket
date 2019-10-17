@@ -5,9 +5,10 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
-from netket.sampler import compute_samples as _compute_samples
 from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
 from netket.utils import subtract_mean as _subtract_mean
+
+import json
 
 
 def info(obj, depth=None):
@@ -132,7 +133,6 @@ class VmcDriver(object):
         )
 
         self._npar = self._machine.n_par
-        self._mc_data = None
 
         if n_samples <= 0:
             raise ValueError(
@@ -143,16 +143,25 @@ class VmcDriver(object):
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
 
-        self.n_samples = n_samples
+        self._n_chains = sampler.n_chains
+
+        self._n_samples = int(self._n_chains * (n_samples // self._n_chains))
+        self._n_samples_node = int(self._n_samples // self._n_chains // _nk.MPI.size())
+
         self.n_discard = n_discard if n_discard else n_samples // 10
 
         self._obs = {}
 
         self.step_count = 0
-
-    def _get_mc_stats(self, op):
-        loc = _local_values(op, self._machine, self._samples, self._logvals)
-        return loc, _statistics(loc)
+        self._samples = _np.ndarray(
+            (self._n_samples_node, self._n_chains, hamiltonian.hilbert.size)
+        )
+        self._logvals = _np.ndarray(
+            (self._n_samples_node, self._n_chains), dtype=_np.complex128
+        )
+        self._der_logs = _np.ndarray(
+            (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
+        )
 
     def advance(self, n_steps=1):
         """
@@ -162,36 +171,46 @@ class VmcDriver(object):
             n_steps (int): Number of steps to perform.
         """
 
-        def update_samples():
-            self._samples, self._logvals = _compute_samples(
-                self._sampler, self.n_samples, self.n_discard
-            )
-
-            self._derlogs = self._machine.der_log(self._samples)
-            _subtract_mean(self._derlogs)
-
-        if not self._mc_data:
-            update_samples()
-
         for _ in range(n_steps):
+
+            self._sampler.reset()
+
+            # Burnout phase
+            for _ in range(self.n_discard):
+                self._sampler.sweep()
+
+            # Generate samples
+            for i in range(self._samples.shape[0]):
+                self._sampler.sweep()
+                self._samples[i], self._logvals[i] = self._sampler.current_state
+
+                # Compute Log derivatives
+                self._der_logs[i] = self._machine.der_log(self._samples[i])
+
+            # Center the log derivatives
+            _subtract_mean(self._der_logs)
+
             # Estimate energy
             eloc, self._stats = self._get_mc_stats(self._ham)
+
             # Estimate energy gradient
-            grad = _covariance_sv(eloc, self._derlogs, center_s=False)
+            grad = _covariance_sv(eloc, self._der_logs, center_s=False)
+
             # Perform update
             if self._sr:
                 dp = _np.empty(self._npar, dtype=_np.complex128)
                 # flatten MC chain dimensions:
-                derlogs = self._derlogs.reshape(-1, self._derlogs.shape[-1])
+                derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
                 self._sr.compute_update(derlogs, grad, dp)
+                derlogs = self._der_logs.reshape(
+                    self._n_samples_node, self._n_chains, self._npar
+                )
             else:
                 dp = grad
 
             self._machine.parameters = self._optimizer_step(
                 self.step_count, dp, self._machine.parameters
             )
-
-            update_samples()
 
             self.step_count += 1
 
@@ -225,7 +244,7 @@ class VmcDriver(object):
         current state of the driver.
 
         Args:
-            observables: A dictionary of the form {name: observable} or a lis
+            observables: A dictionary of the form {name: observable} or a list
                 of tuples (name, observable) for which statistics should be computed.
                 If observables is None or not passed, results for those observables
                 added to the driver by add_observables are computed.
@@ -245,6 +264,10 @@ class VmcDriver(object):
         r.update({name: self._get_mc_stats(obs) for name, obs in observables})
         return r
 
+    def _get_mc_stats(self, op):
+        loc = _local_values(op, self._machine, self._samples, self._logvals)
+        return loc, _statistics(loc)
+
     def __repr__(self):
         return "Vmc(step_count={}, n_samples={}, n_discard={})".format(
             self.step_count, self.n_samples, self.n_discard
@@ -261,3 +284,37 @@ class VmcDriver(object):
             ]
         ]
         return "\n  ".join([str(self)] + lines)
+
+    # The following functions are for backward compatibility with
+    # json output and will be removed at some point
+
+    def _add_to_json_log(self):
+
+        stats = self.get_observable_stats()
+        self._json_out["Output"].append({})
+        self._json_out["Output"][-1] = {}
+        json_iter = self._json_out["Output"][-1]
+        json_iter["Iteration"] = self.step_count
+        for key, value in stats.items():
+            st = value.asdict()
+            st["Mean"] = st["Mean"].real
+            json_iter[key] = st
+
+    def _init_json_log(self):
+
+        self._json_out = {}
+        self._json_out["Output"] = []
+
+    def run(
+        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
+    ):
+        self._init_json_log()
+
+        for k in range(n_iter):
+            self.advance(step_size)
+
+            self._add_to_json_log()
+            if k % write_every == 0 or k == n_iter - 1:
+                if _nk.MPI.rank() == 0:
+                    with open(output_prefix + ".log", "w") as outfile:
+                        json.dump(self._json_out, outfile)

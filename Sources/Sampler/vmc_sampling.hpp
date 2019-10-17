@@ -45,7 +45,7 @@ struct MCResult {
  * @param sampler Sampler to use.
  * @param n_samples Minimal number of samples to generate. The actual number of
  *                  generated samples is \p n_samples rounded up to the closest
- *                  multiple of `sampler.NChains()`.
+ *                  multiple of `sampler.BatchSize()`.
  * @param n_discard Number of #Sweep() s for warming up.
  * @param der_logs  Whether to compute logarithmic derivatives of the
  *                  wavefunction. `nullopt` means don't compute the derivatives,
