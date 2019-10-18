@@ -140,13 +140,14 @@ class VmcDriver(object):
             )
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(
+                    n_discard)
             )
 
         self._n_chains = sampler.n_chains
 
-        self._n_samples = int(self._n_chains * (n_samples // self._n_chains))
-        self._n_samples_node = int(self._n_samples // self._n_chains // _nk.MPI.size())
+        self._n_samples = int(_np.ceil((n_samples / self._n_chains)))
+        self._n_samples_node = int(_np.ceil(self._n_samples / _nk.MPI.size()))
 
         self.n_discard = n_discard if n_discard else n_samples // 10
 
