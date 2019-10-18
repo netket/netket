@@ -157,13 +157,12 @@ void AddVariationalMonteCarloModule(PyObject *module) {
                steps: Number of VMC steps to perform.
 
            )EOF")
-      .def(
-          "get_observable_stats",
-          [](VariationalMonteCarlo &self) {
-            self.ComputeObservables();
-            return self.GetObservableStats();
-          },
-          R"EOF(
+      .def("get_observable_stats",
+           [](VariationalMonteCarlo &self) {
+             self.ComputeObservables();
+             return self.GetObservableStats();
+           },
+           R"EOF(
         Calculate and return the value of the operators stored as observables.
 
         )EOF")

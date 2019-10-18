@@ -8,8 +8,6 @@ from netket.operator import local_values as _local_values
 from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
 from netket.utils import subtract_mean as _subtract_mean
 
-import json
-
 
 def info(obj, depth=None):
     if hasattr(obj, "info"):
@@ -79,13 +77,20 @@ def make_optimizer_fn(arg, ma):
         )
 
 
-class VmcDriver(object):
+class Vmc(object):
     """
-    Driver class for Energy minimization using Variational Monte Carlo (VMC).
+    Energy minimization using Variational Monte Carlo (VMC).
     """
 
     def __init__(
-        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None
+        self,
+        hamiltonian,
+        sampler,
+        optimizer,
+        n_samples,
+        n_discard=None,
+        discarded_samples_on_init=0,
+        sr=None,
     ):
         """
         Initializes the driver class.
@@ -101,6 +106,9 @@ class VmcDriver(object):
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
                 Defaults to 10% of n_samples.
+            discarded_samples_on_init (int): Number of sweeps to be discarded in
+                   the first step of optimization, before the very first vmc iteration is performed.
+                   The default is 0.
             sr (SR, optional): Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
@@ -140,8 +148,7 @@ class VmcDriver(object):
             )
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
 
         self._n_chains = sampler.n_chains
@@ -150,6 +157,7 @@ class VmcDriver(object):
         self._n_samples_node = int(_np.ceil(self._n_samples / _nk.MPI.size()))
 
         self.n_discard = n_discard if n_discard else n_samples // 10
+        self.discarded_samples_on_init = discarded_samples_on_init
 
         self._obs = {}
 
@@ -232,11 +240,14 @@ class VmcDriver(object):
             self.advance(step)
             yield self.step_count
 
-    def add_observable(self, name, obs):
+    def add_observable(self, obs, name):
         """
         Add an observables to the set of observables that will be computed by default
         in get_obervable_stats.
         """
+        if type(name) != str:
+            raise ValueError("Name should be a string")
+
         self._obs[name] = obs
 
     def get_observable_stats(self, observables=None, include_energy=True):
@@ -262,8 +273,18 @@ class VmcDriver(object):
         if not observables:
             observables = self._obs
         r = {"Energy": self._stats} if include_energy else {}
-        r.update({name: self._get_mc_stats(obs) for name, obs in observables})
+
+        r.update(
+            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
+        )
         return r
+
+    def reset(self):
+        self.step_count = 0
+        self._sampler.reset()
+        # Initial Burnout phase
+        for _ in range(self.discarded_samples_on_init):
+            self._sampler.sweep()
 
     def _get_mc_stats(self, op):
         loc = _local_values(op, self._machine, self._samples, self._logvals)
@@ -285,37 +306,3 @@ class VmcDriver(object):
             ]
         ]
         return "\n  ".join([str(self)] + lines)
-
-    # The following functions are for backward compatibility with
-    # json output and will be removed at some point
-
-    def _add_to_json_log(self):
-
-        stats = self.get_observable_stats()
-        self._json_out["Output"].append({})
-        self._json_out["Output"][-1] = {}
-        json_iter = self._json_out["Output"][-1]
-        json_iter["Iteration"] = self.step_count
-        for key, value in stats.items():
-            st = value.asdict()
-            st["Mean"] = st["Mean"].real
-            json_iter[key] = st
-
-    def _init_json_log(self):
-
-        self._json_out = {}
-        self._json_out["Output"] = []
-
-    def run(
-        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
-    ):
-        self._init_json_log()
-
-        for k in range(n_iter):
-            self.advance(step_size)
-
-            self._add_to_json_log()
-            if k % write_every == 0 or k == n_iter - 1:
-                if _nk.MPI.rank() == 0:
-                    with open(output_prefix + ".log", "w") as outfile:
-                        json.dump(self._json_out, outfile)

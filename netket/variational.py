@@ -1,31 +1,127 @@
-from ._C_netket.variational import *
-
 import itertools
+from ._vmc import Vmc as _Vmc
+from ._C_netket import MPI as _MPI
+from ._C_netket.optimizer import SR as _SR
+import json
+import warnings
 
 
-def _Vmc_iter(self, n_iter=None, step_size=1):
-    """
-    iter(self: Vmc, n_iter: int=None, step_size: int=1) -> int
+class Vmc(object):
+    def __init__(
+        self,
+        hamiltonian,
+        sampler,
+        optimizer,
+        n_samples,
+        discarded_samples=None,
+        discarded_samples_on_init=0,
+        target="energy",
+        method="Sr",
+        diag_shift=0.01,
+        use_iterative=False,
+        use_cholesky=None,
+        sr_lsq_solver="LLT",
+    ):
 
-    Returns a generator which advances the VMC optimization, yielding
-    after every step_size steps up to n_iter.
+        self._mynode = _MPI.rank()
+        self.machine = sampler.machine
 
-    Args:
-        n_iter (int=None): The number of steps or None, for no limit.
-        step_size (int=1): The number of steps the simulation is advanced.
+        if method == "Gd":
+            self.sr = None
+            self._vmc = _Vmc(
+                hamiltonian=hamiltonian,
+                sampler=sampler,
+                optimizer=optimizer,
+                n_samples=n_samples,
+                n_discard=discarded_samples,
+                discarded_samples_on_init=discarded_samples_on_init,
+                sr=None,
+            )
+        elif method == "Sr":
+            self.sr = _SR(
+                lsq_solver=sr_lsq_solver,
+                diag_shift=diag_shift,
+                use_iterative=use_iterative,
+                is_holomorphic=sampler.machine.is_holomorphic,
+            )
+            self._vmc = _Vmc(
+                hamiltonian=hamiltonian,
+                sampler=sampler,
+                optimizer=optimizer,
+                n_samples=n_samples,
+                n_discard=discarded_samples,
+                discarded_samples_on_init=discarded_samples_on_init,
+                sr=self.sr,
+            )
+        else:
+            raise ValueError("Allowed method options are Gd and Sr")
 
-    Yields:
-        int: The current step.
-    """
-    self.reset()
-    for i in itertools.count(step=step_size):
-        if n_iter and i >= n_iter:
-            return
-        self.advance(step_size)
-        yield i
+        if use_cholesky and sr_lsq_solver != "LLT":
+            raise ValueError(
+                "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
+            )
 
+        self.advance = self._vmc.advance
+        self.add_observable = self._vmc.add_observable
+        self.get_observable_stats = self._vmc.get_observable_stats
+        self.reset = self._vmc.reset
 
-Vmc.iter = _Vmc_iter
+        warnings.warn(
+            "netket.variational.Vmc will be deprecated in version 3, use netket.Vmc instead",
+            PendingDeprecationWarning,
+        )
+
+    def _add_to_json_log(self, step_count):
+
+        stats = self.get_observable_stats()
+        self._json_out["Output"].append({})
+        self._json_out["Output"][-1] = {}
+        json_iter = self._json_out["Output"][-1]
+        json_iter["Iteration"] = step_count
+        for key, value in stats.items():
+            st = value.asdict()
+            st["Mean"] = st["Mean"].real
+            json_iter[key] = st
+
+    def _init_json_log(self):
+
+        self._json_out = {}
+        self._json_out["Output"] = []
+
+    def run(
+        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
+    ):
+        self._init_json_log()
+
+        for k in range(n_iter):
+            self.advance(step_size)
+
+            self._add_to_json_log(k)
+            if k % write_every == 0 or k == n_iter - 1:
+                if self._mynode == 0:
+                    with open(output_prefix + ".log", "w") as outfile:
+                        json.dump(self._json_out, outfile)
+
+    def iter(self, n_iter=None, step_size=1):
+        """
+        iter(self: Vmc, n_iter: int=None, step_size: int=1) -> int
+
+        Returns a generator which advances the VMC optimization, yielding
+        after every step_size steps up to n_iter.
+
+        Args:
+            n_iter (int=None): The number of steps or None, for no limit.
+            step_size (int=1): The number of steps the simulation is advanced.
+
+        Yields:
+            int: The current step.
+        """
+        self.reset()
+        for i in itertools.count(step=step_size):
+            if n_iter and i >= n_iter:
+                return
+            self.advance(step_size)
+            yield i
 
 
 # Higher-level VMC functions:
