@@ -18,8 +18,6 @@
 #include "common_types.hpp"
 
 #include "Graph/graph.hpp"
-#include "GroundState/ground_state.hpp"
-#include "Headers/welcome.hpp"
 #include "Hilbert/hilbert.hpp"
 #include "Machine/machine.hpp"
 #include "Operator/operator.hpp"
