@@ -5,8 +5,11 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
-from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
-from netket.utils import subtract_mean as _subtract_mean
+from netket.stats import (
+    statistics as _statistics,
+    covariance_sv as _covariance_sv,
+    subtract_mean as _subtract_mean,
+)
 
 
 def info(obj, depth=None):

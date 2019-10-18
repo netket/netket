@@ -280,7 +280,6 @@ set(NETKET_SOURCES
     Sources/Operator/pauli_strings.cc
     Sources/Operator/graph_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
-    Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc
     Sources/Sampler/custom_local_kernel.cc

@@ -6,7 +6,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include "Sampler/vmc_sampling.hpp"
 #include "Stats/mc_stats.hpp"
 #include "Stats/obs_manager.hpp"
 #include "Utils/exceptions.hpp"
@@ -95,29 +94,28 @@ void AddStatsModule(py::module m) {
       .def("_asdict", as_dict)  //< compatibility with namedtuple
       .def("asdict", as_dict);
 
-  subm.def(
-      "statistics",
-      [](py::array_t<Complex, py::array::c_style> local_values) {
-        switch (local_values.ndim()) {
-          case 2:
-            return Statistics(
-                Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
-                                                   local_values.size()},
-                /*n_chains=*/local_values.shape(1));
-          case 1:
-            return Statistics(
-                Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
-                                                   local_values.size()},
-                /*n_chains=*/1);
-          default:
-            NETKET_CHECK(false, InvalidInputError,
-                         "local_values has wrong dimension: "
-                             << local_values.ndim()
-                             << "; expected either 1 or 2.");
-        }  // end switch
-      },
-      py::arg{"values"}.noconvert(),
-      R"EOF(Computes some statistics (see `Stats` class) of a sequence of
+  subm.def("statistics",
+           [](py::array_t<Complex, py::array::c_style> local_values) {
+             switch (local_values.ndim()) {
+               case 2:
+                 return Statistics(
+                     Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
+                                                        local_values.size()},
+                     /*n_chains=*/local_values.shape(1));
+               case 1:
+                 return Statistics(
+                     Eigen::Map<const Eigen::VectorXcd>{local_values.data(),
+                                                        local_values.size()},
+                     /*n_chains=*/1);
+               default:
+                 NETKET_CHECK(false, InvalidInputError,
+                              "local_values has wrong dimension: "
+                                  << local_values.ndim()
+                                  << "; expected either 1 or 2.");
+             }  // end switch
+           },
+           py::arg{"values"}.noconvert(),
+           R"EOF(Computes some statistics (see `Stats` class) of a sequence of
             local estimators obtained from Monte Carlo sampling.
 
             Args:
@@ -152,7 +150,7 @@ void AddStatsModule(py::module m) {
             NETKET_CHECK(v_values.ndim() == 3, InvalidInputError,
                          "v_values has wrong dimension: " << v_values.ndim()
                                                           << "; expected 3.");
-            return Gradient(
+            return product_sv(
                 s_vector.array() - mean,
                 Eigen::Map<const RowMatrix<Complex>>{
                     v_values.data(), v_values.shape(0) * v_values.shape(1),
@@ -161,7 +159,7 @@ void AddStatsModule(py::module m) {
             NETKET_CHECK(v_values.ndim() == 2, InvalidInputError,
                          "v_values has wrong dimension: " << v_values.ndim()
                                                           << "; expected 2.");
-            return Gradient(
+            return product_sv(
                 s_vector.array() - mean,
                 Eigen::Map<const RowMatrix<Complex>>{
                     v_values.data(), v_values.shape(0), v_values.shape(1)});
@@ -200,6 +198,8 @@ void AddStatsModule(py::module m) {
                     v[i] are already centered, i.e., have zero mean.
 
         )EOF");
+
+  subm.def("_subtract_mean", &SubtractMean, py::arg{"values"}.noconvert());
 }
 }  // namespace detail
 }  // namespace netket

@@ -94,11 +94,11 @@ inline void SumLogCosh(Eigen::Ref<const MatrixXcd> input,
 inline void SumLogCoshReIm(Eigen::Ref<const MatrixXd> inputr,
                            Eigen::Ref<const MatrixXd> inputi,
                            Eigen::Ref<VectorXcd> output) noexcept {
-  constexpr std::complex<double> I(0, 1);
+  constexpr std::complex<double> I_(0, 1);
 
 #pragma omp parallel for schedule(static)
   for (auto i = 0; i < output.size(); i++) {
-    output(i) = SumLogCosh(inputr.row(i)) + I * SumLogCosh(inputi.row(i));
+    output(i) = SumLogCosh(inputr.row(i)) + I_ * SumLogCosh(inputi.row(i));
   }
 }
 

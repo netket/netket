@@ -59,7 +59,7 @@ def test_vmc_functions():
             sampler, n_samples=15000, n_discard=1000
         )
         der_logs = ma.der_log(samples)
-        nk.utils.subtract_mean(der_logs)
+        nk.stats.subtract_mean(der_logs)
 
         print(samples.shape)
         print(log_values.shape)
