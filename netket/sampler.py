@@ -9,23 +9,22 @@ def compute_samples(sampler, n_samples, n_discard=None, samples=None, log_values
     n_samples = int(_np.ceil((n_samples / n_chains)))
 
     if samples is None or log_values is None:
-        samples = _np.ndarray(
-            (n_samples, n_chains, sampler.machine.hilbert.size))
+        samples = _np.ndarray((n_samples, n_chains, sampler.machine.hilbert.size))
         log_values = _np.ndarray((n_samples, n_chains), dtype=_np.complex128)
-    else:
-        samples.resize((n_samples, n_chains, sampler.machine.hilbert.size))
-        log_values.resize((n_samples, n_chains))
 
     if n_discard is None:
         n_discard = n_samples // 10
 
+    sweep = sampler.sweep
+    state = sampler.current_state
+
     # Burnout phase
     for _ in range(n_discard):
-        sampler.sweep()
+        sweep()
 
     # Generate samples
-    for i in range(samples.shape[0]):
-        sampler.sweep()
-        samples[i], log_values[i] = sampler.current_state
+    for i in range(n_samples):
+        sweep()
+        samples[i], log_values[i] = state
 
     return samples, log_values

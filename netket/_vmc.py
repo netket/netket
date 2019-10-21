@@ -159,7 +159,7 @@ class Vmc(object):
         self._n_samples = int(_np.ceil((n_samples / self._n_chains)))
         self._n_samples_node = int(_np.ceil(self._n_samples / _nk.MPI.size()))
 
-        self.n_discard = n_discard if n_discard else n_samples // 10
+        self.n_discard = n_discard if n_discard != None else n_samples // 10
         self.discarded_samples_on_init = discarded_samples_on_init
 
         self._obs = {}
@@ -192,7 +192,7 @@ class Vmc(object):
                 self._sampler.sweep()
 
             # Generate samples
-            for i in range(self._samples.shape[0]):
+            for i in range(self._n_samples_node):
                 self._sampler.sweep()
                 self._samples[i], self._logvals[i] = self._sampler.current_state
 
