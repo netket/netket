@@ -224,7 +224,6 @@ std::pair<Complex, double> MeanVariance(Operator &&apply,
  * @return local values of \p op
  */
 Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             Eigen::Ref<const Eigen::VectorXcd> values,
                              AbstractMachine &machine,
                              const AbstractOperator &op, Index batch_size);
 

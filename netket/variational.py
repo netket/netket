@@ -34,7 +34,6 @@ class Vmc(object):
                 optimizer=optimizer,
                 n_samples=n_samples,
                 n_discard=discarded_samples,
-                discarded_samples_on_init=discarded_samples_on_init,
                 sr=None,
             )
         elif method == "Sr":
@@ -50,7 +49,6 @@ class Vmc(object):
                 optimizer=optimizer,
                 n_samples=n_samples,
                 n_discard=discarded_samples,
-                discarded_samples_on_init=discarded_samples_on_init,
                 sr=self.sr,
             )
         else:
@@ -59,6 +57,12 @@ class Vmc(object):
         if use_cholesky and sr_lsq_solver != "LLT":
             raise ValueError(
                 "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
+            )
+
+        if discarded_samples_on_init != 0:
+            warnings.warn(
+                "discarded_samples_on_init does not have any effect and should not be used",
+                DeprecationWarning,
             )
 
         self.advance = self._vmc.advance

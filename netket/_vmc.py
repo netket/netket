@@ -86,14 +86,7 @@ class Vmc(object):
     """
 
     def __init__(
-        self,
-        hamiltonian,
-        sampler,
-        optimizer,
-        n_samples,
-        n_discard=None,
-        discarded_samples_on_init=0,
-        sr=None,
+        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None
     ):
         """
         Initializes the driver class.
@@ -108,10 +101,7 @@ class Vmc(object):
                 performed at each step of the optimization.
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
-                Defaults to 10% of n_samples.
-            discarded_samples_on_init (int): Number of sweeps to be discarded in
-                   the first step of optimization, before the very first vmc iteration is performed.
-                   The default is 0.
+                Defaults to 10% of the number of samples allocated to each MPI node.
             sr (SR, optional): Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
@@ -145,22 +135,10 @@ class Vmc(object):
 
         self._npar = self._machine.n_par
 
-        if n_samples <= 0:
-            raise ValueError(
-                "Invalid number of samples: n_samples={}".format(n_samples)
-            )
-        if n_discard is not None and n_discard < 0:
-            raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
-            )
-
         self._n_chains = sampler.n_chains
 
-        self._n_samples = int(_np.ceil((n_samples / self._n_chains)))
-        self._n_samples_node = int(_np.ceil(self._n_samples / _nk.MPI.size()))
-
-        self.n_discard = n_discard if n_discard != None else n_samples // 10
-        self.discarded_samples_on_init = discarded_samples_on_init
+        self.n_samples = n_samples
+        self.n_discard = n_discard
 
         self._obs = {}
 
@@ -173,6 +151,36 @@ class Vmc(object):
         )
         self._der_logs = _np.ndarray(
             (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
+        )
+
+    @property
+    def n_samples(self):
+        return self._n_samples
+
+    @n_samples.setter
+    def n_samples(self, n_samples):
+        if n_samples <= 0:
+            raise ValueError(
+                "Invalid number of samples: n_samples={}".format(n_samples)
+            )
+        self._n_samples = n_samples
+        n_samples_chain = int(_np.ceil((n_samples / self._n_chains)))
+        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+
+    @property
+    def n_discard(self):
+        return self._n_discard
+
+    @n_discard.setter
+    def n_discard(self, n_discard):
+        if n_discard is not None and n_discard < 0:
+            raise ValueError(
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+            )
+        self._n_discard = (
+            n_discard
+            if n_discard != None
+            else self._n_samples_node * self._n_chains // 10
         )
 
     def advance(self, n_steps=1):
@@ -188,7 +196,7 @@ class Vmc(object):
             self._sampler.reset()
 
             # Burnout phase
-            for _ in range(self.n_discard):
+            for _ in range(self._n_discard):
                 self._sampler.sweep()
 
             # Generate samples
@@ -248,9 +256,6 @@ class Vmc(object):
         Add an observables to the set of observables that will be computed by default
         in get_obervable_stats.
         """
-        if type(name) != str:
-            raise ValueError("Name should be a string")
-
         self._obs[name] = obs
 
     def get_observable_stats(self, observables=None, include_energy=True):
@@ -285,12 +290,9 @@ class Vmc(object):
     def reset(self):
         self.step_count = 0
         self._sampler.reset()
-        # Initial Burnout phase
-        for _ in range(self.discarded_samples_on_init):
-            self._sampler.sweep()
 
     def _get_mc_stats(self, op):
-        loc = _local_values(op, self._machine, self._samples, self._logvals)
+        loc = _local_values(op, self._machine, self._samples)
         return loc, _statistics(loc)
 
     def __repr__(self):

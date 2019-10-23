@@ -57,7 +57,6 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
 }
 
 Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             Eigen::Ref<const Eigen::VectorXcd> /*log_values*/,
                              AbstractMachine& machine,
                              const AbstractOperator& op, Index batch_size) {
   if (batch_size < 1) {
