@@ -73,6 +73,7 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
 
   for (auto i = Index{0}; i < samples.rows(); ++i) {
     auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
+
     op.FindConn(v, mel, tochange, newconfs);
     outlvd.resize(newconfs.size());
     machine.LogValDiff(v, tochange, newconfs, outlvd);

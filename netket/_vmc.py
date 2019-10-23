@@ -146,9 +146,7 @@ class Vmc(object):
         self._samples = _np.ndarray(
             (self._n_samples_node, self._n_chains, hamiltonian.hilbert.size)
         )
-        self._logvals = _np.ndarray(
-            (self._n_samples_node, self._n_chains), dtype=_np.complex128
-        )
+
         self._der_logs = _np.ndarray(
             (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
         )
@@ -202,7 +200,9 @@ class Vmc(object):
             # Generate samples
             for i in range(self._n_samples_node):
                 self._sampler.sweep()
-                self._samples[i], self._logvals[i] = self._sampler.current_state
+
+                # Store the current sample
+                self._samples[i] = self._sampler.current_sample
 
                 # Compute Log derivatives
                 self._der_logs[i] = self._machine.der_log(self._samples[i])

@@ -25,12 +25,10 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     n_samples = 16000
     num_samples_per_chain = n_samples // n_chains
 
-    samples, log_values = nk.sampler.compute_samples(
-        sampler, n_samples=n_samples, n_discard=6400
-    )
+    samples = nk.sampler.compute_samples(sampler, n_samples=n_samples, n_discard=6400)
     assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
-    eloc = local_values(ham, ma, samples, log_values)
+    eloc = local_values(ham, ma, samples)
     assert eloc.shape == (num_samples_per_chain, n_chains)
 
     stats = statistics(eloc)

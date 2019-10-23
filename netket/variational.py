@@ -170,9 +170,9 @@ def estimate_expectations(
     if not n_discard:
         n_discard = n_samples // 10
 
-    samples, log_values = compute_samples(sampler, n_samples, n_discard)
+    samples = compute_samples(sampler, n_samples, n_discard)
 
-    local_values = [nop.local_values(op, psi, samples, log_values) for op in ops]
+    local_values = [nop.local_values(op, psi, samples) for op in ops]
     stats = [nst.statistics(lv) for lv in local_values]
 
     if compute_gradients:

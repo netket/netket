@@ -114,6 +114,11 @@ void AddSamplerModule(py::module& m) {
           R"EOF(A matrix of current visible configurations. Every row
                 corresponds to a visible configuration)EOF")
       .def_property_readonly(
+          "current_sample",
+          [](const AbstractSampler& self) { return self.CurrentState().first; },
+          R"EOF(A matrix of current visible configurations. Every row
+                          corresponds to a visible configuration)EOF")
+      .def_property_readonly(
           "current_state",
           [](const AbstractSampler& self) { return self.CurrentState(); },
           R"EOF(The current sampling state of the sampler. This contains a pair
