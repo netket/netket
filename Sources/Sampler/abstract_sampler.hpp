@@ -57,6 +57,8 @@ class AbstractSampler {
 
   virtual Index BatchSize() const noexcept = 0;
 
+  virtual Index NChains() const noexcept = 0;
+
  protected:
   AbstractSampler(AbstractMachine& psi)
       : machine_func_{[](nonstd::span<const Complex> x,
@@ -95,14 +97,14 @@ inline Eigen::Ref<const Eigen::VectorXd> VisibleLegacy(
 }
 
 namespace detail {
-inline Index CheckBatchSize(const char* func, const Index batch_size) {
-  if (batch_size <= 0) {
+inline Index CheckNChains(const char* func, const Index n_chains) {
+  if (n_chains <= 0) {
     std::ostringstream msg;
-    msg << func << ": invalid batch size: " << batch_size
+    msg << func << ": invalid number of chains: " << n_chains
         << "; expected a positive number";
     throw InvalidInputError{msg.str()};
   }
-  return batch_size;
+  return n_chains;
 }
 
 inline Index CheckSweepSize(const char* func, const Index sweep_size) {
@@ -114,6 +116,7 @@ inline Index CheckSweepSize(const char* func, const Index sweep_size) {
   }
   return sweep_size;
 }
+
 }  // namespace detail
 
 #define NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepts, moves)                  \

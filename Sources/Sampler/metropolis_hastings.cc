@@ -18,35 +18,37 @@ namespace netket {
 
 MetropolisHastings::MetropolisHastings(
     AbstractMachine& machine,
-    MetropolisHastings::TransitionKernel transition_kernel, Index batch_size,
-    Index sweep_size)
+    MetropolisHastings::TransitionKernel transition_kernel, Index n_chains,
+    Index sweep_size, Index batch_size)
     : AbstractSampler(machine),
       transition_kernel_(transition_kernel),
-      batch_size_(batch_size),
-      sweep_size_(sweep_size) {
-  detail::CheckBatchSize(__FUNCTION__, batch_size);
+      n_chains_(n_chains),
+      sweep_size_(sweep_size),
+      batch_size_(batch_size) {
+  detail::CheckNChains(__FUNCTION__, n_chains);
   detail::CheckSweepSize(__FUNCTION__, sweep_size);
+  detail::CheckBatchSize(__FUNCTION__, batch_size, n_chains);
 
-  current_X_.resize(batch_size, machine.Nvisible());
-  proposed_X_.resize(batch_size, machine.Nvisible());
-  current_Y_.resize(batch_size);
-  proposed_Y_.resize(batch_size);
-  quotient_Y_.resize(batch_size);
-  probability_.resize(batch_size);
-  accept_.resize(batch_size);
-  log_acceptance_correction_.resize(batch_size);
+  current_X_.resize(n_chains, machine.Nvisible());
+  proposed_X_.resize(n_chains, machine.Nvisible());
+  current_Y_.resize(n_chains);
+  proposed_Y_.resize(n_chains);
+  quotient_Y_.resize(n_chains);
+  probability_.resize(n_chains);
+  accept_.resize(n_chains);
+  log_acceptance_correction_.resize(n_chains);
 
   Reset(true);
 }
 
 void MetropolisHastings::Reset(bool init_random) {
   if (init_random) {
-    for (Index i = 0; i < batch_size_; i++) {
+    for (Index i = 0; i < n_chains_; i++) {
       GetMachine().GetHilbert().RandomVals(current_X_.row(i),
                                            GetRandomEngine());
     }
   }
-  GetMachine().LogVal(current_X_, current_Y_, {});
+  LogValBatched(current_X_, current_Y_, {});
 
   accepted_samples_ = 0;
   total_samples_ = 0;
@@ -71,7 +73,7 @@ void MetropolisHastings::OneStep() {
       current_X_, proposed_X_,
       log_acceptance_correction_);  // Now proposed_X_ contains next states `v'`
 
-  GetMachine().LogVal(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
+  LogValBatched(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
 
   // Calculates acceptance probability
   quotient_Y_ = (proposed_Y_ - current_Y_ + log_acceptance_correction_).exp();
@@ -97,7 +99,9 @@ void MetropolisHastings::OneStep() {
   total_samples_ += accept_.size();
 }
 
-Index MetropolisHastings::BatchSize() const noexcept { return batch_size_; }
+Index MetropolisHastings::BatchSize() const noexcept { return n_chains_; }
+
+Index MetropolisHastings::NChains() const noexcept { return n_chains_; }
 
 Index MetropolisHastings::SweepSize() const noexcept { return sweep_size_; }
 
@@ -109,6 +113,24 @@ void MetropolisHastings::SweepSize(Index const sweep_size) {
 void MetropolisHastings::Sweep() {
   for (auto i = Index{0}; i < sweep_size_; ++i) {
     OneStep();
+  }
+}
+
+// Creates sub-batched calls of LogVal
+void MetropolisHastings::LogValBatched(
+    Eigen::Ref<const RowMatrix<double>> v,
+    Eigen::Ref<AbstractMachine::VectorType> out, const any& cache) {
+  Index imax = v.rows() / batch_size_;
+
+  for (Index i = 0; i < imax; i++) {
+    GetMachine().LogVal(v.block(i * batch_size_, 0, batch_size_, v.cols()),
+                        out.block(i * batch_size_, 0, batch_size_, out.cols()),
+                        cache);
+  }
+
+  if (batch_size_ * imax < v.rows()) {
+    GetMachine().LogVal(v.bottomRows(v.rows() - batch_size_ * imax),
+                        out.bottomRows(v.rows() - batch_size_ * imax), cache);
   }
 }
 

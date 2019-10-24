@@ -34,7 +34,7 @@ def exchange_kernel(v, vnew, loprobcorr):
         vnew[i, iss], vnew[i, jss] = vnew[i, jss], vnew[i, iss]
 
 
-sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, batch_size=16, sweep_size=20)
+sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, n_chains=16, sweep_size=20)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)

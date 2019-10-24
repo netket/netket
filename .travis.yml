@@ -3,71 +3,12 @@ sudo: required
 
 matrix:
   include:
-    - os: osx
-      osx_image: xcode9.4
-      language: generic
-      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-O1"
 
     - os: osx
       osx_image: xcode10.2
       language: generic
       env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
 
-    # The oldest supported configurations
-    - os: linux
-      dist: xenial
-      python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS=-O1"
-      addons:
-        apt:
-          sources:
-            - 'ubuntu-toolchain-r-test'
-          packages:
-            - 'ninja-build'
-            - 'clang-4.0'
-            - 'llvm-4.0'
-            - 'g++-7'
-            - 'gdb'
-            - 'libc++-dev'
-            - 'libc++abi-dev'
-            - 'libomp-dev'
-            - 'libmpich-dev'
-            - 'libopenblas-dev'
-
-    - os: linux
-      dist: xenial
-      python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 -DCMAKE_CXX_FLAGS=-O1"
-      addons:
-        apt:
-          sources:
-            - 'llvm-toolchain-5.0'
-            - 'ubuntu-toolchain-r-test'
-          packages:
-            - 'ninja-build'
-            - 'clang-5.0'
-            - 'llvm-5.0'
-            - 'g++-7'
-            - 'gdb'
-            - 'libc++-dev'
-            - 'libc++abi-dev'
-            - 'libomp-dev'
-            - 'libmpich-dev'
-            - 'libopenblas-dev'
-
-    - os: linux
-      dist: xenial
-      python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5 -DCMAKE_CXX_FLAGS=-O1"
-      addons:
-        apt:
-          sources:
-            - 'ubuntu-toolchain-r-test'
-          packages:
-            - 'ninja-build'
-            - 'g++-5'
-            - 'libmpich-dev'
-            - 'libatlas-base-dev'
 
     # Not too old toolsets
     - os: linux

@@ -104,7 +104,7 @@ void RbmSpin::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
 }
 
 void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
-                     Eigen::Ref<Eigen::VectorXcd> out, const any &) {
+                     Eigen::Ref<Eigen::VectorXcd> out, const any & /*lt*/) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", out.size(), x.rows());
@@ -119,8 +119,7 @@ void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
 }
 
 void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
-                     Eigen::Ref<RowMatrix<Complex>> out,
-                     const any & /*unused*/) {
+                     Eigen::Ref<RowMatrix<Complex>> out, const any & /*lt*/) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {x.rows(), Npar()});
@@ -145,7 +144,6 @@ void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
   }
 
   // TODO: Rewrite this using tensors
-  omp_set_num_threads(2);
 #pragma omp parallel for schedule(static)
   for (auto j = Index{0}; j < BatchSize(); ++j) {
     Eigen::Map<Eigen::MatrixXcd>{&out(j, i), W_.rows(), W_.cols()}.noalias() =
@@ -155,13 +153,11 @@ void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
 
 void RbmSpin::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
   if (b_.has_value()) {
-    omp_set_num_threads(2);
 #pragma omp parallel for schedule(static)
     for (auto j = Index{0}; j < BatchSize(); ++j) {
       out(j) += SumLogCoshBias(theta_.row(j), (*b_));  // total;
     }
   } else {
-    omp_set_num_threads(2);
 #pragma omp parallel for schedule(static)
     for (auto j = Index{0}; j < BatchSize(); ++j) {
       out(j) += SumLogCosh(theta_.row(j));

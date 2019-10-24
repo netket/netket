@@ -74,12 +74,11 @@ class MPSPeriodic : public AbstractMachine {
                     const std::vector<double> &newconf, any &lt) override;
 
   Complex LogValSingle(VisibleConstType v, const any &lt) override;
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
-                     const std::vector<double> &newconf,
-                     const any &lt) override;
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
+
   VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   void Save(const std::string &filename) const override;

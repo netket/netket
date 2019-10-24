@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import json
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -28,7 +29,7 @@ ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=16, sweep_size=20)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)

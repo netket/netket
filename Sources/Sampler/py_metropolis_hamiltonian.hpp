@@ -26,13 +26,16 @@ namespace netket {
 
 void AddMetropolisHamiltonian(py::module &subm) {
   subm.def("MetropolisHamiltonian",
-           [](AbstractMachine &m, AbstractOperator &ham, Index batch_size,
-              nonstd::optional<Index> sweep_size) {
-             return MetropolisHastings(m, HamiltonianKernel{m, ham}, batch_size,
-                                       sweep_size.value_or(m.Nvisible()));
+           [](AbstractMachine &m, AbstractOperator &ham, Index n_chains,
+              nonstd::optional<Index> sweep_size,
+              nonstd::optional<Index> batch_size) {
+             return MetropolisHastings(m, HamiltonianKernel{m, ham}, n_chains,
+                                       sweep_size.value_or(m.Nvisible()),
+                                       batch_size.value_or(n_chains));
            },
            py::keep_alive<0, 1>(), py::arg("machine"), py::arg("hamiltonian"),
-           py::arg("batch_size") = 16, py::arg{"sweep_size"} = py::none(),
+           py::arg("n_chains") = 16, py::arg{"sweep_size"} = py::none(),
+           py::arg{"batch_size"} = py::none(),
            R"EOF(
             Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
             In this case, the transition matrix is taken to be:
@@ -57,9 +60,11 @@ void AddMetropolisHamiltonian(py::module &subm) {
                         from is $$F(\Psi(s))$$, where the function
                         $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                hamiltonian: The operator used to perform off-diagonal transition.
-               batch_size: The number of Markov Chain to be run in parallel on a single process.
+               n_chains: The number of Markov Chain to be run in parallel on a single process.
                sweep_size: The number of exchanges that compose a single sweep.
                            If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+               batch_size: The batch size to be used when calling log_val on the given Machine.
+                           If None, batch_size is equal to the number Markov chains (n_chains).                                      
 
            Examples:
                Sampling from a RBM machine in a 1D lattice of spin 1/2
@@ -102,8 +107,8 @@ void AddMetropolisHamiltonian(py::module &subm) {
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
                 hamiltonian: The operator used to perform off-diagonal transition.
-                 n_replicas: The number of replicas used for parallel tempering.
-                 sweep_size: The number of exchanges that compose a single sweep.
+                n_replicas: The number of replicas used for parallel tempering.
+                sweep_size: The number of exchanges that compose a single sweep.
                              If None, sweep_size is equal to the number of degrees of freedom (n_visible).
             )EOF");
 }

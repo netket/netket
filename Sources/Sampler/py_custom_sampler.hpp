@@ -27,15 +27,17 @@ void AddCustomSampler(py::module subm) {
   subm.def(
       "CustomSampler",
       [](AbstractMachine &m, const LocalOperator &move_operators,
-         const std::vector<double> &move_weights, Index batch_size,
-         nonstd::optional<Index> sweep_size) {
+         const std::vector<double> &move_weights, Index n_chains,
+         nonstd::optional<Index> sweep_size,
+         nonstd::optional<Index> batch_size) {
         return MetropolisHastings(
-            m, CustomLocalKernel{m, move_operators, move_weights}, batch_size,
-            sweep_size.value_or(m.Nvisible()));
+            m, CustomLocalKernel{m, move_operators, move_weights}, n_chains,
+            sweep_size.value_or(m.Nvisible()), batch_size.value_or(n_chains));
       },
       py::keep_alive<0, 1>(), py::arg("machine"), py::arg("move_operators"),
-      py::arg("move_weights") = std::vector<double>(),
-      py::arg("batch_size") = 16, py::arg{"sweep_size"} = py::none(), R"EOF(
+      py::arg("move_weights") = std::vector<double>(), py::arg("n_chains") = 16,
+      py::arg{"sweep_size"} = py::none(), py::arg{"batch_size"} = py::none(),
+      R"EOF(
       Custom Sampler, where transition operators are specified by the user.
       For the moment, this functionality is limited to transition operators which
       are sums of $$k$$-local operators:
@@ -71,6 +73,9 @@ void AddCustomSampler(py::module subm) {
                 $$\mathcal{M}= \sum_i M_i$$ used for transitions.
            move_weights: For each $$ i $$, the probability to pick one of
                 the move operators (must sum to one).
+           n_chains: The number of Markov Chains to be run in parallel on a single process.
+           sweep_size: The number of exchanges that compose a single sweep.
+                       If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
        Examples:
            Sampling from a RBM machine in a 1D lattice of spin 1/2

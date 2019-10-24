@@ -16,7 +16,6 @@
 
 #include <pybind11/eigen.h>
 
-#include "Sampler/vmc_sampling.hpp"
 #include "Utils/all_utils.hpp"
 
 namespace py = pybind11;
@@ -40,8 +39,6 @@ void AddUtilsModule(py::module m) {
       },
       py::arg("seed") = netket::default_random_engine::default_seed,
       R"EOF(seed: The chosen seed for the distributed random number generator.  )EOF");
-
-  subm.def("_subtract_mean", &SubtractMean, py::arg{"values"}.noconvert());
 
   py::class_<MPIHelpers>(m, "MPI")
       .def_static("rank", &MPIHelpers::MPIRank,

@@ -353,13 +353,14 @@ Complex MPSPeriodic::LogValSingle(VisibleConstType v, const any &lt) {
   return std::log(trace(any_cast_ref<LookupType>(lt)[Nleaves_ - 1]));
 }
 
-MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void MPSPeriodic::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
 
   std::vector<std::size_t> sorted_ind;
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
   Complex current_psi = trace(mps_contraction(v, 0, N_));
   MatrixType new_prods(D_, Dsec_);
 
@@ -391,77 +392,6 @@ MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
       logvaldiffs(k) = std::log(trace(new_prods) / current_psi);
     }
   }
-  return logvaldiffs;
-}
-
-Complex MPSPeriodic::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &toflip,
-                                const std::vector<double> &newconf,
-                                const any &lookup) {
-  // Assumes number of levels > 1 (?)
-  std::size_t nflip = toflip.size();
-  if (nflip <= 0) {
-    return Complex(0, 0);
-  }
-
-  auto &lt = any_cast_ref<LookupType>(lookup);
-  MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
-  std::vector<std::size_t> sorted_ind = sort_indeces(toflip);
-
-  std::set<int> leaves2update;
-  std::map<int, MatrixType> ltpM;
-  std::size_t set_len = 0;
-
-  std::vector<bool> two_vector(2, false);
-  std::map<int, std::vector<bool>> contractions_change;
-
-  for (std::size_t k = 0; k < nflip; k++) {
-    int site = toflip[sorted_ind[k]];
-    // Add changed visible matrices to map
-    ltpM[site] = W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]];
-
-    // Add the rest of matrices that affects
-    for (std::size_t l = 0; l < leaves_of_site_[site].size(); l++) {
-      int leaf = leaves_of_site_[site][l];
-      leaves2update.insert(leaf);
-      if (leaves2update.size() > set_len) {
-        set_len++;
-        ltpM[leaf] = empty_matrix;
-      }
-      // Check the contractions of the new matrix (if they change)
-      for (int i = 0; i < 2; i++) {
-        if (std::find(toflip.begin(), toflip.end(),
-                      leaf_contractions_[leaf - N_][i]) != toflip.end()) {
-          two_vector[i] = true;
-        } else if (leaves2update.find(leaf_contractions_[leaf - N_][i]) !=
-                   leaves2update.end()) {
-          two_vector[i] = true;
-        }
-      }
-      contractions_change[leaf] = two_vector;
-      two_vector[0] = false;
-      two_vector[1] = false;
-    }
-  }
-
-  // Calculate products
-  for (auto leaf : leaves2update) {
-    std::vector<MatrixType> m(2);
-    for (int i = 0; i < 2; i++) {
-      int lc = leaf_contractions_[leaf - N_][i];
-      if (contractions_change[leaf][i]) {
-        m[i] = ltpM[lc];
-      } else {
-        if (lc < N_) {
-          m[i] = W_[lc % symperiod_][confindex_[v(lc)]];
-        } else {
-          m[i] = lt[lc - N_];
-        }
-      }
-    }
-    ltpM[leaf] = prod(m[0], m[1]);
-  }
-  return std::log(trace(ltpM[Nleaves_ + N_ - 1]) / trace(lt[Nleaves_ - 1]));
 }
 
 // Derivative with full calculation

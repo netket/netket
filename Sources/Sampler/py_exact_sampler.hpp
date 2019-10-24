@@ -33,7 +33,7 @@ void AddExactSampler(py::module &subm) {
     option.
     )EOF")
           .def(py::init<AbstractMachine &, Index>(), py::keep_alive<1, 2>(),
-               py::arg("machine"), py::arg("batch_size") = 16, R"EOF(
+               py::arg("machine"), py::arg("n_chains") = 16, R"EOF(
              Constructs a new ``ExactSampler`` given a machine.
 
              Args:
@@ -42,7 +42,7 @@ void AddExactSampler(py::module &subm) {
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
-                 batch_size: The number of Markov Chains to be run in parallel on a single process.          
+                 n_chains: The number of Markov Chains to be run in parallel on a single process.
 
              Examples:
                  Exact sampling from a RBM machine in a 1D lattice of spin 1/2

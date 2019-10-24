@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(NETKET_BUILD_TESTING "Build unit tests." OFF)
-option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
+option(NETKET_USE_OPENMP "Use OpenMP for multithreading" OFF)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" ON)
@@ -260,7 +260,6 @@ set(NETKET_SOURCES
     Sources/Graph/edgeless.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
-    Sources/GroundState/py_variational_montecarlo.cc
     Sources/Hilbert/hilbert_index.cc
     Sources/Hilbert/bosons.cc
     Sources/Hilbert/spins.cc
@@ -281,7 +280,6 @@ set(NETKET_SOURCES
     Sources/Operator/pauli_strings.cc
     Sources/Operator/graph_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
-    Sources/Sampler/vmc_sampling.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc
     Sources/Sampler/custom_local_kernel.cc

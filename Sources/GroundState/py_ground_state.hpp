@@ -17,16 +17,12 @@
 
 #include <pybind11/pybind11.h>
 #include "py_exact.hpp"
-#include "py_variational_montecarlo.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddGroundStateModule(py::module &m) {
-  AddVariationalMonteCarloModule(m.ptr());
-  AddExactModule(m);
-}
+void AddGroundStateModule(py::module &m) { AddExactModule(m); }
 
 }  // namespace netket
 

@@ -198,11 +198,12 @@ void JastrowSymm::LogVal(Eigen::Ref<const RowMatrix<double>> x,
 
 // Difference between logarithms of values, when one or more visible
 // variables are being flipped
-JastrowSymm::VectorType JastrowSymm::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void JastrowSymm::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
 
   thetas_ = (W_.transpose() * v);
   Complex logtsum = 0.5 * v.dot(thetas_);
@@ -222,8 +223,6 @@ JastrowSymm::VectorType JastrowSymm::LogValDiff(
       logvaldiffs(k) = 0.5 * vnew.dot(thetasnew_) - logtsum;
     }
   }
-
-  return logvaldiffs;
 }
 
 bool JastrowSymm::IsHolomorphic() const noexcept { return true; }

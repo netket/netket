@@ -20,7 +20,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <Eigen/Sparse>
+#include <Eigen/SparseCore>
 #include <complex>
+#include <tuple>
 #include <vector>
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
@@ -43,7 +46,18 @@ void AddOperatorModule(py::module m) {
       implementing new quantum Operators should derive they own class from this
       class
        )EOF")
-          .def("get_conn", &AbstractOperator::GetConn, py::arg("v"), R"EOF(
+          .def(
+              "get_conn",
+              [](AbstractOperator& op, AbstractOperator::VectorConstRefType v)
+                  -> std::tuple<Eigen::SparseMatrix<double>, Eigen::VectorXcd> {
+                Eigen::SparseMatrix<double> delta_v;
+                Eigen::VectorXcd mels;
+                op.FindConn(v, delta_v, mels);
+                return std::tuple<Eigen::SparseMatrix<double>,
+                                  Eigen::VectorXcd>{std::move(delta_v),
+                                                    std::move(mels)};
+              },
+              py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such
        that the matrix element O(v,v') is different from zero. In general there
@@ -110,46 +124,36 @@ void AddOperatorModule(py::module m) {
 
   subm.def(
       "local_values",
-      [](AbstractOperator& op, AbstractMachine& machine, py::array_t<double, py::array::c_style> samples,
-         py::array_t<Complex, py::array::c_style> log_values, Index batch_size) {
-        switch (log_values.ndim()) {
-          case 2: {
-            NETKET_CHECK(samples.ndim() == 3, InvalidInputError,
-                         "samples has wrong dimension: " << samples.ndim()
-                                                         << "; expected 3.");
-            NETKET_CHECK(samples.shape(1) == log_values.shape(1),
-                         InvalidInputError, "incompatible number of chains");
+      [](AbstractOperator& op, AbstractMachine& machine,
+         py::array_t<double, py::array::c_style> samples, Index batch_size) {
+        switch (samples.ndim()) {
+          case 3: {
             auto local_values = py::cast(LocalValues(
                 Eigen::Map<const RowMatrix<double>>{
                     samples.data(), samples.shape(0) * samples.shape(1),
                     samples.shape(2)},
-                Eigen::Map<const VectorXcd>{
-                    log_values.data(),
-                    log_values.shape(0) * log_values.shape(1)},
                 machine, op, batch_size));
-            local_values.attr("resize")(log_values.shape(0),
-                                        log_values.shape(1));
+            local_values.attr("resize")(samples.shape(0), samples.shape(1));
             return local_values;
           }
-          case 1:
-            NETKET_CHECK(samples.ndim() == 2, InvalidInputError,
-                         "samples has wrong dimension: " << samples.ndim()
-                                                         << "; expected 2.");
+          case 2:
             return py::cast(LocalValues(
                 Eigen::Map<const RowMatrix<double>>{
                     samples.data(), samples.shape(0), samples.shape(1)},
-                Eigen::Map<const VectorXcd>{log_values.data(),
-                                            log_values.shape(0)},
+                machine, op, batch_size));
+          case 1:
+            return py::cast(LocalValues(
+                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
+                                                    samples.shape(0)},
                 machine, op, batch_size));
           default:
             NETKET_CHECK(false, InvalidInputError,
-                         "log_values has wrong dimension: "
-                             << log_values.ndim()
-                             << "; expected either 1 or 2.");
+                         "samples has wrong dimension: "
+                             << samples.ndim()
+                             << "; expected either 1, 2 or 3.");
         }
       },
-      py::arg{"op"}, py::arg{"machine"},
-      py::arg{"samples"}.noconvert(), py::arg{"log_values"}.noconvert(),
+      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
       py::arg{"batch_size"} = 16,
       R"EOF(Computes local values of the operator `op` for all `samples`.
 
@@ -160,11 +164,6 @@ void AddOperatorModule(py::module m) {
                     rank-3 tensor, its shape should be `(N, M, #visible)` where
                     `N` is the number of samples, `M` is the number of Markov
                     Chains, and `#visible` is the number of visible units.
-                log_values: Corresponding values of the logarithm of the
-                    wavefunction. If `samples` is a `(N, #visible)` matrix, then
-                    `log_values` should be a vector of `N` complex numbers. If
-                    `samples` is a rank-3 tensor, then the shape of `log_values`
-                    should be `(N, M)`.
                 machine: Wavefunction.
                 op: Hermitian operator.
                 batch_size: Batch size.

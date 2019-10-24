@@ -19,19 +19,17 @@ def _setup():
     return hi, ham, ma
 
 
-def _test_stats_mean_std(hi, ham, ma, batch_size):
-    sampler = nk.sampler.MetropolisLocal(ma, batch_size=batch_size)
+def _test_stats_mean_std(hi, ham, ma, n_chains):
+    sampler = nk.sampler.MetropolisLocal(ma, n_chains=n_chains)
 
     n_samples = 16000
-    num_samples_per_chain = n_samples // batch_size
+    num_samples_per_chain = n_samples // n_chains
 
-    samples, log_values = nk.sampler.compute_samples(
-        sampler, n_samples=n_samples, n_discard=6400
-    )
-    assert samples.shape == (num_samples_per_chain, batch_size, hi.size)
+    samples = nk.sampler.compute_samples(sampler, n_samples=n_samples, n_discard=6400)
+    assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
-    eloc = local_values(ham, ma, samples, log_values)
-    assert eloc.shape == (num_samples_per_chain, batch_size)
+    eloc = local_values(ham, ma, samples)
+    assert eloc.shape == (num_samples_per_chain, n_chains)
 
     stats = statistics(eloc)
 
@@ -39,10 +37,10 @@ def _test_stats_mean_std(hi, ham, ma, batch_size):
     assert nk.MPI.size() == 1
 
     assert stats.mean == pytest.approx(np.mean(eloc))
-    if batch_size > 1:
+    if n_chains > 1:
         # error of mean == stdev of sample mean between chains / sqrt(#chains)
         assert stats.error_of_mean == pytest.approx(
-            eloc.mean(axis=0).std(ddof=0) / np.sqrt(batch_size)
+            eloc.mean(axis=0).std(ddof=0) / np.sqrt(n_chains)
         )
         # variance == average sample variance over chains
         assert stats.variance == pytest.approx(eloc.var(axis=0).mean())

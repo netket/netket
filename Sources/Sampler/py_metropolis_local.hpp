@@ -25,15 +25,17 @@ namespace py = pybind11;
 namespace netket {
 
 void AddMetropolisLocal(py::module &subm) {
-  subm.def("MetropolisLocal",
-           [](AbstractMachine &m, Index batch_size,
-              nonstd::optional<Index> sweep_size) {
-             return MetropolisHastings(m, LocalKernel{m}, batch_size,
-                                       sweep_size.value_or(m.Nvisible()));
-           },
-           py::keep_alive<0, 1>(), py::arg("machine"),
-           py::arg("batch_size") = 16, py::arg{"sweep_size"} = py::none(),
-           R"EOF(
+  subm.def(
+      "MetropolisLocal",
+      [](AbstractMachine &m, Index n_chains, nonstd::optional<Index> sweep_size,
+         nonstd::optional<Index> batch_size) {
+        return MetropolisHastings(m, LocalKernel{m}, n_chains,
+                                  sweep_size.value_or(m.Nvisible()),
+                                  batch_size.value_or(n_chains));
+      },
+      py::keep_alive<0, 1>(), py::arg("machine"), py::arg("n_chains") = 16,
+      py::arg{"sweep_size"} = py::none(), py::arg{"batch_size"} = py::none(),
+      R"EOF(
 
              Constructs a new ``MetropolisLocal`` sampler given a machine.
 
@@ -64,9 +66,11 @@ void AddMetropolisLocal(py::module &subm) {
                           The probability distribution being sampled
                           from is $$F(\Psi(s))$$, where the function
                           $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
-                batch_size: The number of Markov Chain to be run in parallel on a single process.
+                n_chains: The number of Markov Chain to be run in parallel on a single process.
                 sweep_size: The number of exchanges that compose a single sweep.
                             If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+                batch_size: The batch size to be used when calling log_val on the given Machine.
+                            If None, batch_size is equal to the number Markov chains (n_chains).            
 
 
              Examples:

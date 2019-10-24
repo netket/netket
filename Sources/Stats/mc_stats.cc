@@ -19,6 +19,7 @@
 #include <nonstd/span.hpp>
 
 #include "Utils/exceptions.hpp"
+#include "Utils/parallel_utils.hpp"
 
 namespace netket {
 
@@ -159,6 +160,24 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> values,
             std::round(correlation), R};
   }
   return Stats{mean, NaN, NaN, NaN, NaN};
+}
+
+Eigen::VectorXcd product_sv(Eigen::Ref<const Eigen::VectorXcd> s_values,
+                            Eigen::Ref<const RowMatrix<Complex>> v_values) {
+  CheckShape(__FUNCTION__, "s_values", {v_values.rows(), v_values.cols()},
+             {s_values.size(), std::ignore});
+  Eigen::VectorXcd product(v_values.cols());
+  Eigen::Map<VectorXcd>{product.data(), product.size()}.noalias() =
+      v_values.adjoint() * s_values / v_values.rows();
+  MeanOnNodes<>(product);
+  return product;
+}
+
+void SubtractMean(Eigen::Ref<RowMatrix<Complex>> v_values) {
+  VectorXcd mean = v_values.colwise().mean();
+  assert(mean.size() == v_values.cols());
+  MeanOnNodes<>(mean);
+  v_values.rowwise() -= mean.transpose();
 }
 
 }  // namespace netket

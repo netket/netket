@@ -16,7 +16,7 @@ def _setup_vmc():
     ma.init_random_parameters(seed=SEED, sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma, batch_size=100)
+    sa = nk.sampler.ExactSampler(machine=ma, n_chains=100)
     sa.seed(SEED)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
@@ -43,29 +43,17 @@ def test_vmc_functions():
 
         # exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
         states = np.array(list(ma.hilbert.states()))
-        exact_locs = nk.operator.local_values(
-            op,
-            ma,
-            states,
-            np.fromiter(
-                (ma.log_val(x) for x in states),
-                dtype=np.complex128,
-                count=states.shape[0],
-            ),
-        )
+        exact_locs = nk.operator.local_values(op, ma, states)
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        samples, log_values = nk.sampler.compute_samples(
-            sampler, n_samples=15000, n_discard=1000
-        )
+        samples = nk.sampler.compute_samples(sampler, n_samples=15000, n_discard=1000)
         der_logs = ma.der_log(samples)
-        nk.utils.subtract_mean(der_logs)
+        nk.stats.subtract_mean(der_logs)
 
         print(samples.shape)
-        print(log_values.shape)
         print(der_logs.shape)
 
-        local_values = nk.operator.local_values(op, ma, samples, log_values)
+        local_values = nk.operator.local_values(op, ma, samples)
         ex = nk.stats.statistics(local_values)
         assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean.real == approx(exact_ex.real, rel=tol)
@@ -77,7 +65,7 @@ def test_vmc_functions():
         assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
         assert stats[0].mean.real == approx(exact_ex.real, rel=tol)
 
-    local_values = nk.operator.local_values(ha, ma, samples, log_values)
+    local_values = nk.operator.local_values(ha, ma, samples)
     grad = nk.stats.covariance_sv(local_values, der_logs)
     assert grad.shape == (ma.n_par,)
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)

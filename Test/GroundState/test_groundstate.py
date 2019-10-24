@@ -128,7 +128,9 @@ def test_vmc_run():
         for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+            assert "Mean" in e
+            assert "Sigma" in e
+            assert "TauCorr" in e
         last_obs = obs
 
     assert last_obs["Energy"]["Mean"] == approx(-10.25, abs=0.2)

@@ -16,7 +16,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.2)
 
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=3)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=3)
 samplers["MetropolisLocal RbmSpin"] = sa
 
 
@@ -30,7 +30,7 @@ samplers["MetropolisHamiltonian RbmSpin"] = sa
 # Test with uniform probability
 maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 maz.init_random_parameters(seed=1234, sigma=0)
-sa = nk.sampler.MetropolisLocal(machine=maz, sweep_size=hi.size + 1, batch_size=2)
+sa = nk.sampler.MetropolisLocal(machine=maz, sweep_size=hi.size + 1, n_chains=2)
 samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
 
 mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)

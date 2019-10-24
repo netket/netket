@@ -5,10 +5,11 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
-from netket.sampler import compute_samples as _compute_samples
-from netket.stats import statistics as _statistics, covariance_sv as _covariance_sv
-from netket.utils import subtract_mean as _subtract_mean
-import netket.variational as _vmc
+from netket.stats import (
+    statistics as _statistics,
+    covariance_sv as _covariance_sv,
+    subtract_mean as _subtract_mean,
+)
 
 
 def info(obj, depth=None):
@@ -25,7 +26,7 @@ def make_optimizer_fn(arg, ma):
     It currently supports three kinds of inputs:
 
     1. A NetKet optimizer, i.e., a subclass of `netket.optimizer.Optimizer`.
-    
+
     2. A 3-tuple (init, update, get) of optimizer functions as used by the JAX
        optimizer submodule (jax.experimental.optimizers).
 
@@ -79,9 +80,9 @@ def make_optimizer_fn(arg, ma):
         )
 
 
-class VmcDriver(object):
+class Vmc(object):
     """
-    Driver class for Energy minimization using Variational Monte Carlo (VMC).
+    Energy minimization using Variational Monte Carlo (VMC).
     """
 
     def __init__(
@@ -100,7 +101,7 @@ class VmcDriver(object):
                 performed at each step of the optimization.
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
-                Defaults to 10% of n_samples.
+                Defaults to 10% of the number of samples allocated to each MPI node.
             sr (SR, optional): Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
@@ -126,33 +127,59 @@ class VmcDriver(object):
         self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
+        self._stats = None
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
             optimizer, self._machine
         )
 
         self._npar = self._machine.n_par
-        self._mc_data = None
 
-        if n_samples <= 0:
-            raise ValueError(
-                "Invalid number of samples: n_samples={}".format(n_samples)
-            )
-        if n_discard is not None and n_discard <= 0:
-            raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
-            )
+        self._n_chains = sampler.n_chains
 
         self.n_samples = n_samples
-        self.n_discard = n_discard if n_discard else n_samples // 10
+        self.n_discard = n_discard
 
         self._obs = {}
 
         self.step_count = 0
+        self._samples = _np.ndarray(
+            (self._n_samples_node, self._n_chains, hamiltonian.hilbert.size)
+        )
 
-    def _get_mc_stats(self, op):
-        loc = _local_values(op, self._machine, self._samples, self._logvals)
-        return loc, _statistics(loc)
+        self._der_logs = _np.ndarray(
+            (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
+        )
+
+    @property
+    def n_samples(self):
+        return self._n_samples
+
+    @n_samples.setter
+    def n_samples(self, n_samples):
+        if n_samples <= 0:
+            raise ValueError(
+                "Invalid number of samples: n_samples={}".format(n_samples)
+            )
+        self._n_samples = n_samples
+        n_samples_chain = int(_np.ceil((n_samples / self._n_chains)))
+        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+
+    @property
+    def n_discard(self):
+        return self._n_discard
+
+    @n_discard.setter
+    def n_discard(self, n_discard):
+        if n_discard is not None and n_discard < 0:
+            raise ValueError(
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+            )
+        self._n_discard = (
+            n_discard
+            if n_discard != None
+            else self._n_samples_node * self._n_chains // 10
+        )
 
     def advance(self, n_steps=1):
         """
@@ -162,35 +189,48 @@ class VmcDriver(object):
             n_steps (int): Number of steps to perform.
         """
 
-        def update_samples():
-            self._samples, self._logvals = _compute_samples(
-                self._sampler, self.n_samples, self.n_discard
-            )
-            self._derlogs = self._machine.der_log(self._samples)
-            _subtract_mean(self._derlogs)
-
-        if not self._mc_data:
-            update_samples()
-
         for _ in range(n_steps):
+
+            self._sampler.reset()
+
+            # Burnout phase
+            for _ in range(self._n_discard):
+                self._sampler.sweep()
+
+            # Generate samples
+            for i in range(self._n_samples_node):
+                self._sampler.sweep()
+
+                # Store the current sample
+                self._samples[i] = self._sampler.current_sample
+
+                # Compute Log derivatives
+                self._der_logs[i] = self._machine.der_log(self._samples[i])
+
+            # Center the log derivatives
+            _subtract_mean(self._der_logs)
+
             # Estimate energy
             eloc, self._stats = self._get_mc_stats(self._ham)
+
             # Estimate energy gradient
-            grad = _covariance_sv(eloc, self._derlogs, center_s=False)
+            grad = _covariance_sv(eloc, self._der_logs, center_s=False)
+
             # Perform update
             if self._sr:
                 dp = _np.empty(self._npar, dtype=_np.complex128)
                 # flatten MC chain dimensions:
-                derlogs = self._derlogs.reshape(-1, self._derlogs.shape[-1])
+                derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
                 self._sr.compute_update(derlogs, grad, dp)
+                derlogs = self._der_logs.reshape(
+                    self._n_samples_node, self._n_chains, self._npar
+                )
             else:
                 dp = grad
 
             self._machine.parameters = self._optimizer_step(
                 self.step_count, dp, self._machine.parameters
             )
-
-            update_samples()
 
             self.step_count += 1
 
@@ -211,7 +251,7 @@ class VmcDriver(object):
             self.advance(step)
             yield self.step_count
 
-    def add_observable(self, name, obs):
+    def add_observable(self, obs, name):
         """
         Add an observables to the set of observables that will be computed by default
         in get_obervable_stats.
@@ -224,7 +264,7 @@ class VmcDriver(object):
         current state of the driver.
 
         Args:
-            observables: A dictionary of the form {name: observable} or a lis
+            observables: A dictionary of the form {name: observable} or a list
                 of tuples (name, observable) for which statistics should be computed.
                 If observables is None or not passed, results for those observables
                 added to the driver by add_observables are computed.
@@ -241,8 +281,19 @@ class VmcDriver(object):
         if not observables:
             observables = self._obs
         r = {"Energy": self._stats} if include_energy else {}
-        r.update({name: self._get_mc_stats(obs) for name, obs in observables})
+
+        r.update(
+            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
+        )
         return r
+
+    def reset(self):
+        self.step_count = 0
+        self._sampler.reset()
+
+    def _get_mc_stats(self, op):
+        loc = _local_values(op, self._machine, self._samples)
+        return loc, _statistics(loc)
 
     def __repr__(self):
         return "Vmc(step_count={}, n_samples={}, n_discard={})".format(

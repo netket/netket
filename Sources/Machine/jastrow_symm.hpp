@@ -66,9 +66,10 @@ class JastrowSymm : public AbstractMachine {
   void LogVal(Eigen::Ref<const RowMatrix<double>> x,
               Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
 
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
