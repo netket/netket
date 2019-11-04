@@ -54,6 +54,7 @@ pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
 #include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
+#include "py_transition_kernel.hpp"
 
 namespace py = pybind11;
 
@@ -180,6 +181,8 @@ void AddSamplerModule(py::module& m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
+
+  AddTransitionKernels(subm);
 }
 
 }  // namespace netket

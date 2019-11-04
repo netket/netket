@@ -28,6 +28,14 @@ LocalKernel::LocalKernel(const AbstractMachine& psi)
   std::sort(local_states_.begin(), local_states_.end());
 }
 
+LocalKernel::LocalKernel(std::vector<double> local_states, Index n_visible)
+    : local_states_(local_states),
+      n_states_(local_states.size()),
+      nv_(n_visible) {
+  // operator() relies on the fact that locat_states_ are sorted.
+  std::sort(local_states_.begin(), local_states_.end());
+}
+
 void LocalKernel::operator()(
     Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<RowMatrix<double>> vnew,
     Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
