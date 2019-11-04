@@ -12,7 +12,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.RbmSpinV2(alpha=1, hilbert=hi)
+ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Defining a custom kernel for MetropolisHastings
@@ -34,7 +34,7 @@ def exchange_kernel(v, vnew, loprobcorr):
         vnew[i, iss], vnew[i, jss] = vnew[i, jss], vnew[i, iss]
 
 
-sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, n_chains=16, sweep_size=20)
+sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, n_chains=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)

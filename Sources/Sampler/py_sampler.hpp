@@ -108,6 +108,15 @@ void AddSamplerModule(py::module& m) {
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
+      .def("__next__",
+           [](AbstractSampler& self) {
+             self.Sweep();
+             return self.CurrentState().first;
+           },
+           R"EOF(
+      Performs a sampling sweep. Typically a single sweep
+      consists of an extensive number of local moves.
+      )EOF")
       .def_property_readonly(
           "visible",
           [](const AbstractSampler& self) { return self.CurrentState().first; },
