@@ -2,6 +2,8 @@ import netket as nk
 import networkx as nx
 import numpy as np
 
+import pytest
+
 operators = {}
 
 # Ising 1D
@@ -151,3 +153,31 @@ def test_deduced_hilbert_pauli():
     assert op.hilbert.size == 3
     assert len(op.hilbert.local_states) == 2
     assert np.allclose(op.hilbert.local_states, (0, 1))
+
+
+def test_Heisenberg():
+    g = nk.graph.Hypercube(8, 1)
+    hi = nk.hilbert.Spin(g, 0.5)
+
+    def gs_energy(ham):
+        return nk.exact.lanczos_ed(ham).eigenvalues[0]
+
+    ha1 = nk.operator.Heisenberg(hi)
+    ha2 = nk.operator.Heisenberg(hi, J=2.0)
+
+    assert 2 * gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+    ha1 = nk.operator.Heisenberg(hi, sign_rule=True)
+    ha2 = nk.operator.Heisenberg(hi, sign_rule=False)
+
+    assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+    with pytest.raises(
+        ValueError, match=r"sign_rule=True specified for a non-bipartite lattice"
+    ):
+        g = nk.graph.Hypercube(7, 1)
+        hi = nk.hilbert.Spin(g, 0.5)
+
+        assert not hi.graph.is_bipartite
+
+        ha = nk.operator.Heisenberg(hi, sign_rule=True)
