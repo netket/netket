@@ -22,7 +22,7 @@ class PyMetropolisLocal(AbstractSampler):
         self.machine_func = lambda x: _np.square(_np.absolute(x))
 
         self.sweep_size = sweep_size if sweep_size != None else self._n_visible
-        self.kernel = LocalKernel(self._local_states, self._n_visible)
+        self.kernel = LocalKernel(machine.hilbert)
 
         self.log_prob_corr = _np.zeros(self.n_chains)
 

@@ -49,6 +49,9 @@ class CustomLocalKernel {
                     const LocalOperator &move_operators,
                     const std::vector<double> &move_weights = {});
 
+  CustomLocalKernel(const LocalOperator &move_operators,
+                    const std::vector<double> &move_weights = {});
+
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
 
@@ -56,6 +59,8 @@ class CustomLocalKernel {
 
  private:
   void Init(const AbstractMachine &psi,
+            const std::vector<double> &move_weights);
+  void Init(const AbstractHilbert &hilb,
             const std::vector<double> &move_weights);
   void CheckMoveOperators(const LocalOperator &move_operators);
 };

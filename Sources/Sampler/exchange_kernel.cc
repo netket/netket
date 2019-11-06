@@ -21,6 +21,11 @@ ExchangeKernel::ExchangeKernel(const AbstractMachine &psi, Index dmax)
   Init(psi.GetHilbert().GetGraph(), dmax);
 }
 
+ExchangeKernel::ExchangeKernel(const AbstractHilbert &hilb, Index dmax)
+    : nv_(hilb.Size()) {
+  Init(hilb.GetGraph(), dmax);
+}
+
 void ExchangeKernel::Init(const AbstractGraph &graph, int dmax) {
   auto dist = graph.AllDistances();
 

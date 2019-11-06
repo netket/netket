@@ -38,6 +38,8 @@ class HopKernel {
  public:
   HopKernel(const AbstractMachine &psi, Index dmax = 1);
 
+  HopKernel(const AbstractHilbert &hilb, Index dmax);
+
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
                   Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction);

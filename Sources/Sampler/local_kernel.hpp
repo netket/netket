@@ -30,7 +30,7 @@ class LocalKernel {
  public:
   explicit LocalKernel(const AbstractMachine& psi);
 
-  explicit LocalKernel(std::vector<double> local_states, Index n_visible);
+  explicit LocalKernel(const AbstractHilbert& psi);
 
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,

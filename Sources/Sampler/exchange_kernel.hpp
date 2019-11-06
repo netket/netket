@@ -34,6 +34,8 @@ class ExchangeKernel {
  public:
   explicit ExchangeKernel(const AbstractMachine &psi, Index dmax = 1);
 
+  explicit ExchangeKernel(const AbstractHilbert &hilb, Index dmax = 1);
+
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
                   Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction);

@@ -37,6 +37,8 @@ class HamiltonianKernel {
  public:
   HamiltonianKernel(const AbstractMachine &psi, AbstractOperator &hamiltonian);
 
+  HamiltonianKernel(AbstractOperator &ham);
+
   void operator()(Eigen::Ref<const RowMatrix<double>> v,
                   Eigen::Ref<RowMatrix<double>> vnew,
                   Eigen::Ref<Eigen::ArrayXd> acceptance_correction);
