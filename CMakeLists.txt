@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(NETKET_BUILD_TESTING "Build unit tests." OFF)
-option(NETKET_USE_OPENMP "Use OpenMP for multithreading" ON)
+option(NETKET_USE_OPENMP "Use OpenMP for multithreading" OFF)
 option(NETKET_USE_SANITIZER "Build test suite with Clang sanitizer" OFF)
 option(NETKET_USE_BLAS "Use system BLAS instead of Eigen's implementation" ON)
 option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" OFF)
@@ -182,8 +182,14 @@ if(${CMAKE_GENERATOR} STREQUAL "Ninja")
     endif()
 endif()
 
+
 if(NETKET_USE_BLAS)
     find_package(BLAS REQUIRED)
+else()
+    find_package(BLAS)    
+endif()
+
+if(BLAS_FOUND)
     target_compile_definitions(netket_lib INTERFACE EIGEN_USE_BLAS=1)
     target_link_libraries(netket_lib INTERFACE ${BLAS_LIBRARIES})
 endif()
