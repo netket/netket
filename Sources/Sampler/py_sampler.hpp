@@ -137,6 +137,14 @@ void AddSamplerModule(py::module& m) {
         netket.machine: The machine used for the sampling.  )EOF")
       .def_property_readonly("n_chains", &AbstractSampler::BatchSize, R"EOF(
         int: Number of independent chains being sampled.)EOF")
+      .def_property_readonly("sample_shape",
+                             [](const AbstractSampler& self) {
+                               return py::make_tuple(
+                                   self.CurrentState().first.rows(),
+                                   self.CurrentState().first.cols());
+                             },
+                             R"EOF(
+          (int,int): Shape of the sample generated at each step, namely (n_chains,n_visible).)EOF")
       .def_property(
           "machine_func",
           [](const AbstractSampler& self) {

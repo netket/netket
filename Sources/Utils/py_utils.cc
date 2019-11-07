@@ -15,7 +15,6 @@
 #include "py_utils.hpp"
 
 #include <pybind11/eigen.h>
-
 #include "Utils/all_utils.hpp"
 
 namespace py = pybind11;
@@ -31,7 +30,6 @@ void AddUtilsModule(py::module m) {
       .def("seed", static_cast<void (netket::default_random_engine::*)(
                        netket::default_random_engine::result_type)>(
                        &netket::default_random_engine::seed));
-
   subm.def(
       "seed",
       [](const DistributedRandomEngine::ResultType &seed) {
@@ -39,6 +37,21 @@ void AddUtilsModule(py::module m) {
       },
       py::arg("seed") = netket::default_random_engine::default_seed,
       R"EOF(seed: The chosen seed for the distributed random number generator.  )EOF");
+
+  subm.def(
+      "random_engine", []() { return; },
+      R"EOF(seed: The random engine for the distributed random number generator.  )EOF");
+
+  subm.def("rand_uniform_real",
+           [](Eigen::Ref<Eigen::VectorXd> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_real_distribution<> dis;
+
+             for (Index i = 0; i < samples.size(); i++) {
+               samples(i) = (dis(gen));
+             }
+           },
+           py::arg("samples"));
 
   py::class_<MPIHelpers>(m, "MPI")
       .def_static("rank", &MPIHelpers::MPIRank,
