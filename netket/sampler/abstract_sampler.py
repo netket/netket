@@ -12,6 +12,8 @@ class AbstractSampler(abc.ABC):
             sample_shape if sample_shape != None else (1, machine.hilbert.size)
         )
 
+        self.reset(True)
+
     def __iter__(self):
         return self
 

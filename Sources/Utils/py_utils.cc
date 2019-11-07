@@ -53,6 +53,19 @@ void AddUtilsModule(py::module m) {
            },
            py::arg("samples"));
 
+  subm.def("rand_uniform_real",
+           [](Eigen::Ref<Eigen::MatrixXd> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_real_distribution<> dis;
+
+             for (Index i = 0; i < samples.rows(); i++) {
+               for (Index j = 0; j < samples.cols(); j++) {
+                 samples(i, j) = (dis(gen));
+               }
+             }
+           },
+           py::arg("samples"));
+
   py::class_<MPIHelpers>(m, "MPI")
       .def_static("rank", &MPIHelpers::MPIRank,
                   R"EOF(int: The MPI rank for the current process.  )EOF")

@@ -104,15 +104,13 @@ def test_states_in_hilbert():
         hi = ma.hilbert
         localstates = hi.local_states
 
-        for sw in range(100):
-            sa.sweep()
-            visible = sa.visible
-            assert visible.shape[1] == hi.size
-            for v in visible.reshape(-1):
+        for sample in sa.samples(100):
+            assert sample.shape[1] == hi.size
+            for v in sample.reshape(-1):
                 assert v in localstates
 
-            if hasattr(sa, "acceptance"):
-                assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
+        if hasattr(sa, "acceptance"):
+            assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
 
 
 def test_machine_func():
@@ -174,15 +172,13 @@ def test_correct_sampling():
             # fill in the histogram for sampler
 
             # Burnout fase
-            for sw in range(n_samples // 10):
-                sa.sweep()
+            for _ in sa.samples(n_samples // 10):
+                pass
 
             n_s = 0
-            for sw in range(n_samples):
-                sa.sweep()
-                visible = sa.visible
-
-                for v in visible:
+            for sample in sa.samples(n_samples, False):
+                assert sample.shape[1] == hi.size
+                for v in sample:
                     sttn = hi.state_to_number(v)
                     hist_samp[sttn] += 1
                     n_s += 1
@@ -191,7 +187,7 @@ def test_correct_sampling():
             f_exp = n_s * ps
 
             statistics, pvalues[jrep] = power_divergence(
-                hist_samp, f_exp=f_exp, lambda_=3 / 2
+                hist_samp, f_exp=f_exp, lambda_=3 // 2
             )
 
         s, pval = combine_pvalues(pvalues, method="fisher")

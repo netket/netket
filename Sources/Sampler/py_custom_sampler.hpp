@@ -27,15 +27,18 @@ void AddCustomSampler(py::module subm) {
   subm.def(
       "CustomSampler",
       [](AbstractMachine &m, const LocalOperator &move_operators,
-         const std::vector<double> &move_weights, Index n_chains,
+         nonstd::optional<std::vector<double>> move_weights, Index n_chains,
          nonstd::optional<Index> sweep_size,
          nonstd::optional<Index> batch_size) {
         return MetropolisHastings(
-            m, CustomLocalKernel{m, move_operators, move_weights}, n_chains,
-            sweep_size.value_or(m.Nvisible()), batch_size.value_or(n_chains));
+            m,
+            CustomLocalKernel{m, move_operators,
+                              move_weights.value_or(std::vector<double>())},
+            n_chains, sweep_size.value_or(m.Nvisible()),
+            batch_size.value_or(n_chains));
       },
       py::keep_alive<0, 1>(), py::arg("machine"), py::arg("move_operators"),
-      py::arg("move_weights") = std::vector<double>(), py::arg("n_chains") = 16,
+      py::arg("move_weights") = py::none(), py::arg("n_chains") = 16,
       py::arg{"sweep_size"} = py::none(), py::arg{"batch_size"} = py::none(),
       R"EOF(
       Custom Sampler, where transition operators are specified by the user.
@@ -98,19 +101,21 @@ void AddCustomSampler(py::module subm) {
            ```
      )EOF");
 
-  subm.def("CustomSamplerPt",
-           [](AbstractMachine &m, const LocalOperator &move_operators,
-              const std::vector<double> &move_weights, Index n_replicas,
-              nonstd::optional<Index> sweep_size) {
-             return MetropolisHastingsPt(
-                 m, CustomLocalKernel{m, move_operators, move_weights},
-                 n_replicas, sweep_size.value_or(m.Nvisible()));
-           },
-           py::keep_alive<0, 1>(), py::arg("machine"),
-           py::arg("move_operators"),
-           py::arg("move_weights") = std::vector<double>(),
-           py::arg("n_replicas") = 16, py::arg{"sweep_size"} = py::none(),
-           R"EOF(
+  subm.def(
+      "CustomSamplerPt",
+      [](AbstractMachine &m, const LocalOperator &move_operators,
+         nonstd::optional<std::vector<double>> move_weights, Index n_replicas,
+         nonstd::optional<Index> sweep_size) {
+        return MetropolisHastingsPt(
+            m,
+            CustomLocalKernel{m, move_operators,
+                              move_weights.value_or(std::vector<double>())},
+            n_replicas, sweep_size.value_or(m.Nvisible()));
+      },
+      py::keep_alive<0, 1>(), py::arg("machine"), py::arg("move_operators"),
+      py::arg("move_weights") = py::none(), py::arg("n_replicas") = 16,
+      py::arg{"sweep_size"} = py::none(),
+      R"EOF(
           This sampler performs parallel-tempering
           moves in addition to the local moves implemented in `CustomSampler`.
           The number of replicas can be $$ N_{\mathrm{rep}} $$ chosen by the user.
@@ -131,6 +136,6 @@ void AddCustomSampler(py::module subm) {
 
               ```
               )EOF");
-}
+}  // namespace netket
 }  // namespace netket
 #endif
