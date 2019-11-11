@@ -1,16 +1,17 @@
 import abc
+import numpy as _np
 
 
 class AbstractSampler(abc.ABC):
     """Abstract class for NetKet samplers"""
 
-    def __init__(self, machine, sample_shape=None):
+    def __init__(self, machine, sample_size=None):
         super().__init__()
         self.machine = machine
 
-        self.sample_shape = (
-            sample_shape if sample_shape != None else (1, machine.hilbert.size)
-        )
+        self.sample_size = sample_size if sample_size != None else 1
+
+        self.sample_shape = (sample_size, machine.hilbert.size)
 
         self.reset(True)
 
@@ -24,6 +25,14 @@ class AbstractSampler(abc.ABC):
     @abc.abstractmethod
     def reset(self, init_random=False):
         pass
+
+    @property
+    def machine_func(self):
+        return lambda x, out=None: _np.square(_np.absolute(x), out)
+
+    @machine_func.setter
+    def machine_func(self, func):
+        raise NotImplementedError
 
     def samples(self, n_max, init_random=False):
 

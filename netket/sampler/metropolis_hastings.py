@@ -48,13 +48,14 @@ class PyMetropolisHastings(AbstractSampler):
 
         self.machine = machine
         self.n_chains = n_chains
-        self.machine_func = lambda x: _np.square(_np.absolute(x))
+
         self.sweep_size = sweep_size
 
         self._kernel = transition_kernel
 
-        self.reset(True)
-        super().__init__(machine, self._state.shape)
+        self.machine_func = lambda x, out=None: _np.square(_np.absolute(x), out)
+
+        super().__init__(machine, n_chains)
 
     @property
     def n_chains(self):
@@ -73,6 +74,14 @@ class PyMetropolisHastings(AbstractSampler):
         self._log_values = _np.zeros(n_chains, dtype=_np.complex128)
         self._log_values_1 = _np.zeros(n_chains, dtype=_np.complex128)
         self._log_prob_corr = _np.zeros(n_chains)
+
+    @property
+    def machine_func(self):
+        return self._machine_func
+
+    @machine_func.setter
+    def machine_func(self, machine_fun):
+        self._machine_func = machine_fun
 
     @property
     def sweep_size(self):
@@ -204,13 +213,21 @@ class MetropolisLocal(AbstractSampler):
                 sweep_size,
                 batch_size,
             )
-        super().__init__(machine, (n_chains, machine.hilbert.size))
+        super().__init__(machine, n_chains)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class MetropolisLocalPt(AbstractSampler):
@@ -230,13 +247,21 @@ class MetropolisLocalPt(AbstractSampler):
                 """Parallel Tempering samplers are not yet implemented
                 for pure python machines"""
             )
-        super().__init__(machine, (1, machine.hilbert.size))
+        super().__init__(machine, 1)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class MetropolisExchange(AbstractSampler):
@@ -262,13 +287,21 @@ class MetropolisExchange(AbstractSampler):
                 sweep_size,
                 batch_size,
             )
-        super().__init__(machine, (n_chains, machine.hilbert.size))
+        super().__init__(machine, n_chains)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class MetropolisExchangePt(AbstractSampler):
@@ -293,13 +326,21 @@ class MetropolisExchangePt(AbstractSampler):
                 """Parallel Tempering samplers are not yet implemented
                 for pure python machines"""
             )
-        super().__init__(machine, (1, machine.hilbert.size))
+        super().__init__(machine, 1)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class MetropolisHamiltonian(AbstractSampler):
@@ -327,13 +368,21 @@ class MetropolisHamiltonian(AbstractSampler):
                 sweep_size,
                 batch_size,
             )
-        super().__init__(machine, (n_chains, machine.hilbert.size))
+        super().__init__(machine, n_chains)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class MetropolisHamiltonianPt(AbstractSampler):
@@ -355,13 +404,21 @@ class MetropolisHamiltonianPt(AbstractSampler):
                 """Parallel Tempering samplers are not yet implemented
                 for pure python machines"""
             )
-        super().__init__(machine, (1, machine.hilbert.size))
+        super().__init__(machine, 1)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class CustomSampler(AbstractSampler):
@@ -396,13 +453,21 @@ class CustomSampler(AbstractSampler):
                 sweep_size,
                 batch_size,
             )
-        super().__init__(machine, (n_chains, machine.hilbert.size))
+        super().__init__(machine, n_chains)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
 
     def __next__(self):
         return self.sampler.__next__()
+
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
+
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func
 
 
 class CustomSamplerPt(AbstractSampler):
@@ -427,7 +492,7 @@ class CustomSamplerPt(AbstractSampler):
                 """Parallel Tempering samplers are not yet implemented
                             for pure python machines"""
             )
-        super().__init__(machine, (1, machine.hilbert.size))
+        super().__init__(machine, 1)
 
     def reset(self, init_random=False):
         self.sampler.reset(init_random)
@@ -435,25 +500,10 @@ class CustomSamplerPt(AbstractSampler):
     def __next__(self):
         return self.sampler.__next__()
 
+    @property
+    def machine_func(self):
+        return self.sampler.machine_func
 
-class ExactSampler(AbstractSampler):
-    """
-    """
-
-    def __init__(self, machine, n_chains=16):
-        """
-        """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.ExactSampler(machine=machine, n_chains=n_chains)
-        else:
-            raise ValueError(
-                """Exact Sampler is not yet implemented
-                for pure python machines"""
-            )
-        super().__init__(machine, (n_chains, machine.hilbert.size))
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
+    @machine_func.setter
+    def machine_func(self, func):
+        self.sampler.machine_func = func

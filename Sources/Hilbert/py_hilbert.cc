@@ -259,13 +259,28 @@ void AddHilbertModule(py::module m) {
           R"EOF(int: The total dimension of the many-body Hilbert space.
                 Throws an exception iff the space is not indexable.)EOF")
       .def("number_to_state",
-           [](const AbstractHilbert &self, int i) {
+           [](const AbstractHilbert &self, Index i) {
              return self.GetIndex().NumberToState(i);
            },
            py::arg("i"),
            R"EOF(
            Returns the visible configuration corresponding to the i-th basis state
-           for input i. Throws an exception iff the space is not indexable.
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
+      )EOF")
+      .def("number_to_state",
+           [](const AbstractHilbert &self, const std::vector<Index> &indices) {
+             RowMatrix<double> states(indices.size(), self.Size());
+             for (Index i = 0; i < indices.size(); i++) {
+               states.row(i) = self.GetIndex().NumberToState(indices[i]);
+             }
+             return states;
+           },
+           py::arg("i"),
+           R"EOF(
+           Returns the visible configuration corresponding to the i-th basis state
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
       )EOF")
       .def("state_to_number",
            [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
