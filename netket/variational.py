@@ -4,6 +4,7 @@ from ._C_netket import MPI as _MPI
 from ._C_netket.optimizer import SR as _SR
 import json
 import warnings
+import numpy as _np
 
 
 class Vmc(object):
@@ -141,8 +142,8 @@ def estimate_expectations(
     respective expectation values, variances, and optionally gradients of the
     expectation values with respect to the variational parameters.
 
-    The estimate is based on a Markov chain of `n_samples` configurations
-    obtained from `netket.variational.compute_samples`.
+    The estimate is based on `n_samples` configurations
+    obtained from `sampler`.
 
     Args:
         ops: Sequence of linear operators
@@ -163,14 +164,17 @@ def estimate_expectations(
 
     from ._C_netket import operator as nop
     from ._C_netket import stats as nst
-    from netket.sampler import compute_samples
 
     psi = sampler.machine
 
     if not n_discard:
         n_discard = n_samples // 10
 
-    samples = compute_samples(sampler, n_samples, n_discard)
+    # Burnout phase
+    sampler.generate_samples(n_discard)
+
+    # Generate samples
+    samples = sampler.generate_samples(n_samples)
 
     local_values = [nop.local_values(op, psi, samples) for op in ops]
     stats = [nst.statistics(lv) for lv in local_values]

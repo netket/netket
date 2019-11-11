@@ -5,6 +5,7 @@ import netket as nk
 import netket.variational as vmc
 
 SEED = 214748364
+nk.utils.seed(SEED)
 
 
 def _setup_vmc():
@@ -13,11 +14,10 @@ def _setup_vmc():
     hi = nk.hilbert.Spin(s=0.5, graph=g)
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-    ma.init_random_parameters(seed=SEED, sigma=0.01)
+    ma.init_random_parameters(sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma, n_chains=100)
-    sa.seed(SEED)
+    sa = nk.sampler.ExactSampler(machine=ma, sample_size=1000)
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
     # Add custom observable
@@ -38,28 +38,29 @@ def test_vmc_functions():
 
     exact_dist = np.abs(state) ** 2
 
-    for op, name, tol in (ha, "ha", 1e-6), (sx, "sx", 1e-2):
+    n_samples = 1000
+
+    for op, name, tol in (ha, "ha", 1e-5), (sx, "sx", 1e-2):
         print("Testing expectation of op={}".format(name))
 
-        # exact_locs = [vmc.local_value(op, ma, v) for v in ma.hilbert.states()]
         states = np.array(list(ma.hilbert.states()))
         exact_locs = nk.operator.local_values(op, ma, states)
         exact_ex = np.sum(exact_dist * exact_locs).real
 
-        samples = nk.sampler.compute_samples(sampler, n_samples=15000, n_discard=1000)
+        for _ in sampler.samples(10):
+            pass
+        samples = np.array(list(sampler.samples(n_samples)))
         der_logs = ma.der_log(samples)
         nk.stats.subtract_mean(der_logs)
 
-        print(samples.shape)
-        print(der_logs.shape)
-
         local_values = nk.operator.local_values(op, ma, samples)
         ex = nk.stats.statistics(local_values)
+
         assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
         assert ex.mean.real == approx(exact_ex.real, rel=tol)
 
         stats = vmc.estimate_expectations(
-            [op], sampler, n_samples=15000, n_discard=1000
+            [op], sampler, n_samples=n_samples, n_discard=10
         )
 
         assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
@@ -71,7 +72,7 @@ def test_vmc_functions():
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
 
     _, grads = vmc.estimate_expectations(
-        [ha], sampler, 15000, 1000, compute_gradients=True
+        [ha], sampler, n_samples, 10, compute_gradients=True
     )
     assert grads[0].shape == (ma.n_par,)
     assert grad == approx(grads[0], abs=1e-4)

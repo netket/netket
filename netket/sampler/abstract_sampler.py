@@ -42,3 +42,13 @@ class AbstractSampler(abc.ABC):
         while n < n_max:
             yield self.__next__()
             n += 1
+
+    def generate_samples(self, n_samples, init_random=False, samples=None):
+        self.reset(init_random)
+
+        if samples == None:
+            samples = _np.zeros((n_samples, self.sample_shape[0], self.sample_shape[1]))
+
+        for k, sample in enumerate(self.samples(n_samples)):
+            samples[k] = sample
+        return samples
