@@ -68,7 +68,7 @@ void CustomHilbert::UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
       vrow(sf) = newconf[i];
       i++;
     } else {
-      vcol(sf) = newconf[i];
+      vcol(sf-size_) = newconf[i];
       i++;
     }
   }
