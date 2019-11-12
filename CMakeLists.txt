@@ -304,7 +304,9 @@ set(NETKET_SOURCES
     Sources/Machine/DensityMatrices/py_abstract_density_matrix.hpp
     Sources/Machine/DensityMatrices/py_density_matrix.cc 
     Sources/Graph/doubled_graph.cc
-    Sources/Graph/doubled_graph.hpp)
+    Sources/Graph/doubled_graph.hpp
+    Sources/Hilbert/doubled_hilbert.cc
+    Sources/Hilbert/doubled_hilbert.hpp)
 
 add_library(netket MODULE ${NETKET_SOURCES})
 
