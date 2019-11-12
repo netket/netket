@@ -52,7 +52,7 @@ class AbstractDensityMatrix : public AbstractMachine {
    * this density matrix acts as a shared pointer.
    * @return The physical hilbert space
    */
-  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const ;
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const;
 
   /**
    * Member function returning a reference to the physical hilbert space
@@ -63,36 +63,34 @@ class AbstractDensityMatrix : public AbstractMachine {
 
   // Batched version of LogVal
   void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorType> out,
-              const any &lt)  override;
+              const any &lt) override;
 
-  Complex LogValSingle(VisibleConstType v, const any &lt)  override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
 
   virtual void LogVal(Eigen::Ref<const RowMatrix<double>> vr,
                       Eigen::Ref<const RowMatrix<double>> vc,
                       Eigen::Ref<VectorType> out, const any &);
 
   virtual VectorType LogVal(Eigen::Ref<const RowMatrix<double>> vr,
-                      Eigen::Ref<const RowMatrix<double>> vc,
-                      const any &);
+                            Eigen::Ref<const RowMatrix<double>> vc,
+                            const any &);
 
   virtual Complex LogValSingle(VisibleConstType vr, VisibleConstType vc,
                                const any &lt = any{}) = 0;
 
   // Batched version of DerLog
   void DerLog(Eigen::Ref<const RowMatrix<double>> v,
-              Eigen::Ref<RowMatrix<Complex>> out,
-              const any &cache)  override;
+              Eigen::Ref<RowMatrix<Complex>> out, const any &cache) override;
 
-  VectorType DerLogSingle(VisibleConstType v, const any &cache)  override;
+  VectorType DerLogSingle(VisibleConstType v, const any &cache) override;
 
   virtual void DerLog(Eigen::Ref<const RowMatrix<double>> vr,
                       Eigen::Ref<const RowMatrix<double>> vc,
                       Eigen::Ref<RowMatrix<Complex>> out,
-                      const any & cache = any{});
+                      const any &cache = any{});
 
   virtual VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
                                   const any &cache = any{}) = 0;
-
 };
 }  // namespace netket
 

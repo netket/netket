@@ -20,20 +20,15 @@ const AbstractHilbert &AbstractDensityMatrix::GetHilbertPhysical() const
 
 void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> v,
                                    Eigen::Ref<VectorType> out, const any &lt) {
-  std::cout << "logval +out singlearg" << std::endl;
-
   CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
              {std::ignore, 2 * Nvisible()});
   CheckShape(__FUNCTION__, "out", out.size(), out.rows());
   LogVal(v.block(0, 0, v.rows(), Nvisible()),
-         v.block(0, 0, v.rows(), Nvisible()), out, lt);
+         v.block(0, Nvisible(), v.rows(), Nvisible()), out, lt);
 }
 
 Complex AbstractDensityMatrix::LogValSingle(VisibleConstType v, const any &lt) {
-  std::cout << "logvalsingle  singlearg" << std::endl;
-
-  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
-             {std::ignore, 2 * Nvisible()});
+  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * Nvisible()});
 
   return LogValSingle(v.head(Nvisible()), v.tail(Nvisible()), lt);
 }
@@ -47,8 +42,7 @@ void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
   CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", out.size(), out.rows());
-  std::cout << "logval doublearg" << std::endl;
-  std::cout << vr << std::endl;
+
   for (auto i = Index{0}; i < vr.rows(); ++i) {
     out(i) = LogValSingle(vr.row(i), vc.row(i), lt);
   }
@@ -57,8 +51,6 @@ void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
 VectorType AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
                                          Eigen::Ref<const RowMatrix<double>> vc,
                                          const any &cache) {
-  std::cout << "logval doublearg - alloc output" << std::endl;
-
   VectorType out(vr.rows());
   LogVal(vr, vc, out, cache);
   return out;
@@ -71,17 +63,19 @@ VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType v,
   return this->DerLogSingle(v.head(Nvisible()), v.tail(Nvisible()), cache);
 };
 
+// I have no idea why this gives a linker error if it is not defined.
+// Anyhow, It should never be called.
 VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType vr,
                                                VisibleConstType vc,
                                                const any &cache) {
-  std::cout << "HERE" << std::endl << std::flush;
   throw;
 };
 
+// I have no idea why this gives a linker error if it is not defined.
+// Anyhow, It should never be called.
 Complex AbstractDensityMatrix::LogValSingle(VisibleConstType vr,
                                             VisibleConstType vc,
                                             const any &cache) {
-  std::cout << "HERE" << std::endl <<std::flush;
   throw;
 };
 
@@ -93,7 +87,7 @@ void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> v,
              {std::ignore, 2 * Nvisible()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {v.rows(), Npar()});
   DerLog(v.block(0, 0, v.rows(), Nvisible()),
-         v.block(0, 0, v.rows(), Nvisible()), out, cache);
+         v.block(0, Nvisible(), v.rows(), Nvisible()), out, cache);
 }
 
 void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
