@@ -38,9 +38,9 @@ def test_vmc_functions():
 
     exact_dist = np.abs(state) ** 2
 
-    n_samples = 1000
+    n_samples = 2000
 
-    for op, name, tol in (ha, "ha", 1e-5), (sx, "sx", 1e-2):
+    for op, name in (ha, "ha"), (sx, "sx"):
         print("Testing expectation of op={}".format(name))
 
         states = np.array(list(ma.hilbert.states()))
@@ -56,15 +56,18 @@ def test_vmc_functions():
         local_values = nk.operator.local_values(op, ma, samples)
         ex = nk.stats.statistics(local_values)
 
-        assert ex.mean.real == approx(np.mean(local_values).real, rel=tol)
-        assert ex.mean.real == approx(exact_ex.real, rel=tol)
+        # 5-sigma test for expectation values
+        tol = ex.error_of_mean * 5
+        assert ex.mean.real == approx(np.mean(local_values).real, abs=tol)
+        assert ex.mean.real == approx(exact_ex.real, abs=tol)
 
         stats = vmc.estimate_expectations(
             [op], sampler, n_samples=n_samples, n_discard=10
         )
 
-        assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
-        assert stats[0].mean.real == approx(exact_ex.real, rel=tol)
+        assert stats[0].mean.real == approx(
+            np.mean(local_values).real, rel=tol)
+        assert stats[0].mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)
     grad = nk.stats.covariance_sv(local_values, der_logs)
