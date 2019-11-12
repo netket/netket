@@ -276,6 +276,7 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/py_abstract_machine.cc
+    Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Operator/abstract_operator.cc
     Sources/Operator/pauli_strings.cc
     Sources/Operator/graph_operator.cc
@@ -297,7 +298,13 @@ set(NETKET_SOURCES
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
     Sources/Utils/random_utils.cc
-)
+    Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
+    Sources/Machine/DensityMatrices/ndm_spin_phase.cc
+    Sources/Machine/DensityMatrices/py_abstract_density_matrix.cc
+    Sources/Machine/DensityMatrices/py_abstract_density_matrix.hpp
+    Sources/Machine/DensityMatrices/py_density_matrix.cc 
+    Sources/Graph/doubled_graph.cc
+    Sources/Graph/doubled_graph.hpp)
 
 add_library(netket MODULE ${NETKET_SOURCES})
 

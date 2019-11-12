@@ -16,69 +16,12 @@
 #ifndef NETKET_PY_DENSITY_MATRIX_HPP
 #define NETKET_PY_DENSITY_MATRIX_HPP
 
-#include <mpi.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <complex>
-#include <vector>
-#include "abstract_density_matrix.hpp"
-#include "py_diagonal_density_matrix.hpp"
-#include "py_ndm_spin_phase.hpp"
-
-namespace py = pybind11;
 
 namespace netket {
-void AddDensityMatrixModule(py::module &subm) {
-  py::class_<AbstractDensityMatrix, AbstractMachine>(subm, "DensityMatrix")
-      .def_property_readonly(
-          "hilbert_physical", &AbstractDensityMatrix::GetHilbertPhysical,
-          R"EOF(netket.hilbert.Hilbert: The physical hilbert space object of the density matrix.)EOF")
-      .def(
-          "to_matrix",
-          [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::MatrixType {
-            const auto &hind = self.GetHilbertPhysical().GetIndex();
-            AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+void AddDensityMatrixModule(pybind11::module m);
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              auto v_r = hind.NumberToState(i);
-              for (Index j = 0; j < hind.NStates(); j++) {
-                auto v_c = hind.NumberToState(j);
-
-                Eigen::VectorXd v(v_r.size() * 2);
-                v << v_r, v_c;
-
-                vals(i, j) = self.LogValSingle(v);
-                if (std::real(vals(i, j)) > maxlog) {
-                  maxlog = std::real(vals(i, j));
-                }
-              }
-            }
-
-            vals.array() -= maxlog;
-            vals = vals.array().exp();
-
-            vals /= vals.trace();
-            return vals;
-          },
-          R"EOF( a
-                Returns a numpy matrix representation of the machine.
-                The returned matrix has trace normalized to 1,
-                Note that, in general, the size of the matrix is exponential
-                in the number of quantum numbers, and this operation should thus
-                only be performed for low-dimensional Hilbert spaces.
-
-                This method requires an indexable Hilbert space.
-              )EOF");
-
-  AddDiagonalDensityMatrix(subm);
-
-  AddNdmSpinPhase(subm);
-}
 }  // namespace netket
 
 #endif  // NETKET_PY_DENSITY_MATRIX_HPP

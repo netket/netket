@@ -52,41 +52,47 @@ class AbstractDensityMatrix : public AbstractMachine {
    * this density matrix acts as a shared pointer.
    * @return The physical hilbert space
    */
-  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const {
-    return hilbert_physical_;
-  }
+  std::shared_ptr<const AbstractHilbert> GetHilbertPhysicalShared() const ;
 
-  /* Member function returning a reference to the physical hilbert space
+  /**
+   * Member function returning a reference to the physical hilbert space
    * on which this density matrix acts.
    * @return The physical hilbert space
    */
-  const AbstractHilbert &GetHilbertPhysical() const noexcept {
-    return *hilbert_physical_;
-  }
+  const AbstractHilbert &GetHilbertPhysical() const noexcept;
 
   // Batched version of LogVal
   void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorType> out,
-              const any &) override {
-    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
-               {std::ignore, 2 * Nvisible()});
-    CheckShape(__FUNCTION__, "out", out.size(), v.rows());
-    for (auto i = Index{0}; i < v.rows(); ++i) {
-      out(i) = LogValSingle(v.row(i));
-    }
-  }
+              const any &lt)  override;
+
+  Complex LogValSingle(VisibleConstType v, const any &lt)  override;
+
+  virtual void LogVal(Eigen::Ref<const RowMatrix<double>> vr,
+                      Eigen::Ref<const RowMatrix<double>> vc,
+                      Eigen::Ref<VectorType> out, const any &);
+
+  virtual VectorType LogVal(Eigen::Ref<const RowMatrix<double>> vr,
+                      Eigen::Ref<const RowMatrix<double>> vc,
+                      const any &);
+
+  virtual Complex LogValSingle(VisibleConstType vr, VisibleConstType vc,
+                               const any &lt = any{}) = 0;
 
   // Batched version of DerLog
   void DerLog(Eigen::Ref<const RowMatrix<double>> v,
               Eigen::Ref<RowMatrix<Complex>> out,
-              const any & /*cache*/) override {
-    CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
-               {std::ignore, 2 * Nvisible()});
-    CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()},
-               {v.rows(), Npar()});
-    for (auto i = Index{0}; i < v.rows(); ++i) {
-      out.row(i) = DerLogSingle(v.row(i));
-    }
-  }
+              const any &cache)  override;
+
+  VectorType DerLogSingle(VisibleConstType v, const any &cache)  override;
+
+  virtual void DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+                      Eigen::Ref<const RowMatrix<double>> vc,
+                      Eigen::Ref<RowMatrix<Complex>> out,
+                      const any & cache = any{});
+
+  virtual VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
+                                  const any &cache = any{}) = 0;
+
 };
 }  // namespace netket
 
