@@ -53,7 +53,8 @@ class PyMetropolisHastings(AbstractSampler):
 
         self._kernel = transition_kernel
 
-        self.machine_func = lambda x, out=None: _np.square(_np.absolute(x), out)
+        self.machine_func = lambda x, out=None: _np.square(
+            _np.absolute(x), out)
 
         super().__init__(machine, n_chains)
 
@@ -128,15 +129,18 @@ class PyMetropolisHastings(AbstractSampler):
 
             # Acceptance probability
             self._prob = self.machine_func(
-                _np.exp(self._log_values_1 - self._log_values + self._log_prob_corr)
+                _np.exp(self._log_values_1 -
+                        self._log_values + self._log_prob_corr)
             )
 
             # Acceptance test
             accept = self._prob > self._rand_for_acceptance[sweep]
 
             # Update of the state
-            self._log_values = _np.where(accept, self._log_values_1, self._log_values)
-            self._state = _np.where(accept.reshape(-1, 1), self._state1, self._state)
+            self._log_values = _np.where(
+                accept, self._log_values_1, self._log_values)
+            self._state = _np.where(
+                accept.reshape(-1, 1), self._state1, self._state)
         return self._state
 
 
@@ -166,13 +170,14 @@ class MetropolisLocal(AbstractSampler):
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
         """
+
          Constructs a new ``MetropolisLocal`` sampler given a machine.
          Args:
             machine: A machine $$\Psi(s)$$ used for the sampling.
-                      The probability distribution being sampled
-                      from is $$F(\Psi(s))$$, where the function
-                      $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
-            n_chains: The number of Markov Chain to be run in parallel on a single process.
+             The probability distribution being sampled
+             from is $$F(\Psi(s))$$, where the function
+             $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+            n_chains:   The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
             batch_size: The batch size to be used when calling log_val on the given Machine.
