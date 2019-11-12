@@ -396,7 +396,6 @@ class LocalOperator : public AbstractOperator {
 
   template <class T>
   friend LocalOperator operator*(T lhs, const LocalOperator &rhs) {
-    assert(std::imag(lhs) == 0.);
     auto mat = rhs.mat_;
     auto sites = rhs.sites_;
 
