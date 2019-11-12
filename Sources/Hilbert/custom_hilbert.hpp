@@ -48,8 +48,12 @@ class CustomHilbert : public AbstractHilbert {
   void UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
                   nonstd::span<const int> tochange,
                   nonstd::span<const double> newconf) const override;
-};
 
+  void UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
+                        Eigen::Ref<Eigen::VectorXd> vcol,
+                        nonstd::span<const int> tochange,
+                        nonstd::span<const double> newconf) const override;
+};
 }  // namespace netket
 
 #endif  // NETKET_CUSTOM_HILBERT_HPP

@@ -104,6 +104,32 @@ class AbstractHilbert {
                           nonstd::span<const int> tochange,
                           nonstd::span<const double> newconf) const = 0;
 
+  /**
+  Member function updating a visible configuration of rows/columns using the
+  information on where the local changes have been done. Changes on sites with
+  site < number of sites are applied to rows, the following to columns.
+  @param v is the vector visible units to be modified.
+  @param tochange contains a list of which quantum numbers are to be modified.
+  @param newconf contains the value that those quantum numbers should take
+  */
+  virtual void UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
+                                Eigen::Ref<Eigen::VectorXd> vcol,
+                                nonstd::span<const int> tochange,
+                                nonstd::span<const double> newconf) const {
+    auto low = std::lower_bound(tochange.begin(), tochange.end(), Size());
+    auto n_row = low - tochange.begin();
+
+    auto tochange_row = nonstd::span<const int>(tochange.begin(), n_row);
+    auto newconf_row = nonstd::span<const double>(newconf.begin(), n_row);
+    UpdateConf(vrow, tochange_row, newconf_row);
+
+    auto tochange_col =
+        nonstd::span<const int>(tochange.begin() + n_row, tochange.end());
+    auto newconf_col =
+        nonstd::span<const double>(newconf.begin() + n_row, newconf.end());
+    UpdateConf(vcol, tochange_col, newconf_col);
+  };
+
   virtual const AbstractGraph &GetGraph() const noexcept = 0;
 
   // Allow range-based for over all states in the Hilbert space, iff it is
