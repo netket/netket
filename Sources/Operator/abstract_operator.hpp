@@ -148,7 +148,7 @@ class AbstractOperator {
     matrix.resize(hilbert_index.NStates(), hilbert_index.NStates());
     matrix.setZero();
     ForEachMatrixElement([&matrix](const int i, const int j, const Complex x) {
-      matrix(i, j) = matrix(i, j) + x;
+      matrix(i, j) += x;
     });
     return matrix;
   }
