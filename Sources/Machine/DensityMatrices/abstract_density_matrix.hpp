@@ -89,6 +89,10 @@ class AbstractDensityMatrix : public AbstractMachine {
                       Eigen::Ref<RowMatrix<Complex>> out,
                       const any &cache = any{});
 
+  virtual RowMatrix<Complex> DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+                                    Eigen::Ref<const RowMatrix<double>> vc,
+                                    const any &cache = any{});
+
   virtual VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
                                   const any &cache = any{}) = 0;
 };

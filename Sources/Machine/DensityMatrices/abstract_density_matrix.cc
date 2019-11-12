@@ -106,4 +106,12 @@ void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
   }
 }
 
+RowMatrix<Complex> AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+                                   Eigen::Ref<const RowMatrix<double>> vc,
+                                   const linb::any &cache) {
+  RowMatrix<Complex> out(vr.rows(), Npar());
+  DerLog(vr, vc, out, cache);
+  return out;
+}
+
 }  // namespace netket
