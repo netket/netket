@@ -595,7 +595,7 @@ void AddAbstractMachine(py::module m) {
                auto input = Eigen::Map<const RowMatrix<double>>{
                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
                py::array_t<Complex> result =
-                   py::cast(self.DerLog(input, any{}));
+                   py::cast(self.LogVal(input, any{}));
                result.resize({x.shape(0), x.shape(1),
                               static_cast<pybind11::ssize_t>(self.Npar())});
                return py::object(result);
