@@ -32,11 +32,9 @@ class AbstractDensityMatrix : public AbstractMachine {
 
   using Edge = AbstractGraph::Edge;
 
-
  public:
   explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractMachine(std::make_shared<DoubledHilbert>(
-      hilbert)){};
+      : AbstractMachine(std::make_shared<DoubledHilbert>(hilbert)){};
 
   /**
    * Member function returning the physical hilbert space over which
@@ -52,9 +50,7 @@ class AbstractDensityMatrix : public AbstractMachine {
    */
   const AbstractHilbert &GetHilbertPhysical() const noexcept;
 
-  int Nvisible() const final override {
-    return NvisiblePhysical()*2;
-  }
+  int Nvisible() const final override { return NvisiblePhysical() * 2; }
 
   virtual int NvisiblePhysical() const = 0;
 

@@ -47,13 +47,9 @@ class LocalLindbladian : public AbstractOperator {
                        std::vector<std::vector<int>> &connectors,
                        std::vector<std::vector<double>> &newconfs) const;
 
-  const DoubledHilbert &GetHilbertDoubled() const {
-    return *GetHilbertDoubledShared();
-  }
+  const DoubledHilbert &GetHilbertDoubled() const;
 
-  std::shared_ptr<const DoubledHilbert> GetHilbertDoubledShared() const {
-    return std::static_pointer_cast<const DoubledHilbert>(GetHilbertShared());
-  }
+  std::shared_ptr<const DoubledHilbert> GetHilbertDoubledShared() const;
 };
 }  // namespace netket
 

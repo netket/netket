@@ -41,7 +41,6 @@ void LocalLindbladian::FindConn(
   auto vrow = v.head(N);
   auto vcol = v.tail(N);
 
-  
   Hnh_.ForEachConn(vrow, [&](ConnectorRef conn) {
     mel.push_back(-im * conn.mel);
 
@@ -91,18 +90,16 @@ void LocalLindbladian::FindConn(
             conn_col.newconf.data(),
             conn_col.newconf.data() + conn_col.newconf.size());
 
-        std::transform(conn_tmp_col.begin(), conn_tmp_col.end(), conn_tmp_col.begin(),
-                       bind2nd(std::plus<double>(), N));
+        std::transform(conn_tmp_col.begin(), conn_tmp_col.end(),
+                       conn_tmp_col.begin(), bind2nd(std::plus<double>(), N));
 
         mel.push_back(conn_row.mel * std::conj(conn_col.mel));
         connectors.push_back(conn_tmp_row);
         newconfs.push_back(newconf_tmp_row);
 
-        connectors.back().insert(connectors.back().end(),
-                                 conn_tmp_col.begin(),
+        connectors.back().insert(connectors.back().end(), conn_tmp_col.begin(),
                                  conn_tmp_col.end());
-        newconfs.back().insert(newconfs.back().end(),
-                               newconf_tmp_col.begin(),
+        newconfs.back().insert(newconfs.back().end(), newconf_tmp_col.begin(),
                                newconf_tmp_col.end());
       });
     });
@@ -118,6 +115,15 @@ void LocalLindbladian::FindConnSuperOp(
     op.FindConn(vrow, mel, connectors, newconfs, false);
     op.FindConn(vcol, mel, connectors, newconfs, false);
   }
+}
+
+const DoubledHilbert &LocalLindbladian::GetHilbertDoubled() const {
+  return *GetHilbertDoubledShared();
+}
+
+std::shared_ptr<const DoubledHilbert>
+LocalLindbladian::GetHilbertDoubledShared() const {
+  return std::static_pointer_cast<const DoubledHilbert>(GetHilbertShared());
 }
 
 }  // namespace netket
