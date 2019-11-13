@@ -28,6 +28,7 @@
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
+#include "py_local_lindbladian.hpp"
 #include "py_local_operator.hpp"
 #include "py_pauli_strings.hpp"
 
@@ -121,6 +122,7 @@ void AddOperatorModule(py::module m) {
   AddLocalOperator(subm);
   AddGraphOperator(subm);
   AddPauliStrings(subm);
+  AddLocalSuperOperatorModule(subm);
 
   subm.def(
       "local_values",

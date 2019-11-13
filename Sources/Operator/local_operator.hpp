@@ -24,6 +24,7 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <utility>
 #include <vector>
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/array_utils.hpp"
@@ -65,24 +66,25 @@ class LocalOperator : public AbstractOperator {
   static constexpr double mel_cutoff_ = 1.0e-6;
 
  public:
-  // explicit LocalOperator(const LocalOperator &rhs)
-  //     : mat_(rhs.mat_),
-  //       sites_(rhs.sites_),
-  //       invstate_(rhs.invstate_),
-  //       states_(rhs.states_),
-  //       connected_(rhs.connected_) {
-  //   SetHilbert(rhs.GetHilbert());
-  // }
+  LocalOperator(const LocalOperator &rhs)
+       : AbstractOperator(rhs.GetHilbertShared()),
+         mat_(rhs.mat_),
+         sites_(rhs.sites_),
+         invstate_(rhs.invstate_),
+         states_(rhs.states_),
+         connected_(rhs.connected_) ,
+         constant_(rhs.constant_),
+         nops_(rhs.nops_){}
 
   explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          double constant = 0.)
-      : AbstractOperator(hilbert), constant_(constant), nops_(0) {}
+      : AbstractOperator(std::move(hilbert)), constant_(constant), nops_(0) {}
 
   explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites,
                          double constant = 0.)
-      : AbstractOperator(hilbert), constant_(constant) {
+      : AbstractOperator(std::move(hilbert)), constant_(constant) {
     for (std::size_t i = 0; i < mat.size(); i++) {
       Push(mat[i], sites[i]);
     }
@@ -201,19 +203,31 @@ class LocalOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
+    return this->FindConn(v, mel, connectors, newconfs, true);
+  }
+
+  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
+                std::vector<std::vector<int>> &connectors,
+                std::vector<std::vector<double>> &newconfs,
+                bool clear_new) const {
     assert(v.size() == GetHilbert().Size());
 
-    connectors.clear();
-    newconfs.clear();
-    mel.clear();
+    int new_offset = 0;
+    if (clear_new == true) {
+      connectors.clear();
+      newconfs.clear();
+      mel.clear();
+    } else {
+      new_offset = mel.size();
+    }
 
-    connectors.resize(1);
-    newconfs.resize(1);
-    mel.resize(1);
+    connectors.resize(new_offset + 1);
+    newconfs.resize(new_offset + 1);
+    mel.resize(new_offset + 1);
 
-    mel[0] = constant_;
-    connectors[0].resize(0);
-    newconfs[0].resize(0);
+    mel[new_offset] = constant_;
+    connectors[new_offset].resize(0);
+    newconfs[new_offset].resize(0);
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
@@ -221,7 +235,7 @@ class LocalOperator : public AbstractOperator {
       assert(st1 < int(mat_[opn].size()));
       assert(st1 < int(connected_[opn].size()));
 
-      mel[0] += (mat_[opn][st1][st1]);
+      mel[new_offset] += (mat_[opn][st1][st1]);
 
       // off-diagonal part
       for (auto st2 : connected_[opn][st1]) {
