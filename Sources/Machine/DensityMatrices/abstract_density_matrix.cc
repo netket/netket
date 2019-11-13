@@ -10,27 +10,27 @@ using VectorType = AbstractDensityMatrix::VectorType;
 
 std::shared_ptr<const AbstractHilbert>
 AbstractDensityMatrix::GetHilbertPhysicalShared() const {
-  return hilbert_physical_;
+  return std::static_pointer_cast<const DoubledHilbert>(GetHilbertShared())->GetHilbertPhysicalShared();
 }
 
 const AbstractHilbert &AbstractDensityMatrix::GetHilbertPhysical() const
     noexcept {
-  return *hilbert_physical_;
+  return *GetHilbertPhysicalShared();
 }
 
 void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> v,
                                    Eigen::Ref<VectorType> out, const any &lt) {
   CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
-             {std::ignore, 2 * Nvisible()});
+             {std::ignore, 2 * NvisiblePhysical()});
   CheckShape(__FUNCTION__, "out", out.size(), out.rows());
-  LogVal(v.block(0, 0, v.rows(), Nvisible()),
-         v.block(0, Nvisible(), v.rows(), Nvisible()), out, lt);
+  LogVal(v.block(0, 0, v.rows(), NvisiblePhysical()),
+         v.block(0, NvisiblePhysical(), v.rows(), NvisiblePhysical()), out, lt);
 }
 
 Complex AbstractDensityMatrix::LogValSingle(VisibleConstType v, const any &lt) {
-  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * Nvisible()});
+  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * NvisiblePhysical()});
 
-  return LogValSingle(v.head(Nvisible()), v.tail(Nvisible()), lt);
+  return LogValSingle(v.head(NvisiblePhysical()), v.tail(NvisiblePhysical()), lt);
 }
 
 // Batched version of LogVal
@@ -38,9 +38,9 @@ void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
                                    Eigen::Ref<const RowMatrix<double>> vc,
                                    Eigen::Ref<VectorType> out, const any &lt) {
   CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
-             {std::ignore, Nvisible()});
+             {std::ignore, NvisiblePhysical()});
   CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
-             {std::ignore, Nvisible()});
+             {std::ignore, NvisiblePhysical()});
   CheckShape(__FUNCTION__, "out", out.size(), out.rows());
 
   for (auto i = Index{0}; i < vr.rows(); ++i) {
@@ -58,9 +58,8 @@ VectorType AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
 
 VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType v,
                                                const any &cache) {
-  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
-             {std::ignore, 2 * Nvisible()});
-  return this->DerLogSingle(v.head(Nvisible()), v.tail(Nvisible()), cache);
+  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * NvisiblePhysical()});
+  return this->DerLogSingle(v.head(NvisiblePhysical()), v.tail(NvisiblePhysical()), cache);
 };
 
 // I have no idea why this gives a linker error if it is not defined.
@@ -68,6 +67,7 @@ VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType v,
 VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType vr,
                                                VisibleConstType vc,
                                                const any &cache) {
+  std::cout << "Executed code that should not be executed." << std::endl;
   throw;
 };
 
@@ -76,6 +76,7 @@ VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType vr,
 Complex AbstractDensityMatrix::LogValSingle(VisibleConstType vr,
                                             VisibleConstType vc,
                                             const any &cache) {
+  std::cout << "Executed code that should not be executed." << std::endl;
   throw;
 };
 
@@ -84,10 +85,11 @@ void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> v,
                                    Eigen::Ref<RowMatrix<Complex>> out,
                                    const any &cache) {
   CheckShape(__FUNCTION__, "vr", {v.rows(), v.cols()},
-             {std::ignore, 2 * Nvisible()});
+             {std::ignore, 2 * NvisiblePhysical()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {v.rows(), Npar()});
-  DerLog(v.block(0, 0, v.rows(), Nvisible()),
-         v.block(0, Nvisible(), v.rows(), Nvisible()), out, cache);
+
+  DerLog(v.block(0, 0, v.rows(), NvisiblePhysical()),
+         v.block(0, NvisiblePhysical(), v.rows(), NvisiblePhysical()), out, cache);
 }
 
 void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
@@ -95,14 +97,15 @@ void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
                                    Eigen::Ref<RowMatrix<Complex>> out,
                                    const any &cache) {
   CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
-             {std::ignore, Nvisible()});
+             {std::ignore, NvisiblePhysical()});
   CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
-             {std::ignore, Nvisible()});
+             {std::ignore, NvisiblePhysical()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()},
              {vr.rows(), Npar()});
+
   for (auto i = Index{0}; i < vr.rows(); ++i) {
     out.row(i) =
-        AbstractDensityMatrix::DerLogSingle(vr.row(i), vc.row(i), cache);
+        DerLogSingle(vr.row(i), vc.row(i), cache);
   }
 }
 

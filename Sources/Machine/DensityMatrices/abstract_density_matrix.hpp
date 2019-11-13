@@ -17,7 +17,7 @@
 #define NETKET_ABSTRACT_DENSITY_MATRIX_HPP
 
 #include "Graph/doubled_graph.hpp"
-#include "Hilbert/custom_hilbert.hpp"
+#include "Hilbert/doubled_hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
 #include "Utils/memory_utils.hpp"
 
@@ -30,22 +30,13 @@ namespace netket {
 class AbstractDensityMatrix : public AbstractMachine {
   // The physical hilbert space over which this operator acts
 
-  std::shared_ptr<const AbstractHilbert> hilbert_physical_;
-  std::unique_ptr<const AbstractGraph> graph_doubled_;
-
   using Edge = AbstractGraph::Edge;
 
- protected:
-  AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> physical_hilbert,
-                        std::unique_ptr<const AbstractGraph> doubled_graph)
-      : AbstractMachine(std::make_shared<CustomHilbert>(
-            *doubled_graph, physical_hilbert->LocalStates())),
-        hilbert_physical_(physical_hilbert),
-        graph_doubled_(std::move(doubled_graph)) {}
 
  public:
   explicit AbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractDensityMatrix(hilbert, DoubledGraph(hilbert->GetGraph())){};
+      : AbstractMachine(std::make_shared<DoubledHilbert>(
+      hilbert)){};
 
   /**
    * Member function returning the physical hilbert space over which
@@ -60,6 +51,12 @@ class AbstractDensityMatrix : public AbstractMachine {
    * @return The physical hilbert space
    */
   const AbstractHilbert &GetHilbertPhysical() const noexcept;
+
+  int Nvisible() const final override {
+    return NvisiblePhysical()*2;
+  }
+
+  virtual int NvisiblePhysical() const = 0;
 
   // Batched version of LogVal
   void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorType> out,

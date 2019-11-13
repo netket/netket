@@ -108,7 +108,8 @@ class NdmSpinPhase : public AbstractDensityMatrix {
 
   void Init();
 
-  int Nvisible() const override { return nv_; }
+  /*int Nvisible() const override { return nv_; }*/
+  int NvisiblePhysical() const override { return nv_; }
 
   int Nhidden() const { return nh_; }
 

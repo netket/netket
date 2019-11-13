@@ -154,7 +154,6 @@ void AddAbstractDensityMatrix(py::module &subm) {
             if (xc.ndim() == 0) {
               if (xr.ndim() == 1) {
                 auto input = xr.cast<Eigen::Ref<const VectorXd>>();
-                std::cout << input.size() << std::endl;
                 return py::cast(self.LogValSingle(input, any{}));
               } else if (xr.ndim() == 2) {
                 auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
@@ -214,7 +213,6 @@ void AddAbstractDensityMatrix(py::module &subm) {
             if (xc.ndim() == 0) {
               if (xr.ndim() == 1) {
                 auto input = xr.cast<Eigen::Ref<const VectorXd>>();
-                std::cout << input.size() << std::endl;
                 return py::cast(self.DerLogSingle(input, any{}));
               } else if (xr.ndim() == 2) {
                 auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
@@ -239,9 +237,6 @@ void AddAbstractDensityMatrix(py::module &subm) {
             if (xr.ndim() == 1) {
               auto input_r = xr.cast<Eigen::Ref<const VectorXd>>();
               auto input_c = xc.cast<Eigen::Ref<const VectorXd>>();
-              std::cout << "1 in, multi arg" << std::endl;
-              // std::cout << input_r.shape() << std::endl;
-              std::cout << typeid(self).name() << std::endl;
               return py::cast(self.DerLogSingle(input_r, input_c));
             } else if (xr.ndim() == 2) {
               auto input_r = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
