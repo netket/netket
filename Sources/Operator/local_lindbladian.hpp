@@ -28,7 +28,11 @@ class LocalLindbladian : public AbstractOperator {
 
  private:
   LocalOperator Hnh_;
+  LocalOperator H_;
   std::vector<const LocalOperator> jump_ops_;
+
+  LocalOperator Hnh_dag_;
+  std::vector<const LocalOperator> jump_ops_dag_;
 
  public:
   explicit LocalLindbladian(const LocalOperator &H);
@@ -48,6 +52,9 @@ class LocalLindbladian : public AbstractOperator {
                        std::vector<std::vector<double>> &newconfs) const;
 
   const DoubledHilbert &GetHilbertDoubled() const;
+  const LocalOperator& GetEffectiveHamiltonian() const {
+    return Hnh_;
+  };
 
   std::shared_ptr<const DoubledHilbert> GetHilbertDoubledShared() const;
 };

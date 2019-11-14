@@ -334,7 +334,7 @@ class LocalOperator : public AbstractOperator {
   friend LocalOperator operator*(const LocalOperator &lhs,
                                  const LocalOperator &rhs) {
     // TODO
-    // assert(lhs.Hilbert() == rhs.Hilbert());
+    assert(lhs.GetHilbert().Size() == rhs.GetHilbert().Size());
     // check if sites have intersections, in that case this algorithm is wrong
     std::vector<MatType> mat;
     std::vector<SiteType> sites;
