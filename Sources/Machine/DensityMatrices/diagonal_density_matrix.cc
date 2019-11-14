@@ -71,7 +71,7 @@ void DiagonalDensityMatrix::SetParameters(VectorConstRefType pars) {
   return density_matrix_.SetParameters(pars);
 }
 int DiagonalDensityMatrix::Nvisible() const {
-  return density_matrix_.Nvisible();
+  return density_matrix_.NvisiblePhysical();
 }
 
 bool DiagonalDensityMatrix::IsHolomorphic() const noexcept {
