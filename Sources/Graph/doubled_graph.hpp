@@ -5,7 +5,10 @@
 #ifndef NETKET_DOUBLED_GRAPH_HPP
 #define NETKET_DOUBLED_GRAPH_HPP
 
+#include <memory>
+
 #include "Graph/custom_graph.hpp"
+#include "Graph/edgeless.hpp"
 
 namespace netket {
 /**
@@ -15,5 +18,5 @@ namespace netket {
  * to both it's subgraphs.
  */
 std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph);
-}
+}  // namespace netket
 #endif  // NETKET_DOUBLED_GRAPH_HPP

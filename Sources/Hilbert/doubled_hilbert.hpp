@@ -6,6 +6,7 @@
 #define NETKET_DOUBLED_HILBERT_HPP
 
 #include <utility>
+#include <memory>
 
 #include "Graph/abstract_graph.hpp"
 #include "Graph/doubled_graph.hpp"
