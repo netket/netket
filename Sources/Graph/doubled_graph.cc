@@ -15,7 +15,7 @@ using Edge = AbstractGraph::Edge;
  * The automorpisms of G are the automorphisms of g applied identically
  * to both it's subgraphs.
  */
-std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph) {
+std::unique_ptr<AbstractGraph> DoubledGraph(const AbstractGraph &graph) {
   auto n_sites = graph.Nsites();
   std::vector<Edge> d_edges(graph.Edges().size());
   auto eclist = graph.EdgeColors();
@@ -46,7 +46,7 @@ std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph) {
   }
 
   if (d_edges.empty()) {
-    return make_unique<CustomGraph>(CustomGraph(n_sites*2));
+    return make_unique<Edgeless>(Edgeless(n_sites*2));
   }
 
   return make_unique<CustomGraph>(

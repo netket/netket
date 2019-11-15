@@ -17,6 +17,6 @@ namespace netket {
  * The automorpisms of G are the automorphisms of g applied identically
  * to both it's subgraphs.
  */
-std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph);
+std::unique_ptr<AbstractGraph> DoubledGraph(const AbstractGraph &graph);
 }  // namespace netket
 #endif  // NETKET_DOUBLED_GRAPH_HPP

@@ -29,12 +29,6 @@ CustomGraph::CustomGraph(std::vector<Edge> edges, ColorMap colors,
   if (n_sites_ == 0) {
     throw InvalidInputError{"Empty graphs are not supported."};
   }
-  Init();
-}
-
-CustomGraph::CustomGraph(int n_sites) : n_sites_(n_sites) { Init(); }
-
-void CustomGraph::Init() {
   if (eclist_.empty() && !edges_.empty()) {
     for (auto const &edge : edges_) {
       eclist_.emplace(edge, 0);
