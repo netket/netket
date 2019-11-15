@@ -20,6 +20,7 @@ void AddLocalSuperOperatorModule(py::module &subm) {
           "jump_ops", &LocalLindbladian::GetJumpOperators,
           R"EOF(list[list]: A list of the local matrices.)EOF")
       .def("add_jump_op", &LocalLindbladian::AddJumpOperator,
-           R"EOF(jump_op: add jump op.)EOF");
+           R"EOF(jump_op: add jump op.)EOF")
+      .def("get_effective_hamiltonian", &LocalLindbladian::GetEffectiveHamiltonian);
 }
 }  // namespace netket

@@ -32,7 +32,6 @@ class LocalLindbladian : public AbstractOperator {
   std::vector<const LocalOperator> jump_ops_;
 
   LocalOperator Hnh_dag_;
-  std::vector<const LocalOperator> jump_ops_dag_;
 
  public:
   explicit LocalLindbladian(const LocalOperator &H);

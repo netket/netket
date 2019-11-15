@@ -38,7 +38,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 # Using local operators
 sx = [[0, 1], [1, 0]]
 sy = [[0, -1j], [1j, 0]]
-sz = [[1, 1j], [0, -1]]
+sz = [[1, 0], [0, -1]]
 
 sigmam = [[0, 0], [1, 0]]
 
@@ -54,13 +54,12 @@ for i in range(L):
 # Create the lindbladian with no jump operators
 lind = nk.operator.LocalLindbladian(ha)
 
-
-def test_lindblad_form:
-    # add the jump operators
-    for j_op in j_ops:
-        lind.add_jump_op(j_op)
+# add the jump operators
+for j_op in j_ops:
+    lind.add_jump_op(j_op)
 
 
+def test_lindblad_form():
     ## Construct the lindbladian by hand:
     idmat = sparse.eye(2**L)
 
@@ -68,17 +67,22 @@ def test_lindblad_form:
     hnh_mat = ha.to_sparse()
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        hnh_mat -= 0.5j * j_mat.conj().transpose()*j_mat
+        hnh_mat -= 0.5j * j_mat.H*j_mat
 
 
     # Compute the left and right product with identity
-    lind_mat = -1j*sparse.kron(hnh_mat, idmat) + 1j*sparse.kron(idmat, hnh_mat.conj().transpose()) 
-
+    lind_mat = -1j*sparse.kron(idmat, hnh_mat) + 1j*sparse.kron(hnh_mat.H, idmat) 
     # add jump operators
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        lind_mat -= sparse.kron(j_mat, j_mat.conj().transpose())
+        lind_mat += sparse.kron(j_mat.conj(), j_mat)
 
 
-    assert lind_mat != lind.to_sparse()
+    assert (lind_mat.todense() == lind.to_dense()).all()
 
+
+def test_lindblad_zero_eigenvalue():
+    lind_mat = lind.to_sparse()
+    w, v = linalg.eigsh(lind_mat.H*lind_mat, which='SM')
+    assert w[0] <= 10e-10
+    
