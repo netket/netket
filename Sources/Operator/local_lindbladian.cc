@@ -40,17 +40,18 @@ void LocalLindbladian::ForEachConn(
     netket::AbstractOperator::ConnCallback callback) const {
   auto N = GetHilbertDoubled().SizePhysical();
 
+  SiteType tochange;
+  std::vector<double> newconf;
+
   ForEachConnSuperOp(v.head(N), v.tail(N), [&](ConnectorSuperopRef conn) {
-    auto tochange =
-        SiteType(conn.tochange_row.size() + conn.tochange_col.size());
+    tochange.resize(conn.tochange_row.size() + conn.tochange_col.size());
     std::copy(conn.tochange_row.begin(), conn.tochange_row.end(),
               tochange.begin());
     std::transform(conn.tochange_col.begin(), conn.tochange_col.end(),
                    tochange.begin() + conn.tochange_row.size(),
                    bind2nd(std::plus<int>(), N));
 
-    auto newconf = std::vector<double>(conn.tochange_row.size() +
-                                       conn.tochange_col.size());
+    newconf.resize(conn.tochange_row.size() + conn.tochange_col.size());
     std::copy(conn.newconf_row.begin(), conn.newconf_row.end(),
               newconf.begin());
     std::copy(conn.newconf_col.begin(), conn.newconf_col.end(),
@@ -68,10 +69,8 @@ void LocalLindbladian::FindConn(VectorConstRefType v, MelType &mel,
   mel.clear();
 
   auto N = GetHilbertDoubled().SizePhysical();
-  auto vrow = v.head(N);
-  auto vcol = v.tail(N);
 
-  ForEachConnSuperOp(vrow, vcol, [&](ConnectorSuperopRef conn) {
+  ForEachConnSuperOp(v.head(N), v.tail(N), [&](ConnectorSuperopRef conn) {
     auto tochange =
         SiteType(conn.tochange_row.size() + conn.tochange_col.size());
     std::copy(conn.tochange_row.begin(), conn.tochange_row.end(),
