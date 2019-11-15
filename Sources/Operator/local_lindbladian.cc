@@ -9,8 +9,8 @@ namespace netket {
 
 LocalLindbladian::LocalLindbladian(const LocalOperator &H)
     : AbstractOperator(std::make_shared<DoubledHilbert>(H.GetHilbertShared())),
-      H_(H),
       Hnh_(H),
+      H_(H),
       Hnh_dag_(H) {
   Init();
 }
@@ -25,7 +25,7 @@ void LocalLindbladian::Init() {
   Hnh_dag_ = Hnh_.Conjugate().Transpose();
 }
 
-const std::vector<const LocalOperator> &LocalLindbladian::GetJumpOperators()
+const std::vector<LocalOperator> &LocalLindbladian::GetJumpOperators()
     const {
   return jump_ops_;
 }
@@ -78,7 +78,7 @@ void LocalLindbladian::FindConn(
 
   // Compute term \sum_i L_i \otimes L_i^\dagger
   // Iterate over all jump operators
-  for (int i = 0; i < jump_ops_.size(); i++) {
+  for (size_t i = 0; i < jump_ops_.size(); i++) {
     auto op = jump_ops_[i];
 
     // For every connection <vrow|L_i|x>
