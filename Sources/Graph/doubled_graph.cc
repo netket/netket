@@ -45,6 +45,10 @@ std::unique_ptr<CustomGraph> DoubledGraph(const AbstractGraph &graph) {
     d_automorphisms.push_back(d_automorphism);
   }
 
+  if (d_edges.empty()) {
+    return make_unique<CustomGraph>(CustomGraph(n_sites*2));
+  }
+
   return make_unique<CustomGraph>(
       CustomGraph(d_edges, d_eclist, d_automorphisms));
 }
