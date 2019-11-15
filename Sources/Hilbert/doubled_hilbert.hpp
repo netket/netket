@@ -24,7 +24,7 @@ class DoubledHilbert : public AbstractHilbert {
                  std::unique_ptr<const AbstractGraph> doubled_graph);
 
  public:
-  explicit DoubledHilbert(std::shared_ptr<const AbstractHilbert> hilbert)
+  explicit DoubledHilbert(const std::shared_ptr<const AbstractHilbert>& hilbert)
       : DoubledHilbert(hilbert, DoubledGraph(hilbert->GetGraph())){};
 
   // -- DoubledHilbert Interface  -- //

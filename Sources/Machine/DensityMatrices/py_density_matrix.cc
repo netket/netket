@@ -102,6 +102,10 @@ void AddAbstractDensityMatrix(py::module &subm) {
       .def_property_readonly(
           "hilbert", &AbstractDensityMatrix::GetHilbert,
           R"EOF(netket.hilbert.Hilbert: The hilbert space object of the system.)EOF")
+      .def_property_readonly(
+          "n_visible_physical", &AbstractDensityMatrix::NvisiblePhysical,
+          R"EOF(int: The number of inputs into the machine aka visible units in
+            the case of Restricted Boltzmann Machines.)EOF")
       .def(
           "to_matrix",
           [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::MatrixType {

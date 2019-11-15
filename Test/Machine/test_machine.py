@@ -343,5 +343,6 @@ def test_nvisible():
         hip = machine.hilbert_physical
         hi = machine.hilbert
 
-        assert machine.n_visible == hip.size
-        assert machine.n_visible * 2 == hi.size
+        assert machine.n_visible_physical == machine.n_visible * 2
+        assert machine.n_visible_physical == hip.size
+        assert machine.n_visible == hi.size

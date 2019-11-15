@@ -60,7 +60,7 @@ VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType v,
                                                const any &cache) {
   CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * NvisiblePhysical()});
   return this->DerLogSingle(v.head(NvisiblePhysical()), v.tail(NvisiblePhysical()), cache);
-};
+}
 
 // I have no idea why this gives a linker error if it is not defined.
 // Anyhow, It should never be called.
@@ -69,7 +69,7 @@ VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType vr,
                                                const any &cache) {
   std::cout << "Executed code that should not be executed." << std::endl;
   throw;
-};
+}
 
 // I have no idea why this gives a linker error if it is not defined.
 // Anyhow, It should never be called.
@@ -78,7 +78,7 @@ Complex AbstractDensityMatrix::LogValSingle(VisibleConstType vr,
                                             const any &cache) {
   std::cout << "Executed code that should not be executed." << std::endl;
   throw;
-};
+}
 
 // Batched version of DerLog
 void AbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> v,
