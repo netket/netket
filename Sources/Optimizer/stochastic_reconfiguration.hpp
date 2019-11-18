@@ -121,15 +121,15 @@ class SR {
   void SetStoreRank(bool enabled);
 
   /**
-   * Returns a pointer to the full S matrix computed during the last call to
-   * `ComputeUpdate` or `nullptr`, in case storing the S matrix is not enabled
+   * Returns the S matrix computed during the last call to
+   * `ComputeUpdate` or `nullopt`, in case storing the S matrix is not enabled
    * and before the first call to `ComputeUpdate`.
    *
    * Storing the S matrix is enabled and disabled by `SetStoreFullSMatrix`
    * below.
    */
-  const MatrixXcd* LastSMatrix() const {
-    return last_S_.has_value() ? &last_S_.value() : nullptr;
+  const nonstd::optional<MatrixXcd>& LastSMatrix() const {
+    return last_S_;
   }
   bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
   void SetStoreFullSMatrix(bool enabled);
