@@ -102,6 +102,11 @@ RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
   std::vector<std::vector<int>> tochange;
   std::vector<std::vector<double>> newconfs;
   Eigen::VectorXcd outlvd;
+  Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
+
+  std::vector<Complex> loc_storage;
+  Eigen::Map<Eigen::ArrayXcd> loc(&loc_storage[0], loc_storage.size());
+
   for (auto i = Index{0}; i < samples.rows(); ++i) {
     auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
 
@@ -111,11 +116,18 @@ RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
     machine.LogValDiff(v, tochange, newconfs, outlvd);
     RowMatrix<Complex> der_log_diff = machine.DerLogDiff(v, tochange, newconfs);
 
-    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-    Eigen::VectorXcd loc = meleig * outlvd.array().exp();
+    new (&meleig) Eigen::Map<const Eigen::ArrayXcd>(&mel[0], mel.size());
 
-    RowMatrix<Complex> aa = (der_log_diff.array().colwise() * loc.array());
-    der_local.row(i) = aa.colwise().sum();
+    // If we need more memory than what is allocated...
+    if (meleig.size() > loc_storage.size()) {
+      loc_storage.resize(meleig.size());
+    }
+    new (&loc)
+        Eigen::Map<Eigen::ArrayXcd>(&loc_storage[0], meleig.size());
+
+    loc = meleig * outlvd.array().exp();
+
+    der_local.row(i) = (der_log_diff.array().colwise() * loc.array()).colwise().sum();
   }
   return der_local;
 }

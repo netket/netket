@@ -186,7 +186,7 @@ void AddOperatorModule(py::module m) {
                     samples.shape(2)},
                 machine, op, batch_size));
             local_values.attr("resize")(samples.shape(0), samples.shape(1),
-                                        samples.shape(2));
+                                        machine.Npar());
             return local_values;
           }
           case 2:
