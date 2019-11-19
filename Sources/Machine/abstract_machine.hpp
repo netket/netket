@@ -197,6 +197,25 @@ class AbstractMachine {
                                    const std::vector<int> &tochange,
                                    const std::vector<double> &newconf);
 
+  /**
+  Member function computing the difference between the logarithm of the
+  log-derivative computed at different values of the visible units (v, and a set
+  of v').
+
+  @note performance of the default implementation is pretty bad.
+
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the indeces of the
+  units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here for each v', newconf(i)=v'(tochange(i)), where v' is
+  the new visible state.
+  @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
+  */
+  virtual RowMatrix<Complex> DerLogDiff(
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf);
+
   virtual bool IsHolomorphic() const noexcept = 0;
 
   virtual PyObject *StateDict() {

@@ -90,25 +90,26 @@ void AddOperatorModule(py::module m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def("to_linear_operator",
-               [](py::object py_self) {
-                 const auto* cxx_self = py_self.cast<AbstractOperator const*>();
-                 const auto dtype =
-                     py::module::import("numpy").attr("complex128");
-                 const auto linear_operator =
-                     py::module::import("scipy.sparse.linalg")
-                         .attr("LinearOperator");
-                 const auto dim = cxx_self->Dimension();
-                 return linear_operator(
-                     py::arg{"shape"} = std::make_tuple(dim, dim),
-                     py::arg{"matvec"} = py::cpp_function(
-                         // TODO: Does this copy data?
-                         [py_self, cxx_self](const Eigen::VectorXcd& x) {
-                           return cxx_self->Apply(x);
-                         }),
-                     py::arg{"dtype"} = dtype);
-               },
-               R"EOF(
+          .def(
+              "to_linear_operator",
+              [](py::object py_self) {
+                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                const auto dtype =
+                    py::module::import("numpy").attr("complex128");
+                const auto linear_operator =
+                    py::module::import("scipy.sparse.linalg")
+                        .attr("LinearOperator");
+                const auto dim = cxx_self->Dimension();
+                return linear_operator(
+                    py::arg{"shape"} = std::make_tuple(dim, dim),
+                    py::arg{"matvec"} = py::cpp_function(
+                        // TODO: Does this copy data?
+                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                          return cxx_self->Apply(x);
+                        }),
+                    py::arg{"dtype"} = dtype);
+              },
+              R"EOF(
         Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
 
         This method requires an indexable Hilbert space.
@@ -168,6 +169,56 @@ void AddOperatorModule(py::module m) {
                     Chains, and `#visible` is the number of visible units.
                 machine: Wavefunction.
                 op: Hermitian operator.
+                batch_size: Batch size.
+
+            Returns:
+                A numpy array of local values of the operator.)EOF");
+
+  subm.def(
+      "der_local_values",
+      [](AbstractOperator& op, AbstractMachine& machine,
+         py::array_t<double, py::array::c_style> samples, Index batch_size) {
+        switch (samples.ndim()) {
+          case 3: {
+            auto local_values = py::cast(DerLocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0) * samples.shape(1),
+                    samples.shape(2)},
+                machine, op, batch_size));
+            local_values.attr("resize")(samples.shape(0), samples.shape(1),
+                                        samples.shape(2));
+            return local_values;
+          }
+          case 2:
+            return py::cast(DerLocalValues(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0), samples.shape(1)},
+                machine, op, batch_size));
+          case 1:
+            return py::cast(DerLocalValues(
+                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
+                                                    samples.shape(0)},
+                machine, op, batch_size));
+          default:
+            NETKET_CHECK(false, InvalidInputError,
+                         "samples has wrong dimension: "
+                             << samples.ndim()
+                             << "; expected either 1, 2 or 3.");
+        }
+      },
+      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
+      py::arg{"batch_size"} = 16,
+      R"EOF(Computes derivative of local values of the operator `op` for all `samples`.
+
+            Args:
+                op: Hermitian operator.
+                machine: The neural network encoding the state.
+                samples: A matrix (or a rank-3 tensor) of visible
+                    configurations. If it is a matrix, each row of the matrix
+                    must correspond to a visible configuration.  `samples` is a
+                    rank-3 tensor, its shape should be `(N, M, #visible)` where
+                    `N` is the number of samples, `M` is the number of Markov
+                    Chains, and `#visible` is the number of visible units.
                 batch_size: Batch size.
 
             Returns:

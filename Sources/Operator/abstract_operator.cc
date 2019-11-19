@@ -86,4 +86,38 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
   return locals;
 }
 
+RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
+                                  AbstractMachine& machine,
+                                  const AbstractOperator& op,
+                                  Index batch_size) {
+  if (batch_size < 1) {
+    std::ostringstream msg;
+    msg << "invalid batch size: " << batch_size << "; expected >=1";
+    throw InvalidInputError{msg.str()};
+  }
+  RowMatrix<Complex> der_local(samples.rows(), machine.Npar());
+  Eigen::VectorXcd val_local(samples.rows());
+
+  std::vector<Complex> mel;
+  std::vector<std::vector<int>> tochange;
+  std::vector<std::vector<double>> newconfs;
+  Eigen::VectorXcd outlvd;
+  for (auto i = Index{0}; i < samples.rows(); ++i) {
+    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
+
+    op.FindConn(v, mel, tochange, newconfs);
+    outlvd.resize(newconfs.size());
+
+    machine.LogValDiff(v, tochange, newconfs, outlvd);
+    RowMatrix<Complex> der_log_diff = machine.DerLogDiff(v, tochange, newconfs);
+
+    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
+    Eigen::VectorXcd loc = meleig * outlvd.array().exp();
+
+    RowMatrix<Complex> aa = (der_log_diff.array().colwise() * loc.array());
+    der_local.row(i) = aa.colwise().sum();
+  }
+  return der_local;
+}
+
 }  // namespace netket

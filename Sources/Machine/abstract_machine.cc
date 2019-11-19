@@ -110,6 +110,36 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   return DerLogSingle(vp);
 }
 
+RowMatrix<Complex> AbstractMachine::DerLogDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf) {
+  RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
+  input = v.transpose().colwise().replicate(input.rows());
+
+  nonstd::optional<Index> log_val_single_ind;
+
+  for (auto i = Index{0}; i < input.rows(); ++i) {
+    GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
+                            newconf[static_cast<size_t>(i)]);
+
+    // One of the states is equal to v ?
+    if (tochange[static_cast<size_t>(i)].size() == 0) {
+      log_val_single_ind = i;
+    }
+  }
+
+  // auto
+  RowMatrix<Complex> output = DerLog(input, any{});
+
+  if (log_val_single_ind.has_value()) {
+    output = output.rowwise() - output.row(log_val_single_ind.value());
+  } else {
+    output = output.rowwise() - DerLogSingle(v, any{}).transpose();
+  }
+
+  return output;
+}
+
 AbstractMachine::VectorType AbstractMachine::LogValDiff(
     VisibleConstType v, const std::vector<std::vector<int>> &tochange,
     const std::vector<std::vector<double>> &newconf) {

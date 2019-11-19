@@ -227,6 +227,24 @@ Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
                              AbstractMachine &machine,
                              const AbstractOperator &op, Index batch_size);
 
+/**
+ * Computes the derivative of local values of the operator `op` in
+ * configurations `samples`.
+ *
+ * @param samples A matrix of MC samples as returned by #ComputeSamples(). Every
+ *                row represents a single visible configuration.
+ * @param values Logarithms of wave function values as returned by
+ *               #ComputeSamples().
+ * @param machine Machine representation of the wavefunction.
+ * @param op Operator for which to compute the local values.
+ * @param batch_size Batch size to use internally.
+ *
+ * @return local values of \p op
+ */
+RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
+                                  AbstractMachine &machine,
+                                  const AbstractOperator &op, Index batch_size);
+
 }  // namespace netket
 
 #endif
