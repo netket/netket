@@ -26,14 +26,13 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 ```python
 >>> import netket as nk
->>> SEED = 3141592
+>>>
 >>> g = nk.graph.Hypercube(length=8, n_dim=1)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
->>> ma.init_random_parameters(seed=SEED, sigma=0.01)
+>>> ma.init_random_parameters(sigma=0.01)
 >>> ha = nk.operator.Ising(hi, h=1.0)
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
->>> sa.seed(SEED)
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
 >>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa,
 ... optimizer=op, n_samples=500)
@@ -45,7 +44,7 @@ Optimizing a 1D wavefunction with Variational Mante Carlo.
 
 
 
-## Class Methods 
+## Class Methods
 ### add_observable
 Add an observable quantity, that will be calculated at each
 iteration.
@@ -97,14 +96,14 @@ Running a simple Vmc calculation.
 
 ```python
 >>> import netket as nk
->>> SEED = 3141592
+>>>
 >>> g = nk.graph.Hypercube(length=8, n_dim=1)
 >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
 >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
->>> ma.init_random_parameters(seed=SEED, sigma=0.01)
+>>> ma.init_random_parameters(sigma=0.01)
 >>> ha = nk.operator.Ising(hi, h=1.0)
 >>> sa = nk.sampler.MetropolisLocal(machine=ma)
->>> sa.seed(SEED)
+>>> 
 >>> op = nk.optimizer.Sgd(learning_rate=0.1)
 >>> vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa,
 ... optimizer=op, n_samples=500)

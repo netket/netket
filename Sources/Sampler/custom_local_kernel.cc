@@ -22,25 +22,30 @@ CustomLocalKernel::CustomLocalKernel(const AbstractMachine &psi,
                                      const LocalOperator &move_operators,
                                      const std::vector<double> &move_weights)
     : move_operators_(move_operators) {
-  Init(psi, move_weights);
-}
-
-void CustomLocalKernel::Init(const AbstractMachine &psi,
-                             const std::vector<double> &move_weights) {
-  CheckMoveOperators(move_operators_);
-
-  nstates_ = psi.GetHilbert().LocalSize();
-  localstates_ = psi.GetHilbert().LocalStates();
-
+  Init(psi.GetHilbert(), move_weights);
   NETKET_CHECK(
       psi.Nvisible() == move_operators_.GetHilbert().Size() &&
           nstates_ == move_operators_.GetHilbert().LocalSize(),
       InvalidInputError,
       "Move operators in CustomSampler act on a different hilbert space "
       "than the Machine");
+}
+
+CustomLocalKernel::CustomLocalKernel(const LocalOperator &move_operators,
+                                     const std::vector<double> &move_weights)
+    : move_operators_(move_operators) {
+  Init(move_operators_.GetHilbert(), move_weights);
+}
+
+void CustomLocalKernel::Init(const AbstractHilbert &hilb,
+                             const std::vector<double> &move_weights) {
+  CheckMoveOperators(move_operators_);
+
+  nstates_ = hilb.LocalSize();
+  localstates_ = hilb.LocalStates();
 
   NETKET_CHECK(
-      psi.GetHilbert().IsDiscrete(), InvalidInputError,
+      hilb.IsDiscrete(), InvalidInputError,
       "Custom Metropolis sampler works only for discrete Hilbert spaces");
 
   if (move_weights.size()) {

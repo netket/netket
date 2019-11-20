@@ -26,6 +26,16 @@ HopKernel::HopKernel(const AbstractMachine &psi, Index dmax)
   GenerateClusters(psi.GetHilbert().GetGraph(), dmax);
 }
 
+HopKernel::HopKernel(const AbstractHilbert &hilb, Index dmax)
+    : nv_(hilb.Size()),
+      nstates_(hilb.LocalSize()),
+      localstates_(hilb.LocalStates()),
+      diststate_(0, nstates_ - 1) {
+  NETKET_CHECK(dmax >= 1, InvalidInputError,
+               "d_max should be at least equal to 1");
+  GenerateClusters(hilb.GetGraph(), dmax);
+}
+
 void HopKernel::GenerateClusters(const AbstractGraph &graph, Index dmax) {
   auto dist = graph.AllDistances();
 

@@ -54,6 +54,7 @@ pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
 #include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
+#include "py_transition_kernel.hpp"
 
 namespace py = pybind11;
 
@@ -108,6 +109,15 @@ void AddSamplerModule(py::module& m) {
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
+      .def("__next__",
+           [](AbstractSampler& self) {
+             self.Sweep();
+             return self.CurrentState().first;
+           },
+           R"EOF(
+      Performs a sampling sweep. Typically a single sweep
+      consists of an extensive number of local moves.
+      )EOF")
       .def_property_readonly(
           "visible",
           [](const AbstractSampler& self) { return self.CurrentState().first; },
@@ -127,6 +137,14 @@ void AddSamplerModule(py::module& m) {
         netket.machine: The machine used for the sampling.  )EOF")
       .def_property_readonly("n_chains", &AbstractSampler::BatchSize, R"EOF(
         int: Number of independent chains being sampled.)EOF")
+      .def_property_readonly("sample_shape",
+                             [](const AbstractSampler& self) {
+                               return py::make_tuple(
+                                   self.CurrentState().first.rows(),
+                                   self.CurrentState().first.cols());
+                             },
+                             R"EOF(
+          (int,int): Shape of the sample generated at each step, namely (n_chains,n_visible).)EOF")
       .def_property(
           "machine_func",
           [](const AbstractSampler& self) {
@@ -171,6 +189,8 @@ void AddSamplerModule(py::module& m) {
   AddExactSampler(subm);
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
+
+  AddTransitionKernels(subm);
 }
 
 }  // namespace netket

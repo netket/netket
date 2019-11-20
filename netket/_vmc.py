@@ -118,7 +118,6 @@ class Vmc(object):
             >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
             >>> ha = nk.operator.Ising(hi, h=1.0)
             >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-            >>> sa.seed(SEED)
             >>> op = nk.optimizer.Sgd(learning_rate=0.1)
             >>> vmc = nk.Vmc(ha, sa, op, 200)
             ```
@@ -135,7 +134,7 @@ class Vmc(object):
 
         self._npar = self._machine.n_par
 
-        self._n_chains = sampler.n_chains
+        self._n_chains = sampler.sample_shape[0]
 
         self.n_samples = n_samples
         self.n_discard = n_discard
@@ -173,7 +172,8 @@ class Vmc(object):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(
+                    n_discard)
             )
         self._n_discard = (
             n_discard
@@ -194,18 +194,17 @@ class Vmc(object):
             self._sampler.reset()
 
             # Burnout phase
-            for _ in range(self._n_discard):
-                self._sampler.sweep()
+            for _ in self._sampler.samples(self._n_discard):
+                pass
 
             # Generate samples
-            for i in range(self._n_samples_node):
-                self._sampler.sweep()
+            for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
 
                 # Store the current sample
-                self._samples[i] = self._sampler.current_sample
+                self._samples[i] = sample
 
                 # Compute Log derivatives
-                self._der_logs[i] = self._machine.der_log(self._samples[i])
+                self._der_logs[i] = self._machine.der_log(sample)
 
             # Center the log derivatives
             _subtract_mean(self._der_logs)
@@ -283,7 +282,8 @@ class Vmc(object):
         r = {"Energy": self._stats} if include_energy else {}
 
         r.update(
-            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
+            {name: self._get_mc_stats(obs)[1]
+             for name, obs in observables.items()}
         )
         return r
 

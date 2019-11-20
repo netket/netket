@@ -140,6 +140,15 @@ def test_hilbert_index():
 
             for k, state in enumerate(hi.states()):
                 assert hi.state_to_number(state) == k
+
+            # batched version of number to state
+            n_few = min(hi.n_states, 100)
+            few_states = np.zeros(shape=(n_few, hi.size))
+            for k in range(n_few):
+                few_states[k] = hi.number_to_state(k)
+
+            assert np.allclose(hi.number_to_state(range(n_few)), few_states)
+
         else:
             assert not hi.is_indexable
 

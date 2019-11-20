@@ -24,6 +24,13 @@ HamiltonianKernel::HamiltonianKernel(const AbstractMachine &psi,
                "Hilbert spaces");
 }
 
+HamiltonianKernel::HamiltonianKernel(AbstractOperator &ham)
+    : hamiltonian_(ham), nv_(ham.GetHilbert().Size()) {
+  NETKET_CHECK(ham.GetHilbert().IsDiscrete(), InvalidInputError,
+               "Hamiltonian Metropolis sampler works only for discrete "
+               "Hilbert spaces");
+}
+
 void HamiltonianKernel::operator()(
     Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<RowMatrix<double>> vnew,
     Eigen::Ref<Eigen::ArrayXd> acceptance_correction) {

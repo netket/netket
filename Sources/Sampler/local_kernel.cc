@@ -28,6 +28,18 @@ LocalKernel::LocalKernel(const AbstractMachine& psi)
   std::sort(local_states_.begin(), local_states_.end());
 }
 
+LocalKernel::LocalKernel(const AbstractHilbert& hilb)
+    : local_states_(hilb.LocalStates()),
+      n_states_(hilb.LocalSize()),
+      nv_(hilb.Size()) {
+  NETKET_CHECK(hilb.IsDiscrete(), InvalidInputError,
+               "Local Kernel sampler works only for discrete "
+               "Hilbert spaces");
+
+  // operator() relies on the fact that locat_states_ are sorted.
+  std::sort(local_states_.begin(), local_states_.end());
+}
+
 void LocalKernel::operator()(
     Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<RowMatrix<double>> vnew,
     Eigen::Ref<Eigen::ArrayXd> log_acceptance_correction) {
