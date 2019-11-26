@@ -34,6 +34,8 @@ Complex SumLogCoshBias_generic(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> bias) noexcept;
 Complex SumLogCosh_generic(
     Eigen::Ref<const Eigen::Matrix<Complex, Eigen::Dynamic, 1>> input) noexcept;
+double SumLogCosh_generic(
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> input) noexcept;
 }  // namespace detail
 
 /// Returns `∑log(cosh(inputᵢ + biasᵢ))`
@@ -49,6 +51,16 @@ inline Complex SumLogCoshBias(
 #else
   return detail::SumLogCoshBias_generic(input, bias);
 #endif
+}
+
+inline double SumLogCoshBias(
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> input,
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>> bias) noexcept {
+    // TODO Add SLEEF implementation
+    return (Eigen::abs(input.array()) +
+                Eigen::log1p(Eigen::exp(-2. *
+                  Eigen::abs((input + bias).array()))))
+      .sum();
 }
 
 /// Returns `∑log(cosh(inputᵢ))`
