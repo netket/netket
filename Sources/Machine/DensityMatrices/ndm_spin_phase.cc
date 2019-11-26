@@ -38,33 +38,7 @@ void NdmSpinPhase::Init() {
   b2_.resize(nv_);
   h2_.resize(nh_);
 
-  thetas_r1_.resize(nh_);
-  thetas_r2_.resize(nh_);
-  thetas_c1_.resize(nh_);
-  thetas_c2_.resize(nh_);
-
-  lnthetas_r1_.resize(nh_);
-  lnthetas_r2_.resize(nh_);
-  lnthetas_c1_.resize(nh_);
-  lnthetas_c2_.resize(nh_);
-
-  thetasnew_r1_.resize(nh_);
-  thetasnew_r2_.resize(nh_);
-  thetasnew_c1_.resize(nh_);
-  thetasnew_c2_.resize(nh_);
-
-  lnthetasnew_r1_.resize(nh_);
-  lnthetasnew_r2_.resize(nh_);
-  lnthetasnew_c1_.resize(nh_);
-  lnthetasnew_c2_.resize(nh_);
-
-  thetas_a1_.resize(na_);
-  thetas_a2_.resize(na_);
-  thetasnew_a1_.resize(na_);
-  thetasnew_a2_.resize(na_);
-  pi_.resize(na_);
-  lnpi_.resize(na_);
-  lnpinew_.resize(na_);
+  BatchSize(1);
 
   npar_ = 2 * nv_ * (nh_ + na_);
 
@@ -95,8 +69,54 @@ void NdmSpinPhase::Init() {
   InfoMessage() << "Using hidden    bias  = " << useh_ << std::endl;
   InfoMessage() << "Using ancillary bias  = " << used_ << std::endl;
 }
+
+Index NdmSpinPhase::BatchSize() const noexcept { return thetas_r1_.rows(); }
+
+void NdmSpinPhase::BatchSize(Index batch_size) {
+  if (batch_size <= 0) {
+    std::ostringstream msg;
+    msg << "invalid batch size: " << batch_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  if (batch_size != BatchSize()) {
+    thetas_r1_.resize(batch_size, nh_);
+    thetas_r2_.resize(batch_size, nh_);
+    thetas_c1_.resize(batch_size, nh_);
+    thetas_c2_.resize(batch_size, nh_);
+
+    lnthetas_r1_.resize(batch_size, nh_);
+    lnthetas_r2_.resize(batch_size, nh_);
+    lnthetas_c1_.resize(batch_size, nh_);
+    lnthetas_c2_.resize(batch_size, nh_);
+
+    thetasnew_r1_.resize(batch_size, nh_);
+    thetasnew_r2_.resize(batch_size, nh_);
+    thetasnew_c1_.resize(batch_size, nh_);
+    thetasnew_c2_.resize(batch_size, nh_);
+
+    lnthetasnew_r1_.resize(batch_size, nh_);
+    lnthetasnew_r2_.resize(batch_size, nh_);
+    lnthetasnew_c1_.resize(batch_size, nh_);
+    lnthetasnew_c2_.resize(batch_size, nh_);
+
+    thetas_a_.resize(batch_size, na_);
+    lnthetas_a_.resize(batch_size, na_);
+    thetas_a1_.resize(batch_size, na_);
+    thetas_a2_.resize(batch_size, na_);
+    thetasnew_a1_.resize(batch_size, na_);
+    thetasnew_a2_.resize(batch_size, na_);
+    pi_.resize(batch_size, na_);
+    lnpi_.resize(batch_size, na_);
+    lnpinew_.resize(batch_size, na_);
+
+    vsum_.resize(batch_size, nv_);
+    vdelta_.resize(batch_size, nv_);
+  }
+}
+
 VectorType NdmSpinPhase::DerLogSingle(VisibleConstType vr, VisibleConstType vc,
-                        const any & /*cache*/) {
+                                      const any & /*cache*/) {
   VectorType der(npar_);
 
   const int impar = (npar_ + na_ * used_) / 2;
@@ -230,7 +250,7 @@ void NdmSpinPhase::SetParameters(VectorConstRefType pars) {
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
 Complex NdmSpinPhase::LogValSingle(VisibleConstType vr, VisibleConstType vc,
-                                   const any & lookup) {
+                                   const any &lookup) {
   auto r1s = SumLogCosh(W1_.transpose() * vr + h1_);
   auto r2s = SumLogCosh(W2_.transpose() * vr + h2_);
   auto c1s = SumLogCosh(W1_.transpose() * vc + h1_);
@@ -246,6 +266,136 @@ Complex NdmSpinPhase::LogValSingle(VisibleConstType vr, VisibleConstType vc,
   auto gamma_2 = 0.5 * (r2s - c2s + (vr - vc).dot(b2_));
 
   return (gamma_1 + I_ * gamma_2 + lnpis);
+}
+
+void NdmSpinPhase::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
+                          Eigen::Ref<const RowMatrix<double>> vc,
+                          Eigen::Ref<VectorType> out, const any &lup) {
+  CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
+             {vc.rows(), NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
+             {vr.rows(), NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "out", out.size(), vr.rows());
+
+  BatchSize(vr.rows());
+
+  vsum_ = vr + vc;
+  vdelta_ = vr - vc;
+
+  thetas_r1_ = (vr * W1_).rowwise() + h1_.transpose();
+  thetas_r2_ = (vr * W2_).rowwise() + h2_.transpose();
+  thetas_c1_ = (vc * W1_).rowwise() + h1_.transpose();
+  thetas_c2_ = (vc * W2_).rowwise() + h2_.transpose();
+  thetas_a_ =
+      (0.5 * (vsum_ * U1_ + I_ * vdelta_ * U2_)).rowwise() + d1_.transpose();
+
+  out.noalias() = (vsum_ * b1_ + I_ * vdelta_ * b2_);
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    out(j) += SumLogCosh(thetas_r1_.row(j));
+  }
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    out(j) += I_ * SumLogCosh(thetas_r2_.row(j));
+  }
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    out(j) += SumLogCosh(thetas_c1_.row(j));
+  }
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    out(j) -= I_ * SumLogCosh(thetas_c2_.row(j));
+  }
+
+  // All previous term are multiplied by 0.5
+  out = out * 0.5;
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    out(j) += SumLogCosh(thetas_a_.row(j));
+  }
+}
+
+void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+                          Eigen::Ref<const RowMatrix<double>> vc,
+                          Eigen::Ref<RowMatrix<Complex>> out,
+                          const any &cache) {
+  CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
+             {vc.rows(), NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
+             {vr.rows(), NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()},
+             {vr.rows(), Npar()});
+  BatchSize(vr.rows());
+
+  vsum_ = vr + vc;
+  vdelta_ = vr - vc;
+
+  const int impar = (npar_ + na_ * used_) / 2;
+
+  auto i = Index{0};
+  auto i2 = Index{impar};
+  if (useb_) {
+    out.block(0, i, BatchSize(), nv_) = 0.5 * vsum_;
+    out.block(0, impar, BatchSize(), nv_) = I_ * 0.5 * vdelta_;
+    i += nv_;
+    i2 += nv_;
+  }
+
+  thetas_r1_ = ((vr * W1_).rowwise() + h1_.transpose()).array().tanh();
+  thetas_r2_ = ((vr * W2_).rowwise() + h2_.transpose()).array().tanh();
+  thetas_c1_ = ((vc * W1_).rowwise() + h1_.transpose()).array().tanh();
+  thetas_c2_ = ((vc * W2_).rowwise() + h2_.transpose()).array().tanh();
+  thetas_a_ =
+      ((0.5 * (vsum_ * U1_ + I_ * vdelta_ * U2_)).rowwise() + d1_.transpose())
+          .array()
+          .tanh();
+  if (useh_) {
+    out.block(0, i, BatchSize(), nh_) = 0.5 * (thetas_r1_ + thetas_c1_);
+    out.block(0, i2, BatchSize(), nh_) = I_ * 0.5 * (thetas_r2_ - thetas_c2_);
+    i += nh_;
+    i2 += nh_;
+  }
+
+  if (used_) {
+    out.block(0, i, BatchSize(), na_) = thetas_a_;
+    i += na_;
+  }
+
+  // TODO: Rewrite all those using tensors
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i), W1_.rows(), W1_.cols()}.noalias() =
+        0.5 * (vr.row(j).transpose() * thetas_r1_.row(j) +
+               vc.row(j).transpose() * thetas_c1_.row(j));
+  }
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i2), W1_.rows(), W1_.cols()}
+        .noalias() = 0.5 * I_ *
+                     (vr.row(j).transpose() * thetas_r2_.row(j) -
+                      vc.row(j).transpose() * thetas_c2_.row(j));
+  }
+
+  i += nv_ *nh_;
+  i2 += nv_ * nh_;
+
+  // TODO: Rewrite all those using tensors
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i), U1_.rows(), U1_.cols()}.noalias() =
+        0.5 * vsum_.row(j).transpose() * thetas_a_.row(j);
+  }
+
+#pragma omp parallel for schedule(static)
+  for (auto j = Index{0}; j < BatchSize(); ++j) {
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i2), U2_.rows(), U2_.cols()}.noalias() =
+        0.5 * I_ * vdelta_.row(j).transpose() * thetas_a_.row(j);
+  }
 }
 
 void NdmSpinPhase::Save(const std::string &filename) const {

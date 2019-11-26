@@ -57,30 +57,37 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   RealMatrixType U2_;
 
   // Caches
-  RealVectorType thetas_r1_;
-  RealVectorType thetas_r2_;
-  RealVectorType thetas_c1_;
-  RealVectorType thetas_c2_;
-  RealVectorType lnthetas_r1_;
-  RealVectorType lnthetas_r2_;
-  RealVectorType lnthetas_c1_;
-  RealVectorType lnthetas_c2_;
-  RealVectorType thetasnew_r1_;
-  RealVectorType thetasnew_r2_;
-  RealVectorType thetasnew_c1_;
-  RealVectorType thetasnew_c2_;
-  RealVectorType lnthetasnew_r1_;
-  RealVectorType lnthetasnew_r2_;
-  RealVectorType lnthetasnew_c1_;
-  RealVectorType lnthetasnew_c2_;
+  RealMatrixType thetas_r1_;
+  RealMatrixType thetas_r2_;
+  RealMatrixType thetas_c1_;
+  RealMatrixType thetas_c2_;
+  RealMatrixType lnthetas_r1_;
+  RealMatrixType lnthetas_r2_;
+  RealMatrixType lnthetas_c1_;
+  RealMatrixType lnthetas_c2_;
+  RealMatrixType thetasnew_r1_;
+  RealMatrixType thetasnew_r2_;
+  RealMatrixType thetasnew_c1_;
+  RealMatrixType thetasnew_c2_;
+  RealMatrixType lnthetasnew_r1_;
+  RealMatrixType lnthetasnew_r2_;
+  RealMatrixType lnthetasnew_c1_;
+  RealMatrixType lnthetasnew_c2_;
 
-  RealVectorType thetas_a1_;
-  RealVectorType thetas_a2_;
-  RealVectorType thetasnew_a1_;
-  RealVectorType thetasnew_a2_;
-  VectorType pi_;
-  VectorType lnpi_;
-  VectorType lnpinew_;
+  MatrixType     thetas_a_;
+  MatrixType     lnthetas_a_;
+  RealMatrixType thetas_a1_;
+  RealMatrixType thetas_a2_;
+  RealMatrixType thetasnew_a1_;
+  RealMatrixType thetasnew_a2_;
+  MatrixType pi_;
+  MatrixType lnpi_;
+  MatrixType lnpinew_;
+
+  MatrixType vsum_;
+  MatrixType vdelta_;
+
+
 
   bool useb_;
   bool useh_;
@@ -126,14 +133,27 @@ class NdmSpinPhase : public AbstractDensityMatrix {
   Complex LogValSingle(VisibleConstType vr, VisibleConstType vc,
                        const any & lookup) override;
 
+  void LogVal(Eigen::Ref<const RowMatrix<double>> vr,
+                            Eigen::Ref<const RowMatrix<double>> vc,
+                    Eigen::Ref<VectorType> out,
+                            const any & lup) override;
+
   VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
                           const any &cache) override;
+
+  virtual void DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+                      Eigen::Ref<const RowMatrix<double>> vc,
+                      Eigen::Ref<RowMatrix<Complex>> out,
+                      const any &cache) override;
 
   void Save(const std::string &filename) const override;
 
   void Load(const std::string &filename) override;
 
   bool IsHolomorphic() const noexcept override;
+
+  Index BatchSize() const noexcept;
+  void BatchSize(Index batch_size);
 
 };  // namespace netket
 }  // namespace netket
