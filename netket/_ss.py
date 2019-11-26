@@ -148,8 +148,8 @@ class Steadystate(object):
 
         self._npar = self._machine.n_par
 
-        self._n_chains = sampler.n_chains
-        self._n_chains_obs = sampler_obs.n_chains
+        self._n_chains = sampler.sample_shape[0]
+        self._n_chains_obs = sampler.sample_shape[0]
 
         self.n_samples = n_samples
         self.n_discard = n_discard
@@ -260,22 +260,21 @@ class Steadystate(object):
             self._sampler.reset()
             self._obs_samples_valid = False
             # Burnout phase
-            for _ in range(self._n_discard):
-                self._sampler.sweep()
+            for _ in self._sampler.samples(self._n_discard):
+                pass
 
             # Generate samples
-            for i in range(self._n_samples_node):
-                self._sampler.sweep()
+            for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
 
                 # Store the current sample
-                self._samples[i] = self._sampler.current_sample
+                self._samples[i] = sample
 
                 # Compute Log derivatives
-                self._der_logs[i] = self._machine.der_log(self._samples[i])
+                self._der_logs[i] = self._machine.der_log(sample)
 
                 # Compute Der Log local vals
                 self._der_loc_vals[i] = _der_local_values(
-                    self._lind, self._machine, self._samples[i]
+                    self._lind, self._machine, sample
                 )
 
             # Estimate energy
@@ -313,15 +312,14 @@ class Steadystate(object):
         self._sampler_obs.reset()
 
         # Burnout phase
-        for _ in range(self._n_discard_obs):
-            self._sampler_obs.sweep()
+        for _ in self._sampler_obs.samples(self._n_discard_obs):
+            pass
 
         # Generate samples
-        for i in range(self._n_samples_obs_node):
-            self._sampler_obs.sweep()
+        for i, sample in enumerate(self._sampler_obs.samples(self._n_samples_obs_node)):
 
             # Store the current sample
-            self._samples_obs[i] = self._sampler_obs.current_sample
+            self._samples_obs[i] = sample
 
         self._obs_samples_valid = True
 
