@@ -28,6 +28,7 @@
 
 #include "Hilbert/hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
+#include "Machine/DensityMatrices/abstract_density_matrix.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/messages.hpp"
 #include "common_types.hpp"
@@ -226,6 +227,10 @@ std::pair<Complex, double> MeanVariance(Operator &&apply,
 Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
                              AbstractMachine &machine,
                              const AbstractOperator &op, Index batch_size);
+
+Eigen::VectorXcd LocalValuesOpOp(Eigen::Ref<const RowMatrix<double>> samples,
+                                 AbstractDensityMatrix &machine,
+                                 const AbstractOperator &op, Index batch_size);
 
 /**
  * Computes the derivative of local values of the operator `op` in

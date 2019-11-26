@@ -110,3 +110,47 @@ def test_der_log_val():
         grad = log_val_diff * (der_log_p - der_log_s)
         grad_all = grad.sum(axis=0)
         assert (grad_all == der_loc_vals).all()
+
+
+# Construct the operators for Sx, Sy and Sz
+obs_sx = nk.operator.LocalOperator(hi)
+obs_sy = nk.operator.LocalOperator(hi)
+obs_sz = nk.operator.LocalOperator(hi)
+for i in range(L):
+    obs_sx += nk.operator.LocalOperator(hi, sx, [i])
+    obs_sy += nk.operator.LocalOperator(hi, sy, [i])
+    obs_sz += nk.operator.LocalOperator(hi, sz, [i])
+
+
+sxmat = obs_sx.to_dense()
+symat = obs_sy.to_dense()
+szmat = obs_sz.to_dense()
+
+
+def test_compute_observables():
+    ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
+    ma.init_random_parameters(seed=1234, sigma=0.01)
+
+    Ntot = lind.hilbert.hilbert_physical.n_states
+    states = np.zeros(Ntot, lind.hilbert.hilbert_physical.size)
+
+    for i in range(0,lind.hilbert.n_states):
+        states[i,:] = lind.hilbert.number_to_state(i)
+        state = lind.hilbert.number_to_state(i)
+        der_loc_vals = nk.operator.der_local_values(lind, ma, state)
+
+        log_val_s = ma.log_val(state)
+        der_log_s = ma.der_log(state)
+
+        delta, mel = lind.get_conn(state)
+        statet = state + delta
+
+        log_val_p = ma.log_val(statet)
+        der_log_p = ma.der_log(statet)
+
+        log_val_diff = mel * np.exp(log_val_p - log_val_s)
+        log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
+
+        grad = log_val_diff * (der_log_p - der_log_s)
+        grad_all = grad.sum(axis=0)
+        assert (grad_all == der_loc_vals).all()

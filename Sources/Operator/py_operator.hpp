@@ -223,8 +223,57 @@ void AddOperatorModule(py::module m) {
 
             Returns:
                 A numpy array of local values of the operator.)EOF");
-}
 
+  subm.def(
+      "local_values_op_op",
+      [](AbstractOperator& op, AbstractDensityMatrix& machine,
+         py::array_t<double, py::array::c_style> samples, Index batch_size) {
+        switch (samples.ndim()) {
+          case 3: {
+            auto local_values = py::cast(LocalValuesOpOp(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0) * samples.shape(1),
+                    samples.shape(2)},
+                machine, op, batch_size));
+            local_values.attr("resize")(samples.shape(0), samples.shape(1));
+            return local_values;
+          }
+          case 2:
+            return py::cast(LocalValuesOpOp(
+                Eigen::Map<const RowMatrix<double>>{
+                    samples.data(), samples.shape(0), samples.shape(1)},
+                machine, op, batch_size));
+          case 1:
+            return py::cast(LocalValuesOpOp(
+                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
+                                                    samples.shape(0)},
+                machine, op, batch_size));
+          default:
+            NETKET_CHECK(false, InvalidInputError,
+                         "samples has wrong dimension: "
+                             << samples.ndim()
+                             << "; expected either 1, 2 or 3.");
+        }
+      },
+      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
+      py::arg{"batch_size"} = 16,
+      R"EOF(Computes local values of the operator `op` for all `samples`.
+
+            Args:
+                samples: A matrix (or a rank-3 tensor) of visible
+                    configurations. If it is a matrix, each row of the matrix
+                    must correspond to a visible configuration.  `samples` is a
+                    rank-3 tensor, its shape should be `(N, M, #visible)` where
+                    `N` is the number of samples, `M` is the number of Markov
+                    Chains, and `#visible` is the number of visible units.
+                machine: Wavefunction.
+                op: Hermitian operator.
+                batch_size: Batch size.
+
+            Returns:
+                A numpy array of local values of the operator.)EOF");
+
+}
 }  // namespace netket
 
 #endif

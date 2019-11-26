@@ -88,7 +88,28 @@ class AbstractDensityMatrix : public AbstractMachine {
 
   virtual VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
                                   const any &cache = any{}) = 0;
+
+  VectorType LogValDiffRowCol(
+      VisibleConstType vr, VisibleConstType vc,
+      const std::vector<std::vector<int>> &tochange_r,
+      const std::vector<std::vector<double>> &newconf_r,
+      const std::vector<std::vector<int>> &tochange_c,
+      const std::vector<std::vector<double>> &newconf_c);
+
+  virtual void LogValDiffRowCol(
+      VisibleConstType vr, VisibleConstType vc,
+      const std::vector<std::vector<int>> &tochange_r,
+      const std::vector<std::vector<double>> &newconf_r,
+      const std::vector<std::vector<int>> &tochange_c,
+      const std::vector<std::vector<double>> &newconf_c,
+      Eigen::Ref<Eigen::VectorXcd> output);
+
+  virtual void LogValDiffRow(VisibleConstType vr, VisibleConstType vc,
+                             const std::vector<std::vector<int>> &tochange_r,
+                             const std::vector<std::vector<double>> &newconf_r,
+                             Eigen::Ref<Eigen::VectorXcd> output);
 };
+
 }  // namespace netket
 
 #endif  // NETKET_ABSTRACT_DENSITY_MATRIX_HPP
