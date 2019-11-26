@@ -108,7 +108,7 @@ void AddAbstractDensityMatrix(py::module &subm) {
             the case of Restricted Boltzmann Machines.)EOF")
       .def(
           "to_matrix",
-          [](AbstractDensityMatrix &self) -> AbstractDensityMatrix::MatrixType {
+          [](AbstractDensityMatrix &self, bool normalize) -> AbstractDensityMatrix::MatrixType {
             const auto &hind = self.GetHilbertPhysical().GetIndex();
             AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
@@ -129,12 +129,14 @@ void AddAbstractDensityMatrix(py::module &subm) {
             vals.array() -= maxlog;
             vals = vals.array().exp();
 
-            vals /= vals.trace();
+            if (normalize) {
+              vals /= vals.trace();
+            }
             return vals;
-          },
+          },py::arg("normalize") = true,
           R"EOF(
                 Returns a numpy matrix representation of the machine.
-                The returned matrix has trace normalized to 1,
+                The returned matrix has trace normalized to 1 if `normalize=True`
                 Note that, in general, the size of the matrix is exponential
                 in the number of quantum numbers, and this operation should thus
                 only be performed for low-dimensional Hilbert spaces.
