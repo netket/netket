@@ -380,7 +380,7 @@ void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
                       vc.row(j).transpose() * thetas_c2_.row(j));
   }
 
-  i += nv_ *nh_;
+  i += nv_ * nh_;
   i2 += nv_ * nh_;
 
   // TODO: Rewrite all those using tensors
@@ -393,8 +393,8 @@ void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
 
 #pragma omp parallel for schedule(static)
   for (auto j = Index{0}; j < BatchSize(); ++j) {
-    Eigen::Map<Eigen::MatrixXcd>{&out(j, i2), U2_.rows(), U2_.cols()}.noalias() =
-        0.5 * I_ * vdelta_.row(j).transpose() * thetas_a_.row(j);
+    Eigen::Map<Eigen::MatrixXcd>{&out(j, i2), U2_.rows(), U2_.cols()}
+        .noalias() = 0.5 * I_ * vdelta_.row(j).transpose() * thetas_a_.row(j);
   }
 }
 

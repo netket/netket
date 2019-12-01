@@ -170,7 +170,8 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 
 ExactTimePropagation.iter = _ExactTimePropagation_iter
 
-def steadystate_ed(lindblad, sparse=False):
+
+def steadystate(lindblad, sparse=False, method="ed"):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
@@ -181,26 +182,33 @@ def steadystate_ed(lindblad, sparse=False):
     """
     from numpy import sqrt, matrix
 
-    if not sparse:
-        from numpy.linalg import eigh
-        lind_mat = matrix(lindblad.to_dense())
+    if method == "ed":
+        if not sparse:
+            from numpy.linalg import eigh
 
-        ldagl = lind_mat.H*lind_mat
-        w, v = eigh(ldagl)
+            lind_mat = matrix(lindblad.to_dense())
+
+            ldagl = lind_mat.H * lind_mat
+            w, v = eigh(ldagl)
+
+        else:
+            from scipy.sparse.linalg import eigsh
+
+            lind_mat = lindblad.to_sparse()
+            ldagl = lind_mat.H * lind_mat
+
+            w, v = eigsh(ldagl, which="SM", k=2)
+
+        print("Minimum eigenvalue is: ", w[0])
+        N = int(sqrt(ldagl.shape[0]))
+        rho = matrix(v[:, 0].reshape((N, N)))
+        rho = rho / rho.trace()
 
     else:
-        from scipy.sparse.linalg import eigsh
-        lind_mat = lindblad.to_sparse()
-        ldagl = lind_mat.H*lind_mat
-
-        w, v = eigsh(ldagl, which='SM', k=2)
-
-    print("Minimum eigenvalue is: ", w[0])
-    N = int(sqrt(ldagl.shape[0]))
-    rho = matrix(v[:,0].reshape((N,N)))
-    rho = rho/rho.trace()
+        raise ValueError("method must be 'ed'")
 
     return rho
+
 
 @_core.deprecated(
     "`ImagTimePropagation` is deprecated. Please use "
