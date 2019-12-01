@@ -629,15 +629,16 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
-      .def("der_log_diff",
-           (AbstractMachine::VectorType(AbstractMachine::*)(
-               AbstractMachine::VisibleConstType,
-               const std::vector<std::vector<int>> &,
-               const std::vector<std::vector<double>> &)) &
-               AbstractMachine::DerLogDiff,
-           py::arg("v"), py::arg("tochange"), py::arg("newconf"),
-           R"EOF(
-                 Member function to obtain difference in der_log of machine
+      .def(
+          "der_log_diff",
+          [](AbstractMachine &self, AbstractMachine::VisibleConstType v,
+             const std::vector<std::vector<int>> &tochange,
+             const std::vector<std::vector<double>> &newconfs) {
+            return py::cast(self.LogValDiff(v, tochange, newconfs));
+          },
+          py::arg("v"), py::arg("tochange"), py::arg("newconfs"),
+          R"EOF(
+                 Member function to obtain the differences in der_log of machine
                  given an input and a change to the input.
 
                  Args:
