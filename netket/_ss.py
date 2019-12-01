@@ -4,14 +4,18 @@ import numpy as _np
 
 import netket as _nk
 from netket._core import deprecated
+from ._C_netket import MPI as _MPI
 from netket.operator import local_values as _local_values
 from netket.operator import local_values_op_op as _local_values_op_op
 from netket.operator import der_local_values as _der_local_values
 from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
+    compute_mean as _compute_mean,
     subtract_mean as _subtract_mean,
 )
+
+import json
 
 
 def info(obj, depth=None):
@@ -141,6 +145,7 @@ class Steadystate(object):
         self._sampler_obs = sampler_obs
         self._sr = sr
         self._stats = None
+        self._mynode = _MPI.rank()
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
             optimizer, self._machine
@@ -274,18 +279,21 @@ class Steadystate(object):
 
                 # Compute Der Log local vals
                 self._der_loc_vals[i] = _der_local_values(
-                    self._lind, self._machine, sample
+                    self._lind, self._machine, sample, subtract_v_derivative=False
                 )
 
             # Estimate energy
             lloc, self._stats = self._get_mc_superop_stats(self._lind)
 
+            # Compute the (MPI-aware-)average of the derivatives
+            der_logs_ave = _compute_mean(self._der_logs)
+
             # Center the log derivatives
-            _subtract_mean(self._der_logs)
+            self._der_logs -= der_logs_ave
 
             # Compute the gradient
-            # this relies on the fact the _der_loc_vals are centered
             grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
+            grad -= self._stats.mean * der_logs_ave.conj()
 
             # Perform update
             if self._sr:
@@ -407,3 +415,33 @@ class Steadystate(object):
             ]
         ]
         return "\n  ".join([str(self)] + lines)
+
+    def _add_to_json_log(self, step_count):
+        stats = self.get_observable_stats()
+        self._json_out["Output"].append({})
+        self._json_out["Output"][-1] = {}
+        json_iter = self._json_out["Output"][-1]
+        json_iter["Iteration"] = step_count
+        for key, value in stats.items():
+            st = value.asdict()
+            st["Mean"] = st["Mean"].real
+            json_iter[key] = st
+
+    def _init_json_log(self):
+
+        self._json_out = {}
+        self._json_out["Output"] = []
+
+    def run(
+        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
+    ):
+        self._init_json_log()
+
+        for k in range(n_iter):
+            self.advance(step_size)
+
+            self._add_to_json_log(k)
+            if k % write_every == 0 or k == n_iter - 1:
+                if self._mynode == 0:
+                    with open(output_prefix + ".log", "w") as outfile:
+                        json.dump(self._json_out, outfile)
