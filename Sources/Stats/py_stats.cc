@@ -200,6 +200,10 @@ void AddStatsModule(py::module m) {
         )EOF");
 
   subm.def("_subtract_mean", &SubtractMean, py::arg{"values"}.noconvert());
+
+  subm.def("_compute_mean",
+      &C ean,
+      py values"}.noconvert());
 }
 }  // namespace detail
 }  // namespace netket

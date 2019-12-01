@@ -45,6 +45,8 @@ Stats Statistics(Eigen::Ref<const Eigen::VectorXcd> local_values,
 Eigen::VectorXcd product_sv(Eigen::Ref<const Eigen::VectorXcd> s_values,
                             Eigen::Ref<const RowMatrix<Complex>> v_values);
 
+Eigen::VectorXcd ComputeMean(Eigen::Ref<RowMatrix<Complex>> v_values);
+
 void SubtractMean(Eigen::Ref<RowMatrix<Complex>> v_values);
 
 }  // namespace netket

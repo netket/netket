@@ -173,10 +173,15 @@ Eigen::VectorXcd product_sv(Eigen::Ref<const Eigen::VectorXcd> s_values,
   return product;
 }
 
-void SubtractMean(Eigen::Ref<RowMatrix<Complex>> v_values) {
+Eigen::VectorXcd ComputeMean(Eigen::Ref<RowMatrix<Complex>> v_values) {
   VectorXcd mean = v_values.colwise().mean();
   assert(mean.size() == v_values.cols());
   MeanOnNodes<>(mean);
+  return mean;
+}
+
+void SubtractMean(Eigen::Ref<RowMatrix<Complex>> v_values) {
+  auto mean = ComputeMean(v_values);
   v_values.rowwise() -= mean.transpose();
 }
 
