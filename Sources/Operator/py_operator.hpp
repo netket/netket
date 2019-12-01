@@ -177,14 +177,15 @@ void AddOperatorModule(py::module m) {
   subm.def(
       "der_local_values",
       [](AbstractOperator& op, AbstractMachine& machine,
-         py::array_t<double, py::array::c_style> samples, Index batch_size) {
+         py::array_t<double, py::array::c_style> samples, Index batch_size,
+         bool subtract_v_derivative) {
         switch (samples.ndim()) {
           case 3: {
             auto local_values = py::cast(DerLocalValues(
                 Eigen::Map<const RowMatrix<double>>{
                     samples.data(), samples.shape(0) * samples.shape(1),
                     samples.shape(2)},
-                machine, op, batch_size));
+                machine, op, batch_size, subtract_v_derivative));
             local_values.attr("resize")(samples.shape(0), samples.shape(1),
                                         machine.Npar());
             return local_values;
@@ -193,12 +194,12 @@ void AddOperatorModule(py::module m) {
             return py::cast(DerLocalValues(
                 Eigen::Map<const RowMatrix<double>>{
                     samples.data(), samples.shape(0), samples.shape(1)},
-                machine, op, batch_size));
+                machine, op, batch_size, subtract_v_derivative));
           case 1:
             return py::cast(DerLocalValues(
                 Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
                                                     samples.shape(0)},
-                machine, op, batch_size));
+                machine, op, batch_size, subtract_v_derivative));
           default:
             NETKET_CHECK(false, InvalidInputError,
                          "samples has wrong dimension: "
@@ -207,7 +208,7 @@ void AddOperatorModule(py::module m) {
         }
       },
       py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
-      py::arg{"batch_size"} = 16,
+      py::arg{"batch_size"} = 16, py::arg{"subtract_v_derivative"} = true,
       R"EOF(Computes derivative of local values of the operator `op` for all `samples`.
 
             Args:
@@ -220,6 +221,8 @@ void AddOperatorModule(py::module m) {
                     `N` is the number of samples, `M` is the number of Markov
                     Chains, and `#visible` is the number of visible units.
                 batch_size: Batch size.
+                subtract_v_derivative: [=true] whever the derivative of each
+                    configuration v should be subtracted from each local derivative.
 
             Returns:
                 A numpy array of local values of the operator.)EOF");
@@ -272,7 +275,6 @@ void AddOperatorModule(py::module m) {
 
             Returns:
                 A numpy array of local values of the operator.)EOF");
-
 }
 }  // namespace netket
 

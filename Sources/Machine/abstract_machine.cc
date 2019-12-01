@@ -110,9 +110,28 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   return DerLogSingle(vp);
 }
 
+void AbstractMachine::DerLogChanged(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf,
+    Eigen::Ref<RowMatrix<Complex>> output) {
+  DerLogDiff(v, tochange, newconf, output, false);
+}
+
 RowMatrix<Complex> AbstractMachine::DerLogDiff(
     VisibleConstType v, const std::vector<std::vector<int>> &tochange,
     const std::vector<std::vector<double>> &newconf) {
+  auto output = RowMatrix<Complex>(newconf.size(), Npar());
+  DerLogDiff(v, tochange, newconf, output);
+  return output;
+}
+
+void AbstractMachine::DerLogDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf,
+    Eigen::Ref<RowMatrix<Complex>> output, bool subtract_logv) {
+  CheckShape(__FUNCTION__, "out", {output.rows(), output.cols()},
+             {static_cast<Index>(newconf.size()), Npar()});
+
   RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
   input = v.transpose().colwise().replicate(input.rows());
 
@@ -129,15 +148,15 @@ RowMatrix<Complex> AbstractMachine::DerLogDiff(
   }
 
   // auto
-  RowMatrix<Complex> output = DerLog(input, any{});
+  DerLog(input, output, any{});
 
-  if (log_val_single_ind.has_value()) {
-    output = output.rowwise() - output.row(log_val_single_ind.value());
-  } else {
-    output = output.rowwise() - DerLogSingle(v, any{}).transpose();
+  if (subtract_logv) {
+    if (log_val_single_ind.has_value()) {
+      output = output.rowwise() - output.row(log_val_single_ind.value());
+    } else {
+      output = output.rowwise() - DerLogSingle(v, any{}).transpose();
+    }
   }
-
-  return output;
 }
 
 AbstractMachine::VectorType AbstractMachine::LogValDiff(

@@ -118,8 +118,8 @@ Eigen::VectorXcd LocalValuesOpOp(Eigen::Ref<const RowMatrix<double>> samples,
 
 RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
                                   AbstractMachine& machine,
-                                  const AbstractOperator& op,
-                                  Index batch_size) {
+                                  const AbstractOperator& op, Index batch_size,
+                                  bool subtract_v_derivative) {
   if (batch_size < 1) {
     std::ostringstream msg;
     msg << "invalid batch size: " << batch_size << "; expected >=1";
@@ -137,14 +137,21 @@ RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
   std::vector<Complex> loc_storage;
   Eigen::Map<Eigen::ArrayXcd> loc(&loc_storage[0], loc_storage.size());
 
+  RowMatrix<Complex> der_log_diff(1, machine.Npar());
+
   for (auto i = Index{0}; i < samples.rows(); ++i) {
     auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
 
     op.FindConn(v, mel, tochange, newconfs);
     outlvd.resize(newconfs.size());
+    der_log_diff.resize(newconfs.size(), machine.Npar());
 
     machine.LogValDiff(v, tochange, newconfs, outlvd);
-    RowMatrix<Complex> der_log_diff = machine.DerLogDiff(v, tochange, newconfs);
+    if (subtract_v_derivative) {
+      machine.DerLogDiff(v, tochange, newconfs, der_log_diff);
+    } else {
+      machine.DerLogChanged(v, tochange, newconfs, der_log_diff);
+    }
 
     new (&meleig) Eigen::Map<const Eigen::ArrayXcd>(&mel[0], mel.size());
 
@@ -152,12 +159,12 @@ RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
     if (meleig.size() > loc_storage.size()) {
       loc_storage.resize(meleig.size());
     }
-    new (&loc)
-        Eigen::Map<Eigen::ArrayXcd>(&loc_storage[0], meleig.size());
+    new (&loc) Eigen::Map<Eigen::ArrayXcd>(&loc_storage[0], meleig.size());
 
     loc = meleig * outlvd.array().exp();
 
-    der_local.row(i) = (der_log_diff.array().colwise() * loc.array()).colwise().sum();
+    der_local.row(i) =
+        (der_log_diff.array().colwise() * loc.array()).colwise().sum();
   }
   return der_local;
 }
