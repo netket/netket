@@ -52,4 +52,4 @@ for j_op in j_ops:
     lind.add_jump_op(j_op)
 
 
-rho = nk.exact.steadystate_ed(lind)
+rho = nk.exact.steadystate(lind)
