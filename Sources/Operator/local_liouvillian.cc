@@ -15,6 +15,16 @@ LocalLiouvillian::LocalLiouvillian(const LocalOperator &H)
   Init();
 }
 
+LocalLiouvillian::LocalLiouvillian(
+    const netket::LocalOperator &H,
+    const std::vector<const LocalOperator> &jump_ops) :
+    LocalLiouvillian(H) {
+  for (auto &L : jump_ops) {
+    jump_ops_.push_back(L);
+  }
+  Init();
+}
+
 void LocalLiouvillian::Init() {
   auto j = std::complex<double>(0.0, 1.0);
 
