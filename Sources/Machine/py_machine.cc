@@ -645,7 +645,7 @@ void AddAbstractMachine(py::module m) {
                      v: Input vector to machine.
                      tochange: list containing the indices of the input to be
                          changed
-                     newconf: list containing the new (changed) values at the
+                     newconfs: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
       .def("der_log",

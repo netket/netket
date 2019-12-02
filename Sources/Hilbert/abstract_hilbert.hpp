@@ -105,9 +105,10 @@ class AbstractHilbert {
                           nonstd::span<const double> newconf) const = 0;
 
   /**
-  Member function updating a visible configuration of rows/columns using the
-  information on where the local changes have been done. Changes on sites with
-  site < number of sites are applied to rows, the following to columns.
+  Member function updating a visible configuration of DoubledHilbert states
+  using the information on where the local changes have been done. Changes on
+  sites with site < number of sites are applied to rows, the following to
+  columns.
   @param v is the vector visible units to be modified.
   @param tochange contains a list of which quantum numbers are to be modified.
   @param newconf contains the value that those quantum numbers should take

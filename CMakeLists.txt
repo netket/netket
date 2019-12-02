@@ -302,11 +302,10 @@ set(NETKET_SOURCES
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
     Sources/Machine/DensityMatrices/py_abstract_density_matrix.cc
     Sources/Machine/DensityMatrices/py_abstract_density_matrix.hpp
-    Sources/Machine/DensityMatrices/py_density_matrix.cc 
-    Sources/Operator/local_lindbladian.cc
-    Sources/Operator/local_lindbladian.hpp
-    Sources/Operator/py_local_lindbladian.cc
-    Sources/Operator/py_local_lindbladian.hpp
+    Sources/Machine/DensityMatrices/py_density_matrix.cc
+    Sources/Operator/local_liouvillian.cc
+    Sources/Operator/py_local_liouvillian.cc
+    Sources/Operator/py_local_liouvillian.hpp
     Sources/Graph/doubled_graph.cc
     Sources/Graph/doubled_graph.hpp
     Sources/Hilbert/doubled_hilbert.cc

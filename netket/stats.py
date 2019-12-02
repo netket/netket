@@ -12,7 +12,7 @@ def subtract_mean(x):
 
 def compute_mean(x):
     """
-    Subtracts the mean of the input array over all but the last dimension
+    Computes the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
     """
     return _compute_mean(x.reshape(-1, x.shape[-1]))

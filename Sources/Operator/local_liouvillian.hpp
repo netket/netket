@@ -2,8 +2,8 @@
 // Created by Filippo Vicentini on 08/11/2019.
 //
 
-#ifndef NETKET_LOCAL_LINDBLADIAN_HPP
-#define NETKET_LOCAL_LINDBLADIAN_HPP
+#ifndef NETKET_LOCAL_LIOUVILLIAN_HPP
+#define NETKET_LOCAL_LIOUVILLIAN_HPP
 
 #include <utility>
 
@@ -34,9 +34,10 @@ struct ConnectorSuperopRef {
 };
 
 /**
-      Class describing a Lindblad Master Equation for Open Quantum systems
+      Class describing the Liouvillian of a Lindblad Master Equation for
+      Open Quantum systems
 */
-class LocalLindbladian : public AbstractOperator {
+class LocalLiouvillian : public AbstractOperator {
  public:
   using MelType = std::vector<Complex>;
   using MatType = std::vector<std::vector<MelType>>;
@@ -50,24 +51,42 @@ class LocalLindbladian : public AbstractOperator {
   using ConnSuperOpCallback = std::function<void(ConnectorSuperopRef)>;
 
  private:
+  // The effective non hermitian hamiltonian Hnh_ = H_ - im/2\sum_i L_i^dag L_i
   LocalOperator Hnh_;
   LocalOperator H_;
   std::vector<LocalOperator> jump_ops_;
 
+  // Adjoint of Hnh_
   LocalOperator Hnh_dag_;
 
  public:
-  explicit LocalLindbladian(const LocalOperator &H);
+  /**
+   * Constructs a LocalLiouvillian from the hamiltonian H and with no jump
+   * operators. The Hamiltonian must be a LocalOperator (other types of
+   * operators are not supported).
+   * @param H : the Hamiltonian
+   */
+  explicit LocalLiouvillian(const LocalOperator &H);
 
+  /**
+   * Member function to construct the effective non-hermitian hamiltonian Hnh_
+   * and Hnh_dag_ starting from the Hamiltonian and the jump_operators.
+   */
   void Init();
+
+  /**
+   * Member function to access the list of jump operators associated with the
+   * dissipative part of this Liouvillian.
+   * @return a vector of LocalOperators.
+   */
   const std::vector<LocalOperator> &GetJumpOperators() const;
 
+  /**
+   * Member function to add another jump operator to the dissipative part of
+   * this liouvillian.
+   * @param op : LocalOperator taken as a constant reference.
+   */
   void AddJumpOperator(const LocalOperator &op);
-
-  void FindConn(VectorConstRefType v, MelType &mel, ConnectorsType &connectors,
-                NewconfsType &newconfs) const override;
-
-  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override;
 
   /**
    * Iterates over all states reachable from a given visible configuration
@@ -84,16 +103,31 @@ class LocalLindbladian : public AbstractOperator {
                           ConnSuperOpCallback callback) const;
 
   /**
-  Member function returning the doubled hilbert space associated with this
-  Lindbladian. It returns the same object as GetHilbert(), but performs a
-  static_cast to convert it to the right super-class.
-  @return Dobuled Hilbert space specifier for this Hamiltonian
+   * Member function returning the doubled hilbert space associated with this
+   * Liouvillian. It returns the same object as GetHilbert(), but performs a
+   * static_cast to convert it to the right super-class.
+   * @return Dobuled Hilbert space
   */
   const DoubledHilbert &GetHilbertDoubled() const;
   const LocalOperator &GetEffectiveHamiltonian() const { return Hnh_; };
 
+  /**
+   * Member function returning the doubled hilbert space associated with this
+   * Lindbladian. It returns the same object as GetHilbertShared(), but performs
+   * a static_cast to convert it to the right super-class.
+   * @return shared_ptr to the doubled Hilbert space
+   */
   std::shared_ptr<const DoubledHilbert> GetHilbertDoubledShared() const;
+
+  // Members below are inherited from AbstractOperator.
+
+  void FindConn(VectorConstRefType v, MelType &mel, ConnectorsType &connectors,
+                NewconfsType &newconfs) const override;
+
+  void ForEachConn(VectorConstRefType v, ConnCallback callback) const override;
+
+
 };
 }  // namespace netket
 
-#endif  // NETKET_LOCAL_LINDBLADIAN_HPP
+#endif  // NETKET_LOCAL_LIOUVILLIAN_HPP

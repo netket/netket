@@ -1,5 +1,6 @@
 import os
 import platform
+import multiprocessing
 import re
 import shlex
 import subprocess
@@ -129,8 +130,9 @@ class CMakeBuild(build_ext):
                     log.info(_decode(output))
                 if not self.distribution.dry_run:
                     # Build step
+                    n_procs = "{}".format(multiprocessing.cpu_count()*2)
                     output = subprocess.check_output(
-                        ["cmake", "--build", "."], stderr=subprocess.STDOUT
+                        ["cmake", "--build", ".", "--parallel", n_procs], stderr=subprocess.STDOUT
                     )
                     if self.distribution.verbose:
                         log.info(_decode(output))
