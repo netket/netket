@@ -15,8 +15,15 @@ void AddLocalSuperOperatorModule(py::module &subm) {
            py::keep_alive<1, 2>(), py::arg("hamiltonian"),
            py::arg("jump_ops"),
            R"EOF(
-           Constructs a new ``LocalLiouvillian`` given a Hamilotnian and a
+           Constructs a new ``LocalLiouvillian`` given a Hamiltonian and a
            list of ``Jump Operators``
+           ```
+           )EOF")
+      .def(py::init<const LocalOperator &>(),
+           py::keep_alive<1, 2>(), py::arg("hamiltonian"),
+           R"EOF(
+           Constructs a new ``LocalLiouvillian`` given a Hamiltonian. The
+           Liouvillian has no jump operators.
            ```
            )EOF")
       .def_property_readonly(

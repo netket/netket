@@ -59,6 +59,7 @@ class LocalLiouvillian : public AbstractOperator {
   // Adjoint of Hnh_
   LocalOperator Hnh_dag_;
 
+ public:
   /**
    * Constructs a LocalLiouvillian from the hamiltonian H and with no jump
    * operators. The Hamiltonian must be a LocalOperator (other types of
@@ -67,7 +68,6 @@ class LocalLiouvillian : public AbstractOperator {
    */
   explicit LocalLiouvillian(const LocalOperator &H);
 
- public:
   /**
    * Constructs a LocalLiouvillian from the hamiltonian H and the vector of
    * jump operators ops. The Hamiltonian must be a LocalOperator (other types
