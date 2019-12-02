@@ -142,23 +142,4 @@ void Spin::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
   }
 }
 
-void Spin::UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
-                      Eigen::Ref<Eigen::VectorXd> vcol,
-                      nonstd::span<const int> tochange,
-                      nonstd::span<const double> newconf) const {
-  assert(vrow.size() == nspins_);
-  assert(vcol.size() == nspins_);
-
-  int i = 0;
-  for (auto sf : tochange) {
-    if (sf < nspins_) {
-      vrow(sf) = newconf[i];
-      i++;
-    } else {
-      vcol(sf-nspins_) = newconf[i];
-      i++;
-    }
-  }
-}
-
 }  // namespace netket

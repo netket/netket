@@ -47,11 +47,6 @@ class Spin : public AbstractHilbert {
                   nonstd::span<const int> tochange,
                   nonstd::span<const double> newconf) const override;
 
-  void UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
-                  Eigen::Ref<Eigen::VectorXd> vcol,
-                  nonstd::span<const int> tochange,
-                  nonstd::span<const double> newconf) const override;
-
  private:
   void Init();
   inline void SetConstraint(double totalS);

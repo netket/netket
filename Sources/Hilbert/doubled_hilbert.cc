@@ -42,8 +42,13 @@ void DoubledHilbert::RandomVals(Eigen::Ref<Eigen::VectorXd> state,
 void DoubledHilbert::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
                                 nonstd::span<const int> tochange,
                                 nonstd::span<const double> newconf) const {
-  auto N = SizePhysical();
-  hilbert_physical_->UpdateConfRowCol(v.head(N), v.tail(N), tochange, newconf);
+  assert(v.size() == size_);
+
+  int i = 0;
+  for (auto sf : tochange) {
+    v(sf) = newconf[i];
+    i++;
+  }
 }
 
 void DoubledHilbert::RandomValsRows(Eigen::Ref<Eigen::VectorXd> state,

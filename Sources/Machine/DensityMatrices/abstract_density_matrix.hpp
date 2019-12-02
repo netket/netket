@@ -142,6 +142,7 @@ class AbstractDensityMatrix : public AbstractMachine {
    * @return A vector containing, for each (vr',vc'), log(rho(vr', vc')) -
    * log(rho(vr,vc))
    */
+   /*
   virtual void LogValDiffRowCol(
       VisibleConstType vr, VisibleConstType vc,
       const std::vector<std::vector<int>> &tochange_r,
@@ -156,6 +157,7 @@ class AbstractDensityMatrix : public AbstractMachine {
       const std::vector<std::vector<double>> &newconf_r,
       const std::vector<std::vector<int>> &tochange_c,
       const std::vector<std::vector<double>> &newconf_c);
+  */
 
   /**
    * Member function computing the difference between the logarithm of the

@@ -55,25 +55,6 @@ void CustomHilbert::UpdateConf(Eigen::Ref<Eigen::VectorXd> v,
   }
 }
 
-void CustomHilbert::UpdateConfRowCol(Eigen::Ref<Eigen::VectorXd> vrow,
-                                     Eigen::Ref<Eigen::VectorXd> vcol,
-                                     nonstd::span<const int> tochange,
-                                     nonstd::span<const double> newconf) const {
-  assert(vrow.size() == size_);
-  assert(vcol.size() == size_);
-
-  int i = 0;
-  for (auto sf : tochange) {
-    if (sf < Size()) {
-      vrow(sf) = newconf[i];
-      i++;
-    } else {
-      vcol(sf-size_) = newconf[i];
-      i++;
-    }
-  }
-}
-
 const AbstractGraph &CustomHilbert::GetGraph() const noexcept { return graph_; }
 
 }  // namespace netket

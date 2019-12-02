@@ -120,6 +120,7 @@ RowMatrix<Complex> AbstractDensityMatrix::DerLog(
   return out;
 }
 
+/*
 VectorType AbstractDensityMatrix::LogValDiffRowCol(
     netket::AbstractMachine::VisibleConstType vr,
     netket::AbstractMachine::VisibleConstType vc,
@@ -179,6 +180,7 @@ void AbstractDensityMatrix::LogValDiffRowCol(
     output.array() -= LogValSingle(vr, vc, any{});
   }
 }
+*/
 
 void AbstractDensityMatrix::LogValDiffRow(
     netket::AbstractMachine::VisibleConstType vr,
