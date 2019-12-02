@@ -10,10 +10,17 @@ void AddLocalSuperOperatorModule(py::module &subm) {
   py::class_<LocalLiouvillian, AbstractOperator,
              std::shared_ptr<LocalLiouvillian>>(
       subm, "LocalLiouvillian", R"EOF(A custom local super-operator.)EOF")
-      .def(py::init<const LocalOperator &, const std::vector<const LocalOperator> &>(),
-           py::keep_alive<1, 2>(),
-      py::arg("hamiltonian"),
-      py::arg("jump_ops") = std::vector<const LocalOperator>(),
+      .def(py::init<const LocalOperator &>(),
+           py::keep_alive<1, 2>(), py::arg("hamiltonian"),
+           R"EOF(
+           Constructs a new ``LocalLiouvillian`` given the Hamiltonian H. The
+           Liouvillian has no jump operators.
+           ```
+           )EOF")
+      .def(py::init<const LocalOperator &,
+               const std::vector<const LocalOperator> &>(),
+           py::keep_alive<1, 2>(), py::arg("hamiltonian"),
+           py::arg("jump_ops"),
            R"EOF(
            Constructs a new ``LocalLiouvillian`` given a Hamilotnian and a
            list of ``Jump Operators``
