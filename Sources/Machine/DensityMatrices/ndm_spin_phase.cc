@@ -15,10 +15,8 @@
 #include "ndm_spin_phase.hpp"
 
 #include <Eigen/Dense>
-#include <Utils/pybind_helpers.hpp>
 #include <iostream>
 #include <vector>
-
 #include "Machine/rbm_spin.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/log_cosh.hpp"
@@ -400,19 +398,96 @@ void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
   }
 }
 
-bool NdmSpinPhase::IsHolomorphic() const noexcept { return false; }
+void NdmSpinPhase::Save(const std::string &filename) const {
+  json state;
+  state["Name"] = "NdmSpinPhase";
+  state["Nvisible"] = nv_;
+  state["Nhidden"] = nh_;
+  state["Nancilla"] = na_;
+  state["UseVisibleBias"] = useb_;
+  state["UseHiddenBias"] = useh_;
+  state["UseAncillaBias"] = used_;
+  state["b1"] = b1_;
+  state["h1"] = h1_;
+  state["d1"] = d1_;
+  state["W1"] = W1_;
+  state["U1"] = U1_;
 
-PyObject *NdmSpinPhase::StateDict() {
-  return ToStateDict(std::make_tuple(std::make_pair("a", std::ref(W1_)),
-                                     std::make_pair("b", std::ref(U1_)),
-                                     std::make_pair("w", std::ref(b1_)),
-                                     std::make_pair("w", std::ref(h1_)),
-                                     std::make_pair("w", std::ref(d1_)),
-                                     std::make_pair("a", std::ref(W2_)),
-                                     std::make_pair("b", std::ref(U2_)),
-                                     std::make_pair("w", std::ref(b2_)),
-                                     std::make_pair("w", std::ref(h2_))));
+  state["b2"] = b2_;
+  state["h2"] = h2_;
+  state["W2"] = W2_;
+  state["U2"] = U2_;
+  WriteJsonToFile(state, filename);
 }
 
-};  // namespace netket
+void NdmSpinPhase::Load(const std::string &filename) {
+  auto pars = ReadJsonFromFile(filename);
+  std::string name = FieldVal<std::string>(pars, "Name");
+  if (name != "NdmSpinPhase") {
+    throw InvalidInputError(
+        "Error while constructing RbmSpinPhase from input parameters");
+  }
 
+  if (FieldExists(pars, "Nvisible")) {
+    nv_ = FieldVal<int>(pars, "Nvisible");
+  }
+  if (nv_ != GetHilbertPhysical().Size()) {
+    throw InvalidInputError(
+        "Number of visible units is incompatible with given "
+        "Hilbert space");
+  }
+
+  if (FieldExists(pars, "Nhidden")) {
+    nh_ = FieldVal<int>(pars, "Nhidden");
+  } else {
+    nh_ = nv_ * double(FieldVal<double>(pars, "Alpha"));
+  }
+
+  if (FieldExists(pars, "Nancilla")) {
+    na_ = FieldVal<int>(pars, "Nancilla");
+  } else {
+    na_ = nv_ * double(FieldVal<double>(pars, "Beta"));
+  }
+
+  useb_ = FieldOrDefaultVal(pars, "UseVisibleBias", true);
+  useh_ = FieldOrDefaultVal(pars, "UseHiddenBias", true);
+  used_ = FieldOrDefaultVal(pars, "UseAncillaBias", true);
+
+  Init();
+
+  // Loading parameters, if defined in the input
+  if (FieldExists(pars, "b1")) {
+    b1_ = FieldVal<RealVectorType>(pars, "b1");
+    b2_ = FieldVal<RealVectorType>(pars, "b2");
+  } else {
+    b1_.setZero();
+    b2_.setZero();
+  }
+
+  if (FieldExists(pars, "h1")) {
+    h1_ = FieldVal<RealVectorType>(pars, "h1");
+    h2_ = FieldVal<RealVectorType>(pars, "h2");
+  } else {
+    h1_.setZero();
+    h2_.setZero();
+  }
+
+  if (FieldExists(pars, "d1")) {
+    d1_ = FieldVal<RealVectorType>(pars, "d1");
+  } else {
+    d1_.setZero();
+  }
+
+  if (FieldExists(pars, "W1")) {
+    W1_ = FieldVal<RealMatrixType>(pars, "W1");
+    W2_ = FieldVal<RealMatrixType>(pars, "W2");
+  }
+
+  if (FieldExists(pars, "U1")) {
+    U1_ = FieldVal<RealMatrixType>(pars, "U1");
+    U2_ = FieldVal<RealMatrixType>(pars, "U2");
+  }
+}
+
+bool NdmSpinPhase::IsHolomorphic() const noexcept { return false; }
+};  // namespace netket

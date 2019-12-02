@@ -146,12 +146,14 @@ class NdmSpinPhase : public AbstractDensityMatrix {
                       Eigen::Ref<RowMatrix<Complex>> out,
                       const any &cache) override;
 
+  void Save(const std::string &filename) const override;
+
+  void Load(const std::string &filename) override;
+
   bool IsHolomorphic() const noexcept override;
 
   Index BatchSize() const noexcept;
   void BatchSize(Index batch_size);
-
-  PyObject *StateDict() final;
 
 };  // namespace netket
 }  // namespace netket
