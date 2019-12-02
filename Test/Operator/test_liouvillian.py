@@ -52,7 +52,7 @@ for i in range(L):
 
 
 # Create the lindbladian with no jump operators
-lind = nk.operator.LocalLindbladian(ha)
+lind = nk.operator.LocalLiouvillian(ha)
 
 # add the jump operators
 for j_op in j_ops:
