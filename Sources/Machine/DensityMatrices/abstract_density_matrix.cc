@@ -29,7 +29,7 @@ void AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> v,
 }
 
 Complex AbstractDensityMatrix::LogValSingle(VisibleConstType v, const any &lt) {
-  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "v", v.rows(), 2 * NvisiblePhysical());
 
   return LogValSingle(v.head(NvisiblePhysical()), v.tail(NvisiblePhysical()),
                       lt);
@@ -60,25 +60,25 @@ VectorType AbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
 
 VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType v,
                                                const any &cache) {
-  CheckShape(__FUNCTION__, "v", {v.rows()}, {2 * NvisiblePhysical()});
+  CheckShape(__FUNCTION__, "v", v.rows(), 2 * NvisiblePhysical());
   return this->DerLogSingle(v.head(NvisiblePhysical()),
                             v.tail(NvisiblePhysical()), cache);
 }
 
 // I have no idea why this gives a linker error if it is not defined.
 // Anyhow, It should never be called.
-VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType vr,
-                                               VisibleConstType vc,
-                                               const any &cache) {
+VectorType AbstractDensityMatrix::DerLogSingle(VisibleConstType /*vr*/,
+                                               VisibleConstType /*vc*/,
+                                               const any& /*cache*/) {
   std::cout << "Executed code that should not be executed." << std::endl;
   throw;
 }
 
 // I have no idea why this gives a linker error if it is not defined.
 // Anyhow, It should never be called.
-Complex AbstractDensityMatrix::LogValSingle(VisibleConstType vr,
-                                            VisibleConstType vc,
-                                            const any &cache) {
+Complex AbstractDensityMatrix::LogValSingle(VisibleConstType /*vr*/,
+                                            VisibleConstType /*vc*/,
+                                            const any& /*cache*/) {
   std::cout << "Executed code that should not be executed." << std::endl;
   throw;
 }
@@ -188,8 +188,8 @@ void AbstractDensityMatrix::LogValDiffRow(
     const std::vector<std::vector<int>> &tochange_r,
     const std::vector<std::vector<double>> &newconf_r,
     Eigen::Ref<Eigen::VectorXcd> output) {
-  CheckShape(__FUNCTION__, "out", {output.rows()},
-             {static_cast<Index>(newconf_r.size())});
+  CheckShape(__FUNCTION__, "out", output.rows(),
+             static_cast<Index>(newconf_r.size()));
 
   Index N = tochange_r.size();
 

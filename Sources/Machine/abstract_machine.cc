@@ -198,7 +198,7 @@ void AbstractMachine::LogValDiff(
   }
 }
 
-any AbstractMachine::InitLookup(VisibleConstType v) { return any{}; }
+any AbstractMachine::InitLookup(VisibleConstType /*v*/) { return any{}; }
 
 void AbstractMachine::UpdateLookup(VisibleConstType, const std::vector<int> &,
                                    const std::vector<double> &, any &) {}
