@@ -3,14 +3,17 @@
 //
 
 #include "py_local_liouvillian.hpp"
+#include <pybind11/stl.h>
 
 namespace netket {
 void AddLocalSuperOperatorModule(py::module &subm) {
   py::class_<LocalLiouvillian, AbstractOperator,
              std::shared_ptr<LocalLiouvillian>>(
       subm, "LocalLiouvillian", R"EOF(A custom local super-operator.)EOF")
-      .def(py::init<const LocalOperator &>(), py::keep_alive<1, 2>(),
-           py::arg("hamiltonian"),
+      .def(py::init<const LocalOperator &, const std::vector<const LocalOperator> &>(),
+           py::keep_alive<1, 2>(),
+      py::arg("hamiltonian"),
+      py::arg("jump_ops") = std::vector<const LocalOperator>(),
            R"EOF(
            Constructs a new ``LocalLiouvillian`` given a Hamilotnian and a
            list of ``Jump Operators``

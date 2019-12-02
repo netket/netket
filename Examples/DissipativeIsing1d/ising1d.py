@@ -36,7 +36,13 @@ sz = [[1, 0], [0, -1]]
 
 sigmam = [[0, 0], [1, 0]]
 
+# The hamiltonian
 ha = nk.operator.LocalOperator(hi)
+
+# List of dissipative jump operators
+j_ops = []
+
+# Observables
 obs_sx = nk.operator.LocalOperator(hi)
 obs_sy = nk.operator.LocalOperator(hi)
 obs_sz = nk.operator.LocalOperator(hi)
@@ -44,19 +50,17 @@ obs_sz = nk.operator.LocalOperator(hi)
 for i in range(L):
     ha += (gp / 2.0) * nk.operator.LocalOperator(hi, sx, [i])
     ha += (Vp / 4.0) * nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
+
+    # sigma_{-} dissipation on every site
+    j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
+
     obs_sx += nk.operator.LocalOperator(hi, sx, [i])
     obs_sy += nk.operator.LocalOperator(hi, sy, [i])
     obs_sz += nk.operator.LocalOperator(hi, sz, [i])
 
 
-#  Create the lindbladian with no jump operators
-lind = nk.operator.LocalLindbladian(ha)
-
-# Add a sigmam jump operator on each site
-for i in range(L):
-    j_op = nk.operator.LocalOperator(hi, sigmam, [i])
-    lind.add_jump_op(j_op)
-
+#  Create the liouvillian
+lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 # RBM Spin Machine
 ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
@@ -64,7 +68,8 @@ ma.init_random_parameters(seed=1234, sigma=0.001)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma)
-sa_obs = nk.sampler.MetropolisLocal(machine=nk.machine.DiagonalDensityMatrix(ma))
+# Sampler for the diagonal of the density matrix, to compute observables
+sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal())
 
 # Optimizer
 op = nk.optimizer.Sgd(0.01)

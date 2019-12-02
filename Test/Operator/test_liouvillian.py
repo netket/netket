@@ -51,13 +51,8 @@ for i in range(L):
     j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
 
 
-# Create the lindbladian with no jump operators
-lind = nk.operator.LocalLiouvillian(ha)
-
-# add the jump operators
-for j_op in j_ops:
-    lind.add_jump_op(j_op)
-
+# Create the lindbladian with
+lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 def test_lindblad_form():
     ## Construct the lindbladian by hand:

@@ -59,7 +59,6 @@ class LocalLiouvillian : public AbstractOperator {
   // Adjoint of Hnh_
   LocalOperator Hnh_dag_;
 
- public:
   /**
    * Constructs a LocalLiouvillian from the hamiltonian H and with no jump
    * operators. The Hamiltonian must be a LocalOperator (other types of
@@ -68,6 +67,7 @@ class LocalLiouvillian : public AbstractOperator {
    */
   explicit LocalLiouvillian(const LocalOperator &H);
 
+ public:
   /**
    * Constructs a LocalLiouvillian from the hamiltonian H and the vector of
    * jump operators ops. The Hamiltonian must be a LocalOperator (other types
@@ -76,7 +76,7 @@ class LocalLiouvillian : public AbstractOperator {
    * @param jump_ops : a vector of LocalOperators.
    */
   explicit LocalLiouvillian(const LocalOperator &H,
-      const std::vector<const LocalOperator> &jump_ops);
+                            const std::vector<const LocalOperator> &jump_ops);
 
   /**
    * Member function to construct the effective non-hermitian hamiltonian Hnh_
@@ -117,7 +117,7 @@ class LocalLiouvillian : public AbstractOperator {
    * Liouvillian. It returns the same object as GetHilbert(), but performs a
    * static_cast to convert it to the right super-class.
    * @return Dobuled Hilbert space
-  */
+   */
   const DoubledHilbert &GetHilbertDoubled() const;
   const LocalOperator &GetEffectiveHamiltonian() const { return Hnh_; };
 
@@ -135,8 +135,6 @@ class LocalLiouvillian : public AbstractOperator {
                 NewconfsType &newconfs) const override;
 
   void ForEachConn(VectorConstRefType v, ConnCallback callback) const override;
-
-
 };
 }  // namespace netket
 
