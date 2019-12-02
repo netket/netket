@@ -10,13 +10,6 @@ void AddLocalSuperOperatorModule(py::module &subm) {
   py::class_<LocalLiouvillian, AbstractOperator,
              std::shared_ptr<LocalLiouvillian>>(
       subm, "LocalLiouvillian", R"EOF(A custom local super-operator.)EOF")
-      .def(py::init<const LocalOperator &>(),
-           py::keep_alive<1, 2>(), py::arg("hamiltonian"),
-           R"EOF(
-           Constructs a new ``LocalLiouvillian`` given the Hamiltonian H. The
-           Liouvillian has no jump operators.
-           ```
-           )EOF")
       .def(py::init<const LocalOperator &,
                const std::vector<const LocalOperator> &>(),
            py::keep_alive<1, 2>(), py::arg("hamiltonian"),
@@ -31,6 +24,7 @@ void AddLocalSuperOperatorModule(py::module &subm) {
           R"EOF(list[list]: A list of the local matrices.)EOF")
       .def("add_jump_op", &LocalLiouvillian::AddJumpOperator,
            R"EOF(jump_op: add jump op.)EOF")
-      .def("get_effective_hamiltonian", &LocalLiouvillian::GetEffectiveHamiltonian);
+      .def("get_effective_hamiltonian",
+           &LocalLiouvillian::GetEffectiveHamiltonian);
 }
 }  // namespace netket

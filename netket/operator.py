@@ -1,4 +1,5 @@
 from ._C_netket.operator import *
+from ._C_netket.operator import LocalLiouvillian as _LocalLiouvillian
 import numpy as _np
 
 
@@ -61,3 +62,15 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
     else:
         heis_term = sz_sz + exchange
     return GraphOperator(hilbert, bondops=[J * heis_term])
+
+def LocalLiouvillian(H, j_ops=[]):
+    """
+    Constructs a new ``LocalLiouvillian`` given a Hamilotnian and optionally
+    list of ``Jump Operators``. All operators must be LocalOperators.
+
+    Args:
+        H: the hamiltonian
+        j_ops: the list of jump operators
+
+    """
+    return _LocalLiouvillian(H, j_ops)
