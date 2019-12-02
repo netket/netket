@@ -76,7 +76,7 @@ class LocalLiouvillian : public AbstractOperator {
    * @param jump_ops : a vector of LocalOperators.
    */
   explicit LocalLiouvillian(const LocalOperator &H,
-                            const std::vector<const LocalOperator> &jump_ops);
+                            const std::vector<LocalOperator> &jump_ops);
 
   /**
    * Member function to construct the effective non-hermitian hamiltonian Hnh_

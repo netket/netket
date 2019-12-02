@@ -11,7 +11,7 @@ void AddLocalSuperOperatorModule(py::module &subm) {
              std::shared_ptr<LocalLiouvillian>>(
       subm, "LocalLiouvillian", R"EOF(A custom local super-operator.)EOF")
       .def(py::init<const LocalOperator &,
-               const std::vector<const LocalOperator> &>(),
+               const std::vector<LocalOperator> &>(),
            py::keep_alive<1, 2>(), py::arg("hamiltonian"),
            py::arg("jump_ops"),
            R"EOF(

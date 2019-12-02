@@ -17,7 +17,7 @@ LocalLiouvillian::LocalLiouvillian(const LocalOperator &H)
 
 LocalLiouvillian::LocalLiouvillian(
     const netket::LocalOperator &H,
-    const std::vector<const LocalOperator> &jump_ops) :
+    const std::vector<LocalOperator> &jump_ops) :
     LocalLiouvillian(H) {
   for (auto &L : jump_ops) {
     jump_ops_.push_back(L);
