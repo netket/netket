@@ -15,10 +15,9 @@ LocalLiouvillian::LocalLiouvillian(const LocalOperator &H)
   Init();
 }
 
-LocalLiouvillian::LocalLiouvillian(
-    const netket::LocalOperator &H,
-    const std::vector<LocalOperator> &jump_ops) :
-    LocalLiouvillian(H) {
+LocalLiouvillian::LocalLiouvillian(const netket::LocalOperator &H,
+                                   const std::vector<LocalOperator> &jump_ops)
+    : LocalLiouvillian(H) {
   for (auto &L : jump_ops) {
     jump_ops_.push_back(L);
   }
@@ -95,7 +94,7 @@ void LocalLiouvillian::ForEachConn(
               tochange.begin());
     std::transform(conn.tochange_col.begin(), conn.tochange_col.end(),
                    tochange.begin() + conn.tochange_row.size(),
-                   bind2nd(std::plus<int>(), N));
+                   [N](int i) { return i + N; });
 
     newconf.resize(conn.tochange_row.size() + conn.tochange_col.size());
     std::copy(conn.newconf_row.begin(), conn.newconf_row.end(),
@@ -123,7 +122,7 @@ void LocalLiouvillian::FindConn(VectorConstRefType v, MelType &mel,
               tochange.begin());
     std::transform(conn.tochange_col.begin(), conn.tochange_col.end(),
                    tochange.begin() + conn.tochange_row.size(),
-                   bind2nd(std::plus<int>(), N));
+                   [N](int i) { return i + N; });
 
     auto newconf = std::vector<double>(conn.tochange_row.size() +
                                        conn.tochange_col.size());

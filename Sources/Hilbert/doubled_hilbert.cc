@@ -9,8 +9,8 @@ namespace netket {
 DoubledHilbert::DoubledHilbert(
     std::shared_ptr<const AbstractHilbert> hilbert,
     std::unique_ptr<const AbstractGraph> doubled_graph)
-    : graph_doubled_(std::move(doubled_graph)),
-      hilbert_physical_(std::move(hilbert)) {
+    : hilbert_physical_(std::move(hilbert)),
+      graph_doubled_(std::move(doubled_graph)) {
   size_ = graph_doubled_->Size();
 }
 

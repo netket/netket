@@ -62,6 +62,13 @@ class AbstractDensityMatrix : public AbstractMachine {
    */
   virtual int NvisiblePhysical() const = 0;
 
+  // The methods below shadow the declarations in AbstractMachine. We are aware
+  // of this, and it's because when we store a density matrix as such, we want
+  // to be able to use it's interface with row and column states.
+  // The standard AbstractMachine interface can be called by prepending a
+  // namespace specifier AbstractMachine:: to a function call.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
   /**
    * Computes logarithm of the density matrix for a batch of visible
    * configurations. Non-allocating version.
@@ -117,6 +124,7 @@ class AbstractDensityMatrix : public AbstractMachine {
   virtual VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
                                   const any &cache = any{}) = 0;
 
+#pragma GCC diagnostic pop
   /**
    * Member function computing the difference between the logarithm of the
    * density-matrix computed at different values of the visible units ((vr,vc),

@@ -174,8 +174,8 @@ void AbstractMachine::LogValDiff(
   RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
   input = v.transpose().colwise().replicate(input.rows());
 
-  CheckShape(__FUNCTION__, "out", {output.rows()},
-             {static_cast<Index>(newconf.size())});
+  CheckShape(__FUNCTION__, "out", output.rows(),
+             static_cast<Index>(newconf.size()));
 
   nonstd::optional<Index> log_val_single_ind;
 

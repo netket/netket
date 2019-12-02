@@ -250,7 +250,7 @@ void NdmSpinPhase::SetParameters(VectorConstRefType pars) {
 // Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
 Complex NdmSpinPhase::LogValSingle(VisibleConstType vr, VisibleConstType vc,
-                                   const any &lookup) {
+                                   const any& /*lookup*/) {
   auto r1s = SumLogCosh(W1_.transpose() * vr + h1_);
   auto r2s = SumLogCosh(W2_.transpose() * vr + h2_);
   auto c1s = SumLogCosh(W1_.transpose() * vc + h1_);
@@ -270,7 +270,7 @@ Complex NdmSpinPhase::LogValSingle(VisibleConstType vr, VisibleConstType vc,
 
 void NdmSpinPhase::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
                           Eigen::Ref<const RowMatrix<double>> vc,
-                          Eigen::Ref<VectorType> out, const any &lup) {
+                          Eigen::Ref<VectorType> out, const any& /*lup*/) {
   CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
              {vc.rows(), NvisiblePhysical()});
   CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
@@ -320,7 +320,7 @@ void NdmSpinPhase::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
 void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
                           Eigen::Ref<const RowMatrix<double>> vc,
                           Eigen::Ref<RowMatrix<Complex>> out,
-                          const any &cache) {
+                          const any& /*cache*/) {
   CheckShape(__FUNCTION__, "vr", {vr.rows(), vr.cols()},
              {vc.rows(), NvisiblePhysical()});
   CheckShape(__FUNCTION__, "vc", {vc.rows(), vc.cols()},
