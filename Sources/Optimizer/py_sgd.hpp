@@ -29,38 +29,36 @@ namespace netket {
 void AddSgd(py::module &subm) {
   py::class_<Sgd, AbstractOptimizer>(
       subm, "Sgd", R"EOF(Simple Stochastic Gradient Descent Optimizer.
-        [Stochastic Gradient Descent](https://en.wikipedia.org/wiki/Stochastic_gradient_descent)
+        The `Stochastic Gradient Descent <https://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_
         is one of the most popular optimizers in machine learning applications.
-        Given a stochastic estimate of the gradient of the cost function ($$ G(\mathbf{p}) $$),
+        Given a stochastic estimate of the gradient of the cost function (:math:`G(\mathbf{p})`),
         it performs the update:
 
-        $$
-        p^\prime_k = p_k -\eta G_k(\mathbf{p}),
-        $$
+        .. math:: p^\prime_k = p_k -\eta G_k(\mathbf{p}),
 
-        where $$ \eta $$ is the so-called learning rate.
+        where :math:`\eta` is the so-called learning rate.
         NetKet also implements two extensions to the simple SGD,
-        the first one is $$ L_2 $$ regularization,
+        the first one is :math:`L_2` regularization,
         and the second one is the possibility to set a decay
-        factor $$ \gamma \leq 1 $$ for the learning rate, such that
-        at iteration $$ n $$ the learning rate is $$ \eta \gamma^n $$.  )EOF")
+        factor :math:`\gamma \leq 1` for the learning rate, such that
+        at iteration :math:`n` the learning rate is :math:`\eta \gamma^n`.
+
+
+        )EOF")
       .def(py::init<double, double, double>(), py::arg("learning_rate"),
            py::arg("l2_reg") = 0, py::arg("decay_factor") = 1.0, R"EOF(
            Constructs a new ``Sgd`` optimizer.
 
            Args:
-               learning_rate: The learning rate $$ \eta $$
-               l2_reg: The amount of $$ L_2 $$ regularization.
-               decay_factor: The decay factor $$ \gamma $$.
+               learning_rate: The learning rate :math:`\eta`
+               l2_reg: The amount of :math:`L_2` regularization.
+               decay_factor: The decay factor :math:`\gamma`.
 
            Examples:
                Simple SGD optimizer.
 
-               ```python
                >>> from netket.optimizer import Sgd
                >>> op = Sgd(learning_rate=0.05)
-
-               ```
            )EOF");
 }
 

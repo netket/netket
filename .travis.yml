@@ -143,4 +143,4 @@ script:
   - python -c 'import netket'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
-  - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/
+  # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/

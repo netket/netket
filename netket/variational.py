@@ -109,7 +109,6 @@ class Vmc(object):
 
     def iter(self, n_iter=None, step_size=1):
         """
-        iter(self: Vmc, n_iter: int=None, step_size: int=1) -> int
 
         Returns a generator which advances the VMC optimization, yielding
         after every step_size steps up to n_iter.
@@ -136,8 +135,6 @@ def estimate_expectations(
     ops, sampler, n_samples, n_discard=None, compute_gradients=False
 ):
     """
-    estimate_expectation(op: AbstractOperator, sampler: AbstractSampler, n_samples: int, compute_gradients: bool=False) -> Stats
-
     For a sequence of linear operators, computes a statistical estimate of the
     respective expectation values, variances, and optionally gradients of the
     expectation values with respect to the variational parameters.

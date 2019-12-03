@@ -60,9 +60,9 @@ void AddOperatorModule(py::module m) {
               py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such
-       that the matrix element O(v,v') is different from zero. In general there
+       that the matrix element :math:`O(v,v')` is different from zero. In general there
        will be several different connected visible units satisfying this
-       condition, and they are denoted here v'(k), for k=0,1...N_connected.
+       condition, and they are denoted here :math:`v'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
        Args:
            v: A constant reference to the visible configuration.

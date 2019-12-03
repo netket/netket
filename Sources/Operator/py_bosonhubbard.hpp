@@ -49,7 +49,6 @@ void AddBoseHubbard(py::module &subm) {
            Examples:
                Constructs a ``BoseHubbard`` operator for a 2D system.
 
-               ```python
                >>> import netket as nk
                >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
                >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
@@ -57,7 +56,6 @@ void AddBoseHubbard(py::module &subm) {
                >>> print(op.hilbert.size)
                9
 
-               ```
            )EOF");  // ADDOPERATORMETHODS(BoseHubbard);
 }
 
