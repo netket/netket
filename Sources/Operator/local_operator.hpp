@@ -203,31 +203,17 @@ class LocalOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
-    return this->FindConn(v, mel, connectors, newconfs, true);
-  }
+    connectors.clear();
+    newconfs.clear();
+    mel.clear();
 
-  void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
-                std::vector<std::vector<int>> &connectors,
-                std::vector<std::vector<double>> &newconfs,
-                bool clear_new) const {
-    assert(v.size() == GetHilbert().Size());
+    connectors.resize(1);
+    newconfs.resize(1);
+    mel.resize(1);
 
-    int new_offset = 0;
-    if (clear_new == true) {
-      connectors.clear();
-      newconfs.clear();
-      mel.clear();
-    } else {
-      new_offset = mel.size();
-    }
-
-    connectors.resize(new_offset + 1);
-    newconfs.resize(new_offset + 1);
-    mel.resize(new_offset + 1);
-
-    mel[new_offset] = constant_;
-    connectors[new_offset].resize(0);
-    newconfs[new_offset].resize(0);
+    mel[0] = constant_;
+    connectors[0].resize(0);
+    newconfs[0].resize(0);
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
@@ -235,7 +221,7 @@ class LocalOperator : public AbstractOperator {
       assert(st1 < int(mat_[opn].size()));
       assert(st1 < int(connected_[opn].size()));
 
-      mel[new_offset] += (mat_[opn][st1][st1]);
+      mel[0] += (mat_[opn][st1][st1]);
 
       // off-diagonal part
       for (auto st2 : connected_[opn][st1]) {
