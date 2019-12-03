@@ -75,7 +75,7 @@ sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal())
 op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
 
-ss = nk.Steadystate(lind, sa, op, 2000, sampler_obs=sa_obs, n_samples_obs=500)
+ss = nk.SteadyState(lind, sa, op, 2000, sampler_obs=sa_obs, n_samples_obs=500)
 ss.add_observable(obs_sx, "Sx")
 ss.add_observable(obs_sy, "Sy")
 ss.add_observable(obs_sz, "Sz")

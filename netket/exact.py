@@ -171,7 +171,7 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 ExactTimePropagation.iter = _ExactTimePropagation_iter
 
 
-def steadystate(lindblad, sparse=False, method="ed"):
+def steady_state(lindblad, sparse=False, method="ed"):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
