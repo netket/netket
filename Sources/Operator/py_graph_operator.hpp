@@ -57,7 +57,6 @@ void AddGraphOperator(py::module &subm) {
          Examples:
              Constructs a ``BosGraphOperator`` operator for a 2D system.
 
-             ```python
              >>> import netket as nk
              >>> sigmax = [[0, 1], [1, 0]]
              >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -71,7 +70,6 @@ void AddGraphOperator(py::module &subm) {
              >>> print(op.hilbert.size)
              20
 
-             ```
          )EOF")
       .def(py::self + py::self);
 }

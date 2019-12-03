@@ -10,15 +10,14 @@ class PyMetropolisHastings(AbstractSampler):
     ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
     a local transition kernel to perform moves in the Markov Chain.
     The transition kernel is used to generate
-    a proposed state $$ s^\prime $$, starting from the current state $$ s $$.
+    a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
     The move is accepted with probability
 
-    $$
+    .. math::
     A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
-    $$
 
-    where the probability being sampled is $$ F(\Psi(s)) $$ (by default $$ F(x)=|x|^2 $$)
-    and $L(s,s^\prime)$ is a correcting factor computed by the transition kernel.
+    where the probability being sampled is :math:`F(\Psi(s))` (by default :math:`F(x)=|x|^2`)
+    and :math:`L(s,s^\prime)` is a correcting factor computed by the transition kernel.
     """
 
     def __init__(
@@ -29,15 +28,15 @@ class PyMetropolisHastings(AbstractSampler):
         a transition kernel.
 
         Args:
-            machine: A machine $$\Psi(s)$$ used for the sampling.
+            machine: A machine :math:`\Psi(s)` used for the sampling.
                           The probability distribution being sampled
-                          from is $$F(\Psi(s))$$, where the function
-                          $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+                          from is :math:`F(\Psi(s))`, where the function
+                          $$F(X)$$, is arbitrary, by default :math:`F(X)=|X|^2`.
             transition_kernel: A function to generate a transition.
                           This should take as an input the current state (in batches)
                           and return a modified state (also in batches).
                           This function must also return an array containing the
-                          `log_prob_corrections` $$L(s,s^\prime)$$.
+                          `log_prob_corrections` :math:`L(s,s^\prime)`.
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
@@ -146,37 +145,41 @@ class PyMetropolisHastings(AbstractSampler):
 
 class MetropolisLocal(AbstractSampler):
     """
-    This sampler acts locally only on one local degree of freedom $$s_i$$,
-    and proposes a new state: $$ s_1 \dots s^\prime_i \dots s_N $$,
-    where $$ s^\prime_i \neq s_i $$.
+    Sampler acting on one local degree of freedom.
+
+    This sampler acts locally only on one local degree of freedom :math:`s_i`,
+    and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s_N`,
+    where :math:`s^\prime_i \\neq s_i`.
 
     The transition probability associated to this
     sampler can be decomposed into two steps:
 
-    1. One of the site indices $$ i = 1\dots N $$ is chosen
+    1. One of the site indices :math:`i = 1\dots N` is chosen
     with uniform probability.
-    2. Among all the possible ($$m$$) values that $$s_i$$ can take,
+    2. Among all the possible (:math:`m`) values that :math:`s_i` can take,
     one of them is chosen with uniform probability.
 
-    For example, in the case of spin $$1/2$$ particles, $$m=2$$
-    and the possible local values are $$s_i = -1,+1$$.
-    In this case then `MetropolisLocal` is equivalent to flipping a random spin.
+    For example, in the case of spin :math:`1/2` particles, :math:`m=2`
+    and the possible local values are :math:`s_i = -1,+1`.
+    In this case then :class:`MetropolisLocal` is equivalent to flipping a random spin.
 
     In the case of bosons, with occupation numbers
-    $$s_i = 0, 1, \dots n_{\mathrm{max}}$$, `MetropolisLocal`
-    would pick a random local occupation number uniformly between $$0$$
-    and $$n_{\mathrm{max}}$$.
+    :math:`s_i = 0, 1, \dots n_{\mathrm{max}}`, :class:`MetropolisLocal`
+    would pick a random local occupation number uniformly between :math:`0`
+    and :math:`n_{\mathrm{max}}`.
     """
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
         """
 
-         Constructs a new ``MetropolisLocal`` sampler given a machine.
+         Constructs a new :class:`MetropolisLocal` sampler given a machine.
+
          Args:
-            machine: A machine $$\Psi(s)$$ used for the sampling.
-             The probability distribution being sampled
-             from is $$F(\Psi(s))$$, where the function
-             $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+            machine: A machine :math:`\Psi(s)` used for the sampling.
+                     The probability distribution being sampled
+                     from is :math:`F(\Psi(s))`, where the function
+                     :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
+
             n_chains:   The number of Markov Chain to be run in parallel on a single process.
             sweep_size: The number of exchanges that compose a single sweep.
                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
@@ -187,7 +190,6 @@ class MetropolisLocal(AbstractSampler):
          Examples:
              Sampling from a RBM machine in a 1D lattice of spin 1/2
 
-             ```python
              >>> import netket as nk
              >>>
              >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
@@ -200,8 +202,6 @@ class MetropolisLocal(AbstractSampler):
              >>> sa = nk.sampler.MetropolisLocal(machine=ma)
              >>> print(sa.machine.hilbert.size)
              100
-
-             ```
         """
         if "_C_netket.machine" in str(type(machine)):
             self.sampler = c_sampler.MetropolisLocal(

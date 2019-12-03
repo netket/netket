@@ -11,7 +11,6 @@ def Qubit(graph):
     Examples:
         Simple qubit hilbert space.
 
-        ```python
         >>> from netket.graph import Hypercube
         >>> from netket.hilbert import Qubit
         >>> g = Hypercube(length=10,n_dim=2,pbc=True)
