@@ -47,36 +47,29 @@ void AddOperatorModule(py::module m) {
       class
        )EOF")
           .def("get_conn",
-               [&](AbstractOperator& op, Eigen::Ref<const RowMatrix<double>> v)
-                   -> std::tuple<std::vector<RowMatrix<double>>,
-                                 std::vector<Eigen::VectorXcd>> {
-                 std::vector<RowMatrix<double>> vprimes(v.rows());
-                 std::vector<Eigen::VectorXcd> mels(v.rows());
+               [](AbstractOperator& op,
+                  py::array_t<double, py::array::c_style> samples) {
+                 switch (samples.ndim()) {
+                   case 2:
+                     return py::cast(
+                         op.GetConn(Eigen::Map<const RowMatrix<double>>{
+                             samples.data(), samples.shape(0),
+                             samples.shape(1)}));
+                   case 1: {
+                     auto conns =
+                         op.GetConn(Eigen::Map<const RowMatrix<double>>{
+                             samples.data(), 1, samples.shape(0)});
 
-                 std::vector<Complex> mel;
-                 std::vector<std::vector<int>> tochange;
-                 std::vector<std::vector<double>> newconfs;
-
-                 for (auto i = Index{0}; i < v.rows(); ++i) {
-                   auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
-
-                   op.FindConn(vi, mel, tochange, newconfs);
-
-                   mels[i] =
-                       Eigen::Map<const Eigen::VectorXcd>(&mel[0], mel.size());
-
-                   vprimes[i] = vi.transpose().colwise().replicate(mel.size());
-
-                   for (std::size_t k = 0; k < tochange.size(); k++) {
-                     for (std::size_t c = 0; c < tochange[k].size(); c++) {
-                       vprimes[i](k, tochange[k][c]) = newconfs[k][c];
-                     }
+                     return py::cast(
+                         std::tuple<RowMatrix<double>, Eigen::VectorXcd>(
+                             std::get<0>(conns)[0], std::get<1>(conns)[0]));
                    }
+                   default:
+                     NETKET_CHECK(false, InvalidInputError,
+                                  "samples has wrong dimension: "
+                                      << samples.ndim()
+                                      << "; expected either 1 or 2");
                  }
-
-                 return std::tuple<std::vector<RowMatrix<double>>,
-                                   std::vector<Eigen::VectorXcd>>{
-                     std::move(vprimes), std::move(mels)};
                },
                py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
@@ -149,7 +142,7 @@ void AddOperatorModule(py::module m) {
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
          Eigen::Ref<Eigen::VectorXcd> local_vals) {
-        for (Index k = 0; k < mels.size(); k++) {
+        for (std::size_t k = 0; k < mels.size(); k++) {
           local_vals(k) = (mels[k].array() *
                            (log_vals_prime[k].array() - log_vals_zero(k)).exp())
                               .sum();

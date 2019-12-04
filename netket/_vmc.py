@@ -291,9 +291,7 @@ class Vmc(object):
 
     def _get_mc_stats(self, op):
 
-        loc = _local_values(
-            op, self._machine, self._samples.reshape(-1, op.hilbert.size)
-        ).reshape(self._samples.shape[0:2])
+        loc = _local_values(op, self._machine, self._samples)
 
         return loc, _statistics(loc)
 

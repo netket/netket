@@ -66,7 +66,21 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
     return GraphOperator(hilbert, bondops=[J * heis_term])
 
 
-def local_values(op, machine, samples, log_val_samples=None, out=None):
+def _local_values_impl(op, machine, v, log_vals, out):
+
+    vprimes, mels = op.get_conn(v)
+    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
+
+    _local_values_kernel(log_vals, log_val_primes, mels, out)
+
+    # for k, sample in enumerate(v):
+    #
+    #     lvd = machine.log_val(vprimes[k])
+    #
+    #     out[k] = (mels[k] * _np.exp(lvd - log_vals[k])).sum()
+
+
+def local_values(op, machine, v, log_vals=None, out=None):
     """
     Computes local values of the operator `op` for all `samples`.
 
@@ -76,35 +90,77 @@ def local_values(op, machine, samples, log_val_samples=None, out=None):
 
             Args:
                 op: Hermitian operator.
-                samples: A matrix X containing a batch of visible
-                    configurations :math:`x_1,\dots x_M`.
-                    Each row of the matrix corresponds to a visible configuration.
+                v: A numpy array or matrix containing either a single
+                    :math:`V = v` or a batch of visible
+                    configurations :math:`V = v_1,\dots v_M`.
+                    In the latter case, each row of the matrix corresponds to a
+                    visible configuration.
                 machine: Wavefunction :math:`\Psi`.
-                log_val_samples: An array containing the values :math:`\Psi(X)`.
+                log_vals: A scalar/numpy array containing the value(s) :math:`\Psi(V)`.
                     If not given, it is computed from scratch.
                     Defaults to None.
-                out: A numpy array of local values of the operator.
+                out: A scalar or a numpy array of local values of the operator.
                     If not given, it is allocated from scratch and then returned.
-                    Defaults to None.     
+                    Defaults to None.
 
             Returns:
-                A numpy array of local values of the operator.
+                If samples is given in batches, a numpy array of local values
+                of the operator, otherwise a scalar.
     """
-    if out is None:
-        out = _np.zeros(shape=samples.shape[0:-1], dtype=_np.complex128)
+    if v.ndim == 3:
+        assert (
+            v.shape[2] == op.hilbert.size
+        ), "samples has wrong shape: {}; expected (?, {})".format(
+            v.shape, op.hilbert.size
+        )
 
-    if log_val_samples is None:
-        log_val_samples = machine.log_val(samples)
+        if out is None:
+            out = _np.empty(v.shape[0] * v.shape[1], dtype=_np.complex128)
 
-    vprimes, mels = op.get_conn(samples)
-    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
+        if log_vals is None:
+            log_vals = machine.log_val(v)
 
-    _local_values_kernel(log_val_samples, log_val_primes, mels, out)
+        _local_values_impl(
+            op,
+            machine,
+            v.reshape(-1, op.hilbert.size),
+            log_vals.reshape(-1),
+            out.reshape(-1),
+        )
 
-    # for k, sample in enumerate(samples):
-    #
-    #     lvd = machine.log_val(vprimes[k])
-    #
-    #     # out[k] = (mels[k] * _np.exp(lvd - log_val_samples[k])).sum()
+        return out.reshape(v.shape[0:-1])
+    elif v.ndim == 2:
+        assert (
+            v.shape[1] == op.hilbert.size
+        ), "samples has wrong shape: {}; expected (?, {})".format(
+            v.shape, op.hilbert.size
+        )
 
-    return out
+        if out is None:
+            out = _np.empty(v.shape[0], dtype=_np.complex128)
+
+        if log_vals is None:
+            log_vals = machine.log_val(v)
+
+        _local_values_impl(op, machine, v, log_vals, out)
+
+        return out
+    elif v.ndim == 1:
+        assert v.size == op.hilbert.size, "v has wrong size: {}; expected {}".format(
+            v.shape, op.hilbert.size
+        )
+        if out is None:
+            out = _np.empty(1, dtype=_np.complex128)
+        else:
+            out = _np.atleast_1d(out)
+
+        if log_vals is None:
+            log_vals = _np.atleast_1d(machine.log_val(v))
+        else:
+            log_vals = _np.atleast_1d(log_vals)
+
+        _local_values_impl(op, machine, v.reshape(1, -1), log_vals.reshape(1, -1), out)
+        return out[0]
+    raise ValueError(
+        "v has wrong dimension: {}; expected either 1, 2 or 3".format(v.ndim)
+    )

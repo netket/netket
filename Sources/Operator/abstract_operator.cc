@@ -56,4 +56,34 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
+auto AbstractOperator::GetConn(Eigen::Ref<const RowMatrix<double>> v)
+    -> std::tuple<std::vector<RowMatrix<double>>,
+                  std::vector<Eigen::VectorXcd>> {
+  std::vector<RowMatrix<double>> vprimes(v.rows());
+  std::vector<Eigen::VectorXcd> mels(v.rows());
+
+  std::vector<Complex> mel;
+  std::vector<std::vector<int>> tochange;
+  std::vector<std::vector<double>> newconfs;
+
+  for (auto i = Index{0}; i < v.rows(); ++i) {
+    auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
+
+    FindConn(vi, mel, tochange, newconfs);
+
+    mels[i] = Eigen::Map<const Eigen::VectorXcd>(&mel[0], mel.size());
+
+    vprimes[i] = vi.transpose().colwise().replicate(mel.size());
+
+    for (std::size_t k = 0; k < tochange.size(); k++) {
+      for (std::size_t c = 0; c < tochange[k].size(); c++) {
+        vprimes[i](k, tochange[k][c]) = newconfs[k][c];
+      }
+    }
+  }
+
+  return std::tuple<std::vector<RowMatrix<double>>,
+                    std::vector<Eigen::VectorXcd>>{std::move(vprimes),
+                                                   std::move(mels)};
+}
 }  // namespace netket

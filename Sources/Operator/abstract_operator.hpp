@@ -87,6 +87,10 @@ class AbstractOperator {
   void FindConn(VectorConstRefType v, Eigen::SparseMatrix<double> &delta_v,
                 Eigen::VectorXcd &mel) const;
 
+  auto GetConn(Eigen::Ref<const RowMatrix<double>> v)
+      -> std::tuple<std::vector<RowMatrix<double>>,
+                    std::vector<Eigen::VectorXcd>>;
+
   /**
    * Iterates over all states reachable from a given visible configuration v,
    * i.e., all states v' such that O(v,v') is non-zero.
@@ -209,23 +213,6 @@ std::pair<Complex, double> MeanVariance(Operator &&apply,
   const double var = state1.norm();
   return {mean, var};
 }
-
-/**
- * Computes the local values of the operator `op` in configurations `samples`.
- *
- * @param samples A matrix of MC samples as returned by #ComputeSamples(). Every
- *                row represents a single visible configuration.
- * @param values Logarithms of wave function values as returned by
- *               #ComputeSamples().
- * @param machine Machine representation of the wavefunction.
- * @param op Operator for which to compute the local values.
- * @param batch_size Batch size to use internally.
- *
- * @return local values of \p op
- */
-Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             AbstractMachine &machine,
-                             const AbstractOperator &op, Index batch_size);
 
 }  // namespace netket
 
