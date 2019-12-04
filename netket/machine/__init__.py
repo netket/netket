@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from .._C_netket.machine import *
 from .cxx_machine import *
 from .abstract_machine import AbstractMachine
+
 from .py_rbm import *
 
 

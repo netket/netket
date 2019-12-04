@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import netket as nk
-import json
+import cProfile
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -25,14 +25,20 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+alpha = 16
+ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi)
+py_ma = nk.machine.PyRbm(alpha=alpha, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
+py_ma.parameters = ma.parameters
+
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8, backend="py")
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
@@ -40,8 +46,8 @@ gs = nk.variational.Vmc(
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    method="Sr",
+    method="Gd",
     diag_shift=0.1,
 )
 
-gs.run(output_prefix="test", n_iter=300)
+cProfile.run("gs.run(output_prefix='test', n_iter=20)")

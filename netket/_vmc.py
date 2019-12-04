@@ -5,6 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
+
 from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
@@ -109,7 +110,6 @@ class Vmc(object):
         Example:
             Optimizing a 1D wavefunction with Variational Monte Carlo.
 
-            ```python
             >>> import netket as nk
             >>> SEED = 3141592
             >>> g = nk.graph.Hypercube(length=8, n_dim=1)
@@ -120,7 +120,7 @@ class Vmc(object):
             >>> sa = nk.sampler.MetropolisLocal(machine=ma)
             >>> op = nk.optimizer.Sgd(learning_rate=0.1)
             >>> vmc = nk.Vmc(ha, sa, op, 200)
-            ```
+
         """
         self._ham = hamiltonian
         self._machine = sampler.machine
@@ -172,8 +172,7 @@ class Vmc(object):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
             n_discard
@@ -282,8 +281,7 @@ class Vmc(object):
         r = {"Energy": self._stats} if include_energy else {}
 
         r.update(
-            {name: self._get_mc_stats(obs)[1]
-             for name, obs in observables.items()}
+            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
         )
         return r
 
@@ -292,7 +290,11 @@ class Vmc(object):
         self._sampler.reset()
 
     def _get_mc_stats(self, op):
-        loc = _local_values(op, self._machine, self._samples)
+
+        loc = _local_values(
+            op, self._machine, self._samples.reshape(-1, op.hilbert.size)
+        ).reshape(self._samples.shape[0:2])
+
         return loc, _statistics(loc)
 
     def __repr__(self):

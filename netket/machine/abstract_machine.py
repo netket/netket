@@ -67,7 +67,7 @@ class AbstractMachine(abc.ABC):
 
     @property
     def parameters(self):
-        return _np.concatenate(tuple(p.reshape(-1) for p in self.state_dict().values()))
+        return _np.concatenate(tuple(p.reshape(-1) for p in self.state_dict.values()))
 
     @parameters.setter
     def parameters(self, p):
@@ -76,6 +76,6 @@ class AbstractMachine(abc.ABC):
                 "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
             )
         i = 0
-        for x in map(lambda x: x.reshape(-1), self.state_dict().values()):
+        for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
             _np.copyto(x, p[i : i + x.size])
             i += x.size

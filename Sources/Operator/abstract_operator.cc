@@ -56,34 +56,4 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
-Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             AbstractMachine& machine,
-                             const AbstractOperator& op, Index batch_size) {
-  if (batch_size < 1) {
-    std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size << "; expected >=1";
-    throw InvalidInputError{msg.str()};
-  }
-  Eigen::VectorXcd locals(samples.rows());
-
-  std::vector<Complex> mel;
-  std::vector<std::vector<int>> tochange;
-  std::vector<std::vector<double>> newconfs;
-  Eigen::VectorXcd outlvd;
-
-  for (auto i = Index{0}; i < samples.rows(); ++i) {
-    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
-
-    op.FindConn(v, mel, tochange, newconfs);
-    outlvd.resize(newconfs.size());
-    machine.LogValDiff(v, tochange, newconfs, outlvd);
-
-    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-    locals(i) = (meleig * outlvd.array().exp()).sum();
-  }
-  assert(samples.rows() > 0);
-
-  return locals;
-}
-
 }  // namespace netket
