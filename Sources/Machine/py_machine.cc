@@ -50,10 +50,10 @@ void AddRbmSpin(py::module subm) {
           A fully connected Restricted Boltzmann Machine (RBM). This type of
           RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+             \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
                     bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
@@ -77,7 +77,6 @@ void AddRbmSpin(py::module subm) {
                        A ``RbmSpin`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
                        >>> from netket.machine import RbmSpin
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -87,7 +86,6 @@ void AddRbmSpin(py::module subm) {
                        >>> print(ma.n_par)
                        860
 
-                       ```
                    )EOF");
 }
 
@@ -97,11 +95,11 @@ void AddRbmSpinSymm(py::module subm) {
              symmetries. This type of RBM has spin 1/2 hidden units and is
              defined by:
 
-             $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+             .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-             for arbitrary local quantum numbers $$ s_i $$. However, the weights
-             ($$ W_{ij} $$) and biases ($$ a_i $$, $$ b_i $$) respects the
+             for arbitrary local quantum numbers :math:`s_i`. However, the weights
+             (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
              specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, bool>(),
            py::arg("hilbert"), py::arg("alpha") = 0,
@@ -124,7 +122,6 @@ void AddRbmSpinSymm(py::module subm) {
                        A ``RbmSpinSymm`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
                        >>> from netket.machine import RbmSpinSymm
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -134,7 +131,6 @@ void AddRbmSpinSymm(py::module subm) {
                        >>> print(ma.n_par)
                        43
 
-                       ```
                    )EOF");
 }
 
@@ -156,10 +152,10 @@ void AddRbmSpinPhase(py::module subm) {
           and amplitude of the wave-function.
           This type of RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+                    \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
@@ -183,7 +179,7 @@ void AddRbmSpinPhase(py::module subm) {
                        A ``RbmSpinPhase`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
+
                        >>> from netket.machine import RbmSpinPhase
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -193,7 +189,6 @@ void AddRbmSpinPhase(py::module subm) {
                        >>> print(ma.n_par)
                        1720
 
-                       ```
                    )EOF");
 }
 
@@ -202,10 +197,10 @@ void AddRbmSpinReal(py::module subm) {
           A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
           This type of RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+             \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
            py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
@@ -229,7 +224,7 @@ void AddRbmSpinReal(py::module subm) {
                        A ``RbmSpinReal`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
+
                        >>> from netket.machine import RbmSpinReal
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -239,7 +234,7 @@ void AddRbmSpinReal(py::module subm) {
                        >>> print(ma.n_par)
                        860
 
-                       ```
+
                    )EOF");
 }
 
@@ -267,7 +262,7 @@ void AddFFNN(py::module subm) {
                   A ``FFNN`` machine with 2 layers.
                   for a one-dimensional L=20 spin-half system:
 
-                  ```python
+
                   >>> from netket.layer import SumOutput
                   >>> from netket.layer import FullyConnected
                   >>> from netket.layer import Lncosh
@@ -281,7 +276,7 @@ void AddFFNN(py::module subm) {
                   >>> print(ma.n_par)
                   420
 
-                  ```
+
               )EOF");
 }
 
@@ -290,9 +285,9 @@ void AddJastrow(py::module subm) {
            A Jastrow wavefunction Machine. This machine defines the following
            wavefunction:
 
-           $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
+           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
 
-           where $$ W_{ij} $$ are the Jastrow parameters.
+           where :math:` W_{ij}` are the Jastrow parameters.
            )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
            py::arg("hilbert"), R"EOF(
@@ -305,7 +300,7 @@ void AddJastrow(py::module subm) {
                      A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2
                      system:
 
-                     ```python
+
                      >>> from netket.machine import Jastrow
                      >>> from netket.hilbert import Spin
                      >>> from netket.graph import Hypercube
@@ -315,7 +310,7 @@ void AddJastrow(py::module subm) {
                      >>> print(ma.n_par)
                      190
 
-                     ```
+
                  )EOF");
 }
 
@@ -324,9 +319,9 @@ void AddJastrowSymm(py::module subm) {
            A Jastrow wavefunction Machine with lattice symmetries.This machine
            defines the wavefunction as follows:
 
-           $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
+           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
 
-           where $$ W_{ij} $$ are the Jastrow parameters respects the
+           where :math:` W_{ij}` are the Jastrow parameters respects the
            specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
            py::arg("hilbert"), R"EOF(
@@ -339,7 +334,7 @@ void AddJastrowSymm(py::module subm) {
                      A ``JastrowSymm`` machine for a one-dimensional L=20 spin
                      1/2 system:
 
-                     ```python
+
                      >>> from netket.machine import JastrowSymm
                      >>> from netket.hilbert import Spin
                      >>> from netket.graph import Hypercube
@@ -349,7 +344,7 @@ void AddJastrowSymm(py::module subm) {
                      >>> print(ma.n_par)
                      10
 
-                     ```
+
                  )EOF");
 }
 
@@ -393,14 +388,14 @@ void AddLayerModule(py::module m) {
     py::class_<DerType, AbstractLayer>(subm, "FullyConnected", R"EOF(
              A fully connected feedforward layer. This layer implements the
              transformation from a m-dimensional input vector
-             $$ \boldsymbol{v}_n $$ to a n-dimensional output vector
-             $$ \boldsymbol{v}_{n+1} $$:
+             :math:` \boldsymbol{v}_n` to a n-dimensional output vector
+             :math:` \boldsymbol{v}_{n+1}`:
 
-             $$ \boldsymbol{v}_n \rightarrow \boldsymbol{v}_{n+1} =
-             g_{n}(\boldsymbol{W}{n}\boldsymbol{v}{n} + \boldsymbol{b}_{n} ) $$
+             .. math:: \boldsymbol{v}_n \rightarrow \boldsymbol{v}_{n+1} =
+             g_{n}(\boldsymbol{W}{n}\boldsymbol{v}{n} + \boldsymbol{b}_{n} )
 
-             where $$ \boldsymbol{W}{n} $$ is a m by n weights matrix and
-             $$ \boldsymbol{b}_{n} $$ is a n-dimensional bias vector.
+             where :math:` \boldsymbol{W}{n}` is a m by n weights matrix and
+             :math:` \boldsymbol{b}_{n}` is a n-dimensional bias vector.
              )EOF")
         .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false, R"EOF(
@@ -418,13 +413,13 @@ void AddLayerModule(py::module m) {
                  A ``FullyConnected`` layer which takes 10-dimensional inputs
                  and gives a 20-dimensional output:
 
-                 ```python
+
                  >>> from netket.layer import FullyConnected
                  >>> l=FullyConnected(input_size=10,output_size=20,use_bias=True)
                  >>> print(l.n_par)
                  220
 
-                 ```
+
              )EOF");
   }
   {
@@ -454,13 +449,13 @@ void AddLayerModule(py::module m) {
                  A ``ConvolutionalHypercube`` layer which takes 4 10x10 input images
                  and gives 8 10x10 output images by convolving with 4x4 kernels:
 
-                 ```python
+
                  >>> from netket.layer import ConvolutionalHypercube
                  >>> l=ConvolutionalHypercube(length=10,n_dim=2,input_channels=4,output_channels=8,kernel_length=4)
                  >>> print(l.n_par)
                  512
 
-                 ```
+
              )EOF");
   }
   {
@@ -476,13 +471,13 @@ void AddLayerModule(py::module m) {
         Examples:
             A ``SumOutput`` layer which takes 10-dimensional inputs:
 
-            ```python
+
             >>> from netket.layer import SumOutput
             >>> l=SumOutput(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -499,13 +494,13 @@ void AddLayerModule(py::module m) {
             A ``Lncosh`` activation layer which applies the Lncosh function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Lncosh
             >>> l=Lncosh(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -522,13 +517,13 @@ void AddLayerModule(py::module m) {
             A ``Tanh`` activation layer which applies the Tanh function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Tanh
             >>> l=Tanh(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -545,13 +540,13 @@ void AddLayerModule(py::module m) {
             A ``Relu`` activation layer which applies the Relu function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Relu
             >>> l=Relu(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
 }
