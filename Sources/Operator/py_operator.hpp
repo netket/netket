@@ -260,7 +260,8 @@ void AddOperatorModule(py::module m) {
       },
       py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
       py::arg{"batch_size"} = 16,
-      R"EOF(Computes local values of the operator `op` for all `samples`.
+      R"EOF(Computes local values of the product of `op` times `machine` for all 
+            `samples`, where `machine` is a density matrix.
 
             Args:
                 samples: A matrix (or a rank-3 tensor) of visible
@@ -269,7 +270,7 @@ void AddOperatorModule(py::module m) {
                     rank-3 tensor, its shape should be `(N, M, #visible)` where
                     `N` is the number of samples, `M` is the number of Markov
                     Chains, and `#visible` is the number of visible units.
-                machine: Wavefunction.
+                machine: Density Matrix.
                 op: Hermitian operator.
                 batch_size: Batch size.
 

@@ -184,6 +184,8 @@ class SteadyState(object):
             (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
         )
 
+        # Set the machine_func of the sampler over the diagonal of the density matrix
+        # to be |\rho(x,x)|
         sampler_obs.machine_func = lambda x, out: _np.abs(x, out)
 
     @property
