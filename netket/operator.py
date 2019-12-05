@@ -69,6 +69,7 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
 def _local_values_impl(op, machine, v, log_vals, out):
 
     vprimes, mels = op.get_conn(v)
+
     log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
 
     _local_values_kernel(log_vals, log_val_primes, mels, out)
