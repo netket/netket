@@ -10,6 +10,7 @@ from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
     subtract_mean as _subtract_mean,
+    mean as _mean,
 )
 
 
@@ -134,7 +135,7 @@ class Vmc(object):
 
         self._npar = self._machine.n_par
 
-        self._n_chains = sampler.sample_shape[0]
+        self._batch_size = sampler.sample_shape[0]
 
         self.n_samples = n_samples
         self.n_discard = n_discard
@@ -142,13 +143,6 @@ class Vmc(object):
         self._obs = {}
 
         self.step_count = 0
-        self._samples = _np.ndarray(
-            (self._n_samples_node, self._n_chains, hamiltonian.hilbert.size)
-        )
-
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
-        )
 
     @property
     def n_samples(self):
@@ -161,8 +155,20 @@ class Vmc(object):
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
         self._n_samples = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._n_chains)))
+        n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
         self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+
+        self._samples = _np.ndarray(
+            (self._n_samples_node, self._batch_size, self._ham.hilbert.size)
+        )
+
+        self._der_logs = _np.ndarray(
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
+        )
+
+        self._grads = _np.empty(
+            (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
+        )
 
     @property
     def n_discard(self):
@@ -177,7 +183,7 @@ class Vmc(object):
         self._n_discard = (
             n_discard
             if n_discard != None
-            else self._n_samples_node * self._n_chains // 10
+            else self._n_samples_node * self._batch_size // 10
         )
 
     def advance(self, n_steps=1):
@@ -196,34 +202,50 @@ class Vmc(object):
             for _ in self._sampler.samples(self._n_discard):
                 pass
 
-            # Generate samples
+            # Generate samples and store them
             for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
-
-                # Store the current sample
                 self._samples[i] = sample
 
-                # Compute Log derivatives
-                self._der_logs[i] = self._machine.der_log(sample)
-
-            # Center the log derivatives
-            _subtract_mean(self._der_logs)
-
-            # Estimate energy
+            # Compute the local energy estimator and average Energy
             eloc, self._stats = self._get_mc_stats(self._ham)
-
-            # Estimate energy gradient
-            grad = _covariance_sv(eloc, self._der_logs, center_s=False)
 
             # Perform update
             if self._sr:
-                dp = _np.empty(self._npar, dtype=_np.complex128)
+                # When using the SR (Natural gradient) we need to have the full jacobian
+                # Computes the jacobian
+                for i, sample in enumerate(self._samples):
+                    self._der_logs[i] = self._machine.der_log(sample)
+
                 # flatten MC chain dimensions:
-                derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
-                self._sr.compute_update(derlogs, grad, dp)
-                derlogs = self._der_logs.reshape(
-                    self._n_samples_node, self._n_chains, self._npar
+                self._der_logs = self._der_logs.reshape(-1, self._npar)
+
+                # Center the local energy
+                eloc -= _mean(eloc)
+
+                # Center the log derivatives
+                self._der_logs -= _mean(self._der_logs, axis=0)
+
+                # Compute the gradient
+                self._grads = _np.conjugate(self._der_logs) * eloc.reshape(-1, 1)
+
+                grad = _mean(self._grads, axis=0)
+
+                dp = _np.empty(self._npar, dtype=_np.complex128)
+
+                self._sr.compute_update(self._der_logs, grad, dp)
+
+                self._der_logs = self._der_logs.reshape(
+                    self._n_samples_node, self._batch_size, self._npar
                 )
             else:
+                # Computing updates using the simple gradient
+                # Center the local energy
+                eloc -= _mean(eloc)
+
+                for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
+                    self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
+
+                grad = _mean(self._grads, axis=0) / float(self._batch_size)
                 dp = grad
 
             self._machine.parameters = self._optimizer_step(
@@ -290,8 +312,9 @@ class Vmc(object):
         self._sampler.reset()
 
     def _get_mc_stats(self, op):
-
-        loc = _local_values(op, self._machine, self._samples)
+        loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
+        for i, sample in enumerate(self._samples):
+            _local_values(op, self._machine, sample, out=loc[i])
 
         return loc, _statistics(loc)
 

@@ -29,6 +29,12 @@ class AbstractMachine(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def vector_jacobian_prod(selv, v, vec, out=None):
+        return NotImplementedError
+
+    def jacobian_vector_prod(self, v, vec, out=None):
+        return NotImplementedError
+
     def der_log(self, v, out=None):
         r"""Computes the gradient of the logarithm of the wavefunction for a
         batch of visible configurations `v` and stores the result into `out`.
@@ -45,7 +51,7 @@ class AbstractMachine(abc.ABC):
         Returns:
             `out`
             """
-        pass
+        return NotImplementedError
 
     @property
     @abc.abstractmethod

@@ -39,7 +39,7 @@ def test_vmc_functions():
 
     exact_dist = np.abs(state) ** 2
 
-    n_samples = 8000
+    n_samples = 16000
 
     for op, name in (ha, "ha"), (sx, "sx"):
         print("Testing expectation of op={}".format(name))

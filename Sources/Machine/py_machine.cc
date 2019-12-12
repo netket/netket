@@ -652,6 +652,15 @@ void AddAbstractMachine(py::module m) {
                  Args:
                      v: Input vector to machine.
            )EOF")
+      .def("vector_jacobian_prod", &AbstractMachine::VectorJacobianProd,
+           py::arg("v"), py::arg("vec"), py::arg("out"),
+           R"EOF(
+                      Member function to obtain the derivatives of log value of
+                      machine given an input wrt the machine's parameters.
+
+                      Args:
+                          v: Input vector to machine.
+                )EOF")
       .def_property_readonly(
           "n_visible", &AbstractMachine::Nvisible,
           R"EOF(int: The number of inputs into the machine aka visible units in

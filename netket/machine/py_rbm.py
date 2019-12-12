@@ -50,6 +50,7 @@ class PyRbm(AbstractMachine):
         self._b = _np.empty(m, dtype=_np.complex128) if use_hidden_bias else None
 
         self.n_hidden = m
+        self.n_visible = n
 
         self._r = _np.empty((1, m), dtype=_np.complex128, order="C")
 
@@ -95,7 +96,7 @@ class PyRbm(AbstractMachine):
         i = 0
         if self._a is not None:
             out[:, i : i + x.shape[1]] = x
-            i += x.shape[1]
+            i += self.n_visible
 
         r = _np.dot(x, self._w.T)
         if self._b is not None:
@@ -103,14 +104,17 @@ class PyRbm(AbstractMachine):
         _np.tanh(r, out=r)
 
         if self._b is not None:
-            out[:, i : i + self._b.shape[0]] = r
-            i += self._b.shape[0]
+            out[:, i : i + self.n_hidden] = r
+            i += self.n_hidden
 
         t = out[:, i : i + self._w.size]
         t.shape = (batch_size, self._w.shape[0], self._w.shape[1])
         _np.einsum("ij,il->ijl", r, x, out=t)
 
         return out
+
+    def vector_jacobian_prod(self, x, vec, out=None):
+        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
 
     @property
     def is_holomorphic(self):
