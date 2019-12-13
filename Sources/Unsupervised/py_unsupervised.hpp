@@ -15,7 +15,6 @@
 #ifndef NETKET_PYQUANTUM_STATE_RECONSTRUCTION_HPP
 #define NETKET_PYQUANTUM_STATE_RECONSTRUCTION_HPP
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>

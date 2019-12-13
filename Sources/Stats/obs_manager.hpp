@@ -15,7 +15,6 @@
 #ifndef NETKET_OBS_MANAGER_HPP
 #define NETKET_OBS_MANAGER_HPP
 
-#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>

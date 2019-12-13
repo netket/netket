@@ -15,7 +15,6 @@
 #ifndef NETKET_PYLAYER_HPP
 #define NETKET_PYLAYER_HPP
 
-#include <mpi.h>
 #include "layer.hpp"
 
 namespace py = pybind11;
