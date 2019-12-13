@@ -19,7 +19,7 @@ def _setup_vmc():
 
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.ExactSampler(machine=ma, sample_size=16)
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    op = nk.optimizer.Sgd(learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
@@ -33,7 +33,7 @@ def _setup_vmc():
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
-    driver.advance(200)
+    driver.advance(500)
 
     state = ma.to_array()
 
