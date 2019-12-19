@@ -4,6 +4,7 @@ from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
 from .py_rbm import *
+from .torch import Torch
 
 
 def _has_jax():
