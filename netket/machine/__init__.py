@@ -4,7 +4,6 @@ from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
 from .py_rbm import *
-from .torch import Torch
 
 
 def _has_jax():
@@ -19,8 +18,20 @@ def _has_jax():
         return False
 
 
+def _has_torch():
+    try:
+        import torch
+
+        return True
+    except ImportError:
+        return False
+
+
 if _has_jax():
     from .jax import *
+
+if _has_torch():
+    from .torch import Torch
 
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):

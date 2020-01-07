@@ -1,6 +1,7 @@
 from .abstract_machine import AbstractMachine
 import torch as _torch
 import numpy as _np
+import warnings
 
 
 def _get_number_parameters(m):
@@ -32,7 +33,9 @@ class Torch(AbstractMachine):
     @parameters.setter
     def parameters(self, p):
         if not _np.all(p.imag == 0.0):
-            raise ValueError("PyTorch machines have real parameters")
+            warnings.warn(
+                "PyTorch machines have real parameters, imaginary part will be discarded"
+            )
         self._torch_pars = _torch.from_numpy(p.real)
         if self._torch_pars.numel() != self.n_par:
             raise ValueError(
@@ -88,10 +91,10 @@ class Torch(AbstractMachine):
         def get_vec(is_real):
             if is_real:
                 vecj[:, 0] = _torch.from_numpy(vec.real)
-                vecj[:, 1] = _torch.from_numpy(-vec.imag)
-            else:
-                vecj[:, 0] = _torch.from_numpy(vec.real)
                 vecj[:, 1] = _torch.from_numpy(vec.imag)
+            else:
+                vecj[:, 0] = _torch.from_numpy(vec.imag)
+                vecj[:, 1] = _torch.from_numpy(-vec.real)
             return vecj
 
         y = self._module(_torch.from_numpy(x))
@@ -101,7 +104,7 @@ class Torch(AbstractMachine):
         zero_grad()
         y.backward(get_vec(False))
         write_to(out.imag)
-        # out.imag=0
+
         return out
 
     @property

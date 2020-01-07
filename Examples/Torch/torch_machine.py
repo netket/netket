@@ -14,6 +14,7 @@
 
 import netket as nk
 import torch
+import numpy as np
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -37,15 +38,17 @@ model = torch.nn.Sequential(
 
 ma = nk.machine.Torch(model, hilbert=hi)
 
+ma.parameters = 0.1 * (np.random.randn(ma.n_par))
+
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.01)
+op = nk.optimizer.AdaDelta()
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, method="Gd"
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, method="Gd"
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(output_prefix="test", n_iter=30000)
