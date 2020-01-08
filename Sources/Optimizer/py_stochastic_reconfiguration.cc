@@ -14,16 +14,18 @@ namespace py = pybind11;
 void AddSR(py::module& m) {
   py::class_<SR>(m, "SR", "Performs stochastic reconfiguration (SR) updates")
       .def(py::init([](const std::string& solver_name, double diag_shift,
-                       bool use_iterative, bool is_holomorphic) {
+                       bool use_iterative, bool is_holomorphic,
+                       nonstd::optional<double> svd_threshold) {
              const auto solver = SR::SolverFromString(solver_name);
              NETKET_CHECK(solver.has_value(), InvalidInputError,
                           "Invalid LSQ solver \"" << solver_name
                                                   << "\" specified for SR");
              return SR(solver.value(), diag_shift, use_iterative,
-                       is_holomorphic);
+                       is_holomorphic, svd_threshold);
            }),
            py::arg("lsq_solver") = "LLT", py::arg("diag_shift") = 0.01,
-           py::arg("use_iterative") = false, py::arg("is_holomorphic") = true)
+           py::arg("use_iterative") = false, py::arg("is_holomorphic") = true,
+           py::arg("svd_threshold") = nonstd::nullopt)
       .def("compute_update", &SR::ComputeUpdate, py::arg("Oks").noconvert(),
            py::arg("grad").noconvert(), py::arg("out").noconvert(),
            R"EOF(

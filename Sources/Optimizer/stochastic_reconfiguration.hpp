@@ -27,6 +27,7 @@
 #include <Eigen/IterativeLinearSolvers>
 #include <nonstd/optional.hpp>
 
+#include "Utils/exceptions.hpp"
 #include "Utils/messages.hpp"
 #include "Utils/parallel_utils.hpp"
 #include "Utils/random_utils.hpp"
@@ -50,11 +51,20 @@ class SR {
   static const char* SolverAsString(LSQSolver solver);
 
   explicit SR(LSQSolver solver, double diagshift = 0.01,
-              bool use_iterative = false, bool is_holomorphic = true)
+              bool use_iterative = false, bool is_holomorphic = true,
+              nonstd::optional<double> svd_threshold = nonstd::nullopt)
       : solver_(solver),
         sr_diag_shift_(diagshift),
         use_iterative_(use_iterative),
-        is_holomorphic_(is_holomorphic) {}
+        is_holomorphic_(is_holomorphic),
+        svd_threshold_(svd_threshold) {
+    if (svd_threshold.has_value()) {
+      if (use_iterative || solver != BDCSVD) {
+        throw InvalidInputError{
+            "svd_threshold option only available for BDCSVD solver"};
+      }
+    }
+  }
 
   explicit SR(double diagshift = 0.01, bool use_iterative = false,
               bool use_cholesky = true, bool is_holomorphic = true)
@@ -128,9 +138,7 @@ class SR {
    * Storing the S matrix is enabled and disabled by `SetStoreFullSMatrix`
    * below.
    */
-  const nonstd::optional<MatrixXcd>& LastSMatrix() const {
-    return last_S_;
-  }
+  const nonstd::optional<MatrixXcd>& LastSMatrix() const { return last_S_; }
   bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
   void SetStoreFullSMatrix(bool enabled);
 
@@ -139,6 +147,7 @@ class SR {
   double sr_diag_shift_;
   bool use_iterative_;
   bool is_holomorphic_;
+  nonstd::optional<double> svd_threshold_;
 
   bool scale_invariant_pc_ = false;
   VectorXd diag_S_;
@@ -239,7 +248,11 @@ class SR {
       }
     } else if (solver_ == BDCSVD) {
       const constexpr auto options = Eigen::ComputeThinU | Eigen::ComputeThinV;
-      Eigen::BDCSVD<Mat> bdcsvd(A, options);
+      Eigen::BDCSVD<Mat> bdcsvd(A.rows(), A.cols(), options);
+      if (svd_threshold_.has_value()) {
+        bdcsvd.setThreshold(*svd_threshold_);
+      }
+      bdcsvd.compute(A);
       deltaP = bdcsvd.solve(b);
       if (store_rank_) {
         last_rank_ = bdcsvd.rank();
