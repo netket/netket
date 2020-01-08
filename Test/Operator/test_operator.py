@@ -99,8 +99,7 @@ def test_produce_elements_in_hilbert():
         for i in range(1000):
             hi.random_vals(rstate, rg)
 
-            delta, _ = ha.get_conn(rstate)
-            rstatet = rstate + delta
+            rstatet, _ = ha.get_conn(rstate)
 
             assert np.all(np.isin(rstatet, local_states))
 
@@ -117,13 +116,12 @@ def test_operator_is_hermitean():
 
         for i in range(100):
             hi.random_vals(rstate, rg)
-            delta, mels = ha.get_conn(rstate)
+            rstatet, mels = ha.get_conn(rstate)
 
-            rstatet = rstate + delta
             for k, state in enumerate(rstatet):
-                state = np.array(state)
-                delta1, mels1 = ha.get_conn(state.flatten())
-                invstates = np.array(state + delta1)
+
+                invstates, mels1 = ha.get_conn(state)
+
                 found = False
                 for kp, invstate in enumerate(invstates):
                     if np.array_equal(rstate, invstate.flatten()):

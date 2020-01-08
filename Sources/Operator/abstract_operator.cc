@@ -56,34 +56,34 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
-Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             AbstractMachine& machine,
-                             const AbstractOperator& op, Index batch_size) {
-  if (batch_size < 1) {
-    std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size << "; expected >=1";
-    throw InvalidInputError{msg.str()};
-  }
-  Eigen::VectorXcd locals(samples.rows());
+auto AbstractOperator::GetConn(Eigen::Ref<const RowMatrix<double>> v)
+    -> std::tuple<std::vector<RowMatrix<double>>,
+                  std::vector<Eigen::VectorXcd>> {
+  std::vector<RowMatrix<double>> vprimes(v.rows());
+  std::vector<Eigen::VectorXcd> mels(v.rows());
 
   std::vector<Complex> mel;
   std::vector<std::vector<int>> tochange;
   std::vector<std::vector<double>> newconfs;
-  Eigen::VectorXcd outlvd;
 
-  for (auto i = Index{0}; i < samples.rows(); ++i) {
-    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
+  for (auto i = Index{0}; i < v.rows(); ++i) {
+    auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
 
-    op.FindConn(v, mel, tochange, newconfs);
-    outlvd.resize(newconfs.size());
-    machine.LogValDiff(v, tochange, newconfs, outlvd);
+    FindConn(vi, mel, tochange, newconfs);
 
-    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-    locals(i) = (meleig * outlvd.array().exp()).sum();
+    mels[i] = Eigen::Map<const Eigen::VectorXcd>(&mel[0], mel.size());
+
+    vprimes[i] = vi.transpose().colwise().replicate(mel.size());
+
+    for (std::size_t k = 0; k < tochange.size(); k++) {
+      for (std::size_t c = 0; c < tochange[k].size(); c++) {
+        vprimes[i](k, tochange[k][c]) = newconfs[k][c];
+      }
+    }
   }
-  assert(samples.rows() > 0);
 
-  return locals;
+  return std::tuple<std::vector<RowMatrix<double>>,
+                    std::vector<Eigen::VectorXcd>>{std::move(vprimes),
+                                                   std::move(mels)};
 }
-
 }  // namespace netket

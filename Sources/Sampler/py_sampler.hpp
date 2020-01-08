@@ -15,7 +15,6 @@
 #ifndef NETKET_PY_SAMPLER_HPP
 #define NETKET_PY_SAMPLER_HPP
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>

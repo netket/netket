@@ -46,7 +46,7 @@ class AbstractSampler(abc.ABC):
     def generate_samples(self, n_samples, init_random=False, samples=None):
         self.reset(init_random)
 
-        if samples == None:
+        if samples is None:
             samples = _np.zeros((n_samples, self.sample_shape[0], self.sample_shape[1]))
 
         for k, sample in enumerate(self.samples(n_samples)):

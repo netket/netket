@@ -4,6 +4,7 @@ import numpy as np
 import netket as nk
 import netket.variational as vmc
 
+
 SEED = 214748364
 nk.utils.seed(SEED)
 
@@ -17,8 +18,8 @@ def _setup_vmc():
     ma.init_random_parameters(sigma=0.01)
 
     ha = nk.operator.Ising(hi, h=1.0)
-    sa = nk.sampler.ExactSampler(machine=ma, sample_size=1000)
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    sa = nk.sampler.ExactSampler(machine=ma, sample_size=16)
+    op = nk.optimizer.Sgd(learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
@@ -32,13 +33,13 @@ def _setup_vmc():
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
-    driver.advance(200)
+    driver.advance(500)
 
     state = ma.to_array()
 
     exact_dist = np.abs(state) ** 2
 
-    n_samples = 2000
+    n_samples = 16000
 
     for op, name in (ha, "ha"), (sx, "sx"):
         print("Testing expectation of op={}".format(name))
@@ -54,6 +55,7 @@ def test_vmc_functions():
         nk.stats.subtract_mean(der_logs)
 
         local_values = nk.operator.local_values(op, ma, samples)
+
         ex = nk.stats.statistics(local_values)
 
         # 5-sigma test for expectation values
@@ -65,20 +67,20 @@ def test_vmc_functions():
             [op], sampler, n_samples=n_samples, n_discard=10
         )
 
-        assert stats[0].mean.real == approx(
-            np.mean(local_values).real, rel=tol)
+        assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
         assert stats[0].mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)
     grad = nk.stats.covariance_sv(local_values, der_logs)
     assert grad.shape == (ma.n_par,)
-    assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-9)
+    assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
 
     _, grads = vmc.estimate_expectations(
         [ha], sampler, n_samples, 10, compute_gradients=True
     )
+
     assert grads[0].shape == (ma.n_par,)
-    assert grad == approx(grads[0], abs=1e-4)
+    assert np.mean(np.abs(grads[0]) ** 2) == approx(0.0, abs=1e-8)
 
 
 def test_vmc_use_cholesky_compatibility():

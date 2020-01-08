@@ -100,6 +100,10 @@ class AbstractMachine {
   virtual RowMatrix<Complex> DerLog(Eigen::Ref<const RowMatrix<double>> v,
                                     const any &cache = any{});
 
+  virtual void VectorJacobianProd(Eigen::Ref<const RowMatrix<double>> v,
+                                  Eigen::Ref<const VectorType> vec,
+                                  Eigen::Ref<VectorType> out);
+
   /**
   Member function computing the logarithm of the wave function for a given
   visible vector. Given the current set of parameters, this function should

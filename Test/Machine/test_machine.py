@@ -8,6 +8,7 @@ import os
 from rbm import PyRbm
 
 test_jax = False
+test_torch = False
 
 
 def merge_dicts(x, y):
@@ -26,28 +27,26 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 
-def randn():
-    def init(rng, shape):
-        return jax.numpy.asarray(
-            jax.experimental.stax.randn()(rng, shape), dtype=jax.numpy.float64
-        )
-
-    return init
-
-
-def glorot():
-    def init(rng, shape):
-        return jax.numpy.asarray(
-            jax.experimental.stax.glorot()(rng, shape), dtype=jax.numpy.float64
-        )
-
-    return init
-
-
 if test_jax:
     import jax
     import jax.experimental
     import jax.experimental.stax
+
+    def randn():
+        def init(rng, shape):
+            return jax.numpy.asarray(
+                jax.experimental.stax.randn()(rng, shape), dtype=jax.numpy.float64
+            )
+
+        return init
+
+    def glorot():
+        def init(rng, shape):
+            return jax.numpy.asarray(
+                jax.experimental.stax.glorot()(rng, shape), dtype=jax.numpy.float64
+            )
+
+        return init
 
     machines["Jax"] = nk.machine.Jax(
         hi,
@@ -60,6 +59,22 @@ if test_jax:
         ),
     )
     assert machines["Jax"].dtype == np.float64
+
+
+if test_torch:
+    import torch
+
+    input_size = hi.size
+    alpha = 1
+
+    model = torch.nn.Sequential(
+        torch.nn.Linear(input_size, alpha * input_size),
+        torch.nn.Sigmoid(),
+        torch.nn.Linear(alpha * input_size, 2),
+        torch.nn.Sigmoid(),
+    )
+    machines["Torch"] = nk.machine.Torch(model, hilbert=hi)
+
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
@@ -142,6 +157,13 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
 def log_val_f(par, machine, v):
     machine.parameters = np.copy(par)
     return machine.log_val(v)
+
+
+def log_val_vec_f(par, machine, v, vec):
+    machine.parameters = np.copy(par)
+    out_val = machine.log_val(v)
+    assert vec.shape == out_val.shape
+    return np.vdot(out_val, vec)
 
 
 def central_diff_grad(func, x, eps, *args):
@@ -273,6 +295,43 @@ def test_log_derivative():
             # The check is done only on smaller subset of parameters, for speed
             if i % 10 == 0 and machine.is_holomorphic:
                 check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
+
+
+def test_vector_jacobian():
+    if not test_torch:
+        return
+    for name, machine in merge_dicts(machines, dm_machines).items():
+        print("Machine test: %s" % name)
+
+        npar = machine.n_par
+
+        # random visibile state
+        hi = machine.hilbert
+        assert hi.size > 0
+        rg = nk.utils.RandomEngine(seed=1234)
+
+        batch_size = 100
+        v = np.zeros((batch_size, hi.size))
+
+        for i in range(batch_size):
+            hi.random_vals(v[i], rg)
+
+        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        machine.parameters = randpars
+
+        vec = np.random.uniform(size=batch_size) + 1.0j * np.random.uniform(
+            size=batch_size
+        ) / float(batch_size)
+
+        vjp = np.zeros(machine.n_par, dtype=np.complex128)
+        machine.vector_jacobian_prod(v, vec, vjp)
+
+        num_der_log = central_diff_grad(
+            log_val_vec_f, randpars, 1.0e-6, machine, v, vec
+        )
+        print(np.max(vjp.imag - num_der_log.imag))
+        print(np.max(vjp.real - num_der_log.real))
+        same_derivatives(vjp, num_der_log)
 
 
 def test_log_val_diff():

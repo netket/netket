@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cProfile
+
+
 import netket as nk
+import numpy as np
+
+from netket.operator import local_values
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -30,17 +36,19 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+n_samples = 1000
+samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))
+for i, sample in enumerate(sa.samples(n_samples)):
+    samples[i] = sample
 
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    method="Sr",
-    diag_shift=0.1,
-)
 
-gs.run(output_prefix="test", n_iter=300)
+loc = np.empty(samples.shape[0:2], dtype=np.complex128)
+
+
+def compute_locals(n_times):
+    for k in range(n_times):
+        for i, sample in enumerate(samples):
+            local_values(ha, ma, sample, out=loc[i])
+
+
+cProfile.run("compute_locals(10)")

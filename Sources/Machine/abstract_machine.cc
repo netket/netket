@@ -102,6 +102,16 @@ RowMatrix<Complex> AbstractMachine::DerLog(
   return out;
 }
 
+void AbstractMachine::VectorJacobianProd(Eigen::Ref<const RowMatrix<double>> v,
+                                         Eigen::Ref<const VectorType> vec,
+                                         Eigen::Ref<VectorType> out) {
+  CheckShape(__FUNCTION__, "v", {v.rows(), v.cols()},
+             {std::ignore, Nvisible()});
+  CheckShape(__FUNCTION__, "vec", {vec.size()}, {v.rows()});
+  CheckShape(__FUNCTION__, "out", {out.size()}, {Npar()});
+  out = DerLog(v, any{}).adjoint() * vec;
+}
+
 AbstractMachine::VectorType AbstractMachine::DerLogChanged(
     VisibleConstType v, const std::vector<int> &tochange,
     const std::vector<double> &newconf) {

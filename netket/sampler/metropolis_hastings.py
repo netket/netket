@@ -52,8 +52,7 @@ class PyMetropolisHastings(AbstractSampler):
 
         self._kernel = transition_kernel
 
-        self.machine_func = lambda x, out=None: _np.square(
-            _np.absolute(x), out)
+        self.machine_func = lambda x, out=None: _np.square(_np.absolute(x), out)
 
         super().__init__(machine, n_chains)
 
@@ -110,10 +109,10 @@ class PyMetropolisHastings(AbstractSampler):
         if init_random:
             for state in self._state:
                 self._hilbert.random_vals(state, random_engine())
-        self._log_values = self.machine.log_val(self._state)
+        self.machine.log_val(self._state, out=self._log_values)
 
-    def _log_val_batched(self, v):
-        return self.machine.log_val(v)
+    def _log_val_batched(self, v, out=None):
+        return self.machine.log_val(v, out)
 
     def __next__(self):
 
@@ -124,22 +123,19 @@ class PyMetropolisHastings(AbstractSampler):
             # Propose a new state using the transition kernel
             self._kernel(self._state, self._state1, self._log_prob_corr)
 
-            self._log_values_1 = self._log_val_batched(self._state1)
+            self._log_val_batched(self._state1, out=self._log_values_1)
 
             # Acceptance probability
             self._prob = self.machine_func(
-                _np.exp(self._log_values_1 -
-                        self._log_values + self._log_prob_corr)
+                _np.exp(self._log_values_1 - self._log_values + self._log_prob_corr)
             )
 
             # Acceptance test
             accept = self._prob > self._rand_for_acceptance[sweep]
 
             # Update of the state
-            self._log_values = _np.where(
-                accept, self._log_values_1, self._log_values)
-            self._state = _np.where(
-                accept.reshape(-1, 1), self._state1, self._state)
+            self._log_values = _np.where(accept, self._log_values_1, self._log_values)
+            self._state = _np.where(accept.reshape(-1, 1), self._state1, self._state)
         return self._state
 
 
@@ -169,7 +165,9 @@ class MetropolisLocal(AbstractSampler):
     and :math:`n_{\mathrm{max}}`.
     """
 
-    def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
+    def __init__(
+        self, machine, n_chains=16, sweep_size=None, batch_size=None, backend=None
+    ):
         """
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
@@ -203,7 +201,7 @@ class MetropolisLocal(AbstractSampler):
              >>> print(sa.machine.hilbert.size)
              100
         """
-        if "_C_netket.machine" in str(type(machine)):
+        if "_C_netket.machine" in str(type(machine)) and backend != "py":
             self.sampler = c_sampler.MetropolisLocal(
                 machine=machine,
                 n_chains=n_chains,
