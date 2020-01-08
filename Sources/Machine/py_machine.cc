@@ -654,11 +654,17 @@ void AddAbstractMachine(py::module m) {
       .def("vector_jacobian_prod", &AbstractMachine::VectorJacobianProd,
            py::arg("v"), py::arg("vec"), py::arg("out"),
            R"EOF(
-                      Member function to obtain the derivatives of log value of
-                      machine given an input wrt the machine's parameters.
+             Computes the scalar product between gradient of the logarithm of the wavefunction for a
+             batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
-                      Args:
-                          v: Input vector to machine.
+             Args:
+                  x: a matrix of `float64` of shape `(*, self.n_visible)`.
+                  vec: a `complex128` vector used to compute the inner product with the jacobian.
+                  out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+
+
+             Returns:
+                  `out`
                 )EOF")
       .def_property_readonly(
           "n_visible", &AbstractMachine::Nvisible,

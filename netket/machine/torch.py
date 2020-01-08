@@ -36,16 +36,16 @@ class Torch(AbstractMachine):
             warnings.warn(
                 "PyTorch machines have real parameters, imaginary part will be discarded"
             )
-        self._torch_pars = _torch.from_numpy(p.real)
-        if self._torch_pars.numel() != self.n_par:
+        torch_pars = _torch.from_numpy(p.real)
+        if torch_pars.numel() != self.n_par:
             raise ValueError(
                 "p has wrong shape: {}; expected [{}]".format(
-                    self._torch_pars.size(), self.n_par
+                    torch_pars.size(), self.n_par
                 )
             )
         i = 0
         for x in map(lambda x: x.view(-1), self._module.parameters()):
-            x.data.copy_(self._torch_pars[i : i + len(x)].data)
+            x.data.copy_(torch_pars[i : i + len(x)].data)
             i += len(x)
 
     @property
@@ -56,12 +56,14 @@ class Torch(AbstractMachine):
 
     def log_val(self, x, out=None):
 
-        if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.complex128)
-
         with _torch.no_grad():
-            self._t_out = _torch.from_numpy(out.view(_np.float64)).view(-1, 2)
-            self._t_out.copy_(self._module(_torch.from_numpy(x)))
+            t_out = self._module(_torch.from_numpy(x)).numpy().view(_np.complex128)
+
+        if out is None:
+            return t_out.reshape(-1)
+
+        _np.copyto(out, t_out.reshape(-1))
+
         return out
 
     def der_log(self, x, out=None):
@@ -120,3 +122,37 @@ class Torch(AbstractMachine):
         return OrderedDict(
             [(k, v.detach().numpy()) for k, v in self._module.state_dict().items()]
         )
+
+
+class TorchLogCosh(_torch.nn.Module):
+    """
+    Log(cosh) activation function for PyTorch modules
+    """
+
+    def __init__(self):
+        """
+        Init method.
+        """
+        super().__init__()  # init the base class
+
+    def forward(self, input):
+        """
+        Forward pass of the function.
+        """
+        return -input + _torch.nn.functional.softplus(2.0 * input)
+
+
+class TorchView(_torch.nn.Module):
+    """
+    Reshaping layer for PyTorch modules
+    """
+
+    def __init__(self, shape):
+        """
+        Init method.
+        """
+        super().__init__()  # init the base class
+        self.shape = shape
+
+    def forward(self, x):
+        return x.view(*self.shape)

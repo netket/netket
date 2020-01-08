@@ -10,42 +10,54 @@ class AbstractMachine(abc.ABC):
         self.hilbert = hilbert
 
     @abc.abstractmethod
-    def log_val(self, v, out=None):
+    def log_val(self, x, out=None):
         r"""Computes the logarithm of the wave function for a batch of visible
-        configurations `v` and stores the result into `out`.
+        configurations `x` and stores the result into `out`.
 
         Args:
-            v: Either a
+            x: Either a
                 * vector of `float64` of size `self.n_visible` or
                 * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination vector of `complex128`. If `v` is a matrix then
-                length of `out` should be `v.shape[0]`. If `v` is a vector,
+            out: Destination vector of `complex128`. If `x` is a matrix then
+                length of `out` should be `x.shape[0]`. If `x` is a vector,
                 then length of `out` should be 1.
 
         Returns:
-            A complex number when `v` is a vector and vector when `v` is a
+            A complex number when `x` is a vector and vector when `x` is a
             matrix.
             """
         pass
 
     @abc.abstractmethod
-    def vector_jacobian_prod(selv, v, vec, out=None):
+    def vector_jacobian_prod(selv, x, vec, out=None):
+        r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
+
+        Args:
+             x: a matrix of `float64` of shape `(*, self.n_visible)`.
+             vec: a `complex128` vector used to compute the inner product with the jacobian.
+             out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+
+
+        Returns:
+             `out`
+        """
         return NotImplementedError
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError
 
-    def der_log(self, v, out=None):
+    def der_log(self, x, out=None):
         r"""Computes the gradient of the logarithm of the wavefunction for a
-        batch of visible configurations `v` and stores the result into `out`.
+        batch of visible configurations `x` and stores the result into `out`.
 
         Args:
-            v: Either a
+            x: Either a
                 * vector of `float64` of size `self.n_visible` or
                 * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination tensor of `complex128`. If `v` is a matrix then of
+            out: Destination tensor of `complex128`. If `x` is a matrix then of
                 `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
-                If `v` is a vector, then `out` should be a vector of length
+                If `x` is a vector, then `out` should be a vector of length
                 `self.n_par`.
 
         Returns:

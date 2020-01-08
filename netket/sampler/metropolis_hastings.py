@@ -109,10 +109,10 @@ class PyMetropolisHastings(AbstractSampler):
         if init_random:
             for state in self._state:
                 self._hilbert.random_vals(state, random_engine())
-        self._log_values = self.machine.log_val(self._state)
+        self.machine.log_val(self._state, out=self._log_values)
 
-    def _log_val_batched(self, v):
-        return self.machine.log_val(v)
+    def _log_val_batched(self, v, out=None):
+        return self.machine.log_val(v, out)
 
     def __next__(self):
 
@@ -123,7 +123,7 @@ class PyMetropolisHastings(AbstractSampler):
             # Propose a new state using the transition kernel
             self._kernel(self._state, self._state1, self._log_prob_corr)
 
-            self._log_values_1 = self._log_val_batched(self._state1)
+            self._log_val_batched(self._state1, out=self._log_values_1)
 
             # Acceptance probability
             self._prob = self.machine_func(

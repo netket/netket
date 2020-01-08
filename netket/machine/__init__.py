@@ -31,7 +31,7 @@ if _has_jax():
     from .jax import *
 
 if _has_torch():
-    from .torch import Torch
+    from .torch import Torch, TorchLogCosh, TorchView
 
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
