@@ -25,7 +25,6 @@ __all__ = [
     "sampler",
     "stats",
     "supervised",
-    "unsupervised",
     "utils",
     "variational",
 ]
@@ -44,7 +43,6 @@ from . import (
     sampler,
     stats,
     supervised,
-    unsupervised,
     utils,
     variational,
     _vmc,
