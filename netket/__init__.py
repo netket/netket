@@ -12,8 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['dynamics', 'exact', 'graph', 'hilbert', 'layer', 'machine', 'operator', 'optimizer',
-           'output', 'sampler', 'stats', 'supervised', 'unsupervised', 'utils', 'variational']
+__all__ = [
+    "dynamics",
+    "exact",
+    "graph",
+    "hilbert",
+    "layer",
+    "machine",
+    "operator",
+    "optimizer",
+    "output",
+    "sampler",
+    "stats",
+    "supervised",
+    "unsupervised",
+    "utils",
+    "variational",
+]
 
 from . import (
     _C_netket,
@@ -38,3 +53,4 @@ from ._C_netket import MPI
 
 # Main applications
 from ._vmc import Vmc
+from ._qsr import Qsr

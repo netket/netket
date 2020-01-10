@@ -18,6 +18,7 @@ from generate_data import generate
 import sys
 import numpy as np
 
+
 mpi_rank = nk.MPI.rank()
 
 # Load the data
@@ -37,25 +38,24 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 op = nk.optimizer.AdaDelta()
 
 # Quantum State Reconstruction
-qst = nk.unsupervised.Qsr(
+qst = nk.Qsr(
     sampler=sa,
     optimizer=op,
-    n_chains=1000,
     n_samples=1000,
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method="Sr",
+    sr=None,
 )
+
 
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(4000, 100):
+for step in qst.iter(5000, 100):
     obs = qst.get_observable_stats()
     if mpi_rank == 0:
         print("step={}".format(step))
-        print("acceptance={}".format(list(sa.acceptance)))
         print("observables={}".format(obs))
 
         # Compute fidelity with exact state
