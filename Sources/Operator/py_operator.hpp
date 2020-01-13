@@ -31,7 +31,6 @@
 #include "py_local_liouvillian.hpp"
 #include "py_local_operator.hpp"
 #include "py_pauli_strings.hpp"
-
 namespace py = pybind11;
 
 namespace netket {
@@ -47,18 +46,32 @@ void AddOperatorModule(py::module m) {
       implementing new quantum Operators should derive they own class from this
       class
        )EOF")
-          .def(
-              "get_conn",
-              [](AbstractOperator& op, AbstractOperator::VectorConstRefType v)
-                  -> std::tuple<Eigen::SparseMatrix<double>, Eigen::VectorXcd> {
-                Eigen::SparseMatrix<double> delta_v;
-                Eigen::VectorXcd mels;
-                op.FindConn(v, delta_v, mels);
-                return std::tuple<Eigen::SparseMatrix<double>,
-                                  Eigen::VectorXcd>{std::move(delta_v),
-                                                    std::move(mels)};
-              },
-              py::arg("v"), R"EOF(
+          .def("get_conn",
+               [](AbstractOperator& op,
+                  py::array_t<double, py::array::c_style> samples) {
+                 switch (samples.ndim()) {
+                   case 2:
+                     return py::cast(
+                         op.GetConn(Eigen::Map<const RowMatrix<double>>{
+                             samples.data(), samples.shape(0),
+                             samples.shape(1)}));
+                   case 1: {
+                     auto conns =
+                         op.GetConn(Eigen::Map<const RowMatrix<double>>{
+                             samples.data(), 1, samples.shape(0)});
+
+                     return py::cast(
+                         std::tuple<RowMatrix<double>, Eigen::VectorXcd>(
+                             std::get<0>(conns)[0], std::get<1>(conns)[0]));
+                   }
+                   default:
+                     NETKET_CHECK(false, InvalidInputError,
+                                  "samples has wrong dimension: "
+                                      << samples.ndim()
+                                      << "; expected either 1 or 2");
+                 }
+               },
+               py::arg("v"), R"EOF(
        Member function finding the connected elements of the Operator. Starting
        from a given visible state v, it finds all other visible states v' such
        that the matrix element :math:`O(v,v')` is different from zero. In general there
@@ -126,156 +139,18 @@ void AddOperatorModule(py::module m) {
   AddLocalSuperOperatorModule(subm);
 
   subm.def(
-      "local_values",
-      [](AbstractOperator& op, AbstractMachine& machine,
-         py::array_t<double, py::array::c_style> samples, Index batch_size) {
-        switch (samples.ndim()) {
-          case 3: {
-            auto local_values = py::cast(LocalValues(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0) * samples.shape(1),
-                    samples.shape(2)},
-                machine, op, batch_size));
-            local_values.attr("resize")(samples.shape(0), samples.shape(1));
-            return local_values;
-          }
-          case 2:
-            return py::cast(LocalValues(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0), samples.shape(1)},
-                machine, op, batch_size));
-          case 1:
-            return py::cast(LocalValues(
-                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
-                                                    samples.shape(0)},
-                machine, op, batch_size));
-          default:
-            NETKET_CHECK(false, InvalidInputError,
-                         "samples has wrong dimension: "
-                             << samples.ndim()
-                             << "; expected either 1, 2 or 3.");
+      "_local_values_kernel",
+      [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
+         Eigen::Ref<Eigen::VectorXcd> local_vals) {
+        for (std::size_t k = 0; k < mels.size(); k++) {
+          local_vals(k) = (mels[k].array() *
+                           (log_vals_prime[k].array() - log_vals_zero(k)).exp())
+                              .sum();
         }
-      },
-      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
-      py::arg{"batch_size"} = 16,
-      R"EOF(Computes local values of the operator `op` for all `samples`.
-
-            Args:
-                samples: A matrix (or a rank-3 tensor) of visible
-                    configurations. If it is a matrix, each row of the matrix
-                    must correspond to a visible configuration.  `samples` is a
-                    rank-3 tensor, its shape should be `(N, M, #visible)` where
-                    `N` is the number of samples, `M` is the number of Markov
-                    Chains, and `#visible` is the number of visible units.
-                machine: Wavefunction.
-                op: Hermitian operator.
-                batch_size: Batch size.
-
-            Returns:
-                A numpy array of local values of the operator.)EOF");
-
-  subm.def(
-      "der_local_values",
-      [](AbstractOperator& op, AbstractMachine& machine,
-         py::array_t<double, py::array::c_style> samples, Index batch_size,
-         bool subtract_v_derivative) {
-        switch (samples.ndim()) {
-          case 3: {
-            auto local_values = py::cast(DerLocalValues(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0) * samples.shape(1),
-                    samples.shape(2)},
-                machine, op, batch_size, subtract_v_derivative));
-            local_values.attr("resize")(samples.shape(0), samples.shape(1),
-                                        machine.Npar());
-            return local_values;
-          }
-          case 2:
-            return py::cast(DerLocalValues(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0), samples.shape(1)},
-                machine, op, batch_size, subtract_v_derivative));
-          case 1:
-            return py::cast(DerLocalValues(
-                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
-                                                    samples.shape(0)},
-                machine, op, batch_size, subtract_v_derivative));
-          default:
-            NETKET_CHECK(false, InvalidInputError,
-                         "samples has wrong dimension: "
-                             << samples.ndim()
-                             << "; expected either 1, 2 or 3.");
-        }
-      },
-      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
-      py::arg{"batch_size"} = 16, py::arg{"subtract_v_derivative"} = true,
-      R"EOF(Computes derivative of local values of the operator `op` for all `samples`.
-
-            Args:
-                op: Hermitian operator.
-                machine: The neural network encoding the state.
-                samples: A matrix (or a rank-3 tensor) of visible
-                    configurations. If it is a matrix, each row of the matrix
-                    must correspond to a visible configuration.  `samples` is a
-                    rank-3 tensor, its shape should be `(N, M, #visible)` where
-                    `N` is the number of samples, `M` is the number of Markov
-                    Chains, and `#visible` is the number of visible units.
-                batch_size: Batch size.
-                subtract_v_derivative: [=true] whever the derivative of each
-                    configuration v should be subtracted from each local derivative.
-
-            Returns:
-                A numpy array of local values of the operator.)EOF");
-
-  subm.def(
-      "local_values_op_op",
-      [](AbstractOperator& op, AbstractDensityMatrix& machine,
-         py::array_t<double, py::array::c_style> samples, Index batch_size) {
-        switch (samples.ndim()) {
-          case 3: {
-            auto local_values = py::cast(LocalValuesOpOp(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0) * samples.shape(1),
-                    samples.shape(2)},
-                machine, op, batch_size));
-            local_values.attr("resize")(samples.shape(0), samples.shape(1));
-            return local_values;
-          }
-          case 2:
-            return py::cast(LocalValuesOpOp(
-                Eigen::Map<const RowMatrix<double>>{
-                    samples.data(), samples.shape(0), samples.shape(1)},
-                machine, op, batch_size));
-          case 1:
-            return py::cast(LocalValuesOpOp(
-                Eigen::Map<const RowMatrix<double>>{samples.data(), 1,
-                                                    samples.shape(0)},
-                machine, op, batch_size));
-          default:
-            NETKET_CHECK(false, InvalidInputError,
-                         "samples has wrong dimension: "
-                             << samples.ndim()
-                             << "; expected either 1, 2 or 3.");
-        }
-      },
-      py::arg{"op"}, py::arg{"machine"}, py::arg{"samples"}.noconvert(),
-      py::arg{"batch_size"} = 16,
-      R"EOF(Computes local values of the product of `op` times `machine` for all 
-            `samples`, where `machine` is a density matrix.
-
-            Args:
-                samples: A matrix (or a rank-3 tensor) of visible
-                    configurations. If it is a matrix, each row of the matrix
-                    must correspond to a visible configuration.  `samples` is a
-                    rank-3 tensor, its shape should be `(N, M, #visible)` where
-                    `N` is the number of samples, `M` is the number of Markov
-                    Chains, and `#visible` is the number of visible units.
-                machine: Density Matrix.
-                op: Hermitian operator.
-                batch_size: Batch size.
-
-            Returns:
-                A numpy array of local values of the operator.)EOF");
+      });
+  ;
 }
 }  // namespace netket
 

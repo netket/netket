@@ -48,7 +48,6 @@ ExternalProject_Add(
 ExternalProject_Get_Property(json_project SOURCE_DIR)
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
-target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR}/nlohmann)
 
 # Sleef
 ################################################################################

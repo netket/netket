@@ -56,117 +56,34 @@ void AbstractOperator::ForEachConn(VectorConstRefType v,
   }
 }
 
-Eigen::VectorXcd LocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                             AbstractMachine& machine,
-                             const AbstractOperator& op, Index batch_size) {
-  if (batch_size < 1) {
-    std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size << "; expected >=1";
-    throw InvalidInputError{msg.str()};
-  }
-  Eigen::VectorXcd locals(samples.rows());
+auto AbstractOperator::GetConn(Eigen::Ref<const RowMatrix<double>> v)
+    -> std::tuple<std::vector<RowMatrix<double>>,
+                  std::vector<Eigen::VectorXcd>> {
+  std::vector<RowMatrix<double>> vprimes(v.rows());
+  std::vector<Eigen::VectorXcd> mels(v.rows());
 
   std::vector<Complex> mel;
   std::vector<std::vector<int>> tochange;
   std::vector<std::vector<double>> newconfs;
-  Eigen::VectorXcd outlvd;
 
-  for (auto i = Index{0}; i < samples.rows(); ++i) {
-    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
+  for (auto i = Index{0}; i < v.rows(); ++i) {
+    auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
 
-    op.FindConn(v, mel, tochange, newconfs);
-    outlvd.resize(newconfs.size());
-    machine.LogValDiff(v, tochange, newconfs, outlvd);
+    FindConn(vi, mel, tochange, newconfs);
 
-    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-    locals(i) = (meleig * outlvd.array().exp()).sum();
-  }
-  assert(samples.rows() > 0);
+    mels[i] = Eigen::Map<const Eigen::VectorXcd>(&mel[0], mel.size());
 
-  return locals;
-}
+    vprimes[i] = vi.transpose().colwise().replicate(mel.size());
 
-Eigen::VectorXcd LocalValuesOpOp(Eigen::Ref<const RowMatrix<double>> samples,
-                                 AbstractDensityMatrix& machine,
-                                 const AbstractOperator& op, Index batch_size) {
-  if (batch_size < 1) {
-    std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size << "; expected >=1";
-    throw InvalidInputError{msg.str()};
-  }
-  Eigen::VectorXcd locals(samples.rows());
-
-  std::vector<Complex> mel;
-  std::vector<std::vector<int>> tochange;
-  std::vector<std::vector<double>> newconfs;
-  Eigen::VectorXcd outlvd;
-
-  for (auto i = Index{0}; i < samples.rows(); ++i) {
-    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
-
-    op.FindConn(v, mel, tochange, newconfs);
-    outlvd.resize(newconfs.size());
-    machine.LogValDiffRow(v, v, tochange, newconfs, outlvd);
-
-    Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-    locals(i) = (meleig * outlvd.array().exp()).sum();
-  }
-  assert(samples.rows() > 0);
-
-  return locals;
-}
-
-RowMatrix<Complex> DerLocalValues(Eigen::Ref<const RowMatrix<double>> samples,
-                                  AbstractMachine& machine,
-                                  const AbstractOperator& op, Index batch_size,
-                                  bool subtract_v_derivative) {
-  if (batch_size < 1) {
-    std::ostringstream msg;
-    msg << "invalid batch size: " << batch_size << "; expected >=1";
-    throw InvalidInputError{msg.str()};
-  }
-  RowMatrix<Complex> der_local(samples.rows(), machine.Npar());
-  Eigen::VectorXcd val_local(samples.rows());
-
-  std::vector<Complex> mel;
-  std::vector<std::vector<int>> tochange;
-  std::vector<std::vector<double>> newconfs;
-  Eigen::VectorXcd outlvd;
-  Eigen::Map<const Eigen::ArrayXcd> meleig(&mel[0], mel.size());
-
-  std::vector<Complex> loc_storage;
-  Eigen::Map<Eigen::ArrayXcd> loc(&loc_storage[0], loc_storage.size());
-
-  RowMatrix<Complex> der_log_diff(1, machine.Npar());
-
-  for (auto i = Index{0}; i < samples.rows(); ++i) {
-    auto v = Eigen::Ref<const Eigen::VectorXd>{samples.row(i)};
-
-    op.FindConn(v, mel, tochange, newconfs);
-    outlvd.resize(newconfs.size());
-    der_log_diff.resize(newconfs.size(), machine.Npar());
-
-    machine.LogValDiff(v, tochange, newconfs, outlvd);
-    if (subtract_v_derivative) {
-      machine.DerLogDiff(v, tochange, newconfs, der_log_diff);
-    } else {
-      machine.DerLogChanged(v, tochange, newconfs, der_log_diff);
+    for (std::size_t k = 0; k < tochange.size(); k++) {
+      for (std::size_t c = 0; c < tochange[k].size(); c++) {
+        vprimes[i](k, tochange[k][c]) = newconfs[k][c];
+      }
     }
-
-    new (&meleig) Eigen::Map<const Eigen::ArrayXcd>(&mel[0], mel.size());
-
-    // If we need more memory than what is allocated...
-    if (meleig.size() > loc_storage.size()) {
-      loc_storage.resize(meleig.size());
-    }
-    new (&loc) Eigen::Map<Eigen::ArrayXcd>(&loc_storage[0], meleig.size());
-
-    loc = meleig * outlvd.array().exp();
-
-    der_local.row(i) =
-        (der_log_diff.array().colwise() * loc.array()).colwise().sum();
   }
-  return der_local;
-}
 
+  return std::tuple<std::vector<RowMatrix<double>>,
+                    std::vector<Eigen::VectorXcd>>{std::move(vprimes),
+                                                   std::move(mels)};
+}
 }  // namespace netket

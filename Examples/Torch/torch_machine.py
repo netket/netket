@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import netket as nk
+import torch
+import numpy as np
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -23,24 +25,30 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 # Ising spin hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-# RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
-ma.init_random_parameters(seed=1234, sigma=0.01)
+
+input_size = hi.size
+alpha = 1
+
+model = torch.nn.Sequential(
+    torch.nn.Linear(input_size, alpha * input_size),
+    torch.nn.ReLU(),
+    torch.nn.Linear(alpha * input_size, 2),
+    torch.nn.ReLU(),
+)
+
+ma = nk.machine.Torch(model, hilbert=hi)
+
+ma.parameters = 0.1 * (np.random.randn(ma.n_par))
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.AdaDelta()
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    method="Sr",
-    diag_shift=0.1,
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, method="Gd"
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(output_prefix="test", n_iter=30000)

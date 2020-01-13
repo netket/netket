@@ -15,7 +15,6 @@
 #ifndef NETKET_LOCAL_OPERATOR_HPP
 #define NETKET_LOCAL_OPERATOR_HPP
 
-#include <mpi.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>

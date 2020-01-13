@@ -91,6 +91,9 @@ std::string SR::ShortDesc() const {
     str << "iterative";
   } else {
     str << SolverAsString(solver_) << ", diag_shift=" << sr_diag_shift_;
+    if (svd_threshold_.has_value()) {
+      str << ", threshold=" << *svd_threshold_;
+    }
   }
   str << ", is_holomorphic=" << (is_holomorphic_ ? "True" : "False") << ")";
   return str.str();

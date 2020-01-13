@@ -15,7 +15,6 @@
 #ifndef NETKET_PAULISTRINGS_HPP
 #define NETKET_PAULISTRINGS_HPP
 
-#include <mpi.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <iostream>

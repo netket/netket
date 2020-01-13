@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cProfile
 import netket as nk
+import numpy as np
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
@@ -24,23 +26,38 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+alpha = 1
+ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
+py_ma = nk.machine.PyRbm(alpha=alpha, hilbert=hi)
+py_ma.parameters = ma.parameters
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
+batch_size = 32
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
 
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+n_samples = 500
+samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))
+for i, sample in enumerate(sa.samples(n_samples)):
+    samples[i] = sample
 
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    method="Sr",
-    diag_shift=0.1,
-)
 
-gs.run(output_prefix="test", n_iter=300)
+vals = np.zeros((n_samples, batch_size), dtype=np.complex128)
+
+
+def log_val(n_times):
+    for k in range(n_times):
+        for i, sample in enumerate(samples):
+            vals[i] = ma.log_val(sample)
+
+
+def py_log_val(n_times):
+    for k in range(n_times):
+        for i, sample in enumerate(samples):
+            py_ma.log_val(sample, out=vals[i])
+
+
+cProfile.run("log_val(300)")
+cProfile.run("py_log_val(300)")

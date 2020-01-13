@@ -15,7 +15,6 @@
 #ifndef NETKET_PY_TRANSITION_KERNEL_HPP
 #define NETKET_PY_TRANSITION_KERNEL_HPP
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>

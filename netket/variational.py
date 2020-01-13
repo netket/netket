@@ -159,7 +159,7 @@ def estimate_expectations(
                   as ndarray of shape `(psi.n_par,)`, for each `op` in `ops`.
     """
 
-    from ._C_netket import operator as nop
+    from netket.operator import local_values as _local_values
     from ._C_netket import stats as nst
 
     psi = sampler.machine
@@ -173,7 +173,7 @@ def estimate_expectations(
     # Generate samples
     samples = sampler.generate_samples(n_samples)
 
-    local_values = [nop.local_values(op, psi, samples) for op in ops]
+    local_values = [_local_values(op, psi, samples) for op in ops]
     stats = [nst.statistics(lv) for lv in local_values]
 
     if compute_gradients:
