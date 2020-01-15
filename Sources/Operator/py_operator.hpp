@@ -147,7 +147,16 @@ void AddOperatorModule(py::module m) {
                               .sum();
         }
       });
-  ;
+
+  subm.def("_rotated_grad_kernel",
+           [](Eigen::Ref<const Eigen::ArrayXcd> log_vals_prime,
+              Eigen::Ref<const Eigen::ArrayXcd> mels,
+              Eigen::Ref<Eigen::ArrayXcd> vec) {
+             const auto max_log_val = log_vals_prime.real().maxCoeff();
+
+             vec = (mels * (log_vals_prime - max_log_val).exp()).conjugate();
+             vec /= vec.sum();
+           });
 }
 
 }  // namespace netket

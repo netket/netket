@@ -1,5 +1,5 @@
 from ._C_netket.operator import *
-from ._C_netket.operator import _local_values_kernel
+from ._C_netket.operator import _local_values_kernel, _rotated_grad_kernel
 
 import numpy as _np
 

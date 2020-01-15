@@ -20,11 +20,12 @@ import numpy as np
 
 
 mpi_rank = nk.MPI.rank()
+nk.utils.seed(123)
 
 # Generate and load the data
 N = 10
 hi, rotations, training_samples, training_bases, ha, psi = generate(
-    N, n_basis=2 * N, n_shots=500
+    N, n_basis=2 * N, n_shots=500, seed=1234
 )
 
 # Machine
@@ -32,7 +33,7 @@ ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=8)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
@@ -53,7 +54,7 @@ qst = nk.Qsr(
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(500, 100):
+for step in qst.iter(500, 50):
     obs = qst.get_observable_stats()
     if mpi_rank == 0:
         print("step={}".format(step))
@@ -66,13 +67,13 @@ for step in qst.iter(500, 100):
         print("fidelity={}".format(fidelity))
 
         # Compute NLL on training data
-        nll = qst.nll(
-            rotations=rotations,
-            samples=training_samples,
-            bases=training_bases,
-            log_norm=ma.log_norm(),
-        )
-        print("negative log likelihood={}".format(nll))
+        # nll = qst.nll(
+        #     rotations=rotations,
+        #     samples=training_samples,
+        #     bases=training_bases,
+        #     log_norm=ma.log_norm(),
+        # )
+        # print("negative log likelihood={}".format(nll))
 
         # Print output to the console immediately
         sys.stdout.flush()

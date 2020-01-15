@@ -5,6 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from netket.operator import local_values as _local_values
+from netket.operator import _rotated_grad_kernel
 from ._C_netket.utils import random_engine, rand_uniform_int
 
 from netket.stats import (
@@ -246,7 +247,7 @@ class Qsr(object):
             for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
                 self._samples[i] = sample
 
-            # Randomly select of batch of training data
+            # Randomly select a batch of training data
             rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
 
             rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
@@ -313,12 +314,16 @@ class Qsr(object):
 
         log_val_primes = self._machine.log_val(x_primes)
 
-        # _rotated_grad_kernel(mels, log_val_primes, vec)
-        max_log_val = log_val_primes.real.max()
-        vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
-        vec /= vec.sum()
+        vec = _np.empty(mels.size, dtype=_np.complex128)
+
+        _rotated_grad_kernel(log_val_primes, mels, vec)
 
         self._machine.vector_jacobian_prod(x_primes, vec, out)
+
+    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
+    #     #     max_log_val = log_val_primes.real.max()
+    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
+    #     #     vec /= vec.sum()
 
     def iter(self, n_steps, step=1):
         """
