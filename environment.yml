@@ -1,12 +1,12 @@
-name: mybinder-env
+name: netket_env
 channels:
-  - anaconda
+  - conda
+  - conda-forge
 dependencies:
-  - python=3.5.3
-  - pip
+  - python=3.7.0
   - scipy
   - numpy
   - matplotlib
-  - openmpi
   - cmake
-  - pytest-cov
+  - mpi4py
+  - openmpi

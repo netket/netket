@@ -94,10 +94,11 @@ class Qsr(object):
         self,
         sampler,
         optimizer,
-        n_samples,
-        rotations,
         samples,
+        rotations,
         bases,
+        n_samples,
+        n_samples_data,
         n_discard=None,
         sr=None,
     ):
@@ -109,14 +110,16 @@ class Qsr(object):
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient. This parameter supports three different kinds of inputs,
                 which are described in the docs of `make_optimizer_fn`.
-            n_samples (int): Number of sampling sweeps to be
-                performed at each step of the optimization when sampling from the model wave-function.
-            rotations: A list of `netket.Operator` defining the unitary rotations defining the basis in which
-                the samples are given.
             samples: An array of training samples from which the wave function is to be reconstructed.
                 Shape is (n_training_samples,hilbert.size).
+            rotations: A list of `netket.Operator` defining the unitary rotations defining the basis in which
+                the samples are given.
             bases: An array of integers of shape (n_training_samples) containing the index of the corresponding rotation.
                 If bases[i]=k, for example, then the sample in samples[i] is measured in the basis defined by rotations[k].
+            n_samples (int): Number of sampling sweeps to be
+                performed at each step of the optimization when sampling from the model wave-function.
+            n_samples_data (int): Number of sampling steps to be
+                performed at each step of the optimization when sampling from the given data.
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
                 Defaults to 10% of the number of samples allocated to each MPI node.
@@ -145,6 +148,8 @@ class Qsr(object):
 
         self.n_samples = n_samples
         self.n_discard = n_discard
+
+        self.n_samples_data = n_samples_data
 
         self._obs = {}
 
@@ -183,6 +188,23 @@ class Qsr(object):
 
         self._grads = _np.empty(
             (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
+        )
+
+    @property
+    def n_samples_data(self):
+        return self._n_samples_data
+
+    @n_samples_data.setter
+    def n_samples_data(self, n_samples_data):
+        if n_samples_data <= 0:
+            raise ValueError(
+                "Invalid number of samples: n_samples_data={}".format(n_samples)
+            )
+        self._n_samples_data = n_samples_data
+        self._n_samples_data_node = int(_np.ceil(n_samples_data / _nk.MPI.size()))
+
+        self._data_grads = _np.empty(
+            (self._n_samples_data_node, self._machine.n_par), dtype=_np.complex128
         )
 
     @property
@@ -225,12 +247,12 @@ class Qsr(object):
                 self._samples[i] = sample
 
             # Randomly select of batch of training data
-            rand_ind = _np.empty(self._n_samples_node, dtype=_np.intc)
+            rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
 
             rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
 
-            self._batch_samples = self._t_samples[rand_ind]
-            self._batch_bases = self._bases[rand_ind]
+            self._data_samples = self._t_samples[rand_ind]
+            self._data_bases = self._bases[rand_ind]
 
             # Perform update
             if self._sr:
@@ -245,11 +267,11 @@ class Qsr(object):
 
                 # Positive phase driven by the data
                 for x, b_x, grad_x in zip(
-                    self._batch_samples, self._batch_bases, self._grads
+                    self._data_samples, self._data_bases, self._data_grads
                 ):
                     self._compute_rotated_grad(x, b_x, grad_x)
 
-                grad_pos = _mean(self._grads, axis=0)
+                grad_pos = _mean(self._data_grads, axis=0)
 
                 grad = 2.0 * (grad_neg - grad_pos)
 
@@ -272,11 +294,11 @@ class Qsr(object):
 
                 # Positive phase driven by the data
                 for x, b_x, grad_x in zip(
-                    self._batch_samples, self._batch_bases, self._grads
+                    self._data_samples, self._data_bases, self._data_grads
                 ):
                     self._compute_rotated_grad(x, b_x, grad_x)
 
-                grad_pos = _mean(self._grads, axis=0)
+                grad_pos = _mean(self._data_grads, axis=0)
 
                 dp = 2.0 * (grad_neg - grad_pos)
 

@@ -21,7 +21,7 @@ import numpy as np
 
 mpi_rank = nk.MPI.rank()
 
-# Load the data
+# Generate and load the data
 N = 10
 hi, rotations, training_samples, training_bases, ha, psi = generate(
     N, n_basis=2 * N, n_shots=500
@@ -41,10 +41,11 @@ op = nk.optimizer.AdaDelta()
 qst = nk.Qsr(
     sampler=sa,
     optimizer=op,
-    n_samples=1000,
-    rotations=rotations,
     samples=training_samples,
+    rotations=rotations,
     bases=training_bases,
+    n_samples=1000,
+    n_samples_data=1000,
     sr=None,
 )
 
@@ -52,7 +53,7 @@ qst = nk.Qsr(
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(5000, 100):
+for step in qst.iter(500, 100):
     obs = qst.get_observable_stats()
     if mpi_rank == 0:
         print("step={}".format(step))
