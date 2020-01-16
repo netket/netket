@@ -33,7 +33,7 @@ ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma, batch_size=8)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=4)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
@@ -67,13 +67,13 @@ for step in qst.iter(500, 50):
         print("fidelity={}".format(fidelity))
 
         # Compute NLL on training data
-        # nll = qst.nll(
-        #     rotations=rotations,
-        #     samples=training_samples,
-        #     bases=training_bases,
-        #     log_norm=ma.log_norm(),
-        # )
-        # print("negative log likelihood={}".format(nll))
+        nll = qst.nll(
+            rotations=rotations,
+            samples=training_samples,
+            bases=training_bases,
+            log_norm=ma.log_norm(),
+        )
+        print("negative log likelihood={}".format(nll))
 
         # Print output to the console immediately
         sys.stdout.flush()
