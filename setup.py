@@ -126,7 +126,7 @@ class CMakeBuild(build_ext):
                 if not self.distribution.dry_run:
                     # Build step
                     output = subprocess.check_output(
-                        ["cmake", "--build", "."], stderr=subprocess.STDOUT
+                        ["cmake", "--build", ". -- -j 4"], stderr=subprocess.STDOUT
                     )
                     if self.distribution.verbose:
                         log.info(_decode(output))
