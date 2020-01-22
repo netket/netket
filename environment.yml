@@ -4,7 +4,7 @@ dependencies:
   - python=3.7
   - clang
   - cmake
-  - ninja 
+  - ninja
   - pip
   - scipy
   - numpy
@@ -12,4 +12,4 @@ dependencies:
   - openmpi
   - mpi4py
   - blas
-  - lapack
+  - mkl
