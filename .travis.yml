@@ -81,32 +81,30 @@ matrix:
 
 before_install:
   - |
-      if [ -n "$CONDA" ]; then
-        if [ "$TRAVIS_OS_NAME" = "linux" ]; then OS=Linux-x86_64; else OS=MacOSX-x86_64; fi
-        wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-$OS.sh
-        bash miniconda.sh -b -p $HOME/miniconda
-        export PATH="$HOME/miniconda/bin:$PATH"
-        conda config --set always_yes yes --set changeps1 no
-        conda update -q conda
-        conda install -q conda-build
-        conda env create --file environment.yml
-        conda activate netket_env
-      fi
-  - |
+     if [ -n "$CONDA" ]; then
+       if [ "$TRAVIS_OS_NAME" = "linux" ]; then OS=Linux-x86_64; else OS=MacOSX-x86_64; fi
+       wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-$OS.sh
+       bash miniconda.sh -b -p $HOME/miniconda
+       export PATH="$HOME/miniconda/bin:$PATH"
+       conda config --set always_yes yes --set changeps1 no
+       conda update -q conda
+       conda install -q conda-build
+       conda env create --file environment.yml
+       source activate netket_env
+     fi
      # When Travis starts supporting `addons: brew: packages: [...]` correctly,
      # this can be move this into the build matrix.
-     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        brew update
        brew ls --versions cmake && brew upgrade cmake || brew install cmake
        brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
        brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
        brew ls --versions openmpi && brew upgrade libomp || brew install libomp
        brew ls --versions openmpi && brew upgrade ninja-build || brew install ninja
-     fi
-  - |
-     # Force OS X to use the correct python version. This is only because
-     # Travis' support for `language: python` on OS X is too buggy.
-     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+
+       # Force OS X to use the correct python version. This is only because
+       # Travis' support for `language: python` on OS X is too buggy.
+
        PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install $PYTHON
        # This part is (apparently) quite important! As per the docs it makes
        # pyenv aware that some executables have been installed/removed. Without it
