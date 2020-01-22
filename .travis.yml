@@ -10,6 +10,10 @@ matrix:
       env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
 
 
+    - os: osx
+      env: CONDA=3.6 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-O1"
+
+
     # Not too old toolsets
     - os: linux
       dist: xenial
@@ -75,6 +79,18 @@ matrix:
 
 before_install:
   - |
+      if [ -n "$CONDA" ]; then
+        if [ "$TRAVIS_OS_NAME" = "linux" ]; then OS=Linux-x86_64; else OS=MacOSX-x86_64; fi
+        wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-$OS.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        export PATH="$HOME/miniconda/bin:$PATH"
+        conda config --set always_yes yes --set changeps1 no
+        conda update -q conda
+        conda install -q conda-build
+        conda env create --file environment.yml
+        conda activate netket_env
+      fi
+  - |
      # When Travis starts supporting `addons: brew: packages: [...]` correctly,
      # this can be move this into the build matrix.
      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -109,22 +125,6 @@ before_install:
      if ! which pip; then
        python -m easy_install pip
      fi
-  - |
-     # Check that `python` is actually the version we want
-     # Parses `TRAVIS_PYTHON_VERSION` and throws away the patch level as Travis only
-     # saves the major and minor versions.
-     _WE_WANTED=$(echo "$TRAVIS_PYTHON_VERSION" | sed -E 's/([0-9]+\.[0-9]+)($|\.[0-9]+)/\1/')
-     # Ask python itself what its major and minor versions are
-     _WE_GOT=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-     if [[ $_WE_WANTED != $_WE_GOT ]]; then
-       # The `&& false` here is needed to produce the error code indicating failure, because
-       # we don't want to proceed if Python is not installed properly.
-       echo "Something went wrong during python installation: $_WE_WANTED != $_WE_GOT" && false
-     fi
-
-  # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files.
-  # Otherwise we'll run into trouble when trying to use pybind11.
-  - find $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())') -name 'Python.h'
 
 install:
   - cmake --version

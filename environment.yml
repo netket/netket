@@ -2,15 +2,14 @@ name: netket_env
 
 dependencies:
   - python=3.7
+  - clang
+  - cmake
+  - ninja 
   - pip
   - scipy
   - numpy
   - matplotlib
   - openmpi
   - mpi4py
-  - cmake
-  - clangxx_osx-64
-  - clang_osx-64
-  - gfortran_osx-64
   - blas
-  - mkl
+  - lapack
