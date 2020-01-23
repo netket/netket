@@ -26,9 +26,9 @@ def mean(a, axis=None, dtype=None, out=None):
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
 
-    out = _np.mean(a, axis=axis, dtype=None, out=out).reshape(-1)
+    out = _np.mean(a, axis=axis, dtype=None, out=out)
 
-    _MPI_comm.Allreduce(MPI.IN_PLACE, out, op=MPI.SUM)
+    _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
 
     out /= float(_n_nodes)
 

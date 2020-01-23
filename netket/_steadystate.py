@@ -6,12 +6,12 @@ import netket as _nk
 from netket._core import deprecated
 from ._C_netket import MPI as _MPI
 from netket.operator import local_values as _local_values
-from netket.operator import local_values_op_op as _local_values_op_op
+#from netket.operator import local_values_op_op as _local_values_op_op
 from netket.operator import der_local_values as _der_local_values
 from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
-    compute_mean as _compute_mean,
+    mean as _mean,
     subtract_mean as _subtract_mean,
 )
 
@@ -153,8 +153,8 @@ class SteadyState(object):
 
         self._npar = self._machine.n_par
 
-        self._n_chains = sampler.sample_shape[0]
-        self._n_chains_obs = sampler.sample_shape[0]
+        self._batch_size = sampler.sample_shape[0]
+        self._batch_size_obs = sampler.sample_shape[0]
 
         self.n_samples = n_samples
         self.n_discard = n_discard
@@ -166,22 +166,22 @@ class SteadyState(object):
         self.step_count = 0
         self._obs_samples_valid = False
         self._samples = _np.ndarray(
-            (self._n_samples_node, self._n_chains, lindblad.hilbert.size)
+            (self._n_samples_node, self._batch_size, lindblad.hilbert.size)
         )
         self._samples_obs = _np.ndarray(
             (
                 self._n_samples_obs_node,
-                self._n_chains_obs,
+                self._batch_size_obs,
                 lindblad.hilbert.size_physical,
             )
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         self._der_loc_vals = _np.ndarray(
-            (self._n_samples_node, self._n_chains, self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         # Set the machine_func of the sampler over the diagonal of the density matrix
@@ -203,7 +203,7 @@ class SteadyState(object):
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
         self._n_samples = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._n_chains)))
+        n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
         self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
 
     @n_samples_obs.setter
@@ -216,7 +216,7 @@ class SteadyState(object):
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
         self._n_samples_obs = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._n_chains)))
+        n_samples_chain = int(_np.ceil((n_samples / self._batch_size_obs)))
         self._n_samples_obs_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
 
     @property
@@ -236,7 +236,7 @@ class SteadyState(object):
         self._n_discard = (
             n_discard
             if n_discard != None
-            else self._n_samples_node * self._n_chains // 10
+            else self._n_samples_node * self._batch_size // 10
         )
 
     @n_discard_obs.setter
@@ -251,7 +251,7 @@ class SteadyState(object):
         self._n_discard_obs = (
             n_discard
             if n_discard != None
-            else self._n_samples_obs_node * self._n_chains // 10
+            else self._n_samples_obs_node * self._batch_size_obs // 10
         )
 
     def advance(self, n_steps=1):
@@ -266,6 +266,7 @@ class SteadyState(object):
 
             self._sampler.reset()
             self._obs_samples_valid = False
+
             # Burnout phase
             for _ in self._sampler.samples(self._n_discard):
                 pass
@@ -279,16 +280,14 @@ class SteadyState(object):
                 # Compute Log derivatives
                 self._der_logs[i] = self._machine.der_log(sample)
 
-                # Compute Der Log local vals
-                self._der_loc_vals[i] = _der_local_values(
-                    self._lind, self._machine, sample, subtract_v_derivative=False
-                )
+            # flatten MC chain dimensions:
+            self._der_logs = self._der_logs.reshape(-1, self._npar)
 
             # Estimate energy
             lloc, self._stats = self._get_mc_superop_stats(self._lind)
 
             # Compute the (MPI-aware-)average of the derivatives
-            der_logs_ave = _compute_mean(self._der_logs)
+            der_logs_ave = _mean(self._der_logs, axis=(0,1))
 
             # Center the log derivatives
             self._der_logs -= der_logs_ave
@@ -304,10 +303,14 @@ class SteadyState(object):
                 derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
                 self._sr.compute_update(derlogs, grad, dp)
                 derlogs = self._der_logs.reshape(
-                    self._n_samples_node, self._n_chains, self._npar
+                    self._n_samples_node, self._batch_size, self._npar
                 )
             else:
                 dp = grad
+
+            self._der_logs = self._der_logs.reshape(
+                self._n_samples_node, self._batch_size, self._npar
+            )
 
             self._machine.parameters = self._optimizer_step(
                 self.step_count, dp, self._machine.parameters
@@ -391,14 +394,17 @@ class SteadyState(object):
         self._sampler.reset()
 
     def _get_mc_superop_stats(self, op):
-        loc = _local_values(op, self._machine, self._samples)
+        loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
+        for i, sample in enumerate(self._samples):
+            _local_values(op, self._machine, sample, out=loc[i])
+
         return loc, _statistics(_np.square(_np.abs(loc), dtype="complex128"))
 
     def _get_mc_obs_stats(self, op):
         if not self._obs_samples_valid:
             self.sweep_diagonal()
 
-        loc = _local_values_op_op(op, self._machine, self._samples_obs)
+        loc = _local_values(op, self._machine, self._samples_obs)
         return loc, _statistics(loc)
 
     def __repr__(self):
