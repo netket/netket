@@ -172,6 +172,32 @@ void AddOperatorModule(py::module m) {
         }
       });
 
+  subm.def(
+      "_der_local_values_centered_kernel",
+      [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
+         const Eigen::Ref<const RowMatrix<Complex>>& der_log_zero,
+         const std::vector<Eigen::Ref<const RowMatrix<Complex>>>& der_log_vals,
+         //   Eigen::Ref<Eigen::VectorXcd> local_vals,
+         Eigen::Ref<RowMatrix<Complex>> der_local_vals) {
+        for (std::size_t k = 0; k < mels.size(); k++) {
+          auto tmp = (mels[k].array() *
+                      (log_vals_prime[k].array() - log_vals_zero(k)).exp());
+
+          // Computing the local_val is not needed, but it's almost for free so
+          // we might as well return this too.
+          // local_vals(k) = tmp.sum();
+
+          der_local_vals.row(k) =
+              ((der_log_vals[k].colwise() - der_log_zero.col(k))
+                   .array()
+                   .colwise() *
+               tmp.array())
+                  .colwise()
+                  .sum();
+        }
+      });
   ;
 }
 }  // namespace netket

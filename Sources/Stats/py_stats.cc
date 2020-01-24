@@ -198,10 +198,6 @@ void AddStatsModule(py::module m) {
                     v[i] are already centered, i.e., have zero mean.
 
         )EOF");
-
-  subm.def("_subtract_mean", &SubtractMean, py::arg{"values"}.noconvert());
-
-  subm.def("_compute_mean", &ComputeMean, py::arg{"values"}.noconvert());
 }
 }  // namespace detail
 }  // namespace netket
