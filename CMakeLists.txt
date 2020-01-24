@@ -136,7 +136,7 @@ ExternalProject_Add(
     INSTALL_COMMAND ""
 )
 if (NOT NETKET_PYTHON_VERSION)
-    set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5 2.7)
+    set(Python_ADDITIONAL_VERSIONS 3.7 3.6 3.5)
 endif()
 find_package(PythonLibsNew ${NETKET_PYTHON_VERSION} REQUIRED)
 
@@ -144,10 +144,16 @@ add_library(pybind11 INTERFACE)
 ExternalProject_Get_Property(pybind11_project SOURCE_DIR)
 target_include_directories(pybind11 SYSTEM INTERFACE ${SOURCE_DIR}/include)
 target_include_directories(pybind11 SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
+
+if(APPLE AND DEFINED ENV{CONDA_PREFIX})
+      TARGET_LINK_LIBRARIES(pybind11 INTERFACE "-undefined dynamic_lookup")
+      message(STATUS "Building in conda environment on MAC")
+else()
+      target_link_libraries(pybind11 INTERFACE ${PYTHON_LIBRARIES})
+endif()
+
 # Greatly reduces the code bloat
 target_compile_options(pybind11 INTERFACE "-fvisibility=hidden")
-
 
 # MPI
 ################################################################################

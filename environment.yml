@@ -1,12 +1,15 @@
-name: mybinder-env
-channels:
-  - anaconda
+name: netket_env
+
 dependencies:
-  - python=3.5.3
+  - python=3.7
+  - clang
+  - cmake
+  - ninja
   - pip
   - scipy
   - numpy
   - matplotlib
   - openmpi
-  - cmake
-  - pytest-cov
+  - mpi4py
+  - blas
+  - mkl
