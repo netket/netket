@@ -6,7 +6,6 @@ import netket as _nk
 from netket._core import deprecated
 from ._C_netket import MPI as _MPI
 from netket.operator import local_values as _local_values
-#from netket.operator import local_values_op_op as _local_values_op_op
 from netket.operator import der_local_values as _der_local_values
 from netket.stats import (
     statistics as _statistics,
@@ -280,6 +279,10 @@ class SteadyState(object):
                 # Compute Log derivatives
                 self._der_logs[i] = self._machine.der_log(sample)
 
+                self._der_loc_vals[i] = _der_local_values(
+                    self._lind, self._machine, sample, center_derivative=False
+                )
+
             # flatten MC chain dimensions:
             self._der_logs = self._der_logs.reshape(-1, self._npar)
 
@@ -287,7 +290,7 @@ class SteadyState(object):
             lloc, self._stats = self._get_mc_superop_stats(self._lind)
 
             # Compute the (MPI-aware-)average of the derivatives
-            der_logs_ave = _mean(self._der_logs, axis=(0,1))
+            der_logs_ave = _mean(self._der_logs, axis=(0, 1))
 
             # Center the log derivatives
             self._der_logs -= der_logs_ave

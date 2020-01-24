@@ -152,16 +152,19 @@ void AddOperatorModule(py::module m) {
       });
 
   subm.def(
-      "_der_local_values_kernel",
+      "_der_local_values_notcentered_kernel",
       [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
          const std::vector<Eigen::Ref<const RowMatrix<Complex>>>& der_log_vals,
          //   Eigen::Ref<Eigen::VectorXcd> local_vals,
          Eigen::Ref<RowMatrix<Complex>> der_local_vals) {
+        Eigen::VectorXcd tmp = Eigen::VectorXcd(1);
         for (std::size_t k = 0; k < mels.size(); k++) {
-          auto tmp = (mels[k].array() *
-                      (log_vals_prime[k].array() - log_vals_zero(k)).exp());
+          tmp.resize(log_vals_prime[k].size());
+
+          tmp = (mels[k].array() *
+                 (log_vals_prime[k].array() - log_vals_zero(k)).exp());
 
           // Computing the local_val is not needed, but it's almost for free so
           // we might as well return this too.
@@ -173,7 +176,7 @@ void AddOperatorModule(py::module m) {
       });
 
   subm.def(
-      "_der_local_values_centered_kernel",
+      "_der_local_values_kernel",
       [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
          const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
