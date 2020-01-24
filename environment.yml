@@ -1,12 +1,16 @@
 name: netket_env
-channels:
-  - conda
-  - conda-forge
+
 dependencies:
-  - python=3.7.0
+  - python=3.7
+  - clang
+  - cmake
+  - ninja
+  - pip
   - scipy
   - numpy
   - matplotlib
-  - cmake
-  - mpi4py
   - openmpi
+  - mpi4py
+  - blas
+  - mkl
+
