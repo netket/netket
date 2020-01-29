@@ -263,10 +263,14 @@ def der_local_values(
                 out: A scalar or a numpy array of local values of the operator.
                     If not given, it is allocated from scratch and then returned.
                     Defaults to None.
+                center_derivative: Whever to center the derivatives or not. In the formula above,
+                    When this is true/false it is equivalent to setting :math:`\alpha=\{1 / 2\}`.
+                    By default `center_derivative=True`, meaning that it returns the correct
+                    derivative of the local values. False is mainly used when dealing with liouvillians.
 
             Returns:
-                If samples is given in batches, a numpy array of local values
-                of the operator, otherwise a scalar.
+                If samples is given in batches, a numpy ndarray of derivatives of local values
+                of the operator, otherwise a 1D array.
     """
     if v.ndim == 3:
         assert (

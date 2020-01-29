@@ -1,4 +1,5 @@
 import sys
+import itertools
 
 import numpy as _np
 
@@ -203,7 +204,7 @@ class SteadyState(object):
             )
         self._n_samples = n_samples
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+        self._n_samples_node = int(_np.ceil(n_samples_chain / _MPI.size()))
 
     @n_samples_obs.setter
     def n_samples_obs(self, n_samples):
@@ -216,7 +217,7 @@ class SteadyState(object):
             )
         self._n_samples_obs = n_samples
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size_obs)))
-        self._n_samples_obs_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+        self._n_samples_obs_node = int(_np.ceil(n_samples_chain / _MPI.size()))
 
     @property
     def n_discard(self):
@@ -290,7 +291,7 @@ class SteadyState(object):
             lloc, self._stats = self._get_mc_superop_stats(self._lind)
 
             # Compute the (MPI-aware-)average of the derivatives
-            der_logs_ave = _mean(self._der_logs, axis=(0, 1))
+            der_logs_ave = _mean(self._der_logs, axis=0)
 
             # Center the log derivatives
             self._der_logs -= der_logs_ave
@@ -339,7 +340,7 @@ class SteadyState(object):
 
         self._obs_samples_valid = True
 
-    def iter(self, n_steps, step=1):
+    def iter(self, n_iter=None, step_size=1):
         """
             Returns a generator which advances the VMC optimization, yielding
             after every `step_size` steps.
@@ -352,9 +353,11 @@ class SteadyState(object):
             Yields:
                 int: The current step.
             """
-        for _ in range(0, n_steps, step):
-            self.advance(step)
-            yield self.step_count
+        for i in itertools.count(step=step_size):
+            if n_iter and i >= n_iter:
+                return
+            self.advance(step_size)
+            yield i
 
     def add_observable(self, obs, name):
         """
