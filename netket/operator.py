@@ -225,15 +225,15 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 
     der_log_primes = [machine.der_log(vprime) for vprime in vprimes]
 
-    _der_local_values_notcentered_kernel(log_vals, log_val_primes, mels, der_log_primes, out)
 
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k])
-    #
-    #     dld = machine.der_log(vprimes[k])
-    #
-    #     out[k,:] = (((mels[k] * _np.exp(lvd - log_vals[k])) * dld).sum(axis=0)
+
+    # Avoid using the C++ kernel because of a pybind11 problem. We are probably copying list-of-numpy arrays when
+    # calling C++, which leads to a huge performance degradation
+    #_der_local_values_notcentered_kernel(log_vals, log_val_primes, mels, der_log_primes, out)
+
+    #TODO: numba or cython to improve performance of this kernel
+    for k in len(v):
+        out[k,:] = (((mels[k] * _np.exp(log_val_primes[k] - log_vals[k])) * der_log_primes).sum(axis=0)
 
 
 def der_local_values(

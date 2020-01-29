@@ -86,15 +86,14 @@ def test_der_log_val():
     ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
-    for i in range(0,lind.hilbert.n_states):
+    for i in range(0, lind.hilbert.n_states):
         state = lind.hilbert.number_to_state(i)
-        der_loc_vals = nk.operator.der_local_values(lind, ma, state)
+        der_loc_vals = nk.operator.der_local_values(lind, ma, state, center_derivative=False)
 
         log_val_s = ma.log_val(state)
         der_log_s = ma.der_log(state)
 
-        delta, mel = lind.get_conn(state)
-        statet = state + delta
+        statet, mel = lind.get_conn(state)
 
         log_val_p = ma.log_val(statet)
         der_log_p = ma.der_log(statet)
@@ -102,7 +101,7 @@ def test_der_log_val():
         log_val_diff = mel * np.exp(log_val_p - log_val_s)
         log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
 
-        grad = log_val_diff * (der_log_p - der_log_s)
+        grad = log_val_diff * (der_log_p) #- der_log_s) because derivative not centered
         grad_all = grad.sum(axis=0)
 
         np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
