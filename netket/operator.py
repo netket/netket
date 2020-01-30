@@ -217,6 +217,15 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
     #
     #     out[k,:] = (((mels[k] * _np.exp(lvd - log_vals[k])) * (dld - der_log_val[k,:])).sum(axis=0)
 
+
+# TODO: numba or cython to improve performance of this kernel
+def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, out):
+
+    for k in range(len(mels)):
+
+        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis] * der_log_p[k]).sum(axis=0)
+
+
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 
     vprimes, mels = op.get_conn(v)
@@ -225,15 +234,12 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 
     der_log_primes = [machine.der_log(vprime) for vprime in vprimes]
 
-
-
-    # Avoid using the C++ kernel because of a pybind11 problem. We are probably copying list-of-numpy arrays when
-    # calling C++, which leads to a huge performance degradation
-    #_der_local_values_notcentered_kernel(log_vals, log_val_primes, mels, der_log_primes, out)
-
-    #TODO: numba or cython to improve performance of this kernel
-    for k in len(v):
-        out[k,:] = (((mels[k] * _np.exp(log_val_primes[k] - log_vals[k])) * der_log_primes).sum(axis=0)
+    # Avoid using the C++ kernel because of a pybind11 problem. We are probably
+    # copying list-of-numpy arrays when calling C++, which leads to a huge
+    # performance degradation
+    der_local_values_notcentered_kernel(
+        log_vals, log_val_primes, mels, der_log_primes, out
+    )
 
 
 def der_local_values(
@@ -257,7 +263,7 @@ def der_local_values(
                 log_vals: A scalar/numpy array containing the value(s) :math:`\Psi(V)`.
                     If not given, it is computed from scratch.
                     Defaults to None.
-                der_log_vals: A numpy tensor containing the value(s) :math:`\Psi(V)`.
+                der_log_vals: A numpy tensor containing the vector of log-derivative(s) :math:`O_i(V)`.
                     If not given, it is computed from scratch.
                     Defaults to None.
                 out: A scalar or a numpy array of local values of the operator.

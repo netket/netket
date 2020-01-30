@@ -88,7 +88,8 @@ def make_optimizer_fn(arg, ma):
 
 class SteadyState(object):
     """
-    Energy minimization using Variational Monte Carlo (VMC).
+    Variational steady-state search by minimization of the L2,2 norm of L\rho using
+    Variational Monte Carlo (VMC).
     """
 
     def __init__(
@@ -107,8 +108,8 @@ class SteadyState(object):
         Initializes the driver class.
 
         Args:
-            hamiltonian: The Hamiltonian of the system.
-            sampler: The Monte Carlo sampler.
+            liouvillian: The liouvillian of the system.
+            sampler: The Monte Carlo sampler for the density matrix.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient. This parameter supports three different kinds of inputs,
                 which are described in the docs of `make_optimizer_fn`.
@@ -120,23 +121,11 @@ class SteadyState(object):
             sr (SR, optional): Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
+            sampler_obs: The Monte Carlo sampler for the diagonal of the density matrix, used
+                to compute observables (default: same as sampler).
+            n_samples_obs: n_samples for the observables (default: n_samples)
+            n_discard_obs: n_discard for the observables (default: n_discard)
 
-        Example:
-            Optimizing a 1D wavefunction with Variational Monte Carlo.
-
-            ```python
-            >>> import netket as nk
-            >>> SEED = 3141592
-            >>> g = nk.graph.Hypercube(length=8, n_dim=1)
-            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-            >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-            >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
-            >>> ha = nk.operator.Ising(hi, h=1.0)
-            >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-            >>> sa.seed(SEED)
-            >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> vmc = nk.Vmc(ha, sa, op, 200)
-            ```
         """
         self._lind = lindblad
         self._machine = sampler.machine
