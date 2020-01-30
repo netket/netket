@@ -171,6 +171,45 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 ExactTimePropagation.iter = _ExactTimePropagation_iter
 
 
+def steady_state(lindblad, sparse=False, method="ed"):
+    r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
+    of a Hermitian operator by full diagonalization.
+
+    Args:
+        lindblad: The lindbladian encoding the master equation.
+        sparse: Whever to perform the diagonalization using sparse matrices.
+
+    """
+    from numpy import sqrt, matrix
+
+    if method == "ed":
+        if not sparse:
+            from numpy.linalg import eigh
+
+            lind_mat = matrix(lindblad.to_dense())
+
+            ldagl = lind_mat.H * lind_mat
+            w, v = eigh(ldagl)
+
+        else:
+            from scipy.sparse.linalg import eigsh
+
+            lind_mat = lindblad.to_sparse()
+            ldagl = lind_mat.H * lind_mat
+
+            w, v = eigsh(ldagl, which="SM", k=2)
+
+        print("Minimum eigenvalue is: ", w[0])
+        N = int(sqrt(ldagl.shape[0]))
+        rho = matrix(v[:, 0].reshape((N, N)))
+        rho = rho / rho.trace()
+
+    else:
+        raise ValueError("method must be 'ed'")
+
+    return rho
+
+
 @_core.deprecated(
     "`ImagTimePropagation` is deprecated. Please use "
     '`ExactTimePropagation(..., propagation_type="imaginary")` instead.'

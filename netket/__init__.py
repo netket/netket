@@ -33,8 +33,10 @@ from . import (
     utils,
     variational,
     _vmc,
+    _steadystate
 )
 from ._C_netket import MPI
 
 # Main applications
 from ._vmc import Vmc
+from ._steadystate import SteadyState

@@ -57,5 +57,15 @@ Complex SumLogCosh_generic(
   return total;
 }
 
+double SumLogCosh_generic(
+    Eigen::Ref<const Eigen::Matrix<double, Eigen::Dynamic, 1>>
+    input) noexcept {
+  double total = 0.0;
+  for (auto i = Index{0}; i < input.size(); ++i) {
+    total += LogCosh(input(i));
+  }
+  return total;
+}
+
 }  // namespace detail
 }  // namespace netket

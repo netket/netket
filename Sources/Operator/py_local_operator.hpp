@@ -127,23 +127,41 @@ void AddLocalOperator(py::module &subm) {
            R"EOF(Returns the transpose of this operator)EOF")
       .def("conjugate", &LocalOperator::Conjugate,
            R"EOF(Returns the complex conjugation of this operator)EOF")
+      .def("conj", &LocalOperator::Conjugate,
+           R"EOF(Returns the complex conjugation of this operator)EOF")
       .def(py::self + py::self)
-      .def("__mul__", [](const LocalOperator &a, double b) { return b * a; },
-           py::is_operator())
-      .def("__rmul__", [](const LocalOperator &a, double b) { return b * a; },
-           py::is_operator())
-      .def("__mul__", [](const LocalOperator &a, int b) { return b * a; },
-           py::is_operator())
-      .def("__rmul__", [](const LocalOperator &a, int b) { return b * a; },
-           py::is_operator())
-      .def("__add__", [](const LocalOperator &a, double b) { return a + b; },
-           py::is_operator())
-      .def("__add__", [](const LocalOperator &a, int b) { return a + b; },
-           py::is_operator())
-      .def("__radd__", [](const LocalOperator &a, double b) { return a + b; },
-           py::is_operator())
-      .def("__radd__", [](const LocalOperator &a, int b) { return a + b; },
-           py::is_operator())
+      .def(
+          "__mul__", [](const LocalOperator &a, double b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__rmul__", [](const LocalOperator &a, double b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__mul__",
+          [](const LocalOperator &a, std::complex<double> b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__rmul__",
+          [](const LocalOperator &a, std::complex<double> b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__mul__", [](const LocalOperator &a, int b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__rmul__", [](const LocalOperator &a, int b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__add__", [](const LocalOperator &a, double b) { return a + b; },
+          py::is_operator())
+      .def(
+          "__add__", [](const LocalOperator &a, int b) { return a + b; },
+          py::is_operator())
+      .def(
+          "__radd__", [](const LocalOperator &a, double b) { return a + b; },
+          py::is_operator())
+      .def(
+          "__radd__", [](const LocalOperator &a, int b) { return a + b; },
+          py::is_operator())
       .def(py::self * py::self);
 }
 

@@ -28,6 +28,7 @@
 
 #include "Hilbert/hilbert.hpp"
 #include "Machine/abstract_machine.hpp"
+#include "Machine/DensityMatrices/abstract_density_matrix.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/messages.hpp"
 #include "common_types.hpp"
