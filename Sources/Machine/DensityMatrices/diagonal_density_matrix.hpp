@@ -16,19 +16,12 @@
 #ifndef NETKET_DIAGONALDENSITYMATRIX_HPP
 #define NETKET_DIAGONALDENSITYMATRIX_HPP
 
-#include <Eigen/Dense>
-#include <algorithm>
-#include <complex>
-#include <fstream>
-#include <utility>
-#include <vector>
 #include "Machine/abstract_machine.hpp"
 #include "Utils/random_utils.hpp"
-#include "density_matrix_machine.hpp"
+#include "abstract_density_matrix.hpp"
 
 namespace netket {
 class DiagonalDensityMatrix : public AbstractMachine {
-  using VisibleChangeInfo = std::pair<std::vector<int>, std::vector<double>>;
 
   AbstractDensityMatrix &density_matrix_;
 
@@ -40,6 +33,8 @@ class DiagonalDensityMatrix : public AbstractMachine {
     return density_matrix_;
   }
 
+  using VisibleChangeInfo = std::pair<std::vector<int>, std::vector<double>>;
+
  private:
   /**
    * Doubles a visible configuration v so that it represents an element on the
@@ -47,98 +42,30 @@ class DiagonalDensityMatrix : public AbstractMachine {
    * @param v is a visible configuration
    * @return the vertical concatentation of [v, v]
    */
-  VisibleType DoubleVisibleConfig(const VisibleConstType v) const {
-    VisibleType v2(2 * v.rows());
-    v2.head(v.rows()) = v;
-    v2.tail(v.rows()) = v;
-
-    return v2;
-  }
+  VisibleType DoubleVisibleConfig(const VisibleConstType v) const;
 
   VisibleChangeInfo DoubleVisibleChangeInfo(const std::vector<int> &tochange,
                                             const std::vector<double> &newconf,
-                                            int offset) const {
-    std::vector<int> tochange_doubled(tochange.size() * 2);
-    std::vector<double> newconf_doubled(newconf.size() * 2);
-
-    // Copy tochange on the first half of tochange_doubled and copy + offset on
-    // the other half.
-    std::copy(tochange.begin(), tochange.end(), tochange_doubled.begin());
-    std::copy(tochange.begin(), tochange.end(),
-              tochange_doubled.begin() + tochange.size());
-    for (auto tcd = tochange_doubled.begin() + tochange.size();
-         tcd != tochange_doubled.end(); ++tcd) {
-      *tcd += offset;
-    }
-
-    std::copy(newconf.begin(), newconf.end(), newconf_doubled.begin());
-    std::copy(newconf.begin(), newconf.end(),
-              newconf_doubled.begin() + newconf.size());
-
-    return VisibleChangeInfo(tochange_doubled, newconf_doubled);
-  };
+                                            int offset) const ;
 
  public:
-  Complex LogValSingle(VisibleConstType v, const any &lt) override {
-    return density_matrix_.LogValSingle(DoubleVisibleConfig(v), lt);
-  }
+  Complex LogValSingle(VisibleConstType vr, const any &lt) override;
 
-  void LogValDiff(VisibleConstType v,
-                  const std::vector<std::vector<int>> &tochange,
-                  const std::vector<std::vector<double>> &newconf,
-                  Eigen::Ref<Eigen::VectorXcd> output) override {
-    auto tochange_d = std::vector<std::vector<int>>(tochange.size());
-    auto newconf_d = std::vector<std::vector<double>>(newconf.size());
-    // double every element in tochange and newconf
-    {
-      auto tc = tochange.begin();
-      auto nc = newconf.begin();
-      int i = 0;
-      while (tc != tochange.end()) {
-        auto d_changes = DoubleVisibleChangeInfo(*tc, *nc, v.size());
-        tochange_d[i] = d_changes.first;
-        newconf_d[i] = d_changes.second;
-      }
-    }
-    density_matrix_.LogValDiff(DoubleVisibleConfig(v), tochange_d, newconf_d,
-                               output);
-  }
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
-  VectorType DerLogSingle(VisibleConstType v, const any &lt) override {
-    return density_matrix_.DerLogSingle(DoubleVisibleConfig(v), lt);
-  }
+  int Npar() const override;
 
-  VectorType DerLogChanged(VisibleConstType v, const std::vector<int> &tochange,
-                           const std::vector<double> &newconf) override {
-    VisibleChangeInfo d_changes =
-        DoubleVisibleChangeInfo(tochange, newconf, v.size());
-    return density_matrix_.DerLogChanged(DoubleVisibleConfig(v),
-                                         d_changes.first, d_changes.second);
-  }
+  VectorType GetParameters() override;
 
-  int Npar() const override { return density_matrix_.Npar(); }
+  void SetParameters(VectorConstRefType pars) override;
 
-  VectorType GetParameters() override {
-    return density_matrix_.GetParameters();
-  }
+  int Nvisible() const override ;
 
-  void SetParameters(VectorConstRefType pars) override {
-    return density_matrix_.SetParameters(pars);
-  }
+  bool IsHolomorphic() const noexcept override ;
 
-  int Nvisible() const override { return density_matrix_.Nvisible(); }
+  void Save(const std::string &filename) const override ;
 
-  bool IsHolomorphic() const noexcept override {
-    return density_matrix_.IsHolomorphic();
-  }
-
-  void Save(const std::string &filename) const override {
-    return density_matrix_.Save(filename);
-  }
-
-  void Load(const std::string &filename) override {
-    return density_matrix_.Load(filename);
-  }
+  void Load(const std::string &filename) override ;
 };
 }  // namespace netket
 

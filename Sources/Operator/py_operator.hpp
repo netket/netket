@@ -28,6 +28,7 @@
 #include "abstract_operator.hpp"
 #include "py_bosonhubbard.hpp"
 #include "py_graph_operator.hpp"
+#include "py_local_liouvillian.hpp"
 #include "py_local_operator.hpp"
 #include "py_pauli_strings.hpp"
 namespace py = pybind11;
@@ -102,25 +103,26 @@ void AddOperatorModule(py::module m) {
 
          This method requires an indexable Hilbert space.
          )EOF")
-          .def("to_linear_operator",
-               [](py::object py_self) {
-                 const auto* cxx_self = py_self.cast<AbstractOperator const*>();
-                 const auto dtype =
-                     py::module::import("numpy").attr("complex128");
-                 const auto linear_operator =
-                     py::module::import("scipy.sparse.linalg")
-                         .attr("LinearOperator");
-                 const auto dim = cxx_self->Dimension();
-                 return linear_operator(
-                     py::arg{"shape"} = std::make_tuple(dim, dim),
-                     py::arg{"matvec"} = py::cpp_function(
-                         // TODO: Does this copy data?
-                         [py_self, cxx_self](const Eigen::VectorXcd& x) {
-                           return cxx_self->Apply(x);
-                         }),
-                     py::arg{"dtype"} = dtype);
-               },
-               R"EOF(
+          .def(
+              "to_linear_operator",
+              [](py::object py_self) {
+                const auto* cxx_self = py_self.cast<AbstractOperator const*>();
+                const auto dtype =
+                    py::module::import("numpy").attr("complex128");
+                const auto linear_operator =
+                    py::module::import("scipy.sparse.linalg")
+                        .attr("LinearOperator");
+                const auto dim = cxx_self->Dimension();
+                return linear_operator(
+                    py::arg{"shape"} = std::make_tuple(dim, dim),
+                    py::arg{"matvec"} = py::cpp_function(
+                        // TODO: Does this copy data?
+                        [py_self, cxx_self](const Eigen::VectorXcd& x) {
+                          return cxx_self->Apply(x);
+                        }),
+                    py::arg{"dtype"} = dtype);
+              },
+              R"EOF(
         Converts `Operator` to `scipy.sparse.linalg.LinearOperator`.
 
         This method requires an indexable Hilbert space.
@@ -134,6 +136,7 @@ void AddOperatorModule(py::module m) {
   AddLocalOperator(subm);
   AddGraphOperator(subm);
   AddPauliStrings(subm);
+  AddLocalSuperOperatorModule(subm);
 
   subm.def(
       "_local_values_kernel",
@@ -157,8 +160,59 @@ void AddOperatorModule(py::module m) {
              vec = (mels * (log_vals_prime - max_log_val).exp()).conjugate();
              vec /= vec.sum();
            });
-}
 
+  subm.def(
+      "_der_local_values_notcentered_kernel",
+      [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
+         const std::vector<Eigen::Ref<const RowMatrix<Complex>>>& der_log_vals,
+         //   Eigen::Ref<Eigen::VectorXcd> local_vals,
+         Eigen::Ref<RowMatrix<Complex>> der_local_vals) {
+        Eigen::VectorXcd tmp = Eigen::VectorXcd(1);
+        for (std::size_t k = 0; k < mels.size(); k++) {
+          tmp.resize(log_vals_prime[k].size());
+
+          tmp = (mels[k].array() *
+                 (log_vals_prime[k].array() - log_vals_zero(k)).exp());
+
+          // Computing the local_val is not needed, but it's almost for free so
+          // we might as well return this too.
+          // local_vals(k) = tmp.sum();
+
+          der_local_vals.row(k) =
+              (der_log_vals[k].array().colwise() * tmp.array()).colwise().sum();
+        }
+      });
+
+  subm.def(
+      "_der_local_values_kernel",
+      [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
+         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
+         const Eigen::Ref<const RowMatrix<Complex>>& der_log_zero,
+         const std::vector<Eigen::Ref<const RowMatrix<Complex>>>& der_log_vals,
+         //   Eigen::Ref<Eigen::VectorXcd> local_vals,
+         Eigen::Ref<RowMatrix<Complex>> der_local_vals) {
+        for (std::size_t k = 0; k < mels.size(); k++) {
+          auto tmp = (mels[k].array() *
+                      (log_vals_prime[k].array() - log_vals_zero(k)).exp());
+
+          // Computing the local_val is not needed, but it's almost for free so
+          // we might as well return this too.
+          // local_vals(k) = tmp.sum();
+
+          der_local_vals.row(k) =
+              ((der_log_vals[k].colwise() - der_log_zero.col(k))
+                   .array()
+                   .colwise() *
+               tmp.array())
+                  .colwise()
+                  .sum();
+        }
+      });
+  
+}
 }  // namespace netket
 
 #endif

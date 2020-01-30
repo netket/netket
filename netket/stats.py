@@ -1,13 +1,22 @@
 from ._C_netket.stats import *
-from ._C_netket.stats import _subtract_mean
 
 
-def subtract_mean(x):
+def subtract_mean(x, axis=None, dtype=None, mean_out=None):
     """
     Subtracts the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
+
+    Args:
+        axis: Axis or axes along which the means are computed. The default is to
+              compute the mean of the flattened array.
+        dtype: Type to use in computing the mean
+        mean_out: pre-allocated array to store the mean
     """
-    return _subtract_mean(x.reshape(-1, x.shape[-1]))
+    x_mean = mean(x, axis=axis, dtype=dtype, out=mean_out)
+
+    x -= x_mean
+
+    return x
 
 
 from mpi4py import MPI

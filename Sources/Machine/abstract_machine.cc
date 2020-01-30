@@ -120,6 +120,55 @@ AbstractMachine::VectorType AbstractMachine::DerLogChanged(
   return DerLogSingle(vp);
 }
 
+void AbstractMachine::DerLogChanged(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf,
+    Eigen::Ref<RowMatrix<Complex>> output) {
+  DerLogDiff(v, tochange, newconf, output, false);
+}
+
+RowMatrix<Complex> AbstractMachine::DerLogDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf) {
+  auto output = RowMatrix<Complex>(newconf.size(), Npar());
+  DerLogDiff(v, tochange, newconf, output);
+  return output;
+}
+
+void AbstractMachine::DerLogDiff(
+    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+    const std::vector<std::vector<double>> &newconf,
+    Eigen::Ref<RowMatrix<Complex>> output, bool subtract_logv) {
+  CheckShape(__FUNCTION__, "out", {output.rows(), output.cols()},
+             {static_cast<Index>(newconf.size()), Npar()});
+
+  RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
+  input = v.transpose().colwise().replicate(input.rows());
+
+  nonstd::optional<Index> log_val_single_ind;
+
+  for (auto i = Index{0}; i < input.rows(); ++i) {
+    GetHilbert().UpdateConf(input.row(i), tochange[static_cast<size_t>(i)],
+                            newconf[static_cast<size_t>(i)]);
+
+    // One of the states is equal to v ?
+    if (tochange[static_cast<size_t>(i)].size() == 0) {
+      log_val_single_ind = i;
+    }
+  }
+
+  // auto
+  DerLog(input, output, any{});
+
+  if (subtract_logv) {
+    if (log_val_single_ind.has_value()) {
+      output = output.rowwise() - output.row(log_val_single_ind.value());
+    } else {
+      output = output.rowwise() - DerLogSingle(v, any{}).transpose();
+    }
+  }
+}
+
 AbstractMachine::VectorType AbstractMachine::LogValDiff(
     VisibleConstType v, const std::vector<std::vector<int>> &tochange,
     const std::vector<std::vector<double>> &newconf) {
@@ -135,8 +184,8 @@ void AbstractMachine::LogValDiff(
   RowMatrix<double> input(static_cast<Index>(tochange.size()), v.size());
   input = v.transpose().colwise().replicate(input.rows());
 
-  CheckShape(__FUNCTION__, "out", {output.rows()},
-             {static_cast<Index>(newconf.size())});
+  CheckShape(__FUNCTION__, "out", output.rows(),
+             static_cast<Index>(newconf.size()));
 
   nonstd::optional<Index> log_val_single_ind;
 
@@ -159,7 +208,7 @@ void AbstractMachine::LogValDiff(
   }
 }
 
-any AbstractMachine::InitLookup(VisibleConstType v) { return any{}; }
+any AbstractMachine::InitLookup(VisibleConstType /*v*/) { return any{}; }
 
 void AbstractMachine::UpdateLookup(VisibleConstType, const std::vector<int> &,
                                    const std::vector<double> &, any &) {}

@@ -173,11 +173,4 @@ Eigen::VectorXcd product_sv(Eigen::Ref<const Eigen::VectorXcd> s_values,
   return product;
 }
 
-void SubtractMean(Eigen::Ref<RowMatrix<Complex>> v_values) {
-  VectorXcd mean = v_values.colwise().mean();
-  assert(mean.size() == v_values.cols());
-  MeanOnNodes<>(mean);
-  v_values.rowwise() -= mean.transpose();
-}
-
 }  // namespace netket

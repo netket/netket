@@ -88,6 +88,11 @@ hilberts["Custom Hilbert Small"] = nk.hilbert.CustomHilbert(
     local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
 )
 
+# Custom Hilbert
+hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(nk.hilbert.CustomHilbert(
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
+))
+
 
 #
 # Tests

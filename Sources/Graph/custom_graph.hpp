@@ -40,6 +40,8 @@ class CustomGraph : public AbstractGraph {
               std::vector<std::vector<int>> automorphisms =
                   std::vector<std::vector<int>>());
 
+  void Init();
+
   int Nsites() const noexcept override;
   int Size() const noexcept override;
   std::vector<Edge> const &Edges() const noexcept override;

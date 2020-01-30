@@ -23,6 +23,7 @@
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Hilbert/bosons.hpp"
 #include "Hilbert/custom_hilbert.hpp"
+#include "Hilbert/doubled_hilbert.hpp"
 #include "Hilbert/spins.hpp"
 
 namespace py = pybind11;
@@ -144,6 +145,33 @@ void AddSpins(py::module subm) {
                100
 
            )EOF");
+}
+
+void AddDoubledHilbert(py::module subm) {
+  py::class_<DoubledHilbert, AbstractHilbert, std::shared_ptr<DoubledHilbert>>(
+      subm, "DoubledHilbert", R"EOF(A doubled hilbert space)EOF")
+      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
+           Constructs a new ``DoubledHilbert`` given a physical hilbert space.
+
+           Args:
+               hilbert: The physical hilbert space of the system.
+
+           Examples:
+               Simple spin hilbert space.
+
+               ```python
+
+               ```)EOF")
+      .def_property_readonly(
+          "size_physical", &DoubledHilbert::SizePhysical,
+          R"EOF(int: The number of visible units needed to describe the physical system.)EOF")
+      .def_property_readonly(
+          "graph_physical", &DoubledHilbert::GetGraphPhysical,
+          R"EOF(netket.graph.Graph: The Graph used to construct this Hilbert space.)EOF")
+      .def_property_readonly(
+          "hilbert_physical", &DoubledHilbert::GetHilbertPhysical,
+          R"EOF(netket.hilbert.hilbert: The Physical Hilbert space.)EOF");
 }
 }  // namespace
 
@@ -295,6 +323,7 @@ void AddHilbertModule(py::module m) {
   AddSpins(subm);
   AddBosons(subm);
   AddCustomHilbert(subm);
+  AddDoubledHilbert(subm);
 }
 
 }  // namespace netket

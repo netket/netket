@@ -201,6 +201,50 @@ class AbstractMachine {
                                    const std::vector<int> &tochange,
                                    const std::vector<double> &newconf);
 
+  /**
+  Member function computing O_k(v'), the derivatives of the logarithm of the
+  wave function at a vector of updates visible state v', given the current value
+  at v.
+
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the vectors of
+  indeces of the units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
+  visible state.
+  @param lt a constant eference to the look-up table.
+  @return An integer referring to a row which has the value of v
+  */
+  virtual void DerLogChanged(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<RowMatrix<Complex>> output);
+
+  /**
+  Member function computing the difference between the logarithm of the
+  log-derivative computed at different values of the visible units (v, and a set
+  of v').
+
+  @note performance of the default implementation is pretty bad.
+
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the indeces of the
+  units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here for each v', newconf(i)=v'(tochange(i)), where v' is
+  the new visible state.
+  @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
+  */
+  RowMatrix<Complex> DerLogDiff(
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf);
+
+  virtual void DerLogDiff(VisibleConstType v,
+                          const std::vector<std::vector<int>> &tochange,
+                          const std::vector<std::vector<double>> &newconf,
+                          Eigen::Ref<RowMatrix<Complex>> output,
+                          bool subtract_logv = true);
+
   virtual bool IsHolomorphic() const noexcept = 0;
 
   virtual PyObject *StateDict() {
