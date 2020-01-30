@@ -110,4 +110,60 @@ def test_ss_iterator():
         last_obs = obs
 
     assert count == N_iters
-    #assert last_obs["LdagL"].mean == approx(0.01, abs=0.2)
+    assert last_obs["LdagL"].mean == approx(0.0, abs=0.001)
+
+def test_ss_iterator_iterative():
+    ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
+
+    N_iters = 100
+    count = 0
+    last_obs = None
+    for i, step in enumerate(vmc.iter(N_iters)):
+        count += 1
+        assert step == i
+        obs = vmc.get_observable_stats()
+        # TODO: Choose which version we want
+        # for name in "Energy", "EnergyVariance", "SigmaX":
+        #     assert name in obs
+        #     e = obs[name]
+        #     assert "Mean" in e and "Sigma" in e and "Taucorr" in e
+        for name in "LdagL", "SigmaX":
+            assert name in obs
+            e = obs[name]
+            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R")
+        last_obs = obs
+
+    assert count == N_iters
+    assert last_obs["LdagL"].mean == approx(0.0, abs=0.001)
+
+def test_ss_run():
+    ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
+
+    N_iters = 100
+
+    tempdir = tempfile.mkdtemp()
+    print("Writing test output files to: {}".format(tempdir))
+    prefix = tempdir + "/ss_test"
+    vmc.run(prefix, N_iters)
+
+    with open(prefix + ".log") as logfile:
+        log = json.load(logfile)
+
+    shutil.rmtree(tempdir)
+
+    assert "Output" in log
+    output = log["Output"]
+    assert len(output) == N_iters
+
+    for i, obs in enumerate(output):
+        step = obs["Iteration"]
+        assert step == i
+        for name in "LdagL", "SigmaX":
+            assert name in obs
+            e = obs[name]
+            assert "Mean" in e
+            assert "Sigma" in e
+            assert "TauCorr" in e
+        last_obs = obs
+
+    assert last_obs["LdagL"]["Mean"] == approx(0.0, abs=0.001)
