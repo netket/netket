@@ -19,7 +19,7 @@ np.set_printoptions(linewidth=180)
 rg = nk.utils.RandomEngine(seed=1234)
 
 # 1D Lattice
-L = 2
+L = 9
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
@@ -45,11 +45,11 @@ for i in range(L):
 
 
 # Create the lindbladian with no jump operators
-lind = nk.operator.LocalLindbladian(ha)
+lind = nk.operator.LocalLiouvillian(ha)
 
 # add the jump operators
 for j_op in j_ops:
     lind.add_jump_op(j_op)
 
 
-rho = nk.exact.steady_state(lind)
+rho = nk.exact.steady_state(lind, method='iterative', maxiter=1000, verbose=True)
