@@ -19,6 +19,7 @@ from ._C_netket.exact import *
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
+
 def _ExactTimePropagation_iter(self, dt, n_iter=None):
     """
     iter(self: ExactTimePropagation, dt: float, n_iter: int=None) -> int
@@ -71,13 +72,13 @@ class EdResult(object):
 
 
 def lanczos_ed(
-        operator,
-        matrix_free=False,
-        first_n=1,
-        max_iter=1000,
-        seed=None,
-        precision=1e-14,
-        compute_eigenvectors=False,
+    operator,
+    matrix_free=False,
+    first_n=1,
+    max_iter=1000,
+    seed=None,
+    precision=1e-14,
+    compute_eigenvectors=False,
 ):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
     of a Hermitian operator using the Lanczos method.
@@ -172,7 +173,7 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 ExactTimePropagation.iter = _ExactTimePropagation_iter
 
 
-def steady_state(lindblad, sparse=False, method="ed", rho0=None, maxiter=None, verbose=False, tol=1e-05):
+def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
     hermitian L^\dagger L matrix, or by means of an iterative solver (bicgstabl)
@@ -189,9 +190,16 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, maxiter=None, v
         sparse: Whever to use sparse matrices (default: False)
         method: 'ed' (exact diagonalization) or 'iterative' (iterative bicgstabl)
         rho0: starting density matrix for the iterative diagonalization (default: None)
+        kwargs...: additional kwargs passed to bicgstabl
+
+    Optional args for iterative:
+        For full docs please consult SciPy documentation at
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html
+
         maxiter: maximum number of iterations for the iterative solver (default: None)
-        verbose: if True, prints the residual at every iterative step (default: False)
         tol: The precision for the calculation (default: 1e-05)
+        callback: User-supplied function to call after each iteration. It is called as callback(xk),
+                  where xk is the current solution vector
 
     """
     from numpy import sqrt, matrix
@@ -224,10 +232,10 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, maxiter=None, v
         iHnh = -1j * lindblad.get_effective_hamiltonian()
         if sparse:
             iHnh = iHnh.to_sparse()
-            J_ops = [ j.to_sparse() for j in lindblad.jump_ops]
+            J_ops = [j.to_sparse() for j in lindblad.jump_ops]
         else:
             iHnh = iHnh.to_dense()
-            J_ops = [ j.to_dense() for j in lindblad.jump_ops]
+            J_ops = [j.to_dense() for j in lindblad.jump_ops]
 
         # This function defines the product Liouvillian x densitymatrix, without
         # constructing the full density matrix (passed as a vector M^2).
@@ -240,32 +248,22 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, maxiter=None, v
         # convention adopted in local_liouvillian.cc, and inspired from reference
         # arXiv:1504.05266
         def matvec(rho_vec):
-            rho = rho_vec[:-1].reshape((M,M))
+            rho = rho_vec[:-1].reshape((M, M))
 
-            out = np.empty((M**2 + 1), dtype='complex128')
+            out = np.zeros((M ** 2 + 1), dtype="complex128")
+            drho = out[:-1].reshape((M, M))
 
-            drho = rho @ iHnh + iHnh.conj().T @ rho
+            drho += rho @ iHnh + iHnh.conj().T @ rho
             for J in J_ops:
-                #jrho = J * rho
                 drho += (J @ rho) @ J.conj().T
 
-            out[:-1] = drho.reshape(-1)
             out[-1] = rho.trace()
             return out
 
-
-        def verbose_cb(mat):
-            print("Trace: ", mat.trace())
-
-        if verbose:
-            cb = verbose_cb
-        else:
-            cb = None
-
-        L = LinearOperator((M**2+1, M**2+1), matvec=matvec)
+        L = LinearOperator((M ** 2 + 1, M ** 2 + 1), matvec=matvec)
 
         # Initial density matrix ( + trace condition)
-        Lrho_start = np.zeros((M**2 + 1), dtype='complex128')
+        Lrho_start = np.zeros((M ** 2 + 1), dtype="complex128")
         if rho0 is None:
             Lrho_start[0] = 1.0
             Lrho_start[-1] = 1.0
@@ -274,18 +272,20 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, maxiter=None, v
             Lrho_start[-1] = rho0.trace()
 
         # Target residual (everything 0 and trace 1)
-        Lrho_target = np.zeros((M**2 + 1), dtype='complex128')
+        Lrho_target = np.zeros((M ** 2 + 1), dtype="complex128")
         Lrho_target[-1] = 1.0
 
         # Iterative solver
         print("Starting iterative solver...")
-        res, info = bicgstab(L, Lrho_target, x0=Lrho_start, callback=cb, maxiter=maxiter, tol=tol)
+        res, info = bicgstab(L, Lrho_target, x0=Lrho_start, **kwargs)
 
-        rho = res[1:].reshape((M,M))
+        rho = res[1:].reshape((M, M))
         if info == 0:
             print("Converged trace residual is ", res[-1])
         elif info > 0:
-            print("Failed to converge after ", info, " ( traceresidual is ", res[-1], " )")
+            print(
+                "Failed to converge after ", info, " ( traceresidual is ", res[-1], " )"
+            )
         elif info < 0:
             print("An error occured: ", info)
 

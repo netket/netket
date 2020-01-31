@@ -52,4 +52,4 @@ for j_op in j_ops:
     lind.add_jump_op(j_op)
 
 
-rho = nk.exact.steady_state(lind, method='iterative', maxiter=1000, verbose=True)
+rho = nk.exact.steady_state(lind, method='iterative', sparse=True, maxiter=1000, tol=1e-5)
