@@ -8,7 +8,7 @@ import os
 from rbm import PyRbm
 
 test_jax = False
-test_torch = False
+test_torch = True
 
 
 def merge_dicts(x, y):
