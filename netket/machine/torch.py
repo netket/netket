@@ -67,7 +67,22 @@ class Torch(AbstractMachine):
         return out
 
     def der_log(self, x, out=None):
-        return NotImplementedError
+        x = _torch.tensor(x, dtype = _torch.float64)
+        parameters = list(self._module.parameters())
+        out = x.new_empty(
+                             [x.size(0), 2, sum(map(_torch.numel, parameters))],
+                             dtype=parameters[0].dtype
+        )
+        
+        for i in range(x.size(0)):
+            dws_real = _torch.autograd.grad(self._module(x[[i]])[0, 0], parameters)
+            dws_imag = _torch.autograd.grad(self._module(x[[i]])[0, 1], parameters)
+            _torch.cat([dw.flatten() for dw in dws_real], out=out[i, 0, ...])
+            _torch.cat([dw.flatten() for dw in dws_imag], out=out[i, 1, ...])
+
+        out_complex = _np.zeros((out.size(0), out.size(2)), dtype=_np.complex128)
+        out_complex = out[:, 0, :].numpy() + 1.0j * out[:, 1, :].numpy()
+        return out_complex
 
     def vector_jacobian_prod(self, x, vec, out=None):
 
