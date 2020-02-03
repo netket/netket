@@ -17,6 +17,7 @@ class Torch(AbstractMachine):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
+        self._parameters = list(self._module.parameters())
 
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
@@ -68,15 +69,11 @@ class Torch(AbstractMachine):
 
     def der_log(self, x, out=None):
         x = _torch.tensor(x, dtype = _torch.float64)
-        parameters = list(self._module.parameters())
-        out = x.new_empty(
-                             [x.size(0), 2, sum(map(_torch.numel, parameters))],
-                             dtype=parameters[0].dtype
-        )
+        out = x.new_empty([x.size(0), 2, self._n_par], dtype=self._parameters[0].dtype)
         
         for i in range(x.size(0)):
-            dws_real = _torch.autograd.grad(self._module(x[[i]])[0, 0], parameters)
-            dws_imag = _torch.autograd.grad(self._module(x[[i]])[0, 1], parameters)
+            dws_real = _torch.autograd.grad(self._module(x[[i]])[0, 0], self._parameters)
+            dws_imag = _torch.autograd.grad(self._module(x[[i]])[0, 1], self._parameters)
             _torch.cat([dw.flatten() for dw in dws_real], out=out[i, 0, ...])
             _torch.cat([dw.flatten() for dw in dws_imag], out=out[i, 1, ...])
 
