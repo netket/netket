@@ -13,3 +13,5 @@ dependencies:
   - mpi4py
   - blas
   - mkl
+  - torch 
+  - torchvision

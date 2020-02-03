@@ -131,7 +131,7 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy scipy networkx pytest python-igraph jax jaxlib
+  - python -m pip install numpy scipy networkx pytest python-igraph jax jaxlib torch torchvision
   - python -m pip install -U pytest
   - python -m pip install pytest-xdist
   - python -m pytest --version
