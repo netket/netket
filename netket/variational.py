@@ -106,6 +106,9 @@ class Vmc(object):
                 if self._mynode == 0:
                     with open(output_prefix + ".log", "w") as outfile:
                         json.dump(self._json_out, outfile)
+            if k % save_params_every == 0 or k == n_iter - 1:
+                if self._mynode == 0:
+                    self.machine.save(output_prefix + ".wf")
 
     def iter(self, n_iter=None, step_size=1):
         """
