@@ -261,7 +261,10 @@ def test_batched_versions():
                 assert dr.size == npar
                 der_log_2[i, j, :] = dr
 
-        for v, log_val, der_log in (v1, log_val_1, der_log_1), (v2, log_val_2, der_log_2):
+        for v, log_val, der_log in (
+            (v1, log_val_1, der_log_1),
+            (v2, log_val_2, der_log_2),
+        ):
             log_val_batch = machine.log_val(v)
             assert log_val.shape == log_val_batch.shape
             assert np.allclose(log_val_batch, log_val)
@@ -269,7 +272,6 @@ def test_batched_versions():
             der_log_batch = machine.der_log(v)
             assert der_log.shape == der_log_batch.shape
             assert np.allclose(der_log_batch, der_log)
-
 
 
 def test_log_derivative():
@@ -413,6 +415,7 @@ def test_nvisible():
         assert machine.n_visible_physical == hip.size
         assert machine.n_visible == hi.size
 
+
 def test_dm_batched():
     for name, machine in dm_machines.items():
         print("Machine test: %s" % name)
@@ -428,23 +431,22 @@ def test_dm_batched():
         N_batches = 100
         states = np.zeros((N_batches, hi.size))
 
-
         # loop over different random states
         for i in range(100):
 
             # generate a random state
             rstate = np.zeros(hi.size)
             hi.random_vals(rstate, rg)
-            states[i,:] = rstate
+            states[i, :] = rstate
 
         log_val_batch = machine.log_val(states)
         der_log_batch = machine.der_log(states)
 
         for i in range(100):
 
-            val = machine.log_val(states[i,:])
-            der = machine.der_log(states[i,:])
+            val = machine.log_val(states[i, :])
+            der = machine.der_log(states[i, :])
 
             assert np.max(np.abs(val - log_val_batch[i])) == approx(0.0)
             same_derivatives(der, der_log_batch[i])
-             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+            # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
