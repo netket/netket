@@ -18,7 +18,7 @@ class Torch(AbstractMachine):
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
         self._parameters = list(self._module.parameters())
-
+        self.n_visible = hilbert.size
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
 
@@ -30,6 +30,19 @@ class Torch(AbstractMachine):
             .numpy()
             .astype(_np.complex128)
         )
+
+    def assign_beta(self, beta):
+        self._module.beta = beta
+        return
+
+    def save(self, filename):
+        _torch.save(self._module.state_dict(), filename)
+        return
+
+    def load(self, filename):
+        self._module.load_state_dict(_torch.load(filename))
+        self._module.eval()
+        return
 
     @parameters.setter
     def parameters(self, p):
@@ -56,7 +69,8 @@ class Torch(AbstractMachine):
         return self._n_par
 
     def log_val(self, x, out=None):
-
+        if len(x.shape) == 1:
+            x = x[_np.newaxis, :]
         with _torch.no_grad():
             t_out = self._module(_torch.from_numpy(x)).numpy().view(_np.complex128)
 
@@ -68,6 +82,8 @@ class Torch(AbstractMachine):
         return out
 
     def der_log(self, x, out=None):
+        if len(x.shape) == 1:
+            x = x[_np.newaxis, :]
         x = _torch.tensor(x, dtype = _torch.float64)
         out = x.new_empty([x.size(0), 2, self._n_par], dtype=self._parameters[0].dtype)
         
