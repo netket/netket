@@ -55,8 +55,8 @@ void AddRbmSpin(py::module subm) {
           for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpin`` machine:
@@ -101,7 +101,7 @@ void AddRbmSpinSymm(py::module subm) {
              (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
              specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("alpha") = 0,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
@@ -139,8 +139,8 @@ void AddRbmMultival(py::module subm) {
              local Hilbert spaces.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true);
 }
 
@@ -157,8 +157,8 @@ void AddRbmSpinPhase(py::module subm) {
           for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinPhase`` machine:
@@ -202,8 +202,8 @@ void AddRbmSpinReal(py::module subm) {
           for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinReal`` machine:
@@ -249,7 +249,8 @@ void AddFFNN(py::module subm) {
                  auto layers = py::cast<std::vector<AbstractLayer *>>(tuple);
                  return FFNN{std::move(hi), std::move(layers)};
                }),
-           py::keep_alive<1, 3>(), py::arg("hilbert"), py::arg("layers"),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
+           py::arg("layers"),
            R"EOF(
               Constructs a new ``FFNN`` machine:
 
@@ -289,7 +290,7 @@ void AddJastrow(py::module subm) {
            where :math:` W_{ij}` are the Jastrow parameters.
            )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"), R"EOF(
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
                  Constructs a new ``Jastrow`` machine:
 
                  Args:
@@ -323,7 +324,7 @@ void AddJastrowSymm(py::module subm) {
            where :math:` W_{ij}` are the Jastrow parameters respects the
            specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"), R"EOF(
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
                  Constructs a new ``JastrowSymm`` machine:
 
                  Args:
@@ -350,8 +351,8 @@ void AddJastrowSymm(py::module subm) {
 void AddMpsPeriodic(py::module subm) {
   py::class_<MPSPeriodic, AbstractMachine>(subm, "MPSPeriodic")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, int>(),
-           py::arg("hilbert"), py::arg("bond_dim"), py::arg("diag") = false,
-           py::arg("symperiod") = -1);
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("bond_dim"),
+           py::arg("diag") = false, py::arg("symperiod") = -1);
 }
 
 void AddLayerModule(py::module m) {
@@ -623,15 +624,14 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
-      .def(
-          "der_log_diff",
-          [](AbstractMachine &self, AbstractMachine::VisibleConstType v,
-             const std::vector<std::vector<int>> &tochange,
-             const std::vector<std::vector<double>> &newconfs) {
-            return py::cast(self.LogValDiff(v, tochange, newconfs));
-          },
-          py::arg("v"), py::arg("tochange"), py::arg("newconfs"),
-          R"EOF(
+      .def("der_log_diff",
+           [](AbstractMachine &self, AbstractMachine::VisibleConstType v,
+              const std::vector<std::vector<int>> &tochange,
+              const std::vector<std::vector<double>> &newconfs) {
+             return py::cast(self.LogValDiff(v, tochange, newconfs));
+           },
+           py::arg("v"), py::arg("tochange"), py::arg("newconfs"),
+           R"EOF(
                  Member function to obtain the differences in der_log of machine
                  given an input and a change to the input.
 
