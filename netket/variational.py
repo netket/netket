@@ -5,6 +5,7 @@ from ._C_netket.optimizer import SR as _SR
 import json
 import warnings
 import numpy as _np
+from tqdm import trange
 
 
 class Vmc(object):
@@ -94,21 +95,31 @@ class Vmc(object):
         self._json_out["Output"] = []
 
     def run(
-        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
+        self,
+        output_prefix,
+        n_iter,
+        step_size=1,
+        save_params_every=50,
+        write_every=50,
+        show_progress=True,
     ):
         self._init_json_log()
 
-        for k in range(n_iter):
-            self.advance(step_size)
+        with trange(n_iter, disable=not show_progress) as itr:
+            for k in itr:
+                self.advance(step_size)
 
-            self._add_to_json_log(k)
-            if k % write_every == 0 or k == n_iter - 1:
-                if self._mynode == 0:
-                    with open(output_prefix + ".log", "w") as outfile:
-                        json.dump(self._json_out, outfile)
-            if k % save_params_every == 0 or k == n_iter - 1:
-                if self._mynode == 0:
-                    self.machine.save(output_prefix + ".wf")
+                self._add_to_json_log(k)
+                if k % write_every == 0 or k == n_iter - 1:
+                    if self._mynode == 0:
+                        with open(output_prefix + ".log", "w") as outfile:
+                            json.dump(self._json_out, outfile)
+                if k % save_params_every == 0 or k == n_iter - 1:
+                    if self._mynode == 0:
+                        self.machine.save(output_prefix + ".wf")
+
+                # Update energy displayed in the progress bar
+                itr.set_postfix(Energy=(str(self._vmc._stats)))
 
     def iter(self, n_iter=None, step_size=1):
         """
