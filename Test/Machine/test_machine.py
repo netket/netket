@@ -444,4 +444,3 @@ def test_dm_batched():
              # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
 
         assert machine.n_visible == hi.size
-        assert machine.n_visible * 2 == hi.size
