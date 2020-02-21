@@ -591,8 +591,7 @@ void AddAbstractMachine(py::module m) {
                    x.data(), x.shape(0) * x.shape(1), x.shape(2)};
                py::array_t<Complex> result =
                    py::cast(self.LogVal(input, any{}));
-               result.resize({x.shape(0), x.shape(1),
-                              static_cast<pybind11::ssize_t>(self.Npar())});
+               result.resize({x.shape(0), x.shape(1)});
                return py::object(result);
              } else {
                throw InvalidInputError{"Invalid input dimension"};
