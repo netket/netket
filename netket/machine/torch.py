@@ -71,11 +71,14 @@ class Torch(AbstractMachine):
     def log_val(self, x, out=None):
         if len(x.shape) == 1:
             x = x[_np.newaxis, :]
+        
+        batch_shape = x.shape[:-1]
+
         with _torch.no_grad():
             t_out = self._module(_torch.from_numpy(x)).numpy().view(_np.complex128)
 
         if out is None:
-            return t_out.reshape(-1)
+            return t_out.reshape(batch_shape)
 
         _np.copyto(out, t_out.reshape(-1))
 
@@ -84,6 +87,9 @@ class Torch(AbstractMachine):
     def der_log(self, x, out=None):
         if len(x.shape) == 1:
             x = x[_np.newaxis, :]
+        batch_shape = x.shape[:-1]
+        x = x.reshape(-1, x.shape[-1])
+
         x = _torch.tensor(x, dtype = _torch.float64)
         out = x.new_empty([x.size(0), 2, self._n_par], dtype=self._parameters[0].dtype)
         
@@ -95,7 +101,8 @@ class Torch(AbstractMachine):
 
         out_complex = _np.zeros((out.size(0), out.size(2)), dtype=_np.complex128)
         out_complex = out[:, 0, :].numpy() + 1.0j * out[:, 1, :].numpy()
-        return out_complex
+
+        return out_complex.reshape(tuple(list(batch_shape) + list(out_complex.shape[-1:])))
 
     def vector_jacobian_prod(self, x, vec, out=None):
 
