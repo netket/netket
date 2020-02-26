@@ -91,9 +91,13 @@ class AbstractMachine(abc.ABC):
     def parameters(self, p):
         if p.shape != (self.n_par,):
             raise ValueError(
-                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
+                "p has wrong shape: {}; expected ({},)".format(
+                    p.shape, self.n_par)
             )
         i = 0
         for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
-            _np.copyto(x, p[i : i + x.size])
+            _np.copyto(x, p[i: i + x.size])
             i += x.size
+
+    def save(self, file):
+        _np.save(file, self.parameters, allow_pickle=False)
