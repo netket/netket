@@ -1,5 +1,9 @@
 name: netket_env
 
+channels:
+  - defaults
+  - pytorch 
+
 dependencies:
   - python=3.7
   - clang
