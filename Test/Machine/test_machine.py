@@ -145,7 +145,6 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
 
-
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
@@ -220,6 +219,9 @@ def test_save_load_parameters(tmpdir):
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
 
+import py
+tmpdir = py.path.local('./')
+test_save_load_parameters(tmpdir)
 
 def test_batched_versions():
     for name, machine in merge_dicts(machines, dm_machines).items():
