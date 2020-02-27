@@ -17,7 +17,7 @@ class Torch(AbstractMachine):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
-        self._parameters = list(self._module.parameters())
+        self._parameters = list(filter(lambda p: p.requires_grad, self._module.parameters()))
         self.n_visible = hilbert.size
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
