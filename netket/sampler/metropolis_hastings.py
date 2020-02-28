@@ -3,6 +3,7 @@ from .abstract_sampler import AbstractSampler
 
 from .._C_netket import sampler as c_sampler
 from .._C_netket.utils import random_engine, rand_uniform_real
+from ..stats import mean as _mean
 
 
 class PyMetropolisHastings(AbstractSampler):
@@ -112,6 +113,9 @@ class PyMetropolisHastings(AbstractSampler):
                 self._hilbert.random_vals(state, random_engine())
         self.machine.log_val(self._state, out=self._log_values)
 
+        self._accepted_samples = 0
+        self._total_samples = 0
+
     def _log_val_batched(self, v, out=None):
         return self.machine.log_val(v, out)
 
@@ -135,12 +139,22 @@ class PyMetropolisHastings(AbstractSampler):
             # Acceptance test
             accept = self._prob > self._rand_for_acceptance[sweep]
 
+            self._accepted_samples += accept.sum()
+
             # Update of the state
             self._log_values = _np.where(
                 accept, self._log_values_1, self._log_values)
             self._state = _np.where(
                 accept.reshape(-1, 1), self._state1, self._state)
+
+        self._total_samples += self._sweep_size * self.n_chains
+
         return self._state
+
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return _mean(self._accepted_samples) / _mean(self._total_samples)
 
 
 class MetropolisLocal(AbstractSampler):
@@ -236,6 +250,11 @@ class MetropolisLocal(AbstractSampler):
     def machine_func(self, func):
         self.sampler.machine_func = func
 
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
+
 
 class MetropolisLocalPt(AbstractSampler):
     """
@@ -280,6 +299,11 @@ class MetropolisLocalPt(AbstractSampler):
     @machine_func.setter
     def machine_func(self, func):
         self.sampler.machine_func = func
+
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
 
 
 class MetropolisExchange(AbstractSampler):
@@ -371,6 +395,11 @@ class MetropolisExchange(AbstractSampler):
     def machine_func(self, func):
         self.sampler.machine_func = func
 
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
+
 
 class MetropolisExchangePt(AbstractSampler):
     """
@@ -437,6 +466,11 @@ class MetropolisExchangePt(AbstractSampler):
     @machine_func.setter
     def machine_func(self, func):
         self.sampler.machine_func = func
+
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
 
 
 class MetropolisHamiltonian(AbstractSampler):
@@ -521,6 +555,11 @@ class MetropolisHamiltonian(AbstractSampler):
     def machine_func(self, func):
         self.sampler.machine_func = func
 
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
+
 
 class MetropolisHamiltonianPt(AbstractSampler):
     """
@@ -568,6 +607,11 @@ class MetropolisHamiltonianPt(AbstractSampler):
     @machine_func.setter
     def machine_func(self, func):
         self.sampler.machine_func = func
+
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
 
 
 class CustomSampler(AbstractSampler):
@@ -671,6 +715,11 @@ class CustomSampler(AbstractSampler):
     def machine_func(self, func):
         self.sampler.machine_func = func
 
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
+
 
 class CustomSamplerPt(AbstractSampler):
     """
@@ -724,3 +773,8 @@ class CustomSamplerPt(AbstractSampler):
     @machine_func.setter
     def machine_func(self, func):
         self.sampler.machine_func = func
+
+    @property
+    def acceptance(self):
+        """The measured acceptance probability."""
+        return self.sampler.acceptance
