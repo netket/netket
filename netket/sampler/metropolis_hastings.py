@@ -52,8 +52,7 @@ class PyMetropolisHastings(AbstractSampler):
 
         self._kernel = transition_kernel
 
-        self.machine_func = lambda x, out=None: _np.square(
-            _np.absolute(x), out)
+        self.machine_pow = 2.0
 
         super().__init__(machine, n_chains)
 
@@ -76,12 +75,12 @@ class PyMetropolisHastings(AbstractSampler):
         self._log_prob_corr = _np.zeros(n_chains)
 
     @property
-    def machine_func(self):
-        return self._machine_func
+    def machine_pow(self):
+        return self._machine_pow
 
-    @machine_func.setter
-    def machine_func(self, machine_fun):
-        self._machine_func = machine_fun
+    @machine_pow.setter
+    def machine_pow(self, m_power):
+        self._machine_pow = m_power
 
     @property
     def sweep_size(self):
@@ -93,7 +92,7 @@ class PyMetropolisHastings(AbstractSampler):
         if self._sweep_size < 0:
             raise ValueError("Expected a positive integer for sweep_size ")
         self._rand_for_acceptance = _np.zeros(
-            self._sweep_size * self.n_chains, dtype=float
+            (self._sweep_size, self.n_chains), dtype=float
         )
 
     @property
@@ -112,34 +111,25 @@ class PyMetropolisHastings(AbstractSampler):
                 self._hilbert.random_vals(state, random_engine())
         self.machine.log_val(self._state, out=self._log_values)
 
-    def _log_val_batched(self, v, out=None):
-        return self.machine.log_val(v, out)
-
     def __next__(self):
 
-        rand_uniform_real(self._rand_for_acceptance)
+        rand_uniform_real(self._rand_for_acceptance.reshape(-1))
 
         for sweep in range(self.sweep_size):
 
             # Propose a new state using the transition kernel
             self._kernel(self._state, self._state1, self._log_prob_corr)
 
-            self._log_val_batched(self._state1, out=self._log_values_1)
+            self.machine.log_val(self._state1, out=self._log_values_1)
 
-            # Acceptance probability
-            self._prob = self.machine_func(
-                _np.exp(self._log_values_1 -
-                        self._log_values + self._log_prob_corr)
-            )
-
-            # Acceptance test
-            accept = self._prob > self._rand_for_acceptance[sweep]
-
-            # Update of the state
-            self._log_values = _np.where(
-                accept, self._log_values_1, self._log_values)
-            self._state = _np.where(
-                accept.reshape(-1, 1), self._state1, self._state)
+            # Acceptance Kernel
+            c_sampler.mh_acceptance_kernel(self._state,
+                                           self._state1,
+                                           self._log_values,
+                                           self._log_values_1,
+                                           self._log_prob_corr,
+                                           self._rand_for_acceptance[sweep],
+                                           self._machine_pow)
         return self._state
 
 
@@ -229,12 +219,12 @@ class MetropolisLocal(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class MetropolisLocalPt(AbstractSampler):
@@ -274,12 +264,12 @@ class MetropolisLocalPt(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class MetropolisExchange(AbstractSampler):
@@ -364,12 +354,12 @@ class MetropolisExchange(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class MetropolisExchangePt(AbstractSampler):
@@ -431,12 +421,12 @@ class MetropolisExchangePt(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class MetropolisHamiltonian(AbstractSampler):
@@ -514,12 +504,12 @@ class MetropolisHamiltonian(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class MetropolisHamiltonianPt(AbstractSampler):
@@ -562,12 +552,12 @@ class MetropolisHamiltonianPt(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class CustomSampler(AbstractSampler):
@@ -664,12 +654,12 @@ class CustomSampler(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow
 
 
 class CustomSamplerPt(AbstractSampler):
@@ -718,9 +708,9 @@ class CustomSamplerPt(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_pow):
+        self.sampler.machine_pow = m_pow

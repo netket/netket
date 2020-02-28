@@ -15,7 +15,7 @@
 from .abstract_machine import AbstractMachine
 import numpy as _np
 from netket.utils import sum_log_cosh_complex
-
+from .._C_netket.machine import RbmSpinKernel
 __all__ = ["PyRbm"]
 
 
@@ -46,8 +46,10 @@ class PyRbm(AbstractMachine):
             raise ValueError("`alpha` should be non-negative")
         m = int(round(alpha * n))
         self._w = _np.empty([m, n], dtype=_np.complex128)
-        self._a = _np.empty(n, dtype=_np.complex128) if use_visible_bias else None
-        self._b = _np.empty(m, dtype=_np.complex128) if use_hidden_bias else None
+        self._a = _np.empty(
+            n, dtype=_np.complex128) if use_visible_bias else None
+        self._b = _np.empty(
+            m, dtype=_np.complex128) if use_hidden_bias else None
 
         self.n_hidden = m
         self.n_visible = n
@@ -59,6 +61,9 @@ class PyRbm(AbstractMachine):
             + (self._a.size if self._a is not None else 0)
             + (self._b.size if self._b is not None else 0)
         )
+
+        self._kernel = RbmSpinKernel()
+
         super().__init__(hilbert)
 
     @property
@@ -75,14 +80,16 @@ class PyRbm(AbstractMachine):
         if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
 
-        self._r = x.dot(self._w.T)
-        if self._b is not None:
-            self._r += self._b
+        self._kernel.log_val(x, out, self._w, self._a, self._b)
 
-        sum_log_cosh_complex(self._r, out)
-
-        if self._a is not None:
-            out += _np.dot(x, self._a)
+        # self._r = x.dot(self._w.T)
+        # if self._b is not None:
+        #     self._r += self._b
+        #
+        # sum_log_cosh_complex(self._r, out)
+        #
+        # if self._a is not None:
+        #     out += _np.dot(x, self._a)
 
         return out
 
@@ -95,7 +102,7 @@ class PyRbm(AbstractMachine):
 
         i = 0
         if self._a is not None:
-            out[:, i : i + x.shape[1]] = x
+            out[:, i: i + x.shape[1]] = x
             i += self.n_visible
 
         r = _np.dot(x, self._w.T)
@@ -104,10 +111,10 @@ class PyRbm(AbstractMachine):
         _np.tanh(r, out=r)
 
         if self._b is not None:
-            out[:, i : i + self.n_hidden] = r
+            out[:, i: i + self.n_hidden] = r
             i += self.n_hidden
 
-        t = out[:, i : i + self._w.size]
+        t = out[:, i: i + self._w.size]
         t.shape = (batch_size, self._w.shape[0], self._w.shape[1])
         _np.einsum("ij,il->ijl", r, x, out=t)
 

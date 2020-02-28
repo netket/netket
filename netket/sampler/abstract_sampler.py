@@ -27,11 +27,11 @@ class AbstractSampler(abc.ABC):
         pass
 
     @property
-    def machine_func(self):
-        return lambda x, out=None: _np.square(_np.absolute(x), out)
+    def machine_pow(self):
+        return 2.0
 
-    @machine_func.setter
-    def machine_func(self, func):
+    @machine_pow.setter
+    def machine_pow(self, m_power):
         raise NotImplementedError
 
     def samples(self, n_max, init_random=False):
@@ -47,7 +47,8 @@ class AbstractSampler(abc.ABC):
         self.reset(init_random)
 
         if samples is None:
-            samples = _np.zeros((n_samples, self.sample_shape[0], self.sample_shape[1]))
+            samples = _np.zeros(
+                (n_samples, self.sample_shape[0], self.sample_shape[1]))
 
         for k, sample in enumerate(self.samples(n_samples)):
             samples[k] = sample

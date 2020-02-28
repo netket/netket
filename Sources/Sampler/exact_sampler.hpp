@@ -80,8 +80,8 @@ class ExactSampler : public AbstractSampler {
     }
 
     for (int i = 0; i < dim_; ++i) {
-      probability_mass_[i] = NETKET_SAMPLER_APPLY_MACHINE_FUNC(
-          std::exp(all_log_psi_vals_[i] - logmax));
+      probability_mass_[i] =
+          std::exp(GetMachinePow() * (all_log_psi_vals_[i] - logmax).real());
     }
 
     dist_ = std::discrete_distribution<int>(probability_mass_.begin(),
@@ -121,8 +121,8 @@ class ExactSampler : public AbstractSampler {
 
   Index NChains() const noexcept override { return sample_size_; }
 
-  void SetMachineFunc(MachineFunction machine_func) override {
-    AbstractSampler::SetMachineFunc(machine_func);
+  void SetMachinePow(double machine_pow) override {
+    AbstractSampler::SetMachinePow(machine_pow);
     Reset(true);
   }
 };

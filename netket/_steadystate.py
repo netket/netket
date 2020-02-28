@@ -166,16 +166,18 @@ class SteadyState(object):
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size,
+             self._npar), dtype=_np.complex128
         )
 
         self._der_loc_vals = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size,
+             self._npar), dtype=_np.complex128
         )
 
-        # Set the machine_func of the sampler over the diagonal of the density matrix
+        # Set the machine_pow of the sampler over the diagonal of the density matrix
         # to be |\rho(x,x)|
-        sampler_obs.machine_func = lambda x, out: _np.abs(x, out)
+        sampler_obs.machine_pow = 1.0
 
     @property
     def n_samples(self):
@@ -220,7 +222,8 @@ class SteadyState(object):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(
+                    n_discard)
             )
         self._n_discard = (
             n_discard
@@ -235,7 +238,8 @@ class SteadyState(object):
 
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(
+                    n_discard)
             )
         self._n_discard_obs = (
             n_discard
@@ -380,7 +384,8 @@ class SteadyState(object):
         r = {"LdagL": self._stats} if include_energy else {}
 
         r.update(
-            {name: self._get_mc_obs_stats(obs)[1] for name, obs in observables.items()}
+            {name: self._get_mc_obs_stats(obs)[1]
+             for name, obs in observables.items()}
         )
         return r
 
