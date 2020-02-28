@@ -308,7 +308,6 @@ def test_log_derivative():
 
 
 def test_vector_jacobian():
-    return
     for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 

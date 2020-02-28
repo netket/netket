@@ -13,7 +13,6 @@ def _get_number_parameters(m):
 
 class Torch(AbstractMachine):
     def __init__(self, module, hilbert):
-
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
@@ -41,7 +40,6 @@ class Torch(AbstractMachine):
 
     def load(self, filename):
         self._module.load_state_dict(_torch.load(filename))
-        self._module.eval()
         return
 
     @parameters.setter
