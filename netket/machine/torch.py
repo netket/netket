@@ -7,16 +7,19 @@ import warnings
 def _get_number_parameters(m):
     r"""Returns total number of variational parameters in a torch.nn.Module."""
     return sum(
-        map(lambda p: p.numel(), filter(lambda p: p.requires_grad, m.parameters()))
+        map(lambda p: p.numel(), _get_differentiable_parameters(m))
     )
 
+def _get_differentiable_parameters(m):
+    r"""Returns total number of variational parameters in a torch.nn.Module."""
+    return filter(lambda p: p.requires_grad, m.parameters())
 
 class Torch(AbstractMachine):
     def __init__(self, module, hilbert):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
-        self._parameters = list(filter(lambda p: p.requires_grad, self._module.parameters()))
+        self._parameters = list(_get_differentiable_parameters(self._module))
         self.n_visible = hilbert.size
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
@@ -24,7 +27,7 @@ class Torch(AbstractMachine):
     @property
     def parameters(self):
         return (
-            _torch.cat(tuple(p.view(-1) for p in self._module.parameters()))
+            _torch.cat(tuple(p.view(-1) for p in _get_differentiable_parameters(self._module)))
             .detach()
             .numpy()
             .astype(_np.complex128)
@@ -56,7 +59,7 @@ class Torch(AbstractMachine):
                 )
             )
         i = 0
-        for x in map(lambda x: x.view(-1), self._module.parameters()):
+        for x in map(lambda x: x.view(-1), _get_differentiable_parameters(self._module)):
             x.data.copy_(torch_pars[i : i + len(x)].data)
             i += len(x)
 
