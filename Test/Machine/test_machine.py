@@ -219,10 +219,6 @@ def test_save_load_parameters(tmpdir):
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
 
-import py
-tmpdir = py.path.local('./')
-test_save_load_parameters(tmpdir)
-
 def test_batched_versions():
     for name, machine in merge_dicts(machines, dm_machines).items():
         # FIXME: The rank-3 log_val test fails for these two machines
