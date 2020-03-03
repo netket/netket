@@ -24,7 +24,7 @@ struct RbmSpinKernel {
 
   void LogVal(Eigen::Ref<const RowMatrix<double>> x,
               Eigen::Ref<Eigen::VectorXcd> out,
-              Eigen::Ref<const Eigen::MatrixXcd> W,
+              Eigen::Ref<const RowMatrix<Complex>> W,
               nonstd::optional<Eigen::Ref<const VectorXcd>> a,
               nonstd::optional<Eigen::Ref<const VectorXcd>> b) {
     CheckShape(__FUNCTION__, "out", out.size(), x.rows());
