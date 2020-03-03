@@ -280,7 +280,6 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_real.cc
     Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
-    Sources/Machine/py_abstract_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Operator/abstract_operator.cc
     Sources/Operator/pauli_strings.cc
