@@ -35,19 +35,6 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   using VisibleChangeInfo = std::pair<std::vector<int>, std::vector<double>>;
 
- private:
-  /**
-   * Doubles a visible configuration v so that it represents an element on the
-   * diagonal of a density matrix.
-   * @param v is a visible configuration
-   * @return the vertical concatentation of [v, v]
-   */
-  VisibleType DoubleVisibleConfig(const VisibleConstType v) const;
-
-  VisibleChangeInfo DoubleVisibleChangeInfo(const std::vector<int> &tochange,
-                                            const std::vector<double> &newconf,
-                                            int offset) const ;
-
  public:
   Complex LogValSingle(VisibleConstType vr, const any &lt) override;
 
