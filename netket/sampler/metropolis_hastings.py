@@ -119,22 +119,35 @@ class PyMetropolisHastings(AbstractSampler):
 
         rand_uniform_real(self._rand_for_acceptance.reshape(-1))
 
+        _log_val = self.machine.log_val
+        _acc_kernel = c_sampler.mh_acceptance_kernel
+        _state = self._state
+        _state1 = self._state1
+        _log_values = self._log_values
+        _log_values_1 = self._log_values_1
+        _log_prob_corr = self._log_prob_corr
+        _machine_pow = self._machine_pow
+        _accepted_samples = self._accepted_samples
+        _rand_for_acceptance = self._rand_for_acceptance
+        _t_kernel = self._kernel
+
         for sweep in range(self.sweep_size):
 
             # Propose a new state using the transition kernel
-            self._kernel(self._state, self._state1, self._log_prob_corr)
+            _t_kernel(_state, _state1, _log_prob_corr)
 
-            self.machine.log_val(self._state1, out=self._log_values_1)
+            _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
-            acc = c_sampler.mh_acceptance_kernel(self._state,
-                                                 self._state1,
-                                                 self._log_values,
-                                                 self._log_values_1,
-                                                 self._log_prob_corr,
-                                                 self._rand_for_acceptance[sweep],
-                                                 self._machine_pow)
-            self._accepted_samples += acc
+            acc = _acc_kernel(_state,
+                              _state1,
+                              _log_values,
+                              _log_values_1,
+                              _log_prob_corr,
+                              _rand_for_acceptance[sweep],
+                              _machine_pow)
+
+            _accepted_samples += acc
 
         self._total_samples += self.sweep_size * self.n_chains
 
