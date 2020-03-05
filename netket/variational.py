@@ -79,7 +79,6 @@ class Vmc(object):
         )
 
     def _add_to_json_log(self, step_count):
-
         stats = self.get_observable_stats()
         self._json_out["Output"].append({})
         self._json_out["Output"][-1] = {}
