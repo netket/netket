@@ -5,6 +5,9 @@ from .._C_netket import sampler as c_sampler
 from .._C_netket.utils import random_engine, rand_uniform_real
 from ..stats import mean as _mean
 
+from numba import jit, jitclass
+from numba import int64, float64
+
 
 class PyMetropolisHastings(AbstractSampler):
     """
@@ -92,9 +95,6 @@ class PyMetropolisHastings(AbstractSampler):
         self._sweep_size = sweep_size if sweep_size != None else self._n_visible
         if self._sweep_size < 0:
             raise ValueError("Expected a positive integer for sweep_size ")
-        self._rand_for_acceptance = _np.zeros(
-            (self._sweep_size, self.n_chains), dtype=float
-        )
 
     @property
     def machine(self):
@@ -115,12 +115,34 @@ class PyMetropolisHastings(AbstractSampler):
         self._accepted_samples = 0
         self._total_samples = 0
 
+    @staticmethod
+    @jit(nopython=True)
+    def acceptance_kernel(
+        state, state1, log_values, log_values_1, log_prob_corr, machine_pow
+    ):
+        accepted = 0
+
+        for i in range(state.shape[0]):
+            prob = _np.exp(
+                machine_pow * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
+            )
+
+            if prob > _np.random.uniform(0, 1):
+                log_values[i] = log_values_1[i]
+                state[i] = state1[i]
+                accepted += 1
+
+        return accepted
+
+    def transition_kernel(self, state, state1, log_prob_corr):
+        return self._kernel.call(state, state1, log_prob_corr)
+
     def __next__(self):
 
-        rand_uniform_real(self._rand_for_acceptance.reshape(-1))
+        # rand_uniform_real(self._rand_for_acceptance.reshape(-1))
 
         _log_val = self.machine.log_val
-        _acc_kernel = c_sampler.mh_acceptance_kernel
+        _acc_kernel = self.acceptance_kernel
         _state = self._state
         _state1 = self._state1
         _log_values = self._log_values
@@ -128,24 +150,24 @@ class PyMetropolisHastings(AbstractSampler):
         _log_prob_corr = self._log_prob_corr
         _machine_pow = self._machine_pow
         _accepted_samples = self._accepted_samples
-        _rand_for_acceptance = self._rand_for_acceptance
-        _t_kernel = self._kernel
+        _t_kernel = self._kernel.call
 
         for sweep in range(self.sweep_size):
 
             # Propose a new state using the transition kernel
-            _t_kernel(_state, _state1, _log_prob_corr)
+            _state1, _log_prob_corr = _t_kernel(_state, _state1, _log_prob_corr)
 
             _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
-            acc = _acc_kernel(_state,
-                              _state1,
-                              _log_values,
-                              _log_values_1,
-                              _log_prob_corr,
-                              _rand_for_acceptance[sweep],
-                              _machine_pow)
+            acc = _acc_kernel(
+                _state,
+                _state1,
+                _log_values,
+                _log_values_1,
+                _log_prob_corr,
+                _machine_pow,
+            )
 
             _accepted_samples += acc
 
@@ -157,6 +179,31 @@ class PyMetropolisHastings(AbstractSampler):
     def acceptance(self):
         """The measured acceptance probability."""
         return _mean(self._accepted_samples) / _mean(self._total_samples)
+
+
+@jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
+class _local_kernel:
+    def __init__(self, local_states, size):
+        self.local_states = _np.sort(_np.asarray(local_states, dtype=_np.float64))
+        self.size = size
+        self.n_states = self.local_states.size
+
+    def call(self, state, state_1, log_prob_corr):
+        state_1 = _np.copy(state)
+
+        for i in range(state.shape[0]):
+
+            si = _np.random.randint(self.size)
+
+            rs = _np.random.randint(self.n_states - 1)
+
+            state_1[i, si] = self.local_states[
+                rs + (self.local_states[rs] >= state[i, si])
+            ]
+
+        log_prob_corr[:] = 0.0
+
+        return state_1, log_prob_corr
 
 
 class MetropolisLocal(AbstractSampler):
@@ -231,7 +278,9 @@ class MetropolisLocal(AbstractSampler):
         else:
             self.sampler = PyMetropolisHastings(
                 machine,
-                c_sampler.LocalKernel(machine.hilbert),
+                _local_kernel(
+                    _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+                ),
                 n_chains,
                 sweep_size,
                 batch_size,
