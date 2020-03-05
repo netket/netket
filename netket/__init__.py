@@ -46,7 +46,8 @@ from . import (
     utils,
     variational,
     _vmc,
-    _steadystate
+    _steadystate,
+    _qdmr,
 )
 from ._C_netket import MPI
 
@@ -54,4 +55,4 @@ from ._C_netket import MPI
 from ._vmc import Vmc
 from ._qsr import Qsr
 from ._steadystate import SteadyState
-
+from ._qdmr import Qdmr
