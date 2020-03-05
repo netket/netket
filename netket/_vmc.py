@@ -1,11 +1,13 @@
+import json
 import sys
 
 import numpy as _np
+import tqdm
+from jax.tree_util import tree_map
 
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-
 from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
@@ -80,6 +82,41 @@ def make_optimizer_fn(arg, ma):
             "Expected netket.optimizer.Optimizer subclass, JAX optimizer, "
             + " or callable f(i, grad, p); got {}".format(arg)
         )
+
+
+class _JsonLog:
+    """
+    TODO
+    """
+
+    def __init__(
+        self, output_prefix, n_iter, obs=None, save_params_every=50, write_every=50
+    ):
+        self._json_out = {"Output": []}
+        self._prefix = output_prefix
+        self._write_every = write_every
+        self._save_params_every = save_params_every
+        self._n_iter = n_iter
+        self._obs = obs if obs else {}
+
+    def __call__(self, step, driver):
+        item = {"Iteration": step}
+        stats = driver.estimate(self._obs)
+        stats["Energy"] = driver.energy
+        for key, value in stats.items():
+            st = value.asdict()
+            st["Mean"] = st["Mean"].real
+            item[key] = st
+
+        self._json_out["Output"].append(item)
+
+        if step % self._write_every == 0 or step == self._n_iter - 1:
+            if _nk.MPI.rank() == 0:
+                with open(self._prefix + ".log", "w") as outfile:
+                    json.dump(self._json_out, outfile)
+        if step % self._save_params_every == 0 or step == self._n_iter - 1:
+            if _nk.MPI.rank() == 0:
+                driver._machine.save(self._prefix + ".wf")
 
 
 class Vmc(object):
@@ -254,6 +291,28 @@ class Vmc(object):
 
             self.step_count += 1
 
+    def run(
+        self,
+        n_iter,
+        output_prefix,
+        obs=None,
+        save_params_every=50,
+        write_every=50,
+        step_size=1,
+        show_progress=True,
+    ):
+        """
+        TODO
+        """
+        output = _JsonLog(output_prefix, n_iter, obs, save_params_every, write_every)
+
+        with tqdm.tqdm(
+            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
+        ) as itr:
+            for step in itr:
+                output(step, self)
+                itr.set_postfix(Energy=(str(self._stats)))
+
     def iter(self, n_steps, step=1):
         """
         Returns a generator which advances the VMC optimization, yielding
@@ -271,6 +330,33 @@ class Vmc(object):
             self.advance(step)
             yield self.step_count
 
+    @property
+    def energy(self):
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._stats
+
+    def estimate(self, observables):
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+
+        Args:
+            observables: A pytree of operators for which statistics should be computed.
+
+        Returns:
+            A pytree of the same structure as the input, containing MCMC statistics
+            for the corresponding operators as leaves.
+        """
+
+        def estimate(obs):
+            return self._get_mc_stats(obs)[1]
+
+        return tree_map(estimate, observables)
+
+    @deprecated()
     def add_observable(self, obs, name):
         """
         Add an observables to the set of observables that will be computed by default
@@ -278,6 +364,7 @@ class Vmc(object):
         """
         self._obs[name] = obs
 
+    @deprecated()
     def get_observable_stats(self, observables=None, include_energy=True):
         """
         Return MCMC statistics for the expectation value of observables in the
@@ -300,12 +387,10 @@ class Vmc(object):
         """
         if not observables:
             observables = self._obs
-        r = {"Energy": self._stats} if include_energy else {}
-
-        r.update(
-            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
-        )
-        return r
+        result = self.estimate(observables)
+        if include_energy:
+            result["Energy"] = self._stats
+        return result
 
     def reset(self):
         self.step_count = 0
