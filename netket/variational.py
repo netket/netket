@@ -6,6 +6,7 @@ import json
 import warnings
 import numpy as _np
 from tqdm import trange
+from jax.tree_util import tree_map
 
 
 class Vmc(object):
@@ -157,7 +158,7 @@ def estimate_expectations(
     obtained from `sampler`.
 
     Args:
-        ops: Sequence of linear operators
+        ops: pytree of linear operators
         sampler: A NetKet sampler
         n_samples: Number of MC samples used to estimate expectation values
         n_discard: Number of MC samples dropped from the start of the
@@ -183,16 +184,20 @@ def estimate_expectations(
 
     # Burnout phase
     sampler.generate_samples(n_discard)
-
     # Generate samples
     samples = sampler.generate_samples(n_samples)
 
-    local_values = [_local_values(op, psi, samples) for op in ops]
-    stats = [nst.statistics(lv) for lv in local_values]
-
     if compute_gradients:
         der_logs = psi.der_log(samples)
-        grad = [nst.covariance_sv(lv, der_logs) for lv in local_values]
-        return stats, grad
-    else:
-        return stats
+
+    def estimate(op):
+        lvs = _local_values(op, psi, samples)
+        stats = nst.statistics(lvs)
+
+        if compute_gradients:
+            grad = nst.covariance_sv(lvs, der_logs)
+            return stats, grad
+        else:
+            return stats
+
+    return tree_map(estimate, ops)
