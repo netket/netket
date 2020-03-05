@@ -325,7 +325,7 @@ class Qdmr(object):
         for i, x_prime in enumerate(x_primes):
             x_row = _np.tile(x_prime, [x_primes.shape[0], 1])
             log_val_rho[i] = self._machine.log_val(x_row, x_primes)
-            der_log_val_rho[i] = self._machine.der_log(x_row, x_primes).conjugate()
+            der_log_val_rho[i] = self._machine.der_log(x_row, x_primes)
 
         den = 0.0
         max_log_val = log_val_rho.real.max()
@@ -472,4 +472,72 @@ class Qdmr(object):
 
         nll /= float(len(samples))
 
-        return _np.mean(_np.atleast_1d(nll)) + log_norm
+        return _np.mean(_np.atleast_1d(nll)) + log_trace
+
+    def test_derivatives(self, epsilon=1e-5):
+        """
+        Perform one or several iteration steps of the Qdmr calculation. In each step,
+        the gradient will be estimated via negative and positive phase and subsequently,
+        the variational parameters will be updated according to the configured method.
+
+        Args:
+            n_steps (int): Number of steps to perform.
+        """
+
+        # Generate samples from the model
+        self._sampler.reset()
+
+        # Burnout phase
+        for _ in self._sampler.samples(self._n_discard):
+            pass
+
+        # Generate samples and store them
+        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+            self._samples[i] = sample
+
+        self._data_samples = self._t_samples
+        self._data_bases = self._bases
+
+        # Negative phase driven by the model
+        vec_ones = _np.ones(self._batch_size, dtype=_np.complex128) / float(
+            self._batch_size
+        )
+
+        for x, grad_x in zip(self._samples, self._grads):
+            self._diag_machine.vector_jacobian_prod(x, vec_ones, grad_x)
+
+        grad_neg = _mean(self._grads, axis=0)
+
+        # Positive phase driven by the data
+        for x, b_x, grad_x in zip(
+            self._data_samples, self._data_bases, self._data_grads
+        ):
+            self._compute_rotated_grad(x, b_x, grad_x)
+
+        grad_pos = _mean(self._data_grads, axis=0)
+
+        alg_der = 2.0 * (grad_neg - grad_pos)
+
+        for p in range(alg_der.shape[0]):
+
+            delta = _np.zeros(self._machine.n_par)
+            delta[p] = epsilon
+            self._machine.parameters += delta
+
+            nll_p = self.nll(
+                self._rotations,
+                self._data_samples,
+                self._data_bases,
+                self._machine.log_trace(),
+            )
+            self._machine.parameters -= 2 * delta
+            nll_m = self.nll(
+                self._rotations,
+                self._data_samples,
+                self._data_bases,
+                self._machine.log_trace(),
+            )
+            self._machine.parameters += delta
+            num_der = (nll_p - nll_m) / (2.0 * epsilon)
+
+            print(num_der.real, "  ", alg_der[p].real)
