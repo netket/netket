@@ -126,9 +126,10 @@ class CMakeBuild(build_ext):
                     log.info(_decode(output))
                 if not self.distribution.dry_run:
                     # Build step
-                    n_procs = "{}".format(multiprocessing.cpu_count()*2)
+                    n_procs = "{}".format(multiprocessing.cpu_count() * 2)
                     output = subprocess.check_output(
-                        ["cmake", "--build", ".", "--parallel", n_procs], stderr=subprocess.STDOUT
+                        ["cmake", "--build", ".", "--parallel", n_procs],
+                        stderr=subprocess.STDOUT,
                     )
                     if self.distribution.verbose:
                         log.info(_decode(output))
@@ -167,5 +168,12 @@ setup(
          neural networks and machine learning techniques.""",
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
-    install_requires=["numpy>=1.16", "cmake>=3.12", "scipy>=1.2.1", "mpi4py>=3.0.1", "tqdm>=4.42.1"],
+    install_requires=[
+        "numpy>=1.16",
+        "cmake>=3.12",
+        "scipy>=1.2.1",
+        "mpi4py>=3.0.1",
+        "tqdm>=4.42.1",
+        "conda>=0.48.0",
+    ],
 )

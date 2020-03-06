@@ -13,4 +13,4 @@ dependencies:
   - mpi4py
   - blas
   - mkl
-
+  - conda 
