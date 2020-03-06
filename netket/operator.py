@@ -1,8 +1,10 @@
 from ._C_netket.operator import *
+
 from ._C_netket.operator import (
     _local_values_kernel,
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
+    _rotated_grad_kernel,
 )
 from ._C_netket.machine import DensityMatrix
 
