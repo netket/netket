@@ -27,39 +27,32 @@
 #include "Utils/parallel_utils.hpp"
 #include "Utils/pybind_helpers.hpp"
 
-#include "local_kernel.hpp"
-
 namespace py = pybind11;
 
 namespace netket {
 
 void AddTransitionKernels(py::module &subm) {
-  py::class_<LocalKernel>(subm, "LocalKernel")
-      .def(py::init<const AbstractHilbert &>(), py::arg("hilbert"))
-      .def("__call__", &LocalKernel::operator(), py::arg("v"),
-           py::arg("v_prime"), py::arg("log_acceptance_correction"));
-
   py::class_<ExchangeKernel>(subm, "ExchangeKernel")
       .def(py::init<const AbstractHilbert &, Index>(), py::arg("hilbert"),
            py::arg("d_max"))
-      .def("__call__", &ExchangeKernel::operator(), py::arg("v"),
+      .def("apply", &ExchangeKernel::operator(), py::arg("v"),
            py::arg("v_prime"), py::arg("log_acceptance_correction"));
 
   py::class_<HamiltonianKernel>(subm, "HamiltonianKernel")
       .def(py::init<AbstractOperator &>(), py::arg("hamiltonian"))
-      .def("__call__", &HamiltonianKernel::operator(), py::arg("v"),
+      .def("apply", &HamiltonianKernel::operator(), py::arg("v"),
            py::arg("v_prime"), py::arg("log_acceptance_correction"));
 
   py::class_<HopKernel>(subm, "HopKernel")
       .def(py::init<const AbstractHilbert &, Index>(), py::arg("hilbert"),
            py::arg("d_max"))
-      .def("__call__", &HopKernel::operator(), py::arg("v"), py::arg("v_prime"),
+      .def("apply", &HopKernel::operator(), py::arg("v"), py::arg("v_prime"),
            py::arg("log_acceptance_correction"));
 
   py::class_<CustomLocalKernel>(subm, "CustomLocalKernel")
       .def(py::init<const LocalOperator &, const std::vector<double> &>(),
            py::arg("move_operators"), py::arg("move_weights"))
-      .def("__call__", &CustomLocalKernel::operator(), py::arg("v"),
+      .def("apply", &CustomLocalKernel::operator(), py::arg("v"),
            py::arg("v_prime"), py::arg("log_acceptance_correction"));
 }
 }  // namespace netket

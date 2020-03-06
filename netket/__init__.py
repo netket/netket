@@ -12,8 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['dynamics', 'exact', 'graph', 'hilbert', 'layer', 'machine', 'operator', 'optimizer',
-           'output', 'sampler', 'stats', 'supervised', 'unsupervised', 'utils', 'variational']
+__all__ = [
+    "dynamics",
+    "exact",
+    "graph",
+    "hilbert",
+    "layer",
+    "machine",
+    "operator",
+    "optimizer",
+    "output",
+    "random",
+    "sampler",
+    "stats",
+    "supervised",
+    "unsupervised",
+    "utils",
+    "variational",
+]
 
 from . import (
     _C_netket,
@@ -26,6 +42,7 @@ from . import (
     operator,
     optimizer,
     output,
+    random,
     sampler,
     stats,
     supervised,
@@ -33,7 +50,7 @@ from . import (
     utils,
     variational,
     _vmc,
-    _steadystate
+    _steadystate,
 )
 from ._C_netket import MPI
 

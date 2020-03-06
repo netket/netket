@@ -2,11 +2,12 @@ import numpy as _np
 from .abstract_sampler import AbstractSampler
 
 from .._C_netket import sampler as c_sampler
-from .._C_netket.utils import random_engine, rand_uniform_real
+from .._C_netket.utils import random_engine
 from ..stats import mean as _mean
 
 from numba import jit, jitclass
 from numba import int64, float64
+from netket import random as _random
 
 
 class PyMetropolisHastings(AbstractSampler):
@@ -127,19 +128,14 @@ class PyMetropolisHastings(AbstractSampler):
                 machine_pow * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
             )
 
-            if prob > _np.random.uniform(0, 1):
+            if prob > _random.uniform(0, 1):
                 log_values[i] = log_values_1[i]
                 state[i] = state1[i]
                 accepted += 1
 
         return accepted
 
-    def transition_kernel(self, state, state1, log_prob_corr):
-        return self._kernel.call(state, state1, log_prob_corr)
-
     def __next__(self):
-
-        # rand_uniform_real(self._rand_for_acceptance.reshape(-1))
 
         _log_val = self.machine.log_val
         _acc_kernel = self.acceptance_kernel
@@ -150,7 +146,7 @@ class PyMetropolisHastings(AbstractSampler):
         _log_prob_corr = self._log_prob_corr
         _machine_pow = self._machine_pow
         _accepted_samples = self._accepted_samples
-        _t_kernel = self._kernel.call
+        _t_kernel = self._kernel.apply
 
         for sweep in range(self.sweep_size):
 
@@ -188,14 +184,14 @@ class _local_kernel:
         self.size = size
         self.n_states = self.local_states.size
 
-    def call(self, state, state_1, log_prob_corr):
+    def apply(self, state, state_1, log_prob_corr):
         state_1 = _np.copy(state)
 
         for i in range(state.shape[0]):
 
-            si = _np.random.randint(self.size)
+            si = _random.randint(0, self.size)
 
-            rs = _np.random.randint(self.n_states - 1)
+            rs = _random.randint(0, self.n_states - 1)
 
             state_1[i, si] = self.local_states[
                 rs + (self.local_states[rs] >= state[i, si])
