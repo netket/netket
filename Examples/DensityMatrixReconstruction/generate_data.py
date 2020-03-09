@@ -23,6 +23,42 @@ def build_rotation(hi, basis):
     return localop
 
 
+#def generate(N, n_basis=20, n_shots=1000, seed=1234):
+#    g = gr.Hypercube(length=N, n_dim=1, pbc=False)
+#    hi = hs.Spin(g, s=0.5)
+#    ha = op.Ising(hilbert=hi, h=1)
+#    res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
+#
+#    psi = res.eigenvectors[0]
+#
+#    rotations = []
+#    training_samples = []
+#    training_bases = []
+#
+#    np.random.seed(seed)
+#
+#    for m in range(n_basis):
+#        basis = np.random.choice(
+#            #list("XYZ"), size=N, p=[1.0 / N, 1.0 / N, (N - 2.0) / N]
+#            list("XYZ"), size=N, p=[0.0, 0.0, 1.0]
+#        )
+#        rotation = build_rotation(hi, basis)
+#        psir = rotation.to_sparse().dot(psi)
+#
+#        rand_n = np.random.choice(
+#            hi.n_states, p=np.square(np.absolute(psir)), size=n_shots
+#        )
+#
+#        for rn in rand_n:
+#            training_samples.append(hi.number_to_state(rn))
+#        training_bases += [m] * n_shots
+#
+#        rotations.append(rotation)
+#    return hi, tuple(rotations), training_samples, training_bases, ha, psi
+
+
+
+
 def generate(N, n_basis=20, n_shots=1000, seed=1234):
     g = gr.Hypercube(length=N, n_dim=1, pbc=False)
     hi = hs.Spin(g, s=0.5)
@@ -30,18 +66,29 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
     res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
 
     psi = res.eigenvectors[0]
-
+    print(res.eigenvalues[0])
     rotations = []
     training_samples = []
     training_bases = []
 
     np.random.seed(seed)
-
+    
+    bases = []
+    basis = ['Z' for _ in range(N)]
+    bases.append(basis)
+    for j in range(N):
+        basis = ['Z' for _ in range(N)]
+        basis[j] = 'X'
+        bases.append(basis)
+    for j in range(N):
+        basis = ['Z' for _ in range(N)]
+        basis[j] = 'Y'
+        bases.append(basis)
+    n_basis = len(bases)
+    print(bases)
+    
     for m in range(n_basis):
-        basis = np.random.choice(
-            list("XYZ"), size=N, p=[1.0 / N, 1.0 / N, (N - 2.0) / N]
-        )
-
+        basis = bases[m]
         rotation = build_rotation(hi, basis)
         psir = rotation.to_sparse().dot(psi)
 
@@ -54,5 +101,8 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
         training_bases += [m] * n_shots
 
         rotations.append(rotation)
-
     return hi, tuple(rotations), training_samples, training_bases, ha, psi
+
+
+
+

@@ -132,6 +132,7 @@ class Qdmr(object):
         self._machine = machine
         self._diag_machine = machine.diagonal()
         self._sampler = sampler
+        self._sampler.machine_func = lambda x, out: _np.abs(x, out)
         self._sr = sr
         self._stats = None
 
