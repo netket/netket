@@ -224,7 +224,7 @@ def test_save_load_parameters(tmpdir):
 def test_batched_versions():
     for name, machine in merge_dicts(machines, dm_machines).items():
         # FIXME: The rank-3 log_val test fails for these two machines
-        if "PyRbm" in name or "Phase NDM" in name:
+        if "PyRbm" in name:
             continue
         print("Machine test: %s" % name)
         npar = machine.n_par
