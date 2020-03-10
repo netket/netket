@@ -16,8 +16,9 @@ from netket.stats import (
 )
 
 from netket.vmc_common import (info, make_optimizer_fn)
+from netket.abstract_vmc import AbstractVariationalMonteCarlo
 
-class Qsr(object):
+class Qsr(AbstractVariationalMonteCarlo):
     """
     Quantum State Reconstruction for pure states.
     This implements the algorithm introduced in
@@ -62,10 +63,11 @@ class Qsr(object):
                 the optimizer. If this parameter is not passed or None, SR is not used.
 
         """
+        super(Qsr, self).__init__()
+
         self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
-        self._stats = None
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)
@@ -84,10 +86,6 @@ class Qsr(object):
         self.n_discard = n_discard
 
         self.n_samples_data = n_samples_data
-
-        self._obs = {}
-
-        self.step_count = 0
 
         assert self._t_samples.ndim == 2
         for samp in self._t_samples:
@@ -258,62 +256,12 @@ class Qsr(object):
     #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
     #     #     vec /= vec.sum()
 
-    def iter(self, n_steps, step=1):
-        """
-        Returns a generator which advances the VMC optimization, yielding
-        after every `step_size` steps.
-
-        Args:
-            n_iter (int=None): The total number of steps to perform.
-            step_size (int=1): The number of internal steps the simulation
-                is advanced every turn.
-
-        Yields:
-            int: The current step.
-        """
-        for _ in range(0, n_steps, step):
-            self.advance(step)
-            yield self.step_count
-
-    def add_observable(self, obs, name):
-        """
-        Add an observables to the set of observables that will be computed by default
-        in get_obervable_stats.
-        """
-        self._obs[name] = obs
-
-    def get_observable_stats(self, observables=None):
-        """
-        Return MCMC statistics for the expectation value of observables in the
-        current state of the driver.
-
-        Args:
-            observables: A dictionary of the form {name: observable} or a list
-                of tuples (name, observable) for which statistics should be computed.
-                If observables is None or not passed, results for those observables
-                added to the driver by add_observables are computed.
-            include_energy: Whether to include the energy estimate (which is already
-                computed as part of the VMC step) in the result.
-
-        Returns:
-            A dictionary of the form {name: stats} mapping the observable names in
-            the input to corresponding Stats objects.
-
-            If `include_energy` is true, then the result will further contain the
-            energy statistics with key "Energy".
-        """
-        if not observables:
-            observables = self._obs
-        r = {}
-
-        r.update(
-            {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
-        )
-        return r
+    def estimate_stats(self, obs):
+        return self._get_mc_stats(obs)[1]
 
     def reset(self):
-        self.step_count = 0
         self._sampler.reset()
+        super().reset()
 
     def _get_mc_stats(self, op):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)

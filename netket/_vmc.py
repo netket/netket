@@ -1,8 +1,6 @@
 import sys
 
 import numpy as _np
-import tqdm
-from jax.tree_util import tree_map
 
 import netket as _nk
 from netket._core import deprecated
@@ -15,9 +13,9 @@ from netket.stats import (
 )
 
 from netket.vmc_common import (info, make_optimizer_fn)
+from netket.abstract_vmc import AbstractVariationalMonteCarlo
 
-
-class Vmc(object):
+class Vmc(AbstractVariationalMonteCarlo):
     """
     Energy minimization using Variational Monte Carlo (VMC).
     """
@@ -58,11 +56,12 @@ class Vmc(object):
             >>> vmc = nk.Vmc(ha, sa, op, 200)
 
         """
+        super(Vmc, self).__init__()
+
         self._ham = hamiltonian
         self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
-        self._stats = None
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
             optimizer, self._machine
@@ -74,10 +73,6 @@ class Vmc(object):
 
         self.n_samples = n_samples
         self.n_discard = n_discard
-
-        self._obs = {}
-
-        self.step_count = 0
 
     @property
     def n_samples(self):
@@ -189,45 +184,6 @@ class Vmc(object):
 
             self.step_count += 1
 
-    def run(
-        self,
-        n_iter,
-        output_prefix,
-        obs=None,
-        save_params_every=50,
-        write_every=50,
-        step_size=1,
-        show_progress=True,
-    ):
-        """
-        TODO
-        """
-        output = _JsonLog(output_prefix, n_iter, obs, save_params_every, write_every)
-
-        with tqdm.tqdm(
-            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
-        ) as itr:
-            for step in itr:
-                output(step, self)
-                itr.set_postfix(Energy=(str(self._stats)))
-
-    def iter(self, n_steps, step=1):
-        """
-        Returns a generator which advances the VMC optimization, yielding
-        after every `step_size` steps.
-
-        Args:
-            n_iter (int=None): The total number of steps to perform.
-            step_size (int=1): The number of internal steps the simulation
-                is advanced every turn.
-
-        Yields:
-            int: The current step.
-        """
-        for _ in range(0, n_steps, step):
-            self.advance(step)
-            yield self.step_count
-
     @property
     def energy(self):
         """
@@ -236,63 +192,12 @@ class Vmc(object):
         """
         return self._stats
 
-    def estimate(self, observables):
-        """
-        Return MCMC statistics for the expectation value of observables in the
-        current state of the driver.
-
-        Args:
-            observables: A pytree of operators for which statistics should be computed.
-
-        Returns:
-            A pytree of the same structure as the input, containing MCMC statistics
-            for the corresponding operators as leaves.
-        """
-
-        def estimate(obs):
-            return self._get_mc_stats(obs)[1]
-
-        return tree_map(estimate, observables)
-
-    @deprecated()
-    def add_observable(self, obs, name):
-        """
-        Add an observables to the set of observables that will be computed by default
-        in get_obervable_stats.
-        """
-        self._obs[name] = obs
-
-    @deprecated()
-    def get_observable_stats(self, observables=None, include_energy=True):
-        """
-        Return MCMC statistics for the expectation value of observables in the
-        current state of the driver.
-
-        Args:
-            observables: A dictionary of the form {name: observable} or a list
-                of tuples (name, observable) for which statistics should be computed.
-                If observables is None or not passed, results for those observables
-                added to the driver by add_observables are computed.
-            include_energy: Whether to include the energy estimate (which is already
-                computed as part of the VMC step) in the result.
-
-        Returns:
-            A dictionary of the form {name: stats} mapping the observable names in
-            the input to corresponding Stats objects.
-
-            If `include_energy` is true, then the result will further contain the
-            energy statistics with key "Energy".
-        """
-        if not observables:
-            observables = self._obs
-        result = self.estimate(observables)
-        if include_energy:
-            result["Energy"] = self._stats
-        return result
+    def estimate_stats(self, obs):
+        return self._get_mc_stats(obs)[1]
 
     def reset(self):
-        self.step_count = 0
         self._sampler.reset()
+        super().reset()
 
     def _get_mc_stats(self, op):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
