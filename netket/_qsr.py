@@ -15,8 +15,9 @@ from netket.stats import (
     mean as _mean,
 )
 
-from netket.vmc_common import (info, make_optimizer_fn)
+from netket.vmc_common import info, make_optimizer_fn
 from netket.abstract_vmc import AbstractVariationalMonteCarlo
+
 
 class Qsr(AbstractVariationalMonteCarlo):
     """

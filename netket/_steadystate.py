@@ -15,7 +15,7 @@ from netket.stats import (
     subtract_mean as _subtract_mean,
 )
 
-from netket.vmc_common import (info, make_optimizer_fn)
+from netket.vmc_common import info, make_optimizer_fn
 from netket.abstract_vmc import AbstractVariationalMonteCarlo
 
 
@@ -60,7 +60,9 @@ class SteadyState(AbstractVariationalMonteCarlo):
             n_discard_obs: n_discard for the observables (default: n_discard)
 
         """
-        super(SteadyState, self).__init__(minimized_quantity_name='LdagL')#'\u3008L\u2020L\u3009')
+        super(SteadyState, self).__init__(
+            minimized_quantity_name="LdagL"
+        )  #'\u3008L\u2020L\u3009')
 
         self._lind = lindblad
         self._machine = sampler.machine

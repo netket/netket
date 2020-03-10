@@ -7,13 +7,12 @@ from netket._core import deprecated
 from .operator import local_values as _local_values
 from netket.stats import (
     statistics as _statistics,
-    covariance_sv as _covariance_sv,
-    subtract_mean as _subtract_mean,
     mean as _mean,
 )
 
-from netket.vmc_common import (info, make_optimizer_fn)
+from netket.vmc_common import info, make_optimizer_fn
 from netket.abstract_vmc import AbstractVariationalMonteCarlo
+
 
 class Vmc(AbstractVariationalMonteCarlo):
     """
@@ -56,7 +55,7 @@ class Vmc(AbstractVariationalMonteCarlo):
             >>> vmc = nk.Vmc(ha, sa, op, 200)
 
         """
-        super(Vmc, self).__init__(minimized_quantity_name='Energy')
+        super(Vmc, self).__init__(minimized_quantity_name="Energy")
 
         self._ham = hamiltonian
         self._machine = sampler.machine
