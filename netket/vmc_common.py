@@ -72,17 +72,20 @@ def make_optimizer_fn(arg, ma):
 
 def tree_map(fun, tree):
 
-    if "_C_netket" in str(type(tree)):
+    if tree is None:
+        result = None
+
+    elif "_C_netket" in str(type(tree)):
         result = fun(tree)
 
     elif type(tree) == list:
         result = []
         for val in tree:
-            result.append(tree_map(val))
+            result.append(fun, tree_map(val))
 
     else:
         result = {}
         for key in tree:
-            result[key] = tree_map(tree[key])
+            result[key] = tree_map(fun, tree[key])
 
     return result

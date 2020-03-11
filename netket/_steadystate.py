@@ -60,7 +60,7 @@ class SteadyState(AbstractVariationalMonteCarlo):
             n_discard_obs: n_discard for the observables (default: n_discard)
 
         """
-        super(SteadyState, self).__init__()
+        super(SteadyState, self).__init__(minimized_quantity_name='LdagL')#'\u3008L\u2020L\u3009')
 
         self._lind = lindblad
         self._machine = sampler.machine
@@ -112,6 +112,14 @@ class SteadyState(AbstractVariationalMonteCarlo):
     @property
     def n_samples(self):
         return self._n_samples
+
+    @property
+    def ldagl(self):
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._stats
 
     @property
     def n_samples_obs(self):

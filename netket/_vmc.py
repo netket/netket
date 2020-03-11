@@ -56,7 +56,7 @@ class Vmc(AbstractVariationalMonteCarlo):
             >>> vmc = nk.Vmc(ha, sa, op, 200)
 
         """
-        super(Vmc, self).__init__()
+        super(Vmc, self).__init__(minimized_quantity_name='Energy')
 
         self._ham = hamiltonian
         self._machine = sampler.machine

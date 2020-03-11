@@ -12,10 +12,12 @@ from tqdm import tqdm
 class AbstractVariationalMonteCarlo(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo runners"""
 
-    def __init__(self):
+    def __init__(self, minimized_quantity_name=''):
         self._mynode = _nk.MPI.rank()
         self._obs    = {} # to deprecate
         self._stats  = None
+        self._stats_name = minimized_quantity_name
+        self.step_count = 0
 
     @abc.abstractmethod
     def advance(self, step_size):
@@ -23,6 +25,7 @@ class AbstractVariationalMonteCarlo(abc.ABC):
 
     @abc.abstractmethod
     def reset(self):
+        self.step_count = 0
         pass
 
     def run(
@@ -38,6 +41,9 @@ class AbstractVariationalMonteCarlo(abc.ABC):
         """
         TODO
         """
+        if obs is None:
+            obs = self._obs
+
         output = _JsonLog(output_prefix, n_iter, obs, save_params_every, write_every)
 
         with tqdm(
@@ -45,7 +51,8 @@ class AbstractVariationalMonteCarlo(abc.ABC):
         ) as itr:
             for step in itr:
                 output(step, self)
-                itr.set_postfix(Energy=(str(self._stats)))
+                if self._stats is not None:
+                    itr.set_postfix_str(self._stats_name + ' = ' + str(self._stats))
 
     def iter(self, n_steps, step=1):
         """
@@ -64,10 +71,6 @@ class AbstractVariationalMonteCarlo(abc.ABC):
             self.advance(step)
             yield self.step_count
 
-    @abc.abstractmethod
-    def reset(self):
-        self.step_count = 0
-        pass
 
     @abc.abstractmethod
     def info(self, depth=0):

@@ -19,7 +19,9 @@ class _JsonLog:
     def __call__(self, step, driver):
         item = {"Iteration": step}
         stats = driver.estimate(self._obs)
-        stats["Energy"] = driver.energy
+        if driver._stats is not None:
+            stats[driver._stats_name] = driver._stats
+
         for key, value in stats.items():
             st = value.asdict()
             st["Mean"] = st["Mean"].real
