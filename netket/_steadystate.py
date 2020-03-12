@@ -411,7 +411,7 @@ class SteadyState(object):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("Hamiltonian", self._ham),
+                ("Liouvillian", self._lind),
                 ("Machine", self._machine),
                 ("Optimizer", self._optimizer_desc),
                 ("SR solver", self._sr),

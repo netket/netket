@@ -304,15 +304,11 @@ set(NETKET_SOURCES
     Sources/Utils/random_utils.cc
     Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
-    Sources/Machine/DensityMatrices/py_abstract_density_matrix.hpp
     Sources/Machine/DensityMatrices/py_density_matrix.cc
     Sources/Operator/local_liouvillian.cc
     Sources/Operator/py_local_liouvillian.cc
-    Sources/Operator/py_local_liouvillian.hpp
     Sources/Graph/doubled_graph.cc
-    Sources/Graph/doubled_graph.hpp
-    Sources/Hilbert/doubled_hilbert.cc
-    Sources/Hilbert/doubled_hilbert.hpp)
+    Sources/Hilbert/doubled_hilbert.cc)
 
 add_library(netket MODULE ${NETKET_SOURCES})
 

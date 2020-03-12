@@ -55,14 +55,4 @@ void PyAbstractDensityMatrix<ADM>::DerLog(Eigen::Ref<const RowMatrix<double>> vr
                               vr, vc, out, cache);
 }
 
-/*
-template <class ADM>
-PyAbstractDensityMatrix::VectorType PyAbstractDensityMatrix::DerLogSingle(
-    VisibleConstType vr, VisibleConstType vc, const any& cache) {
-  Eigen::VectorXcd out(Npar());
-  DerLog(vr.transpose(), vc.transpose(),
-         Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
-  return out;
-}*/
-
 }  // namespace netket

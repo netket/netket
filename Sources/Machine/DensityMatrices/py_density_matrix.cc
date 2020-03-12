@@ -175,8 +175,7 @@ void AddAbstractDensityMatrix(py::module &subm) {
                     xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
                 py::array_t<Complex> result =
                     py::cast(self.AbstractMachine::LogVal(input, any{}));
-                result.resize({xr.shape(0), xr.shape(1),
-                               static_cast<pybind11::ssize_t>(self.Npar())});
+                result.resize({xr.shape(0), xr.shape(1)});
                 return py::object(result);
               } else {
                 throw InvalidInputError{"Invalid input dimensions"};
@@ -202,8 +201,7 @@ void AddAbstractDensityMatrix(py::module &subm) {
                   xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
               py::array_t<Complex> result =
                   py::cast(self.LogVal(input_r, input_c, any{}));
-              result.resize({xr.shape(0), xr.shape(1),
-                             static_cast<pybind11::ssize_t>(self.Npar())});
+              result.resize({xr.shape(0), xr.shape(1)});
               return py::object(result);
             }
             { throw InvalidInputError{"Invalid input dimension"}; }
