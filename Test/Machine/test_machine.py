@@ -453,7 +453,7 @@ def test_dm_batched():
 
 
 def test_to_array():
-    for name,machine in machines.items():
+    for name, machine in machines.items():
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -482,25 +482,29 @@ def test_to_array():
         for i in range(hi.n_states):
             state = hi.number_to_state(i)
             log_val = machine.log_val(state)
-            norm += np.abs(np.exp(log_val - logmax))**2
+            norm += np.abs(np.exp(log_val - logmax)) ** 2
 
-        #test random values
+        # test random values
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
             hi.random_vals(rstate, rg)
 
             number = hi.state_to_number(rstate)
-            assert np.exp(machine.log_val(rstate) - logmax) - all_psis[number] == approx(0.0)
+            assert np.exp(machine.log_val(rstate) - logmax) - all_psis[
+                number
+            ] == approx(0.0)
 
-        #test rescale
+        # test rescale
         all_psis_normalized = machine.to_array(normalize=True)
 
-        #test random values
+        # test random values
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
             hi.random_vals(rstate, rg)
 
             number = hi.state_to_number(rstate)
-            assert np.exp(machine.log_val(rstate) - logmax)/np.sqrt(norm) - all_psis_normalized[number] == approx(0.0)
+            assert np.exp(machine.log_val(rstate) - logmax) / np.sqrt(
+                norm
+            ) - all_psis_normalized[number] == approx(0.0)
