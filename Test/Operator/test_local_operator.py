@@ -84,6 +84,15 @@ def test_local_operator_transpose_conjugation():
         same_matrices(math_h, mat)
 
 
+from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
+
+from netket.operator.boson import (
+    create as bcreate,
+    destroy as bdestroy,
+    number as bnumber,
+)
+
+
 def test_simple_operators():
     L = 4
     g = nk.graph.Hypercube(L, 1)
@@ -101,36 +110,36 @@ def test_simple_operators():
         sy_hat = nk.operator.LocalOperator(hi, sy, [i])
         sz_hat = nk.operator.LocalOperator(hi, sz, [i])
 
-        assert (nk.operator.sigmax(hi, i).to_dense() == sx_hat.to_dense()).all()
-        assert (nk.operator.sigmay(hi, i).to_dense() == sy_hat.to_dense()).all()
-        assert (nk.operator.sigmaz(hi, i).to_dense() == sz_hat.to_dense()).all()
+        assert (sigmax(hi, i).to_dense() == sx_hat.to_dense()).all()
+        assert (sigmay(hi, i).to_dense() == sy_hat.to_dense()).all()
+        assert (sigmaz(hi, i).to_dense() == sz_hat.to_dense()).all()
 
     print("Testing Sigma_+/-...")
     for i in range(L):
         sm_hat = nk.operator.LocalOperator(hi, sm, [i])
         sp_hat = nk.operator.LocalOperator(hi, sp, [i])
 
-        assert (nk.operator.sigmam(hi, i).to_dense() == sm_hat.to_dense()).all()
-        assert (nk.operator.sigmap(hi, i).to_dense() == sp_hat.to_dense()).all()
+        assert (sigmam(hi, i).to_dense() == sm_hat.to_dense()).all()
+        assert (sigmap(hi, i).to_dense() == sp_hat.to_dense()).all()
 
     print("Testing Sigma_+/- composition...")
     hi = nk.hilbert.Spin(g, 2.0)
     for i in range(L):
-        sx = nk.operator.sigmax(hi, i)
-        sy = nk.operator.sigmay(hi, i)
+        sx = sigmax(hi, i)
+        sy = sigmay(hi, i)
 
         sigmam_hat = 0.5 * (sx + (-1j) * sy)
         sigmap_hat = 0.5 * (sx + (1j) * sy)
 
-        assert (nk.operator.sigmam(hi, i).to_dense() == sigmam_hat.to_dense()).all()
-        assert (nk.operator.sigmap(hi, i).to_dense() == sigmap_hat.to_dense()).all()
+        assert (sigmam(hi, i).to_dense() == sigmam_hat.to_dense()).all()
+        assert (sigmap(hi, i).to_dense() == sigmap_hat.to_dense()).all()
 
     print("Testing create/destroy composition...")
     hi = nk.hilbert.Boson(g, 3)
     for i in range(L):
-        a = nk.operator.destroy(hi, i)
-        ad = nk.operator.create(hi, i)
-        n = nk.operator.number(hi, i)
+        a = bdestroy(hi, i)
+        ad = bcreate(hi, i)
+        n = bnumber(hi, i)
 
         assert np.allclose(n.to_dense(), (ad * a).to_dense())
         assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()

@@ -4,8 +4,8 @@ import numpy as _np
 
 import netket as _nk
 from netket._core import deprecated
-from netket.operator import local_values as _local_values
-from netket.operator import _rotated_grad_kernel
+from .operator import local_values as _local_values
+from .operator import _rotated_grad_kernel
 from ._C_netket.utils import random_engine, rand_uniform_int
 
 from netket.stats import (
