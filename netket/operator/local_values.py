@@ -2,9 +2,10 @@ from .._C_netket.operator import (
     _local_values_kernel,
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
+    LocalLiouvillian
 )
 
-from .._C_netket.machine import DensityMatrix as _DensityMatrix
+from .._C_netket.machine import DensityMatrix 
 
 import numpy as _np
 
@@ -70,7 +71,7 @@ def local_values(op, machine, v, log_vals=None, out=None):
     """
 
     # True when this is the local_value of a densitymatrix times an operator (observable)
-    is_op_times_op = isinstance(machine, _DensityMatrix) and not isinstance(
+    is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
         op, LocalLiouvillian
     )
 
