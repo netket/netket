@@ -16,10 +16,10 @@ from netket.stats import (
 )
 
 from netket.vmc_common import info, make_optimizer_fn
-from netket.abstract_vmc import AbstractVariationalMonteCarlo
+from netket.abstract_driver import AbstractMCDriver
 
 
-class SteadyState(AbstractVariationalMonteCarlo):
+class SteadyState(AbstractMCDriver):
     """
     Variational steady-state search by minimization of the L2,2 norm of L\rho using
     Variational Monte Carlo (VMC).

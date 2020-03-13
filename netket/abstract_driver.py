@@ -9,7 +9,7 @@ from netket.vmc_json import _JsonLog
 
 from tqdm import tqdm
 
-class AbstractVariationalMonteCarlo(abc.ABC):
+class AbstractMCDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo runners"""
 
     def __init__(self, minimized_quantity_name=''):

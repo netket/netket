@@ -11,10 +11,10 @@ from netket.stats import (
 )
 
 from netket.vmc_common import info, make_optimizer_fn
-from netket.abstract_vmc import AbstractVariationalMonteCarlo
+from netket.abstract_driver import AbstractMCDriver
 
 
-class Vmc(AbstractVariationalMonteCarlo):
+class Vmc(AbstractMCDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
     """
