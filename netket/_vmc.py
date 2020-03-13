@@ -4,7 +4,7 @@ import numpy as _np
 
 import netket as _nk
 from netket._core import deprecated
-from netket.operator import local_values as _local_values
+from .operator import local_values as _local_values
 
 from netket.stats import (
     statistics as _statistics,

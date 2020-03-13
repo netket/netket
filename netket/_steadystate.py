@@ -6,8 +6,8 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from ._C_netket import MPI as _MPI
-from netket.operator import local_values as _local_values
-from netket.operator import der_local_values as _der_local_values
+from .operator import local_values as _local_values
+from .operator import der_local_values as _der_local_values
 from netket.stats import (
     statistics as _statistics,
     covariance_sv as _covariance_sv,
