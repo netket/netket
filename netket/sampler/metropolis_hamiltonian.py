@@ -18,6 +18,7 @@ class _hamiltonian_kernel:
         vprimes = hamconn(state)[0]
         self._choose(tuple(vprimes), state_1, log_prob_corr)
         vprimes = hamconn(state_1)[0]
+        # TODO avoid casting to tuple here using numba's List
         self._corr(tuple(vprimes), log_prob_corr)
 
     @staticmethod
