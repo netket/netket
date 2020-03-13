@@ -6,21 +6,27 @@ import netket as _nk
 from netket.vmc_common import tree_map
 from netket.vmc_json import _JsonLog
 
+from netket.vmc_common import info, make_optimizer_fn
 
 from tqdm import tqdm
 
 class AbstractMCDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo runners"""
 
-    def __init__(self, minimized_quantity_name=''):
+    def __init__(self, machine, optimizer, minimized_quantity_name=''):
         self._mynode = _nk.MPI.rank()
         self._obs    = {} # to deprecate
         self._stats  = None
         self._stats_name = minimized_quantity_name
         self.step_count = 0
 
+        self._machine = machine
+        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
+            optimizer, self._machine
+        )
+
     @abc.abstractmethod
-    def advance(self, step_size):
+    def gradient(self):
         pass
 
     @abc.abstractmethod
@@ -68,9 +74,12 @@ class AbstractMCDriver(abc.ABC):
             int: The current step.
         """
         for _ in range(0, n_steps, step):
-            self.advance(step)
-            yield self.step_count
+            for i in range(0, step):
+                dp = self.gradient()
+                if i is 0 :
+                    yield self.step_count
 
+                self.update_parameters(dp)
 
     @abc.abstractmethod
     def info(self, depth=0):
@@ -87,14 +96,6 @@ class AbstractMCDriver(abc.ABC):
         """
         pass
 
-    @deprecated()
-    def add_observable(self, obs, name):
-        """
-        Add an observables to the set of observables that will be computed by default
-        in get_obervable_stats.
-        """
-        self._obs[name] = obs
-
 
     def estimate(self, observables):
         """
@@ -109,6 +110,22 @@ class AbstractMCDriver(abc.ABC):
             for the corresponding operators as leaves.
         """
         return tree_map(self.estimate_stats, observables)
+
+    @deprecated()
+    def add_observable(self, obs, name):
+        """
+        Add an observables to the set of observables that will be computed by default
+        in get_obervable_stats.
+        """
+        self._obs[name] = obs
+
+
+    def update_parameters(self, dp):
+        self._machine.parameters = self._optimizer_step(
+            self.step_count, dp, self._machine.parameters
+        )
+        self.step_count += 1
+
 
     @deprecated()
     def get_observable_stats(self, observables=None, include_energy=True):

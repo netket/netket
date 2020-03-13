@@ -15,7 +15,7 @@ from netket.stats import (
     mean as _mean,
 )
 
-from netket.vmc_common import info, make_optimizer_fn
+from netket.vmc_common import info
 from netket.abstract_driver import AbstractMCDriver
 
 
@@ -64,19 +64,14 @@ class Qsr(AbstractMCDriver):
                 the optimizer. If this parameter is not passed or None, SR is not used.
 
         """
-        super(Qsr, self).__init__()
+        super(Qsr, self).__init__(sampler.machine, optimizer)
 
-        self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)
         self._bases = _np.asarray(bases)
-
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
-            optimizer, self._machine
-        )
 
         self._npar = self._machine.n_par
 
@@ -156,7 +151,7 @@ class Qsr(AbstractMCDriver):
             else self._n_samples_node * self._batch_size // 10
         )
 
-    def advance(self, n_steps=1):
+    def gradient(self):
         """
         Perform one or several iteration steps of the Qsr calculation. In each step,
         the gradient will be estimated via negative and positive phase and subsequently,
@@ -166,80 +161,74 @@ class Qsr(AbstractMCDriver):
             n_steps (int): Number of steps to perform.
         """
 
-        for _ in range(n_steps):
+        # Generate samples from the model
+        self._sampler.reset()
 
-            # Generate samples from the model
-            self._sampler.reset()
+        # Burnout phase
+        for _ in self._sampler.samples(self._n_discard):
+            pass
 
-            # Burnout phase
-            for _ in self._sampler.samples(self._n_discard):
-                pass
+        # Generate samples and store them
+        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+            self._samples[i] = sample
 
-            # Generate samples and store them
-            for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
-                self._samples[i] = sample
+        # Randomly select a batch of training data
+        rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
 
-            # Randomly select a batch of training data
-            rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
+        rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
 
-            rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
+        self._data_samples = self._t_samples[rand_ind]
+        self._data_bases = self._bases[rand_ind]
 
-            self._data_samples = self._t_samples[rand_ind]
-            self._data_bases = self._bases[rand_ind]
+        # Perform update
+        if self._sr:
+            # When using the SR (Natural gradient) we need to have the full jacobian
+            # Computes the jacobian
+            for i, sample in enumerate(self._samples):
+                self._der_logs[i] = self._machine.der_log(sample)
 
-            # Perform update
-            if self._sr:
-                # When using the SR (Natural gradient) we need to have the full jacobian
-                # Computes the jacobian
-                for i, sample in enumerate(self._samples):
-                    self._der_logs[i] = self._machine.der_log(sample)
+            grad_neg = _mean(
+                self._der_logs.reshape(-1, self._npar), axis=0
+            ).conjugate()
 
-                grad_neg = _mean(
-                    self._der_logs.reshape(-1, self._npar), axis=0
-                ).conjugate()
+            # Positive phase driven by the data
+            for x, b_x, grad_x in zip(
+                self._data_samples, self._data_bases, self._data_grads
+            ):
+                self._compute_rotated_grad(x, b_x, grad_x)
 
-                # Positive phase driven by the data
-                for x, b_x, grad_x in zip(
-                    self._data_samples, self._data_bases, self._data_grads
-                ):
-                    self._compute_rotated_grad(x, b_x, grad_x)
+            grad_pos = _mean(self._data_grads, axis=0)
 
-                grad_pos = _mean(self._data_grads, axis=0)
+            grad = 2.0 * (grad_neg - grad_pos)
 
-                grad = 2.0 * (grad_neg - grad_pos)
+            dp = _np.empty(self._npar, dtype=_np.complex128)
 
-                dp = _np.empty(self._npar, dtype=_np.complex128)
-
-                self._sr.compute_update(
-                    self._der_logs.reshape(-1, self._npar), grad, dp
-                )
-            else:
-                # Computing updates using the simple gradient
-
-                # Negative phase driven by the model
-                vec_ones = _np.ones(self._batch_size, dtype=_np.complex128) / float(
-                    self._batch_size
-                )
-                for x, grad_x in zip(self._samples, self._grads):
-                    self._machine.vector_jacobian_prod(x, vec_ones, grad_x)
-
-                grad_neg = _mean(self._grads, axis=0)
-
-                # Positive phase driven by the data
-                for x, b_x, grad_x in zip(
-                    self._data_samples, self._data_bases, self._data_grads
-                ):
-                    self._compute_rotated_grad(x, b_x, grad_x)
-
-                grad_pos = _mean(self._data_grads, axis=0)
-
-                dp = 2.0 * (grad_neg - grad_pos)
-
-            self._machine.parameters = self._optimizer_step(
-                self.step_count, dp, self._machine.parameters
+            self._sr.compute_update(
+                self._der_logs.reshape(-1, self._npar), grad, dp
             )
+        else:
+            # Computing updates using the simple gradient
 
-            self.step_count += 1
+            # Negative phase driven by the model
+            vec_ones = _np.ones(self._batch_size, dtype=_np.complex128) / float(
+                self._batch_size
+            )
+            for x, grad_x in zip(self._samples, self._grads):
+                self._machine.vector_jacobian_prod(x, vec_ones, grad_x)
+
+            grad_neg = _mean(self._grads, axis=0)
+
+            # Positive phase driven by the data
+            for x, b_x, grad_x in zip(
+                self._data_samples, self._data_bases, self._data_grads
+            ):
+                self._compute_rotated_grad(x, b_x, grad_x)
+
+            grad_pos = _mean(self._data_grads, axis=0)
+
+            dp = 2.0 * (grad_neg - grad_pos)
+
+        return dp
 
     def _compute_rotated_grad(self, x, basis, out):
         x_primes, mels = self._rotations[basis].get_conn(x)

@@ -15,7 +15,7 @@ from netket.stats import (
     subtract_mean as _subtract_mean,
 )
 
-from netket.vmc_common import info, make_optimizer_fn
+from netket.vmc_common import info
 from netket.abstract_driver import AbstractMCDriver
 
 
@@ -60,20 +60,17 @@ class SteadyState(AbstractMCDriver):
             n_discard_obs: n_discard for the observables (default: n_discard)
 
         """
-        super(SteadyState, self).__init__(
+        super(SteadyState, self).__init__
+            sampler.machine,
+            optimizer,
             minimized_quantity_name="LdagL"
         )  #'\u3008L\u2020L\u3009')
 
         self._lind = lindblad
-        self._machine = sampler.machine
         self._machine_obs = sampler_obs.machine
         self._sampler = sampler
         self._sampler_obs = sampler_obs
         self._sr = sr
-
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
-            optimizer, self._machine
-        )
 
         self._npar = self._machine.n_par
 
@@ -187,7 +184,7 @@ class SteadyState(AbstractMCDriver):
             else self._n_samples_obs_node * self._batch_size_obs // 10
         )
 
-    def advance(self, n_steps=1):
+    def gradient(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -195,65 +192,59 @@ class SteadyState(AbstractMCDriver):
             n_steps (int): Number of steps to perform.
         """
 
-        for _ in range(n_steps):
+        self._sampler.reset()
+        self._obs_samples_valid = False
 
-            self._sampler.reset()
-            self._obs_samples_valid = False
+        # Burnout phase
+        for _ in self._sampler.samples(self._n_discard):
+            pass
 
-            # Burnout phase
-            for _ in self._sampler.samples(self._n_discard):
-                pass
+        # Generate samples
+        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
 
-            # Generate samples
-            for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+            # Store the current sample
+            self._samples[i] = sample
 
-                # Store the current sample
-                self._samples[i] = sample
+            # Compute Log derivatives
+            self._der_logs[i] = self._machine.der_log(sample)
 
-                # Compute Log derivatives
-                self._der_logs[i] = self._machine.der_log(sample)
+            self._der_loc_vals[i] = _der_local_values(
+                self._lind, self._machine, sample, center_derivative=False
+            )
 
-                self._der_loc_vals[i] = _der_local_values(
-                    self._lind, self._machine, sample, center_derivative=False
-                )
+        # flatten MC chain dimensions:
+        self._der_logs = self._der_logs.reshape(-1, self._npar)
 
+        # Estimate energy
+        lloc, self._stats = self._get_mc_superop_stats(self._lind)
+
+        # Compute the (MPI-aware-)average of the derivatives
+        der_logs_ave = _mean(self._der_logs, axis=0)
+
+        # Center the log derivatives
+        self._der_logs -= der_logs_ave
+
+        # Compute the gradient
+        grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
+        grad -= self._stats.mean * der_logs_ave.conj()
+
+        # Perform update
+        if self._sr:
+            dp = _np.empty(self._npar, dtype=_np.complex128)
             # flatten MC chain dimensions:
-            self._der_logs = self._der_logs.reshape(-1, self._npar)
-
-            # Estimate energy
-            lloc, self._stats = self._get_mc_superop_stats(self._lind)
-
-            # Compute the (MPI-aware-)average of the derivatives
-            der_logs_ave = _mean(self._der_logs, axis=0)
-
-            # Center the log derivatives
-            self._der_logs -= der_logs_ave
-
-            # Compute the gradient
-            grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
-            grad -= self._stats.mean * der_logs_ave.conj()
-
-            # Perform update
-            if self._sr:
-                dp = _np.empty(self._npar, dtype=_np.complex128)
-                # flatten MC chain dimensions:
-                derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
-                self._sr.compute_update(derlogs, grad, dp)
-                derlogs = self._der_logs.reshape(
-                    self._n_samples_node, self._batch_size, self._npar
-                )
-            else:
-                dp = grad
-
-            self._der_logs = self._der_logs.reshape(
+            derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
+            self._sr.compute_update(derlogs, grad, dp)
+            derlogs = self._der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
             )
+        else:
+            dp = grad
 
-            self._machine.parameters = self._optimizer_step(
-                self.step_count, dp, self._machine.parameters
-            )
+        self._der_logs = self._der_logs.reshape(
+            self._n_samples_node, self._batch_size, self._npar
+        )
 
-            self.step_count += 1
+        return dp
 
     def sweep_diagonal(self):
         """
