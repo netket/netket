@@ -18,9 +18,9 @@ class _local_kernel:
         self.n_states = self.local_states.size
 
     def apply(self, state, state_1, log_prob_corr):
-        state_1 = _np.copy(state)
 
         for i in range(state.shape[0]):
+            state_1[i] = state[i]
 
             si = _random.randint(0, self.size)
 
@@ -31,8 +31,6 @@ class _local_kernel:
             ]
 
         log_prob_corr[:] = 0.0
-
-        return state_1, log_prob_corr
 
 
 class MetropolisLocal(AbstractSampler):

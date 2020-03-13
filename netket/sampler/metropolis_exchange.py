@@ -25,11 +25,11 @@ class _exchange_kernel:
             self.clusters[i] = _np.asarray(cluster)
 
     def apply(self, state, state_1, log_prob_corr):
-        state_1 = _np.copy(state)
 
         clusters_size = self.clusters.shape[0]
 
         for k in range(state.shape[0]):
+            state_1[k] = state[k]
 
             # pick a random cluster
             cl = _random.randint(0, clusters_size)
@@ -41,7 +41,6 @@ class _exchange_kernel:
             state_1[k, si], state_1[k, sj] = state[k, sj], state[k, si]
 
         log_prob_corr[:] = 0.0
-        return state_1, log_prob_corr
 
 
 class MetropolisExchange(AbstractSampler):
