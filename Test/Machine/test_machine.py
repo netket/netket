@@ -450,3 +450,57 @@ def test_dm_batched():
             assert np.max(np.abs(val - log_val_batch[i])) == approx(0.0)
             same_derivatives(der, der_log_batch[i])
             # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+
+
+def test_to_array():
+    for name,machine in machines.items():
+        print("Machine test: %s" % name)
+
+        npar = machine.n_par
+
+        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        if "Torch" in name:
+            randpars = randpars.real
+        machine.parameters = randpars
+
+        hi = machine.hilbert
+
+        rg = nk.utils.RandomEngine(seed=1234)
+
+        all_psis = machine.to_array(normalize=False)
+        # test shape
+        assert all_psis.shape[0] == hi.n_states
+        assert len(all_psis.shape) == 1
+
+        logmax = -10000000
+        norm = 0
+        for i in range(hi.n_states):
+            state = hi.number_to_state(i)
+            log_val = machine.log_val(state)
+            logmax = max(logmax, log_val.real)
+
+        for i in range(hi.n_states):
+            state = hi.number_to_state(i)
+            log_val = machine.log_val(state)
+            norm += np.abs(np.exp(log_val - logmax))**2
+
+        #test random values
+        for i in range(100):
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
+            hi.random_vals(rstate, rg)
+
+            number = hi.state_to_number(rstate)
+            assert np.exp(machine.log_val(rstate) - logmax) - all_psis[number] == approx(0.0)
+
+        #test rescale
+        all_psis_normalized = machine.to_array(normalize=True)
+
+        #test random values
+        for i in range(100):
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
+            hi.random_vals(rstate, rg)
+
+            number = hi.state_to_number(rstate)
+            assert np.exp(machine.log_val(rstate) - logmax)/np.sqrt(norm) - all_psis_normalized[number] == approx(0.0)
