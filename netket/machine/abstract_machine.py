@@ -65,7 +65,7 @@ class AbstractMachine(abc.ABC):
             """
         return NotImplementedError
 
-    def to_array(self, normalize=True, b_size=10000):
+    def to_array(self, normalize=True, b_size=512):
         if self.hilbert.is_indexable:
             all_psis = _np.zeros(self.hilbert.n_states, dtype=_np.complex128)
             batch_states = _np.zeros((b_size, self.hilbert.size))
