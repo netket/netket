@@ -39,8 +39,8 @@ def build_rotation(hi, basis):
 #
 #    for m in range(n_basis):
 #        basis = np.random.choice(
-#            #list("XYZ"), size=N, p=[1.0 / N, 1.0 / N, (N - 2.0) / N]
-#            list("XYZ"), size=N, p=[0.0, 0.0, 1.0]
+#            list("XYZ"), size=N, p=[1.0 / N, 1.0 / N, (N - 2.0) / N]
+#            #list("XYZ"), size=N, p=[0.0, 0.0, 1.0]
 #        )
 #        rotation = build_rotation(hi, basis)
 #        psir = rotation.to_sparse().dot(psi)
@@ -52,11 +52,9 @@ def build_rotation(hi, basis):
 #        for rn in rand_n:
 #            training_samples.append(hi.number_to_state(rn))
 #        training_bases += [m] * n_shots
-#
+#        print(basis)
 #        rotations.append(rotation)
 #    return hi, tuple(rotations), training_samples, training_bases, ha, psi
-
-
 
 
 def generate(N, n_basis=20, n_shots=1000, seed=1234):
@@ -85,7 +83,7 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
         basis[j] = 'Y'
         bases.append(basis)
     n_basis = len(bases)
-    print(bases)
+    #print(bases)
     
     for m in range(n_basis):
         basis = bases[m]
