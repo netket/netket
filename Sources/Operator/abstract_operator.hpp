@@ -27,8 +27,8 @@
 #include <nonstd/span.hpp>
 
 #include "Hilbert/hilbert.hpp"
-#include "Machine/abstract_machine.hpp"
 #include "Machine/DensityMatrices/abstract_density_matrix.hpp"
+#include "Machine/abstract_machine.hpp"
 #include "Utils/exceptions.hpp"
 #include "Utils/messages.hpp"
 #include "common_types.hpp"
@@ -92,16 +92,23 @@ class AbstractOperator {
       -> std::tuple<std::vector<RowMatrix<double>>,
                     std::vector<Eigen::VectorXcd>>;
 
+  auto GetConnFlattened(Eigen::Ref<const RowMatrix<double>> v,
+                        Eigen::Ref<Eigen::VectorXi> sections)
+      -> std::tuple<RowMatrix<double>, Eigen::VectorXcd>;
+
+  void GetNConn(Eigen::Ref<const RowMatrix<double>> v,
+                Eigen::Ref<Eigen::VectorXi> n_conn);
+
   /**
-   * Iterates over all states reachable from a given visible configuration v,
-   * i.e., all states v' such that O(v,v') is non-zero.
+   * Iterates over all states reachable from a given visible configuration
+   * v, i.e., all states v' such that O(v,v') is non-zero.
    * @param v The visible configuration.
    * @param callback Function void callback(ConnectorRef conn) which will be
    * called once for each reachable configuration v'. The parameter conn
-   * contains the value O(v,v') and the information to obtain v' from v. Note
-   * that the members conn.positions and conn.values are spans that can only be
-   * savely used inside the callback. They will become invalid once callback
-   * returns.
+   * contains the value O(v,v') and the information to obtain v' from v.
+   * Note that the members conn.positions and conn.values are spans that can
+   * only be savely used inside the callback. They will become invalid once
+   * callback returns.
    */
   virtual void ForEachConn(VectorConstRefType v, ConnCallback callback) const;
 

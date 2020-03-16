@@ -11,30 +11,36 @@ from numba import jit
 class _hamiltonian_kernel:
     def __init__(self, hamiltonian):
         self._hamiltonian = hamiltonian
-        self._get_conn = hamiltonian.get_conn
+        self._sections = _np.empty(1, dtype=_np.int32)
+        self._hamconn = self._hamiltonian.get_conn_flattened
+        self._n_conn = self._hamiltonian.get_n_conn
 
     def apply(self, state, state_1, log_prob_corr):
-        hamconn = self._get_conn
-        vprimes = hamconn(state)[0]
-        self._choose(tuple(vprimes), state_1, log_prob_corr)
-        vprimes = hamconn(state_1)[0]
-        # TODO avoid casting to tuple here using numba's List
-        self._corr(tuple(vprimes), log_prob_corr)
+
+        sections = self._sections
+        sections = _np.empty(state.shape[0], dtype=_np.int32)
+        vprimes = self._hamconn(state, sections)[0]
+
+        self._choose(vprimes, sections, state_1, log_prob_corr)
+
+        self._n_conn(state_1, sections)
+
+        self._corr(sections, log_prob_corr)
 
     @staticmethod
     @jit(nopython=True)
-    def _choose(states, out, w):
-        for i, state in enumerate(states):
-            n = state.shape[0]
-            n_rand = _random.randint(0, n)
-            out[i] = state[n_rand]
-            w[i] = _np.log(n)
+    def _choose(states, sections, out, w):
+        low_range = 0
+        for i, s in enumerate(sections):
+            n_rand = _random.randint(low_range, s)
+            out[i] = states[n_rand]
+            w[i] = _np.log(s - low_range)
+            low_range = s
 
     @staticmethod
     @jit(nopython=True)
-    def _corr(states, w):
-        for i, state in enumerate(states):
-            n = state.shape[0]
+    def _corr(n_conn, w):
+        for i, n in enumerate(n_conn):
             w[i] -= _np.log(n)
 
 
