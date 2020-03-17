@@ -65,6 +65,33 @@ class AbstractMachine(abc.ABC):
             """
         return NotImplementedError
 
+    def to_array(self, normalize=True, b_size=512):
+        if self.hilbert.is_indexable:
+            all_psis = _np.zeros(self.hilbert.n_states, dtype=_np.complex128)
+            batch_states = _np.zeros((b_size, self.hilbert.size))
+            it = self.hilbert.states().__iter__()
+            for i in range(self.hilbert.n_states // b_size + 1):
+                for j in range(b_size):
+                    try:
+                        batch_states[j] = next(it)
+                    except StopIteration:
+                        batch_states.resize(j, self.hilbert.size)
+                        break
+                all_psis[
+                    i * b_size : i * b_size + batch_states.shape[0]
+                ] = self.log_val(batch_states)
+
+                logmax = _np.max(all_psis.real)
+                all_psis = _np.exp(all_psis - logmax)
+
+            if normalize:
+                norm = _np.linalg.norm(all_psis)
+                all_psis = all_psis / norm
+
+            return all_psis
+        else:
+            return AssertionError
+
     @property
     @abc.abstractmethod
     def is_holomorphic(self):

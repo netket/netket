@@ -1,15 +1,16 @@
-from ._C_netket.operator import *
-
-from ._C_netket.operator import (
-    # _local_values_kernel,
+from .._C_netket.operator import (
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
-    _rotated_grad_kernel,
+    LocalLiouvillian
 )
-from ._C_netket.machine import DensityMatrix
+
+from .._C_netket.operator import _local_values_kernel as _c_local_values_kernel
 
 import numpy as _np
 from numba import jit
+
+
+from .._C_netket.machine import DensityMatrix
 
 
 def Ising(hilbert, h, J=1.0):
@@ -107,13 +108,7 @@ def _local_values_op_op_impl(op, machine, v, log_vals, out):
     log_val_primes = [machine.log_val(vprime, v)
                       for (vprime, v) in zip(vprimes, vold)]
 
-    _local_values_kernel(log_vals, log_val_primes, mels, out)
-
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k], v)
-    #
-    #     out[k] = (mels[k] * _np.exp(lvd - log_vals[k])).sum()
+    _c_local_values_kernel(log_vals, log_val_primes, mels, out)
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
@@ -233,11 +228,9 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
 
 # TODO: numba or cython to improve performance of this kernel
 def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, out):
-
     for k in range(len(mels)):
-
-        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))
-                     [:, _np.newaxis] * der_log_p[k]).sum(axis=0)
+        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis]
+                     * der_log_p[k]).sum(axis=0)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):

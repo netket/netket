@@ -22,38 +22,7 @@ using VisibleConstType = DiagonalDensityMatrix::VisibleConstType;
 using VisibleType = DiagonalDensityMatrix::VisibleType;
 using VisibleChangeInfo = DiagonalDensityMatrix::VisibleChangeInfo;
 
-VisibleType DiagonalDensityMatrix::DoubleVisibleConfig(const VisibleConstType v) const {
-  VisibleType v2(2 * v.rows());
-  v2.head(v.rows()) = v;
-  v2.tail(v.rows()) = v;
-
-  return v2;
-}
-
-VisibleChangeInfo DiagonalDensityMatrix::DoubleVisibleChangeInfo(const std::vector<int> &tochange,
-                                          const std::vector<double> &newconf,
-                                          int offset) const {
-  std::vector<int> tochange_doubled(tochange.size() * 2);
-  std::vector<double> newconf_doubled(newconf.size() * 2);
-
-  // Copy tochange on the first half of tochange_doubled and copy + offset on
-  // the other half.
-  std::copy(tochange.begin(), tochange.end(), tochange_doubled.begin());
-  std::copy(tochange.begin(), tochange.end(),
-            tochange_doubled.begin() + tochange.size());
-  for (auto tcd = tochange_doubled.begin() + tochange.size();
-       tcd != tochange_doubled.end(); ++tcd) {
-    *tcd += offset;
-  }
-
-  std::copy(newconf.begin(), newconf.end(), newconf_doubled.begin());
-  std::copy(newconf.begin(), newconf.end(),
-            newconf_doubled.begin() + newconf.size());
-
-  return VisibleChangeInfo(tochange_doubled, newconf_doubled);
-};
-
-Complex DiagonalDensityMatrix::LogValSingle(VisibleConstType v, const any &lt)  {
+Complex DiagonalDensityMatrix::LogValSingle(VisibleConstType v, const any &lt) {
   return density_matrix_.LogValSingle(v, v, lt);
 }
 
