@@ -1,7 +1,7 @@
 from ._C_netket.operator import *
 
 from ._C_netket.operator import (
-    _local_values_kernel,
+    # _local_values_kernel,
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
     _rotated_grad_kernel,
@@ -9,6 +9,7 @@ from ._C_netket.operator import (
 from ._C_netket.machine import DensityMatrix
 
 import numpy as _np
+from numba import jit
 
 
 def Ising(hilbert, h, J=1.0):
@@ -32,7 +33,8 @@ def Ising(hilbert, h, J=1.0):
         20
     """
     sigma_x = _np.array([[0, 1], [1, 0]])
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0],
+                       [0, 0, -1, 0], [0, 0, 0, 1]])
     return GraphOperator(hilbert, siteops=[-h * sigma_x], bondops=[J * sz_sz])
 
 
@@ -62,39 +64,48 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
     if sign_rule is None:
         sign_rule = hilbert.graph.is_bipartite
 
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0],
+                       [0, 0, -1, 0], [0, 0, 0, 1]])
+    exchange = _np.array(
+        [[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
     if sign_rule:
         if not hilbert.graph.is_bipartite:
-            raise ValueError("sign_rule=True specified for a non-bipartite lattice")
+            raise ValueError(
+                "sign_rule=True specified for a non-bipartite lattice")
         heis_term = sz_sz - exchange
     else:
         heis_term = sz_sz + exchange
     return GraphOperator(hilbert, bondops=[J * heis_term])
 
 
+@jit(nopython=True)
+def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
+    low_range = 0
+    for i, s in enumerate(sections):
+        out[i] = (mels[low_range:s] *
+                  _np.exp(log_val_primes[low_range:s] - log_vals[i])).sum()
+        low_range = s
+
+
 def _local_values_impl(op, machine, v, log_vals, out):
 
-    vprimes, mels = op.get_conn(v)
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
+    log_val_primes = machine.log_val(v_primes)
 
-    _local_values_kernel(log_vals, log_val_primes, mels, out)
-
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k])
-    #
-    #     out[k] = (mels[k] * _np.exp(lvd - log_vals[k])).sum()
+    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
 
 
 def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
     vprimes, mels = op.get_conn(v)
 
-    vold = [_np.tile(vi, (vprime.shape[0], 1)) for (vi, vprime) in zip(v, vprimes)]
+    vold = [_np.tile(vi, (vprime.shape[0], 1))
+            for (vi, vprime) in zip(v, vprimes)]
 
-    log_val_primes = [machine.log_val(vprime, v) for (vprime, v) in zip(vprimes, vold)]
+    log_val_primes = [machine.log_val(vprime, v)
+                      for (vprime, v) in zip(vprimes, vold)]
 
     _local_values_kernel(log_vals, log_val_primes, mels, out)
 
@@ -225,7 +236,8 @@ def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, ou
 
     for k in range(len(mels)):
 
-        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis] * der_log_p[k]).sum(axis=0)
+        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))
+                     [:, _np.newaxis] * der_log_p[k]).sum(axis=0)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
