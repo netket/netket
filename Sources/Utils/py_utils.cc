@@ -66,6 +66,17 @@ void AddUtilsModule(py::module m) {
            },
            py::arg("samples"));
 
+  subm.def("rand_uniform_int",
+           [](Index low, Index high, Eigen::Ref<Eigen::VectorXi> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_int_distribution<> dis(low, high);
+
+             for (Index i = 0; i < samples.size(); i++) {
+               samples(i) = dis(gen);
+             }
+           },
+           py::arg("low"), py::arg("high"), py::arg("samples"));
+
   subm.def("sum_log_cosh_complex",
            [](Eigen::Ref<const MatrixXcd> input, Eigen::Ref<VectorXcd> output) {
              SumLogCosh(input, output);
@@ -78,6 +89,6 @@ void AddUtilsModule(py::module m) {
       .def_static(
           "size", &MPIHelpers::MPISize,
           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
-}
+}  // namespace netket
 
 }  // namespace netket

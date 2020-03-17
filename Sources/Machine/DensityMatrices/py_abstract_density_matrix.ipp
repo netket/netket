@@ -12,26 +12,29 @@
 
 namespace netket {
 
-Complex PyAbstractDensityMatrix::LogValSingle(VisibleConstType v,
+template <class ADM>
+Complex PyAbstractDensityMatrix<ADM>::LogValSingle(VisibleConstType v,
                                               const any& cache) {
   Complex data;
   auto out = Eigen::Map<Eigen::VectorXcd>(&data, 1);
-  AbstractMachine::LogVal(v.transpose(), out, cache);
+  ADM::AbstractMachine::LogVal(v.transpose(), out, cache);
   return data;
 }
 
-void PyAbstractDensityMatrix::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
+template <class ADM>
+void PyAbstractDensityMatrix<ADM>::LogVal(Eigen::Ref<const RowMatrix<double>> vr,
                                      Eigen::Ref<const RowMatrix<double>> vc,
                                      Eigen::Ref<VectorXcd> out,
                                      const linb::any& cache) {
   PYBIND11_OVERLOAD_PURE_NAME(void,                  /* Return type */
-                              AbstractDensityMatrix, /* Parent class */
+                              ADM, /* Parent class */
                               "log_val", /* Name of the function in Python */
                               LogVal,    /* Name of function in C++ */
                               vr, vc, out, cache);
 }
 
-Complex PyAbstractDensityMatrix::LogValSingle(VisibleConstType vr,
+template <class ADM>
+Complex PyAbstractDensityMatrix<ADM>::LogValSingle(VisibleConstType vr,
                                               VisibleConstType vc,
                                               const any& cache) {
   Complex data;
@@ -40,23 +43,16 @@ Complex PyAbstractDensityMatrix::LogValSingle(VisibleConstType vr,
   return data;
 }
 
-void PyAbstractDensityMatrix::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
+template <class ADM>
+void PyAbstractDensityMatrix<ADM>::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
                                      Eigen::Ref<const RowMatrix<double>> vc,
                                      Eigen::Ref<RowMatrix<Complex>> out,
                                      const linb::any& cache) {
   PYBIND11_OVERLOAD_PURE_NAME(void,                  /* Return type */
-                              AbstractDensityMatrix, /* Parent class */
+                              ADM, /* Parent class */
                               "der_log", /* Name of the function in Python */
                               DerLog,    /* Name of function in C++ */
                               vr, vc, out, cache);
-}
-
-PyAbstractDensityMatrix::VectorType PyAbstractDensityMatrix::DerLogSingle(
-    VisibleConstType vr, VisibleConstType vc, const any& cache) {
-  Eigen::VectorXcd out(Npar());
-  DerLog(vr.transpose(), vc.transpose(),
-         Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
-  return out;
 }
 
 }  // namespace netket

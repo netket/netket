@@ -1,74 +1,13 @@
-from ._C_netket.operator import *
-from ._C_netket.operator import (
+from .._C_netket.operator import (
     _local_values_kernel,
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
+    LocalLiouvillian
 )
-from ._C_netket.machine import DensityMatrix
+
+from .._C_netket.machine import DensityMatrix 
 
 import numpy as _np
-
-
-def Ising(hilbert, h, J=1.0):
-    """
-    Constructs a new ``Ising`` given a hilbert space, a transverse field,
-    and (if specified) a coupling constant.
-
-    Args:
-        hilbert: Hilbert space the operator acts on.
-        h: The strength of the transverse field.
-        J: The strength of the coupling. Default is 1.0.
-
-    Examples:
-        Constructs an ``Ising`` operator for a 1D system.
-
-        >>> import netket as nk
-        >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-        >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-        >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
-        >>> print(op.hilbert.size)
-        20
-    """
-    sigma_x = _np.array([[0, 1], [1, 0]])
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    return GraphOperator(hilbert, siteops=[-h * sigma_x], bondops=[J * sz_sz])
-
-
-def Heisenberg(hilbert, J=1, sign_rule=None):
-    """
-    Constructs a new ``Heisenberg`` given a hilbert space.
-
-    Args:
-        hilbert: Hilbert space the operator acts on.
-        J: The strength of the coupling. Default is 1.
-        sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
-                   lattice, this corresponds to a basis change flipping the Sz direction
-                   at every odd site of the lattice. For non-bipartite lattices, the
-                   sign rule cannot be applied. Defaults to True if the lattice is
-                   bipartite, False otherwise.
-
-    Examples:
-     Constructs a ``Heisenberg`` operator for a 1D system.
-
-        >>> import netket as nk
-        >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-        >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
-        >>> op = nk.operator.Heisenberg(hilbert=hi)
-        >>> print(op.hilbert.size)
-        20
-    """
-    if sign_rule is None:
-        sign_rule = hilbert.graph.is_bipartite
-
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
-    if sign_rule:
-        if not hilbert.graph.is_bipartite:
-            raise ValueError("sign_rule=True specified for a non-bipartite lattice")
-        heis_term = sz_sz - exchange
-    else:
-        heis_term = sz_sz + exchange
-    return GraphOperator(hilbert, bondops=[J * heis_term])
 
 
 def _local_values_impl(op, machine, v, log_vals, out):
@@ -223,7 +162,10 @@ def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, ou
 
     for k in range(len(mels)):
 
-        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis] * der_log_p[k]).sum(axis=0)
+        out[k, :] = (
+            (mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis]
+            * der_log_p[k]
+        ).sum(axis=0)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):

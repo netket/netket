@@ -553,7 +553,7 @@ void AddLayerModule(py::module m) {
 }
 
 void AddAbstractMachine(py::module m) {
-  py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
+  py::class_<AbstractMachine, PyAbstractMachine<>>(m, "Machine")
       .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
            py::arg{"hilbert"})
       .def_property_readonly(

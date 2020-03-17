@@ -17,6 +17,7 @@
 
 #include "Utils/messages.hpp"
 
+#include "Machine/py_machine.hpp"
 #include "abstract_density_matrix.hpp"
 #include "diagonal_density_matrix.hpp"
 #include "ndm_spin_phase.hpp"
@@ -94,8 +95,11 @@ void AddDiagonalDensityMatrix(py::module &subm) {
 }
 
 void AddAbstractDensityMatrix(py::module &subm) {
-  py::class_<AbstractDensityMatrix, AbstractMachine, PyAbstractDensityMatrix>(
-      subm, "DensityMatrix")
+  py::class_<AbstractDensityMatrix, AbstractMachine,
+             PyAbstractDensityMatrix<AbstractDensityMatrix>>(subm,
+                                                             "DensityMatrix")
+      .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
+           py::arg{"hilbert"})
       .def_property_readonly(
           "hilbert_physical", &AbstractDensityMatrix::GetHilbertPhysical,
           R"EOF(netket.hilbert.Hilbert: The physical hilbert space object of the density matrix.)EOF")
@@ -108,7 +112,8 @@ void AddAbstractDensityMatrix(py::module &subm) {
             the case of Restricted Boltzmann Machines.)EOF")
       .def(
           "to_matrix",
-          [](AbstractDensityMatrix &self, bool normalize) -> AbstractDensityMatrix::MatrixType {
+          [](AbstractDensityMatrix &self,
+             bool normalize) -> AbstractDensityMatrix::MatrixType {
             const auto &hind = self.GetHilbertPhysical().GetIndex();
             AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
@@ -133,7 +138,8 @@ void AddAbstractDensityMatrix(py::module &subm) {
               vals /= vals.trace();
             }
             return vals;
-          },py::arg("normalize") = true,
+          },
+          py::arg("normalize") = true,
           R"EOF(
                 Returns a numpy matrix representation of the machine.
                 The returned matrix has trace normalized to 1 if `normalize=True`
@@ -169,8 +175,7 @@ void AddAbstractDensityMatrix(py::module &subm) {
                     xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
                 py::array_t<Complex> result =
                     py::cast(self.AbstractMachine::LogVal(input, any{}));
-                result.resize({xr.shape(0), xr.shape(1),
-                               static_cast<pybind11::ssize_t>(self.Npar())});
+                result.resize({xr.shape(0), xr.shape(1)});
                 return py::object(result);
               } else {
                 throw InvalidInputError{"Invalid input dimensions"};
@@ -196,8 +201,7 @@ void AddAbstractDensityMatrix(py::module &subm) {
                   xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
               py::array_t<Complex> result =
                   py::cast(self.LogVal(input_r, input_c, any{}));
-              result.resize({xr.shape(0), xr.shape(1),
-                             static_cast<pybind11::ssize_t>(self.Npar())});
+              result.resize({xr.shape(0), xr.shape(1)});
               return py::object(result);
             }
             { throw InvalidInputError{"Invalid input dimension"}; }

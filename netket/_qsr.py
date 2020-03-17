@@ -5,6 +5,8 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
+from .operator import _rotated_grad_kernel
+from ._C_netket.utils import random_engine, rand_uniform_int
 
 from netket.stats import (
     statistics as _statistics,
@@ -82,25 +84,43 @@ def make_optimizer_fn(arg, ma):
         )
 
 
-class Vmc(object):
+class Qsr(object):
     """
-    Energy minimization using Variational Monte Carlo (VMC).
+    Quantum State Reconstruction for pure states.
+    This implements the algorithm introduced in
+    Torlai,et al. Nature Phys 14, 447–450 (2018).
     """
 
     def __init__(
-        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None
+        self,
+        sampler,
+        optimizer,
+        samples,
+        rotations,
+        bases,
+        n_samples,
+        n_samples_data,
+        n_discard=None,
+        sr=None,
     ):
         """
         Initializes the driver class.
 
         Args:
-            hamiltonian: The Hamiltonian of the system.
             sampler: The Monte Carlo sampler.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient. This parameter supports three different kinds of inputs,
                 which are described in the docs of `make_optimizer_fn`.
-            n_samples: Number of Markov Chain Monte Carlo sweeps to be
-                performed at each step of the optimization.
+            samples: An array of training samples from which the wave function is to be reconstructed.
+                Shape is (n_training_samples,hilbert.size).
+            rotations: A list of `netket.Operator` defining the unitary rotations defining the basis in which
+                the samples are given.
+            bases: An array of integers of shape (n_training_samples) containing the index of the corresponding rotation.
+                If bases[i]=k, for example, then the sample in samples[i] is measured in the basis defined by rotations[k].
+            n_samples (int): Number of sampling sweeps to be
+                performed at each step of the optimization when sampling from the model wave-function.
+            n_samples_data (int): Number of sampling steps to be
+                performed at each step of the optimization when sampling from the given data.
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
                 Defaults to 10% of the number of samples allocated to each MPI node.
@@ -108,26 +128,15 @@ class Vmc(object):
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
 
-        Example:
-            Optimizing a 1D wavefunction with Variational Monte Carlo.
-
-            >>> import netket as nk
-            >>> SEED = 3141592
-            >>> g = nk.graph.Hypercube(length=8, n_dim=1)
-            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-            >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-            >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
-            >>> ha = nk.operator.Ising(hi, h=1.0)
-            >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-            >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> vmc = nk.Vmc(ha, sa, op, 200)
-
         """
-        self._ham = hamiltonian
         self._machine = sampler.machine
         self._sampler = sampler
         self._sr = sr
         self._stats = None
+
+        self._rotations = rotations
+        self._t_samples = _np.asarray(samples)
+        self._bases = _np.asarray(bases)
 
         self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
             optimizer, self._machine
@@ -136,13 +145,25 @@ class Vmc(object):
         self._npar = self._machine.n_par
 
         self._batch_size = sampler.sample_shape[0]
+        self._hilbert = self._machine.hilbert
 
         self.n_samples = n_samples
         self.n_discard = n_discard
 
+        self.n_samples_data = n_samples_data
+
         self._obs = {}
 
         self.step_count = 0
+
+        assert self._t_samples.ndim == 2
+        for samp in self._t_samples:
+            assert samp.shape[0] == self._hilbert.size
+
+        self._n_training_samples = self._t_samples.shape[0]
+
+        assert self._bases.ndim == 1
+        assert self._bases.size == self._n_training_samples
 
     @property
     def n_samples(self):
@@ -159,7 +180,7 @@ class Vmc(object):
         self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
 
         self._samples = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._ham.hilbert.size)
+            (self._n_samples_node, self._batch_size, self._hilbert.size)
         )
 
         self._der_logs = _np.ndarray(
@@ -168,6 +189,23 @@ class Vmc(object):
 
         self._grads = _np.empty(
             (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
+        )
+
+    @property
+    def n_samples_data(self):
+        return self._n_samples_data
+
+    @n_samples_data.setter
+    def n_samples_data(self, n_samples_data):
+        if n_samples_data <= 0:
+            raise ValueError(
+                "Invalid number of samples: n_samples_data={}".format(n_samples)
+            )
+        self._n_samples_data = n_samples_data
+        self._n_samples_data_node = int(_np.ceil(n_samples_data / _nk.MPI.size()))
+
+        self._data_grads = _np.empty(
+            (self._n_samples_data_node, self._machine.n_par), dtype=_np.complex128
         )
 
     @property
@@ -188,7 +226,9 @@ class Vmc(object):
 
     def advance(self, n_steps=1):
         """
-        Performs a number of VMC optimization steps.
+        Perform one or several iteration steps of the Qsr calculation. In each step,
+        the gradient will be estimated via negative and positive phase and subsequently,
+        the variational parameters will be updated according to the configured method.
 
         Args:
             n_steps (int): Number of steps to perform.
@@ -196,6 +236,7 @@ class Vmc(object):
 
         for _ in range(n_steps):
 
+            # Generate samples from the model
             self._sampler.reset()
 
             # Burnout phase
@@ -206,8 +247,13 @@ class Vmc(object):
             for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
                 self._samples[i] = sample
 
-            # Compute the local energy estimator and average Energy
-            eloc, self._stats = self._get_mc_stats(self._ham)
+            # Randomly select a batch of training data
+            rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
+
+            rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
+
+            self._data_samples = self._t_samples[rand_ind]
+            self._data_bases = self._bases[rand_ind]
 
             # Perform update
             if self._sr:
@@ -216,43 +262,68 @@ class Vmc(object):
                 for i, sample in enumerate(self._samples):
                     self._der_logs[i] = self._machine.der_log(sample)
 
-                # flatten MC chain dimensions:
-                self._der_logs = self._der_logs.reshape(-1, self._npar)
+                grad_neg = _mean(
+                    self._der_logs.reshape(-1, self._npar), axis=0
+                ).conjugate()
 
-                # Center the local energy
-                eloc -= _mean(eloc)
+                # Positive phase driven by the data
+                for x, b_x, grad_x in zip(
+                    self._data_samples, self._data_bases, self._data_grads
+                ):
+                    self._compute_rotated_grad(x, b_x, grad_x)
 
-                # Center the log derivatives
-                self._der_logs -= _mean(self._der_logs, axis=0)
+                grad_pos = _mean(self._data_grads, axis=0)
 
-                # Compute the gradient
-                self._grads = _np.conjugate(self._der_logs) * eloc.reshape(-1, 1)
-
-                grad = _mean(self._grads, axis=0)
+                grad = 2.0 * (grad_neg - grad_pos)
 
                 dp = _np.empty(self._npar, dtype=_np.complex128)
 
-                self._sr.compute_update(self._der_logs, grad, dp)
-
-                self._der_logs = self._der_logs.reshape(
-                    self._n_samples_node, self._batch_size, self._npar
+                self._sr.compute_update(
+                    self._der_logs.reshape(-1, self._npar), grad, dp
                 )
             else:
                 # Computing updates using the simple gradient
-                # Center the local energy
-                eloc -= _mean(eloc)
 
-                for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
-                    self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
+                # Negative phase driven by the model
+                vec_ones = _np.ones(self._batch_size, dtype=_np.complex128) / float(
+                    self._batch_size
+                )
+                for x, grad_x in zip(self._samples, self._grads):
+                    self._machine.vector_jacobian_prod(x, vec_ones, grad_x)
 
-                grad = _mean(self._grads, axis=0) / float(self._batch_size)
-                dp = grad
+                grad_neg = _mean(self._grads, axis=0)
+
+                # Positive phase driven by the data
+                for x, b_x, grad_x in zip(
+                    self._data_samples, self._data_bases, self._data_grads
+                ):
+                    self._compute_rotated_grad(x, b_x, grad_x)
+
+                grad_pos = _mean(self._data_grads, axis=0)
+
+                dp = 2.0 * (grad_neg - grad_pos)
 
             self._machine.parameters = self._optimizer_step(
                 self.step_count, dp, self._machine.parameters
             )
 
             self.step_count += 1
+
+    def _compute_rotated_grad(self, x, basis, out):
+        x_primes, mels = self._rotations[basis].get_conn(x)
+
+        log_val_primes = self._machine.log_val(x_primes)
+
+        vec = _np.empty(mels.size, dtype=_np.complex128)
+
+        _rotated_grad_kernel(log_val_primes, mels, vec)
+
+        self._machine.vector_jacobian_prod(x_primes, vec, out)
+
+    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
+    #     #     max_log_val = log_val_primes.real.max()
+    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
+    #     #     vec /= vec.sum()
 
     def iter(self, n_steps, step=1):
         """
@@ -278,7 +349,7 @@ class Vmc(object):
         """
         self._obs[name] = obs
 
-    def get_observable_stats(self, observables=None, include_energy=True):
+    def get_observable_stats(self, observables=None):
         """
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
@@ -300,7 +371,7 @@ class Vmc(object):
         """
         if not observables:
             observables = self._obs
-        r = {"Energy": self._stats} if include_energy else {}
+        r = {}
 
         r.update(
             {name: self._get_mc_stats(obs)[1] for name, obs in observables.items()}
@@ -315,11 +386,10 @@ class Vmc(object):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
-
         return loc, _statistics(loc)
 
     def __repr__(self):
-        return "Vmc(step_count={}, n_samples={}, n_discard={})".format(
+        return "Sqr(step_count={}, n_samples={}, n_discard={})".format(
             self.step_count, self.n_samples, self.n_discard
         )
 
@@ -327,10 +397,41 @@ class Vmc(object):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("Hamiltonian", self._ham),
                 ("Machine", self._machine),
                 ("Optimizer", self._optimizer_desc),
                 ("SR solver", self._sr),
             ]
         ]
         return "\n  ".join([str(self)] + lines)
+
+    def nll(self, rotations, samples, bases, log_norm=0):
+        """
+        Negative log-likelihood, :math:`\langle log(|Psi_b(x)|^2) \rangle`,
+        where the average is over the given samples, and :math:`b` denotes
+        the given bases associated to the samples.
+
+        Args:
+            rotations: Vector of unitary transformation corresponding to basis rotations.
+            samples: Vector of samples.
+            bases: Which bases the samples correspond to.
+            log_norm: This should be :math:`log \sum_x |\Psi(x)|^2`. Notice that
+                      if the probability disitribution is not normalized,
+                      (i.e. log_norm :math:`\neq 0`), a user-supplied log_norm must be
+                      provided, otherwise there is no guarantuee that the
+                      negative log-likelihood computed here is a meaningful
+                      quantity.
+        """
+        nll = 0.0
+        for x, basis in zip(samples, bases):
+            x_primes, mels = rotations[basis].get_conn(x)
+
+            log_val_primes = self._machine.log_val(x_primes)
+
+            max_log_val = log_val_primes.real.max()
+            psi_rotated = (mels * _np.exp(log_val_primes - max_log_val)).sum()
+
+            nll -= _np.log(_np.square(_np.absolute(psi_rotated))) + 2.0 * max_log_val
+
+        nll /= float(len(samples))
+
+        return _np.mean(_np.atleast_1d(nll)) + log_norm

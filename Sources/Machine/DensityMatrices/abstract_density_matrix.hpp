@@ -194,7 +194,7 @@ class AbstractDensityMatrix : public AbstractMachine {
                              Eigen::Ref<Eigen::VectorXcd> output);
 
   // Methods below are inherited from AbstractMachine
-  int Nvisible() const final override { return NvisiblePhysical() * 2; }
+  int Nvisible() const override { return NvisiblePhysical() * 2; }
 
   void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorType> out,
               const any &lt) override;
