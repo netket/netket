@@ -10,13 +10,14 @@ from netket.vmc_common import info, make_optimizer_fn
 
 from tqdm import tqdm
 
+
 class AbstractMCDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo runners"""
 
-    def __init__(self, machine, optimizer, minimized_quantity_name=''):
+    def __init__(self, machine, optimizer, minimized_quantity_name=""):
         self._mynode = _nk.MPI.rank()
-        self._obs    = {} # to deprecate
-        self._stats  = None
+        self._obs = {}  # to deprecate
+        self._stats = None
         self._stats_name = minimized_quantity_name
         self.step_count = 0
 
@@ -35,14 +36,14 @@ class AbstractMCDriver(abc.ABC):
         pass
 
     def run(
-            self,
-            n_iter,
-            output_prefix,
-            obs=None,
-            save_params_every=50,
-            write_every=50,
-            step_size=1,
-            show_progress=True,
+        self,
+        n_iter,
+        output_prefix,
+        obs=None,
+        save_params_every=50,
+        write_every=50,
+        step_size=1,
+        show_progress=True,
     ):
         """
         TODO
@@ -53,12 +54,12 @@ class AbstractMCDriver(abc.ABC):
         output = _JsonLog(output_prefix, n_iter, obs, save_params_every, write_every)
 
         with tqdm(
-                self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
+            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
                 output(step, self)
                 if self._stats is not None:
-                    itr.set_postfix_str(self._stats_name + ' = ' + str(self._stats))
+                    itr.set_postfix_str(self._stats_name + " = " + str(self._stats))
 
     def iter(self, n_steps, step=1):
         """
@@ -76,7 +77,7 @@ class AbstractMCDriver(abc.ABC):
         for _ in range(0, n_steps, step):
             for i in range(0, step):
                 dp = self.gradient()
-                if i is 0 :
+                if i is 0:
                     yield self.step_count
 
                 self.update_parameters(dp)
@@ -95,7 +96,6 @@ class AbstractMCDriver(abc.ABC):
         :return:
         """
         pass
-
 
     def estimate(self, observables):
         """
@@ -119,13 +119,11 @@ class AbstractMCDriver(abc.ABC):
         """
         self._obs[name] = obs
 
-
     def update_parameters(self, dp):
         self._machine.parameters = self._optimizer_step(
             self.step_count, dp, self._machine.parameters
         )
         self.step_count += 1
-
 
     @deprecated()
     def get_observable_stats(self, observables=None, include_energy=True):

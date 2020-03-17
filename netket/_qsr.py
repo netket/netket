@@ -187,9 +187,7 @@ class Qsr(AbstractMCDriver):
             for i, sample in enumerate(self._samples):
                 self._der_logs[i] = self._machine.der_log(sample)
 
-            grad_neg = _mean(
-                self._der_logs.reshape(-1, self._npar), axis=0
-            ).conjugate()
+            grad_neg = _mean(self._der_logs.reshape(-1, self._npar), axis=0).conjugate()
 
             # Positive phase driven by the data
             for x, b_x, grad_x in zip(
@@ -203,9 +201,7 @@ class Qsr(AbstractMCDriver):
 
             dp = _np.empty(self._npar, dtype=_np.complex128)
 
-            self._sr.compute_update(
-                self._der_logs.reshape(-1, self._npar), grad, dp
-            )
+            self._sr.compute_update(self._der_logs.reshape(-1, self._npar), grad, dp)
         else:
             # Computing updates using the simple gradient
 

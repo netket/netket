@@ -60,10 +60,8 @@ class SteadyState(AbstractMCDriver):
             n_discard_obs: n_discard for the observables (default: n_discard)
 
         """
-        super(SteadyState, self).__init__
-            sampler.machine,
-            optimizer,
-            minimized_quantity_name="LdagL"
+        super(SteadyState, self).__init__(
+            sampler.machine, optimizer, minimized_quantity_name="LdagL"
         )  #'\u3008L\u2020L\u3009')
 
         self._lind = lindblad

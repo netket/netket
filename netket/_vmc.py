@@ -55,9 +55,9 @@ class Vmc(AbstractMCDriver):
             >>> vmc = nk.Vmc(ha, sa, op, 200)
 
         """
-        super(Vmc, self).__init__(sampler.machine,
-                                  optimizer,
-                                  minimized_quantity_name="Energy")
+        super(Vmc, self).__init__(
+            sampler.machine, optimizer, minimized_quantity_name="Energy"
+        )
 
         self._ham = hamiltonian
         self._sampler = sampler
