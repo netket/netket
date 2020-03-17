@@ -176,4 +176,5 @@ setup(
         "tqdm>=4.42.1",
         "numba>=0.48.0",
     ],
+    python_requires='>=3.6'
 )
