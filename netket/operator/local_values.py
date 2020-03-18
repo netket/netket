@@ -4,7 +4,6 @@ from .._C_netket.operator import (
     LocalLiouvillian
 )
 
-from .._C_netket.operator import _local_values_kernel as _c_local_values_kernel
 
 import numpy as _np
 from numba import jit
@@ -13,70 +12,13 @@ from numba import jit
 from .._C_netket.machine import DensityMatrix
 
 
-def Ising(hilbert, h, J=1.0):
-    """
-    Constructs a new ``Ising`` given a hilbert space, a transverse field,
-    and (if specified) a coupling constant.
-
-    Args:
-        hilbert: Hilbert space the operator acts on.
-        h: The strength of the transverse field.
-        J: The strength of the coupling. Default is 1.0.
-
-    Examples:
-        Constructs an ``Ising`` operator for a 1D system.
-
-        >>> import netket as nk
-        >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-        >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-        >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
-        >>> print(op.hilbert.size)
-        20
-    """
-    sigma_x = _np.array([[0, 1], [1, 0]])
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0],
-                       [0, 0, -1, 0], [0, 0, 0, 1]])
-    return GraphOperator(hilbert, siteops=[-h * sigma_x], bondops=[J * sz_sz])
-
-
-def Heisenberg(hilbert, J=1, sign_rule=None):
-    """
-    Constructs a new ``Heisenberg`` given a hilbert space.
-
-    Args:
-        hilbert: Hilbert space the operator acts on.
-        J: The strength of the coupling. Default is 1.
-        sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
-                   lattice, this corresponds to a basis change flipping the Sz direction
-                   at every odd site of the lattice. For non-bipartite lattices, the
-                   sign rule cannot be applied. Defaults to True if the lattice is
-                   bipartite, False otherwise.
-
-    Examples:
-     Constructs a ``Heisenberg`` operator for a 1D system.
-
-        >>> import netket as nk
-        >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-        >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
-        >>> op = nk.operator.Heisenberg(hilbert=hi)
-        >>> print(op.hilbert.size)
-        20
-    """
-    if sign_rule is None:
-        sign_rule = hilbert.graph.is_bipartite
-
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0],
-                       [0, 0, -1, 0], [0, 0, 0, 1]])
-    exchange = _np.array(
-        [[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
-    if sign_rule:
-        if not hilbert.graph.is_bipartite:
-            raise ValueError(
-                "sign_rule=True specified for a non-bipartite lattice")
-        heis_term = sz_sz - exchange
-    else:
-        heis_term = sz_sz + exchange
-    return GraphOperator(hilbert, bondops=[J * heis_term])
+@jit(nopython=True)
+def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
+    low_range = 0
+    for i, s in enumerate(sections):
+        out[i] = (mels[low_range:s] *
+                  _np.exp(log_val_primes[low_range:s] - log_vals[i])).sum()
+        low_range = s
 
 
 @jit(nopython=True)
@@ -98,17 +40,28 @@ def _local_values_impl(op, machine, v, log_vals, out):
     _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
 
 
+@jit(nopython=True)
+def _op_op_unpack_kernel(v, sections, vold):
+
+    low_range = 0
+    for i, s in enumerate(sections):
+        vold[low_range:s] = v[i]
+        low_range = s
+
+    return vold
+
+
 def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
-    vprimes, mels = op.get_conn(v)
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    vold = [_np.tile(vi, (vprime.shape[0], 1))
-            for (vi, vprime) in zip(v, vprimes)]
+    vold = _np.empty((sections[-1], v.shape[1]))
+    _op_op_unpack_kernel(v, sections, vold)
 
-    log_val_primes = [machine.log_val(vprime, v)
-                      for (vprime, v) in zip(vprimes, vold)]
+    log_val_primes = machine.log_val(v_primes, vold)
 
-    _c_local_values_kernel(log_vals, log_val_primes, mels, out)
+    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
 
 
 def local_values(op, machine, v, log_vals=None, out=None):

@@ -141,19 +141,6 @@ void AddOperatorModule(py::module m) {
   AddPauliStrings(subm);
   AddLocalSuperOperatorModule(subm);
 
-  subm.def(
-      "_local_values_kernel",
-      [](Eigen::Ref<const Eigen::VectorXcd> log_vals_zero,
-         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& log_vals_prime,
-         const std::vector<Eigen::Ref<const Eigen::VectorXcd>>& mels,
-         Eigen::Ref<Eigen::VectorXcd> local_vals) {
-        for (std::size_t k = 0; k < mels.size(); k++) {
-          local_vals(k) = (mels[k].array() *
-                           (log_vals_prime[k].array() - log_vals_zero(k)).exp())
-                              .sum();
-        }
-      });
-
   subm.def("_rotated_grad_kernel",
            [](Eigen::Ref<const Eigen::ArrayXcd> log_vals_prime,
               Eigen::Ref<const Eigen::ArrayXcd> mels,
