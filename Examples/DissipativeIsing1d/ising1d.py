@@ -49,7 +49,8 @@ obs_sz = nk.operator.LocalOperator(hi)
 
 for i in range(L):
     ha += (gp / 2.0) * nk.operator.LocalOperator(hi, sx, [i])
-    ha += (Vp / 4.0) * nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
+    ha += (Vp / 4.0) * nk.operator.LocalOperator(hi,
+                                                 np.kron(sz, sz), [i, (i + 1) % L])
 
     # sigma_{-} dissipation on every site
     j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
@@ -80,5 +81,5 @@ ss.add_observable(obs_sx, "Sx")
 ss.add_observable(obs_sy, "Sy")
 ss.add_observable(obs_sz, "Sz")
 
-print(ss.n_samples_obs)
-ss.run(output_prefix="test", n_iter=800)
+
+ss.run(output_prefix="test", n_iter=200)
