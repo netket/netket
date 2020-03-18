@@ -43,8 +43,8 @@ class AbstractMCDriver(abc.ABC):
 
     def run(
         self,
-        output_prefix,
         n_iter,
+        output_prefix=None,
         logger=None,
         obs=None,
         save_params_every=50,
@@ -55,6 +55,22 @@ class AbstractMCDriver(abc.ABC):
         """
         TODO
         """
+
+        # TODO Remove this deprecated code in v3.0
+        # manage deprecated where argument names are not specified, and
+        # prefix is passed as the first positional argument and the number
+        # of iterations as a second argument.
+        if type(n_iter) is str and type(output_prefix) is int:
+            # switch the two, and show a deprecation warning
+            tmp = n_iter
+            n_iter = output_prefix
+            output_prefix = tmp
+
+            warnings.warn(
+                "run(output_prefix, n_iter, **args) will be deprecated in version 3, use vmc.run(n_iter, output_prefix, **args) instead.",
+                PendingDeprecationWarning,
+            )
+
         if obs is None:
             # TODO
             # remove the first case after deprecation of self._obs in 3.0
