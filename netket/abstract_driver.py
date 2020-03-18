@@ -41,8 +41,8 @@ class AbstractMCDriver(abc.ABC):
 
     def run(
         self,
-        n_iter,
         output_prefix,
+        n_iter,
         logger=None,
         obs=None,
         save_params_every=50,
@@ -63,13 +63,12 @@ class AbstractMCDriver(abc.ABC):
 
         if logger is None:
             logger = _JsonLog(output_prefix, save_params_every, write_every)
-
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
                 if self._stats is not None:
-                    itr.set_postfix_str(self._stats_name + " = " + str(self._stats))
+                    itr.set_postfix_str(self._stats_name + "=" + str(self._stats))
 
                 log_data = {}
                 obs_data = self.estimate(obs)
