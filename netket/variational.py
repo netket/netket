@@ -18,6 +18,11 @@ def Vmc(
     use_cholesky=None,
     sr_lsq_solver="LLT",
 ):
+    
+    if use_cholesky and sr_lsq_solver != "LLT":
+        raise ValueError(
+            "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
+        )
 
     if method == "Gd":
         return _Vmc(
@@ -45,11 +50,6 @@ def Vmc(
         )
     else:
         raise ValueError("Allowed method options are Gd and Sr")
-
-    if use_cholesky and sr_lsq_solver != "LLT":
-        raise ValueError(
-            "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
-        )
 
     if discarded_samples_on_init != 0:
         warnings.warn(
