@@ -11,6 +11,7 @@ from .local_values import (
 from .hamiltonian import (
     Ising,
     Heisenberg,
+    PyIsing
 )
 
 from .._C_netket.operator import _rotated_grad_kernel

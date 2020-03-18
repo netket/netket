@@ -6,8 +6,26 @@ class AbstractHilbert(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def hilbert(self):
-        r"""AbstractHilbert: The Hilbert space associated with this operator."""
+    def size(self):
+        r"""int: The total number number of spins."""
+        return NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def is_discrete(self):
+        r"""bool: Whether the hilbert space is discrete."""
+        return NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def local_size(self):
+        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
+        return NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def local_states(self):
+        r"""list[float]: A list of discreet local quantum numbers."""
         return NotImplementedError
 
     @abc.abstractmethod
@@ -34,4 +52,4 @@ class AbstractHilbert(abc.ABC):
            >>> print(rstate[0] in local_states)
            True
            """
-        pass
+        return NotImplementedError
