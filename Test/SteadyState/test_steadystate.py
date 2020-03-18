@@ -90,7 +90,7 @@ def test_ss_advance_sr_iterative():
 def test_ss_iterator():
     ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
 
-    N_iters = 100
+    N_iters = 130
     count = 0
     last_obs = None
     for i, step in enumerate(vmc.iter(N_iters)):
@@ -115,7 +115,7 @@ def test_ss_iterator():
 def test_ss_iterator_iterative():
     ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
 
-    N_iters = 100
+    N_iters = 130
     count = 0
     last_obs = None
     for i, step in enumerate(vmc.iter(N_iters)):
