@@ -23,11 +23,11 @@ class PyExactSampler(AbstractSampler):
              sample_size: The number of independent samples to be generated at each invocation of __next__.
         """
         self.hilbert = machine.hilbert
-        self.machine_func = lambda x, out=None: _np.square(_np.absolute(x), out)
+        self.machine_pow = 2.0
         super().__init__(machine, sample_size)
 
     def reset(self, init_random=False):
-        self._prob = self.machine_func(self.machine.to_array())
+        self._prob = _np.exp(self.machine_pow * self.machine.to_array().real())
         self._prob /= self._prob.sum()
 
     def __next__(self):
@@ -37,12 +37,13 @@ class PyExactSampler(AbstractSampler):
         return self.hilbert.number_to_state(numbers)
 
     @property
-    def machine_func(self):
-        return self._machine_func
+    def machine_pow(self):
+        return self._machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self._machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_power):
+        self._machine_pow = m_power
+        self.reset()
 
 
 class ExactSampler(AbstractSampler):
@@ -88,7 +89,8 @@ class ExactSampler(AbstractSampler):
                 machine=machine, sample_size=sample_size
             )
         else:
-            self.sampler = PyExactSampler(machine=machine, sample_size=sample_size)
+            self.sampler = PyExactSampler(
+                machine=machine, sample_size=sample_size)
         super().__init__(machine, sample_size)
 
     def reset(self, init_random=False):
@@ -98,9 +100,9 @@ class ExactSampler(AbstractSampler):
         return self.sampler.__next__()
 
     @property
-    def machine_func(self):
-        return self.sampler.machine_func
+    def machine_pow(self):
+        return self.sampler.machine_pow
 
-    @machine_func.setter
-    def machine_func(self, func):
-        self.sampler.machine_func = func
+    @machine_pow.setter
+    def machine_pow(self, m_power):
+        self.sampler.machine_pow = m_power

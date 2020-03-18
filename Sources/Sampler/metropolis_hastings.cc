@@ -76,9 +76,9 @@ void MetropolisHastings::OneStep() {
   LogValBatched(proposed_X_, /*out=*/proposed_Y_, /*cache=*/{});
 
   // Calculates acceptance probability
-  quotient_Y_ = (proposed_Y_ - current_Y_ + log_acceptance_correction_).exp();
+  quotient_Y_ = (proposed_Y_ - current_Y_ + log_acceptance_correction_);
 
-  GetMachineFunc()(quotient_Y_, probability_);
+  probability_ = (GetMachinePow() * quotient_Y_.real()).exp();
 
   for (auto i = Index{0}; i < accept_.size(); ++i) {
     accept_(i) = probability_(i) >= 1.0

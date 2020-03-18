@@ -37,27 +37,23 @@ py_ma.parameters = ma.parameters
 # Metropolis Local Sampling
 batch_size = 32
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
+py_sa = nk.sampler.MetropolisLocal(
+    machine=py_ma, n_chains=batch_size)
 
-n_samples = 1000
+n_samples = 500
 samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))
-for i, sample in enumerate(sa.samples(n_samples)):
-    samples[i] = sample
 
 
 vals = np.zeros((n_samples, batch_size), dtype=np.complex128)
 
 
-def log_val(n_times):
+def bench(n_times, sampler):
     for k in range(n_times):
-        for i, sample in enumerate(samples):
-            vals[i] = ma.log_val(sample)
+        for i, sample in enumerate(sampler.samples(n_samples)):
+            samples[i] = sample
 
 
-def py_log_val(n_times):
-    for k in range(n_times):
-        for i, sample in enumerate(samples):
-            py_ma.log_val(sample, out=vals[i])
+bench(1, py_sa)
 
-
-cProfile.run("log_val(300)")
-cProfile.run("py_log_val(300)")
+cProfile.run("bench(30,sa)")
+cProfile.run("bench(30,py_sa)")

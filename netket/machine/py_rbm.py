@@ -15,6 +15,7 @@
 from .abstract_machine import AbstractMachine
 import numpy as _np
 from netket.utils import sum_log_cosh_complex
+from .._C_netket.machine import RbmSpinKernel
 
 __all__ = ["PyRbm"]
 
@@ -59,6 +60,9 @@ class PyRbm(AbstractMachine):
             + (self._a.size if self._a is not None else 0)
             + (self._b.size if self._b is not None else 0)
         )
+
+        self._kernel = RbmSpinKernel()
+
         super().__init__(hilbert)
 
     @property
@@ -75,14 +79,16 @@ class PyRbm(AbstractMachine):
         if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
 
-        self._r = x.dot(self._w.T)
-        if self._b is not None:
-            self._r += self._b
+        self._kernel.log_val(x, out, self._w, self._a, self._b)
 
-        sum_log_cosh_complex(self._r, out)
-
-        if self._a is not None:
-            out += _np.dot(x, self._a)
+        # self._r = x.dot(self._w.T)
+        # if self._b is not None:
+        #     self._r += self._b
+        #
+        # sum_log_cosh_complex(self._r, out)
+        #
+        # if self._a is not None:
+        #     out += _np.dot(x, self._a)
 
         return out
 

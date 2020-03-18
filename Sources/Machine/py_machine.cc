@@ -32,6 +32,7 @@
 #include "Machine/py_abstract_machine.hpp"
 #include "Machine/rbm_multival.hpp"
 #include "Machine/rbm_spin.hpp"
+#include "Machine/rbm_spin_kernel.hpp"
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
@@ -788,6 +789,14 @@ void AddAbstractMachine(py::module m) {
                 )EOF");
 }
 
+void AddRbmSpinKernel(py::module subm) {
+  py::class_<RbmSpinKernel>(subm, "RbmSpinKernel")
+      .def(py::init<>())
+      .def("log_val", &RbmSpinKernel::LogVal, py::arg("x").noconvert(),
+           py::arg("out").noconvert(), py::arg("W").noconvert(),
+           py::arg("a").noconvert(), py::arg("b").noconvert());
+}
+
 }  // namespace
 
 void AddMachineModule(py::module m) {
@@ -805,6 +814,7 @@ void AddMachineModule(py::module m) {
   AddFFNN(subm);
   AddLayerModule(m);
   AddDensityMatrixModule(subm);
+  AddRbmSpinKernel(subm);
 }
 
 }  // namespace netket

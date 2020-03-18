@@ -1,45 +1,58 @@
 from .._C_netket.operator import (
-    _local_values_kernel,
     _der_local_values_kernel,
     _der_local_values_notcentered_kernel,
     LocalLiouvillian
 )
 
-from .._C_netket.machine import DensityMatrix 
 
 import numpy as _np
+from numba import jit
+
+
+from .._C_netket.machine import DensityMatrix
+
+
+@jit(nopython=True)
+def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
+    low_range = 0
+    for i, s in enumerate(sections):
+        out[i] = (mels[low_range:s] *
+                  _np.exp(log_val_primes[low_range:s] - log_vals[i])).sum()
+        low_range = s
 
 
 def _local_values_impl(op, machine, v, log_vals, out):
 
-    vprimes, mels = op.get_conn(v)
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
+    log_val_primes = machine.log_val(v_primes)
 
-    _local_values_kernel(log_vals, log_val_primes, mels, out)
+    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
 
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k])
-    #
-    #     out[k] = (mels[k] * _np.exp(lvd - log_vals[k])).sum()
+
+@jit(nopython=True)
+def _op_op_unpack_kernel(v, sections, vold):
+
+    low_range = 0
+    for i, s in enumerate(sections):
+        vold[low_range:s] = v[i]
+        low_range = s
+
+    return vold
 
 
 def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
-    vprimes, mels = op.get_conn(v)
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    vold = [_np.tile(vi, (vprime.shape[0], 1)) for (vi, vprime) in zip(v, vprimes)]
+    vold = _np.empty((sections[-1], v.shape[1]))
+    _op_op_unpack_kernel(v, sections, vold)
 
-    log_val_primes = [machine.log_val(vprime, v) for (vprime, v) in zip(vprimes, vold)]
+    log_val_primes = machine.log_val(v_primes, vold)
 
-    _local_values_kernel(log_vals, log_val_primes, mels, out)
-
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k], v)
-    #
-    #     out[k] = (mels[k] * _np.exp(lvd - log_vals[k])).sum()
+    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
@@ -159,13 +172,9 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
 
 # TODO: numba or cython to improve performance of this kernel
 def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, out):
-
     for k in range(len(mels)):
-
-        out[k, :] = (
-            (mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis]
-            * der_log_p[k]
-        ).sum(axis=0)
+        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis]
+                     * der_log_p[k]).sum(axis=0)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):

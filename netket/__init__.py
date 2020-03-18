@@ -22,6 +22,7 @@ __all__ = [
     "operator",
     "optimizer",
     "output",
+    "random",
     "sampler",
     "stats",
     "supervised",
@@ -40,13 +41,14 @@ from . import (
     operator,
     optimizer,
     output,
+    random,
     sampler,
     stats,
     supervised,
     utils,
     variational,
     _vmc,
-    _steadystate
+    _steadystate,
 )
 from ._C_netket import MPI
 
@@ -54,4 +56,3 @@ from ._C_netket import MPI
 from ._vmc import Vmc
 from ._qsr import Qsr
 from ._steadystate import SteadyState
-

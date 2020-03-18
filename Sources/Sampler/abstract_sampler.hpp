@@ -23,9 +23,6 @@ namespace netket {
 
 class AbstractSampler {
  public:
-  using MachineFunction =
-      std::function<void(nonstd::span<const Complex>, nonstd::span<double>)>;
-
   virtual void Reset(bool initrandom = false) = 0;
 
   virtual void Sweep() = 0;
@@ -43,37 +40,21 @@ class AbstractSampler {
     this->Reset(true);
   }
 
-  virtual void SetMachineFunc(MachineFunction machine_func) {
-    NETKET_CHECK(machine_func, InvalidInputError,
-                 "Invalid machine function in Sampler");
-    machine_func_ = std::move(machine_func);
-  }
+  virtual void SetMachinePow(double machine_pow) { machine_pow_ = machine_pow; }
+
+  double GetMachinePow() const noexcept { return machine_pow_; }
 
   AbstractMachine& GetMachine() const noexcept { return psi_; }
-
-  const MachineFunction& GetMachineFunc() const noexcept {
-    return machine_func_;
-  }
 
   virtual Index BatchSize() const noexcept = 0;
 
   virtual Index NChains() const noexcept = 0;
 
  protected:
-  AbstractSampler(AbstractMachine& psi)
-      : machine_func_{[](nonstd::span<const Complex> x,
-                         nonstd::span<double> out) {
-          CheckShape("AbstractSampler::machine_func_", "out", out.size(),
-                     x.size());
-          Eigen::Map<Eigen::ArrayXd>{out.data(), out.size()} =
-              Eigen::Map<const Eigen::ArrayXcd>{x.data(), x.size()}.abs2();
-          // std::transform(x.begin(), x.end(), out.begin(),
-          //                [](Complex z) { return std::norm(z); });
-        }},
-        psi_{psi} {}
+  AbstractSampler(AbstractMachine& psi) : machine_pow_{2.0}, psi_{psi} {}
 
  private:
-  MachineFunction machine_func_;
+  double machine_pow_;
   AbstractMachine& psi_;
 };  // namespace netket
 
@@ -125,14 +106,6 @@ inline Index CheckSweepSize(const char* func, const Index sweep_size) {
                  "Cannot compute acceptance, because no moves were made"); \
     return static_cast<double>(accepts) / static_cast<double>(moves);      \
   }
-
-#define NETKET_SAMPLER_APPLY_MACHINE_FUNC(expr)                \
-  [this](const Complex z) {                                    \
-    double result;                                             \
-    this->GetMachineFunc()(nonstd::span<const Complex>{&z, 1}, \
-                           nonstd::span<double>{&result, 1});  \
-    return result;                                             \
-  }(expr)
 
 }  // namespace netket
 #endif
