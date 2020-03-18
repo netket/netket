@@ -139,7 +139,7 @@ def test_ss_iterator_iterative():
 def test_ss_run():
     ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
 
-    N_iters = 100
+    N_iters = 120
 
     tempdir = tempfile.mkdtemp()
     print("Writing test output files to: {}".format(tempdir))

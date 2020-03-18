@@ -25,9 +25,8 @@ class JsonLog:
             self._flush_params(machine)
 
     def _flush_log(self):
-        if _nk.MPI.rank() == 0:
-            with open(self._prefix + ".log", "w") as outfile:
-                json.dump(self._json_out, outfile)
+        with open(self._prefix + ".log", "w") as outfile:
+            json.dump(self._json_out, outfile)
 
     def _flush_params(self, machine):
         if _nk.MPI.rank() == 0:
