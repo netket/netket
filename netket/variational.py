@@ -18,11 +18,22 @@ def Vmc(
     use_cholesky=None,
     sr_lsq_solver="LLT",
 ):
-    
+
     if use_cholesky and sr_lsq_solver != "LLT":
         raise ValueError(
             "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
         )
+
+    if discarded_samples_on_init != 0:
+        warnings.warn(
+            "discarded_samples_on_init does not have any effect and should not be used",
+            DeprecationWarning,
+        )
+
+    warnings.warn(
+        "netket.variational.Vmc will be deprecated in version 3, use netket.Vmc instead",
+        PendingDeprecationWarning,
+    )
 
     if method == "Gd":
         return _Vmc(
@@ -50,17 +61,6 @@ def Vmc(
         )
     else:
         raise ValueError("Allowed method options are Gd and Sr")
-
-    if discarded_samples_on_init != 0:
-        warnings.warn(
-            "discarded_samples_on_init does not have any effect and should not be used",
-            DeprecationWarning,
-        )
-
-    warnings.warn(
-        "netket.variational.Vmc will be deprecated in version 3, use netket.Vmc instead",
-        PendingDeprecationWarning,
-    )
 
 
 # Higher-level VMC functions:

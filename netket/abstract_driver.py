@@ -4,7 +4,7 @@ from netket._core import deprecated
 import netket as _nk
 
 from netket.vmc_common import tree_map
-from netket.vmc_json import JsonLog as _JsonLog
+from netket.logging import JsonLog as _JsonLog
 
 from netket.vmc_common import info, make_optimizer_fn
 
