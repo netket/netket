@@ -70,6 +70,7 @@ def make_optimizer_fn(arg, ma):
             + " or callable f(i, grad, p); got {}".format(arg)
         )
 
+
 def tree_map(fun, tree):
 
     if tree is None:

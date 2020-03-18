@@ -4,7 +4,7 @@ from netket._core import deprecated
 import netket as _nk
 
 from netket.vmc_common import tree_map
-from netket.vmc_json import _JsonLog
+from netket.vmc_json import JsonLog as _JsonLog
 
 from netket.vmc_common import info, make_optimizer_fn
 
@@ -35,10 +35,15 @@ class AbstractMCDriver(abc.ABC):
         self.step_count = 0
         pass
 
+    @property
+    def machine(self):
+        return self._machine
+
     def run(
         self,
         n_iter,
         output_prefix,
+        logger=None,
         obs=None,
         save_params_every=50,
         write_every=50,
@@ -49,17 +54,36 @@ class AbstractMCDriver(abc.ABC):
         TODO
         """
         if obs is None:
-            obs = self._obs
+            # TODO
+            # deprecate in 3.0
+            if len(self._obs) is not 0:
+                obs = self._obs
+            else:
+                obs = {}
 
-        output = _JsonLog(output_prefix, n_iter, obs, save_params_every, write_every)
+        if logger is None:
+            logger = _JsonLog(output_prefix, save_params_every, write_every)
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
-                output(step, self)
                 if self._stats is not None:
                     itr.set_postfix_str(self._stats_name + " = " + str(self._stats))
+
+                log_data = {}
+                obs_data = self.estimate(obs)
+                if self._stats is not None:
+                    obs_data[self._stats_name] = self._stats
+
+                for key, value in obs_data.items():
+                    st = value.asdict()
+                    st["Mean"] = st["Mean"].real
+                    log_data[key] = st
+
+                logger(step, log_data, self.machine)
+
+        logger.flush(self.machine)
 
     def iter(self, n_steps, step=1):
         """
@@ -82,8 +106,8 @@ class AbstractMCDriver(abc.ABC):
 
                 self.update_parameters(dp)
 
-    def advance(self):
-        for _ in self.iter(1):
+    def advance(self, steps=1):
+        for _ in self.iter(steps):
             pass
 
     @abc.abstractmethod
@@ -120,6 +144,12 @@ class AbstractMCDriver(abc.ABC):
         """
         Add an observables to the set of observables that will be computed by default
         in get_obervable_stats.
+
+        This function is deprecated in favour of `estimate`.
+
+        Args:
+            obs: the operator encoding the observable
+            name: a string, representing the name of the observable
         """
         self._obs[name] = obs
 
