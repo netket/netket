@@ -16,6 +16,7 @@ from .abstract_machine import AbstractMachine
 import numpy as _np
 from netket.utils import sum_log_cosh_complex
 from .._C_netket.machine import RbmSpinKernel
+
 __all__ = ["PyRbm"]
 
 

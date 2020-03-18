@@ -792,8 +792,9 @@ void AddAbstractMachine(py::module m) {
 void AddRbmSpinKernel(py::module subm) {
   py::class_<RbmSpinKernel>(subm, "RbmSpinKernel")
       .def(py::init<>())
-      .def("log_val", &RbmSpinKernel::LogVal, py::arg("x"), py::arg("out"),
-           py::arg("W"), py::arg("a"), py::arg("b"));
+      .def("log_val", &RbmSpinKernel::LogVal, py::arg("x").noconvert(),
+           py::arg("out").noconvert(), py::arg("W").noconvert(),
+           py::arg("a").noconvert(), py::arg("b").noconvert());
 }
 
 }  // namespace

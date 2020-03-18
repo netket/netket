@@ -133,12 +133,14 @@ void AddMetropolisHastings(py::module& subm) {
          Eigen::Ref<VectorXd> rand_for_acceptance,
          double machine_pow) -> Index {
         Index accepted = 0;
+
         for (Index i = 0; i < state.rows(); i++) {
           double prob =
               std::exp(machine_pow *
                        (log_val1(i) - log_val(i) + log_prob_corr(i)).real());
 
           bool accept = prob > rand_for_acceptance(i);
+
           if (accept) {
             log_val(i) = log_val1(i);
             state.row(i) = state1.row(i);
