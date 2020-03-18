@@ -181,7 +181,13 @@ class AbstractMCDriver(abc.ABC):
         """
         if not observables:
             observables = self._obs
+
+        if self._stats_name is None:
+            include_energy=False
+
         result = self.estimate(observables)
+
         if include_energy:
-            result["Energy"] = self._stats
+            result[self._stats_name] = self._stats
+            
         return result
