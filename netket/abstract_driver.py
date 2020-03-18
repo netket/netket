@@ -82,6 +82,10 @@ class AbstractMCDriver(abc.ABC):
 
                 self.update_parameters(dp)
 
+    def advance(self):
+        for _ in self.iter(1):
+            pass
+
     @abc.abstractmethod
     def info(self, depth=0):
         pass
