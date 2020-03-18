@@ -10,6 +10,8 @@ from netket.vmc_common import info, make_optimizer_fn
 
 from tqdm import tqdm
 
+import warnings
+
 
 class AbstractMCDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo runners"""
@@ -55,34 +57,46 @@ class AbstractMCDriver(abc.ABC):
         """
         if obs is None:
             # TODO
-            # deprecate in 3.0
+            # remove the first case after deprecation of self._obs in 3.0
             if len(self._obs) is not 0:
                 obs = self._obs
             else:
                 obs = {}
 
-        if logger is None:
+        # If no logger is passed, create one
+        if logger is None and self._mynode == 0:
             logger = _JsonLog(output_prefix, save_params_every, write_every)
+
+        # Don't log on non-root nodes
+        if self._mynode is not 0:
+            logger = None
+
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
+                # if the cost-function is defined then report it in the progress bar
                 if self._stats is not None:
                     itr.set_postfix_str(self._stats_name + "=" + str(self._stats))
 
-                log_data = {}
-                obs_data = self.estimate(obs)
-                if self._stats is not None:
-                    obs_data[self._stats_name] = self._stats
+                if logger is not None:
+                    log_data = {}
+                    obs_data = self.estimate(obs)
 
-                for key, value in obs_data.items():
-                    st = value.asdict()
-                    st["Mean"] = st["Mean"].real
-                    log_data[key] = st
+                    if self._stats is not None:
+                        obs_data[self._stats_name] = self._stats
 
-                logger(step, log_data, self.machine)
+                    for key, value in obs_data.items():
+                        st = value.asdict()
+                        st["Mean"] = st["Mean"].real
+                        log_data[key] = st
 
-        logger.flush(self.machine)
+                    logger(step, log_data, self.machine)
+
+        # flush at the end of the evolution so that final values are saved to
+        # file
+        if logger is not None:
+            logger.flush(self.machine)
 
     def iter(self, n_steps, step=1):
         """
@@ -153,6 +167,12 @@ class AbstractMCDriver(abc.ABC):
         self._obs[name] = obs
 
     def update_parameters(self, dp):
+        """
+        Updates the parameters of the machine using the optimizer in this driver
+
+        Args:
+            :param dp: the gradient
+        """
         self._machine.parameters = self._optimizer_step(
             self.step_count, dp, self._machine.parameters
         )
@@ -183,11 +203,11 @@ class AbstractMCDriver(abc.ABC):
             observables = self._obs
 
         if self._stats_name is None:
-            include_energy=False
+            include_energy = False
 
         result = self.estimate(observables)
 
         if include_energy:
             result[self._stats_name] = self._stats
-            
+
         return result
