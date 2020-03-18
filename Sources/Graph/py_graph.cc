@@ -180,6 +180,9 @@ void AddAbstractGraph(py::module subm) {
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
                              R"EOF(
       int: The number of vertices in the graph.)EOF")
+      .def_property_readonly("size", &AbstractGraph::Nsites,
+                             R"EOF(
+      int: The number of vertices in the graph.)EOF")
       .def_property_readonly(
           "edges",
           [](const AbstractGraph& x) {
@@ -203,18 +206,17 @@ void AddAbstractGraph(py::module subm) {
                              R"EOF(
       list[list]: The distances between the nodes. The fact that some node
           may not be reachable from another is represented by -1.)EOF")
-      .def_property_readonly(
-          "edge_colors",
-          [](const AbstractGraph& self) {
-            auto& color_map = self.EdgeColors();
-            std::vector<py::tuple> result;
-            for (auto& it : color_map) {
-              result.push_back(
-                  py::make_tuple(it.first[0], it.first[1], it.second));
-            }
-            return result;
-          },
-          R"EOF(
+      .def_property_readonly("edge_colors",
+                             [](const AbstractGraph& self) {
+                               auto& color_map = self.EdgeColors();
+                               std::vector<py::tuple> result;
+                               for (auto& it : color_map) {
+                                 result.push_back(py::make_tuple(
+                                     it.first[0], it.first[1], it.second));
+                               }
+                               return result;
+                             },
+                             R"EOF(
       list[tuple]: Returns a list of tuples of the form (i, j, col) containing each edge `(i,j)`
       with its corresponding color `col`.
       )EOF")

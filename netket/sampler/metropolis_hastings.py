@@ -110,7 +110,7 @@ class PyMetropolisHastings(AbstractSampler):
     def reset(self, init_random=False):
         if init_random:
             for state in self._state:
-                self._hilbert.random_vals(state, random_engine())
+                self._hilbert.random_vals(out=state)
         self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = 0
