@@ -21,15 +21,6 @@ def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
         low_range = s
 
 
-@jit(nopython=True)
-def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
-    low_range = 0
-    for i, s in enumerate(sections):
-        out[i] = (mels[low_range:s] *
-                  _np.exp(log_val_primes[low_range:s] - log_vals[i])).sum()
-        low_range = s
-
-
 def _local_values_impl(op, machine, v, log_vals, out):
 
     sections = _np.empty(v.shape[0], dtype=_np.int32)
