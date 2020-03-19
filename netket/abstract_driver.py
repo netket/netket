@@ -3,18 +3,23 @@ import abc
 from netket._core import deprecated
 import netket as _nk
 
-from netket.vmc_common import tree_map
 from netket.logging import JsonLog as _JsonLog
 
-from netket.vmc_common import info, make_optimizer_fn
+from netket.vmc_common import info, make_optimizer_fn, tree_map
 
 from tqdm import tqdm
 
 import warnings
 
 
+def obs_stat_to_dict(value):
+    st = value.asdict()
+    st["Mean"] = st["Mean"].real
+    return st
+
+
 class AbstractMCDriver(abc.ABC):
-    """Abstract base class for NetKet Variational Monte Carlo runners"""
+    """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, machine, optimizer, minimized_quantity_name=""):
         self._mynode = _nk.MPI.rank()
@@ -45,15 +50,35 @@ class AbstractMCDriver(abc.ABC):
         self,
         n_iter,
         output_prefix=None,
-        logger=None,
         obs=None,
+        logger=None,
         save_params_every=50,
         write_every=50,
         step_size=1,
         show_progress=True,
     ):
         """
-        TODO
+        Executes the Monte Carlo Variational optimization, updating the weights of the network
+        stored in this driver for `n_iter` steps and dumping values of the observables `obs`
+        in the output `logger`. If no logger is specified, creates a json file at `output_prefix`,
+        overwriting files with the same prefix.
+
+        !! Compatibility v2.1
+            Before v2.1 the order of the first two arguments, `n_iter` and `output_prefix` was
+            reversed. The reversed ordering will still be supported until v3.0, but is deprecated.
+
+        Args:
+            :n_iter: the total number of iterations
+            :output_prefix: The prefix at which json output should be stored (ignored if logger
+              is provided).
+            :logger: a logger object to be used to log data
+            :obs: An iterable containing all observables that should be computed
+            :save_params_every: Every how many steps the parameters of the network should be
+            serialized to disk (ignored if logger is provided)
+            :write_every: Every how many steps the json data should be flushed to disk (ignored if
+            logger is provided)
+            :step_size: Every how many steps should observables be logged to disk (default=1)
+            :show_progress: If true displays a progress bar (default=True)
         """
 
         # TODO Remove this deprecated code in v3.0
@@ -72,8 +97,7 @@ class AbstractMCDriver(abc.ABC):
             )
 
         if obs is None:
-            # TODO
-            # remove the first case after deprecation of self._obs in 3.0
+            # TODO remove the first case after deprecation of self._obs in 3.0
             if len(self._obs) is not 0:
                 obs = self._obs
             else:
@@ -95,18 +119,14 @@ class AbstractMCDriver(abc.ABC):
                 if self._stats is not None:
                     itr.set_postfix_str(self._stats_name + "=" + str(self._stats))
 
+                obs_data = self.estimate(obs)
+
+                if self._stats is not None:
+                    obs_data[self._stats_name] = self._stats
+
+                log_data = tree_map(obs_stat_to_dict, obs_data)
+
                 if logger is not None:
-                    log_data = {}
-                    obs_data = self.estimate(obs)
-
-                    if self._stats is not None:
-                        obs_data[self._stats_name] = self._stats
-
-                    for key, value in obs_data.items():
-                        st = value.asdict()
-                        st["Mean"] = st["Mean"].real
-                        log_data[key] = st
-
                     logger(step, log_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
@@ -120,8 +140,8 @@ class AbstractMCDriver(abc.ABC):
         after every `step_size` steps.
 
         Args:
-            n_iter (int=None): The total number of steps to perform.
-            step_size (int=1): The number of internal steps the simulation
+            :n_iter (int=None): The total number of steps to perform.
+            :step_size (int=1): The number of internal steps the simulation
                 is advanced every turn.
 
         Yields:
@@ -136,6 +156,11 @@ class AbstractMCDriver(abc.ABC):
                 self.update_parameters(dp)
 
     def advance(self, steps=1):
+        """
+        Performs `steps` optimization steps.
+
+        :param steps: (Default=1) number of steps
+        """
         for _ in self.iter(steps):
             pass
 

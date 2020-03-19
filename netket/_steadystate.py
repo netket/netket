@@ -178,7 +178,7 @@ class SteadyState(AbstractMCDriver):
             )
         self._n_discard_obs = (
             n_discard
-            if n_discard != None
+            if n_discard is not None
             else self._n_samples_obs_node * self._batch_size_obs // 10
         )
 
