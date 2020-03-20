@@ -1,10 +1,6 @@
-import sys
-import itertools
-
 import numpy as _np
 
 import netket as _nk
-from netket._core import deprecated
 from ._C_netket import MPI as _MPI
 from .operator import local_values as _local_values
 from .operator import der_local_values as _der_local_values
