@@ -48,10 +48,9 @@ class AbstractMCDriver(abc.ABC):
 
     def run(
         self,
+        output_prefix,
         n_iter,
-        output_prefix=None,
         obs=None,
-        logger=None,
         save_params_every=50,
         write_every=50,
         step_size=1,
@@ -60,18 +59,13 @@ class AbstractMCDriver(abc.ABC):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
         stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output `logger`. If no logger is specified, creates a json file at `output_prefix`,
-        overwriting files with the same prefix.
-
-        !! Compatibility v2.1
-            Before v2.1 the order of the first two arguments, `n_iter` and `output_prefix` was
-            reversed. The reversed ordering will still be supported until v3.0, but is deprecated.
+        in the output. The output is a json file at `output_prefix`, overwriting files with
+        the same prefix.
 
         Args:
-            :n_iter: the total number of iterations
             :output_prefix: The prefix at which json output should be stored (ignored if logger
               is provided).
-            :logger: a logger object to be used to log data
+            :n_iter: the total number of iterations
             :obs: An iterable containing all observables that should be computed
             :save_params_every: Every how many steps the parameters of the network should be
             serialized to disk (ignored if logger is provided)
@@ -80,22 +74,6 @@ class AbstractMCDriver(abc.ABC):
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
         """
-
-        # TODO Remove this deprecated code in v3.0
-        # manage deprecated where argument names are not specified, and
-        # prefix is passed as the first positional argument and the number
-        # of iterations as a second argument.
-        if type(n_iter) is str and type(output_prefix) is int:
-            # switch the two, and show a deprecation warning
-            tmp = n_iter
-            n_iter = output_prefix
-            output_prefix = tmp
-
-            warnings.warn(
-                "run(output_prefix, n_iter, **args) will be deprecated in version 3, use vmc.run(n_iter, output_prefix, **args) instead.",
-                PendingDeprecationWarning,
-            )
-
         if obs is None:
             # TODO remove the first case after deprecation of self._obs in 3.0
             if len(self._obs) is not 0:
@@ -103,9 +81,7 @@ class AbstractMCDriver(abc.ABC):
             else:
                 obs = {}
 
-        # If no logger is passed, create one
-        if logger is None and self._mynode == 0:
-            logger = _JsonLog(output_prefix, save_params_every, write_every)
+        logger = _JsonLog(output_prefix, save_params_every, write_every)
 
         # Don't log on non-root nodes
         if self._mynode is not 0:
