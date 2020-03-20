@@ -1,4 +1,7 @@
 import abc
+import numpy as _np
+from scipy.sparse import csr_matrix as _csr_matrix
+from ..hilbert import HilbertIndex
 
 
 class AbstractOperator(abc.ABC):
@@ -7,6 +10,9 @@ class AbstractOperator(abc.ABC):
        implementing new quantum Operators should derive they own class from this
        class
     """
+
+    def __init__(self):
+        self._hind = None
 
     @property
     @abc.abstractmethod
@@ -44,7 +50,7 @@ class AbstractOperator(abc.ABC):
             Args:
                 x (matrix): A matrix of shape (batch_size,hilbert.size) containing
                             the batch of quantum numbers x.
-                out (array): If None an output array is allocated.            
+                out (array): If None an output array is allocated.
 
             Returns:
                 array: The number of connected states x' for each x[i].
@@ -57,3 +63,49 @@ class AbstractOperator(abc.ABC):
     def hilbert(self):
         r"""AbstractHilbert: The hilbert space associated to this operator."""
         return NotImplementedError
+
+    def to_sparse(self):
+        r"""Returns the sparse matrix representation of the operator. Note that,
+            in general, the size of the matrix is exponential in the number of quantum
+            numbers, and this operation should thus only be performed for
+            low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+            This method requires an indexable Hilbert space.
+
+            Returns:
+                scipy.sparse.csr_matrix: The sparse matrix representation of the operator.
+        """
+        hind = self._hind
+        hilb = self.hilbert
+
+        if hind is None:
+            hind = HilbertIndex(_np.asarray(
+                hilb.local_states), hilb.local_size, hilb.size)
+
+        numbers = _np.arange(hind.n_states, dtype=_np.int64)
+
+        x = hind.numbers_to_states(numbers)
+
+        sections = _np.empty(x.shape[0], dtype=_np.int32)
+        x_prime, mels = self.get_conn_flattened(x, sections)
+
+        numbers = hind.states_to_numbers(x_prime)
+
+        sections1 = _np.empty(sections.size + 1, dtype=_np.int32)
+        sections1[1:] = sections
+        sections1[0] = 0
+
+        return _csr_matrix((mels, numbers, sections1))
+
+    def to_dense(self):
+        r"""Returns the dense matrix representation of the operator. Note that,
+            in general, the size of the matrix is exponential in the number of quantum
+            numbers, and this operation should thus only be performed for
+            low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+            This method requires an indexable Hilbert space.
+
+            Returns:
+                numpy.matrix: The dense matrix representation of the operator.
+        """
+        return self.to_sparse().todense()
