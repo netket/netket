@@ -5,7 +5,7 @@ import netket as _nk
 
 from netket.logging import JsonLog as _JsonLog
 
-from netket.vmc_common import info, make_optimizer_fn, tree_map
+from netket.vmc_common import make_optimizer_fn, tree_map
 
 from tqdm import tqdm
 
@@ -18,6 +18,20 @@ def obs_stat_to_dict(value):
     return st
 
 
+# Note: to implement a new Driver (see also _vmc.py for an example)
+# If you want to inherit the nice interface of AbstractMCDriver, you should
+# subclass it, defining the following methods:
+# - Either _forward_and_backward or individually _forward, _backward, that should
+#   compute the loss function and the gradient. If the driver is minimizing or
+#   maximising some loss function, this quantity should be assigned to self._stats
+#   in order to monitor it.
+# - estimate_stats should return the MC estimate of a single operator
+# - reset should reset the driver (usually the sampler).
+# - info should return a string with an overview of the driver.
+# - The __init__ method shouldbe called with the machine and the optimizer. If this
+#   driver is minimising a loss function and you want it's name to show up automatically
+#   in the progress bar/ouput files you should pass the optional keyword argument
+#   minimized_quantity_name.
 class AbstractMCDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
@@ -33,18 +47,100 @@ class AbstractMCDriver(abc.ABC):
             optimizer, self._machine
         )
 
+    def _forward_and_backward(self):
+        """
+        Performs the forward and backward pass at the same time.
+        Concrete drivers should either override this method, or override individually
+        _forward and _backward.
+
+        :return: the update for the weights.
+        """
+        self.forward()
+        dp = self.backward()
+        return dp
+
+    def _forward(self):
+        """
+        Performs the forward pass, computing the loss function.
+        Concrete should either implement _forward and _backward or the joint method
+        _forward_and_backward.
+        """
+        raise NotImplementedError()
+        pass
+
+    def _backward(self):
+        """
+        Performs the backward pass, computing the update for the parameters.
+        Concrete should either implement _forward and _backward or the joint method
+        _forward_and_backward.
+        """
+        raise NotImplementedError()
+        pass
+
     @abc.abstractmethod
-    def gradient(self):
+    def estimate_stats(self, observable):
+        """
+        Returns the MCMC statistics for the expectation value of an observable.
+        Must be implemented by super-classes of AbstractVMC.
+
+        :param observable: A quantum operator (netket observable)
+        :return:
+        """
         pass
 
     @abc.abstractmethod
     def reset(self):
+        """
+        Resets the driver.
+        Concrete drivers should also call super().reset() to ensure that the step
+        count is set to 0.
+        """
         self.step_count = 0
+        pass
+
+    @abc.abstractmethod
+    def info(self, depth=0):
+        """
+        Returns an info string used to print information to screen about this driver.
+        """
         pass
 
     @property
     def machine(self):
+        """
+        Returns the machine that is optimized by this driver.
+        """
         return self._machine
+
+    def iter(self, n_steps, step=1):
+        """
+        Returns a generator which advances the VMC optimization, yielding
+        after every `step_size` steps.
+
+        Args:
+            :n_iter (int=None): The total number of steps to perform.
+            :step_size (int=1): The number of internal steps the simulation
+                is advanced every turn.
+
+        Yields:
+            int: The current step.
+        """
+        for _ in range(0, n_steps, step):
+            for i in range(0, step):
+                dp = self._forward_and_backward()
+                if i is 0:
+                    yield self.step_count
+
+                self.update_parameters(dp)
+
+    def advance(self, steps=1):
+        """
+        Performs `steps` optimization steps.
+
+        :param steps: (Default=1) number of steps
+        """
+        for _ in self.iter(steps):
+            pass
 
     def run(
         self,
@@ -110,51 +206,6 @@ class AbstractMCDriver(abc.ABC):
         if logger is not None:
             logger.flush(self.machine)
 
-    def iter(self, n_steps, step=1):
-        """
-        Returns a generator which advances the VMC optimization, yielding
-        after every `step_size` steps.
-
-        Args:
-            :n_iter (int=None): The total number of steps to perform.
-            :step_size (int=1): The number of internal steps the simulation
-                is advanced every turn.
-
-        Yields:
-            int: The current step.
-        """
-        for _ in range(0, n_steps, step):
-            for i in range(0, step):
-                dp = self.gradient()
-                if i is 0:
-                    yield self.step_count
-
-                self.update_parameters(dp)
-
-    def advance(self, steps=1):
-        """
-        Performs `steps` optimization steps.
-
-        :param steps: (Default=1) number of steps
-        """
-        for _ in self.iter(steps):
-            pass
-
-    @abc.abstractmethod
-    def info(self, depth=0):
-        pass
-
-    @abc.abstractmethod
-    def estimate_stats(self, observable):
-        """
-        Returns the MCMC statistics for the expectation value of an observable.
-        Must be implemented by super-classes of AbstractVMC.
-
-        :param observable: A quantum operator (netket observable)
-        :return:
-        """
-        pass
-
     def estimate(self, observables):
         """
         Return MCMC statistics for the expectation value of observables in the
@@ -169,6 +220,18 @@ class AbstractMCDriver(abc.ABC):
         """
         return tree_map(self.estimate_stats, observables)
 
+    def update_parameters(self, dp):
+        """
+        Updates the parameters of the machine using the optimizer in this driver
+
+        Args:
+            :param dp: the gradient
+        """
+        self._machine.parameters = self._optimizer_step(
+            self.step_count, dp, self._machine.parameters
+        )
+        self.step_count += 1
+
     @deprecated()
     def add_observable(self, obs, name):
         """
@@ -182,18 +245,6 @@ class AbstractMCDriver(abc.ABC):
             name: a string, representing the name of the observable
         """
         self._obs[name] = obs
-
-    def update_parameters(self, dp):
-        """
-        Updates the parameters of the machine using the optimizer in this driver
-
-        Args:
-            :param dp: the gradient
-        """
-        self._machine.parameters = self._optimizer_step(
-            self.step_count, dp, self._machine.parameters
-        )
-        self.step_count += 1
 
     @deprecated()
     def get_observable_stats(self, observables=None, include_energy=True):

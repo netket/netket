@@ -151,7 +151,7 @@ class Qsr(AbstractMCDriver):
             else self._n_samples_node * self._batch_size // 10
         )
 
-    def gradient(self):
+    def _forward_and_backward(self):
         """
         Perform one or several iteration steps of the Qsr calculation. In each step,
         the gradient will be estimated via negative and positive phase and subsequently,
