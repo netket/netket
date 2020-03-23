@@ -194,7 +194,7 @@ class AbstractMCDriver(abc.ABC):
                 if self._stats is not None:
                     obs_data[self._stats_name] = self._stats
 
-                log_data = tree_map(obs_stat_to_dict, obs_data)
+                log_data = tree_map(_obs_stat_to_dict, obs_data)
 
                 if logger is not None:
                     logger(step, log_data, self.machine)

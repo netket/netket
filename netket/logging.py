@@ -1,5 +1,4 @@
 import json as _json
-import netket as _nk
 from os import path as _path
 
 
@@ -17,57 +16,41 @@ class JsonLog:
         save_params_every: every how many iterations should machine parameters be flushed to file
         write_every: every how many iterations should data be flushed to file
         mode: Specify the behaviour in case the file already exists at this output_prefix. Options
-        are `[o]verwrite` (default), `[a]ppend`, `[n]ewfile` (creates a new file with an incremental
-        name) or `[f]ail`.
+        are
+        - `[w]rite`: (default) overwrites file if it already exists;
+        - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
+        - `[x]` or `fail`: fails if file already exists;
     """
 
     def __init__(
-        self, output_prefix, save_params_every=50, write_every=50, mode="overwrite"
+        self, output_prefix, save_params_every=50, write_every=50, mode="write"
     ):
         # Shorthands for mode
-        if mode == "o":
-            mode = "overwrite"
+        if mode == "w":
+            mode = "write"
         elif mode == "a":
             mode = "append"
-        elif mode == "n":
-            mode = "newfile"
-        elif mode == "f":
+        elif mode == "x":
             mode = "fail"
 
         if not (
-            (mode == "overwrite")
+            (mode == "write")
             or (mode == "append")
-            or (mode == "newfile")
             or (mode == "fail")
         ):
             raise ValueError(
-                "Mode not recognized: should be one of `[o]verwrite`, `[a]ppend`, `[n]ewfile or `[f]ail`."
+                "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or `[x]`(fail)."
             )
 
         file_exists = _exists_json(output_prefix)
 
         starting_json_content = {"Output": []}
 
-        if file_exists and mode == "newfile":
-            i = 1
-            # Generate a new output_prefix with an incremental counter
-            while i < 1001:
-                _prefix = output_prefix + "_{}".format(i)
-                if not _exists_json(_prefix):
-                    output_prefix = _prefix
-                    break
-                i = i + 1
-
-            # give up after we tried too many files to avoid an infinite loop
-            if i is 1000:
-                raise IOError(
-                    "More than 1000 files exist with that prefix. Please change ouput_prefix manually."
-                )
-        elif file_exists and mode == "append":
+        if file_exists and mode == "append":
             # if there is only the .wf file but not the json one, raise an error
             if not _path.exists(output_prefix + ".log"):
                 raise ValueError(
-                    "History file does not exists, but wavefunction file does. Please change `output_prefix or set mode=`overwrite`."
+                    "History file does not exists, but wavefunction file does. Please change `output_prefix or set mode=`write`."
                 )
 
             starting_json_content = _json.load(open(output_prefix + ".log"))
@@ -100,8 +83,7 @@ class JsonLog:
             _json.dump(self._json_out, outfile)
 
     def _flush_params(self, machine):
-        if _nk.MPI.rank() == 0:
-            machine.save(self._prefix + ".wf")
+        machine.save(self._prefix + ".wf")
 
     def flush(self, machine=None):
         """
