@@ -19,20 +19,11 @@ class HilbertIndex():
         self._local_size = local_size
         self._size = size
 
-        if(not self._is_indexable()):
-            raise Exception('The hilbert space is too large to be indexed.')
-
         self._basis = _np.zeros(size, dtype=_np.int64)
         ba = 1
         for s in range(size):
             self._basis[s] = ba
             ba *= local_size
-
-    def _is_indexable(self):
-        max_states = (_np.iinfo(_np.intp).max)
-        log_max = _np.log(max_states)
-
-        return self._size * _np.log(self._local_size) <= log_max
 
     def _local_state_number(self, x):
         return _np.searchsorted(self._local_states, x)
@@ -93,3 +84,7 @@ class HilbertIndex():
             out[i] = self.number_to_state(numbers[i])
 
         return out
+
+    def all_states(self, out=None):
+        numbers = _np.arange(0, self.n_states, dtype=_np.int64)
+        return self.numbers_to_states(numbers, out)

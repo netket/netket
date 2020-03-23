@@ -11,9 +11,6 @@ class AbstractOperator(abc.ABC):
        class
     """
 
-    def __init__(self):
-        self._hind = None
-
     @property
     @abc.abstractmethod
     def size(self):
@@ -75,21 +72,14 @@ class AbstractOperator(abc.ABC):
             Returns:
                 scipy.sparse.csr_matrix: The sparse matrix representation of the operator.
         """
-        hind = self._hind
         hilb = self.hilbert
 
-        if hind is None:
-            hind = HilbertIndex(_np.asarray(
-                hilb.local_states), hilb.local_size, hilb.size)
-
-        numbers = _np.arange(hind.n_states, dtype=_np.int64)
-
-        x = hind.numbers_to_states(numbers)
+        x = hilb.all_states()
 
         sections = _np.empty(x.shape[0], dtype=_np.int32)
         x_prime, mels = self.get_conn_flattened(x, sections)
 
-        numbers = hind.states_to_numbers(x_prime)
+        numbers = hilb.states_to_numbers(x_prime)
 
         sections1 = _np.empty(sections.size + 1, dtype=_np.int32)
         sections1[1:] = sections
