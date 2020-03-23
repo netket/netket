@@ -12,7 +12,7 @@ from tqdm import tqdm
 import warnings
 
 
-def obs_stat_to_dict(value):
+def _obs_stat_to_dict(value):
     st = value.asdict()
     st["Mean"] = st["Mean"].real
     return st
@@ -25,7 +25,7 @@ def obs_stat_to_dict(value):
 #   compute the loss function and the gradient. If the driver is minimizing or
 #   maximising some loss function, this quantity should be assigned to self._stats
 #   in order to monitor it.
-# - estimate_stats should return the MC estimate of a single operator
+# - _estimate_stats should return the MC estimate of a single operator
 # - reset should reset the driver (usually the sampler).
 # - info should return a string with an overview of the driver.
 # - The __init__ method shouldbe called with the machine and the optimizer. If this
@@ -55,8 +55,8 @@ class AbstractMCDriver(abc.ABC):
 
         :return: the update for the weights.
         """
-        self.forward()
-        dp = self.backward()
+        self._forward()
+        dp = self._backward()
         return dp
 
     def _forward(self):
@@ -66,7 +66,6 @@ class AbstractMCDriver(abc.ABC):
         _forward_and_backward.
         """
         raise NotImplementedError()
-        pass
 
     def _backward(self):
         """
@@ -75,10 +74,9 @@ class AbstractMCDriver(abc.ABC):
         _forward_and_backward.
         """
         raise NotImplementedError()
-        pass
 
     @abc.abstractmethod
-    def estimate_stats(self, observable):
+    def _estimate_stats(self, observable):
         """
         Returns the MCMC statistics for the expectation value of an observable.
         Must be implemented by super-classes of AbstractVMC.
@@ -128,7 +126,7 @@ class AbstractMCDriver(abc.ABC):
         for _ in range(0, n_steps, step):
             for i in range(0, step):
                 dp = self._forward_and_backward()
-                if i is 0:
+                if i == 0:
                     yield self.step_count
 
                 self.update_parameters(dp)
@@ -172,7 +170,7 @@ class AbstractMCDriver(abc.ABC):
         """
         if obs is None:
             # TODO remove the first case after deprecation of self._obs in 3.0
-            if len(self._obs) is not 0:
+            if len(self._obs) != 0:
                 obs = self._obs
             else:
                 obs = {}
@@ -180,7 +178,7 @@ class AbstractMCDriver(abc.ABC):
         logger = _JsonLog(output_prefix, save_params_every, write_every)
 
         # Don't log on non-root nodes
-        if self._mynode is not 0:
+        if self._mynode != 0:
             logger = None
 
         with tqdm(
@@ -218,7 +216,7 @@ class AbstractMCDriver(abc.ABC):
             A pytree of the same structure as the input, containing MCMC statistics
             for the corresponding operators as leaves.
         """
-        return tree_map(self.estimate_stats, observables)
+        return tree_map(self._estimate_stats, observables)
 
     def update_parameters(self, dp):
         """

@@ -258,7 +258,7 @@ class SteadyState(AbstractMCDriver):
 
         self._obs_samples_valid = True
 
-    def estimate_stats(self, obs):
+    def _estimate_stats(self, obs):
         return self._get_mc_obs_stats(obs)[1]
 
     def reset(self):

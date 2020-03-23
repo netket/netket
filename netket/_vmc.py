@@ -182,7 +182,7 @@ class Vmc(AbstractMCDriver):
         """
         return self._stats
 
-    def estimate_stats(self, obs):
+    def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]
 
     def reset(self):

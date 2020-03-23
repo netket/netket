@@ -242,7 +242,7 @@ class Qsr(AbstractMCDriver):
     #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
     #     #     vec /= vec.sum()
 
-    def estimate_stats(self, obs):
+    def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]
 
     def reset(self):
