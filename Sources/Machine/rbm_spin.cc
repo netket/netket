@@ -46,20 +46,40 @@ RbmSpin::RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
                      << nhidden << " != " << alpha << " * " << nvisible);
   }
   nhidden = std::max(nhidden, alpha * nvisible);
-
-  W_.resize(nvisible, nhidden);
+  /* Initialization of the instance of RbmSpin class (defined in 
+   * header) Variables are:
+   * hilbert - the variable containing information about physical system
+   * nhidden - number of neurons in hidden layer defined by larger of the values
+   *           (alpha * number of neuron from visible layer) or nhidden
+   * alpha - density defined as (number of neurons in hidden layer / number of
+   *         neurons in visible layer)
+   * usea - if true use biases in visible layer a*output
+   * useb - if true use biases in hidden layer b*output
+   */ 
+        
+  /* Defining variational parameters: weights and biases (a_ for 
+   * visible layer, b_ for hidden layer)
+   */
+  W_.resize(nvisible, nhidden); 
   if (usea) {
     a_.emplace(nvisible);
   }
   if (useb) {
     b_.emplace(nhidden);
   }
-
+  /* theta_ correspond to the "output" of a hidden layer 
+   * theta = W_.transpose() * visible + b_. It is used as the input of cosh
+   * functions in the expression for a wavefunction.
+   */ 
   theta_.resize(1, nhidden);
 }
 
+/* Member function returning number of rows in theta_ (inherited from
+ * AbstractMachine)
+ */  
 Index RbmSpin::BatchSize() const noexcept { return theta_.rows(); }
 
+// Initialization function  
 void RbmSpin::BatchSize(Index batch_size) {
   if (batch_size <= 0) {
     std::ostringstream msg;
@@ -72,6 +92,7 @@ void RbmSpin::BatchSize(Index batch_size) {
   }
 }
 
+// Function that returns parameters stored in a_, b_, W_  
 Eigen::VectorXcd RbmSpin::GetParameters() {
   Eigen::VectorXcd parameters(Npar());
   Index i = 0;
@@ -88,6 +109,7 @@ Eigen::VectorXcd RbmSpin::GetParameters() {
   return parameters;
 }
 
+// Function that set the parameters "parameters" to the variables a_, b_, W_  
 void RbmSpin::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
   CheckShape(__FUNCTION__, "parameters", parameters.size(), Npar());
   Index i = 0;
@@ -103,6 +125,8 @@ void RbmSpin::SetParameters(Eigen::Ref<const Eigen::VectorXcd> parameters) {
       parameters.segment(i, W_.size());
 }
 
+// Value of the logarithm of the wave-function
+// using pre-computed look-up matrix for efficiency  
 void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
                      Eigen::Ref<Eigen::VectorXcd> out, const any & /*lt*/) {
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
@@ -118,14 +142,26 @@ void RbmSpin::LogVal(Eigen::Ref<const RowMatrix<double>> x,
   ApplyBiasAndActivation(out);
 }
 
+
+/* Function that calculates the derivatives of logarithms of a 
+ * wavefunction. It uses a look-up matrix.
+ */ 
 void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
                      Eigen::Ref<RowMatrix<Complex>> out, const any & /*lt*/) {
+  /* Eigen::RowMatrix<Complex, Eigen::Dynamic, 1> is equivalent to VectorType.
+   * der is a vector containing all the derivatives of variational parameters. 
+   * der.head correspond to the beginning of the vector, der.segment to the middle
+   * and der.tail to the end of the vector
+   */
   CheckShape(__FUNCTION__, "v", {x.rows(), x.cols()},
              {std::ignore, Nvisible()});
   CheckShape(__FUNCTION__, "out", {out.rows(), out.cols()}, {x.rows(), Npar()});
   BatchSize(x.rows());
 
   auto i = Index{0};
+  /* derivative of log(wavefunction) with respect to a_ biases is given 
+   * by values of visible layers
+   */
   if (a_.has_value()) {
     out.block(0, i, BatchSize(), a_->size()) = x;
     i += a_->size();
@@ -133,6 +169,9 @@ void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
 
   Eigen::Map<RowMatrix<Complex>>{theta_.data(), theta_.rows(), theta_.cols()}
       .noalias() = x * W_;
+  /* derivative of log(wavefunction) with respect to b_ biases is given
+   * by theta_ * tanh
+   */ 
   if (b_.has_value()) {
     theta_.array() = (theta_ + b_->transpose().colwise().replicate(BatchSize()))
                          .array()
@@ -151,6 +190,7 @@ void RbmSpin::DerLog(Eigen::Ref<const RowMatrix<double>> x,
   }
 }
 
+// Loading the bias and activation parameters  
 void RbmSpin::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
   if (b_.has_value()) {
 #pragma omp parallel for schedule(static)
@@ -165,6 +205,7 @@ void RbmSpin::ApplyBiasAndActivation(Eigen::Ref<Eigen::VectorXcd> out) const {
   }
 }
 
+// Saving the bias and activation parameters in a dictionary  
 PyObject *RbmSpin::StateDict() {
   return ToStateDict(std::make_tuple(std::make_pair("a", std::ref(a_)),
                                      std::make_pair("b", std::ref(b_)),
