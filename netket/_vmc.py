@@ -11,10 +11,10 @@ from netket.stats import (
 )
 
 from netket.vmc_common import info
-from netket.abstract_driver import AbstractMCDriver
+from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
-class Vmc(AbstractMCDriver):
+class Vmc(AbstractVariationalDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
     """
@@ -131,7 +131,7 @@ class Vmc(AbstractMCDriver):
             self._samples[i] = sample
 
         # Compute the local energy estimator and average Energy
-        eloc, self._stats = self._get_mc_stats(self._ham)
+        eloc, self._loss_stats = self._get_mc_stats(self._ham)
 
         # Perform update
         if self._sr:
@@ -180,7 +180,7 @@ class Vmc(AbstractMCDriver):
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
         """
-        return self._stats
+        return self._loss_stats
 
     def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]

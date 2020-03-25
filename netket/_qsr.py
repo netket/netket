@@ -16,10 +16,10 @@ from netket.stats import (
 )
 
 from netket.vmc_common import info
-from netket.abstract_driver import AbstractMCDriver
+from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
-class Qsr(AbstractMCDriver):
+class Qsr(AbstractVariationalDriver):
     """
     Quantum State Reconstruction for pure states.
     This implements the algorithm introduced in

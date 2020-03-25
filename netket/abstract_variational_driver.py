@@ -32,14 +32,14 @@ def _obs_stat_to_dict(value):
 #   driver is minimising a loss function and you want it's name to show up automatically
 #   in the progress bar/ouput files you should pass the optional keyword argument
 #   minimized_quantity_name.
-class AbstractMCDriver(abc.ABC):
+class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, machine, optimizer, minimized_quantity_name=""):
         self._mynode = _nk.MPI.rank()
         self._obs = {}  # to deprecate
-        self._stats = None
-        self._stats_name = minimized_quantity_name
+        self._loss_stats = None
+        self._loss_name = minimized_quantity_name
         self.step_count = 0
 
         self._machine = machine
@@ -186,13 +186,13 @@ class AbstractMCDriver(abc.ABC):
         ) as itr:
             for step in itr:
                 # if the cost-function is defined then report it in the progress bar
-                if self._stats is not None:
-                    itr.set_postfix_str(self._stats_name + "=" + str(self._stats))
+                if self._loss_stats is not None:
+                    itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
 
                 obs_data = self.estimate(obs)
 
-                if self._stats is not None:
-                    obs_data[self._stats_name] = self._stats
+                if self._loss_stats is not None:
+                    obs_data[self._loss_name] = self._loss_stats
 
                 log_data = tree_map(_obs_stat_to_dict, obs_data)
 
@@ -268,12 +268,12 @@ class AbstractMCDriver(abc.ABC):
         if not observables:
             observables = self._obs
 
-        if self._stats_name is None:
+        if self._loss_name is None:
             include_energy = False
 
         result = self.estimate(observables)
 
         if include_energy:
-            result[self._stats_name] = self._stats
+            result[self._loss_name] = self._loss_stats
 
         return result

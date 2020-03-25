@@ -12,10 +12,10 @@ from netket.stats import (
 )
 
 from netket.vmc_common import info
-from netket.abstract_driver import AbstractMCDriver
+from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
-class SteadyState(AbstractMCDriver):
+class SteadyState(AbstractVariationalDriver):
     """
     Variational steady-state search by minimization of the L2,2 norm of L\rho using
     Variational Monte Carlo (VMC).
@@ -112,7 +112,7 @@ class SteadyState(AbstractMCDriver):
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
         """
-        return self._stats
+        return self._loss_stats
 
     @property
     def n_samples_obs(self):
@@ -210,7 +210,7 @@ class SteadyState(AbstractMCDriver):
         self._der_logs = self._der_logs.reshape(-1, self._npar)
 
         # Estimate energy
-        lloc, self._stats = self._get_mc_superop_stats(self._lind)
+        lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
 
         # Compute the (MPI-aware-)average of the derivatives
         der_logs_ave = _mean(self._der_logs, axis=0)
@@ -220,7 +220,7 @@ class SteadyState(AbstractMCDriver):
 
         # Compute the gradient
         grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
-        grad -= self._stats.mean * der_logs_ave.conj()
+        grad -= self._loss_stats.mean * der_logs_ave.conj()
 
         # Perform update
         if self._sr:
