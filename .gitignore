@@ -41,6 +41,12 @@ __pycache__/
 ehthumbs.db
 Thumbs.db
 
-# Run and Build Directories
+# Run and Build Directories #
+#############################
 run/
 build/
+
+# Developer files #
+###################
+.envrc
+.idea

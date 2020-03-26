@@ -1,10 +1,6 @@
-import sys
-import itertools
-
 import numpy as _np
 
 import netket as _nk
-from netket._core import deprecated
 from ._C_netket import MPI as _MPI
 from .operator import local_values as _local_values
 from .operator import der_local_values as _der_local_values
@@ -15,78 +11,11 @@ from netket.stats import (
     subtract_mean as _subtract_mean,
 )
 
-import json
+from netket.vmc_common import info
+from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
-def info(obj, depth=None):
-    if hasattr(obj, "info"):
-        return obj.info(depth)
-    else:
-        return str(obj)
-
-
-def make_optimizer_fn(arg, ma):
-    """
-    Utility function to create the optimizer step function for VMC drivers.
-
-    It currently supports three kinds of inputs:
-
-    1. A NetKet optimizer, i.e., a subclass of `netket.optimizer.Optimizer`.
-
-    2. A 3-tuple (init, update, get) of optimizer functions as used by the JAX
-       optimizer submodule (jax.experimental.optimizers).
-
-       The update step p0 -> p1 with bare step dp is computed as
-            x0 = init(p0)
-            x1 = update(i, dp, x1)
-            p1 = get(x1)
-
-    3. A single function update with signature p1 = update(i, dp, p0) returning the
-       updated parameter value.
-    """
-    if isinstance(arg, tuple) and len(arg) == 3:
-        init, update, get = arg
-
-        def optimize_fn(i, grad, p):
-            x0 = init(p)
-            x1 = update(i, grad, x0)
-            return get(x1)
-
-        desc = "JAX-like optimizer"
-        return optimize_fn, desc
-
-    elif issubclass(type(arg), _nk.optimizer.Optimizer):
-
-        arg.init(ma.n_par, ma.is_holomorphic)
-
-        def optimize_fn(_, grad, p):
-            arg.update(grad, p)
-            return p
-
-        desc = info(arg)
-        return optimize_fn, desc
-
-    elif callable(arg):
-        import inspect
-
-        sig = inspect.signature(arg)
-        if not len(sig.parameters) == 3:
-            raise ValueError(
-                "Expected netket.optimizer.Optimizer subclass, JAX optimizer, "
-                + " or callable f(i, grad, p); got callable with signature {}".format(
-                    sig
-                )
-            )
-        desc = "{}{}".format(arg.__name__, sig)
-        return arg, desc
-    else:
-        raise ValueError(
-            "Expected netket.optimizer.Optimizer subclass, JAX optimizer, "
-            + " or callable f(i, grad, p); got {}".format(arg)
-        )
-
-
-class SteadyState(object):
+class SteadyState(AbstractVariationalDriver):
     """
     Variational steady-state search by minimization of the L2,2 norm of L\rho using
     Variational Monte Carlo (VMC).
@@ -127,18 +56,15 @@ class SteadyState(object):
             n_discard_obs: n_discard for the observables (default: n_discard)
 
         """
+        super(SteadyState, self).__init__(
+            sampler.machine, optimizer, minimized_quantity_name="LdagL"
+        )  #'\u3008L\u2020L\u3009')
+
         self._lind = lindblad
-        self._machine = sampler.machine
         self._machine_obs = sampler_obs.machine
         self._sampler = sampler
         self._sampler_obs = sampler_obs
         self._sr = sr
-        self._stats = None
-        self._mynode = _MPI.rank()
-
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
-            optimizer, self._machine
-        )
 
         self._npar = self._machine.n_par
 
@@ -150,9 +76,6 @@ class SteadyState(object):
         self.n_samples_obs = n_samples_obs
         self.n_discard_obs = n_discard_obs
 
-        self._obs = {}
-
-        self.step_count = 0
         self._obs_samples_valid = False
         self._samples = _np.ndarray(
             (self._n_samples_node, self._batch_size, lindblad.hilbert.size)
@@ -182,6 +105,14 @@ class SteadyState(object):
     @property
     def n_samples(self):
         return self._n_samples
+
+    @property
+    def ldagl(self):
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._loss_stats
 
     @property
     def n_samples_obs(self):
@@ -243,11 +174,11 @@ class SteadyState(object):
             )
         self._n_discard_obs = (
             n_discard
-            if n_discard != None
+            if n_discard is not None
             else self._n_samples_obs_node * self._batch_size_obs // 10
         )
 
-    def advance(self, n_steps=1):
+    def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -255,65 +186,59 @@ class SteadyState(object):
             n_steps (int): Number of steps to perform.
         """
 
-        for _ in range(n_steps):
+        self._sampler.reset()
+        self._obs_samples_valid = False
 
-            self._sampler.reset()
-            self._obs_samples_valid = False
+        # Burnout phase
+        for _ in self._sampler.samples(self._n_discard):
+            pass
 
-            # Burnout phase
-            for _ in self._sampler.samples(self._n_discard):
-                pass
+        # Generate samples
+        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
 
-            # Generate samples
-            for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+            # Store the current sample
+            self._samples[i] = sample
 
-                # Store the current sample
-                self._samples[i] = sample
+            # Compute Log derivatives
+            self._der_logs[i] = self._machine.der_log(sample)
 
-                # Compute Log derivatives
-                self._der_logs[i] = self._machine.der_log(sample)
+            self._der_loc_vals[i] = _der_local_values(
+                self._lind, self._machine, sample, center_derivative=False
+            )
 
-                self._der_loc_vals[i] = _der_local_values(
-                    self._lind, self._machine, sample, center_derivative=False
-                )
+        # flatten MC chain dimensions:
+        self._der_logs = self._der_logs.reshape(-1, self._npar)
 
+        # Estimate energy
+        lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
+
+        # Compute the (MPI-aware-)average of the derivatives
+        der_logs_ave = _mean(self._der_logs, axis=0)
+
+        # Center the log derivatives
+        self._der_logs -= der_logs_ave
+
+        # Compute the gradient
+        grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
+        grad -= self._loss_stats.mean * der_logs_ave.conj()
+
+        # Perform update
+        if self._sr:
+            dp = _np.empty(self._npar, dtype=_np.complex128)
             # flatten MC chain dimensions:
-            self._der_logs = self._der_logs.reshape(-1, self._npar)
-
-            # Estimate energy
-            lloc, self._stats = self._get_mc_superop_stats(self._lind)
-
-            # Compute the (MPI-aware-)average of the derivatives
-            der_logs_ave = _mean(self._der_logs, axis=0)
-
-            # Center the log derivatives
-            self._der_logs -= der_logs_ave
-
-            # Compute the gradient
-            grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
-            grad -= self._stats.mean * der_logs_ave.conj()
-
-            # Perform update
-            if self._sr:
-                dp = _np.empty(self._npar, dtype=_np.complex128)
-                # flatten MC chain dimensions:
-                derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
-                self._sr.compute_update(derlogs, grad, dp)
-                derlogs = self._der_logs.reshape(
-                    self._n_samples_node, self._batch_size, self._npar
-                )
-            else:
-                dp = grad
-
-            self._der_logs = self._der_logs.reshape(
+            derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
+            self._sr.compute_update(derlogs, grad, dp)
+            derlogs = self._der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
             )
+        else:
+            dp = grad
 
-            self._machine.parameters = self._optimizer_step(
-                self.step_count, dp, self._machine.parameters
-            )
+        self._der_logs = self._der_logs.reshape(
+            self._n_samples_node, self._batch_size, self._npar
+        )
 
-            self.step_count += 1
+        return dp
 
     def sweep_diagonal(self):
         """
@@ -333,65 +258,12 @@ class SteadyState(object):
 
         self._obs_samples_valid = True
 
-    def iter(self, n_iter=None, step_size=1):
-        """
-            Returns a generator which advances the VMC optimization, yielding
-            after every `step_size` steps.
-
-            Args:
-                n_iter (int=None): The total number of steps to perform.
-                step_size (int=1): The number of internal steps the simulation
-                    is advanced every turn.
-
-            Yields:
-                int: The current step.
-            """
-        for i in itertools.count(step=step_size):
-            if n_iter and i >= n_iter:
-                return
-            self.advance(step_size)
-            yield i
-
-    def add_observable(self, obs, name):
-        """
-        Add an observables to the set of observables that will be computed by default
-        in get_obervable_stats.
-        """
-        self._obs[name] = obs
-
-    def get_observable_stats(self, observables=None, include_energy=True):
-        """
-        Return MCMC statistics for the expectation value of observables in the
-        current state of the driver.
-
-        Args:
-            observables: A dictionary of the form {name: observable} or a list
-                of tuples (name, observable) for which statistics should be computed.
-                If observables is None or not passed, results for those observables
-                added to the driver by add_observables are computed.
-            include_energy: Whether to include the energy estimate (which is already
-                computed as part of the VMC step) in the result.
-
-        Returns:
-            A dictionary of the form {name: stats} mapping the observable names in
-            the input to corresponding Stats objects.
-
-            If `include_energy` is true, then the result will further contain the
-            energy statistics with key "Energy".
-        """
-        if not observables:
-            observables = self._obs
-        r = {"LdagL": self._stats} if include_energy else {}
-
-        r.update(
-            {name: self._get_mc_obs_stats(obs)[1]
-             for name, obs in observables.items()}
-        )
-        return r
+    def _estimate_stats(self, obs):
+        return self._get_mc_obs_stats(obs)[1]
 
     def reset(self):
-        self.step_count = 0
         self._sampler.reset()
+        super().reset()
 
     def _get_mc_superop_stats(self, op):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
@@ -408,7 +280,7 @@ class SteadyState(object):
         return loc, _statistics(loc)
 
     def __repr__(self):
-        return "Vmc(step_count={}, n_samples={}, n_discard={})".format(
+        return "SteadyState(step_count={}, n_samples={}, n_discard={})".format(
             self.step_count, self.n_samples, self.n_discard
         )
 
@@ -423,33 +295,3 @@ class SteadyState(object):
             ]
         ]
         return "\n  ".join([str(self)] + lines)
-
-    def _add_to_json_log(self, step_count):
-        stats = self.get_observable_stats()
-        self._json_out["Output"].append({})
-        self._json_out["Output"][-1] = {}
-        json_iter = self._json_out["Output"][-1]
-        json_iter["Iteration"] = step_count
-        for key, value in stats.items():
-            st = value.asdict()
-            st["Mean"] = st["Mean"].real
-            json_iter[key] = st
-
-    def _init_json_log(self):
-
-        self._json_out = {}
-        self._json_out["Output"] = []
-
-    def run(
-        self, output_prefix, n_iter, step_size=1, save_params_every=50, write_every=50
-    ):
-        self._init_json_log()
-
-        for k in range(n_iter):
-            self.advance(step_size)
-
-            self._add_to_json_log(k)
-            if k % write_every == 0 or k == n_iter - 1:
-                if self._mynode == 0:
-                    with open(output_prefix + ".log", "w") as outfile:
-                        json.dump(self._json_out, outfile)

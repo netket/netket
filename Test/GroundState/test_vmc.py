@@ -68,11 +68,11 @@ def test_vmc_functions():
         assert ex.mean.real == approx(exact_ex.real, abs=tol)
 
         stats = vmc.estimate_expectations(
-            [op], sampler, n_samples=n_samples, n_discard=10
+            op, sampler, n_samples=n_samples, n_discard=10
         )
 
-        assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
-        assert stats[0].mean.real == approx(exact_ex.real, abs=tol)
+        assert stats.mean.real == approx(np.mean(local_values).real, rel=tol)
+        assert stats.mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)
     grad = nk.stats.covariance_sv(local_values, der_logs)
@@ -80,11 +80,11 @@ def test_vmc_functions():
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
 
     _, grads = vmc.estimate_expectations(
-        [ha], sampler, n_samples, 10, compute_gradients=True
+        ha, sampler, n_samples, 10, compute_gradients=True
     )
 
-    assert grads[0].shape == (ma.n_par,)
-    assert np.mean(np.abs(grads[0]) ** 2) == approx(0.0, abs=1e-8)
+    assert grads.shape == (ma.n_par,)
+    assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
 
 
 def test_vmc_use_cholesky_compatibility():
