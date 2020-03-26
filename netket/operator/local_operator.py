@@ -165,25 +165,6 @@ class PyLocalOperator(AbstractOperator):
 
         return diag_mels, mels, xs_prime, n_conns
 
-    def n_conn(self, x, out):
-        r"""Return the number of states connected to x.
-
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                out (array): If None an output array is allocated.
-
-            Returns:
-                array: The number of connected states x' for each x[i].
-
-        """
-        if(out is None):
-            out = _np.empty(x.shape[0], dtype=_np.int32)
-
-        out.fill(hilbert.size + 1)
-
-        return out
-
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
             from a given quantum number x, it finds all other quantum numbers x' such
@@ -277,5 +258,87 @@ class PyLocalOperator(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
+
+        return self._get_conn_flattened_kernel(x, sections, self._local_states, self._basis,
+                                               self._constant, self._diag_mels, self._n_conns,
+                                               self._mels, self._x_prime, self._acting_on,
+                                               self._acting_size)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _get_conn_flattened_kernel(x, sections, local_states, basis, constant,
+                                   diag_mels, n_conns, all_mels,
+                                   all_x_prime, acting_on, acting_size):
+        batch_size = x.shape[0]
+        n_sites = x.shape[1]
+
+        n_operators = n_conns.shape[0]
+        xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
+
+        tot_conn = 0
+
+        for b in range(batch_size):
+            # diagonal element
+            tot_conn += 1
+
+            # counting the off-diagonal elements
+            for i in range(n_operators):
+                acting_size_i = acting_size[i]
+
+                xs_n[b, i] = 0
+                x_b = x[b]
+                x_i = x_b[acting_on[i, :acting_size_i]]
+                for k in range(acting_size_i):
+                    xs_n[b, i] += _np.searchsorted(local_states,
+                                                   x_i[acting_size_i - k - 1]) * basis[k]
+
+                tot_conn += n_conns[i, xs_n[b, i]]
+            sections[b] = tot_conn
+
+        x_prime = _np.empty((tot_conn, n_sites))
+        mels = _np.empty(tot_conn, dtype=_np.complex128)
+
+        c = 0
+        for b in range(batch_size):
+            c_diag = c
+            mels[c_diag] = constant
+            x_batch = x[b]
+            x_prime[c_diag] = _np.copy(x_batch)
+            c += 1
+            for i in range(n_operators):
+
+                # Diagonal part
+                mels[c_diag] += diag_mels[i, xs_n[b, i]]
+                n_conn_i = n_conns[i, xs_n[b, i]]
+
+                if(n_conn_i > 0):
+                    sites = acting_on[i]
+                    acting_size_i = acting_size[i]
+
+                    for cc in range(n_conn_i):
+                        mels[c + cc] = all_mels[i, xs_n[b, i], cc]
+                        x_prime[c + cc] = _np.copy(x_batch)
+
+                        for k in range(acting_size_i):
+                            x_prime[c + cc, sites[k]
+                                    ] = all_x_prime[i, xs_n[b, i], cc, k]
+                    c += n_conn_i
+
+        return x_prime, mels
+
+    def n_conn(self, x, out):
+        r"""Return the number of states connected to x.
+
+            Args:
+                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                            the batch of quantum numbers x.
+                out (array): If None an output array is allocated.
+
+            Returns:
+                array: The number of connected states x' for each x[i].
+
+        """
+        if(out is None):
+            out = _np.empty(x.shape[0], dtype=_np.int32)
 
         return NotImplementedError
