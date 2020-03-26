@@ -40,6 +40,9 @@ class PyLocalOperator(AbstractOperator):
             acting_size = self._acting_size[i]
             self._acting_on[i, :acting_size] = _np.asarray(
                 site, dtype=_np.intp)
+            if(self._acting_on[i, :acting_size].max() > hilbert.size or self._acting_on[i, :acting_size].min() < 0):
+                raise InvalidInputError(
+                    "Operator acts on an invalid set of sites")
 
         self._hilbert = hilbert
 
@@ -138,20 +141,6 @@ class PyLocalOperator(AbstractOperator):
 
         return diag_mels, mels, xs_prime, n_conns
 
-    # for (std::size_t op = 0; op < nops_; op++) {
-    #   const auto sites = sites_[op];
-    #   const auto mat = mat_[op];
-    #   auto &connected = connected_[op];
-    #   auto &states = states_[op];
-    #   auto &invstate = invstate_[op];
-    #
-    #   if (*std::max_element(sites.begin(), sites.end()) >=
-    #           GetHilbert().Size() ||
-    #       *std::min_element(sites.begin(), sites.end()) < 0) {
-    #     throw InvalidInputError("Operator acts on an invalid set of sites");
-    #   }
-    #
-
     def n_conn(self, x, out):
         r"""Return the number of states connected to x.
 
@@ -188,11 +177,16 @@ class PyLocalOperator(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return self._get_conn_kernel(x, self._local_states, self._basis, self._constant, self._diag_mels, self._n_conns, self._mels, self._x_prime, self._acting_on, self._acting_size)
+        return self._get_conn_kernel(x, self._local_states, self._basis,
+                                     self._constant, self._diag_mels, self._n_conns,
+                                     self._mels, self._x_prime, self._acting_on,
+                                     self._acting_size)
 
     @staticmethod
     @jit(nopython=True)
-    def _get_conn_kernel(x, local_states, basis, constant, diag_mels, n_conns, all_mels, all_x_prime, acting_on, acting_size):
+    def _get_conn_kernel(x, local_states, basis, constant,
+                         diag_mels, n_conns, all_mels,
+                         all_x_prime, acting_on, acting_size):
 
         n_operators = n_conns.shape[0]
         xs_n = _np.empty(n_operators, dtype=_np.intp)
