@@ -35,19 +35,19 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
+gs = nk.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    diag_shift=0.1,
-    method="Sr",
+    sr=nk.optimizer.SR(diag_shift=0.1),
 )
 
 # Adding an observable
 # The sum of sigma_x on all sites
 X = [[0, 1], [1, 0]]
 sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
-gs.add_observable(sx, "SigmaX")
+obs = {"SigmaX": sx}
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(output_prefix="test", n_iter=300, obs=obs)
+
