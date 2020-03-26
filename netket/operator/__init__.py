@@ -8,12 +8,15 @@ from .local_values import (
     der_local_values,
 )
 
+
+from .local_operator import PyLocalOperator
+from .graph_operator import PyGraphOperator
+
 from .hamiltonian import (
     Ising,
     Heisenberg,
-    PyIsing
+    PyIsing,
+    PyHeisenberg
 )
-
-from .local_operator import PyLocalOperator
 
 from .._C_netket.operator import _rotated_grad_kernel

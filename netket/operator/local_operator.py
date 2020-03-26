@@ -1,14 +1,38 @@
 from .abstract_operator import AbstractOperator
-from ..hilbert import HilbertIndex
 
 import numpy as _np
 from numba import jit
-from numba.typed import List
 
 
 class PyLocalOperator(AbstractOperator):
+    """A custom local operator. This is a sum of an arbitrary number of operators
+       acting locally on a limited set of k quantum numbers (i.e. k-local,
+       in the quantum information sense).
+    """
 
     def __init__(self, hilbert, operators, acting_on, constant=0):
+        r"""
+        Constructs a new ``LocalOperator`` given a hilbert space and (if
+        specified) a constant level shift.
+
+        Args:
+           hilbert (netket.AbstractHilbert): Hilbert space the operator acts on.
+           operators (list(numpy.array)): A list of operators, in matrix form.
+           acting_on (list(numpy.array)): A list of sites, which the corresponding operators act on.
+           constant (float): Level shift for operator. Default is 0.0.
+
+        Examples:
+           Constructs a ``LocalOperator`` without any operators.
+
+           >>> from netket.graph import CustomGraph
+           >>> from netket.hilbert import CustomHilbert
+           >>> from netket.operator import LocalOperator
+           >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
+           >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
+           >>> empty_hat = LocalOperator(hi)
+           >>> print(len(empty_hat.acting_on))
+           0
+        """
         self._constant = 0
 
         n_operators = len(operators)
