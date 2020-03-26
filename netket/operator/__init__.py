@@ -14,4 +14,6 @@ from .hamiltonian import (
     PyIsing
 )
 
+from .local_operator import PyLocalOperator
+
 from .._C_netket.operator import _rotated_grad_kernel
