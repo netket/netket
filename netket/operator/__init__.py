@@ -19,4 +19,6 @@ from .hamiltonian import (
     PyHeisenberg
 )
 
+from .bose_hubbard import PyBoseHubbard
+
 from .._C_netket.operator import _rotated_grad_kernel

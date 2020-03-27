@@ -54,6 +54,7 @@ class PyBoson(AbstractHilbert):
             self._local_states = _np.arange(self._n_max + 1).tolist()
         else:
             max_ind = _np.iinfo(_np.intp).max
+            self._n_max = max_ind
             self._local_size = max_ind
             self._local_states = lambda x: x
 
@@ -82,6 +83,12 @@ class PyBoson(AbstractHilbert):
                          numbers if the local occupation number
                          is bounded. """
         return self._local_states
+
+    @property
+    def n_max(self):
+        r"""int or None: The maximum number of bosons per site, or None
+                         if the number is unconstrained."""
+        return self._n_max
 
     def random_vals(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
