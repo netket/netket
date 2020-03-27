@@ -6,43 +6,56 @@ from netket import random as _random
 from numba import jit
 
 
-class PySpin(AbstractHilbert):
-    r"""Hilbert space obtained as tensor product of local spin states."""
+class PyBoson(AbstractHilbert):
+    r"""Hilbert space obtained as tensor product of local bosonic states."""
 
-    def __init__(self, graph, s, total_sz=None):
+    def __init__(self, graph, n_max=None, n_bosons=None):
         r"""
-        Constructs a new ``Spin`` hilbert space given a graph and the value of each spin.
+        Constructs a new ``Boson`` given a graph,  maximum occupation number,
+        and total number of bosons.
 
         Args:
            graph: Graph representation of sites.
-           s: Spin at each site. Must be integer or half-integer.
-           total_sz: If given, constrains the total spin of system to a particular value.
+           n_max: Maximum occupation for a site (inclusive). If None, the local occupation
+                  number is unbounded.
+           n_bosons: Constraint for the number of bosons. If None, no constraint
+                  is imposed.
 
         Examples:
-           Simple spin hilbert space.
+           Simple boson hilbert space.
 
            >>> from netket.graph import Hypercube
-           >>> from netket.hilbert import Spin
+           >>> from netket.hilbert import Boson
            >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = Spin(graph=g, s=0.5)
+           >>> hi = Boson(graph=g, n_max=5, n_bosons=11)
            >>> print(hi.size)
            100
         """
-        self._s = s
+
         self.graph = graph
         self._size = graph.size
-        self._local_size = round(2 * s + 1)
-        self._local_states = _np.empty(self._local_size)
+        self._n_max = n_max
+        self._n_bosons = n_bosons
 
-        assert(int(2 * s + 1) == self._local_size)
+        if(n_bosons is not None):
+            assert(n_bosons > 0)
 
-        for i in range(self._local_size):
-            self._local_states[i] = -round(2 * s) + 2 * i
-        self._local_states = self._local_states.tolist()
+            if(self._n_max is None):
+                self._n_max = n_bosons
+            else:
+                if(self._n_max * graph.size < n_bosons):
+                    raise Exception(
+                        """The required total number of bosons is not compatible
+                        with the given n_max.""")
 
-        self._total_sz = total_sz
-
-        self._check_total_sz()
+        if(self._n_max is not None):
+            assert(self._n_max > 0)
+            self._local_size = self._n_max + 1
+            self._local_states = _np.arange(self._n_max + 1).tolist()
+        else:
+            max_ind = _np.iinfo(_np.intp).max
+            self._local_size = max_ind
+            self._local_states = lambda x: x
 
         self._hilbert_index = None
 
@@ -65,7 +78,9 @@ class PySpin(AbstractHilbert):
 
     @property
     def local_states(self):
-        r"""list[float]: A list of discreet local quantum numbers."""
+        r"""list[float]: A list of discreet allowed local quantum
+                         numbers if the local occupation number
+                         is bounded. """
         return self._local_states
 
     def random_vals(self, out=None, rgen=None):
@@ -98,41 +113,29 @@ class PySpin(AbstractHilbert):
         if(rgen is None):
             rgen = _random
 
-        if(self._total_sz is None):
+        if(self._n_bosons is None):
             for i in range(self._size):
                 rs = rgen.randint(0, self._local_size)
-                out[i] = self.local_states[rs]
+                if(callable(self.local_states)):
+                    out[i] = self.local_states(rs)
+                else:
+                    out[i] = self.local_states[rs]
         else:
             sites = list(range(self.size))
 
-            out.fill(-round(2 * self._s))
+            out.fill(0.)
             ss = self.size
 
-            for i in range(round(self._s * self.size) + self._total_sz):
+            for i in range(self._n_bosons):
                 s = rgen.randint(0, ss)
 
-                out[sites[s]] += 2
+                out[sites[s]] += 1
 
-                if(out[sites[s]] > round(2 * self._s - 1)):
+                if(out[sites[s]] > self._n_max):
                     sites.pop(s)
                     ss -= 1
 
         return out
-
-    def _check_total_sz(self):
-        if(self._total_sz is None):
-            return
-
-        m = round(2 * self._total_sz)
-        if (_np.abs(m) > self.size):
-            raise Exception(
-                "Cannot fix the total magnetization: 2|M| cannot "
-                "exceed Nspins.")
-
-        if ((self.size + m) % 2 != 0):
-            raise Exception(
-                "Cannot fix the total magnetization: Nspins + "
-                "totalSz must be even.")
 
     @property
     def n_states(self):
@@ -141,7 +144,7 @@ class PySpin(AbstractHilbert):
 
         hind = self._get_hilbert_index()
 
-        if self._total_sz is None:
+        if self._n_bosons is None:
             return hind.n_states
         else:
             return self._bare_numbers.shape[0]
@@ -181,36 +184,36 @@ class PySpin(AbstractHilbert):
                     'The hilbert space is too large to be indexed.')
 
             self._hilbert_index = HilbertIndex(_np.asarray(
-                self.local_states), self.local_size, self.size)
+                self.local_states, dtype=_np.float64), self.local_size, self.size)
 
-            if(self._total_sz is not None):
+            if(self._n_bosons is not None):
                 self._bare_numbers = self._gen_to_bare_numbers(
-                    self._total_sz, self._hilbert_index.all_states())
+                    self._n_bosons, self._hilbert_index.all_states())
             else:
                 self._bare_numbers = None
 
         return self._hilbert_index
 
     def _to_bare_numbers(self, numbers):
-        if self._total_sz is None:
+        if self._n_bosons is None:
             return numbers
         else:
             return self._bare_numbers[numbers]
 
     @staticmethod
     @jit(nopython=True)
-    def _gen_to_bare_numbers(total_sz, bare_states):
-        conditions = (bare_states.sum(axis=1) == round(2 * total_sz))
+    def _gen_to_bare_numbers(n_bosons, bare_states):
+        conditions = (bare_states.sum(axis=1) == n_bosons)
         return _np.argwhere(conditions).reshape(-1)
 
     def _to_constrained_numbers(self, numbers):
         return self._to_constrained_numbers_kernel(
-            self._total_sz, self._bare_numbers, numbers)
+            self._n_bosons, self._bare_numbers, numbers)
 
     @staticmethod
     @jit(nopython=True)
-    def _to_constrained_numbers_kernel(total_sz, bare_numbers, numbers):
-        if total_sz is None:
+    def _to_constrained_numbers_kernel(n_bosons, bare_numbers, numbers):
+        if n_bosons is None:
             return numbers
 
         found = _np.searchsorted(bare_numbers, numbers)
