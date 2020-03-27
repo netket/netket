@@ -1,7 +1,6 @@
 import abc
 import numpy as _np
 from scipy.sparse import csr_matrix as _csr_matrix
-from ..hilbert import HilbertIndex
 
 
 class AbstractOperator(abc.ABC):
