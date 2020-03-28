@@ -1,17 +1,16 @@
 from .abstract_hilbert import AbstractHilbert
-from .hilbert_index import HilbertIndex
+from .custom_hilbert import PyCustomHilbert
 
 import numpy as _np
 from netket import random as _random
 from numba import jit
 
 
-class PySpin(AbstractHilbert):
+class PySpin(PyCustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
     def __init__(self, graph, s, total_sz=None):
-        r"""
-        Constructs a new ``Spin`` hilbert space given a graph and the value of each spin.
+        r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
            graph: Graph representation of sites.
@@ -27,46 +26,28 @@ class PySpin(AbstractHilbert):
            >>> hi = Spin(graph=g, s=0.5)
            >>> print(hi.size)
            100
-        """
-        self._s = s
-        self.graph = graph
-        self._size = graph.size
-        self._local_size = round(2 * s + 1)
-        self._local_states = _np.empty(self._local_size)
+           """
 
-        assert(int(2 * s + 1) == self._local_size)
+        local_size = round(2 * s + 1)
+        local_states = _np.empty(local_size)
 
-        for i in range(self._local_size):
-            self._local_states[i] = -round(2 * s) + 2 * i
-        self._local_states = self._local_states.tolist()
+        assert(int(2 * s + 1) == local_size)
+
+        for i in range(local_size):
+            local_states[i] = -round(2 * s) + 2 * i
+        local_states = local_states.tolist()
+
+        self._check_total_sz(total_sz, graph.size)
+        if(total_sz is not None):
+            def constraints(x): return self._sum_constraint(x, total_sz)
+        else:
+            constraints = None
 
         self._total_sz = total_sz
+        self._s = s
+        self._local_size = local_size
 
-        self._check_total_sz()
-
-        self._hilbert_index = None
-
-        super().__init__()
-
-    @property
-    def size(self):
-        r"""int: The total number number of spins."""
-        return self._size
-
-    @property
-    def is_discrete(self):
-        r"""bool: Whether the hilbert space is discrete."""
-        return True
-
-    @property
-    def local_size(self):
-        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
-        return self._local_size
-
-    @property
-    def local_states(self):
-        r"""list[float]: A list of discreet local quantum numbers."""
-        return self._local_states
+        super().__init__(graph, local_states, constraints)
 
     def random_vals(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
@@ -119,102 +100,22 @@ class PySpin(AbstractHilbert):
 
         return out
 
-    def _check_total_sz(self):
-        if(self._total_sz is None):
+    @staticmethod
+    @jit(nopython=True)
+    def _sum_constraint(x, total_sz):
+        return _np.sum(x, axis=1) == round(2 * total_sz)
+
+    def _check_total_sz(self, total_sz, size):
+        if(total_sz is None):
             return
 
-        m = round(2 * self._total_sz)
-        if (_np.abs(m) > self.size):
+        m = round(2 * total_sz)
+        if (_np.abs(m) > size):
             raise Exception(
                 "Cannot fix the total magnetization: 2|M| cannot "
                 "exceed Nspins.")
 
-        if ((self.size + m) % 2 != 0):
+        if ((size + m) % 2 != 0):
             raise Exception(
                 "Cannot fix the total magnetization: Nspins + "
                 "totalSz must be even.")
-
-    @property
-    def n_states(self):
-        r"""int: The total dimension of the many-body Hilbert space.
-        Throws an exception iff the space is not indexable."""
-
-        hind = self._get_hilbert_index()
-
-        if self._total_sz is None:
-            return hind.n_states
-        else:
-            return self._bare_numbers.shape[0]
-
-    def numbers_to_states(self, numbers, out=None):
-        r"""Returns the quantum numbers corresponding to the n-th basis state
-        for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
-        Throws an exception iff the space is not indexable.
-        Args:
-            numbers: Batch of input numbers to be converted into arrays of quantum numbers.
-            out: Array of quantum numbers corresponding to numbers.
-                 If None, memory is allocated.
-        """
-
-        hind = self._get_hilbert_index()
-        return hind.numbers_to_states(self._to_bare_numbers(numbers), out)
-
-    def states_to_numbers(self, states, out=None):
-        r"""Returns the basis state number corresponding to given quantum states.
-        The states are given in a batch, such that states[k] has shape (hilbert.size).
-        Throws an exception iff the space is not indexable.
-        Args:
-            states: Batch of states to be converted into the corresponding integers.
-            out: Array of integers such that out[k]=Index(states[k]).
-                 If None, memory is allocated.
-        """
-        hind = self._get_hilbert_index()
-
-        out = self._to_constrained_numbers(hind.states_to_numbers(states, out))
-
-        return out
-
-    def _get_hilbert_index(self):
-        if(self._hilbert_index is None):
-            if(not self.is_indexable()):
-                raise Exception(
-                    'The hilbert space is too large to be indexed.')
-
-            self._hilbert_index = HilbertIndex(_np.asarray(
-                self.local_states), self.local_size, self.size)
-
-            if(self._total_sz is not None):
-                self._bare_numbers = self._gen_to_bare_numbers(
-                    self._total_sz, self._hilbert_index.all_states())
-            else:
-                self._bare_numbers = None
-
-        return self._hilbert_index
-
-    def _to_bare_numbers(self, numbers):
-        if self._total_sz is None:
-            return numbers
-        else:
-            return self._bare_numbers[numbers]
-
-    @staticmethod
-    @jit(nopython=True)
-    def _gen_to_bare_numbers(total_sz, bare_states):
-        conditions = (bare_states.sum(axis=1) == round(2 * total_sz))
-        return _np.argwhere(conditions).reshape(-1)
-
-    def _to_constrained_numbers(self, numbers):
-        return self._to_constrained_numbers_kernel(
-            self._total_sz, self._bare_numbers, numbers)
-
-    @staticmethod
-    @jit(nopython=True)
-    def _to_constrained_numbers_kernel(total_sz, bare_numbers, numbers):
-        if total_sz is None:
-            return numbers
-
-        found = _np.searchsorted(bare_numbers, numbers)
-        if(_np.max(found) >= bare_numbers.shape[0]):
-            raise RuntimeError(
-                "The required state does not satisfy the total_sz constraint.")
-        return found
