@@ -2,6 +2,7 @@ from .abstract_operator import AbstractOperator
 
 import numpy as _np
 from numba import jit
+import numbers
 
 
 @jit(nopython=True)
@@ -50,7 +51,10 @@ class PyLocalOperator(AbstractOperator):
            >>> print(len(empty_hat.acting_on))
            0
         """
-        self._constant = 0
+        self._constant = constant
+        if(not _np.isclose(_np.imag(constant), 0)):
+            raise InvalidInputError(
+                "Cannot add a complex number to LocalOperator.")
 
         self._hilbert = hilbert
         self._local_states = _np.sort(hilbert.local_states)
@@ -84,6 +88,10 @@ class PyLocalOperator(AbstractOperator):
         self._mel_cutoff = mel_cutoff
         assert(self.mel_cutoff >= 0)
 
+    @property
+    def constant(self):
+        return self._constant
+
     def __iadd__(self, other):
         if isinstance(other, PyLocalOperator):
             assert(other.mel_cutoff == self.mel_cutoff)
@@ -98,8 +106,139 @@ class PyLocalOperator(AbstractOperator):
             self._constant += other._constant
 
             return self
-        else:
-            return NotImplementedError
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot add a complex number to LocalOperator.")
+            self._constant += _np.real(other)
+
+        return NotImplementedError
+
+    def __add__(self, other):
+        if isinstance(other, PyLocalOperator):
+            assert(other.mel_cutoff == self.mel_cutoff)
+            assert(_np.all(other._local_states == self._local_states))
+            assert(other._hilbert.size == self._hilbert.size)
+
+            acting_on = []
+            for i in range(self._n_operators):
+                acting_on.append(self._acting_on[i, :self._acting_size[i]])
+
+            for i in range(other._n_operators):
+                acting_on.append(other._acting_on[i, :other._acting_size[i]])
+
+            return PyLocalOperator(self._hilbert, self._operators + other._operators,
+                                   acting_on=acting_on, constant=self._constant + other._constant)
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot add a complex number to LocalOperator.")
+
+            return PyLocalOperator(self._hilbert, self._operators,
+                                   acting_on=self._acting_on_list(),
+                                   constant=self._constant + _np.real(other))
+        return NotImplementedError
+
+    def __imul__(self, other):
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot multiply the operator with a complex number.")
+            other = _np.real(other)
+
+            self._constant *= other
+            self._diag_mels *= other
+            self._mels *= other
+            return self
+        if isinstance(other, PyLocalOperator):
+            tot_operators = []
+            tot_act = []
+            for i in range(other._n_operators):
+                act_i = other._acting_on[i, :other._acting_size[i]].tolist()
+                ops, act = self._multiply_operator(other._operators[i], act_i)
+                tot_operators += ops
+                tot_act += act
+
+            prod = PyLocalOperator(self._hilbert, tot_operators, tot_act)
+            self_constant = self._constant
+            if(_np.abs(other._constant) > self.mel_cutoff):
+                self._constant = 0.
+                self *= other._constant
+                self += prod
+            else:
+                self = prod
+
+            if(_np.abs(self_constant) > self.mel_cutoff):
+                self += other * self_constant
+
+            return self
+
+        return NotImplementedError
+
+    def __mul__(self, other):
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot multiply the operator with a complex number.")
+            other = _np.real(other)
+            new_ops = self._operators
+            for i in range(len(new_ops)):
+                new_ops[i] *= other
+            return PyLocalOperator(hilbert=self._hilbert,
+                                   operators=new_ops,
+                                   acting_on=self._acting_on_list(),
+                                   constant=self._constant * other)
+
+        if isinstance(other, PyLocalOperator):
+            tot_operators = []
+            tot_act = []
+            for i in range(other._n_operators):
+                act_i = other._acting_on[i, :other._acting_size[i]].tolist()
+                ops, act = self._multiply_operator(other._operators[i], act_i)
+                tot_operators += ops
+                tot_act += act
+
+            prod = PyLocalOperator(self._hilbert, tot_operators, tot_act)
+
+            if(_np.abs(other._constant) > self.mel_cutoff):
+                result = PyLocalOperator(hilbert=self._hilbert,
+                                         operators=self._operators,
+                                         acting_on=self._acting_on_list(),
+                                         constant=0)
+                result *= other._constant
+                result += prod
+            else:
+                result = prod
+
+            if(_np.abs(self._constant) > self.mel_cutoff):
+                result += other * self.constant
+
+            return result
+
+        return NotImplementedError
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot multiply the operator with a complex number.")
+            other = _np.real(other)
+            new_ops = self._operators
+            for i in range(len(new_ops)):
+                new_ops[i] *= other
+            return PyLocalOperator(hilbert=self._hilbert,
+                                   operators=new_ops,
+                                   acting_on=self._acting_on_list(),
+                                   constant=self._constant * other)
+
+    def __radd__(self, other):
+        if isinstance(other, numbers.Number):
+            if(not _np.isclose(_np.imag(other), 0)):
+                raise RuntimeError(
+                    "Cannot add a complex number to LocalOperator.")
+
+            return PyLocalOperator(self._hilbert, self._operators,
+                                   acting_on=self._acting_on_list(), constant=self._constant + _np.real(other))
 
     def _init_zero(self):
         self._operators = []
@@ -118,9 +257,19 @@ class PyLocalOperator(AbstractOperator):
 
         self._basis = _np.zeros(0, dtype=_np.int64)
 
+    def _acting_on_list(self):
+        acting_on = []
+        for i in range(self._n_operators):
+            acting_on.append(self._acting_on[i, :self._acting_size[i]])
+        return acting_on
+
     def _add_operator(self, operator, acting_on):
         self._n_operators += 1
         acting_on = _np.asarray(acting_on, dtype=_np.intp)
+
+        if(_np.unique(acting_on).size != acting_on.size):
+            raise RuntimeError("acting_on contains repeated entries.")
+
         operator = _np.asarray(operator, dtype=_np.complex128)
         self._operators.append(operator)
 
@@ -132,7 +281,10 @@ class PyLocalOperator(AbstractOperator):
         self._acting_size[-1] = acting_on.size
 
         self._max_op_size = max((operator.shape[0], self._max_op_size))
-        assert(operator.shape[0] == n_local_states**len(acting_on))
+
+        if(operator.shape[0] != n_local_states**len(acting_on)):
+            raise RuntimeError(r"""the given operator matrix has dimensions
+                   incompatible with the size of the local hilbert space.""")
 
         self._max_acting_size = max(self._max_acting_size, acting_on.size)
 
@@ -195,12 +347,19 @@ class PyLocalOperator(AbstractOperator):
                               max_op_size, max_acting_size))
         self._n_conns.resize((n_operators, max_op_size))
 
-        self._append_matrix(operator, self._diag_mels[-1], self._mels[-1], self._x_prime[-1],
-                            self._n_conns[-1], self._acting_size[-1], self.mel_cutoff, self._local_states)
+        self._append_matrix(operator,
+                            self._diag_mels[-1],
+                            self._mels[-1],
+                            self._x_prime[-1],
+                            self._n_conns[-1],
+                            self._acting_size[-1],
+                            self.mel_cutoff,
+                            self._local_states)
 
     @staticmethod
     @jit(nopython=True)
-    def _append_matrix(operator, diag_mels, mels, x_prime, n_conns, acting_size, epsilon, local_states):
+    def _append_matrix(operator, diag_mels, mels, x_prime, n_conns,
+                       acting_size, epsilon, local_states):
         op_size = operator.shape[0]
         assert(op_size == operator.shape[1])
         for i in range(op_size):
@@ -214,9 +373,31 @@ class PyLocalOperator(AbstractOperator):
                                                               :acting_size])
                     n_conns[i] += 1
 
-    def _reshape_preserving(array, new_shape):
-        self._reshape_preserving(
-            self._acting_on, (self._n_operators, self._max_acting_size))
+    def _multiply_operator(self, op, act):
+        operators = []
+        acting_on = []
+        act = _np.asarray(act)
+
+        for i in range(self._n_operators):
+            act_i = self._acting_on[i, :self._acting_size[i]]
+
+            inters = _np.intersect1d(
+                act_i, act, return_indices=False)
+
+            if(act.size == act_i.size and _np.array_equal(act, act_i)):
+                # non-interesecting with same support
+                operators.append(_np.matmul(self._operators[i], op))
+                acting_on.append(act_i.tolist())
+            elif(inters.size == 0):
+                # disjoint supports
+                operators.append(_np.kron(self._operators[i], op))
+                acting_on.append(act_i.tolist() + act.tolist())
+            else:
+                # partially intersecting support
+                raise RuntimeError(
+                    "Product of intersecting LocalOperator is not implemented.")
+
+        return operators, acting_on
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
