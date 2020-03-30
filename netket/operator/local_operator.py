@@ -4,13 +4,30 @@ import numpy as _np
 from numba import jit
 
 
+@jit(nopython=True)
+def _number_to_state(number, local_states, out):
+
+    out.fill(local_states[0])
+    size = out.shape[0]
+    local_size = local_states.shape[0]
+
+    ip = number
+    k = size - 1
+    while(ip > 0):
+        out[k] = local_states[ip % local_size]
+        ip = ip // local_size
+        k -= 1
+
+    return out
+
+
 class PyLocalOperator(AbstractOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
        acting locally on a limited set of k quantum numbers (i.e. k-local,
        in the quantum information sense).
     """
 
-    def __init__(self, hilbert, operators, acting_on, constant=0):
+    def __init__(self, hilbert, operators=[], acting_on=[], constant=0):
         r"""
         Constructs a new ``LocalOperator`` given a hilbert space and (if
         specified) a constant level shift.
@@ -35,59 +52,14 @@ class PyLocalOperator(AbstractOperator):
         """
         self._constant = 0
 
-        n_operators = len(operators)
-        assert(len(acting_on) == n_operators)
-        self._n_operators = n_operators
-
-        self._acting_size = _np.zeros(n_operators, dtype=_np.intp)
-        n_local_states = hilbert.local_size
-
-        self._operators = []
-        max_op_size = 0
-
-        for i, op in enumerate(operators):
-            self._operators.append(_np.asarray(
-                op, dtype=_np.complex128))
-            self._acting_size[i] = len(acting_on[i])
-            max_op_size = max((op.shape[0], max_op_size))
-            assert(op.shape[0] == n_local_states**len(acting_on[i]))
-
-        self._max_op_size = max_op_size
-
-        max_acting_size = self._acting_size.max()
-        self._max_acting_size = max_acting_size
-
-        self._acting_on = _np.zeros(
-            (n_operators, max_acting_size), dtype=_np.intp)
-        self._acting_on.fill(_np.nan)
-        for i, site in enumerate(acting_on):
-            acting_size = self._acting_size[i]
-            self._acting_on[i, :acting_size] = _np.asarray(
-                site, dtype=_np.intp)
-            if(self._acting_on[i, :acting_size].max() > hilbert.size or self._acting_on[i, :acting_size].min() < 0):
-                raise InvalidInputError(
-                    "Operator acts on an invalid set of sites")
-
         self._hilbert = hilbert
-
         self._local_states = _np.sort(hilbert.local_states)
-
-        self._basis = _np.zeros(
-            max_acting_size, dtype=_np.int64)
-
-        ba = 1
-        for s in range(self._max_acting_size):
-            self._basis[s] = ba
-            ba *= self._local_states.size
-
-        self._size = 0
-        for m in self._acting_on:
-            self._size = max(self._size, _np.max(m))
-        self._size += 1
+        self._init_zero()
 
         self.mel_cutoff = 1.0e-6
 
-        self._diag_mels, self._mels, self._x_prime, self._n_conns = self._init_conns()
+        for op, act in zip(operators, acting_on):
+            self._add_operator(op, act)
 
         super().__init__()
 
@@ -112,58 +84,139 @@ class PyLocalOperator(AbstractOperator):
         self._mel_cutoff = mel_cutoff
         assert(self.mel_cutoff >= 0)
 
-    @staticmethod
-    @jit(nopython=True)
-    def _number_to_state(number, local_states, out):
+    def __iadd__(self, other):
+        if isinstance(other, PyLocalOperator):
+            assert(other.mel_cutoff == self.mel_cutoff)
+            assert(_np.all(other._local_states == self._local_states))
+            assert(other._hilbert.size == self._hilbert.size)
 
-        out.fill(local_states[0])
-        size = out.shape[0]
-        local_size = local_states.shape[0]
+            for i in range(other._n_operators):
+                acting_on = other._acting_on[i, :other._acting_size[i]]
+                operator = other._operators[i]
+                self._add_operator(operator, acting_on)
 
-        ip = number
-        k = size - 1
-        while(ip > 0):
-            out[k] = local_states[ip % local_size]
-            ip = ip // local_size
-            k -= 1
+            self._constant += other._constant
 
-        return out
+            return self
+        else:
+            return NotImplementedError
 
-    def _init_conns(self):
+    def _init_zero(self):
+        self._operators = []
+        self._n_operators = 0
+
+        self._max_op_size = 0
+        self._max_acting_size = 0
+        self._size = 0
+
+        self._acting_on = _np.zeros((0, 0), dtype=_np.intp)
+        self._acting_size = _np.zeros(0, dtype=_np.intp)
+        self._diag_mels = _np.empty((0, 0), dtype=_np.complex128)
+        self._mels = _np.empty((0, 0, 0), dtype=_np.complex128)
+        self._x_prime = _np.empty((0, 0, 0, 0))
+        self._n_conns = _np.empty((0, 0), dtype=_np.intp)
+
+        self._basis = _np.zeros(0, dtype=_np.int64)
+
+    def _add_operator(self, operator, acting_on):
+        self._n_operators += 1
+        acting_on = _np.asarray(acting_on, dtype=_np.intp)
+        operator = _np.asarray(operator, dtype=_np.complex128)
+        self._operators.append(operator)
+
+        self._acting_size = _np.resize(self._acting_size, self._n_operators)
+        n_local_states = self.hilbert.local_size
+
+        max_op_size = 0
+
+        self._acting_size[-1] = acting_on.size
+
+        self._max_op_size = max((operator.shape[0], self._max_op_size))
+        assert(operator.shape[0] == n_local_states**len(acting_on))
+
+        self._max_acting_size = max(self._max_acting_size, acting_on.size)
+
+        # numpy.resize does not preserve inner content correctly,
+        # we need to do this ugly thing here to prevent issues
+        # hopefully this is executed only a few times in realistic situations
+        if(self._acting_on.shape[1] != self._max_acting_size):
+            old_n_op = self._acting_on.shape[0]
+
+            old_array = _np.copy(self._acting_on)
+            self._acting_on.resize((old_n_op, self._max_acting_size))
+            self._acting_on[:, :old_array.shape[1]] = old_array
+
+            old_array = _np.copy(self._diag_mels)
+            self._diag_mels.resize((old_n_op, self._max_op_size))
+            self._diag_mels[:, :old_array.shape[1]] = old_array
+
+            old_array = _np.copy(self._mels)
+            self._mels.resize((old_n_op, self._max_op_size, self._max_op_size))
+            self._mels[:, :old_array.shape[1], :old_array.shape[2]] = old_array
+
+            old_array = _np.copy(self._x_prime)
+            self._x_prime.resize((old_n_op, self._max_op_size,
+                                  self._max_op_size, self._max_acting_size))
+            self._x_prime[:, :old_array.shape[1],
+                          :old_array.shape[2], :old_array.shape[3]] = old_array
+
+            old_array = _np.copy(self._n_conns)
+            self._n_conns.resize((old_n_op, self._max_op_size))
+            self._n_conns[:, :old_array.shape[1]] = old_array
+
+        self._acting_on.resize((self._n_operators, self._max_acting_size))
+
+        self._acting_on[-1].fill(_np.nan)
+
+        acting_size = acting_on.size
+        self._acting_on[-1, :acting_size] = acting_on
+        if(self._acting_on[-1, :acting_size].max() > self.hilbert.size or self._acting_on[-1, :acting_size].min() < 0):
+            raise InvalidInputError(
+                "Operator acts on an invalid set of sites")
+
+        if(self._basis.size != self._max_acting_size):
+            self._basis = _np.zeros(self._max_acting_size, dtype=_np.int64)
+
+            ba = 1
+            for s in range(self._max_acting_size):
+                self._basis[s] = ba
+                ba *= self._local_states.size
+
+        if(acting_on.max() + 1 >= self._size):
+            self._size = acting_on.max() + 1
+
         n_operators = self._n_operators
         max_op_size = self._max_op_size
         max_acting_size = self._max_acting_size
-        epsilon = self.mel_cutoff
 
-        diag_mels = _np.empty((n_operators, max_op_size), dtype=_np.complex128)
-        mels = _np.empty(
-            (n_operators, max_op_size, max_op_size), dtype=_np.complex128)
-        xs_prime = _np.empty((n_operators, max_op_size,
+        self._diag_mels.resize((n_operators, max_op_size))
+        self._mels.resize((n_operators, max_op_size, max_op_size))
+        self._x_prime.resize((n_operators, max_op_size,
                               max_op_size, max_acting_size))
-        n_conns = _np.empty((n_operators, max_op_size), dtype=_np.intp)
+        self._n_conns.resize((n_operators, max_op_size))
 
-        for op in range(n_operators):
-            mat = self._operators[op]
-            op_size = mat.shape[0]
-            assert(op_size == mat.shape[1])
+        self._append_matrix(operator, self._diag_mels[-1], self._mels[-1], self._x_prime[-1],
+                            self._n_conns[-1], self._acting_size[-1], self.mel_cutoff, self._local_states)
 
-            diag_mel = diag_mels[op]
-            mel = mels[op]
-            x_prime = xs_prime[op]
-            acting_size = self._acting_size[op]
+    @staticmethod
+    @jit(nopython=True)
+    def _append_matrix(operator, diag_mels, mels, x_prime, n_conns, acting_size, epsilon, local_states):
+        op_size = operator.shape[0]
+        assert(op_size == operator.shape[1])
+        for i in range(op_size):
+            diag_mels[i] = operator[i, i]
+            n_conns[i] = 0
+            for j in range(op_size):
+                if(i != j and _np.abs(operator[i, j]) > epsilon):
+                    k_conn = n_conns[i]
+                    mels[i, k_conn] = operator[i, j]
+                    _number_to_state(j, local_states, x_prime[i, k_conn,
+                                                              :acting_size])
+                    n_conns[i] += 1
 
-            for i in range(op_size):
-                diag_mel[i] = mat[i, i]
-                n_conns[op, i] = 0
-                for j in range(op_size):
-                    if(i != j and _np.abs(mat[i, j]) > epsilon):
-                        k_conn = n_conns[op, i]
-                        mel[i, k_conn] = mat[i, j]
-                        self._number_to_state(j, self._local_states, x_prime[i, k_conn,
-                                                                             :acting_size])
-                        n_conns[op, i] += 1
-
-        return diag_mels, mels, xs_prime, n_conns
+    def _reshape_preserving(array, new_shape):
+        self._reshape_preserving(
+            self._acting_on, (self._n_operators, self._max_acting_size))
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
