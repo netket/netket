@@ -15,7 +15,8 @@ class PyCustomHilbert(AbstractHilbert):
 
         Args:
            graph: Graph representation of sites.
-           local_states: Eigenvalues of the states.
+           local_states (list or None): Eigenvalues of the states. If the allowed states are an
+                         infinite number, None should be passed as an argument.
            constraints: A function specifying constraints on the quantum numbers.
                         Given a batch of quantum numbers it should return a vector
                         of bools specifying whether those states are valid or not.
@@ -34,10 +35,17 @@ class PyCustomHilbert(AbstractHilbert):
         self.graph = graph
         self._size = graph.size
 
-        self._local_states = _np.asarray(local_states)
-        assert(self._local_states.ndim == 1)
-        self._local_size = self._local_states.shape[0]
-        self._local_states = self._local_states.tolist()
+        self._is_finite = local_states is not None
+
+        if(self._is_finite):
+            self._local_states = _np.asarray(local_states)
+            assert(self._local_states.ndim == 1)
+            self._local_size = self._local_states.shape[0]
+            self._local_states = self._local_states.tolist()
+        else:
+            self._local_states = None
+            self._local_size = _np.iinfo(_np.intp).max
+
         self._constraints = constraints
         self._do_constraints = self._constraints is not None
 
@@ -62,7 +70,8 @@ class PyCustomHilbert(AbstractHilbert):
 
     @property
     def local_states(self):
-        r"""list[float]: A list of discreet local quantum numbers."""
+        r"""list[float] or None: A list of discreet local quantum numbers.
+                     If the local states are infinitely many, None is returned."""
         return self._local_states
 
     @property
@@ -76,6 +85,11 @@ class PyCustomHilbert(AbstractHilbert):
             return hind.n_states
         else:
             return self._bare_numbers.shape[0]
+
+    @property
+    def is_finite(self):
+        r"""bool: Whether the local hilbert space is finite."""
+        return self._is_finite
 
     def numbers_to_states(self, numbers, out=None):
         r"""Returns the quantum numbers corresponding to the n-th basis state
@@ -106,6 +120,47 @@ class PyCustomHilbert(AbstractHilbert):
 
         return out
 
+    def random_vals(self, out=None, rgen=None):
+        r"""Member function generating uniformely distributed local random states.
+
+        Args:
+            out: If provided, the random quantum numbers will be inserted into this array.
+                 It should be of the appropriate shape and dtype.
+            rgen: The random number generator. If None, the global
+                  NetKet random number generator is used.
+
+        Examples:
+           Test that a new random state is a possible state for the hilbert
+           space.
+
+           >>> import netket as nk
+           >>> import numpy as np
+           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+           >>> rstate = np.zeros(hi.size)
+           >>> rg = nk.utils.RandomEngine(seed=1234)
+           >>> hi.random_vals(rstate, rg)
+           >>> local_states = hi.local_states
+           >>> print(rstate[0] in local_states)
+           True
+           """
+
+        # Default version for discrete hilbert spaces without constraints
+        # More specialized initializations can be defined in the derived classes
+        if(self.is_discrete and self.is_finite and not self._do_constraints):
+            if out is None:
+                out = _np.empty(self._size)
+
+            if(rgen is None):
+                rgen = _random
+
+            for i in range(self._size):
+                rs = rgen.randint(0, self._local_size)
+                out[i] = self.local_states[rs]
+
+            return out
+
+        return NotImplementedError
+
     def _get_hilbert_index(self):
         if(self._hilbert_index is None):
             if(not self.is_indexable()):
@@ -113,7 +168,7 @@ class PyCustomHilbert(AbstractHilbert):
                     'The hilbert space is too large to be indexed.')
 
             self._hilbert_index = HilbertIndex(_np.asarray(
-                self.local_states, dtype=_np.float64), self.local_size, self.size)
+                self.local_states, dtype=_np.float64), self.size)
 
             if(self._do_constraints):
                 self._bare_numbers = self._gen_to_bare_numbers(

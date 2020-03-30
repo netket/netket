@@ -20,6 +20,12 @@ class AbstractHilbert(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def is_finite(self):
+        r"""bool: Whether the local hilbert space is finite."""
+        return NotImplementedError
+
+    @property
+    @abc.abstractmethod
     def local_size(self):
         r"""int: Size of the local degrees of freedom that make the total hilbert space."""
         return NotImplementedError
@@ -28,47 +34,6 @@ class AbstractHilbert(abc.ABC):
     @abc.abstractmethod
     def local_states(self):
         r"""list[float]: A list of discreet local quantum numbers."""
-        return NotImplementedError
-
-    def random_vals(self, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
-
-        Examples:
-           Test that a new random state is a possible state for the hilbert
-           space.
-
-           >>> import netket as nk
-           >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
-           >>> rstate = np.zeros(hi.size)
-           >>> rg = nk.utils.RandomEngine(seed=1234)
-           >>> hi.random_vals(rstate, rg)
-           >>> local_states = hi.local_states
-           >>> print(rstate[0] in local_states)
-           True
-           """
-
-        # Default version for discrete hilbert spaces without constraints
-        # More specialized initializations can be defined in the derived classes
-        if(self.is_discrete):
-            if out is None:
-                out = _np.empty(self._size)
-
-            if(rgen is None):
-                rgen = _random
-
-            for i in range(self._size):
-                rs = rgen.randint(0, self._local_size)
-                out[i] = self.local_states[rs]
-
-            return out
-
         return NotImplementedError
 
     def numbers_to_states(self, numbers, out=None):
@@ -127,6 +92,9 @@ class AbstractHilbert(abc.ABC):
 
     def is_indexable(self):
         if(not self.is_discrete):
+            return False
+
+        if(not self.is_finite):
             return False
 
         max_states = (_np.iinfo(_np.intp).max)

@@ -1,5 +1,5 @@
 import numpy as _np
-from numba import jitclass, types, typed
+from numba import jitclass, types, typed, generated_jit
 from numba import int64, float64
 import numba
 
@@ -14,23 +14,27 @@ spec = [
 
 @jitclass(spec)
 class HilbertIndex():
-    def __init__(self, local_states, local_size, size):
+    def __init__(self, local_states, size):
         self._local_states = _np.sort(local_states)
-        self._local_size = local_size
+        self._local_size = len(self._local_states)
         self._size = size
 
         self._basis = _np.zeros(size, dtype=_np.int64)
         ba = 1
         for s in range(size):
             self._basis[s] = ba
-            ba *= local_size
+            ba *= self._local_size
 
     def _local_state_number(self, x):
-        return _np.searchsorted(self._local_states, x)
+        return _np.searchsorted(self.local_states, x)
 
     @property
     def n_states(self):
         return self._local_size**self._size
+
+    @property
+    def local_states(self):
+        return self._local_states
 
     def state_to_number(self, state):
         # Converts a vector of quantum numbers into the unique integer identifier

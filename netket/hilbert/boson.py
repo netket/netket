@@ -1,12 +1,12 @@
 from .abstract_hilbert import AbstractHilbert
-from .hilbert_index import HilbertIndex
+from .custom_hilbert import PyCustomHilbert
 
 import numpy as _np
 from netket import random as _random
 from numba import jit
 
 
-class PyBoson(AbstractHilbert):
+class PyBoson(PyCustomHilbert):
     r"""Hilbert space obtained as tensor product of local bosonic states."""
 
     def __init__(self, graph, n_max=None, n_bosons=None):
@@ -32,8 +32,6 @@ class PyBoson(AbstractHilbert):
            100
         """
 
-        self.graph = graph
-        self._size = graph.size
         self._n_max = n_max
         self._n_bosons = n_bosons
 
@@ -48,47 +46,33 @@ class PyBoson(AbstractHilbert):
                         """The required total number of bosons is not compatible
                         with the given n_max.""")
 
+            def constraints(x): return self._sum_constraint(x, n_bosons)
+        else:
+            constraints = None
+
         if(self._n_max is not None):
             assert(self._n_max > 0)
-            self._local_size = self._n_max + 1
-            self._local_states = _np.arange(self._n_max + 1).tolist()
+            local_states = _np.arange(self._n_max + 1)
         else:
             max_ind = _np.iinfo(_np.intp).max
             self._n_max = max_ind
-            self._local_size = max_ind
-            self._local_states = lambda x: x
+            local_states = None
 
         self._hilbert_index = None
 
-        super().__init__()
-
-    @property
-    def size(self):
-        r"""int: The total number number of spins."""
-        return self._size
-
-    @property
-    def is_discrete(self):
-        r"""bool: Whether the hilbert space is discrete."""
-        return True
-
-    @property
-    def local_size(self):
-        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
-        return self._local_size
-
-    @property
-    def local_states(self):
-        r"""list[float]: A list of discreet allowed local quantum
-                         numbers if the local occupation number
-                         is bounded. """
-        return self._local_states
+        super().__init__(graph, local_states, constraints)
 
     @property
     def n_max(self):
         r"""int or None: The maximum number of bosons per site, or None
                          if the number is unconstrained."""
         return self._n_max
+
+    @property
+    def n_bosons(self):
+        r"""int or None: The total number of particles, or None
+                         if the number is unconstrained."""
+        return self._n_bosons
 
     def random_vals(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
@@ -115,116 +99,36 @@ class PyBoson(AbstractHilbert):
            """
 
         if out is None:
-            out = _np.empty(self._size)
+            out = _np.empty(self.size)
 
         if(rgen is None):
             rgen = _random
 
-        if(self._n_bosons is None):
-            for i in range(self._size):
-                rs = rgen.randint(0, self._local_size)
-                if(callable(self.local_states)):
-                    out[i] = self.local_states(rs)
-                else:
+        if(self.n_bosons is None):
+            for i in range(self.size):
+                rs = rgen.randint(0, self.local_size)
+                if(self.is_finite):
                     out[i] = self.local_states[rs]
+                else:
+                    out[i] = rs
         else:
             sites = list(range(self.size))
 
             out.fill(0.)
             ss = self.size
 
-            for i in range(self._n_bosons):
+            for i in range(self.n_bosons):
                 s = rgen.randint(0, ss)
 
                 out[sites[s]] += 1
 
-                if(out[sites[s]] > self._n_max):
+                if(out[sites[s]] > self.n_max):
                     sites.pop(s)
                     ss -= 1
 
         return out
 
-    @property
-    def n_states(self):
-        r"""int: The total dimension of the many-body Hilbert space.
-        Throws an exception iff the space is not indexable."""
-
-        hind = self._get_hilbert_index()
-
-        if self._n_bosons is None:
-            return hind.n_states
-        else:
-            return self._bare_numbers.shape[0]
-
-    def numbers_to_states(self, numbers, out=None):
-        r"""Returns the quantum numbers corresponding to the n-th basis state
-        for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
-        Throws an exception iff the space is not indexable.
-        Args:
-            numbers: Batch of input numbers to be converted into arrays of quantum numbers.
-            out: Array of quantum numbers corresponding to numbers.
-                 If None, memory is allocated.
-        """
-
-        hind = self._get_hilbert_index()
-        return hind.numbers_to_states(self._to_bare_numbers(numbers), out)
-
-    def states_to_numbers(self, states, out=None):
-        r"""Returns the basis state number corresponding to given quantum states.
-        The states are given in a batch, such that states[k] has shape (hilbert.size).
-        Throws an exception iff the space is not indexable.
-        Args:
-            states: Batch of states to be converted into the corresponding integers.
-            out: Array of integers such that out[k]=Index(states[k]).
-                 If None, memory is allocated.
-        """
-        hind = self._get_hilbert_index()
-
-        out = self._to_constrained_numbers(hind.states_to_numbers(states, out))
-
-        return out
-
-    def _get_hilbert_index(self):
-        if(self._hilbert_index is None):
-            if(not self.is_indexable()):
-                raise Exception(
-                    'The hilbert space is too large to be indexed.')
-
-            self._hilbert_index = HilbertIndex(_np.asarray(
-                self.local_states, dtype=_np.float64), self.local_size, self.size)
-
-            if(self._n_bosons is not None):
-                self._bare_numbers = self._gen_to_bare_numbers(
-                    self._n_bosons, self._hilbert_index.all_states())
-            else:
-                self._bare_numbers = None
-
-        return self._hilbert_index
-
-    def _to_bare_numbers(self, numbers):
-        if self._n_bosons is None:
-            return numbers
-        else:
-            return self._bare_numbers[numbers]
-
     @staticmethod
     @jit(nopython=True)
-    def _gen_to_bare_numbers(n_bosons, bare_states):
-        conditions = (bare_states.sum(axis=1) == n_bosons)
-        return _np.argwhere(conditions).reshape(-1)
-
-    def _to_constrained_numbers(self, numbers):
-        return self._to_constrained_numbers_kernel(
-            self._n_bosons, self._bare_numbers, numbers)
-
-    @staticmethod
-    @jit(nopython=True)
-    def _to_constrained_numbers_kernel(n_bosons, bare_numbers, numbers):
-        if n_bosons is None:
-            return numbers
-
-        found = _np.searchsorted(bare_numbers, numbers)
-        if(_np.max(found) >= bare_numbers.shape[0]):
-            raise RuntimeError(
-                "The required state does not satisfy the total_sz constraint.")
-        return found
+    def _sum_constraint(x, n_bosons):
+        return _np.sum(x, axis=1) == n_bosons
