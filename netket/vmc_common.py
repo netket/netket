@@ -72,11 +72,10 @@ def make_optimizer_fn(arg, ma):
 
 
 def tree_map(fun, tree):
-
     if tree is None:
         result = None
 
-    elif "_C_netket" in str(type(tree)):
+    elif not hasattr(tree, '__iter__'):
         result = fun(tree)
 
     elif type(tree) == list:

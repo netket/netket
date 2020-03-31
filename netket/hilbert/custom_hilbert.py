@@ -3,6 +3,7 @@ from .hilbert_index import HilbertIndex
 
 from numba import jit
 import numpy as _np
+from netket import random as _random
 
 
 class PyCustomHilbert(AbstractHilbert):
@@ -163,8 +164,8 @@ class PyCustomHilbert(AbstractHilbert):
 
     def _get_hilbert_index(self):
         if(self._hilbert_index is None):
-            if(not self.is_indexable()):
-                raise Exception(
+            if(not self.is_indexable):
+                raise RuntimeError(
                     'The hilbert space is too large to be indexed.')
 
             self._hilbert_index = HilbertIndex(_np.asarray(

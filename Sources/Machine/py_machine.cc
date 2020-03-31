@@ -580,7 +580,8 @@ void AddAbstractMachine(py::module m) {
 
            )EOF")
       .def("log_val",
-           [](AbstractMachine &self, py::array_t<double> x) {
+           [](AbstractMachine &self, py::array_t<double> x,
+              nonstd::optional<py::array_t<Complex>> out) {
              if (x.ndim() == 1) {
                auto input = x.cast<Eigen::Ref<const VectorXd>>();
                return py::cast(self.LogValSingle(input));
@@ -598,7 +599,7 @@ void AddAbstractMachine(py::module m) {
                throw InvalidInputError{"Invalid input dimension"};
              }
            },
-           py::arg("v"),
+           py::arg("v"), py::arg("out") = py::none(),
            R"EOF(
                  Member function to obtain log value of machine given an input
                  vector.

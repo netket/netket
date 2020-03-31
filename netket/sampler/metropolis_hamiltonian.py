@@ -13,7 +13,7 @@ class _hamiltonian_kernel:
         self._hamiltonian = hamiltonian
         self._sections = _np.empty(1, dtype=_np.int32)
         self._hamconn = self._hamiltonian.get_conn_flattened
-        self._n_conn = self._hamiltonian.get_n_conn
+        self._n_conn = self._hamiltonian.n_conn
 
     def apply(self, state, state_1, log_prob_corr):
 
@@ -94,22 +94,22 @@ class MetropolisHamiltonian(AbstractSampler):
            >>> # Construct a MetropolisHamiltonian Sampler
            >>> sa = nk.sampler.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
         """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.MetropolisHamiltonian(
-                machine=machine,
-                hamiltonian=hamiltonian,
-                n_chains=n_chains,
-                sweep_size=sweep_size,
-                batch_size=batch_size,
-            )
-        else:
-            self.sampler = PyMetropolisHastings(
-                machine,
-                _hamiltonian_kernel(hamiltonian),
-                n_chains,
-                sweep_size,
-                batch_size,
-            )
+        # if "_C_netket.machine" in str(type(machine)):
+        #     self.sampler = c_sampler.MetropolisHamiltonian(
+        #         machine=machine,
+        #         hamiltonian=hamiltonian,
+        #         n_chains=n_chains,
+        #         sweep_size=sweep_size,
+        #         batch_size=batch_size,
+        #     )
+        # else:
+        self.sampler = PyMetropolisHastings(
+            machine,
+            _hamiltonian_kernel(hamiltonian),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )
         super().__init__(machine, n_chains)
 
     def reset(self, init_random=False):

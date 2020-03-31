@@ -39,7 +39,6 @@ class AbstractOperator(abc.ABC):
         """
         return NotImplementedError
 
-    @abc.abstractmethod
     def n_conn(self, x, out=None):
         r"""Return the number of states connected to x.
 
@@ -52,7 +51,9 @@ class AbstractOperator(abc.ABC):
                 array: The number of connected states x' for each x[i].
 
         """
-        return NotImplementedError
+        out = _np.empty(x.shape[0], dtype=_np.intc)
+        self.get_conn_flattened(x, out)
+        return _np.diff(out, prepend=0)
 
     @property
     @abc.abstractmethod

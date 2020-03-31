@@ -26,10 +26,10 @@
 #include <tuple>
 #include <vector>
 #include "abstract_operator.hpp"
-#include "py_bosonhubbard.hpp"
-#include "py_graph_operator.hpp"
+// #include "py_bosonhubbard.hpp"
+// #include "py_graph_operator.hpp"
 #include "py_local_liouvillian.hpp"
-#include "py_local_operator.hpp"
+// #include "py_local_operator.hpp"
 #include "py_pauli_strings.hpp"
 namespace py = pybind11;
 
@@ -135,9 +135,9 @@ void AddOperatorModule(py::module m) {
         Applies the operator to a state.
             )EOF");
 
-  AddBoseHubbard(subm);
-  AddLocalOperator(subm);
-  AddGraphOperator(subm);
+  // AddBoseHubbard(subm);
+  // AddLocalOperator(subm);
+  // AddGraphOperator(subm);
   AddPauliStrings(subm);
   AddLocalSuperOperatorModule(subm);
 

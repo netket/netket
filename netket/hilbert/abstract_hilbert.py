@@ -1,6 +1,9 @@
 import abc
 import numpy as _np
-from netket import random as _random
+
+
+"""int: Maximum number of states that can be indexed"""
+max_states = (_np.iinfo(_np.intp).max)
 
 
 class AbstractHilbert(abc.ABC):
@@ -48,18 +51,43 @@ class AbstractHilbert(abc.ABC):
         return NotImplementedError
 
     def number_to_state(self, number):
+        r"""Returns the quantum number corresponding to the n-th basis state
+        for input n. n is a integer index such that number=Index(state).
+        Throws an exception iff the space is not indexable.
+        Args:
+            numbers: Batch of input numbers to be converted into arrays of quantum numbers.
+
+        Returns:
+            numpy.array: An array of quantum numbers corresponding to the state.
+        """
         return self.numbers_to_states(_np.atleast_1d(number))
 
     def states_to_numbers(self, states, out=None):
         r"""Returns the basis state number corresponding to given quantum states.
         The states are given in a batch, such that states[k] has shape (hilbert.size).
         Throws an exception iff the space is not indexable.
+
         Args:
             states: Batch of states to be converted into the corresponding integers.
             out: Array of integers such that out[k]=Index(states[k]).
                  If None, memory is allocated.
+
+        Returns:
+            numpy.darray: Array of integers corresponding to out.
         """
         return NotImplementedError
+
+    def state_to_number(self, state):
+        r"""Returns the basis state number corresponding to given quantum states.
+        Throws an exception iff the space is not indexable.
+
+        Args:
+            state: A state to be converted into the corresponding integer.
+
+        Returns:
+            int: The index of the given input state.
+        """
+        return self.states_to_numbers(_np.atleast_2d(state))
 
     @property
     def n_states(self):
@@ -90,6 +118,7 @@ class AbstractHilbert(abc.ABC):
         numbers = _np.arange(0, self.n_states, dtype=_np.int64)
         return self.numbers_to_states(numbers, out)
 
+    @property
     def is_indexable(self):
         if(not self.is_discrete):
             return False
@@ -97,7 +126,6 @@ class AbstractHilbert(abc.ABC):
         if(not self.is_finite):
             return False
 
-        max_states = (_np.iinfo(_np.intp).max)
         log_max = _np.log(max_states)
 
         return self.size * _np.log(self.local_size) <= log_max

@@ -22,7 +22,7 @@ def _number_to_state(number, local_states, out):
     return out
 
 
-class PyLocalOperator(AbstractOperator):
+class LocalOperator(AbstractOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
        acting locally on a limited set of k quantum numbers (i.e. k-local,
        in the quantum information sense).
@@ -35,8 +35,8 @@ class PyLocalOperator(AbstractOperator):
 
         Args:
            hilbert (netket.AbstractHilbert): Hilbert space the operator acts on.
-           operators (list(numpy.array)): A list of operators, in matrix form.
-           acting_on (list(numpy.array)): A list of sites, which the corresponding operators act on.
+           operators (list(numpy.array) or numpy.array): A list of operators, in matrix form.
+           acting_on (list(numpy.array) or numpy.array): A list of sites, which the corresponding operators act on.
            constant (float): Level shift for operator. Default is 0.0.
 
         Examples:
@@ -62,8 +62,16 @@ class PyLocalOperator(AbstractOperator):
 
         self.mel_cutoff = 1.0e-6
 
+        # check if passing a single operator or a list of operators
+        is_nested = any(hasattr(i, '__len__') for i in acting_on)
+
+        if not is_nested:
+            operators = [operators]
+            acting_on = [acting_on]
+
         for op, act in zip(operators, acting_on):
-            self._add_operator(op, act)
+            if(len(act) > 0):
+                self._add_operator(op, act)
 
         super().__init__()
 
@@ -93,7 +101,7 @@ class PyLocalOperator(AbstractOperator):
         return self._constant
 
     def __iadd__(self, other):
-        if isinstance(other, PyLocalOperator):
+        if isinstance(other, LocalOperator):
             assert(other.mel_cutoff == self.mel_cutoff)
             assert(_np.all(other._local_states == self._local_states))
             assert(other._hilbert.size == self._hilbert.size)
@@ -115,42 +123,37 @@ class PyLocalOperator(AbstractOperator):
         return NotImplementedError
 
     def __add__(self, other):
-        if isinstance(other, PyLocalOperator):
+        if isinstance(other, LocalOperator):
             assert(other.mel_cutoff == self.mel_cutoff)
             assert(_np.all(other._local_states == self._local_states))
             assert(other._hilbert.size == self._hilbert.size)
 
-            acting_on = []
-            for i in range(self._n_operators):
-                acting_on.append(self._acting_on[i, :self._acting_size[i]])
-
-            for i in range(other._n_operators):
-                acting_on.append(other._acting_on[i, :other._acting_size[i]])
-
-            return PyLocalOperator(self._hilbert, self._operators + other._operators,
-                                   acting_on=acting_on, constant=self._constant + other._constant)
+            return LocalOperator(self._hilbert, self._operators_list() + other._operators_list(),
+                                 acting_on=self._acting_on_list() + other._acting_on_list(), constant=self._constant + other._constant)
         if isinstance(other, numbers.Number):
             if(not _np.isclose(_np.imag(other), 0)):
                 raise RuntimeError(
                     "Cannot add a complex number to LocalOperator.")
 
-            return PyLocalOperator(self._hilbert, self._operators,
-                                   acting_on=self._acting_on_list(),
-                                   constant=self._constant + _np.real(other))
+            return LocalOperator(self._hilbert, self._operators_list(),
+                                 acting_on=self._acting_on_list(),
+                                 constant=self._constant + _np.real(other))
         return NotImplementedError
 
     def __imul__(self, other):
         if isinstance(other, numbers.Number):
             if(not _np.isclose(_np.imag(other), 0)):
-                raise RuntimeError(
-                    "Cannot multiply the operator with a complex number.")
-            other = _np.real(other)
+                diag_is_zero = _np.isclose(
+                    _np.abs(self._constant), 0) and _np.allclose(_np.abs(self._diag_mels), _np.zeros(self._diag_mels.size))
+                if(not diag_is_zero):
+                    raise RuntimeError(
+                        "Cannot multiply the operator with a complex number when constant is not zero.")
 
-            self._constant *= other
-            self._diag_mels *= other
+            self._constant *= _np.real(other)
+            self._diag_mels *= _np.real(other)
             self._mels *= other
             return self
-        if isinstance(other, PyLocalOperator):
+        if isinstance(other, LocalOperator):
             tot_operators = []
             tot_act = []
             for i in range(other._n_operators):
@@ -159,7 +162,7 @@ class PyLocalOperator(AbstractOperator):
                 tot_operators += ops
                 tot_act += act
 
-            prod = PyLocalOperator(self._hilbert, tot_operators, tot_act)
+            prod = LocalOperator(self._hilbert, tot_operators, tot_act)
             self_constant = self._constant
             if(_np.abs(other._constant) > self.mel_cutoff):
                 self._constant = 0.
@@ -178,18 +181,20 @@ class PyLocalOperator(AbstractOperator):
     def __mul__(self, other):
         if isinstance(other, numbers.Number):
             if(not _np.isclose(_np.imag(other), 0)):
-                raise RuntimeError(
-                    "Cannot multiply the operator with a complex number.")
-            other = _np.real(other)
-            new_ops = self._operators
-            for i in range(len(new_ops)):
-                new_ops[i] *= other
-            return PyLocalOperator(hilbert=self._hilbert,
-                                   operators=new_ops,
-                                   acting_on=self._acting_on_list(),
-                                   constant=self._constant * other)
+                diag_is_zero = _np.isclose(
+                    _np.abs(self._constant), 0) and _np.allclose(_np.abs(self._diag_mels), _np.zeros(self._diag_mels.size))
+                if(not diag_is_zero):
+                    raise RuntimeError(
+                        "Cannot multiply the operator with a complex number.")
 
-        if isinstance(other, PyLocalOperator):
+            new_ops = [_np.copy(op * other) for op in self._operators]
+
+            return LocalOperator(hilbert=self._hilbert,
+                                 operators=new_ops,
+                                 acting_on=self._acting_on_list(),
+                                 constant=self._constant * other)
+
+        if isinstance(other, LocalOperator):
             tot_operators = []
             tot_act = []
             for i in range(other._n_operators):
@@ -198,13 +203,13 @@ class PyLocalOperator(AbstractOperator):
                 tot_operators += ops
                 tot_act += act
 
-            prod = PyLocalOperator(self._hilbert, tot_operators, tot_act)
+            prod = LocalOperator(self._hilbert, tot_operators, tot_act)
 
             if(_np.abs(other._constant) > self.mel_cutoff):
-                result = PyLocalOperator(hilbert=self._hilbert,
-                                         operators=self._operators,
-                                         acting_on=self._acting_on_list(),
-                                         constant=0)
+                result = LocalOperator(hilbert=self._hilbert,
+                                       operators=self._operators_list(),
+                                       acting_on=self._acting_on_list(),
+                                       constant=0)
                 result *= other._constant
                 result += prod
             else:
@@ -220,16 +225,19 @@ class PyLocalOperator(AbstractOperator):
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
             if(not _np.isclose(_np.imag(other), 0)):
-                raise RuntimeError(
-                    "Cannot multiply the operator with a complex number.")
-            other = _np.real(other)
-            new_ops = self._operators
-            for i in range(len(new_ops)):
-                new_ops[i] *= other
-            return PyLocalOperator(hilbert=self._hilbert,
-                                   operators=new_ops,
-                                   acting_on=self._acting_on_list(),
-                                   constant=self._constant * other)
+                diag_is_zero = (_np.isclose(
+                    _np.abs(self._constant), 0) and _np.allclose(_np.abs(self._diag_mels),
+                                                                 _np.zeros(self._diag_mels.size)))
+                if(not diag_is_zero):
+                    raise RuntimeError(
+                        "Cannot multiply the operator with a complex number.")
+
+            new_ops = [_np.copy(op * other) for op in self._operators]
+
+            return LocalOperator(hilbert=self._hilbert,
+                                 operators=new_ops,
+                                 acting_on=self._acting_on_list(),
+                                 constant=self._constant * _np.real(other))
 
     def __radd__(self, other):
         if isinstance(other, numbers.Number):
@@ -237,8 +245,8 @@ class PyLocalOperator(AbstractOperator):
                 raise RuntimeError(
                     "Cannot add a complex number to LocalOperator.")
 
-            return PyLocalOperator(self._hilbert, self._operators,
-                                   acting_on=self._acting_on_list(), constant=self._constant + _np.real(other))
+            return LocalOperator(self._hilbert, self._operators_list(),
+                                 acting_on=self._acting_on_list(), constant=self._constant + _np.real(other))
 
     def _init_zero(self):
         self._operators = []
@@ -250,7 +258,7 @@ class PyLocalOperator(AbstractOperator):
 
         self._acting_on = _np.zeros((0, 0), dtype=_np.intp)
         self._acting_size = _np.zeros(0, dtype=_np.intp)
-        self._diag_mels = _np.empty((0, 0), dtype=_np.complex128)
+        self._diag_mels = _np.zeros((0, 0), dtype=_np.complex128)
         self._mels = _np.empty((0, 0, 0), dtype=_np.complex128)
         self._x_prime = _np.empty((0, 0, 0, 0))
         self._n_conns = _np.empty((0, 0), dtype=_np.intp)
@@ -260,8 +268,15 @@ class PyLocalOperator(AbstractOperator):
     def _acting_on_list(self):
         acting_on = []
         for i in range(self._n_operators):
-            acting_on.append(self._acting_on[i, :self._acting_size[i]])
+            acting_on.append(
+                _np.copy(self._acting_on[i, :self._acting_size[i]]))
+
         return acting_on
+
+    def _operators_list(self):
+        'A deep copy of the operators'
+        operators = [_np.copy(op) for op in self._operators]
+        return operators
 
     def _add_operator(self, operator, acting_on):
         self._n_operators += 1
@@ -386,11 +401,11 @@ class PyLocalOperator(AbstractOperator):
 
             if(act.size == act_i.size and _np.array_equal(act, act_i)):
                 # non-interesecting with same support
-                operators.append(_np.matmul(self._operators[i], op))
+                operators.append(_np.copy(_np.matmul(self._operators[i], op)))
                 acting_on.append(act_i.tolist())
             elif(inters.size == 0):
                 # disjoint supports
-                operators.append(_np.kron(self._operators[i], op))
+                operators.append(_np.copy(_np.kron(self._operators[i], op)))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 # partially intersecting support
@@ -398,6 +413,25 @@ class PyLocalOperator(AbstractOperator):
                     "Product of intersecting LocalOperator is not implemented.")
 
         return operators, acting_on
+
+    def transpose(self):
+        r"""LocalOperator: Returns the tranpose of this operator."""
+
+        new_ops = [_np.copy(ops.transpose()) for ops in self._operators]
+
+        return LocalOperator(hilbert=self._hilbert,
+                             operators=new_ops,
+                             acting_on=self._acting_on_list(),
+                             constant=self._constant)
+
+    def conjugate(self):
+        r"""LocalOperator: Returns the complex conjugate of this operator."""
+        new_ops = [_np.copy(ops.conjugate()) for ops in self._operators]
+
+        return LocalOperator(hilbert=self._hilbert,
+                             operators=new_ops,
+                             acting_on=self._acting_on_list(),
+                             constant=_np.conjugate(self._constant))
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting

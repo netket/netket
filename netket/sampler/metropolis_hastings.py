@@ -111,7 +111,8 @@ class PyMetropolisHastings(AbstractSampler):
         if init_random:
             for state in self._state:
                 self._hilbert.random_vals(out=state)
-        self.machine.log_val(self._state, out=self._log_values)
+        self._log_values = self.machine.log_val(
+            self._state, out=self._log_values)
 
         self._accepted_samples = 0
         self._total_samples = 0
@@ -154,7 +155,7 @@ class PyMetropolisHastings(AbstractSampler):
             # Propose a new state using the transition kernel
             _t_kernel(_state, _state1, _log_prob_corr)
 
-            _log_val(_state1, out=_log_values_1)
+            _log_values_1 = _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
             acc = _acc_kernel(

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from .._C_netket.operator import *
 
-from . import spin, boson
 
 from .local_values import (
     local_values,
@@ -9,16 +8,16 @@ from .local_values import (
 )
 
 
-from .local_operator import PyLocalOperator
-from .graph_operator import PyGraphOperator
+from .local_operator import LocalOperator
+from .graph_operator import GraphOperator
+
+from . import spin, boson
 
 from .hamiltonian import (
     Ising,
-    Heisenberg,
-    PyIsing,
-    PyHeisenberg
+    Heisenberg
 )
 
-from .bose_hubbard import PyBoseHubbard
+from .bose_hubbard import BoseHubbard
 
 from .._C_netket.operator import _rotated_grad_kernel

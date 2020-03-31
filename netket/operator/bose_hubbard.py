@@ -1,4 +1,3 @@
-from .._C_netket.operator import GraphOperator as _GraphOperator
 from .abstract_operator import AbstractOperator
 from netket.hilbert import Boson as _Boson, PyBoson as _PyBoson
 import math as _m
@@ -6,7 +5,7 @@ import numpy as _np
 from numba import jit
 
 
-class PyBoseHubbard(AbstractOperator):
+class BoseHubbard(AbstractOperator):
     r"""
     An extended Bose Hubbard model Hamiltonian operator, containing both
     on-site interactions and nearest-neighboring density-density interactions.
@@ -43,7 +42,7 @@ class PyBoseHubbard(AbstractOperator):
         assert(isinstance(hilbert, _PyBoson)
                or isinstance(hilbert, _Boson))
 
-        self._n_max = hilbert._n_max
+        self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
         self._edges = _np.asarray(hilbert.graph.edges)
         self._max_conn = 1 + self._edges.shape[0] * 2
@@ -60,25 +59,6 @@ class PyBoseHubbard(AbstractOperator):
     @property
     def size(self):
         return self._hilbert.size
-
-    def n_conn(self, x, out):
-        r"""Return the number of states connected to x.
-
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                out (array): If None an output array is allocated.
-
-            Returns:
-                array: The number of connected states x' for each x[i].
-
-        """
-        if(out is None):
-            out = _np.empty(x.shape[0], dtype=_np.int32)
-
-        out.fill(hilbert.size + 1)
-
-        return out
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
@@ -139,7 +119,7 @@ class PyBoseHubbard(AbstractOperator):
             # on-site interaction
             mels[0] += Uh * x[i] * (x[i] - 1.)
 
-        return x_prime[:c], mels[:c]
+        return _np.copy(x_prime[:c]), _np.copy(mels[:c])
 
     @staticmethod
     @jit(nopython=True)
@@ -195,7 +175,7 @@ class PyBoseHubbard(AbstractOperator):
 
             sections[b] = odiag_ind
 
-        return x_prime[:odiag_ind], mels[:odiag_ind]
+        return _np.copy(x_prime[:odiag_ind]), _np.copy(mels[:odiag_ind])
 
     def get_conn_flattened(self, x, sections):
         r"""Finds the connected elements of the Operator. Starting

@@ -50,7 +50,7 @@ edges = [
 g = nk.graph.CustomGraph(edges=edges)
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 ha = nk.operator.GraphOperator(
-    hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0]
+    hi, site_ops=[sigmax], bond_ops=[mszsz], bond_ops_colors=[0]
 )
 operators["Graph Hamiltonian"] = ha
 

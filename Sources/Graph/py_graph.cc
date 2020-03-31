@@ -220,6 +220,21 @@ void AddAbstractGraph(py::module subm) {
       list[tuple]: Returns a list of tuples of the form (i, j, col) containing each edge `(i,j)`
       with its corresponding color `col`.
       )EOF")
+      .def_property_readonly(
+          "edges_and_colors",
+          [](const AbstractGraph& self) {
+            auto& color_map = self.EdgeColors();
+            std::vector<py::tuple> result;
+            for (auto& it : color_map) {
+              result.push_back(py::make_tuple(
+                  py::make_tuple(it.first[0], it.first[1]), it.second));
+            }
+            return result;
+          },
+          R"EOF(
+      list[tuple]: Returns a list of tuples of the form (edge, color) containing each edge `(i,j)`
+      with its corresponding color `color`.
+      )EOF")
       .def_property_readonly("automorphisms", &AbstractGraph::SymmetryTable,
                              R"EOF(
       list[list]: The automorphisms of the graph,

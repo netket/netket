@@ -1,3 +1,9 @@
+from netket.operator.boson import (
+    create as bcreate,
+    destroy as bdestroy,
+    number as bnumber,
+)
+from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 import netket as nk
 import networkx as nx
 import numpy as np
@@ -41,6 +47,7 @@ herm_operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 sm_hat = nk.operator.LocalOperator(hi, [sm] * 3, [[0], [1], [4]])
 sp_hat = nk.operator.LocalOperator(hi, [sp] * 3, [[0], [1], [4]])
 
+
 generic_operators["sigma +/-"] = (sm_hat, sp_hat)
 
 
@@ -74,6 +81,7 @@ def test_hermitian_local_operator_transpose_conjugation():
 
 def test_local_operator_transpose_conjugation():
     for name, (op, oph) in generic_operators.items():
+
         mat = op.to_dense()
         math = oph.to_dense()
 
@@ -82,15 +90,6 @@ def test_local_operator_transpose_conjugation():
 
         math_h = oph.transpose().conjugate().to_dense()
         same_matrices(math_h, mat)
-
-
-from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
-
-from netket.operator.boson import (
-    create as bcreate,
-    destroy as bdestroy,
-    number as bnumber,
-)
 
 
 def test_simple_operators():
@@ -123,7 +122,8 @@ def test_simple_operators():
         assert (sigmap(hi, i).to_dense() == sp_hat.to_dense()).all()
 
     print("Testing Sigma_+/- composition...")
-    hi = nk.hilbert.Spin(g, 2.0)
+
+    hi = nk.hilbert.Spin(g, 0.5)
     for i in range(L):
         sx = sigmax(hi, i)
         sy = sigmay(hi, i)
