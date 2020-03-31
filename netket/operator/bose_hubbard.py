@@ -1,5 +1,7 @@
 from .abstract_operator import AbstractOperator
-from netket.hilbert import Boson as _Boson, PyBoson as _PyBoson
+from ..hilbert import Boson, PyBoson
+
+
 import math as _m
 import numpy as _np
 from numba import jit
@@ -39,8 +41,8 @@ class BoseHubbard(AbstractOperator):
         self._J = J
         self._mu = mu
         self._hilbert = hilbert
-        assert(isinstance(hilbert, _PyBoson)
-               or isinstance(hilbert, _Boson))
+        assert(isinstance(hilbert, PyBoson)
+               or isinstance(hilbert, Boson))
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
