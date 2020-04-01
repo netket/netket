@@ -44,7 +44,9 @@ class Ising(AbstractOperator):
     def size(self):
         return self._n_sites
 
-    def n_conn(self, x, out):
+    @staticmethod
+    @jit(nopython=True)
+    def n_conn(x, out):
         r"""Return the number of states connected to x.
 
             Args:
@@ -59,7 +61,7 @@ class Ising(AbstractOperator):
         if(out is None):
             out = _np.empty(x.shape[0], dtype=_np.int32)
 
-        out.fill(hilbert.size + 1)
+        out.fill(x.shape[1] + 1)
 
         return out
 

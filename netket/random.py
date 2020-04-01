@@ -29,6 +29,16 @@ def uniform(low=0.0, high=1.0):
 
 @jit
 def randint(low, high):
+    ''' Generate random integers from low (inclusive) to high (exclusive).
+
+    Args:
+        low (int): Lowest (signed) integer to be drawn from the distribution.
+        high (int): One above the largest (signed) integer to be drawn from the distribution.
+
+    Returns:
+        int: A random integer uniformely distributed in [low,high).
+
+    '''
     return _np.random.randint(low, high)
 
 

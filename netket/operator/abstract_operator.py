@@ -1,6 +1,7 @@
 import abc
 import numpy as _np
 from scipy.sparse import csr_matrix as _csr_matrix
+from numba import jit
 
 
 class AbstractOperator(abc.ABC):
@@ -51,9 +52,23 @@ class AbstractOperator(abc.ABC):
                 array: The number of connected states x' for each x[i].
 
         """
-        out = _np.empty(x.shape[0], dtype=_np.intc)
+        if out is None:
+            out = _np.empty(x.shape[0], dtype=_np.intc)
         self.get_conn_flattened(x, out)
-        return _np.diff(out, prepend=0)
+        out = self._n_conn_from_sections(out)
+
+        return out
+
+    @staticmethod
+    @jit(nopython=True)
+    def _n_conn_from_sections(out):
+        low = 0
+        for i in range(out.shape[0]):
+            old_out = out[i]
+            out[i] = out[i] - low
+            low = old_out
+
+        return out
 
     @property
     @abc.abstractmethod

@@ -2,10 +2,12 @@ import numpy as _np
 from netket import random as _random
 
 from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import *
+from .metropolis_hastings import PyMetropolisHastings
+from .metropolis_hastings_pt import PyMetropolisHastingsPt
 from .._C_netket import sampler as c_sampler
 
 from numba import jit
+import math
 
 
 class _hamiltonian_kernel:
@@ -25,7 +27,7 @@ class _hamiltonian_kernel:
 
         self._n_conn(state_1, sections)
 
-        self._corr(sections, log_prob_corr)
+        log_prob_corr -= _np.log(sections)
 
     @staticmethod
     @jit(nopython=True)
@@ -34,14 +36,8 @@ class _hamiltonian_kernel:
         for i, s in enumerate(sections):
             n_rand = _random.randint(low_range, s)
             out[i] = states[n_rand]
-            w[i] = _np.log(s - low_range)
+            w[i] = math.log(s - low_range)
             low_range = s
-
-    @staticmethod
-    @jit(nopython=True)
-    def _corr(n_conn, w):
-        for i, n in enumerate(n_conn):
-            w[i] -= _np.log(n)
 
 
 class MetropolisHamiltonian(AbstractSampler):
@@ -94,15 +90,6 @@ class MetropolisHamiltonian(AbstractSampler):
            >>> # Construct a MetropolisHamiltonian Sampler
            >>> sa = nk.sampler.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
         """
-        # if "_C_netket.machine" in str(type(machine)):
-        #     self.sampler = c_sampler.MetropolisHamiltonian(
-        #         machine=machine,
-        #         hamiltonian=hamiltonian,
-        #         n_chains=n_chains,
-        #         sweep_size=sweep_size,
-        #         batch_size=batch_size,
-        #     )
-        # else:
         self.sampler = PyMetropolisHastings(
             machine,
             _hamiltonian_kernel(hamiltonian),
@@ -139,7 +126,7 @@ class MetropolisHamiltonianPt(AbstractSampler):
      The number of replicas can be :math:`N_{\mathrm{rep}}` chosen by the user.
     """
 
-    def __init__(self, machine, hamiltonian, n_replicas=16, sweep_size=None):
+    def __init__(self, machine, hamiltonian, n_replicas=16, sweep_size=None, batch_size=None):
         """
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
@@ -150,19 +137,17 @@ class MetropolisHamiltonianPt(AbstractSampler):
             n_replicas: The number of replicas used for parallel tempering.
             sweep_size: The number of exchanges that compose a single sweep.
                          If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+            batch_size: The batch size to be used when calling log_val on the given Machine.
+                        If None, batch_size is equal to the number of replicas (n_replicas).
         """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.MetropolisHamiltonianPt(
-                machine=machine,
-                hamiltonian=hamiltonian,
-                n_replicas=n_replicas,
-                sweep_size=sweep_size,
-            )
-        else:
-            raise ValueError(
-                """Parallel Tempering samplers are not yet implemented
-                for pure python machines"""
-            )
+
+        self.sampler = PyMetropolisHastingsPt(
+            machine,
+            _hamiltonian_kernel(hamiltonian),
+            n_replicas,
+            sweep_size,
+            batch_size,
+        )
         super().__init__(machine, 1)
 
     def reset(self, init_random=False):
@@ -180,6 +165,6 @@ class MetropolisHamiltonianPt(AbstractSampler):
         self.sampler.machine_pow = m_pow
 
     @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+    def stats(self):
+        """Statistics of the sampling."""
+        return self.sampler.stats

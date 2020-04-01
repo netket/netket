@@ -1,4 +1,4 @@
-from netket.operator import LocalOperator
+from .local_operator import LocalOperator
 
 import numpy as _np
 

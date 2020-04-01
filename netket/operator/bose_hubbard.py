@@ -1,7 +1,6 @@
 from .abstract_operator import AbstractOperator
 from ..hilbert import Boson, PyBoson
 
-
 import math as _m
 import numpy as _np
 from numba import jit

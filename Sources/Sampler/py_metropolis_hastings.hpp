@@ -125,31 +125,6 @@ void AddMetropolisHastings(py::module& subm) {
 
   AddAcceptance(mh);
 
-  subm.def(
-      "mh_acceptance_kernel",
-      [](Eigen::Ref<RowMatrix<double>> state,
-         Eigen::Ref<RowMatrix<double>> state1, Eigen::Ref<VectorXcd> log_val,
-         Eigen::Ref<VectorXcd> log_val1, Eigen::Ref<VectorXd> log_prob_corr,
-         Eigen::Ref<VectorXd> rand_for_acceptance,
-         double machine_pow) -> Index {
-        Index accepted = 0;
-
-        for (Index i = 0; i < state.rows(); i++) {
-          double prob =
-              std::exp(machine_pow *
-                       (log_val1(i) - log_val(i) + log_prob_corr(i)).real());
-
-          bool accept = prob > rand_for_acceptance(i);
-
-          if (accept) {
-            log_val(i) = log_val1(i);
-            state.row(i) = state1.row(i);
-            accepted += 1;
-          }
-        }
-        return accepted;
-      });
-
   auto mh_pt =
       py::class_<MetropolisHastingsPt, AbstractSampler>(subm,
                                                         "MetropolisHastingsPt",

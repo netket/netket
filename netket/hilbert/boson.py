@@ -1,4 +1,3 @@
-from .abstract_hilbert import AbstractHilbert
 from .custom_hilbert import PyCustomHilbert
 
 import numpy as _np

@@ -593,20 +593,3 @@ class LocalOperator(AbstractOperator):
                     c += n_conn_i
 
         return x_prime, mels
-
-    def n_conn(self, x, out):
-        r"""Return the number of states connected to x.
-
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                out (array): If None an output array is allocated.
-
-            Returns:
-                array: The number of connected states x' for each x[i].
-
-        """
-        if(out is None):
-            out = _np.empty(x.shape[0], dtype=_np.int32)
-
-        return NotImplementedError
