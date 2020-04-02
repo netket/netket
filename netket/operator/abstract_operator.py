@@ -114,3 +114,12 @@ class AbstractOperator(abc.ABC):
                 numpy.matrix: The dense matrix representation of the operator.
         """
         return self.to_sparse().todense()
+
+    def apply(self, v):
+        return self.to_sparse().dot(v)
+
+    def __call__(self, v):
+        return self.apply(v)
+
+    def to_linear_operator(self):
+        return self.to_sparse()
