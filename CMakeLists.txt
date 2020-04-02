@@ -282,8 +282,6 @@ set(NETKET_SOURCES
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Operator/abstract_operator.cc
-    Sources/Operator/pauli_strings.cc
-    Sources/Operator/graph_operator.cc
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc

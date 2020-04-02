@@ -21,9 +21,6 @@
 #include "Utils/json_utils.hpp"
 #include "Utils/memory_utils.hpp"
 #include "abstract_operator.hpp"
-#include "bosonhubbard.hpp"
-#include "graph_operator.hpp"
 #include "local_operator.hpp"
-#include "pauli_strings.hpp"
 
 #endif
