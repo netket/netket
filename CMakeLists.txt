@@ -285,6 +285,7 @@ set(NETKET_SOURCES
     Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc
+    Sources/Sampler/exchange_kernel.cc
     Sources/Sampler/hop_kernel.cc
     Sources/Sampler/local_kernel.cc
     Sources/Stats/mc_stats.cc
