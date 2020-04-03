@@ -287,7 +287,6 @@ set(NETKET_SOURCES
     Sources/Sampler/metropolis_hastings_pt.cc
     Sources/Sampler/custom_local_kernel.cc
     Sources/Sampler/exchange_kernel.cc
-    Sources/Sampler/hamiltonian_kernel.cc
     Sources/Sampler/hop_kernel.cc
     Sources/Sampler/local_kernel.cc
     Sources/Stats/mc_stats.cc

@@ -47,9 +47,7 @@ pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
 }  // namespace netket
 
 #include "py_custom_sampler.hpp"
-#include "py_exact_sampler.hpp"
 #include "py_metropolis_exchange.hpp"
-#include "py_metropolis_hamiltonian.hpp"
 #include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
@@ -153,9 +151,7 @@ void AddSamplerModule(py::module& m) {
 
   AddMetropolisLocal(subm);
   AddMetropolisHop(subm);
-  AddMetropolisHamiltonian(subm);
   AddMetropolisExchange(subm);
-  AddExactSampler(subm);
   AddCustomSampler(subm);
   AddMetropolisHastings(subm);
 

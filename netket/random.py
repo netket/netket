@@ -41,6 +41,26 @@ def randint(low, high):
     '''
     return _np.random.randint(low, high)
 
+# TODO use numba version when argument p is made available
+
+
+def choice(a, size=None, replace=True, p=None):
+    '''Generates a random sample from a given 1-D array
+    Args:
+        a (1-D array-like or int): If an ndarray, a random sample is generated from its elements.
+                    If an int, the random sample is generated as if a were np.arange(a)
+        size (int or tuple of ints, optional): Output shape.
+                    If the given shape is, e.g., (m, n, k), then m * n * k samples are drawn.
+                    Default is None, in which case a single value is returned.
+        replace (boolean, optional): Whether the sample is with or without replacement.
+        p (1-D array-like, optional): The probabilities associated with each entry in a.
+                    If not given the sample assumes a uniform distribution over all entries in a.
+
+    Returns:
+        single item or ndarry: The generated random samples
+    '''
+    return _np.random.choice(a, size, replace, p)
+
 
 # By default, the generator is initialized with a random seed (on node 0)
 # and then propagated correctly to the other nodes

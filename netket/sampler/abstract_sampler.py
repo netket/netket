@@ -6,14 +6,11 @@ class AbstractSampler(abc.ABC):
     """Abstract class for NetKet samplers"""
 
     def __init__(self, machine, sample_size=None):
-        super().__init__()
-        self.machine = machine
-
         self.sample_size = sample_size if sample_size != None else 1
-
         self.sample_shape = (sample_size, machine.hilbert.size)
-
+        self._machine = machine
         self.reset(True)
+        # super().__init__()
 
     def __iter__(self):
         return self
@@ -29,6 +26,10 @@ class AbstractSampler(abc.ABC):
     @property
     def machine_pow(self):
         return 2.0
+
+    @property
+    def machine(self):
+        return self._machine
 
     @machine_pow.setter
     def machine_pow(self, m_power):

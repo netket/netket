@@ -38,11 +38,6 @@ void AddTransitionKernels(py::module &subm) {
       .def("apply", &ExchangeKernel::operator(), py::arg("v"),
            py::arg("v_prime"), py::arg("log_acceptance_correction"));
 
-  py::class_<HamiltonianKernel>(subm, "HamiltonianKernel")
-      .def(py::init<AbstractOperator &>(), py::arg("hamiltonian"))
-      .def("apply", &HamiltonianKernel::operator(), py::arg("v"),
-           py::arg("v_prime"), py::arg("log_acceptance_correction"));
-
   py::class_<HopKernel>(subm, "HopKernel")
       .def(py::init<const AbstractHilbert &, Index>(), py::arg("hilbert"),
            py::arg("d_max"))

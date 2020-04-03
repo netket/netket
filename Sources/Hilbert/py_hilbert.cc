@@ -301,6 +301,20 @@ void AddHilbertModule(py::module m) {
            for input i. i can be a single integer or an array.
            Throws an exception iff the space is not indexable.
       )EOF")
+      .def("numbers_to_states",
+           [](const AbstractHilbert &self, const std::vector<Index> &indices) {
+             RowMatrix<double> states(indices.size(), self.Size());
+             for (Index i = 0; i < indices.size(); i++) {
+               states.row(i) = self.GetIndex().NumberToState(indices[i]);
+             }
+             return states;
+           },
+           py::arg("i"),
+           R"EOF(
+           Returns the visible configuration corresponding to the i-th basis state
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
+      )EOF")
       .def("state_to_number",
            [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
              return self.GetIndex().StateToNumber(conf);
