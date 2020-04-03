@@ -5,7 +5,13 @@ from mpi4py import MPI
 
 @jit
 def seed(seed=None):
+    ''' Seed the random number generator. Each MPI process is automatically assigned
+        a different, process-dependent, sub-seed.
 
+        Parameters:
+                  seed (int, optional): Seed for the randon number generator.
+
+    '''
     with objmode(derived_seed="int64"):
         comm = MPI.COMM_WORLD
         size = comm.Get_size()
@@ -24,12 +30,28 @@ def seed(seed=None):
 
 @jit
 def uniform(low=0.0, high=1.0):
+    '''
+    Draw samples from a uniform distribution. Samples are uniformly distributed
+    over the half-open interval [low, high) (includes low, but excludes high).
+
+    Parameters:
+              low (float, optional): Lower boundary of the output interval.
+                                     All values generated will be greater than
+                                     or equal to low. The default value is 0.
+              high (float, optional): Upper boundary of the output interval.
+                                     All values generated will be less than high.
+                                     The default value is 1.0.
+    Returns:
+              float: A randon number uniformly distributed in [low,high).
+
+    '''
     return _np.random.uniform(low, high)
 
 
 @jit
 def randint(low, high):
-    ''' Generate random integers from low (inclusive) to high (exclusive).
+    '''
+    Generate random integers from low (inclusive) to high (exclusive).
 
     Args:
         low (int): Lowest (signed) integer to be drawn from the distribution.
@@ -41,17 +63,14 @@ def randint(low, high):
     '''
     return _np.random.randint(low, high)
 
-# TODO use numba version when argument p is made available
-
 
 def choice(a, size=None, replace=True, p=None):
-    '''Generates a random sample from a given 1-D array
+    # TODO use always numpy version when argument p is made available in numba
+    '''
+    Generates a random sample from a given 1-D array.
+
     Args:
-        a (1-D array-like or int): If an ndarray, a random sample is generated from its elements.
-                    If an int, the random sample is generated as if a were np.arange(a)
-        size (int or tuple of ints, optional): Output shape.
-                    If the given shape is, e.g., (m, n, k), then m * n * k samples are drawn.
-                    Default is None, in which case a single value is returned.
+        a (1-D array-like): A random sample is generated from its elements.
         replace (boolean, optional): Whether the sample is with or without replacement.
         p (1-D array-like, optional): The probabilities associated with each entry in a.
                     If not given the sample assumes a uniform distribution over all entries in a.

@@ -1,10 +1,8 @@
 import numpy as _np
 from netket import random as _random
 
-from .abstract_sampler import AbstractSampler
 from .metropolis_hastings import PyMetropolisHastings
 from .metropolis_hastings_pt import PyMetropolisHastingsPt
-from .._C_netket import sampler as c_sampler
 
 from numba import jit
 import math
@@ -40,7 +38,7 @@ class _hamiltonian_kernel:
             low_range = s
 
 
-class MetropolisHamiltonian(AbstractSampler):
+class MetropolisHamiltonian(PyMetropolisHastings):
     """
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
@@ -90,36 +88,16 @@ class MetropolisHamiltonian(AbstractSampler):
            >>> # Construct a MetropolisHamiltonian Sampler
            >>> sa = nk.sampler.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
         """
-        self.sampler = PyMetropolisHastings(
+        super().__init__(
             machine,
             _hamiltonian_kernel(hamiltonian),
             n_chains,
             sweep_size,
-            batch_size,
+            batch_size
         )
-        super().__init__(machine, n_chains)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
 
 
-class MetropolisHamiltonianPt(AbstractSampler):
+class MetropolisHamiltonianPt(PyMetropolisHastingsPt):
     """
      This sampler performs parallel-tempering
      moves in addition to the local moves implemented in `MetropolisLocal`.
@@ -140,31 +118,8 @@ class MetropolisHamiltonianPt(AbstractSampler):
             batch_size: The batch size to be used when calling log_val on the given Machine.
                         If None, batch_size is equal to the number of replicas (n_replicas).
         """
-
-        self.sampler = PyMetropolisHastingsPt(
-            machine,
-            _hamiltonian_kernel(hamiltonian),
-            n_replicas,
-            sweep_size,
-            batch_size,
-        )
-        super().__init__(machine, 1)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def stats(self):
-        """Statistics of the sampling."""
-        return self.sampler.stats
+        super().__init__(machine,
+                         _hamiltonian_kernel(hamiltonian),
+                         n_replicas,
+                         sweep_size,
+                         batch_size)

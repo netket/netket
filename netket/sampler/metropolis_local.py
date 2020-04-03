@@ -9,7 +9,7 @@ from .._C_netket import sampler as c_sampler
 from numba import jit, jitclass
 from numba import int64, float64
 
-# TODO move this into main python class for sampler
+
 @jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
 class _local_kernel:
     def __init__(self, local_states, size):

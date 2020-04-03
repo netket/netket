@@ -32,23 +32,11 @@ namespace py = pybind11;
 namespace netket {
 
 void AddTransitionKernels(py::module &subm) {
-  py::class_<ExchangeKernel>(subm, "ExchangeKernel")
-      .def(py::init<const AbstractHilbert &, Index>(), py::arg("hilbert"),
-           py::arg("d_max"))
-      .def("apply", &ExchangeKernel::operator(), py::arg("v"),
-           py::arg("v_prime"), py::arg("log_acceptance_correction"));
-
   py::class_<HopKernel>(subm, "HopKernel")
       .def(py::init<const AbstractHilbert &, Index>(), py::arg("hilbert"),
            py::arg("d_max"))
       .def("apply", &HopKernel::operator(), py::arg("v"), py::arg("v_prime"),
            py::arg("log_acceptance_correction"));
-
-  py::class_<CustomLocalKernel>(subm, "CustomLocalKernel")
-      .def(py::init<const LocalOperator &, const std::vector<double> &>(),
-           py::arg("move_operators"), py::arg("move_weights"))
-      .def("apply", &CustomLocalKernel::operator(), py::arg("v"),
-           py::arg("v_prime"), py::arg("log_acceptance_correction"));
 }
 }  // namespace netket
 

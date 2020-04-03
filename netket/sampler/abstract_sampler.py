@@ -5,8 +5,8 @@ import numpy as _np
 class AbstractSampler(abc.ABC):
     """Abstract class for NetKet samplers"""
 
-    def __init__(self, machine, sample_size=None):
-        self.sample_size = sample_size if sample_size != None else 1
+    def __init__(self, machine, sample_size=1):
+        self.sample_size = sample_size
         self.sample_shape = (sample_size, machine.hilbert.size)
         self._machine = machine
         self.reset(True)
@@ -51,6 +51,6 @@ class AbstractSampler(abc.ABC):
             samples = _np.zeros(
                 (n_samples, self.sample_shape[0], self.sample_shape[1]))
 
-        for k, sample in enumerate(self.samples(n_samples)):
-            samples[k] = sample
+        for sample in samples:
+            sample = self.__next__()
         return samples

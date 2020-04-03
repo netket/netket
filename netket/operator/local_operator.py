@@ -76,6 +76,10 @@ class LocalOperator(AbstractOperator):
         super().__init__()
 
     @property
+    def operators(self):
+        return self._operators_list()
+
+    @property
     def hilbert(self):
         r"""AbstractHilbert: The hilbert space associated to this operator."""
         return self._hilbert
@@ -99,6 +103,10 @@ class LocalOperator(AbstractOperator):
     @property
     def constant(self):
         return self._constant
+
+    @property
+    def n_operators(self):
+        return self._n_conns.shape[0]
 
     def __iadd__(self, other):
         if isinstance(other, LocalOperator):
@@ -540,6 +548,8 @@ class LocalOperator(AbstractOperator):
         batch_size = x.shape[0]
         n_sites = x.shape[1]
 
+        assert(sections.shape[0] == batch_size)
+
         n_operators = n_conns.shape[0]
         xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
 
@@ -591,5 +601,102 @@ class LocalOperator(AbstractOperator):
                             x_prime[c + cc, sites[k]
                                     ] = all_x_prime[i, xs_n[b, i], cc, k]
                     c += n_conn_i
+
+        return x_prime, mels
+
+    def get_conn_filtered(self, x, sections, filters):
+        r"""Finds the connected elements of the Operator using only a subset of operators. Starting
+            from a given quantum number x, it finds all other quantum numbers x' such
+            that the matrix element :math:`O(x,x')` is different from zero. In general there
+            will be several different connected states x' satisfying this
+            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
+            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+
+            Args:
+                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                            the batch of quantum numbers x.
+                sections (array): An array of size (batch_size) useful to unflatten
+                            the output of this function.
+                            See numpy.split for the meaning of sections.
+                filters (array): Only operators op(filters[i]) are used to find the connected elements of
+                            x[i].
+
+            Returns:
+                matrix: The connected states x', flattened together in a single matrix.
+                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+
+        """
+
+        return self._get_conn_filtered_kernel(x, sections, self._local_states, self._basis,
+                                              self._constant, self._diag_mels, self._n_conns,
+                                              self._mels, self._x_prime, self._acting_on,
+                                              self._acting_size, filters)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _get_conn_filtered_kernel(x, sections, local_states, basis, constant,
+                                  diag_mels, n_conns, all_mels,
+                                  all_x_prime, acting_on, acting_size, filters):
+
+        batch_size = x.shape[0]
+        n_sites = x.shape[1]
+
+        assert(filters.shape[0] ==
+               batch_size and sections.shape[0] == batch_size)
+
+        n_operators = n_conns.shape[0]
+        xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
+
+        tot_conn = 0
+
+        for b in range(batch_size):
+            # diagonal element
+            tot_conn += 1
+
+            # counting the off-diagonal elements
+            i = filters[b]
+
+            assert(i < n_operators and i >= 0)
+            acting_size_i = acting_size[i]
+
+            xs_n[b, i] = 0
+            x_b = x[b]
+            x_i = x_b[acting_on[i, :acting_size_i]]
+            for k in range(acting_size_i):
+                xs_n[b, i] += _np.searchsorted(local_states,
+                                               x_i[acting_size_i - k - 1]) * basis[k]
+
+            tot_conn += n_conns[i, xs_n[b, i]]
+            sections[b] = tot_conn
+
+        x_prime = _np.empty((tot_conn, n_sites))
+        mels = _np.empty(tot_conn, dtype=_np.complex128)
+
+        c = 0
+        for b in range(batch_size):
+            c_diag = c
+            mels[c_diag] = constant
+            x_batch = x[b]
+            x_prime[c_diag] = _np.copy(x_batch)
+            c += 1
+
+            i = filters[b]
+            # Diagonal part
+            mels[c_diag] += diag_mels[i, xs_n[b, i]]
+            n_conn_i = n_conns[i, xs_n[b, i]]
+
+            if(n_conn_i > 0):
+                sites = acting_on[i]
+                acting_size_i = acting_size[i]
+
+                for cc in range(n_conn_i):
+                    mels[c + cc] = all_mels[i, xs_n[b, i], cc]
+                    x_prime[c + cc] = _np.copy(x_batch)
+
+                    for k in range(acting_size_i):
+                        x_prime[c + cc, sites[k]
+                                ] = all_x_prime[i, xs_n[b, i], cc, k]
+                c += n_conn_i
 
         return x_prime, mels
