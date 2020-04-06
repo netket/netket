@@ -17,6 +17,7 @@
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
+#include "doubled_graph.hpp"
 #include "edgeless.hpp"
 #include "hypercube.hpp"
 #include "lattice.hpp"
@@ -445,12 +446,18 @@ void AddEdgeless(py::module subm) {
 }
 }  // namespace
 
+void AddDoubledGraph(py::module subm) {
+  subm.def("DoubledGraph",
+           [](const AbstractGraph& graph) { return DoubledGraph(graph); });
+}
+
 void AddGraphModule(py::module m) {
   auto subm = m.def_submodule("graph");
 
   AddAbstractGraph(subm);
   AddHypercube(subm);
   AddCustomGraph(subm);
+  AddDoubledGraph(subm);
   AddLattice(subm);
   AddEdgeless(subm);
 }
