@@ -87,7 +87,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             int: The index of the given input state.
         """
-        return self.states_to_numbers(_np.atleast_2d(state))
+        return self.states_to_numbers(_np.atleast_2d(state))[0]
 
     @property
     def n_states(self):
