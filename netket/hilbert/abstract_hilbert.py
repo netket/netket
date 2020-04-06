@@ -120,7 +120,7 @@ class AbstractHilbert(abc.ABC):
 
     @property
     def is_indexable(self):
-        if(not self.is_discrete):
+        if not self.is_discrete:
             return False
 
         if(not self.is_finite):
