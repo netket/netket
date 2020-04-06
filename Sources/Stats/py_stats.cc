@@ -73,6 +73,9 @@ void AddStatsModule(py::module m) {
   };
 
   py::class_<Stats>(subm, "Stats")
+      .def(py::init<Complex, double, double, double, double>(), py::arg("mean"),
+           py::arg("error_of_mean"), py::arg("variance"),
+           py::arg("correlation"), py::arg("R"))
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)
