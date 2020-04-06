@@ -23,6 +23,9 @@ py::dict GetItem(const ObsManager& self, const std::string& name) {
 }
 
 int GetPrecision(double /* value */, double error) {
+  if (error < 1e-6) {
+    return 6;
+  }
   const int loge = std::floor(std::log10(std::abs(error)));
   return std::max(1 - loge, 0);
 }
