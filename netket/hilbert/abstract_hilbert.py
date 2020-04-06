@@ -60,7 +60,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.array: An array of quantum numbers corresponding to the state.
         """
-        return self.numbers_to_states(_np.atleast_1d(number))
+        return self.numbers_to_states(_np.atleast_1d(number))[0,:]
 
     def states_to_numbers(self, states, out=None):
         r"""Returns the basis state number corresponding to given quantum states.
