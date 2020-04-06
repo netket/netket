@@ -186,3 +186,29 @@ def test_ed():
     res = nk.exact.full_ed(ha, first_n=first_n, compute_eigenvectors=False)
     assert len(res.eigenvalues) == first_n
     assert len(res.eigenvectors) == 0
+
+
+def test_ed_restricted():
+    g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+    hi1 = nk.hilbert.PySpin(s=0.5, graph=g, total_sz=0)
+    hi2 = nk.hilbert.PySpin(s=0.5, graph=g)
+
+    ham1 = nk.operator.Heisenberg(hi1)
+    ham2 = nk.operator.Heisenberg(hi2)
+
+    assert ham1.to_linear_operator().shape == (70, 70)
+    assert ham2.to_linear_operator().shape == (256, 256)
+
+    r1 = nk.exact.lanczos_ed(ham1, compute_eigenvectors=True)
+    r2 = nk.exact.lanczos_ed(ham2, compute_eigenvectors=True)
+
+    assert r1.eigenvalues[0] == approx(r2.eigenvalues[0])
+
+    def overlap(phi, psi):
+        bare_overlap = np.abs(np.vdot(phi, psi)) ** 2
+        return bare_overlap / (np.vdot(phi, phi) * np.vdot(psi, psi)).real
+
+    # Non-zero elements of ground state in full Hilbert space should equal the ground
+    # state in the constrained Hilbert space
+    idx_nonzero = np.abs(r2.eigenvectors[0]) > 1e-4
+    assert overlap(r1.eigenvectors[0], r2.eigenvectors[0][idx_nonzero]) == approx(1.0)
