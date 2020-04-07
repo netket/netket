@@ -8,7 +8,11 @@ import os
 from rbm import PyRbm
 
 test_jax = False
-test_torch = False
+try:
+    import torch
+    test_torch = True
+except:
+    test_torch = False
 
 
 def merge_dicts(x, y):
@@ -145,7 +149,6 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
 
-
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
@@ -220,7 +223,6 @@ def test_save_load_parameters(tmpdir):
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
 
-
 def test_batched_versions():
     for name, machine in merge_dicts(machines, dm_machines).items():
         # FIXME: The rank-3 log_val test fails for these two machines
@@ -273,7 +275,6 @@ def test_batched_versions():
             assert der_log.shape == der_log_batch.shape
             assert np.allclose(der_log_batch, der_log)
 
-
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
@@ -307,8 +308,6 @@ def test_log_derivative():
 
 
 def test_vector_jacobian():
-    if not test_torch:
-        return
     for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 
@@ -341,62 +340,6 @@ def test_vector_jacobian():
         print(np.max(vjp.imag - num_der_log.imag))
         print(np.max(vjp.real - num_der_log.real))
         same_derivatives(vjp, num_der_log)
-
-
-def test_log_val_diff():
-    for name, machine in merge_dicts(machines, dm_machines).items():
-        print("Machine test: %s" % name)
-
-        npar = machine.n_par
-        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.parameters = randpars
-
-        hi = machine.hilbert
-
-        rg = nk.utils.RandomEngine(seed=1234)
-
-        # loop over different random states
-        for i in range(100):
-
-            # generate a random state
-            rstate = np.zeros(hi.size)
-            local_states = hi.local_states
-            hi.random_vals(rstate, rg)
-
-            tochange = []
-            newconfs = []
-
-            # random number of changes
-            for i in range(100):
-                n_change = np.random.randint(low=0, high=hi.size)
-                # generate n_change unique sites to be changed
-                tochange.append(np.random.choice(hi.size, n_change, replace=False))
-                newconfs.append(np.random.choice(local_states, n_change))
-
-            ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
-            valzero = machine.log_val(rstate)
-
-            for toc, newco, ldiff in zip(tochange, newconfs, ldiffs):
-                rstatet = np.array(rstate)
-
-                for newc in newco:
-                    assert newc in local_states
-
-                for t in toc:
-                    assert t >= 0 and t < hi.size
-
-                assert len(toc) == len(newco)
-
-                if len(toc) == 0:
-                    assert ldiff == approx(0.0)
-
-                hi.update_conf(rstatet, toc, newco)
-                ldiff_num = machine.log_val(rstatet) - valzero
-
-                assert np.max(np.real(ldiff_num - ldiff)) == approx(0.0)
-                # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-                assert np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
-                assert np.min(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
 
 
 def test_nvisible():
