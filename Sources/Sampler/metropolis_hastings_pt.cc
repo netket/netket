@@ -90,9 +90,9 @@ void MetropolisHastingsPt::OneStep() {
 
   // Calculates acceptance probability
   quotient_Y_ =
-      ((proposed_Y_ - current_Y_ + log_acceptance_correction_) * beta_).exp();
+      ((proposed_Y_ - current_Y_ + log_acceptance_correction_) * beta_);
 
-  GetMachineFunc()(quotient_Y_, probability_);
+  probability_ = (GetMachinePow() * quotient_Y_.real()).exp();
 
   for (auto i = Index{0}; i < accept_.size(); ++i) {
     accept_(i) = probability_(i) >= 1.0
@@ -120,8 +120,8 @@ void MetropolisHastingsPt::ExchangeStep() {
 
   ProposePairwiseSwap(beta_, proposed_beta_, swap_order);
 
-  quotient_Y_ = ((proposed_beta_ - beta_) * current_Y_).exp();
-  GetMachineFunc()(quotient_Y_, probability_);
+  quotient_Y_ = ((proposed_beta_ - beta_) * current_Y_);
+  probability_ = (GetMachinePow() * quotient_Y_.real()).exp();
 
   for (auto i = Index{swap_order}; i < probability_.size(); i += 2) {
     Index inn = (i + 1) % n_replicas_;

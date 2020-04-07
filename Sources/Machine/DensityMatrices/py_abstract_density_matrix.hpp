@@ -19,17 +19,36 @@
 #include "Machine/py_abstract_machine.hpp"
 
 namespace netket {
-class PyAbstractDensityMatrix : public AbstractDensityMatrix {
+template <class AbstractDensityMatrixBase = AbstractDensityMatrix>
+class PyAbstractDensityMatrix
+    : public PyAbstractMachine<AbstractDensityMatrixBase> {
  public:
+  using PyAbstractMachine<
+      AbstractDensityMatrixBase>::PyAbstractMachine;  // Inherit construtors
+  using PyAbstractMachine = typename PyAbstractMachine<
+      AbstractDensityMatrixBase>::PyAbstractMachine;  // Inherit construtors
+  using VectorType = typename PyAbstractMachine::VectorType;
+  using VectorRefType = typename PyAbstractMachine::VectorRefType;
+  using VectorConstRefType = typename PyAbstractMachine::VectorConstRefType;
+  using VisibleConstType = typename PyAbstractMachine::VisibleConstType;
+
   PyAbstractDensityMatrix(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractDensityMatrix{std::move(hilbert)} {}
+      : PyAbstractMachine{std::move(hilbert)} {};
+
+  int NvisiblePhysical() const override {
+    return AbstractDensityMatrixBase::GetHilbertPhysical().Size();
+  }
 
   Complex LogValSingle(VisibleConstType vr, VisibleConstType vc,
                        const any& /*unused*/) override;
-  Complex LogValSingle(VisibleConstType vr,
-                       const any& /*unused*/) override;
+  Complex LogValSingle(VisibleConstType vr, const any& /*unused*/) override;
   VectorType DerLogSingle(VisibleConstType vr, VisibleConstType vc,
-                          const any& /*lt*/) override;
+                          const any& lt) override {
+    Eigen::VectorXcd out(PyAbstractMachine::Npar());
+    DerLog(vr.transpose(), vc.transpose(),
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, lt);
+    return out;
+  };
 
   ~PyAbstractDensityMatrix() override = default;
 
@@ -40,8 +59,9 @@ class PyAbstractDensityMatrix : public AbstractDensityMatrix {
   void DerLog(Eigen::Ref<const RowMatrix<double>> vr,
               Eigen::Ref<const RowMatrix<double>> vc,
               Eigen::Ref<RowMatrix<Complex>> out, const any& cache) override;
-
 };
 }  // namespace netket
+
+#include "py_abstract_density_matrix.ipp"
 
 #endif  // NETKET_PY_ABSTRACT_DENSITY_MATRIX_HPP

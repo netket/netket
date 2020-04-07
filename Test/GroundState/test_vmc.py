@@ -4,6 +4,10 @@ import numpy as np
 import netket as nk
 import netket.variational as vmc
 
+from io import StringIO
+from contextlib import redirect_stderr
+import tempfile
+import re
 
 SEED = 214748364
 nk.utils.seed(SEED)
@@ -64,11 +68,11 @@ def test_vmc_functions():
         assert ex.mean.real == approx(exact_ex.real, abs=tol)
 
         stats = vmc.estimate_expectations(
-            [op], sampler, n_samples=n_samples, n_discard=10
+            op, sampler, n_samples=n_samples, n_discard=10
         )
 
-        assert stats[0].mean.real == approx(np.mean(local_values).real, rel=tol)
-        assert stats[0].mean.real == approx(exact_ex.real, abs=tol)
+        assert stats.mean.real == approx(np.mean(local_values).real, rel=tol)
+        assert stats.mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)
     grad = nk.stats.covariance_sv(local_values, der_logs)
@@ -76,11 +80,11 @@ def test_vmc_functions():
     assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
 
     _, grads = vmc.estimate_expectations(
-        [ha], sampler, n_samples, 10, compute_gradients=True
+        ha, sampler, n_samples, 10, compute_gradients=True
     )
 
-    assert grads[0].shape == (ma.n_par,)
-    assert np.mean(np.abs(grads[0]) ** 2) == approx(0.0, abs=1e-8)
+    assert grads.shape == (ma.n_par,)
+    assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
 
 
 def test_vmc_use_cholesky_compatibility():
@@ -94,3 +98,24 @@ def test_vmc_use_cholesky_compatibility():
         vmc = nk.variational.Vmc(
             ha, sampler, op, 1000, use_cholesky=True, sr_lsq_solver="BDCSVD"
         )
+
+
+def test_vmc_progress_bar():
+    ha, sx, ma, sampler, driver = _setup_vmc()
+    driver.add_observable(sx, "sx")
+    tempdir = tempfile.mkdtemp()
+    prefix = tempdir + "/vmc_progressbar_test"
+
+    f = StringIO()
+    with redirect_stderr(f):
+        driver.run(prefix, 5)
+    pbar = f.getvalue().split("\r")[-1]
+    assert re.match(r"100%\|#*\| (\d+)/\1", pbar)
+    assert re.search(r"Energy=\([-+]?[0-9]*\.?[0-9]*", pbar)
+    assert re.search(r"var=[-+]?[0-9]*\.?[0-9]*", pbar)
+
+    f = StringIO()
+    with redirect_stderr(f):
+        driver.run(prefix, 5, show_progress=None)
+    pbar = f.getvalue()
+    assert not len(pbar)

@@ -18,12 +18,14 @@ from generate_data import generate
 import sys
 import numpy as np
 
-mpi_rank = nk.MPI.rank()
 
-# Load the data
+mpi_rank = nk.MPI.rank()
+nk.utils.seed(123)
+
+# Generate and load the data
 N = 10
 hi, rotations, training_samples, training_bases, ha, psi = generate(
-    N, n_basis=2 * N, n_shots=500
+    N, n_basis=2 * N, n_shots=500, seed=1234
 )
 
 # Machine
@@ -31,31 +33,31 @@ ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=4)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
 
 # Quantum State Reconstruction
-qst = nk.unsupervised.Qsr(
+qst = nk.Qsr(
     sampler=sa,
     optimizer=op,
-    n_chains=1000,
-    n_samples=1000,
-    rotations=rotations,
     samples=training_samples,
+    rotations=rotations,
     bases=training_bases,
-    method="Sr",
+    n_samples=1000,
+    n_samples_data=1000,
+    sr=None,
 )
+
 
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(4000, 100):
+for step in qst.iter(500, 50):
     obs = qst.get_observable_stats()
     if mpi_rank == 0:
         print("step={}".format(step))
-        print("acceptance={}".format(list(sa.acceptance)))
         print("observables={}".format(obs))
 
         # Compute fidelity with exact state

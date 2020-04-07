@@ -15,6 +15,7 @@ sz = [[1, 0], [0, -1]]
 
 sigmam = [[0, 0], [1, 0]]
 
+
 def _setup_ss(**kwargs):
     nk.utils.seed(SEED)
     g = nk.graph.Hypercube(length=L, n_dim=1)
@@ -49,6 +50,7 @@ def _setup_ss(**kwargs):
 
     return ma, ss
 
+
 def test_ss_advance():
     ma1, vmc1 = _setup_ss(n_samples=500, n_samples_obs=250)
     for i in range(10):
@@ -59,6 +61,7 @@ def test_ss_advance():
         pass
 
     assert (ma1.parameters == ma2.parameters).all()
+
 
 def test_ss_advance_sr():
     sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=False)
@@ -74,6 +77,7 @@ def test_ss_advance_sr():
 
     assert (ma1.parameters == ma2.parameters).all()
 
+
 def test_ss_advance_sr_iterative():
     sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
     ma1, vmc1 = _setup_ss(n_samples=500, n_samples_obs=250, sr=sr)
@@ -87,10 +91,11 @@ def test_ss_advance_sr_iterative():
 
     assert (ma1.parameters == ma2.parameters).all()
 
-def test_ss_iterator():
-    ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
 
-    N_iters = 100
+def test_ss_iterator():
+    ma, vmc = _setup_ss(n_samples=700, n_samples_obs=250)
+
+    N_iters = 150
     count = 0
     last_obs = None
     for i, step in enumerate(vmc.iter(N_iters)):
@@ -113,9 +118,9 @@ def test_ss_iterator():
     assert last_obs["LdagL"].mean == approx(0.0, abs=0.001)
 
 def test_ss_iterator_iterative():
-    ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
+    ma, vmc = _setup_ss(n_samples=700, n_samples_obs=250)
 
-    N_iters = 100
+    N_iters = 150
     count = 0
     last_obs = None
     for i, step in enumerate(vmc.iter(N_iters)):
@@ -136,10 +141,11 @@ def test_ss_iterator_iterative():
     assert count == N_iters
     assert last_obs["LdagL"].mean == approx(0.0, abs=0.001)
 
-def test_ss_run():
-    ma, vmc = _setup_ss(n_samples=500, n_samples_obs=250)
 
-    N_iters = 100
+def test_ss_run():
+    ma, vmc = _setup_ss(n_samples=700, n_samples_obs=250)
+
+    N_iters = 150
 
     tempdir = tempfile.mkdtemp()
     print("Writing test output files to: {}".format(tempdir))

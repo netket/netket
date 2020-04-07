@@ -76,9 +76,9 @@ void AddSamplerModule(py::module& m) {
     suitable variational states, the `Machines`.
     A `Sampler` generates quantum numbers distributed according to:
 
-    $$P(s_1\dots s_N) = F(\Psi(s_1\dots s_N)),$$
+    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N)|^p,$$
 
-    where F is an arbitrary function. By default F(X)=|X|^2.
+    where p is an arbitrary power (by default, p is set to 2).
 
     The samplers typically transit from the current set of quantum numbers
     $$\mathbf{s} = s_1 \dots s_N$$ to another set
@@ -145,41 +145,11 @@ void AddSamplerModule(py::module& m) {
                              R"EOF(
           (int,int): Shape of the sample generated at each step, namely (n_chains,n_visible).)EOF")
       .def_property(
-          "machine_func",
-          [](const AbstractSampler& self) {
-            return py::cpp_function(
-                [&self](py::array_t<Complex, py::array::c_style> x,
-                        py::array_t<double, py::array::c_style> out) {
-                  const auto input = [&x]() {
-                    auto reference = x.unchecked<1>();
-                    return nonstd::span<const Complex>{reference.data(0),
-                                                       reference.size()};
-                  }();
-                  const auto output = [&out]() {
-                    auto reference = out.mutable_unchecked<1>();
-                    return nonstd::span<double>{reference.mutable_data(0),
-                                                reference.size()};
-                  }();
-                  self.GetMachineFunc()(input, output);
-                },
-                py::arg{"x"}.noconvert(), py::arg{"out"}.noconvert());
-          },
-          [](AbstractSampler& self, py::function func) {
-            self.SetMachineFunc([func](nonstd::span<const Complex> x,
-                                       nonstd::span<double> out) {
-              auto input = py::array_t<Complex>{static_cast<size_t>(x.size()),
-                                                x.data(), /*base=*/py::none()};
-              py::detail::array_proxy(input.ptr())->flags &=
-                  ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
-              auto output = py::array_t<double>{static_cast<size_t>(out.size()),
-                                                out.data(),
-                                                /*base=*/py::none()};
-              func(input, output);
-            });
-          },
-          R"EOF(function(complex): The function to be used for sampling.
+          "machine_pow", &AbstractSampler::GetMachinePow,
+          &AbstractSampler::SetMachinePow,
+          R"EOF(float64: The power p of the machine to be used for sampling.
                                    by default $$|\Psi(x)|^2$$ is sampled,
-                                   however in general $$F(\Psi(v))$$)EOF");
+                                   however in general $$|\Psi(v)|^p $$)EOF");
 
   AddMetropolisLocal(subm);
   AddMetropolisHop(subm);

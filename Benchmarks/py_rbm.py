@@ -38,7 +38,7 @@ py_ma.parameters = ma.parameters
 batch_size = 32
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
 
-n_samples = 500
+n_samples = 1000
 samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))
 for i, sample in enumerate(sa.samples(n_samples)):
     samples[i] = sample

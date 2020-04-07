@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cProfile
 import netket as nk
+import numpy as np
 
 # 1D Lattice
-L = 20
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -25,29 +26,34 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpinReal(alpha=1, hilbert=hi)
+alpha = 1
+ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
+py_ma = nk.machine.PyRbm(alpha=alpha, hilbert=hi)
+py_ma.parameters = ma.parameters
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma)
+batch_size = 32
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
+py_sa = nk.sampler.MetropolisLocal(
+    machine=py_ma, n_chains=batch_size)
 
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+n_samples = 500
+samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))
 
-# Stochastic reconfiguration
-gs = nk.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    sr=nk.optimizer.SR(diag_shift=0.1),
-)
 
-# Adding an observable
-# The sum of sigma_x on all sites
-X = [[0, 1], [1, 0]]
-sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
-obs = {"SigmaX": sx}
+vals = np.zeros((n_samples, batch_size), dtype=np.complex128)
 
-gs.run(output_prefix="test", n_iter=300, obs=obs)
 
+def bench(n_times, sampler):
+    for k in range(n_times):
+        for i, sample in enumerate(sampler.samples(n_samples)):
+            samples[i] = sample
+
+
+bench(1, py_sa)
+
+cProfile.run("bench(30,sa)")
+cProfile.run("bench(30,py_sa)")

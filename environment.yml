@@ -16,4 +16,4 @@ dependencies:
   - mpi4py
   - blas
   - mkl
-  - pytorch 
+  - numba

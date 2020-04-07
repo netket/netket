@@ -19,12 +19,21 @@
 
 namespace netket {
 
-class PyAbstractMachine : public AbstractMachine {
+template <class AbstractMachineBase = AbstractMachine>
+class PyAbstractMachine : public AbstractMachineBase {
  public:
-  PyAbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractMachine{std::move(hilbert)} {}
+  using AbstractMachineBase::AbstractMachineBase;  // Inherit construtors
+  using VectorType = typename AbstractMachineBase::VectorType;
+  using VectorRefType = typename AbstractMachine::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine::VisibleConstType;
 
-  int Nvisible() const override { return GetHilbert().Size(); }
+  PyAbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
+      : AbstractMachineBase{std::move(hilbert)} {};
+
+  int Nvisible() const override {
+    return AbstractMachineBase::GetHilbert().Size();
+  }
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
   Complex LogValSingle(VisibleConstType v, const any & /*unused*/) override;
@@ -33,7 +42,12 @@ class PyAbstractMachine : public AbstractMachine {
                     const std::vector<int> & /*unused*/,
                     const std::vector<double> & /*unused*/,
                     any & /*unused*/) override;
-  VectorType DerLogSingle(VisibleConstType v, const any & /*lt*/) override;
+  VectorType DerLogSingle(VisibleConstType v, const any & cache) override {
+    Eigen::VectorXcd out(Npar());
+    DerLog(v.transpose(),
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
+    return out;
+  }
   ~PyAbstractMachine() override = default;
 
   /// Functions which one needs to override from Python
@@ -50,4 +64,5 @@ class PyAbstractMachine : public AbstractMachine {
 
 }  // namespace netket
 
+#include "py_abstract_machine.ipp"
 #endif  // NETKET_MACHINE_PY_ABSTRACT_MACHINE_HPP

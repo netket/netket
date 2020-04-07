@@ -15,25 +15,6 @@ matrix:
       language: generic
       env: CONDA=3.6 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-O1"
 
-
-    # Not too old toolsets
-    - os: linux
-      dist: xenial
-      python: 3.5
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
-      addons:
-        apt:
-          sources:
-            - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-6.0'
-          packages:
-            - 'ninja-build'
-            - 'g++-7'
-            - 'clang-6.0'
-            - 'libomp-dev'
-            - 'libmpich-dev'
-            - 'libopenblas-dev'
-
     - os: linux
       dist: xenial
       python: 3.6

@@ -86,4 +86,58 @@ auto AbstractOperator::GetConn(Eigen::Ref<const RowMatrix<double>> v)
                     std::vector<Eigen::VectorXcd>>{std::move(vprimes),
                                                    std::move(mels)};
 }
+
+auto AbstractOperator::GetConnFlattened(Eigen::Ref<const RowMatrix<double>> v,
+                                        Eigen::Ref<Eigen::VectorXi> sections)
+    -> std::tuple<RowMatrix<double>, Eigen::VectorXcd> {
+  Index estimated_size = v.rows() * (2 * GetHilbert().Size());
+  RowMatrix<double> vprimes(estimated_size, v.cols());
+
+  Eigen::VectorXcd mels(estimated_size);
+
+  std::vector<Complex> mel;
+  std::vector<std::vector<int>> tochange;
+  std::vector<std::vector<double>> newconfs;
+
+  Index tot_conn = 0;
+
+  for (auto i = Index{0}; i < v.rows(); ++i) {
+    auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
+
+    FindConn(vi, mel, tochange, newconfs);
+
+    mels.conservativeResize(tot_conn + mel.size());
+    vprimes.conservativeResize(tot_conn + mel.size(), Eigen::NoChange);
+
+    for (std::size_t k = 0; k < tochange.size(); k++) {
+      mels(tot_conn + k) = mel[k];
+
+      vprimes.row(tot_conn + k) = vi;
+      for (std::size_t c = 0; c < tochange[k].size(); c++) {
+        vprimes(tot_conn + k, tochange[k][c]) = newconfs[k][c];
+      }
+    }
+
+    tot_conn += mel.size();
+    sections(i) = tot_conn;
+  }
+
+  return std::tuple<RowMatrix<double>, Eigen::VectorXcd>{std::move(vprimes),
+                                                         std::move(mels)};
+}
+
+void AbstractOperator::GetNConn(Eigen::Ref<const RowMatrix<double>> v,
+                                Eigen::Ref<Eigen::VectorXi> n_conn) {
+  std::vector<Complex> mel;
+  std::vector<std::vector<int>> tochange;
+  std::vector<std::vector<double>> newconfs;
+
+  for (auto i = Index{0}; i < v.rows(); ++i) {
+    auto vi = Eigen::Ref<const Eigen::VectorXd>{v.row(i)};
+
+    FindConn(vi, mel, tochange, newconfs);
+    n_conn(i) = tochange.size();
+  }
+}
+
 }  // namespace netket

@@ -235,7 +235,7 @@ class LocalOperator : public AbstractOperator {
   void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     assert(v.size() == GetHilbert().Size());
 
-    Complex mel_diag = 0.;
+    Complex mel_diag = constant_;
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
