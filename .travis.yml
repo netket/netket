@@ -115,7 +115,7 @@ install:
   - python -m easy_install -U setuptools
   - python -m pip install numpy scipy networkx pytest python-igraph jax jaxlib
   - |
-    if [ -n "$CONDA" && $TRAVIS_OS_NAME == "osx" ]; then
+    if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
     fi
   - python -m pip install -U pytest
