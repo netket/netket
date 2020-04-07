@@ -1,5 +1,9 @@
 name: netket_env
 
+channels:
+  - numba
+  - defaults
+
 dependencies:
   - python=3.7
   - clang
@@ -14,3 +18,4 @@ dependencies:
   - blas
   - mkl
   - numba
+  - icc_rt
