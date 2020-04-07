@@ -72,7 +72,6 @@ before_install:
        conda install -q conda-build
        conda env create --file environment.yml
        source activate netket_env
-       TEST_TORCH=1
      # When Travis starts supporting `addons: brew: packages: [...]` correctly,
      # this can be move this into the build matrix.
      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
