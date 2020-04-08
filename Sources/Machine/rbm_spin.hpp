@@ -27,7 +27,20 @@
 
 namespace netket {
 
+/// Restricted Boltzmann machine with spin 1/2 hidden units.
 class RbmSpin : public AbstractMachine {
+/* Variables are:
+ * hilbert - the variable containing information about physical system
+ * nhidden - number of neurons in hidden layer defined by larger of the values
+ *           (alpha * number of neuron from visible layer) or nhidden
+ * alpha - density defined as (number of neurons in hidden layer / number of
+ *         neurons in visible layer)
+ * usea - if true use biases in visible layer a*output
+ * useb - if true use biases in hidden layer b*output
+ *
+ * Defining variational parameters: weights and biases (a_ for
+ * visible layer, b_ for hidden layer)
+ */
  public:
   RbmSpin(std::shared_ptr<const AbstractHilbert> hilbert, Index nhidden,
           Index alpha, bool usea, bool useb);
