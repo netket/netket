@@ -7,28 +7,43 @@ import warnings
 def _get_number_parameters(m):
     r"""Returns total number of variational parameters in a torch.nn.Module."""
     return sum(
-        map(lambda p: p.numel(), filter(lambda p: p.requires_grad, m.parameters()))
+        map(lambda p: p.numel(), _get_differentiable_parameters(m))
     )
 
+def _get_differentiable_parameters(m):
+    r"""Returns total number of variational parameters in a torch.nn.Module."""
+    return filter(lambda p: p.requires_grad, m.parameters())
 
 class Torch(AbstractMachine):
     def __init__(self, module, hilbert):
-
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
-
+        self._parameters = list(_get_differentiable_parameters(self._module))
+        self.n_visible = hilbert.size
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
 
     @property
     def parameters(self):
         return (
-            _torch.cat(tuple(p.view(-1) for p in self._module.parameters()))
+            _torch.cat(tuple(p.view(-1) for p in _get_differentiable_parameters(self._module)))
             .detach()
             .numpy()
             .astype(_np.complex128)
         )
+
+    def assign_beta(self, beta):
+        self._module.beta = beta
+        return
+
+    def save(self, filename):
+        _torch.save(self._module.state_dict(), filename)
+        return
+
+    def load(self, filename):
+        self._module.load_state_dict(_torch.load(filename))
+        return
 
     @parameters.setter
     def parameters(self, p):
@@ -44,7 +59,7 @@ class Torch(AbstractMachine):
                 )
             )
         i = 0
-        for x in map(lambda x: x.view(-1), self._module.parameters()):
+        for x in map(lambda x: x.view(-1), _get_differentiable_parameters(self._module)):
             x.data.copy_(torch_pars[i : i + len(x)].data)
             i += len(x)
 
@@ -55,19 +70,40 @@ class Torch(AbstractMachine):
         return self._n_par
 
     def log_val(self, x, out=None):
+        if len(x.shape) == 1:
+            x = x[_np.newaxis, :]
+        
+        batch_shape = x.shape[:-1]
 
         with _torch.no_grad():
             t_out = self._module(_torch.from_numpy(x)).numpy().view(_np.complex128)
 
         if out is None:
-            return t_out.reshape(-1)
+            return t_out.reshape(batch_shape)
 
         _np.copyto(out, t_out.reshape(-1))
 
         return out
 
     def der_log(self, x, out=None):
-        return NotImplementedError
+        if len(x.shape) == 1:
+            x = x[_np.newaxis, :]
+        batch_shape = x.shape[:-1]
+        x = x.reshape(-1, x.shape[-1])
+
+        x = _torch.tensor(x, dtype = _torch.float64)
+        out = x.new_empty([x.size(0), 2, self._n_par], dtype=self._parameters[0].dtype)
+        
+        for i in range(x.size(0)):
+            dws_real = _torch.autograd.grad(self._module(x[[i]])[0, 0], self._parameters)
+            dws_imag = _torch.autograd.grad(self._module(x[[i]])[0, 1], self._parameters)
+            _torch.cat([dw.flatten() for dw in dws_real], out=out[i, 0, ...])
+            _torch.cat([dw.flatten() for dw in dws_imag], out=out[i, 1, ...])
+
+        out_complex = _np.zeros((out.size(0), out.size(2)), dtype=_np.complex128)
+        out_complex = out[:, 0, :].numpy() + 1.0j * out[:, 1, :].numpy()
+
+        return out_complex.reshape(tuple(list(batch_shape) + list(out_complex.shape[-1:])))
 
     def vector_jacobian_prod(self, x, vec, out=None):
 
