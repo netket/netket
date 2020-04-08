@@ -14,10 +14,12 @@
 
 import itertools as _itertools
 
-from . import _core
-from ._C_netket.exact import *
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
+
+from . import _core
+from ._exact_dynamics import PyExactTimePropagation
+from ._C_netket.exact import *
 
 
 def _ExactTimePropagation_iter(self, dt, n_iter=None):

@@ -47,6 +47,7 @@ from . import (
     supervised,
     utils,
     variational,
+    _exact_dynamics,
     _vmc,
     _steadystate,
 )
