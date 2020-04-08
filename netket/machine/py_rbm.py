@@ -123,13 +123,16 @@ class PyRbm(AbstractMachine):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        return self._log_val_kernel(x.astype(dtype=self._npdtype), out, self._w, self._a, self._b, self._r)
+        x = x.astype(dtype=self._npdtype)
 
-    def _log_val_kernel(self, x, out, W, a, b, r):
+        return self._log_val_kernel(x, out, self._w.T, self._a, self._b, self._r)
+
+    @staticmethod
+    @jit(nopython=True)
+    def _log_val_kernel(x, out, W, a, b, r):
         if(out is None):
             out = _np.empty(x.shape[0], dtype=_np.complex128)
-        r = x.dot(W.T)
-
+        r = x.dot(W)
         if b is None:
             _log_cosh_sum(r, out)
         else:
@@ -152,10 +155,11 @@ class PyRbm(AbstractMachine):
             out[:, i: i + x.shape[1]] = x
             i += self.n_visible
 
+        r = self._r
         r = _np.dot(x, self._w.T)
         if self._b is not None:
             r += self._b
-        _np.tanh(r, out=r)
+        r = _np.tanh(r)
 
         if self._b is not None:
             out[:, i: i + self.n_hidden] = r
@@ -174,7 +178,7 @@ class PyRbm(AbstractMachine):
     def is_holomorphic(self):
         r"""Complex valued RBM is a holomorphic function.
         """
-        return True
+        return self._dtype is complex
 
     @property
     def state_dict(self):
@@ -182,12 +186,27 @@ class PyRbm(AbstractMachine):
         from collections import OrderedDict
 
         od = OrderedDict()
-        if self._a is not None:
-            od["a"] = self._a.view()
+        if(self._dtype is complex):
+            if self._a is not None:
+                od["a"] = self._a.view()
 
-        if self._b is not None:
-            od["b"] = self._b.view()
+            if self._b is not None:
+                od["b"] = self._b.view()
 
-        od["w"] = self._w.view()
+            od["w"] = self._w.view()
+        else:
+            if self._a is not None:
+                self._ac = self._a.astype(_np.complex128)
+                self._a = self._ac.real.view()
+                od["a"] = self._ac.view()
+
+            if self._b is not None:
+                self._bc = self._b.astype(_np.complex128)
+                self._b = self._bc.real.view()
+                od["b"] = self._bc.view()
+
+            self._wc = self._w.astype(_np.complex128)
+            self._w = self._wc.real.view()
+            od["w"] = self._wc.view()
 
         return od
