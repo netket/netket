@@ -15,7 +15,7 @@
 from .abstract_machine import AbstractMachine
 import numpy as _np
 
-from numba import jit, optional, jitclass, int64, complex128
+from numba import jit, optional, jitclass, int64, float64, complex128, deferred_type, typeof
 
 __all__ = ["PyRbm"]
 
@@ -27,42 +27,6 @@ def _log_cosh_sum(x, out):
         out[i] = _np.sum(x[i] - _np.log(2.) +
                          _np.log(1. + _np.exp(-2. * x[i])))
     return out
-
-
-spec = [
-    ('_n_visible', int64),
-    ('_n_hidden', int64),
-    ('_W', complex128[:, ::1]),
-    ('_a', optional(complex128[::1])),
-    ('_b', optional(complex128[::1])),
-    ('_r', complex128[:, ::1]),
-]
-
-
-@jitclass(spec)
-class RbmSpinKernel():
-    def __init__(self, W, a, b):
-        self._n_visible = W.shape[1]
-        self._n_hidden = W.shape[0]
-        self._W = W
-        self._a = a
-        self._b = b
-        self._r = _np.empty((1, self._n_hidden), dtype=_np.complex128)
-
-    def log_val(self, x, out):
-        if(out is None):
-            out = _np.empty(x.shape[0], dtype=_np.complex128)
-        self._r = x.dot(self._W.T)
-
-        if self._b is None:
-            _log_cosh_sum(self._r, out)
-        else:
-            _log_cosh_sum(self._r + self._b, out)
-
-        if self._a is not None:
-            out = out + x.dot(self._a)
-
-        return out
 
 
 class PyRbm(AbstractMachine):
@@ -77,7 +41,9 @@ class PyRbm(AbstractMachine):
     """
 
     def __init__(
-        self, hilbert, n_hidden=None, alpha=None, use_visible_bias=True, use_hidden_bias=True
+        self, hilbert, n_hidden=None, alpha=None,
+        use_visible_bias=True, use_hidden_bias=True,
+        dtype=complex
     ):
         r"""
         Constructs a new ``RbmSpin`` machine:
@@ -95,6 +61,7 @@ class PyRbm(AbstractMachine):
            use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
+           dtype: either complex or float, is the type used for the weights.
 
         Examples:
            A ``RbmSpin`` machine with hidden unit density
@@ -114,6 +81,12 @@ class PyRbm(AbstractMachine):
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
 
+        if(dtype is not float and dtype is not complex):
+            raise TypeError("dtype must be either float or complex")
+
+        self._dtype = dtype
+        self._npdtype = _np.complex128 if dtype is complex else _np.float64
+
         if alpha is None:
             m = n_hidden
         else:
@@ -123,11 +96,12 @@ class PyRbm(AbstractMachine):
                     raise RuntimeError('''n_hidden is inconsistent with the given alpha.
                                        Remove one of the two or provide consistent values.''')
 
-        self._w = _np.empty([m, n], dtype=_np.complex128)
+        self._w = _np.empty((m, n), dtype=self._npdtype)
         self._a = _np.empty(
-            n, dtype=_np.complex128) if use_visible_bias else None
+            n, dtype=self._npdtype) if use_visible_bias else None
         self._b = _np.empty(
-            m, dtype=_np.complex128) if use_hidden_bias else None
+            m, dtype=self._npdtype) if use_hidden_bias else None
+        self._r = _np.empty((1, m), dtype=self._npdtype)
 
         self.n_hidden = m
         self.n_visible = n
@@ -137,8 +111,6 @@ class PyRbm(AbstractMachine):
             + (self._a.size if self._a is not None else 0)
             + (self._b.size if self._b is not None else 0)
         )
-
-        self._kernel = RbmSpinKernel(self._w, self._a, self._b)
 
         super().__init__(hilbert)
 
@@ -151,7 +123,22 @@ class PyRbm(AbstractMachine):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        return self._kernel.log_val(x.astype(dtype=_np.complex128), out)
+        return self._log_val_kernel(x.astype(dtype=self._npdtype), out, self._w, self._a, self._b, self._r)
+
+    def _log_val_kernel(self, x, out, W, a, b, r):
+        if(out is None):
+            out = _np.empty(x.shape[0], dtype=_np.complex128)
+        r = x.dot(W.T)
+
+        if b is None:
+            _log_cosh_sum(r, out)
+        else:
+            _log_cosh_sum(r + b, out)
+
+        if a is not None:
+            out = out + x.dot(a)
+
+        return out
 
     def der_log(self, x, out=None):
 
