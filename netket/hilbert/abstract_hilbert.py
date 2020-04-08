@@ -60,7 +60,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.array: An array of quantum numbers corresponding to the state.
         """
-        return self.numbers_to_states(_np.atleast_1d(number))
+        return self.numbers_to_states(_np.atleast_1d(number))[0,:]
 
     def states_to_numbers(self, states, out=None):
         r"""Returns the basis state number corresponding to given quantum states.
@@ -87,7 +87,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             int: The index of the given input state.
         """
-        return self.states_to_numbers(_np.atleast_2d(state))
+        return self.states_to_numbers(_np.atleast_2d(state))[0]
 
     @property
     def n_states(self):
@@ -120,7 +120,7 @@ class AbstractHilbert(abc.ABC):
 
     @property
     def is_indexable(self):
-        if(not self.is_discrete):
+        if not self.is_discrete:
             return False
 
         if(not self.is_finite):

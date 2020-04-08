@@ -77,12 +77,6 @@ void AddUtilsModule(py::module m) {
            },
            py::arg("low"), py::arg("high"), py::arg("samples"));
 
-  subm.def("sum_log_cosh_complex",
-           [](Eigen::Ref<const MatrixXcd> input, Eigen::Ref<VectorXcd> output) {
-             SumLogCosh(input, output);
-           },
-           py::arg("input"), py::arg("output"));
-
   py::class_<MPIHelpers>(m, "MPI")
       .def_static("rank", &MPIHelpers::MPIRank,
                   R"EOF(int: The MPI rank for the current process.  )EOF")
