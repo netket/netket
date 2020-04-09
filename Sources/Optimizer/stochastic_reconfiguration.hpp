@@ -86,7 +86,7 @@ class SR {
    * @param grad The loss gradient f.
    * @param deltaP Output parameter for the update ẋ.
    */
-  void ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP);
+  Eigen::VectorXcd ComputeUpdate(OkRef Oks, GradRef grad, OutputRef deltaP);
 
   void SetParameters(LSQSolver solver, double diagshift = 0.01,
                      bool use_iterative = false, bool is_holomorphic = true);

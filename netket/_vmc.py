@@ -161,7 +161,7 @@ class Vmc(AbstractVariationalDriver):
 
             dp = _np.empty(self._npar, dtype=_np.complex128)
 
-            self._sr.compute_update(_der_logs, grad, dp)
+            dp = self._sr.compute_update(_der_logs, grad, dp)
 
             _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar

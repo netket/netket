@@ -166,7 +166,7 @@ setup(
     author_email="netket@netket.org",
     license="Apache 2.0",
     packages=["netket", "netket.hilbert", "netket.machine",
-              "netket.sampler", "netket.operator"],
+              "netket.sampler", "netket.operator", "netket.optimizer"],
     ext_modules=[CMakeExtension("netket._C_netket")],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial

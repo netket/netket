@@ -21,7 +21,8 @@ const char* SR::SolverAsString(LSQSolver solver) {
   return solvers[solver];
 }
 
-void SR::ComputeUpdate(OkRef Oks, GradRef grad_ref, OutputRef deltaP) {
+Eigen::VectorXcd SR::ComputeUpdate(OkRef Oks, GradRef grad_ref,
+                                   OutputRef deltaP) {
   double nsamp = Oks.rows();
   SumOnNodes(nsamp);
   // auto npar = grad.size();
@@ -50,6 +51,7 @@ void SR::ComputeUpdate(OkRef Oks, GradRef grad_ref, OutputRef deltaP) {
     deltaP.imag().setZero();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+  return VectorXcd(deltaP);
 }
 
 void SR::SetParameters(LSQSolver solver, double diagshift, bool use_iterative,
