@@ -117,7 +117,6 @@ install:
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
     fi
-  - python -m pip install -U pytest
   - python -m pip install pytest-xdist
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
