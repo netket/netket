@@ -3,7 +3,7 @@ from .._C_netket.machine import *
 from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
-from .py_rbm import *
+from .py_rbm import PyRbm, PyRbmSpinPhase
 
 
 def _has_jax():

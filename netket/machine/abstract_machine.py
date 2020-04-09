@@ -28,8 +28,12 @@ class AbstractMachine(abc.ABC):
             """
         pass
 
-    @abc.abstractmethod
-    def vector_jacobian_prod(selv, x, vec, out=None):
+    def init_random_parameters(self, seed=None, sigma=0.01):
+        rgen = _np.random.RandomState(seed)
+        self.parameters = (rgen.normal(scale=sigma, size=self.n_par) +
+                           1.0j * rgen.normal(scale=sigma, size=self.n_par))
+
+    def vector_jacobian_prod(self, x, vec, out=None):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
@@ -42,7 +46,7 @@ class AbstractMachine(abc.ABC):
         Returns:
              `out`
         """
-        return NotImplementedError
+        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError
@@ -80,7 +84,7 @@ class AbstractMachine(abc.ABC):
                               batch_size states at once.
 
         Returns:
-            numpy.array: The array machine(x) for all states x in the Hilbert space.                       
+            numpy.array: The array machine(x) for all states x in the Hilbert space.
 
         """
         if self.hilbert.is_indexable:
