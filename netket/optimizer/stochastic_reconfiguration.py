@@ -1,6 +1,9 @@
 import numpy as _np
 from scipy.linalg import lstsq as _lstsq
+from scipy.sparse.linalg import LinearOperator
 from netket.stats import sum_on_nodes as _sum_on_nodes
+from scipy.sparse.linalg import cg, gmres, minres
+from mpi4py import MPI
 
 
 class SR():
@@ -8,9 +11,15 @@ class SR():
     Performs stochastic reconfiguration (SR) updates.
     """
 
-    def __init__(self, lsq_solver="QR", diag_shift=0.01,
-                 use_iterative=False, is_holomorphic=True,
-                 svd_threshold=None):
+    def __init__(self,
+                 lsq_solver=None,
+                 diag_shift=0.01,
+                 use_iterative=True,
+                 is_holomorphic=True,
+                 svd_threshold=None,
+                 sparse_tol=None,
+                 sparse_maxiter=None):
+
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
@@ -18,16 +27,47 @@ class SR():
         self._svd_threshold = svd_threshold
         self._scale_invariant_pc = False
         self._S = None
-
-        if 'SVD' in lsq_solver:
-            self._lapack_driver = None
-        elif 'ColPivHouseholder' in lsq_solver or 'QR' in lsq_solver:
-            self._lapack_driver = 'gelsy'
-        else:
-            self._lapack_driver = None
-            raise RuntimeError('Unknown lqs_solver')
-
         self._last_rank = None
+
+        # Temporary arrays
+        self._v_tilde = None
+        self._res_t = None
+
+        # Quantities for sparse solver
+        self.sparse_tol = 1.0e-5 if sparse_tol is None else sparse_tol
+        self.sparse_maxiter = sparse_maxiter
+        self._lsq_solver = lsq_solver
+        self._x0 = None
+        self._make_solver()
+
+        self._comm = MPI.COMM_WORLD
+
+    def _make_solver(self):
+        lsq_solver = self._lsq_solver
+        if self._use_iterative:
+            if lsq_solver is None:
+                self._sparse_solver = gmres if self.is_holomorphic else minres
+            elif lsq_solver == 'gmres':
+                self._sparse_solver = gmres
+            elif lsq_solver == 'cg':
+                self._sparse_solver = cg
+            elif lsq_solver == 'minres':
+                if(self._is_holomorphic):
+                    self._sparse_solver = minres
+                else:
+                    raise RuntimeError(
+                        "minres can be used only for real-valued parameters.")
+            else:
+                raise RuntimeError('Unknown sparse lsq_solver.')
+
+        else:
+            if lsq_solver is None or 'ColPivHouseholder' in lsq_solver or 'QR' in lsq_solver:
+                self._lapack_driver = 'gelsy'
+            elif 'SVD' in lsq_solver:
+                self._lapack_driver = None
+            else:
+                self._lapack_driver = None
+                raise RuntimeError('Unknown lsq_solver.')
 
     def compute_update(self, oks, grad, out):
         r"""
@@ -51,11 +91,21 @@ class SR():
         n_par = grad.shape[0]
 
         if out is None:
-            out = _np.empty(n_par, dtype=_np.complex128)
+            out = _np.zero(n_par, dtype=_np.complex128)
 
         if self._is_holomorphic:
             if self._use_iterative:
-                raise NotImplementedError
+                op = self._linear_operator(oks, n_samp)
+
+                if self._x0 is None:
+                    self._x0 = _np.zeros(n_par, dtype=_np.complex128)
+
+                out, info = self._sparse_solver(op, grad, x0=self._x0, tol=self.sparse_tol,
+                                                maxiter=self.sparse_maxiter)
+                if(info < 0):
+                    raise RuntimeError('SR sparse solver did not converge.')
+
+                self._x0 = out
             else:
                 self._S = _np.matmul(oks.conj().T, oks, self._S)
                 self._S = _sum_on_nodes(self._S)
@@ -70,8 +120,17 @@ class SR():
                 self._revert_preconditioning(out)
 
         else:
-            if self._use_iterative_:
-                raise NotImplementedError
+            if self._use_iterative:
+                op = self._linear_operator(oks, n_samp)
+
+                if self._x0 is None:
+                    self._x0 = _np.zeros(n_par)
+
+                out.real, info = self._sparse_solver(op, grad.real, x0=self._x0, tol=self.sparse_tol,
+                                                     maxiter=self.sparse_maxiter)
+                if(info < 0):
+                    raise RuntimeError('SR sparse solver did not converge.')
+                self._x0 = out.real
             else:
                 self._S = _np.matmul(oks.conj().T, oks, self._S)
                 self._S /= float(n_samp)
@@ -85,6 +144,8 @@ class SR():
                 self._revert_preconditioning(out.real)
 
             out.imag.fill(0.)
+        self._comm.bcast(out, root=0)
+        self._comm.barrier()
         return out
 
     def _apply_preconditioning(self, grad):
@@ -166,3 +227,39 @@ class SR():
         rep += "\n"
 
         return rep
+
+    def _linear_operator(self, oks, n_samp):
+        n_par = oks.shape[1]
+        shift = self._diag_shift
+        oks_conj = oks.conjugate()
+
+        if self._is_holomorphic:
+            def matvec(v):
+                v_tilde = self._v_tilde
+                res = self._res_t
+
+                v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
+                res = _np.matmul(v_tilde, oks_conj, res)
+                res = _sum_on_nodes(res) + self._diag_shift * v
+                return res
+        else:
+            def matvec(v):
+                v_tilde = self._v_tilde
+                res = self._res_t
+
+                v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
+                res = _np.matmul(v_tilde, oks_conj, res)
+                res = _sum_on_nodes(res) + self._diag_shift * v
+
+                return res.real
+
+        return LinearOperator((n_par, n_par), matvec=matvec, rmatvec=matvec)
+
+    @property
+    def is_holomorphic(self):
+        return self._is_holomorphic
+
+    @is_holomorphic.setter
+    def is_holomorphic(self, is_holo):
+        self._is_holomorphic = is_holo
+        self._make_solver()
