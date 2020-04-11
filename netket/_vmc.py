@@ -62,8 +62,8 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self._sr = sr
-        # if sr is not None:
-        #     self._sr.is_holomorphic = sampler.machine.is_holomorphic
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 
@@ -131,7 +131,7 @@ class Vmc(AbstractVariationalDriver):
             pass
 
         # Generate samples and store them
-        self._sampler.generate_samples(
+        self._samples = self._sampler.generate_samples(
             self._n_samples_node, samples=self._samples)
 
         # Compute the local energy estimator and average Energy

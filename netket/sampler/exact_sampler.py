@@ -49,7 +49,10 @@ class ExactSampler(AbstractSampler):
         numbers = netket.random.choice(
             self._prob.size, size=self.sample_shape[0] * n_samples, replace=True, p=self._prob
         )
-        return self.hilbert.numbers_to_states(numbers).reshape(samples.shape)
+        samples = self.hilbert.numbers_to_states(
+            numbers).reshape(samples.shape)
+
+        return samples
 
     @property
     def machine_pow(self):

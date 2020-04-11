@@ -44,6 +44,12 @@ class SR():
 
     def _make_solver(self):
         lsq_solver = self._lsq_solver
+
+        if lsq_solver in ['gmres', 'cg', 'minres']:
+            self._use_iterative = True
+        if lsq_solver in ['ColPivHouseholder', 'QR', 'SVD']:
+            self._use_iterative = False
+
         if self._use_iterative:
             if lsq_solver is None:
                 self._sparse_solver = gmres if self.is_holomorphic else minres
@@ -58,7 +64,8 @@ class SR():
                     raise RuntimeError(
                         "minres can be used only for real-valued parameters.")
             else:
-                raise RuntimeError('Unknown sparse lsq_solver.')
+                raise RuntimeError(
+                    'Unknown sparse lsq_solver ' + lsq_solver + '.')
 
         else:
             if lsq_solver is None or 'ColPivHouseholder' in lsq_solver or 'QR' in lsq_solver:
@@ -67,9 +74,13 @@ class SR():
                 self._lapack_driver = None
             else:
                 self._lapack_driver = None
-                raise RuntimeError('Unknown lsq_solver.')
+                raise RuntimeError('Unknown lsq_solver' + lsq_solver + '.')
 
-    def compute_update(self, oks, grad, out):
+        if self._use_iterative and self._svd_threshold is not None:
+            raise ValueError(
+                'The svd_threshold option is available only for non-sparse solvers.')
+
+    def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
 
@@ -91,7 +102,7 @@ class SR():
         n_par = grad.shape[0]
 
         if out is None:
-            out = _np.zero(n_par, dtype=_np.complex128)
+            out = _np.zeros(n_par, dtype=_np.complex128)
 
         if self._is_holomorphic:
             if self._use_iterative:
