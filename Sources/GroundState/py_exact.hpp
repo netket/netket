@@ -39,9 +39,9 @@ void AddExactModule(py::module &m) {
       .def(py::init<const AbstractOperator &, ExactTimePropagation::Stepper &,
                     double, ExactTimePropagation::StateVector,
                     const std::string &, const std::string &>(),
-           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hamiltonian"), py::arg("stepper"),
-           py::arg("t0"), py::arg("initial_state"),
-           py::arg("matrix_type") = "sparse",
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
+           py::arg("hamiltonian"), py::arg("stepper"), py::arg("t0"),
+           py::arg("initial_state"), py::arg("matrix_type") = "sparse",
            py::arg("propagation_type") = "real", R"EOF(
            Constructs an ``ExactTimePropagation`` object from a hamiltonian, a stepper,
            a time, and an initial state.
@@ -72,7 +72,6 @@ void AddExactModule(py::module &m) {
                >>> n_states = hilbert.n_states
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
                >>> stepper = nk.dynamics.timestepper(n_states, rel_tol=1e-10, abs_tol=1e-10)
-               >>> output = nk.output.JsonOutputWriter('test.log', 'test.wf')
                >>> psi0 = np.random.rand(n_states)
                >>> driver = nk.exact.ExactTimePropagation(hamiltonian, stepper, t0=0,
                ...                                        initial_state=psi0,
@@ -107,11 +106,9 @@ void AddExactModule(py::module &m) {
                     &ExactTimePropagation::SetTime,
                     R"EOF(double: Time in the simulation.)EOF")
       .def_property("state", &ExactTimePropagation::GetState,
-                   &ExactTimePropagation::SetState,
-                   "Current state.")
-      .def(
-          "get_observable_stats", &ExactTimePropagation::GetObservableStats,
-          R"EOF(
+                    &ExactTimePropagation::SetState, "Current state.")
+      .def("get_observable_stats", &ExactTimePropagation::GetObservableStats,
+           R"EOF(
         Calculate and return the value of the operators stored as observables.
 
         )EOF");

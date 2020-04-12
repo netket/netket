@@ -21,7 +21,6 @@
 
 #include "Dynamics/TimeStepper/abstract_time_stepper.hpp"
 #include "Operator/operator.hpp"
-#include "Output/json_output_writer.hpp"
 #include "Stats/binning.hpp"
 
 namespace netket {

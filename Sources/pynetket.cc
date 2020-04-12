@@ -23,7 +23,6 @@
 #include "Machine/py_machine.hpp"
 #include "Operator/py_operator.hpp"
 #include "Optimizer/py_optimizer.hpp"
-#include "Output/py_output.hpp"
 #include "Sampler/py_sampler.hpp"
 #include "Stats/py_stats.hpp"
 // #include "Supervised/py_supervised.hpp"
@@ -41,7 +40,6 @@ PYBIND11_MODULE(_C_netket, m) {
   AddMachineModule(m);
   AddOperatorModule(m);
   AddOptimizerModule(m);
-  AddOutputModule(m);
   AddSamplerModule(m);
   AddStatsModule(m.ptr());
   AddUtilsModule(m);
