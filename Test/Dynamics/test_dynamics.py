@@ -4,7 +4,7 @@ from scipy.integrate import solve_ivp
 from scipy.linalg import norm
 
 import netket as nk
-from netket._exact_dynamics import PyExactTimePropagation
+from netket.exact import PyExactTimePropagation
 
 
 ATOL = 1e-9

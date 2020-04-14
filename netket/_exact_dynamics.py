@@ -16,7 +16,7 @@ import itertools as _itertools
 import json
 
 import numpy as _np
-import scipy.integrate as _int
+import scipy.integrate as _scint
 from tqdm import tqdm
 
 import netket as _nk
@@ -71,7 +71,7 @@ class _MockMachine:
 
 class PyExactTimePropagation:
     """
-    Solver for exact real and imaginary time evolution, wrapping `scipy.integrate.solve_ivp`
+    Solver for exact real and imaginary time evolution, wrapping `scipy.integrate`
     for direct use within NetKet.
     """
 
@@ -83,23 +83,26 @@ class PyExactTimePropagation:
         t0=0.0,
         propagation_type="real",
         matrix_type="sparse",
-        solver_kwargs=None,
+        solver=None,
+        solver_kwargs={},
     ):
         """
         Create the exact time evolution driver.
 
            Args:
-               hamiltonian: Hamiltonian of the system.
-               initial_state: Initial state at t0.
-               dt (float): Simulation time step.
-               t0 (float): Initial time.
-               propagation_type: Specifies whether the imaginary or real-time
+               :hamiltonian: Hamiltonian of the system.
+               :initial_state: Initial state at t0.
+               :dt (float): Simulation time step.
+               :t0 (float): Initial time.
+               :propagation_type: Specifies whether the imaginary or real-time
                    Schroedinger equation is solved. Should be one of "real" or
                    "imaginary".
-               matrix_type: The type of matrix used for the Hamiltonian when
+               :matrix_type: The type of matrix used for the Hamiltonian when
                    creating the matrix wrapper. The default is `sparse`. The
                    other choices are `dense` and `direct`.
-               solver_kwargs (dict): Keyword arguments passed to `solve_ivp`.
+                :solver: A solver class, which should be a subclass of `scipy.integrate.OdeSolver`.
+                :solver_kwargs (dict): Keyword arguments that are passed to the solver class,
+                    e.g., for `atol` and `rtol`.
 
            Examples:
                Solving 1D Ising model with imaginary time propagation:
@@ -128,13 +131,21 @@ class PyExactTimePropagation:
         self.state = initial_state
         self._dt = dt
         self._t0 = t0
+        self._t = t0
         self._steps = 0
         self._prop_type = propagation_type
         self._matrix_type = matrix_type
 
-        self._solver_kwargs = {}
-        if solver_kwargs:
-            self._solver_kwargs.update(solver_kwargs)
+        Solver = solver if solver else _scint.RK45
+
+        self._solver = Solver(
+            self._rhs,
+            self._t0,
+            self.state,
+            t_bound=_np.inf,
+            max_step=dt,
+            **solver_kwargs
+        )
 
         # DEPRECATED: Remove in NetKet v3
         self._obs = {}
@@ -165,7 +176,7 @@ class PyExactTimePropagation:
         """
         Current simulation time.
         """
-        return self._t0 + self._dt * self._steps
+        return self._t
 
     @property
     def dt(self):
@@ -186,15 +197,18 @@ class PyExactTimePropagation:
            Args:
                :n_steps (int): No. of steps to advance.
         """
-        t_end = self.t + n_steps * self._dt
-        res = _int.solve_ivp(
-            self._rhs, (self.t, t_end), self.state, **self._solver_kwargs
-        )
+        t_end = self._t + n_steps * self._dt
 
-        self.state = res.y[:, -1]
-        self._steps += n_steps
+        self._solver.t = self.t
+        self._solver.t_bound = t_end
+        self._solver.status = "running"
+        while self._solver.status == "running":
+            self._solver.step()
+        if self._solver.status == "failed":
+            raise ...
 
-        assert _np.allclose(self.t, res.t[-1])
+        self.state = self._solver.y
+        self._t = self._solver.t
 
     def iter(self, n_iter, step=1):
         """
