@@ -1,5 +1,5 @@
 import numpy as np
-from pytest import approx
+from pytest import approx, raises
 from scipy.integrate import solve_ivp
 from scipy.linalg import norm
 
@@ -99,3 +99,14 @@ def test_time_stepping():
 
     ts_ref = np.linspace(0, 1, 21, endpoint=True)
     assert np.allclose(ts, ts_ref)
+
+
+def test_old_driver_removal():
+    ham, psi0 = _setup_model()
+
+    with raises(
+        RuntimeError, match="ExactTimePropagation has been deprecated and removed."
+    ):
+        nk.exact.ExactTimePropagation(
+            ham, t0=0.0, initial_state=psi0, propagation_type="real"
+        )
