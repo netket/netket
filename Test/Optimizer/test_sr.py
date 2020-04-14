@@ -18,7 +18,10 @@ def test_svd_threshold():
     """
     Test SVD threshold option of BDCSVD
     """
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="The svd_threshold option is available only for non-sparse solvers.",
+    ):
         SR(use_iterative=True, svd_threshold=1e-3)
 
     a = np.diag([1e0 + 0j, 1e-3, 1e-6])

@@ -6,19 +6,21 @@ from scipy.sparse.linalg import cg, gmres, minres
 from mpi4py import MPI
 
 
-class SR():
+class SR:
     r"""
     Performs stochastic reconfiguration (SR) updates.
     """
 
-    def __init__(self,
-                 lsq_solver=None,
-                 diag_shift=0.01,
-                 use_iterative=True,
-                 is_holomorphic=True,
-                 svd_threshold=None,
-                 sparse_tol=None,
-                 sparse_maxiter=None):
+    def __init__(
+        self,
+        lsq_solver=None,
+        diag_shift=0.01,
+        use_iterative=True,
+        is_holomorphic=True,
+        svd_threshold=None,
+        sparse_tol=None,
+        sparse_maxiter=None,
+    ):
 
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
@@ -45,40 +47,45 @@ class SR():
     def _make_solver(self):
         lsq_solver = self._lsq_solver
 
-        if lsq_solver in ['gmres', 'cg', 'minres']:
+        if lsq_solver in ["gmres", "cg", "minres"]:
             self._use_iterative = True
-        if lsq_solver in ['ColPivHouseholder', 'QR', 'SVD']:
+        if lsq_solver in ["ColPivHouseholder", "QR", "SVD"]:
             self._use_iterative = False
 
         if self._use_iterative:
             if lsq_solver is None:
                 self._sparse_solver = gmres if self.is_holomorphic else minres
-            elif lsq_solver == 'gmres':
+            elif lsq_solver == "gmres":
                 self._sparse_solver = gmres
-            elif lsq_solver == 'cg':
+            elif lsq_solver == "cg":
                 self._sparse_solver = cg
-            elif lsq_solver == 'minres':
-                if(self._is_holomorphic):
+            elif lsq_solver == "minres":
+                if self._is_holomorphic:
                     self._sparse_solver = minres
                 else:
                     raise RuntimeError(
-                        "minres can be used only for real-valued parameters.")
+                        "minres can be used only for real-valued parameters."
+                    )
             else:
-                raise RuntimeError(
-                    'Unknown sparse lsq_solver ' + lsq_solver + '.')
+                raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
         else:
-            if lsq_solver is None or 'ColPivHouseholder' in lsq_solver or 'QR' in lsq_solver:
-                self._lapack_driver = 'gelsy'
-            elif 'SVD' in lsq_solver:
+            if (
+                lsq_solver is None
+                or "ColPivHouseholder" in lsq_solver
+                or "QR" in lsq_solver
+            ):
+                self._lapack_driver = "gelsy"
+            elif "SVD" in lsq_solver:
                 self._lapack_driver = None
             else:
                 self._lapack_driver = None
-                raise RuntimeError('Unknown lsq_solver' + lsq_solver + '.')
+                raise RuntimeError("Unknown lsq_solver" + lsq_solver + ".")
 
         if self._use_iterative and self._svd_threshold is not None:
             raise ValueError(
-                'The svd_threshold option is available only for non-sparse solvers.')
+                "The svd_threshold option is available only for non-sparse solvers."
+            )
 
     def compute_update(self, oks, grad, out=None):
         r"""
@@ -111,10 +118,15 @@ class SR():
                 if self._x0 is None:
                     self._x0 = _np.zeros(n_par, dtype=_np.complex128)
 
-                out, info = self._sparse_solver(op, grad, x0=self._x0, tol=self.sparse_tol,
-                                                maxiter=self.sparse_maxiter)
-                if(info < 0):
-                    raise RuntimeError('SR sparse solver did not converge.')
+                out, info = self._sparse_solver(
+                    op,
+                    grad,
+                    x0=self._x0,
+                    tol=self.sparse_tol,
+                    maxiter=self.sparse_maxiter,
+                )
+                if info < 0:
+                    raise RuntimeError("SR sparse solver did not converge.")
 
                 self._x0 = out
             else:
@@ -125,8 +137,11 @@ class SR():
                 self._apply_preconditioning(grad)
 
                 out, residuals, self._last_rank, s_vals = _lstsq(
-                    self._S, grad, cond=self._svd_threshold,
-                    lapack_driver=self._lapack_driver)
+                    self._S,
+                    grad,
+                    cond=self._svd_threshold,
+                    lapack_driver=self._lapack_driver,
+                )
 
                 self._revert_preconditioning(out)
 
@@ -137,10 +152,15 @@ class SR():
                 if self._x0 is None:
                     self._x0 = _np.zeros(n_par)
 
-                out.real, info = self._sparse_solver(op, grad.real, x0=self._x0, tol=self.sparse_tol,
-                                                     maxiter=self.sparse_maxiter)
-                if(info < 0):
-                    raise RuntimeError('SR sparse solver did not converge.')
+                out.real, info = self._sparse_solver(
+                    op,
+                    grad.real,
+                    x0=self._x0,
+                    tol=self.sparse_tol,
+                    maxiter=self.sparse_maxiter,
+                )
+                if info < 0:
+                    raise RuntimeError("SR sparse solver did not converge.")
                 self._x0 = out.real
             else:
                 self._S = _np.matmul(oks.conj().T, oks, self._S)
@@ -148,13 +168,16 @@ class SR():
 
                 self._apply_preconditioning(grad)
 
-                out.real, residuals, self._last_rank, s_vals = _lstsq(self._S.real, grad.real,
-                                                                      cond=self._svd_threshold,
-                                                                      lapack_driver=self._lapack_driver)
+                out.real, residuals, self._last_rank, s_vals = _lstsq(
+                    self._S.real,
+                    grad.real,
+                    cond=self._svd_threshold,
+                    lapack_driver=self._lapack_driver,
+                )
 
                 self._revert_preconditioning(out.real)
 
-            out.imag.fill(0.)
+            out.imag.fill(0.0)
         self._comm.bcast(out, root=0)
         self._comm.barrier()
         return out
@@ -169,8 +192,8 @@ class SR():
 
             index = self._diag_S <= cutoff
             self._diag_S[index] = 1.0
-            self._S[index, :].fill(0.)
-            self._S[:, index].fill(0.)
+            self._S[index, :].fill(0.0)
+            self._S[:, index].fill(0.0)
             _np.fill_diagonal(self._S, 1.0)
 
             self._S /= _np.vdot(self._diag_S, self._diag_S)
@@ -202,11 +225,13 @@ class SR():
 
     @scale_invariant_regularization.setter
     def scale_invariant_regularization(self, activate):
-        assert(activate is True or activate is False)
+        assert activate is True or activate is False
         self._scale_invariant_pc = activate
-        if(self._use_iterative):
-            raise NotImplementedError("""Scale-invariant regularization is
-                   not implemented for iterative solvers at the moment.""")
+        if self._use_iterative:
+            raise NotImplementedError(
+                """Scale-invariant regularization is
+                   not implemented for iterative solvers at the moment."""
+            )
 
     def __repr__(self):
         rep = "SR(solver="
@@ -214,8 +239,7 @@ class SR():
         if self._use_iterative:
             rep += "iterative"
         else:
-            rep += self._lsq_solver + ", diag_shift=" + \
-                str(self._diag_shift)
+            rep += self._lsq_solver + ", diag_shift=" + str(self._diag_shift)
             if self._svd_threshold is not None:
                 rep += ", threshold=" << self._svd_threshold
 
@@ -223,7 +247,7 @@ class SR():
         return rep
 
     def info(self, depth=0):
-        indent = ' ' * 4 * depth
+        indent = " " * 4 * depth
         rep = indent
         rep += "Stochastic reconfiguration method for "
         rep += "holomorphic" if self._is_holomorphic else "real-parameter"
@@ -245,6 +269,7 @@ class SR():
         oks_conj = oks.conjugate()
 
         if self._is_holomorphic:
+
             def matvec(v):
                 v_tilde = self._v_tilde
                 res = self._res_t
@@ -253,7 +278,9 @@ class SR():
                 res = _np.matmul(v_tilde, oks_conj, res)
                 res = _sum_on_nodes(res) + self._diag_shift * v
                 return res
+
         else:
+
             def matvec(v):
                 v_tilde = self._v_tilde
                 res = self._res_t

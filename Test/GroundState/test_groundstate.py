@@ -22,8 +22,7 @@ def _setup_vmc(**kwargs):
 
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    vmc = nk.variational.Vmc(
-        hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
+    vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
@@ -99,8 +98,7 @@ def test_vmc_iterator_iterative():
         for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert hasattr(e, "mean") and hasattr(
-                e, "variance") and hasattr(e, "R")
+            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R")
         last_obs = obs
 
     assert count == 300
@@ -143,8 +141,7 @@ def test_imag_time_propagation():
     hi = nk.hilbert.Spin(s=0.5, graph=g)
     ha = nk.operator.Ising(h=0.0, hilbert=hi)
 
-    stepper = nk.dynamics.timestepper(
-        hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
+    stepper = nk.dynamics.timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
     psi0 = np.random.rand(hi.n_states)
     driver = nk.exact.ExactTimePropagation(
         ha, stepper, t0=0, initial_state=psi0, propagation_type="imaginary"

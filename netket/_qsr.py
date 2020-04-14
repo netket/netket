@@ -110,8 +110,7 @@ class Qsr(AbstractVariationalDriver):
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         self._grads = _np.empty(
@@ -126,12 +125,10 @@ class Qsr(AbstractVariationalDriver):
     def n_samples_data(self, n_samples_data):
         if n_samples_data <= 0:
             raise ValueError(
-                "Invalid number of samples: n_samples_data={}".format(
-                    n_samples)
+                "Invalid number of samples: n_samples_data={}".format(n_samples)
             )
         self._n_samples_data = n_samples_data
-        self._n_samples_data_node = int(
-            _np.ceil(n_samples_data / _nk.MPI.size()))
+        self._n_samples_data_node = int(_np.ceil(n_samples_data / _nk.MPI.size()))
 
         self._data_grads = _np.empty(
             (self._n_samples_data_node, self._machine.n_par), dtype=_np.complex128
@@ -145,8 +142,7 @@ class Qsr(AbstractVariationalDriver):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
             n_discard
@@ -190,8 +186,7 @@ class Qsr(AbstractVariationalDriver):
             for i, sample in enumerate(self._samples):
                 self._der_logs[i] = self._machine.der_log(sample)
 
-            grad_neg = _mean(
-                self._der_logs.reshape(-1, self._npar), axis=0).conjugate()
+            grad_neg = _mean(self._der_logs.reshape(-1, self._npar), axis=0).conjugate()
 
             # Positive phase driven by the data
             for x, b_x, grad_x in zip(
@@ -205,8 +200,7 @@ class Qsr(AbstractVariationalDriver):
 
             dp = _np.empty(self._npar, dtype=_np.complex128)
 
-            self._sr.compute_update(
-                self._der_logs.reshape(-1, self._npar), grad, dp)
+            self._sr.compute_update(self._der_logs.reshape(-1, self._npar), grad, dp)
         else:
             # Computing updates using the simple gradient
 
@@ -302,8 +296,7 @@ class Qsr(AbstractVariationalDriver):
             max_log_val = log_val_primes.real.max()
             psi_rotated = (mels * _np.exp(log_val_primes - max_log_val)).sum()
 
-            nll -= _np.log(_np.square(_np.absolute(psi_rotated))
-                           ) + 2.0 * max_log_val
+            nll -= _np.log(_np.square(_np.absolute(psi_rotated))) + 2.0 * max_log_val
 
         nll /= float(len(samples))
 

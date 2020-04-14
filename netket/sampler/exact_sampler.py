@@ -31,7 +31,7 @@ class ExactSampler(AbstractSampler):
         super().__init__(machine, sample_size)
 
     def reset(self, init_random=False):
-        self._prob = _np.absolute(self.machine.to_array())**self.machine_pow
+        self._prob = _np.absolute(self.machine.to_array()) ** self.machine_pow
         self._prob /= self._prob.sum()
 
     def __next__(self):
@@ -43,14 +43,15 @@ class ExactSampler(AbstractSampler):
     def generate_samples(self, n_samples, init_random=False, samples=None):
 
         if samples is None:
-            samples = _np.zeros(
-                (n_samples, self.sample_shape[0], self.sample_shape[1]))
+            samples = _np.zeros((n_samples, self.sample_shape[0], self.sample_shape[1]))
 
         numbers = netket.random.choice(
-            self._prob.size, size=self.sample_shape[0] * n_samples, replace=True, p=self._prob
+            self._prob.size,
+            size=self.sample_shape[0] * n_samples,
+            replace=True,
+            p=self._prob,
         )
-        samples = self.hilbert.numbers_to_states(
-            numbers).reshape(samples.shape)
+        samples = self.hilbert.numbers_to_states(numbers).reshape(samples.shape)
 
         return samples
 
