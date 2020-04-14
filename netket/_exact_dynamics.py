@@ -117,13 +117,11 @@ class PyExactTimePropagation:
                >>> n_states = hilbert.n_states
                >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
                >>> psi0 = np.random.rand(n_states)
-               >>> driver = nk.exact.ExactTimePropagation(hamiltonian, stepper, t0=0,
-               ...                                        initial_state=psi0,
-               ...                                        propagation_type="imaginary")
-               >>> driver.add_observable(hamiltonian, 'Hamiltonian')
+               >>> driver = nk.exact.PyExactTimePropagation(hamiltonian, stepper, t0=0,
+               ...                                          initial_state=psi0,
+               ...                                          propagation_type="imaginary")
                >>> for step in driver.iter(dt=0.05, n_iter=20):
-               ...     obs = driver.get_observable_stats()
-
+               ...     print(driver.estimate(hamiltonian))
                ```
         """
         self._h = lambda t: hamiltonian  # FIXME: Support time-dependent H
@@ -147,9 +145,6 @@ class PyExactTimePropagation:
             max_step=dt,
             **solver_kwargs
         )
-
-        # DEPRECATED: Remove in NetKet v3
-        self._obs = {}
 
     def _estimate_stats(self, obs):
         if isinstance(obs, _nk.operator.abstract_operator.AbstractOperator):
@@ -262,11 +257,7 @@ class PyExactTimePropagation:
             :show_progress: If true displays a progress bar (default=True)
         """
         if obs is None:
-            # TODO remove the first case after deprecation of self._obs in 3.0
-            if len(self._obs) != 0:
-                obs = self._obs
-            else:
-                obs = {}
+            obs = {}
 
         logger = _JsonLog(output_prefix, save_params_every, write_every)
 
@@ -297,31 +288,3 @@ class PyExactTimePropagation:
         # file
         if logger is not None:
             logger.flush(_MockMachine(self.state))
-
-    @_nk._core.deprecated()
-    def add_observable(self, obs, name, matrix_type="sparse"):
-        """
-        Add an observable quantity, that will be calculated at each
-        iteration.
-
-        Args:
-            observable: The operator form of the observable.
-            name: The name of the observable.
-            matrix_type: The type of matrix used for the observable when
-                creating the matrix wrapper. The default is `sparse`. The
-                other choices are `dense` and `direct`.
-
-        Deprecated(v2.1):
-            Use `self.estimate(dict_of_observables)` instead.
-        """
-        self._obs[name] = _make_op(obs, matrix_type)
-
-    @_nk._core.deprecated()
-    def get_observable_stats(self):
-        """
-        Calculate and return the value of the operators stored as observables.
-
-        Deprecated(v2.1):
-            Use `self.estimate(dict_of_observables)` instead.
-        """
-        return self.estimate(self._obs)
