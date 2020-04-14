@@ -23,6 +23,9 @@ py::dict GetItem(const ObsManager& self, const std::string& name) {
 }
 
 int GetPrecision(double /* value */, double error) {
+  if (error < 1e-6) {
+    return 6;
+  }
   const int loge = std::floor(std::log10(std::abs(error)));
   return std::max(1 - loge, 0);
 }
@@ -70,6 +73,9 @@ void AddStatsModule(py::module m) {
   };
 
   py::class_<Stats>(subm, "Stats")
+      .def(py::init<Complex, double, double, double, double>(), py::arg("mean"),
+           py::arg("error_of_mean"), py::arg("variance"),
+           py::arg("correlation"), py::arg("R"))
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)

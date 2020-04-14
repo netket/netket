@@ -18,7 +18,6 @@
 #include <netket.hpp>
 #include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
-#include "GroundState/py_ground_state.hpp"
 #include "Hilbert/py_hilbert.hpp"
 #include "Machine/py_machine.hpp"
 #include "Operator/py_operator.hpp"
@@ -36,7 +35,6 @@ namespace netket {
 PYBIND11_MODULE(_C_netket, m) {
   AddDynamicsModule(m);
   AddGraphModule(m);
-  AddGroundStateModule(m);
   AddHilbertModule(m);
   AddMachineModule(m);
   AddOperatorModule(m);

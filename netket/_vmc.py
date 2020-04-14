@@ -5,10 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from netket.stats import (
-    statistics as _statistics,
-    mean as _mean,
-)
+from netket.stats import statistics as _statistics, mean as _mean
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
