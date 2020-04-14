@@ -27,21 +27,14 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 ma = nk.machine.RbmSpinReal(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
-
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16, sweep_size=20)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    diag_shift=0.1,
-    method="Sr",
-)
+# sr
+sr = nk.optimizer.SR(diag_shift=0.1)
 
+gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
 gs.run(output_prefix="test", n_iter=300)

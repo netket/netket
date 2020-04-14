@@ -276,7 +276,7 @@ class SR:
 
                 v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
                 res = _np.matmul(v_tilde, oks_conj, res)
-                res = _sum_on_nodes(res) + self._diag_shift * v
+                res = _sum_on_nodes(res) + shift * v
                 return res
 
         else:
@@ -287,7 +287,7 @@ class SR:
 
                 v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
                 res = _np.matmul(v_tilde, oks_conj, res)
-                res = _sum_on_nodes(res) + self._diag_shift * v
+                res = _sum_on_nodes(res) + shift * v
 
                 return res.real
 
