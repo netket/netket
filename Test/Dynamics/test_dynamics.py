@@ -82,3 +82,20 @@ def test_python_imag_time_evolution():
 
     assert driver.t == approx(res.t[-1])
     assert overlap(driver.state, psi_scipy) == approx(1.0)
+
+
+def test_time_stepping():
+    ham, psi0 = _setup_model()
+
+    driver = PyExactTimePropagation(
+        ham,
+        t0=0.0,
+        dt=0.05,
+        initial_state=psi0,
+        propagation_type="real",
+        solver_kwargs={"atol": 1e-2, "rtol": 1e-2},
+    )
+    ts = [driver.t for _ in driver.iter(21)]
+
+    ts_ref = np.linspace(0, 1, 21, endpoint=True)
+    assert np.allclose(ts, ts_ref)
