@@ -16,6 +16,7 @@ from .hamiltonian import (
     Heisenberg
 )
 
+from .abstract_operator import AbstractOperator
 from .bose_hubbard import BoseHubbard
 from .pauli_strings import PauliStrings
 
