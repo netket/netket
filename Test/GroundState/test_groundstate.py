@@ -141,16 +141,18 @@ def test_imag_time_propagation():
     hi = nk.hilbert.Spin(s=0.5, graph=g)
     ha = nk.operator.Ising(h=0.0, hilbert=hi)
 
-    stepper = nk.dynamics.timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
     psi0 = np.random.rand(hi.n_states)
-    driver = nk.exact.ExactTimePropagation(
-        ha, stepper, t0=0, initial_state=psi0, propagation_type="imaginary"
+    driver = nk.exact.PyExactTimePropagation(
+        ha,
+        t0=0,
+        dt=0.1,
+        initial_state=psi0,
+        propagation_type="imaginary",
+        solver_kwargs={"atol": 1e-10, "rtol": 1e-10},
     )
 
-    for step in driver.iter(dt=0.1, n_iter=1000):
-        pass
-
-    assert driver.get_observable_stats()["Energy"]["Mean"] == approx(-8.0)
+    driver.advance(1000)
+    assert driver.estimate(ha).mean.real == approx(-8.0)
 
 
 def test_ed():
