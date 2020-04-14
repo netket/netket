@@ -36,11 +36,11 @@ def _make_op(op, matrix_type):
         return op.to_linear_op()
 
 
-def _make_rhs(hamiltonian, propagation_type, matrix_type):
+def _make_rhs(hamiltonian, propagation_type):
     if propagation_type == "real":
 
         def rhs(t, state):
-            ham = _make_op(hamiltonian(t), matrix_type)
+            ham = hamiltonian(t)
             return -1j * ham.dot(state)
 
         return rhs
@@ -48,7 +48,7 @@ def _make_rhs(hamiltonian, propagation_type, matrix_type):
     elif propagation_type == "imaginary":
 
         def rhs(t, state):
-            ham = _make_op(hamiltonian(t), matrix_type)
+            ham = hamiltonian(t)
             v0 = ham.dot(state)
             mean = _np.vdot(state, v0)
             return -v0 + mean * state
@@ -124,8 +124,12 @@ class PyExactTimePropagation:
                ...     print(driver.estimate(hamiltonian))
                ```
         """
-        self._h = lambda t: hamiltonian  # FIXME: Support time-dependent H
-        self._rhs = _make_rhs(self._h, propagation_type, matrix_type)
+        if isinstance(hamiltonian, _nk.operator.AbstractOperator):
+            self._h_op = _make_op(hamiltonian, matrix_type)
+            self._h = lambda t: self._h_op
+        else:
+            raise NotImplementedError("Time-dependent hHamiltonian not yet supported.")
+        self._rhs = _make_rhs(self._h, propagation_type)
 
         self.state = initial_state
         self._dt = dt
