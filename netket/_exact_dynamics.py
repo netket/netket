@@ -95,12 +95,13 @@ class PyExactTimePropagation:
                :dt (float): Simulation time step.
                :t0 (float): Initial time.
                :propagation_type: Specifies whether the imaginary or real-time
-                   Schroedinger equation is solved. Should be one of "real" or
-                   "imaginary".
+                    Schroedinger equation is solved. Should be one of "real" or
+                    "imaginary".
                :matrix_type: The type of matrix used for the Hamiltonian when
-                   creating the matrix wrapper. The default is `sparse`. The
-                   other choices are `dense` and `direct`.
+                    creating the matrix wrapper. The default is `sparse`. The
+                    other choices are `dense` and `direct`.
                 :solver: A solver class, which should be a subclass of `scipy.integrate.OdeSolver`.
+                    The default solver is `scipy.integrate.RK45`.
                 :solver_kwargs (dict): Keyword arguments that are passed to the solver class,
                     e.g., for `atol` and `rtol`.
 
