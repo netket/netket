@@ -64,8 +64,7 @@ class HilbertIndex():
         return out
 
     def states_to_numbers(self, states, out=None):
-
-        if(out is None):
+        if out is None:
             out = _np.empty(states.shape[0], _np.int64)
         else:
             assert(out.size == states.shape[0])
@@ -75,11 +74,10 @@ class HilbertIndex():
             for j in range(self._size):
                 out[i] += self._local_state_number(
                     states[i, self._size - j - 1]) * self._basis[j]
-
         return out
 
     def numbers_to_states(self, numbers, out=None):
-        if(out is None):
+        if out is None:
             out = _np.empty((numbers.shape[0], self._size))
         else:
             assert(out.shape == (numbers.shape[0], self._size))
