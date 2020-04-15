@@ -5,10 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from netket.stats import (
-    statistics as _statistics,
-    mean as _mean,
-)
+from netket.stats import statistics as _statistics, mean as _mean
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
@@ -62,6 +59,8 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self._sr = sr
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 
@@ -89,8 +88,7 @@ class Vmc(AbstractVariationalDriver):
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         self._grads = _np.empty(
@@ -105,8 +103,7 @@ class Vmc(AbstractVariationalDriver):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
             n_discard
@@ -129,8 +126,9 @@ class Vmc(AbstractVariationalDriver):
             pass
 
         # Generate samples and store them
-        self._sampler.generate_samples(
-            self._n_samples_node, samples=self._samples)
+        self._samples = self._sampler.generate_samples(
+            self._n_samples_node, samples=self._samples
+        )
 
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
@@ -161,7 +159,7 @@ class Vmc(AbstractVariationalDriver):
 
             dp = _np.empty(self._npar, dtype=_np.complex128)
 
-            self._sr.compute_update(_der_logs, grad, dp)
+            dp = self._sr.compute_update(_der_logs, grad, dp)
 
             _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
@@ -199,7 +197,9 @@ class Vmc(AbstractVariationalDriver):
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
 
-        return loc, _statistics(loc)
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(loc.T)
 
     def __repr__(self):
         return "Vmc(step_count={}, n_samples={}, n_discard={})".format(

@@ -47,6 +47,19 @@ def mean(a, axis=None, dtype=None, out=None):
     return out.reshape(old_shape)
 
 
+def sum_on_nodes(a, out=None):
+    """
+    Computes the sum of a numpy array over MPI processes.
+    """
+    if out is None:
+        _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
+        return a
+    else:
+        out = _np.copy(a)
+        _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+        return out
+
+
 def var(a, axis=None, dtype=None, out=None):
     """
     Compute the variance mean along the specified axis and over MPI processes.
@@ -55,15 +68,16 @@ def var(a, axis=None, dtype=None, out=None):
     """
 
     m = mean(a, axis=axis, dtype=dtype, out=out)
-    if(axis is None or axis == 0):
-        out = mean(_np.abs(a - m)**2.,
-                   axis=axis, dtype=dtype, out=out)
-    elif(axis == 1):
-        out = mean(_np.abs(a - m[:, _np.newaxis])**2.,
-                   axis=axis, dtype=dtype, out=out)
-    elif(axis == 2):
-        out = mean(_np.abs(a - m[:, :, _np.newaxis])**2.,
-                   axis=axis, dtype=dtype, out=out)
+    if axis is None or axis == 0:
+        out = mean(_np.abs(a - m) ** 2.0, axis=axis, dtype=dtype, out=out)
+    elif axis == 1:
+        out = mean(
+            _np.abs(a - m[:, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
+        )
+    elif axis == 2:
+        out = mean(
+            _np.abs(a - m[:, :, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
+        )
     else:
         raise RuntimeError("var implemented only for ndim<=3.")
 

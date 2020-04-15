@@ -73,19 +73,12 @@ def make_optimizer_fn(arg, ma):
 
 def tree_map(fun, tree):
     if tree is None:
-        result = None
-
-    elif not hasattr(tree, '__iter__'):
-        result = fun(tree)
-
-    elif type(tree) == list:
-        result = []
-        for val in tree:
-            result.append(fun, tree_map(val))
-
+        return None
+    elif isinstance(tree, list):
+        return [tree_map(fun, val) for val in tree]
+    elif isinstance(tree, tuple):
+        return tuple(tree_map(fun, val) for val in tree)
+    elif isinstance(tree, dict):
+        return {key: tree_map(fun, value) for key, value in tree.items()}
     else:
-        result = {}
-        for key in tree:
-            result[key] = tree_map(fun, tree[key])
-
-    return result
+        return fun(tree)

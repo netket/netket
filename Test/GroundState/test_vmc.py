@@ -36,7 +36,6 @@ def _setup_vmc():
 
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
-
     driver.advance(500)
 
     state = ma.to_array()

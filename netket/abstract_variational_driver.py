@@ -2,6 +2,7 @@ import abc
 
 from netket._core import deprecated
 import netket as _nk
+import numpy as _np
 
 from netket.logging import JsonLog as _JsonLog
 
@@ -10,12 +11,6 @@ from netket.vmc_common import make_optimizer_fn, tree_map
 from tqdm import tqdm
 
 import warnings
-
-
-def _obs_stat_to_dict(value):
-    st = value.asdict()
-    st["Mean"] = st["Mean"].real
-    return st
 
 
 # Note: to implement a new Driver (see also _vmc.py for an example)
@@ -192,9 +187,9 @@ class AbstractVariationalDriver(abc.ABC):
                 obs_data = self.estimate(obs)
 
                 if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats
+                    obs_data[self._loss_name] = self._loss_stats.to_json()
 
-                log_data = tree_map(_obs_stat_to_dict, obs_data)
+                log_data = obs_data
 
                 if logger is not None:
                     logger(step, log_data, self.machine)

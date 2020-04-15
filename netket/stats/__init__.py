@@ -4,7 +4,7 @@ from .._C_netket.stats import covariance_sv
 from .mpi_stats import *
 
 
-from .mc_stats import statistics
+from .mc_stats import statistics, Stats
 
 
 # use_mpi = True

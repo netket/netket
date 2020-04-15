@@ -1,5 +1,5 @@
 from ._vmc import Vmc as _Vmc
-from ._C_netket.optimizer import SR as _SR
+from .optimizer import SR as _SR
 import warnings
 from netket.vmc_common import tree_map
 
@@ -16,7 +16,7 @@ def Vmc(
     diag_shift=0.01,
     use_iterative=False,
     use_cholesky=None,
-    sr_lsq_solver="LLT",
+    sr_lsq_solver=None,
 ):
 
     if use_cholesky and sr_lsq_solver != "LLT":
