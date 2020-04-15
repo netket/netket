@@ -3,10 +3,10 @@
 
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
-[![CodeFactor](https://www.codefactor.io/repository/github/netket/netket/badge)](https://www.codefactor.io/repository/github/netket/netket)
 [![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
+[![Paper](https://img.shields.io/badge/paper-arXiv%3A1904.00031-B31B1B.svg)](https://arxiv.org/abs/1904.00031)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/v.2.0)
 
 
 # __NetKet__
