@@ -5,7 +5,7 @@ import numpy as _np
 from netket import random as _random
 
 
-class PyDoubledHilbert(AbstractHilbert):
+class DoubledHilbert(AbstractHilbert):
     r"""Superoperatorial hilbert space for states living in the
     tensorised state H\otimes H, encoded according to Choi's isomorphism."""
 
