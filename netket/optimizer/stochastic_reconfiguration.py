@@ -40,11 +40,11 @@ class SR:
         self.sparse_maxiter = sparse_maxiter
         self._lsq_solver = lsq_solver
         self._x0 = None
-        self._make_solver()
+        self._init_solver()
 
         self._comm = MPI.COMM_WORLD
 
-    def _make_solver(self):
+    def _init_solver(self):
         lsq_solver = self._lsq_solver
 
         if lsq_solver in ["gmres", "cg", "minres"]:
@@ -118,7 +118,7 @@ class SR:
                 if self._x0 is None:
                     self._x0 = _np.zeros(n_par, dtype=_np.complex128)
 
-                out, info = self._sparse_solver(
+                out[:], info = self._sparse_solver(
                     op,
                     grad,
                     x0=self._x0,
@@ -136,7 +136,7 @@ class SR:
 
                 self._apply_preconditioning(grad)
 
-                out, residuals, self._last_rank, s_vals = _lstsq(
+                out[:], residuals, self._last_rank, s_vals = _lstsq(
                     self._S,
                     grad,
                     cond=self._svd_threshold,
@@ -152,7 +152,7 @@ class SR:
                 if self._x0 is None:
                     self._x0 = _np.zeros(n_par)
 
-                out.real, info = self._sparse_solver(
+                out[:].real, info = self._sparse_solver(
                     op,
                     grad.real,
                     x0=self._x0,
@@ -168,7 +168,7 @@ class SR:
 
                 self._apply_preconditioning(grad)
 
-                out.real, residuals, self._last_rank, s_vals = _lstsq(
+                out[:].real, residuals, self._last_rank, s_vals = _lstsq(
                     self._S.real,
                     grad.real,
                     cond=self._svd_threshold,
@@ -214,6 +214,7 @@ class SR:
     def _revert_preconditioning(self, out):
         if self._scale_invariant_pc:
             out /= self._diag_S
+        return out
 
     @property
     def scale_invariant_regularization(self):
@@ -226,12 +227,14 @@ class SR:
     @scale_invariant_regularization.setter
     def scale_invariant_regularization(self, activate):
         assert activate is True or activate is False
-        self._scale_invariant_pc = activate
-        if self._use_iterative:
+
+        if activate and self._use_iterative:
             raise NotImplementedError(
                 """Scale-invariant regularization is
                    not implemented for iterative solvers at the moment."""
             )
+
+        self._scale_invariant_pc = activate
 
     def __repr__(self):
         rep = "SR(solver="
@@ -300,4 +303,4 @@ class SR:
     @is_holomorphic.setter
     def is_holomorphic(self, is_holo):
         self._is_holomorphic = is_holo
-        self._make_solver()
+        self._init_solver()
