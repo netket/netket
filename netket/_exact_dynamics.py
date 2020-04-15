@@ -277,7 +277,7 @@ class PyExactTimePropagation:
 
                 log_data = {}
                 if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats.to_json()
+                    obs_data[self._loss_name] = self._loss_stats
                 log_data["Time"] = self.t
 
                 if logger is not None:

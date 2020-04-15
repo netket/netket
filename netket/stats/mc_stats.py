@@ -5,12 +5,9 @@ from . import var as _var
 from . import total_size as _total_size
 
 
-class Stats(dict):
-    """dot.notation access to dictionary attributes"""
+class Stats:
+    """A dict-compatible class containing the result of the statistics function."""
 
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
     _NaN = float("NaN")
 
     def __init__(
@@ -28,14 +25,25 @@ class Stats(dict):
         jsd["Variance"] = self.variance
         jsd["Sigma"] = self.error_of_mean
         jsd["R"] = self.R
+        jsd["TauCorr"] = self.tau_corr
         return jsd
 
     def __repr__(self):
-        return (
-            "{:.4e}".format(self.mean.real)
-            + " ± "
-            + "{:.1e}".format(self.error_of_mean)
+        return "{:.4e} ± {:.1e} [var={:.1e}, R={:.3f}]".format(
+            self.mean, self.error_of_mean, self.variance, self.R
         )
+
+    def __getitem__(self, name):
+        if name is "mean" or "Mean":
+            return self.mean
+        elif name is "variance" or "Variance":
+            return self.variance
+        elif name is "error_of_mean" or "Sigma":
+            return self.error_of_mean
+        elif name is "R":
+            return self.R
+        elif name is "tau_corr" or "TauCorr":
+            return self.tau_corr
 
 
 @jit(nopython=True)
@@ -79,10 +87,10 @@ def statistics(data):
                                   contain independent time series.
 
     Returns:
-       dict: A dictionary-compatible class containing the average (mean),
+       Stats: A dictionary-compatible class containing the average (mean),
              the variance (variance),
-             the error of the mean (sigma), and an estimate of the
-             autocorrelation time (tauCorr). In addition to accessing the elements with the standard
+             the error of the mean (error_of_mean), and an estimate of the
+             autocorrelation time (tau_corr). In addition to accessing the elements with the standard
              dict sintax (e.g. res['mean']), one can also access them directly with the dot operator
              (e.g. res.mean).
     """
@@ -95,12 +103,12 @@ def statistics(data):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    stats["mean"] = _mean(data)
-    stats["variance"] = _var(data)
+    stats.mean = _mean(data)
+    stats.variance = _var(data)
 
     ts = _total_size(data)
 
-    bare_var = stats["variance"] / float(ts)
+    bare_var = stats.variance / float(ts)
 
     batch_var, n_batches = _batch_variance(data)
 
@@ -112,22 +120,20 @@ def statistics(data):
     tau_batch = (batch_var / bare_var - 1) * 0.5
     tau_block = (block_var / bare_var - 1) * 0.5
 
-    block_good = tau_block < (l_block / 10.0) and n_blocks >= b_s
-    batch_good = tau_batch < (data.shape[1] / 10.0) and n_batches >= b_s
+    block_good = tau_block < 6 * l_block and n_blocks >= b_s
+    batch_good = tau_batch < 6 * data.shape[1] and n_batches >= b_s
 
     if batch_good:
-        stats["error_of_mean"] = _np.sqrt(batch_var)
-        stats["tau_corr"] = max(0, tau_batch)
+        stats.error_of_mean = _np.sqrt(batch_var)
+        stats.tau_corr = max(0, tau_batch)
     elif block_good:
-        stats["error_of_mean"] = _np.sqrt(block_var)
-        stats["tau_corr"] = max(0, tau_block)
+        stats.error_of_mean = _np.sqrt(block_var)
+        stats.tau_corr = max(0, tau_block)
     else:
-        stats["error_of_mean"] = _np.nan
-        stats["tau_corr"] = _np.nan
+        stats.error_of_mean = _np.nan
+        stats.tau_corr = _np.nan
 
-    # if n_batches > 2:
-    #     W = _mean(_np.var(data, axis=0))
-    #     V = stats["variance"]
-    #     stats["R"] = _np.sqrt(V / W)
+    if n_batches > 1:
+        stats.R = _np.sqrt(1.0 + batch_var / stats.variance)
 
     return stats

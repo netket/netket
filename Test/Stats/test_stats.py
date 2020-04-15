@@ -43,18 +43,13 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:
-        # error of mean == stdev of sample mean between chains / sqrt(#chains)
-        assert stats.error_of_mean == pytest.approx(
-            eloc.mean(axis=0).std(ddof=0) / np.sqrt(n_chains)
-        )
+
         # variance == average sample variance over chains
-        assert stats.variance == pytest.approx(eloc.var(axis=0).mean())
+        assert stats.variance == pytest.approx(np.var(eloc))
         # R estimate
         B_over_n = stats.error_of_mean ** 2
         W = stats.variance
-        assert stats.R == pytest.approx(
-            np.sqrt((n_samples - 1.0) / n_samples + B_over_n / W), abs=1e-3
-        )
+        assert stats.R == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
 def test_stats_mean_std():

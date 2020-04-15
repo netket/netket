@@ -187,12 +187,10 @@ class AbstractVariationalDriver(abc.ABC):
                 obs_data = self.estimate(obs)
 
                 if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats.to_json()
-
-                log_data = obs_data
+                    obs_data[self._loss_name] = self._loss_stats
 
                 if logger is not None:
-                    logger(step, log_data, self.machine)
+                    logger(step, obs_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
