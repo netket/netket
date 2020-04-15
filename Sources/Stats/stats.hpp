@@ -20,11 +20,9 @@ template <class T>
 class OnlineStat;
 template <class T>
 class Binning;
-class ObsManager;
 }  // namespace netket
 
 #include "binning.hpp"
-#include "obs_manager.hpp"
 #include "onlinestat.hpp"
 
 #endif

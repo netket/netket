@@ -181,6 +181,7 @@ def test_ed():
     assert len(res.eigenvectors) == first_n
     gse = res.mean(ha, 0)
     fse = res.mean(ha, 1)
+
     assert gse == approx(res.eigenvalues[0], rel=1e-12, abs=1e-12)
     assert fse == approx(res.eigenvalues[1], rel=1e-12, abs=1e-12)
 

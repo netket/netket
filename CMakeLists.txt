@@ -282,7 +282,6 @@ set(NETKET_SOURCES
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Operator/abstract_operator.cc
-    Sources/Optimizer/stochastic_reconfiguration.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc
     Sources/Sampler/exchange_kernel.cc
@@ -290,8 +289,6 @@ set(NETKET_SOURCES
     Sources/Sampler/local_kernel.cc
     Sources/Stats/mc_stats.cc
     Sources/Stats/py_stats.cc
-    Sources/Optimizer/stochastic_reconfiguration.cc
-    Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
     Sources/Utils/log_cosh.cc
     Sources/Utils/exceptions.cc

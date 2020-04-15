@@ -24,23 +24,23 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+alpha = 1
+
+ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(ma, n_chains=32, sweep_size=None)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    method="Sr",
-    diag_shift=0.1,
+sr = nk.optimizer.SR(diag_shift=0.1)
+gs = nk.Vmc(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=5
 )
+
 
 gs.run(output_prefix="test", n_iter=300)

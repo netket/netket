@@ -1,3 +1,5 @@
+import numpy as _np
+from mpi4py import MPI
 from ._C_netket.stats import *
 
 
@@ -19,9 +21,6 @@ def subtract_mean(x, axis=None, dtype=None, mean_out=None):
     return x
 
 
-from mpi4py import MPI
-import numpy as _np
-
 _MPI_comm = MPI.COMM_WORLD
 
 _n_nodes = _MPI_comm.Get_size()
@@ -42,3 +41,16 @@ def mean(a, axis=None, dtype=None, out=None):
     out /= float(_n_nodes)
 
     return out
+
+
+def sum_on_nodes(a, out=None):
+    """
+    Computes the sum over MPI processes.
+    """
+    if out is None:
+        _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
+        return a
+    else:
+        out = _np.copy(a)
+        _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+        return out

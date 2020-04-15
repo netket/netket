@@ -59,6 +59,8 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self._sr = sr
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 
@@ -66,6 +68,8 @@ class Vmc(AbstractVariationalDriver):
 
         self.n_samples = n_samples
         self.n_discard = n_discard
+
+        self._dp = _np.empty(self._npar, dtype=_np.complex128)
 
     @property
     def n_samples(self):
@@ -86,8 +90,7 @@ class Vmc(AbstractVariationalDriver):
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         self._grads = _np.empty(
@@ -102,8 +105,7 @@ class Vmc(AbstractVariationalDriver):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
             n_discard
@@ -126,8 +128,9 @@ class Vmc(AbstractVariationalDriver):
             pass
 
         # Generate samples and store them
-        self._sampler.generate_samples(
-            self._n_samples_node, samples=self._samples)
+        self._samples = self._sampler.generate_samples(
+            self._n_samples_node, samples=self._samples
+        )
 
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
@@ -156,9 +159,7 @@ class Vmc(AbstractVariationalDriver):
 
             grad = _mean(self._grads, axis=0)
 
-            dp = _np.empty(self._npar, dtype=_np.complex128)
-
-            self._sr.compute_update(_der_logs, grad, dp)
+            self._sr.compute_update(_der_logs, grad, self._dp)
 
             _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
@@ -171,10 +172,9 @@ class Vmc(AbstractVariationalDriver):
             for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
                 self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
 
-            grad = _mean(self._grads, axis=0) / float(self._batch_size)
-            dp = grad
+            self._dp = _mean(self._grads, axis=0) / float(self._batch_size)
 
-        return dp
+        return self._dp
 
     @property
     def energy(self):
