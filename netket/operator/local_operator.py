@@ -108,6 +108,14 @@ class LocalOperator(AbstractOperator):
     def n_operators(self):
         return self._n_conns.shape[0]
 
+    @property
+    def H(self):
+        return self.conjugate().transpose()
+
+    @property
+    def T(self):
+        return self.transpose()
+
     def __iadd__(self, other):
         if isinstance(other, LocalOperator):
             assert(other.mel_cutoff == self.mel_cutoff)
@@ -130,6 +138,9 @@ class LocalOperator(AbstractOperator):
 
         return NotImplementedError
 
+    def __isub__(self, other):
+        return self.__iadd__(-1 * other)
+
     def __add__(self, other):
         if isinstance(other, LocalOperator):
             assert(other.mel_cutoff == self.mel_cutoff)
@@ -147,6 +158,9 @@ class LocalOperator(AbstractOperator):
                                  acting_on=self._acting_on_list(),
                                  constant=self._constant + _np.real(other))
         return NotImplementedError
+
+    def __sub__(self, other):
+        return self.__add__(-1 * other)
 
     def __imul__(self, other):
         if isinstance(other, numbers.Number):
@@ -231,30 +245,10 @@ class LocalOperator(AbstractOperator):
         return NotImplementedError
 
     def __rmul__(self, other):
-        if isinstance(other, numbers.Number):
-            if(not _np.isclose(_np.imag(other), 0)):
-                diag_is_zero = (_np.isclose(
-                    _np.abs(self._constant), 0) and _np.allclose(_np.abs(self._diag_mels),
-                                                                 _np.zeros(self._diag_mels.size)))
-                if(not diag_is_zero):
-                    raise RuntimeError(
-                        "Cannot multiply the operator with a complex number.")
-
-            new_ops = [_np.copy(op * other) for op in self._operators]
-
-            return LocalOperator(hilbert=self._hilbert,
-                                 operators=new_ops,
-                                 acting_on=self._acting_on_list(),
-                                 constant=self._constant * _np.real(other))
+        return self.__mul__(other)
 
     def __radd__(self, other):
-        if isinstance(other, numbers.Number):
-            if(not _np.isclose(_np.imag(other), 0)):
-                raise RuntimeError(
-                    "Cannot add a complex number to LocalOperator.")
-
-            return LocalOperator(self._hilbert, self._operators_list(),
-                                 acting_on=self._acting_on_list(), constant=self._constant + _np.real(other))
+        return self.__radd__(other)
 
     def _init_zero(self):
         self._operators = []
