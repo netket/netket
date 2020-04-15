@@ -10,8 +10,6 @@ dependencies:
   - cmake
   - ninja
   - pip
-  - scipy
-  - numpy
   - matplotlib
   - openmpi
   - mpi4py
