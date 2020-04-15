@@ -40,7 +40,7 @@ def make_optimizer_fn(arg, ma):
         desc = "JAX-like optimizer"
         return optimize_fn, desc
 
-    elif issubclass(type(arg), _nk.optimizer.Optimizer):
+    elif issubclass(type(arg), _nk.optimizer.AbstractOptimizer):
 
         arg.init(ma.n_par, ma.is_holomorphic)
 

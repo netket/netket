@@ -21,7 +21,6 @@
 #include "Hilbert/hilbert.hpp"
 #include "Machine/machine.hpp"
 #include "Operator/operator.hpp"
-#include "Optimizer/optimizer.hpp"
 #include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/all_utils.hpp"
