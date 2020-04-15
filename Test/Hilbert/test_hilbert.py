@@ -88,6 +88,11 @@ hilberts["Custom Hilbert Small"] = nk.hilbert.CustomHilbert(
     local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
 )
 
+# Custom Hilbert
+hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(nk.hilbert.CustomHilbert(
+    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
+))
+
 
 #
 # Tests
@@ -109,6 +114,7 @@ def test_consistent_size():
 
 def test_random_states():
     """"""
+    nk.utils.seed(12345)
 
     for name, hi in hilberts.items():
         assert hi.size > 0
@@ -117,11 +123,11 @@ def test_random_states():
 
         if hi.is_discrete:
             rstate = np.zeros(hi.size)
-            rg = nk.utils.RandomEngine(seed=1234)
+
             local_states = hi.local_states
 
             for i in range(100):
-                hi.random_vals(rstate, rg)
+                hi.random_vals(rstate)
                 for state in rstate:
                     assert state in local_states
 
@@ -139,6 +145,15 @@ def test_hilbert_index():
 
             for k, state in enumerate(hi.states()):
                 assert hi.state_to_number(state) == k
+
+            # batched version of number to state
+            n_few = min(hi.n_states, 100)
+            few_states = np.zeros(shape=(n_few, hi.size))
+            for k in range(n_few):
+                few_states[k] = hi.number_to_state(k)
+
+            assert np.allclose(hi.number_to_state(range(n_few)), few_states)
+
         else:
             assert not hi.is_indexable
 

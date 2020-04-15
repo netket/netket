@@ -15,7 +15,6 @@
 #ifndef NETKET_OBS_MANAGER_HPP
 #define NETKET_OBS_MANAGER_HPP
 
-#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>
@@ -109,7 +108,7 @@ class ObsManager {
   }
 };
 
-void to_json(json &j, const ObsManager &om) {
+inline void to_json(json &j, const ObsManager &om) {
   auto names = om.Names();
   j = json();
   for (auto name : names) {

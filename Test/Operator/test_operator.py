@@ -2,6 +2,8 @@ import netket as nk
 import networkx as nx
 import numpy as np
 
+import pytest
+
 operators = {}
 
 # Ising 1D
@@ -77,6 +79,10 @@ szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
 operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
+operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
+    ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
+)
+
 rg = nk.utils.RandomEngine(seed=1234)
 
 
@@ -93,14 +99,9 @@ def test_produce_elements_in_hilbert():
         for i in range(1000):
             hi.random_vals(rstate, rg)
 
-            conns = ha.get_conn(rstate)
+            rstatet, _ = ha.get_conn(rstate)
 
-            for connector, newconf in zip(conns[1], conns[2]):
-                rstatet = np.array(rstate)
-                hi.update_conf(rstatet, connector, newconf)
-
-                for rs in rstatet:
-                    assert rs in local_states
+            assert np.all(np.isin(rstatet, local_states))
 
 
 def test_operator_is_hermitean():
@@ -115,27 +116,27 @@ def test_operator_is_hermitean():
 
         for i in range(100):
             hi.random_vals(rstate, rg)
-            conns = ha.get_conn(rstate)
+            rstatet, mels = ha.get_conn(rstate)
 
-            for mel, connector, newconf in zip(conns[0], conns[1], conns[2]):
-                rstatet = np.array(rstate)
-                hi.update_conf(rstatet, connector, newconf)
+            for k, state in enumerate(rstatet):
 
-                conns1 = ha.get_conn(rstatet)
-                foundinv = False
-                for meli, connectori, newconfi in zip(conns1[0], conns1[1], conns1[2]):
-                    rstatei = np.array(rstatet)
-                    hi.update_conf(rstatei, connectori, newconfi)
-                    if np.array_equal(rstatei, rstate):
-                        foundinv = True
-                        assert meli == np.conj(mel)
-                assert foundinv
+                invstates, mels1 = ha.get_conn(state)
+
+                found = False
+                for kp, invstate in enumerate(invstates):
+                    if np.array_equal(rstate, invstate.flatten()):
+                        found = True
+                        assert mels1[kp] == np.conj(mels[k])
+                        break
+
+                assert found
+
 
 def test_no_segfault():
     g = nk.graph.Hypercube(8, 1)
     hi = nk.hilbert.Spin(g, 0.5)
 
-    lo = nk.operator.LocalOperator(hi, [[1,0],[0,1]], [0])
+    lo = nk.operator.LocalOperator(hi, [[1, 0], [0, 1]], [0])
     lo = lo.transpose()
 
     hi = None
@@ -143,3 +144,38 @@ def test_no_segfault():
     lo = lo * lo
 
     assert True
+
+
+def test_deduced_hilbert_pauli():
+    op = nk.operator.PauliStrings(["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
+    assert op.hilbert.size == 3
+    assert len(op.hilbert.local_states) == 2
+    assert np.allclose(op.hilbert.local_states, (0, 1))
+
+
+def test_Heisenberg():
+    g = nk.graph.Hypercube(8, 1)
+    hi = nk.hilbert.Spin(g, 0.5)
+
+    def gs_energy(ham):
+        return nk.exact.lanczos_ed(ham).eigenvalues[0]
+
+    ha1 = nk.operator.Heisenberg(hi)
+    ha2 = nk.operator.Heisenberg(hi, J=2.0)
+
+    assert 2 * gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+    ha1 = nk.operator.Heisenberg(hi, sign_rule=True)
+    ha2 = nk.operator.Heisenberg(hi, sign_rule=False)
+
+    assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+    with pytest.raises(
+        ValueError, match=r"sign_rule=True specified for a non-bipartite lattice"
+    ):
+        g = nk.graph.Hypercube(7, 1)
+        hi = nk.hilbert.Spin(g, 0.5)
+
+        assert not hi.graph.is_bipartite
+
+        ha = nk.operator.Heisenberg(hi, sign_rule=True)

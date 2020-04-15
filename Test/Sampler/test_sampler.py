@@ -3,20 +3,25 @@ import networkx as nx
 import numpy as np
 import pytest
 from pytest import approx
+from scipy.stats import power_divergence, combine_pvalues, chisquare
 
 samplers = {}
 
+nk.utils.seed(1234567)
+np.random.seed(1234)
+
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
-g = nk.graph.Hypercube(length=6, n_dim=1)
+g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
+ma.init_random_parameters(sigma=0.2)
 
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16)
 samplers["MetropolisLocal RbmSpin"] = sa
+
 
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
 samplers["MetropolisLocalPt RbmSpin"] = sa
@@ -27,34 +32,36 @@ samplers["MetropolisHamiltonian RbmSpin"] = sa
 
 # Test with uniform probability
 maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-maz.init_random_parameters(seed=1234, sigma=0)
-sa = nk.sampler.MetropolisLocal(machine=maz)
+maz.init_random_parameters(sigma=0)
+sa = nk.sampler.MetropolisLocal(
+    machine=maz, sweep_size=hi.size + 1, n_chains=2)
 samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
 
 mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
-mas.init_random_parameters(seed=1234, sigma=0.2)
-sa = nk.sampler.MetropolisHamiltonianPt(machine=mas, hamiltonian=ha, n_replicas=4)
+mas.init_random_parameters(sigma=0.2)
+sa = nk.sampler.MetropolisHamiltonianPt(
+    machine=mas, hamiltonian=ha, n_replicas=4)
 samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
 
-hi = nk.hilbert.Boson(graph=g, n_max=4)
+hi = nk.hilbert.Boson(graph=g, n_max=3)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
+ma.init_random_parameters(sigma=0.1)
 sa = nk.sampler.MetropolisLocal(machine=ma)
-g = nk.graph.Hypercube(length=4, n_dim=1)
 samplers["MetropolisLocal Boson"] = sa
 
-sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
+sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=2)
 samplers["MetropolisLocalPt Boson"] = sa
 
-ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
-sa = nk.sampler.MetropolisLocal(machine=ma)
-samplers["MetropolisLocal Boson MultiVal"] = sa
+hi = nk.hilbert.Boson(graph=g, n_max=3)
+ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
+ma.init_random_parameters(sigma=0.1)
+sa = nk.sampler.ExactSampler(machine=ma)
+samplers["Exact Boson"] = sa
 
 hi = nk.hilbert.Spin(s=0.5, graph=g)
-g = nk.graph.Hypercube(length=6, n_dim=1)
+g = nk.graph.Hypercube(length=3, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
-ma.init_random_parameters(seed=1234, sigma=0.2)
+ma.init_random_parameters(sigma=0.2)
 l = hi.size
 X = [[0, 1], [1, 0]]
 
@@ -62,11 +69,13 @@ move_op = nk.operator.LocalOperator(
     hilbert=hi, operators=[X] * l, acting_on=[[i] for i in range(l)]
 )
 
+
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin"] = sa
 
 
-sa = nk.sampler.CustomSamplerPt(machine=ma, move_operators=move_op, n_replicas=4)
+sa = nk.sampler.CustomSamplerPt(
+    machine=ma, move_operators=move_op, n_replicas=4)
 samplers["CustomSamplerPt Spin"] = sa
 
 # Two types of custom moves
@@ -79,7 +88,8 @@ ops += [spsm] * l
 acting_on = [[i] for i in range(l)]
 acting_on += [[i, (i + 1) % l] for i in range(l)]
 
-move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_on)
+move_op = nk.operator.LocalOperator(
+    hilbert=hi, operators=ops, acting_on=acting_on)
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin 2 moves"] = sa
@@ -93,91 +103,81 @@ ma = nk.machine.NdmSpinPhase(
     use_hidden_bias=True,
     use_ancilla_bias=True,
 )
-ma.init_random_parameters(seed=1234, sigma=0.2)
+ma.init_random_parameters(sigma=0.2)
 dm = nk.machine.DiagonalDensityMatrix(ma)
 sa = nk.sampler.MetropolisLocal(machine=dm)
 samplers["Diagonal Density Matrix"] = sa
+
+sa = nk.sampler.ExactSampler(machine=dm)
+samplers["Exact Diagonal Density Matrix"] = sa
 
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
         localstates = hi.local_states
 
-        for sw in range(100):
-            sa.sweep()
-            visible = sa.visible
-            assert len(visible) == hi.size
-            for v in visible:
+        for sample in sa.samples(100):
+            assert sample.shape[1] == hi.size
+            for v in sample.reshape(-1):
                 assert v in localstates
 
+        if hasattr(sa, "acceptance"):
             assert np.min(sa.acceptance) >= 0 and np.max(sa.acceptance) <= 1.0
-
-
-def test_machine_func():
-    for name, sa in samplers.items():
-        print("Sampler test: %s" % name)
-        sa.machine_func = lambda x: np.absolute(x) ** 2.0
-        maf = sa.machine_func(3.0 + 1.0j)
-        assert maf == approx(np.absolute(3.0 + 1.0j) ** 2.0)
-
-        sa.machine_func = np.absolute
-        maf = sa.machine_func(3.0 + 1.0j)
-        assert maf == approx(np.absolute(3.0 + 1.0j))
 
 
 # Testing that samples generated from direct sampling are compatible with those
 # generated by markov chain sampling
-# here we use the L_1 test presented in https://arxiv.org/pdf/1308.3946.pdf
+# here we use a combination of power divergence tests
 
 
 def test_correct_sampling():
     for name, sa in samplers.items():
         print("Sampler test: %s" % name)
 
-        hi = sa.hilbert
         ma = sa.machine
+        hi = ma.hilbert
 
         n_states = hi.n_states
 
-        n_samples = max(10 * n_states, 10000)
+        n_samples = max(40 * n_states, 10000)
 
-        for ord in (1, 2):
-            if ord == 1:
-                sa.machine_func = np.absolute
-            if ord == 2:
-                sa.machine_func = lambda x: np.absolute(x) * np.absolute(x)
+        ord = np.random.randint(1, 3, size=1)
+        assert ord == 1 or ord == 2
 
+        sa.machine_pow = ord
+
+        ps = np.absolute(ma.to_array()) ** ord
+        ps /= ps.sum()
+
+        n_rep = 6
+        pvalues = np.zeros(n_rep)
+
+        sa.reset(True)
+
+        for jrep in range(n_rep):
             hist_samp = np.zeros(n_states)
             # fill in the histogram for sampler
 
-            for sw in range(n_samples):
-                sa.sweep()
-                visible = sa.visible
-                hist_samp[hi.state_to_number(visible)] += 1
+            # Burnout fase
+            for _ in sa.samples(n_samples // 10):
+                pass
 
-            hist_exsamp = np.zeros(n_states)
+            n_s = 0
+            for sample in sa.samples(n_samples):
+                assert sample.shape[1] == hi.size
+                for v in sample:
+                    sttn = hi.state_to_number(v)
+                    hist_samp[sttn] += 1
+                    n_s += 1
 
-            sa = nk.sampler.ExactSampler(machine=ma)
-            if ord == 1:
-                sa.machine_func = np.absolute
-            if ord == 2:
-                sa.machine_func = lambda x: np.absolute(x) * np.absolute(x)
+            # expected frequencies
+            f_exp = n_s * ps
 
-            # fill in histogram for exact sampler
-            for sw in range(n_samples):
-                sa.sweep()
-                visible = sa.visible
-                hist_exsamp[hi.state_to_number(visible)] += 1
+            statistics, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
 
-            # now test that histograms are close in norm
-            delta = hist_samp - hist_exsamp
-            z = np.sum(delta * delta - hist_exsamp - hist_samp)
-            z = np.sqrt(np.abs(z)) / float(n_samples)
-
-            eps = np.sqrt(1.0 / float(n_samples))
-
-            assert z == approx(0.0, rel=10 * eps, abs=10 * eps)
+        s, pval = combine_pvalues(pvalues, method="fisher")
+        assert pval > 0.01 or np.max(pvalues) > 0.01

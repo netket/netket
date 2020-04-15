@@ -16,6 +16,7 @@
 #define NETKET_ARRAYHASHER_HPP
 
 #include <array>
+#include "common_types.hpp"
 
 namespace netket {
 // Special hash functor for the EdgeColors unordered_map
@@ -25,6 +26,28 @@ struct ArrayHasher {
     return *reinterpret_cast<std::size_t const*>(a.data());
   }
 };
-}  // namespace netket
 
+template <typename T>
+struct EigenArrayHasher {
+  std::size_t operator()(const T& array) const {
+    // Note that it is oblivious to the storage order of Eigen matrix (column-
+    // or row-major). It will give you the same hash value for two different
+    // matrices if they are the transpose of each other in different storage
+    // order.
+    size_t seed = 0;
+    for (Index i = 0; i < array.size(); ++i) {
+      auto elem = array(i);
+      seed ^= std::hash<typename T::Scalar>()(elem) + 0x9e3779b9 + (seed << 6) +
+              (seed >> 2);
+    }
+    return seed;
+  }
+};
+
+template <typename T>
+struct EigenArrayEqualityComparison {
+  bool operator()(const T& a, const T& b) const { return a.isApprox(b); }
+};
+
+}  // namespace netket
 #endif

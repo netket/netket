@@ -15,7 +15,6 @@
 #ifndef NETKET_PY_SAMPLER_HPP
 #define NETKET_PY_SAMPLER_HPP
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
@@ -26,25 +25,50 @@
 #include <vector>
 #include "Graph/graph.hpp"
 #include "Operator/operator.hpp"
+#include "Sampler/abstract_sampler.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
-#include "abstract_sampler.hpp"
+#include "Utils/pybind_helpers.hpp"
+
+namespace netket {
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddAcceptance(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "acceptance", [](const T& self) { return self.Acceptance(); }, R"EOF(
+        float or numpy.array: The measured acceptance rate for the sampling.
+        In the case of rejection-free sampling this is always equal to 1.)EOF");
+}
+template <class T, class... Args>
+pybind11::class_<T, Args...> AddSamplerStats(pybind11::class_<T, Args...> cls) {
+  return cls.def_property_readonly(
+      "stats", [](const T& self) { return self.Stats(); }, R"EOF(
+      Internal statistics for the sampling procedure.)EOF");
+}
+}  // namespace netket
+
 #include "py_custom_sampler.hpp"
-#include "py_custom_sampler_pt.hpp"
 #include "py_exact_sampler.hpp"
 #include "py_metropolis_exchange.hpp"
-#include "py_metropolis_exchange_pt.hpp"
 #include "py_metropolis_hamiltonian.hpp"
-#include "py_metropolis_hamiltonian_pt.hpp"
+#include "py_metropolis_hastings.hpp"
 #include "py_metropolis_hop.hpp"
 #include "py_metropolis_local.hpp"
-#include "py_metropolis_local_pt.hpp"
+#include "py_transition_kernel.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
-void AddSamplerModule(py::module &m) {
+namespace detail {
+template <class T, int ExtraFlags>
+py::array_t<T, ExtraFlags> as_readonly(py::array_t<T, ExtraFlags> array) {
+  py::detail::array_proxy(array.ptr())->flags &=
+      ~py::detail::npy_api::NPY_ARRAY_WRITEABLE_;
+  return array;
+}
+}  // namespace detail
+
+void AddSamplerModule(py::module& m) {
   auto subm = m.def_submodule("sampler");
 
   py::class_<AbstractSampler>(subm, "Sampler", R"EOF(
@@ -52,9 +76,9 @@ void AddSamplerModule(py::module &m) {
     suitable variational states, the `Machines`.
     A `Sampler` generates quantum numbers distributed according to:
 
-    $$P(s_1\dots s_N) = F(\Psi(s_1\dots s_N)),$$
+    $$P(s_1\dots s_N) = |\Psi(s_1\dots s_N)|^p,$$
 
-    where F is an arbitrary function. By default F(X)=|X|^2.
+    where p is an arbitrary power (by default, p is set to 2).
 
     The samplers typically transit from the current set of quantum numbers
     $$\mathbf{s} = s_1 \dots s_N$$ to another set
@@ -84,36 +108,58 @@ void AddSamplerModule(py::module &m) {
       Performs a sampling sweep. Typically a single sweep
       consists of an extensive number of local moves.
       )EOF")
-      .def_property("visible", &AbstractSampler::Visible,
-                    &AbstractSampler::SetVisible,
-                    R"EOF(
-                      numpy.array: The quantum numbers being sampled,
-                       and distributed according to $$F(\Psi(v))$$ )EOF")
-      .def_property_readonly("acceptance", &AbstractSampler::Acceptance, R"EOF(
-        numpy.array: The measured acceptance rate for the sampling.
-        In the case of rejection-free sampling this is always equal to 1.  )EOF")
-      .def_property_readonly("hilbert", &AbstractSampler::GetHilbertShared,
-                             R"EOF(
-        netket.hilbert: The Hilbert space used for the sampling.  )EOF")
+      .def("__next__",
+           [](AbstractSampler& self) {
+             self.Sweep();
+             return self.CurrentState().first;
+           },
+           R"EOF(
+      Performs a sampling sweep. Typically a single sweep
+      consists of an extensive number of local moves.
+      )EOF")
+      .def_property_readonly(
+          "visible",
+          [](const AbstractSampler& self) { return self.CurrentState().first; },
+          R"EOF(A matrix of current visible configurations. Every row
+                corresponds to a visible configuration)EOF")
+      .def_property_readonly(
+          "current_sample",
+          [](const AbstractSampler& self) { return self.CurrentState().first; },
+          R"EOF(A matrix of current visible configurations. Every row
+                          corresponds to a visible configuration)EOF")
+      .def_property_readonly(
+          "current_state",
+          [](const AbstractSampler& self) { return self.CurrentState(); },
+          R"EOF(The current sampling state of the sampler. This contains a pair
+            (visible,log_val) where log_val is the result of machine.log_val(visible))EOF")
       .def_property_readonly("machine", &AbstractSampler::GetMachine, R"EOF(
         netket.machine: The machine used for the sampling.  )EOF")
-      .def_property("machine_func", &AbstractSampler::GetMachineFunc,
-                    &AbstractSampler::SetMachineFunc,
-                    R"EOF(
-                          function(complex): The function to be used for sampling.
-                                       by default $$|\Psi(x)|^2$$ is sampled,
-                                       however in general $$F(\Psi(v))$$  )EOF");
+      .def_property_readonly("n_chains", &AbstractSampler::BatchSize, R"EOF(
+        int: Number of independent chains being sampled.)EOF")
+      .def_property_readonly("sample_shape",
+                             [](const AbstractSampler& self) {
+                               return py::make_tuple(
+                                   self.CurrentState().first.rows(),
+                                   self.CurrentState().first.cols());
+                             },
+                             R"EOF(
+          (int,int): Shape of the sample generated at each step, namely (n_chains,n_visible).)EOF")
+      .def_property(
+          "machine_pow", &AbstractSampler::GetMachinePow,
+          &AbstractSampler::SetMachinePow,
+          R"EOF(float64: The power p of the machine to be used for sampling.
+                                   by default $$|\Psi(x)|^2$$ is sampled,
+                                   however in general $$|\Psi(v)|^p $$)EOF");
 
   AddMetropolisLocal(subm);
-  AddMetropolisLocalPt(subm);
   AddMetropolisHop(subm);
   AddMetropolisHamiltonian(subm);
-  AddMetropolisHamiltonianPt(subm);
   AddMetropolisExchange(subm);
-  AddMetropolisExchangePt(subm);
   AddExactSampler(subm);
   AddCustomSampler(subm);
-  AddCustomSamplerPt(subm);
+  AddMetropolisHastings(subm);
+
+  AddTransitionKernels(subm);
 }
 
 }  // namespace netket

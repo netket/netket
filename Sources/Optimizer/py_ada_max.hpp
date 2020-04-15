@@ -28,22 +28,21 @@ namespace netket {
 
 void AddAdaMax(py::module &subm) {
   py::class_<AdaMax, AbstractOptimizer>(subm, "AdaMax", R"EOF(AdaMax Optimizer.
+
     AdaMax is an adaptive stochastic gradient descent method,
-    and a variant of [Adam](https://arxiv.org/pdf/1412.6980.pdf) based on the infinity norm.
+    and a variant of `Adam <https://arxiv.org/pdf/1412.6980.pdf>`_ based on the infinity norm.
     In contrast to the SGD, AdaMax offers the important advantage of being much
     less sensitive to the choice of the hyper-parameters (for example, the learning rate).
 
-    Given a stochastic estimate of the gradient of the cost function ($$ G(\mathbf{p}) $$),
+    Given a stochastic estimate of the gradient of the cost function :math:`G(\mathbf{p})`,
     AdaMax performs an update:
 
-    $$
-    p^\prime_k = p_k + \mathcal{S}_k,
-    $$
+    .. math:: p^{\prime}_k = p_k + \mathcal{S}_k,
 
-    where $$ \mathcal{S}_k $$ implicitly depends on all the history of the optimization up to the current point.
+    where :math:`\mathcal{S}_k` implicitly depends on all the history of the optimization up to the current point.
     The NetKet naming convention of the parameters strictly follows the one introduced by the authors of AdaMax.
     For an in-depth description of this method, please refer to
-    [Kingma, D., & Ba, J. (2015). Adam: a method for stochastic optimization](https://arxiv.org/pdf/1412.6980.pdf)
+    `Kingma, D., & Ba, J. (2015). Adam: a method for stochastic optimization <https://arxiv.org/pdf/1412.6980.pdf>`_
     (Algorithm 2 therein).)EOF")
       .def(py::init<double, double, double, double>(), py::arg("alpha") = 0.001,
            py::arg("beta1") = 0.9, py::arg("beta2") = 0.999,
@@ -59,11 +58,9 @@ void AddAdaMax(py::module &subm) {
            Examples:
                Simple AdaMax optimizer.
 
-               ```python
                >>> from netket.optimizer import AdaMax
                >>> op = AdaMax()
 
-               ```
            )EOF");
 }
 

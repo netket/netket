@@ -17,6 +17,7 @@
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
+#include "edgeless.hpp"
 #include "hypercube.hpp"
 #include "lattice.hpp"
 
@@ -202,6 +203,21 @@ void AddAbstractGraph(py::module subm) {
                              R"EOF(
       list[list]: The distances between the nodes. The fact that some node
           may not be reachable from another is represented by -1.)EOF")
+      .def_property_readonly(
+          "edge_colors",
+          [](const AbstractGraph& self) {
+            auto& color_map = self.EdgeColors();
+            std::vector<py::tuple> result;
+            for (auto& it : color_map) {
+              result.push_back(
+                  py::make_tuple(it.first[0], it.first[1], it.second));
+            }
+            return result;
+          },
+          R"EOF(
+      list[tuple]: Returns a list of tuples of the form (i, j, col) containing each edge `(i,j)`
+      with its corresponding color `col`.
+      )EOF")
       .def_property_readonly("automorphisms", &AbstractGraph::SymmetryTable,
                              R"EOF(
       list[list]: The automorphisms of the graph,
@@ -238,13 +254,11 @@ void AddCustomGraph(py::module subm) {
                A 10-site one-dimensional lattice with periodic boundary conditions can be
                constructed specifying the edges as follows:
 
-               ```python
                >>> import netket
                >>> g=netket.graph.CustomGraph([[i, (i + 1) % 10] for i in range(10)])
                >>> print(g.n_sites)
                10
 
-               ```
            )EOF");
 }
 
@@ -271,13 +285,11 @@ void AddHypercube(py::module subm) {
              A 10x10 square lattice with periodic boundary conditions can be
              constructed as follows:
 
-             ```python
              >>> import netket
              >>> g=netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
              >>> print(g.n_sites)
              100
 
-             ```
          )EOF")
       .def(py::init([](int length, py::iterable xs) {
              auto iterator = xs.attr("__iter__")();
@@ -329,13 +341,11 @@ void AddLattice(py::module subm) {
                              Examples:
                                  Constructs a rectangular 3X4 lattice with periodic boundary conditions.
 
-                                 ```python
                                  >>> import netket
                                  >>> g=netket.graph.Lattice(basis_vectors=[[1,0],[0,1]],extent=[3,4])
                                  >>> print(g.n_sites)
                                  12
 
-                                 ```
                              )EOF")
       .def_property_readonly("coordinates", &Lattice::Coordinates,
                              R"EOF(
@@ -360,7 +370,6 @@ void AddLattice(py::module subm) {
           Examples:
               Constructs a square 2X2 lattice without periodic boundary conditions and prints the site vectors corresponding to given site indices.
 
-              ```python
                >>> import netket
                >>> g=netket.graph.Lattice(basis_vectors=[[1.,0.],[0.,1.]], extent=[2,2], pbc=[0,0])
                >>> print(list(map(int,g.site_to_vector(0))))
@@ -372,7 +381,6 @@ void AddLattice(py::module subm) {
                >>> print(list(map(int,g.site_to_vector(3))))
                [1, 1]
 
-                ```
             )EOF")
       .def("vector_to_coord", &Lattice::Vector2Coord, py::arg("site_vector"),
            py::arg("atom_label"), R"EOF(
@@ -398,6 +406,26 @@ void AddLattice(py::module subm) {
                 site_vector: The site vector.
             )EOF");
 }
+
+void AddEdgeless(py::module subm) {
+  py::class_<Edgeless, AbstractGraph>(subm, "Edgeless", R"EOF(
+      A set graph (collection of unconnected vertices).)EOF")
+      .def(py::init<int>(), py::arg("n_vertices"), R"EOF(
+           Constructs a new set of given number of vertices.
+
+           Args:
+               n_vertices: The number of vertices.
+
+           Examples:
+               A 10-site set:
+
+               >>> import netket
+               >>> g=netket.graph.Edgeless(10)
+               >>> print(g.n_sites)
+               10
+
+           )EOF");
+}
 }  // namespace
 
 void AddGraphModule(py::module m) {
@@ -407,6 +435,7 @@ void AddGraphModule(py::module m) {
   AddHypercube(subm);
   AddCustomGraph(subm);
   AddLattice(subm);
+  AddEdgeless(subm);
 }
 
 }  // namespace netket

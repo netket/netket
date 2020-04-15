@@ -19,53 +19,50 @@
 
 namespace netket {
 
-class PyAbstractMachine : public AbstractMachine {
+template <class AbstractMachineBase = AbstractMachine>
+class PyAbstractMachine : public AbstractMachineBase {
  public:
+  using AbstractMachineBase::AbstractMachineBase;  // Inherit construtors
+  using VectorType = typename AbstractMachineBase::VectorType;
+  using VectorRefType = typename AbstractMachine::VectorRefType;
+  using VectorConstRefType = typename AbstractMachine::VectorConstRefType;
+  using VisibleConstType = typename AbstractMachine::VisibleConstType;
+
   PyAbstractMachine(std::shared_ptr<const AbstractHilbert> hilbert)
-      : AbstractMachine{std::move(hilbert)} {}
+      : AbstractMachineBase{std::move(hilbert)} {};
 
-  int Npar() const override;
-  int Nvisible() const override;
-  bool IsHolomorphic() const noexcept override;
-
+  int Nvisible() const override {
+    return AbstractMachineBase::GetHilbert().Size();
+  }
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitRandomPars(int seed, double sigma) override;
-
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const LookupType & /*unused*/) override;
-
-  void InitLookup(VisibleConstType /*unused*/,
-                  LookupType & /*unused*/) override;
+  Complex LogValSingle(VisibleConstType v, const any & /*unused*/) override;
+  any InitLookup(VisibleConstType /*unused*/) override;
   void UpdateLookup(VisibleConstType /*unused*/,
                     const std::vector<int> & /*unused*/,
                     const std::vector<double> & /*unused*/,
-                    LookupType & /*unused*/) override;
-
-  VectorType LogValDiff(
-      VisibleConstType old_v, const std::vector<std::vector<int>> &to_change,
-      const std::vector<std::vector<double>> &new_conf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &to_change,
-                     const std::vector<double> &new_conf,
-                     const LookupType & /*unused*/) override;
-
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const LookupType & /*lt*/) override;
-  VectorType DerLogChanged(VisibleConstType old_v,
-                           const std::vector<int> &to_change,
-                           const std::vector<double> &new_conf) override;
-
-  void Save(const std::string &filename) const override;
-  void Load(const std::string &filename) override;
-
+                    any & /*unused*/) override;
+  VectorType DerLogSingle(VisibleConstType v, const any & cache) override {
+    Eigen::VectorXcd out(Npar());
+    DerLog(v.transpose(),
+           Eigen::Map<RowMatrix<Complex>>{out.data(), 1, out.size()}, cache);
+    return out;
+  }
   ~PyAbstractMachine() override = default;
 
- private:
-  inline Complex LogValDiff(VisibleConstType old_v,
-                            const std::vector<int> &to_change,
-                            const std::vector<double> &new_conf);
+  /// Functions which one needs to override from Python
+  int Npar() const override;
+  bool IsHolomorphic() const noexcept override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> v, Eigen::Ref<VectorXcd> out,
+              const any & /*unused*/) override;
+  void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+              Eigen::Ref<RowMatrix<Complex>> out, const any &cache) override;
+  void Save(const std::string &filename) const override;
+  void Load(const std::string &filename) override;
+  PyObject *StateDict() override;
 };
 
 }  // namespace netket
 
+#include "py_abstract_machine.ipp"
 #endif  // NETKET_MACHINE_PY_ABSTRACT_MACHINE_HPP

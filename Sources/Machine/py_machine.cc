@@ -18,7 +18,6 @@
 #include <limits>
 #include <vector>
 
-#include <mpi.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
@@ -33,28 +32,32 @@
 #include "Machine/py_abstract_machine.hpp"
 #include "Machine/rbm_multival.hpp"
 #include "Machine/rbm_spin.hpp"
+#include "Machine/rbm_spin_kernel.hpp"
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
+#include "Utils/log_cosh.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 namespace py = pybind11;
 
 namespace netket {
 
 namespace {
+
 void AddRbmSpin(py::module subm) {
   py::class_<RbmSpin, AbstractMachine>(subm, "RbmSpin", R"EOF(
           A fully connected Restricted Boltzmann Machine (RBM). This type of
           RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+             \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
+      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpin`` machine:
@@ -74,7 +77,6 @@ void AddRbmSpin(py::module subm) {
                        A ``RbmSpin`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
                        >>> from netket.machine import RbmSpin
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -84,7 +86,6 @@ void AddRbmSpin(py::module subm) {
                        >>> print(ma.n_par)
                        860
 
-                       ```
                    )EOF");
 }
 
@@ -94,14 +95,14 @@ void AddRbmSpinSymm(py::module subm) {
              symmetries. This type of RBM has spin 1/2 hidden units and is
              defined by:
 
-             $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+             .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-             for arbitrary local quantum numbers $$ s_i $$. However, the weights
-             ($$ W_{ij} $$) and biases ($$ a_i $$, $$ b_i $$) respects the
+             for arbitrary local quantum numbers :math:`s_i`. However, the weights
+             (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
              specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, bool>(),
-           py::arg("hilbert"), py::arg("alpha") = 0,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("alpha") = 0,
            py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
@@ -121,7 +122,6 @@ void AddRbmSpinSymm(py::module subm) {
                        A ``RbmSpinSymm`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
                        >>> from netket.machine import RbmSpinSymm
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -131,7 +131,6 @@ void AddRbmSpinSymm(py::module subm) {
                        >>> print(ma.n_par)
                        43
 
-                       ```
                    )EOF");
 }
 
@@ -141,8 +140,8 @@ void AddRbmMultival(py::module subm) {
              local Hilbert spaces.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true);
 }
 
@@ -153,14 +152,14 @@ void AddRbmSpinPhase(py::module subm) {
           and amplitude of the wave-function.
           This type of RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+                    \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinPhase`` machine:
@@ -180,7 +179,7 @@ void AddRbmSpinPhase(py::module subm) {
                        A ``RbmSpinPhase`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
+
                        >>> from netket.machine import RbmSpinPhase
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -190,7 +189,6 @@ void AddRbmSpinPhase(py::module subm) {
                        >>> print(ma.n_par)
                        1720
 
-                       ```
                    )EOF");
 }
 
@@ -199,14 +197,14 @@ void AddRbmSpinReal(py::module subm) {
           A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
           This type of RBM has spin 1/2 hidden units and is defined by:
 
-          $$ \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right) $$
+          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
+             \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-          for arbitrary local quantum numbers $$ s_i $$.)EOF")
+          for arbitrary local quantum numbers :math:`s_i`.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
                     bool>(),
-           py::arg("hilbert"), py::arg("n_hidden") = 0, py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
+           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true,
            R"EOF(
                    Constructs a new ``RbmSpinReal`` machine:
@@ -226,7 +224,7 @@ void AddRbmSpinReal(py::module subm) {
                        A ``RbmSpinReal`` machine with hidden unit density
                        alpha = 2 for a one-dimensional L=20 spin-half system:
 
-                       ```python
+
                        >>> from netket.machine import RbmSpinReal
                        >>> from netket.hilbert import Spin
                        >>> from netket.graph import Hypercube
@@ -236,7 +234,7 @@ void AddRbmSpinReal(py::module subm) {
                        >>> print(ma.n_par)
                        860
 
-                       ```
+
                    )EOF");
 }
 
@@ -252,7 +250,8 @@ void AddFFNN(py::module subm) {
                  auto layers = py::cast<std::vector<AbstractLayer *>>(tuple);
                  return FFNN{std::move(hi), std::move(layers)};
                }),
-           py::keep_alive<1, 3>(), py::arg("hilbert"), py::arg("layers"),
+           py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::arg("hilbert"),
+           py::arg("layers"),
            R"EOF(
               Constructs a new ``FFNN`` machine:
 
@@ -264,7 +263,7 @@ void AddFFNN(py::module subm) {
                   A ``FFNN`` machine with 2 layers.
                   for a one-dimensional L=20 spin-half system:
 
-                  ```python
+
                   >>> from netket.layer import SumOutput
                   >>> from netket.layer import FullyConnected
                   >>> from netket.layer import Lncosh
@@ -278,7 +277,7 @@ void AddFFNN(py::module subm) {
                   >>> print(ma.n_par)
                   420
 
-                  ```
+
               )EOF");
 }
 
@@ -287,12 +286,12 @@ void AddJastrow(py::module subm) {
            A Jastrow wavefunction Machine. This machine defines the following
            wavefunction:
 
-           $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
+           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
 
-           where $$ W_{ij} $$ are the Jastrow parameters.
+           where :math:` W_{ij}` are the Jastrow parameters.
            )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"), R"EOF(
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
                  Constructs a new ``Jastrow`` machine:
 
                  Args:
@@ -302,7 +301,7 @@ void AddJastrow(py::module subm) {
                      A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2
                      system:
 
-                     ```python
+
                      >>> from netket.machine import Jastrow
                      >>> from netket.hilbert import Spin
                      >>> from netket.graph import Hypercube
@@ -312,7 +311,7 @@ void AddJastrow(py::module subm) {
                      >>> print(ma.n_par)
                      190
 
-                     ```
+
                  )EOF");
 }
 
@@ -321,12 +320,12 @@ void AddJastrowSymm(py::module subm) {
            A Jastrow wavefunction Machine with lattice symmetries.This machine
            defines the wavefunction as follows:
 
-           $$ \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_i}$$
+           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
 
-           where $$ W_{ij} $$ are the Jastrow parameters respects the
+           where :math:` W_{ij}` are the Jastrow parameters respects the
            specified symmetries of the lattice.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::arg("hilbert"), R"EOF(
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
                  Constructs a new ``JastrowSymm`` machine:
 
                  Args:
@@ -336,7 +335,7 @@ void AddJastrowSymm(py::module subm) {
                      A ``JastrowSymm`` machine for a one-dimensional L=20 spin
                      1/2 system:
 
-                     ```python
+
                      >>> from netket.machine import JastrowSymm
                      >>> from netket.hilbert import Spin
                      >>> from netket.graph import Hypercube
@@ -346,15 +345,15 @@ void AddJastrowSymm(py::module subm) {
                      >>> print(ma.n_par)
                      10
 
-                     ```
+
                  )EOF");
 }
 
 void AddMpsPeriodic(py::module subm) {
   py::class_<MPSPeriodic, AbstractMachine>(subm, "MPSPeriodic")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, int>(),
-           py::arg("hilbert"), py::arg("bond_dim"), py::arg("diag") = false,
-           py::arg("symperiod") = -1);
+           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("bond_dim"),
+           py::arg("diag") = false, py::arg("symperiod") = -1);
 }
 
 void AddLayerModule(py::module m) {
@@ -390,14 +389,14 @@ void AddLayerModule(py::module m) {
     py::class_<DerType, AbstractLayer>(subm, "FullyConnected", R"EOF(
              A fully connected feedforward layer. This layer implements the
              transformation from a m-dimensional input vector
-             $$ \boldsymbol{v}_n $$ to a n-dimensional output vector
-             $$ \boldsymbol{v}_{n+1} $$:
+             :math:` \boldsymbol{v}_n` to a n-dimensional output vector
+             :math:` \boldsymbol{v}_{n+1}`:
 
-             $$ \boldsymbol{v}_n \rightarrow \boldsymbol{v}_{n+1} =
-             g_{n}(\boldsymbol{W}{n}\boldsymbol{v}{n} + \boldsymbol{b}_{n} ) $$
+             .. math:: \boldsymbol{v}_n \rightarrow \boldsymbol{v}_{n+1} =
+             g_{n}(\boldsymbol{W}{n}\boldsymbol{v}{n} + \boldsymbol{b}_{n} )
 
-             where $$ \boldsymbol{W}{n} $$ is a m by n weights matrix and
-             $$ \boldsymbol{b}_{n} $$ is a n-dimensional bias vector.
+             where :math:` \boldsymbol{W}{n}` is a m by n weights matrix and
+             :math:` \boldsymbol{b}_{n}` is a n-dimensional bias vector.
              )EOF")
         .def(py::init<int, int, bool>(), py::arg("input_size"),
              py::arg("output_size"), py::arg("use_bias") = false, R"EOF(
@@ -415,13 +414,13 @@ void AddLayerModule(py::module m) {
                  A ``FullyConnected`` layer which takes 10-dimensional inputs
                  and gives a 20-dimensional output:
 
-                 ```python
+
                  >>> from netket.layer import FullyConnected
                  >>> l=FullyConnected(input_size=10,output_size=20,use_bias=True)
                  >>> print(l.n_par)
                  220
 
-                 ```
+
              )EOF");
   }
   {
@@ -451,13 +450,13 @@ void AddLayerModule(py::module m) {
                  A ``ConvolutionalHypercube`` layer which takes 4 10x10 input images
                  and gives 8 10x10 output images by convolving with 4x4 kernels:
 
-                 ```python
+
                  >>> from netket.layer import ConvolutionalHypercube
                  >>> l=ConvolutionalHypercube(length=10,n_dim=2,input_channels=4,output_channels=8,kernel_length=4)
                  >>> print(l.n_par)
                  512
 
-                 ```
+
              )EOF");
   }
   {
@@ -473,13 +472,13 @@ void AddLayerModule(py::module m) {
         Examples:
             A ``SumOutput`` layer which takes 10-dimensional inputs:
 
-            ```python
+
             >>> from netket.layer import SumOutput
             >>> l=SumOutput(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -496,13 +495,13 @@ void AddLayerModule(py::module m) {
             A ``Lncosh`` activation layer which applies the Lncosh function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Lncosh
             >>> l=Lncosh(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -519,13 +518,13 @@ void AddLayerModule(py::module m) {
             A ``Tanh`` activation layer which applies the Tanh function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Tanh
             >>> l=Tanh(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
   {
@@ -542,19 +541,19 @@ void AddLayerModule(py::module m) {
             A ``Relu`` activation layer which applies the Relu function
             coefficient-wise to a 10-dimensional input:
 
-            ```python
+
             >>> from netket.layer import Relu
             >>> l=Relu(input_size=10)
             >>> print(l.n_par)
             0
 
-            ```
+
         )EOF");
   }
 }
 
 void AddAbstractMachine(py::module m) {
-  py::class_<AbstractMachine, PyAbstractMachine>(m, "Machine")
+  py::class_<AbstractMachine, PyAbstractMachine<>>(m, "Machine")
       .def(py::init<std::shared_ptr<AbstractHilbert const>>(),
            py::arg{"hilbert"})
       .def_property_readonly(
@@ -565,18 +564,40 @@ void AddAbstractMachine(py::module m) {
                     R"EOF(list: List containing the parameters within the layer.
             Read and write)EOF")
       .def("init_random_parameters", &AbstractMachine::InitRandomPars,
-           py::arg("seed") = 1234, py::arg("sigma") = 0.1,
+           py::arg{"sigma"} = 0.1, py::arg{"seed"} = py::none(),
+           py::arg{"rand_gen"} = py::none(),
            R"EOF(
              Member function to initialise machine parameters.
 
              Args:
-                 seed: The random number generator seed.
                  sigma: Standard deviation of normal distribution from which
-                     parameters are drawn.
+                        parameters are drawn.
+                 seed: The random number generator seed. If not given, rand_gen
+                       is considered instead.
+                 rand_gen: The random number generator (netket.RandomEngine) to be used.
+                           If not given, the global random generator (with its current state)
+                           is used.
+
            )EOF")
       .def("log_val",
-           (Complex(AbstractMachine::*)(AbstractMachine::VisibleConstType)) &
-               AbstractMachine::LogVal,
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.LogValSingle(input));
+             } else if (x.ndim() == 2) {
+               auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.LogVal(input, any{}));
+             } else if (x.ndim() == 3) {
+               auto input = Eigen::Map<const RowMatrix<double>>{
+                   x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.LogVal(input, any{}));
+               result.resize({x.shape(0), x.shape(1)});
+               return py::object(result);
+             } else {
+               throw InvalidInputError{"Invalid input dimension"};
+             }
+           },
            py::arg("v"),
            R"EOF(
                  Member function to obtain log value of machine given an input
@@ -603,10 +624,44 @@ void AddAbstractMachine(py::module m) {
                      newconf: list containing the new (changed) values at the
                          indices specified in tochange
            )EOF")
+      .def("der_log_diff",
+           [](AbstractMachine &self, AbstractMachine::VisibleConstType v,
+              const std::vector<std::vector<int>> &tochange,
+              const std::vector<std::vector<double>> &newconfs) {
+             return py::cast(self.LogValDiff(v, tochange, newconfs));
+           },
+           py::arg("v"), py::arg("tochange"), py::arg("newconfs"),
+           R"EOF(
+                 Member function to obtain the differences in der_log of machine
+                 given an input and a change to the input.
+
+                 Args:
+                     v: Input vector to machine.
+                     tochange: list containing the indices of the input to be
+                         changed
+                     newconfs: list containing the new (changed) values at the
+                         indices specified in tochange
+           )EOF")
       .def("der_log",
-           (AbstractMachine::VectorType(AbstractMachine::*)(
-               AbstractMachine::VisibleConstType)) &
-               AbstractMachine::DerLog,
+           [](AbstractMachine &self, py::array_t<double> x) {
+             if (x.ndim() == 1) {
+               auto input = x.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.DerLogSingle(input));
+             } else if (x.ndim() == 2) {
+               auto input = x.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.DerLog(input, any{}));
+             } else if (x.ndim() == 3) {
+               auto input = Eigen::Map<const RowMatrix<double>>{
+                   x.data(), x.shape(0) * x.shape(1), x.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.DerLog(input, any{}));
+               result.resize({x.shape(0), x.shape(1),
+                              static_cast<pybind11::ssize_t>(self.Npar())});
+               return py::object(result);
+             } else {
+               throw InvalidInputError{"Invalid input dimension"};
+             }
+           },
            py::arg("v"),
            R"EOF(
                  Member function to obtain the derivatives of log value of
@@ -615,6 +670,21 @@ void AddAbstractMachine(py::module m) {
                  Args:
                      v: Input vector to machine.
            )EOF")
+      .def("vector_jacobian_prod", &AbstractMachine::VectorJacobianProd,
+           py::arg("v"), py::arg("vec"), py::arg("out"),
+           R"EOF(
+             Computes the scalar product between gradient of the logarithm of the wavefunction for a
+             batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
+
+             Args:
+                  x: a matrix of `float64` of shape `(*, self.n_visible)`.
+                  vec: a `complex128` vector used to compute the inner product with the jacobian.
+                  out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+
+
+             Returns:
+                  `out`
+                )EOF")
       .def_property_readonly(
           "n_visible", &AbstractMachine::Nvisible,
           R"EOF(int: The number of inputs into the machine aka visible units in
@@ -641,31 +711,45 @@ void AddAbstractMachine(py::module m) {
                      filename: name of file to load parameters from.
            )EOF")
       .def(
-          "to_array",
-          [](AbstractMachine &self, bool normalize) -> AbstractMachine::VectorType {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+          "state_dict",
+          [](AbstractMachine &self) {
+            return py::reinterpret_steal<py::object>(self.StateDict());
+          },
+          R"EOF(Returns machine's state as a dictionary. Similar to `torch.nn.Module.state_dict`.
+           )EOF")
+      .def("load_state_dict",
+           [](AbstractMachine &self, py::dict state) {
+             self.StateDict(state.ptr());
+           },
+           R"EOF(Loads machine's state from `state`.
+           )EOF")
+      .def("to_array",
+           [](AbstractMachine &self,
+              bool normalize) -> AbstractMachine::VectorType {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              vals(i) = std::exp(vals(i));
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               vals(i) = std::exp(vals(i));
+             }
 
-            if (normalize) {
-                vals.normalize();
-            }
-            return vals;
-          }, py::arg("normalize") = true,
-          R"EOF(
+             if (normalize) {
+               vals.normalize();
+             }
+             return vals;
+           },
+           py::arg("normalize") = true,
+           R"EOF(
                 Returns a numpy array representation of the machine.
                 The returned array is normalized to 1 in L2 norm.
                 Note that, in general, the size of the array is exponential
@@ -674,36 +758,43 @@ void AddAbstractMachine(py::module m) {
 
                 This method requires an indexable Hilbert space.
               )EOF")
-      .def(
-          "log_norm",
-          [](AbstractMachine &self) -> double {
-            const auto &hind = self.GetHilbert().GetIndex();
-            AbstractMachine::VectorType vals(hind.NStates());
+      .def("log_norm",
+           [](AbstractMachine &self) -> double {
+             const auto &hind = self.GetHilbert().GetIndex();
+             AbstractMachine::VectorType vals(hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) = self.LogVal(hind.NumberToState(i));
-              if (std::real(vals(i)) > maxlog) {
-                maxlog = std::real(vals(i));
-              }
-            }
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) = self.LogValSingle(hind.NumberToState(i));
+               if (std::real(vals(i)) > maxlog) {
+                 maxlog = std::real(vals(i));
+               }
+             }
 
-            double norpsi = 0;
-            for (Index i = 0; i < hind.NStates(); i++) {
-              vals(i) -= maxlog;
-              norpsi += std::norm(std::exp(vals(i)));
-            }
+             double norpsi = 0;
+             for (Index i = 0; i < hind.NStates(); i++) {
+               vals(i) -= maxlog;
+               norpsi += std::norm(std::exp(vals(i)));
+             }
 
-            return std::log(norpsi) + 2. * maxlog;
-          },
-          R"EOF(
+             return std::log(norpsi) + 2. * maxlog;
+           },
+           R"EOF(
                 Returns the log of the L2 norm of the wave-function.
                 This operation is a brute-force calculation, and should thus
                 only be performed for low-dimensional Hilbert spaces.
 
                 This method requires an indexable Hilbert space.
                 )EOF");
+}
+
+void AddRbmSpinKernel(py::module subm) {
+  py::class_<RbmSpinKernel>(subm, "RbmSpinKernel")
+      .def(py::init<>())
+      .def("log_val", &RbmSpinKernel::LogVal, py::arg("x").noconvert(),
+           py::arg("out").noconvert(), py::arg("W").noconvert(),
+           py::arg("a").noconvert(), py::arg("b").noconvert());
 }
 
 }  // namespace
@@ -722,8 +813,8 @@ void AddMachineModule(py::module m) {
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);
-
   AddDensityMatrixModule(subm);
+  AddRbmSpinKernel(subm);
 }
 
 }  // namespace netket

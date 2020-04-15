@@ -19,7 +19,7 @@
 #include <map>
 #include <vector>
 #include "Utils/all_utils.hpp"
-#include "Utils/lookup.hpp"
+#include "Utils/log_cosh.hpp"
 #include "abstract_machine.hpp"
 #include "rbm_spin.hpp"
 
@@ -93,48 +93,37 @@ int RbmMultival::Nvisible() const { return nv_; }
 
 int RbmMultival::Npar() const { return npar_; }
 
-void RbmMultival::InitRandomPars(int seed, double sigma) {
-  VectorType par(npar_);
-
-  netket::RandomGaussian(par, seed, sigma);
-
-  SetParameters(par);
-}
-
-void RbmMultival::InitLookup(VisibleConstType v, LookupType &lt) {
-  if (lt.VectorSize() == 0) {
-    lt.AddVector(b_.size());
-  }
-  if (lt.V(0).size() != b_.size()) {
-    lt.V(0).resize(b_.size());
-  }
-  ComputeTheta(v, lt.V(0));
+any RbmMultival::InitLookup(VisibleConstType v) {
+  LookupType lt;
+  lt.resize(b_.size());
+  ComputeTheta(v, lt);
+  return any{std::move(lt)};
 }
 
 void RbmMultival::UpdateLookup(VisibleConstType v,
                                const std::vector<int> &tochange,
                                const std::vector<double> &newconf,
-                               LookupType &lt) {
+                               any &lookup) {
   if (tochange.size() != 0) {
+    auto &lt = any_cast_ref<LookupType>(lookup);
     for (std::size_t s = 0; s < tochange.size(); s++) {
       const int sf = tochange[s];
       const int oldtilde = confindex_[v[sf]];
       const int newtilde = confindex_[newconf[s]];
 
-      lt.V(0) -= W_.row(ls_ * sf + oldtilde);
-      lt.V(0) += W_.row(ls_ * sf + newtilde);
+      lt -= W_.row(ls_ * sf + oldtilde);
+      lt += W_.row(ls_ * sf + newtilde);
     }
   }
 }
 
-RbmMultival::VectorType RbmMultival::DerLog(VisibleConstType v) {
-  LookupType ltnew;
-  InitLookup(v, ltnew);
-  return DerLog(v, ltnew);
+RbmMultival::VectorType RbmMultival::DerLogSingle(VisibleConstType v,
+                                                  const any &lookup) {
+  return DerLogSingleImpl(v, lookup.empty() ? InitLookup(v) : lookup);
 }
 
-RbmMultival::VectorType RbmMultival::DerLog(VisibleConstType v,
-                                            const LookupType &lt) {
+RbmMultival::VectorType RbmMultival::DerLogSingleImpl(VisibleConstType v,
+                                                      const any &lookup) {
   VectorType der(npar_);
   der.setZero();
 
@@ -148,7 +137,7 @@ RbmMultival::VectorType RbmMultival::DerLog(VisibleConstType v,
     }
   }
 
-  RbmSpin::tanh(lt.V(0), lnthetas_);
+  lnthetas_ = (any_cast_ref<LookupType>(lookup)).array().tanh();
 
   if (useb_) {
     for (int p = 0; p < nh_; p++) {
@@ -219,34 +208,30 @@ void RbmMultival::SetParameters(VectorConstRefType pars) {
 }
 
 // Value of the logarithm of the wave-function
-Complex RbmMultival::LogVal(VisibleConstType v) {
-  ComputeTheta(v, thetas_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
-
-  return (vtilde_.dot(a_) + lnthetas_.sum());
-}
-
-// Value of the logarithm of the wave-function
 // using pre-computed look-up tables for efficiency
-Complex RbmMultival::LogVal(VisibleConstType v, const LookupType &lt) {
-  RbmSpin::lncosh(lt.V(0), lnthetas_);
+Complex RbmMultival::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) {
+    ComputeTheta(v, thetas_);
+
+    return (vtilde_.dot(a_) + SumLogCosh(thetas_));
+  }
 
   ComputeVtilde(v, vtilde_);
-  return (vtilde_.dot(a_) + lnthetas_.sum());
+  return (vtilde_.dot(a_) + SumLogCosh(any_cast_ref<LookupType>(lt)));
 }
 
 // Difference between logarithms of values, when one or more visible variables
 // are being changed
-RbmMultival::VectorType RbmMultival::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void RbmMultival::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
 
   ComputeTheta(v, thetas_);
-  RbmSpin::lncosh(thetas_, lnthetas_);
 
-  Complex logtsum = lnthetas_.sum();
+  Complex logtsum = SumLogCosh(thetas_);
 
   for (std::size_t k = 0; k < nconn; k++) {
     if (tochange[k].size() != 0) {
@@ -264,43 +249,9 @@ RbmMultival::VectorType RbmMultival::LogValDiff(
         thetasnew_ += W_.row(ls_ * sf + newtilde);
       }
 
-      RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-      logvaldiffs(k) += lnthetasnew_.sum() - logtsum;
+      logvaldiffs(k) += SumLogCosh(thetasnew_) - logtsum;
     }
   }
-  return logvaldiffs;
-}
-
-// Difference between logarithms of values, when one or more visible variables
-// are being changed Version using pre-computed look-up tables for efficiency
-// on a small number of local changes
-Complex RbmMultival::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &tochange,
-                                const std::vector<double> &newconf,
-                                const LookupType &lt) {
-  Complex logvaldiff = 0.;
-
-  if (tochange.size() != 0) {
-    RbmSpin::lncosh(lt.V(0), lnthetas_);
-
-    thetasnew_ = lt.V(0);
-
-    for (std::size_t s = 0; s < tochange.size(); s++) {
-      const int sf = tochange[s];
-      const int oldtilde = confindex_[v[sf]];
-      const int newtilde = confindex_[newconf[s]];
-
-      logvaldiff -= a_(ls_ * sf + oldtilde);
-      logvaldiff += a_(ls_ * sf + newtilde);
-
-      thetasnew_ -= W_.row(ls_ * sf + oldtilde);
-      thetasnew_ += W_.row(ls_ * sf + newtilde);
-    }
-
-    RbmSpin::lncosh(thetasnew_, lnthetasnew_);
-    logvaldiff += (lnthetasnew_.sum() - lnthetas_.sum());
-  }
-  return logvaldiff;
 }
 
 #if 0

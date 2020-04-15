@@ -64,6 +64,8 @@ class RbmMultival : public AbstractMachine {
 
   std::map<double, int> confindex_;
 
+  using LookupType = VectorType;
+
  public:
   explicit RbmMultival(std::shared_ptr<const AbstractHilbert> hilbert,
                        int nhidden = 0, int alpha = 0, bool usea = true,
@@ -73,34 +75,24 @@ class RbmMultival : public AbstractMachine {
   int Nvisible() const override;
   /*constexpr*/ int Nhidden() const noexcept { return nh_; }
 
-  void InitRandomPars(int seed, double sigma) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
+                    const std::vector<double> &newconf, any &lt) override;
 
-  VectorType DerLog(VisibleConstType v) override;
-  VectorType DerLog(VisibleConstType v, const LookupType &lt) override;
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
   // Value of the logarithm of the wave-function
-  Complex LogVal(VisibleConstType v) override;
-  // Value of the logarithm of the wave-function
   // using pre-computed look-up tables for efficiency
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
   // Difference between logarithms of values, when one or more visible variables
   // are being changed
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-  // Difference between logarithms of values, when one or more visible variables
-  // are being changed Version using pre-computed look-up tables for efficiency
-  // on a small number of local changes
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
@@ -109,6 +101,7 @@ class RbmMultival : public AbstractMachine {
 
  private:
   inline void Init();
+  inline VectorType DerLogSingleImpl(VisibleConstType v, const any &lt);
 
   // Computhes the values of the theta pseudo-angles
   inline void ComputeTheta(VisibleConstType v, VectorType &theta) {

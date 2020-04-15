@@ -120,13 +120,15 @@ class ExactTimePropagation {
     }
   }
 
-  const StatsMap& GetObservableStats() const noexcept { return observable_stats_; }
+  const StatsMap& GetObservableStats() const noexcept {
+    return observable_stats_;
+  }
 
   double GetTime() const noexcept { return t_; }
   void SetTime(double t) { t_ = t; }
 
-  const StateVector &GetState() const noexcept { return state_; }
-  void SetState(const StateVector &state) { state_ = state; }
+  const StateVector& GetState() const noexcept { return state_; }
+  void SetState(const StateVector& state) { state_ = state; }
 
  private:
   Matrix matrix_;

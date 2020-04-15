@@ -239,47 +239,42 @@ void MPSPeriodic::SetParametersIdentity(VectorConstRefType pars) {
   }
 }
 
-void MPSPeriodic::InitRandomPars(int seed, double sigma) {
-  VectorType pars(npar_);
-
-  netket::RandomGaussian(pars, seed, sigma);
-  SetParametersIdentity(pars);
-}
-
-void MPSPeriodic::InitLookup(VisibleConstType v, LookupType &lt) {
-  for (int k = 0; k < Nleaves_; k++) {
+any MPSPeriodic::InitLookup(VisibleConstType v) {
+  LookupType lt;
+  for (Index k = 0; k < Nleaves_; k++) {
     _InitLookup_check(lt, k);
     if (leaf_contractions_[k][0] < N_) {
       if (leaf_contractions_[k][1] < N_) {
-        lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][0])]],
-                       W_[leaf_contractions_[k][1] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][1])]]);
+        lt[k] = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][0])]],
+                     W_[leaf_contractions_[k][1] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][1])]]);
       } else {
-        lt.M(k) = prod(W_[leaf_contractions_[k][0] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][0])]],
-                       lt.M(leaf_contractions_[k][1] - N_));
+        lt[k] = prod(W_[leaf_contractions_[k][0] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][0])]],
+                     lt[leaf_contractions_[k][1] - N_]);
       }
 
     } else {
       if (leaf_contractions_[k][1] < N_) {
-        lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
-                       W_[leaf_contractions_[k][1] % symperiod_]
-                         [confindex_[v(leaf_contractions_[k][1])]]);
+        lt[k] = prod(lt[leaf_contractions_[k][0] - N_],
+                     W_[leaf_contractions_[k][1] % symperiod_]
+                       [confindex_[v(leaf_contractions_[k][1])]]);
       } else {
-        lt.M(k) = prod(lt.M(leaf_contractions_[k][0] - N_),
-                       lt.M(leaf_contractions_[k][1] - N_));
+        lt[k] = prod(lt[leaf_contractions_[k][0] - N_],
+                     lt[leaf_contractions_[k][1] - N_]);
       }
     }
   }
+  return any{std::move(lt)};
 }
 
 // Auxiliary function
-void MPSPeriodic::_InitLookup_check(LookupType &lt, int i) {
-  if (lt.MatrixSize() == i) {
-    lt.AddMatrix(D_, Dsec_);
+void MPSPeriodic::_InitLookup_check(LookupType &lt, Index i) {
+  if (static_cast<Index>(lt.size()) == i) {
+    lt.push_back(MatrixType(D_, Dsec_));
   } else {
-    lt.M(i).resize(D_, Dsec_);
+    lt[i].resize(D_, Dsec_);
   }
 }
 
@@ -298,12 +293,13 @@ std::vector<std::size_t> MPSPeriodic::sort_indeces(const std::vector<int> &v) {
 void MPSPeriodic::UpdateLookup(VisibleConstType v,
                                const std::vector<int> &tochange,
                                const std::vector<double> &newconf,
-                               LookupType &lt) {
+                               any &lookup) {
   std::size_t nchange = tochange.size();
   if (nchange <= 0) {
     return;
   }
 
+  auto &lt = any_cast_ref<LookupType>(lookup);
   MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
   std::vector<std::size_t> sorted_ind = sort_indeces(tochange);
 
@@ -329,15 +325,15 @@ void MPSPeriodic::UpdateLookup(VisibleConstType v,
               base_mat[lc] = &(W_[lc % symperiod_][confindex_[v(lc)]]);
             }
           } else {
-            base_mat[lc] = &(lt.M(lc - N_));
+            base_mat[lc] = &(lt[lc - N_]);
           }
         }
       }
     }
   }
   for (auto leaf : leaves2update) {
-    lt.M(leaf - N_) = prod(*(base_mat[leaf_contractions_[leaf - N_][0]]),
-                           *(base_mat[leaf_contractions_[leaf - N_][1]]));
+    lt[leaf - N_] = prod(*(base_mat[leaf_contractions_[leaf - N_][0]]),
+                         *(base_mat[leaf_contractions_[leaf - N_][1]]));
   }
 }
 
@@ -352,21 +348,19 @@ MPSPeriodic::MatrixType MPSPeriodic::mps_contraction(VisibleConstType v,
   return c;
 }
 
-Complex MPSPeriodic::LogVal(VisibleConstType v) {
-  return std::log(trace(mps_contraction(v, 0, N_)));
+Complex MPSPeriodic::LogValSingle(VisibleConstType v, const any &lt) {
+  if (lt.empty()) return std::log(trace(mps_contraction(v, 0, N_)));
+  return std::log(trace(any_cast_ref<LookupType>(lt)[Nleaves_ - 1]));
 }
 
-Complex MPSPeriodic::LogVal(VisibleConstType /* v */, const LookupType &lt) {
-  return std::log(trace(lt.M(Nleaves_ - 1)));
-}
-
-MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
-    VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-    const std::vector<std::vector<double>> &newconf) {
+void MPSPeriodic::LogValDiff(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<Eigen::VectorXcd> logvaldiffs) {
   const std::size_t nconn = tochange.size();
 
   std::vector<std::size_t> sorted_ind;
-  VectorType logvaldiffs = VectorType::Zero(nconn);
+  logvaldiffs = VectorType::Zero(nconn);
   Complex current_psi = trace(mps_contraction(v, 0, N_));
   MatrixType new_prods(D_, Dsec_);
 
@@ -398,80 +392,11 @@ MPSPeriodic::VectorType MPSPeriodic::LogValDiff(
       logvaldiffs(k) = std::log(trace(new_prods) / current_psi);
     }
   }
-  return logvaldiffs;
-}
-
-Complex MPSPeriodic::LogValDiff(VisibleConstType v,
-                                const std::vector<int> &toflip,
-                                const std::vector<double> &newconf,
-                                const LookupType &lt) {
-  // Assumes number of levels > 1 (?)
-  std::size_t nflip = toflip.size();
-  if (nflip <= 0) {
-    return Complex(0, 0);
-  }
-
-  MatrixType empty_matrix = MatrixType::Zero(D_, Dsec_);
-  std::vector<std::size_t> sorted_ind = sort_indeces(toflip);
-
-  std::set<int> leaves2update;
-  std::map<int, MatrixType> ltpM;
-  std::size_t set_len = 0;
-
-  std::vector<bool> two_vector(2, false);
-  std::map<int, std::vector<bool>> contractions_change;
-
-  for (std::size_t k = 0; k < nflip; k++) {
-    int site = toflip[sorted_ind[k]];
-    // Add changed visible matrices to map
-    ltpM[site] = W_[site % symperiod_][confindex_[newconf[sorted_ind[k]]]];
-
-    // Add the rest of matrices that affects
-    for (std::size_t l = 0; l < leaves_of_site_[site].size(); l++) {
-      int leaf = leaves_of_site_[site][l];
-      leaves2update.insert(leaf);
-      if (leaves2update.size() > set_len) {
-        set_len++;
-        ltpM[leaf] = empty_matrix;
-      }
-      // Check the contractions of the new matrix (if they change)
-      for (int i = 0; i < 2; i++) {
-        if (std::find(toflip.begin(), toflip.end(),
-                      leaf_contractions_[leaf - N_][i]) != toflip.end()) {
-          two_vector[i] = true;
-        } else if (leaves2update.find(leaf_contractions_[leaf - N_][i]) !=
-                   leaves2update.end()) {
-          two_vector[i] = true;
-        }
-      }
-      contractions_change[leaf] = two_vector;
-      two_vector[0] = false;
-      two_vector[1] = false;
-    }
-  }
-
-  // Calculate products
-  for (auto leaf : leaves2update) {
-    std::vector<MatrixType> m(2);
-    for (int i = 0; i < 2; i++) {
-      int lc = leaf_contractions_[leaf - N_][i];
-      if (contractions_change[leaf][i]) {
-        m[i] = ltpM[lc];
-      } else {
-        if (lc < N_) {
-          m[i] = W_[lc % symperiod_][confindex_[v(lc)]];
-        } else {
-          m[i] = lt.M(lc - N_);
-        }
-      }
-    }
-    ltpM[leaf] = prod(m[0], m[1]);
-  }
-  return std::log(trace(ltpM[Nleaves_ + N_ - 1]) / trace(lt.M(Nleaves_ - 1)));
 }
 
 // Derivative with full calculation
-MPSPeriodic::VectorType MPSPeriodic::DerLog(VisibleConstType v) {
+MPSPeriodic::VectorType MPSPeriodic::DerLogSingle(VisibleConstType v,
+                                                  const any & /*unused*/) {
   MatrixType temp_product(D_, Dsec_);
   std::vector<MatrixType> left_prods, right_prods;
   VectorType der = VectorType::Zero(npar_);

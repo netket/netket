@@ -31,7 +31,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 # Metropolis Exchange Sampling
 # Notice that this sampler exchanges two neighboring sites
 # thus preservers the total magnetization
-sa = nk.sampler.MetropolisExchange(machine=ma, graph=g)
+sa = nk.sampler.MetropolisExchange(machine=ma)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)

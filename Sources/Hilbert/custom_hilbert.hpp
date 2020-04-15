@@ -49,7 +49,6 @@ class CustomHilbert : public AbstractHilbert {
                   nonstd::span<const int> tochange,
                   nonstd::span<const double> newconf) const override;
 };
-
 }  // namespace netket
 
 #endif  // NETKET_CUSTOM_HILBERT_HPP

@@ -58,6 +58,8 @@ class MPSPeriodic : public AbstractMachine {
   // Identity Matrix
   MatrixType identity_mat_;
 
+  using LookupType = std::vector<MatrixType>;
+
  public:
   MPSPeriodic(std::shared_ptr<const AbstractHilbert> hilbert, int bond_dim,
               bool diag, int symperiod = -1);
@@ -65,23 +67,19 @@ class MPSPeriodic : public AbstractMachine {
   int Npar() const override;
   int Nvisible() const override;
 
-  void InitRandomPars(int seed, double sigma) override;
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
+  any InitLookup(VisibleConstType v) override;
   void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
+                    const std::vector<double> &newconf, any &lt) override;
 
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType /* v */, const LookupType &lt) override;
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &toflip,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override;
-  VectorType DerLog(VisibleConstType v) override;
+  Complex LogValSingle(VisibleConstType v, const any &lt) override;
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
+
+  VectorType DerLogSingle(VisibleConstType v, const any &lt) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;
@@ -98,7 +96,7 @@ class MPSPeriodic : public AbstractMachine {
   // identities in every matrix
   inline void SetParametersIdentity(VectorConstRefType pars);
   // Auxiliary function
-  inline void _InitLookup_check(LookupType &lt, int i);
+  inline void _InitLookup_check(LookupType &lt, Index i);
   // Auxiliary function for sorting indeces
   // (copied from stackexchange - original answer by Lukasz Wiklendt)
   inline std::vector<std::size_t> sort_indeces(const std::vector<int> &v);

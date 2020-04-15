@@ -7,6 +7,14 @@ import os
 
 from rbm import PyRbm
 
+test_jax = False
+try:
+    import torch
+    test_torch = True
+except:
+    test_torch = False
+
+
 def merge_dicts(x, y):
     z = x.copy()  # start with x's keys and values
     z.update(y)  # modifies z with y's keys and values & returns None
@@ -21,6 +29,56 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
+
+
+if test_jax:
+    import jax
+    import jax.experimental
+    import jax.experimental.stax
+
+    def randn():
+        def init(rng, shape):
+            return jax.numpy.asarray(
+                jax.experimental.stax.randn()(rng, shape), dtype=jax.numpy.float64
+            )
+
+        return init
+
+    def glorot():
+        def init(rng, shape):
+            return jax.numpy.asarray(
+                jax.experimental.stax.glorot()(rng, shape), dtype=jax.numpy.float64
+            )
+
+        return init
+
+    machines["Jax"] = nk.machine.Jax(
+        hi,
+        jax.experimental.stax.serial(
+            jax.experimental.stax.Dense(4, glorot(), randn()),
+            jax.experimental.stax.Relu,
+            jax.experimental.stax.Dense(2, glorot(), randn()),
+            jax.experimental.stax.Relu,
+            jax.experimental.stax.Dense(2, glorot(), randn()),
+        ),
+    )
+    assert machines["Jax"].dtype == np.float64
+
+
+if test_torch:
+    import torch
+
+    input_size = hi.size
+    alpha = 1
+
+    model = torch.nn.Sequential(
+        torch.nn.Linear(input_size, alpha * input_size),
+        torch.nn.Sigmoid(),
+        torch.nn.Linear(alpha * input_size, 2),
+        torch.nn.Sigmoid(),
+    )
+    machines["Torch"] = nk.machine.Torch(model, hilbert=hi)
+
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
@@ -91,7 +149,6 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
 
-
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
@@ -105,12 +162,22 @@ def log_val_f(par, machine, v):
     return machine.log_val(v)
 
 
+def log_val_vec_f(par, machine, v, vec):
+    machine.parameters = np.copy(par)
+    out_val = machine.log_val(v)
+    assert vec.shape == out_val.shape
+    return np.vdot(out_val, vec)
+
+
 def central_diff_grad(func, x, eps, *args):
     grad = np.zeros(len(x), dtype=complex)
     epsd = np.zeros(len(x), dtype=complex)
     epsd[0] = eps
     for i in range(len(x)):
-        grad[i] = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args)) / eps
+        assert not np.any(np.isnan(x + epsd))
+        grad[i] = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
+        assert not np.isnan(grad[i])
+        grad[i] /= eps
         epsd = np.roll(epsd, 1)
     return grad
 
@@ -156,6 +223,57 @@ def test_save_load_parameters(tmpdir):
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
 
+def test_batched_versions():
+    for name, machine in merge_dicts(machines, dm_machines).items():
+        # FIXME: The rank-3 log_val test fails for these two machines
+        if "PyRbm" in name:
+            continue
+        print("Machine test: %s" % name)
+        npar = machine.n_par
+        assert machine.n_par > 0
+
+        hi = machine.hilbert
+        assert hi.size > 0
+
+        randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
+        machine.parameters = randpars
+
+        rg = nk.utils.RandomEngine(seed=1234)
+
+        v1 = np.zeros((100, hi.size))
+        log_val_1 = np.zeros(100, dtype=complex)
+        der_log_1 = np.zeros((100, npar), dtype=complex)
+        for i in range(100):
+            hi.random_vals(v1[i], rg)
+            log_val_1[i] = machine.log_val(v1[i])
+
+            dr = machine.der_log(v1[i])
+            assert dr.size == npar
+            der_log_1[i, :] = dr
+
+        v2 = np.zeros((10, 8, hi.size))
+        log_val_2 = np.zeros((10, 8), dtype=complex)
+        der_log_2 = np.zeros((10, 8, npar), dtype=complex)
+        for i in range(10):
+            for j in range(8):
+                hi.random_vals(v2[i, j], rg)
+                log_val_2[i, j] = machine.log_val(v2[i, j])
+
+                dr = machine.der_log(v2[i, j])
+                assert dr.size == npar
+                der_log_2[i, j, :] = dr
+
+        for v, log_val, der_log in (
+            (v1, log_val_1, der_log_1),
+            (v2, log_val_2, der_log_2),
+        ):
+            log_val_batch = machine.log_val(v)
+            assert log_val.shape == log_val_batch.shape
+            assert np.allclose(log_val_batch, log_val)
+
+            der_log_batch = machine.der_log(v)
+            assert der_log.shape == der_log_batch.shape
+            assert np.allclose(der_log_batch, der_log)
 
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
@@ -189,60 +307,39 @@ def test_log_derivative():
                 check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
 
 
-def test_log_val_diff():
+def test_vector_jacobian():
     for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 
         npar = machine.n_par
-        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.parameters = randpars
 
+        # random visibile state
         hi = machine.hilbert
-
+        assert hi.size > 0
         rg = nk.utils.RandomEngine(seed=1234)
 
-        # loop over different random states
-        for i in range(100):
+        batch_size = 100
+        v = np.zeros((batch_size, hi.size))
 
-            # generate a random state
-            rstate = np.zeros(hi.size)
-            local_states = hi.local_states
-            hi.random_vals(rstate, rg)
+        for i in range(batch_size):
+            hi.random_vals(v[i], rg)
 
-            tochange = []
-            newconfs = []
+        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        machine.parameters = randpars
 
-            # random number of changes
-            for i in range(100):
-                n_change = np.random.randint(low=0, high=hi.size)
-                # generate n_change unique sites to be changed
-                tochange.append(np.random.choice(hi.size, n_change, replace=False))
-                newconfs.append(np.random.choice(local_states, n_change))
+        vec = np.random.uniform(size=batch_size) + 1.0j * np.random.uniform(
+            size=batch_size
+        ) / float(batch_size)
 
-            ldiffs = machine.log_val_diff(rstate, tochange, newconfs)
-            valzero = machine.log_val(rstate)
+        vjp = np.zeros(machine.n_par, dtype=np.complex128)
+        machine.vector_jacobian_prod(v, vec, vjp)
 
-            for toc, newco, ldiff in zip(tochange, newconfs, ldiffs):
-                rstatet = np.array(rstate)
-
-                for newc in newco:
-                    assert newc in local_states
-
-                for t in toc:
-                    assert t >= 0 and t < hi.size
-
-                assert len(toc) == len(newco)
-
-                if len(toc) == 0:
-                    assert ldiff == approx(0.0)
-
-                hi.update_conf(rstatet, toc, newco)
-                ldiff_num = machine.log_val(rstatet) - valzero
-
-                assert np.max(np.real(ldiff_num - ldiff)) == approx(0.0)
-                # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-                assert np.max(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
-                assert np.min(np.exp(np.imag(ldiff_num - ldiff) * 1.0j)) == approx(1.0)
+        num_der_log = central_diff_grad(
+            log_val_vec_f, randpars, 1.0e-6, machine, v, vec
+        )
+        print(np.max(vjp.imag - num_der_log.imag))
+        print(np.max(vjp.real - num_der_log.real))
+        same_derivatives(vjp, num_der_log)
 
 
 def test_nvisible():
@@ -257,5 +354,100 @@ def test_nvisible():
         hip = machine.hilbert_physical
         hi = machine.hilbert
 
-        assert machine.n_visible == hip.size
-        assert machine.n_visible * 2 == hi.size
+        assert machine.n_visible_physical * 2 == machine.n_visible
+        assert machine.n_visible_physical == hip.size
+        assert machine.n_visible == hi.size
+
+
+def test_dm_batched():
+    for name, machine in dm_machines.items():
+        print("Machine test: %s" % name)
+
+        npar = machine.n_par
+        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        machine.parameters = randpars
+
+        hi = machine.hilbert
+
+        rg = nk.utils.RandomEngine(seed=1234)
+
+        N_batches = 100
+        states = np.zeros((N_batches, hi.size))
+
+        # loop over different random states
+        for i in range(100):
+
+            # generate a random state
+            rstate = np.zeros(hi.size)
+            hi.random_vals(rstate, rg)
+            states[i, :] = rstate
+
+        log_val_batch = machine.log_val(states)
+        der_log_batch = machine.der_log(states)
+
+        for i in range(100):
+
+            val = machine.log_val(states[i, :])
+            der = machine.der_log(states[i, :])
+
+            assert np.max(np.abs(val - log_val_batch[i])) == approx(0.0)
+            same_derivatives(der, der_log_batch[i])
+            # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+
+
+def test_to_array():
+    for name, machine in machines.items():
+        print("Machine test: %s" % name)
+
+        npar = machine.n_par
+
+        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
+        if "Torch" in name:
+            randpars = randpars.real
+        machine.parameters = randpars
+
+        hi = machine.hilbert
+
+        rg = nk.utils.RandomEngine(seed=1234)
+
+        all_psis = machine.to_array(normalize=False)
+        # test shape
+        assert all_psis.shape[0] == hi.n_states
+        assert len(all_psis.shape) == 1
+
+        logmax = -10000000
+        norm = 0
+        for i in range(hi.n_states):
+            state = hi.number_to_state(i)
+            log_val = machine.log_val(state)
+            logmax = max(logmax, log_val.real)
+
+        for i in range(hi.n_states):
+            state = hi.number_to_state(i)
+            log_val = machine.log_val(state)
+            norm += np.abs(np.exp(log_val - logmax)) ** 2
+
+        # test random values
+        for i in range(100):
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
+            hi.random_vals(rstate, rg)
+
+            number = hi.state_to_number(rstate)
+            assert np.exp(machine.log_val(rstate) - logmax) - all_psis[
+                number
+            ] == approx(0.0)
+
+        # test rescale
+        all_psis_normalized = machine.to_array(normalize=True)
+
+        # test random values
+        for i in range(100):
+            rstate = np.zeros(hi.size)
+            local_states = hi.local_states
+            hi.random_vals(rstate, rg)
+
+            number = hi.state_to_number(rstate)
+            assert np.exp(machine.log_val(rstate) - logmax) / np.sqrt(
+                norm
+            ) - all_psis_normalized[number] == approx(0.0)

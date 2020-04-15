@@ -22,10 +22,16 @@
 #include <vector>
 
 #include <Eigen/Core>
+#include <Eigen/Sparse>
 #include <Eigen/SparseCore>
 #include <nonstd/span.hpp>
 
 #include "Hilbert/hilbert.hpp"
+#include "Machine/DensityMatrices/abstract_density_matrix.hpp"
+#include "Machine/abstract_machine.hpp"
+#include "Utils/exceptions.hpp"
+#include "Utils/messages.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 /**
@@ -62,36 +68,47 @@ class AbstractOperator {
 
   /**
   Member function finding the connected elements of the Operator.
-  Starting from a given visible state v, it finds all other visible states v'
-  such that the matrix element O(v,v') is different from zero.
-  In general there will be several different connected visible units satisfying
-  this condition, and they are denoted here v'(k), for k=0,1...N_connected.
+  Starting from a given visible state v, it finds all other visible states
+  v' such that the matrix element O(v,v') is different from zero. In general
+  there will be several different connected visible units satisfying this
+  condition, and they are denoted here v'(k), for k=0,1...N_connected.
   @param v a constant reference to the visible configuration.
   @param mel(k) is modified to contain matrix elements O(v,v'(k)).
-  @param connector(k) for each k contains a list of sites that should be changed
-  to obtain v'(k) starting from v.
-  @param newconfs(k) is a vector containing the new values of the visible units
-  on the affected sites, such that: v'(k,connectors(k,j))=newconfs(k,j). For the
-  other sites v'(k)=v, i.e. they are equal to the starting visible
-  configuration.
+  @param connector(k) for each k contains a list of sites that should be
+  changed to obtain v'(k) starting from v.
+  @param newconfs(k) is a vector containing the new values of the visible
+  units on the affected sites, such that:
+  v'(k,connectors(k,j))=newconfs(k,j). For the other sites v'(k)=v, i.e.
+  they are equal to the starting visible configuration.
   */
   virtual void FindConn(VectorConstRefType v, MelType &mel,
                         ConnectorsType &connectors,
                         NewconfsType &newconfs) const = 0;
 
-  virtual std::tuple<MelType, ConnectorsType, NewconfsType> GetConn(
-      VectorConstRefType v) const;
+  void FindConn(VectorConstRefType v, Eigen::SparseMatrix<double> &delta_v,
+                Eigen::VectorXcd &mel) const;
+
+  auto GetConn(Eigen::Ref<const RowMatrix<double>> v)
+      -> std::tuple<std::vector<RowMatrix<double>>,
+                    std::vector<Eigen::VectorXcd>>;
+
+  auto GetConnFlattened(Eigen::Ref<const RowMatrix<double>> v,
+                        Eigen::Ref<Eigen::VectorXi> sections)
+      -> std::tuple<RowMatrix<double>, Eigen::VectorXcd>;
+
+  void GetNConn(Eigen::Ref<const RowMatrix<double>> v,
+                Eigen::Ref<Eigen::VectorXi> n_conn);
 
   /**
-   * Iterates over all states reachable from a given visible configuration v,
-   * i.e., all states v' such that O(v,v') is non-zero.
+   * Iterates over all states reachable from a given visible configuration
+   * v, i.e., all states v' such that O(v,v') is non-zero.
    * @param v The visible configuration.
    * @param callback Function void callback(ConnectorRef conn) which will be
    * called once for each reachable configuration v'. The parameter conn
-   * contains the value O(v,v') and the information to obtain v' from v. Note
-   * that the members conn.positions and conn.values are spans that can only be
-   * savely used inside the callback. They will become invalid once callback
-   * returns.
+   * contains the value O(v,v') and the information to obtain v' from v.
+   * Note that the members conn.positions and conn.values are spans that can
+   * only be savely used inside the callback. They will become invalid once
+   * callback returns.
    */
   virtual void ForEachConn(VectorConstRefType v, ConnCallback callback) const;
 
@@ -143,7 +160,7 @@ class AbstractOperator {
     matrix.resize(hilbert_index.NStates(), hilbert_index.NStates());
     matrix.setZero();
     ForEachMatrixElement([&matrix](const int i, const int j, const Complex x) {
-      matrix(i, j) = x;
+      matrix(i, j) += x;
     });
     return matrix;
   }

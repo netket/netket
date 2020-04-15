@@ -56,25 +56,20 @@ class JastrowSymm : public AbstractMachine {
   int Nvisible() const override;
   int Npar() const override;
 
-  void InitRandomPars(int seed, double sigma) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
-
-  VectorType DerLog(VisibleConstType v) override;
+  VectorType DerLogSingle(VisibleConstType v, const any &cache) override;
 
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
 
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+  Complex LogValSingle(VisibleConstType v, const any &) override;
+
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
+
+  void LogValDiff(VisibleConstType v,
+                  const std::vector<std::vector<int>> &tochange,
+                  const std::vector<std::vector<double>> &newconf,
+                  Eigen::Ref<Eigen::VectorXcd>) override;
 
   void Save(const std::string &filename) const override;
   void Load(const std::string &filename) override;

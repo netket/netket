@@ -34,37 +34,23 @@ class Jastrow : public AbstractMachine {
   // weights
   MatrixType W_;
 
-  // buffers
-  VectorType thetas_;
-  VectorType thetasnew_;
+  inline void Init();
 
  public:
   explicit Jastrow(std::shared_ptr<const AbstractHilbert> hilbert);
 
-  inline void Init();
-
   int Nvisible() const override;
   int Npar() const override;
 
-  void InitRandomPars(int seed, double sigma) override;
   VectorType GetParameters() override;
   void SetParameters(VectorConstRefType pars) override;
-  void InitLookup(VisibleConstType v, LookupType &lt) override;
-  void UpdateLookup(VisibleConstType v, const std::vector<int> &tochange,
-                    const std::vector<double> &newconf,
-                    LookupType &lt) override;
-  Complex LogVal(VisibleConstType v) override;
-  Complex LogVal(VisibleConstType v, const LookupType &lt) override;
 
-  VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) override;
+  void LogVal(Eigen::Ref<const RowMatrix<double>> x,
+              Eigen::Ref<Eigen::VectorXcd> out, const any &) override;
 
-  Complex LogValDiff(VisibleConstType v, const std::vector<int> &tochange,
-                     const std::vector<double> &newconf,
-                     const LookupType &lt) override;
+  VectorType DerLogSingle(VisibleConstType v, const any & /*unused*/) override;
 
-  VectorType DerLog(VisibleConstType v) override;
+  Complex LogValSingle(VisibleConstType v, const any &) override;
 
   void Save(std::string const &filename) const override;
   void Load(std::string const &filename) override;

@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "Utils/json_utils.hpp"
+#include "json_utils.hpp"
 
 #include <complex>
 #include <fstream>
 #include <vector>
 
 #include <Eigen/Core>
-#include <json.hpp>
 
 #include "exceptions.hpp"
 

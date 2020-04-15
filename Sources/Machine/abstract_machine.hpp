@@ -16,15 +16,18 @@
 #define NETKET_ABSTRACTMACHINE_HPP
 
 #include <complex>
-#include <iosfwd>
+#include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include <Python.h>
 #include <Eigen/Core>
 
 #include "Hilbert/abstract_hilbert.hpp"
-#include "Utils/lookup.hpp"
+#include "Utils/any.hpp"
 #include "Utils/random_utils.hpp"
+#include "common_types.hpp"
 
 namespace netket {
 
@@ -37,7 +40,6 @@ class AbstractMachine {
  public:
   using VectorType = Eigen::Matrix<Complex, Eigen::Dynamic, 1>;
   using MatrixType = Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic>;
-  using LookupType = Lookup<Complex>;
   using VectorRefType = Eigen::Ref<VectorType>;
   using VectorConstRefType = Eigen::Ref<const VectorType>;
   using VisibleConstType = Eigen::Ref<const Eigen::VectorXd>;
@@ -65,10 +67,12 @@ class AbstractMachine {
 
   /**
   Member function providing a random initialization of the parameters.
-  @param seed is the see of the random number generator.
   @param sigma is the variance of the gaussian.
+  @param seed is the seed of the random number generator. If seed is `nullopt`,
+  one is generated using `std::random_device`.
   */
-  virtual void InitRandomPars(int seed, double sigma) = 0;
+  virtual void InitRandomPars(double sigma, nonstd::optional<unsigned> seed,
+                              default_random_engine *given_gen);
 
   /**
   Member function returning the number of visible units.
@@ -77,13 +81,28 @@ class AbstractMachine {
   virtual int Nvisible() const = 0;
 
   /**
-  Member function computing the logarithm of the wave function for a given
-  visible vector. Given the current set of parameters, this function should
-  comput the value of the logarithm of the wave function from scratch.
-  @param v a constant reference to a visible configuration.
-  @return Logarithm of the wave function.
-  */
-  virtual Complex LogVal(VisibleConstType v) = 0;
+   * Computes logarithm of the wave function for a batch of visible
+   * configurations.
+   *
+   * @param v a matrix of size `batch_size x Nvisible()`. Each row of the matrix
+   * is a visible configuration.
+   */
+  virtual void LogVal(Eigen::Ref<const RowMatrix<double>> v,
+                      Eigen::Ref<VectorType> out, const any &cache = any{});
+
+  virtual VectorType LogVal(Eigen::Ref<const RowMatrix<double>> v,
+                            const any &cache = any{});
+
+  virtual void DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                      Eigen::Ref<RowMatrix<Complex>> out,
+                      const any &cache = any{});
+
+  virtual RowMatrix<Complex> DerLog(Eigen::Ref<const RowMatrix<double>> v,
+                                    const any &cache = any{});
+
+  virtual void VectorJacobianProd(Eigen::Ref<const RowMatrix<double>> v,
+                                  Eigen::Ref<const VectorType> vec,
+                                  Eigen::Ref<VectorType> out);
 
   /**
   Member function computing the logarithm of the wave function for a given
@@ -94,7 +113,7 @@ class AbstractMachine {
   @param lt a constant eference to the look-up table.
   @return Logarithm of the wave function.
   */
-  virtual Complex LogVal(VisibleConstType v, const LookupType &lt) = 0;
+  virtual Complex LogValSingle(VisibleConstType v, const any &lt = any{}) = 0;
 
   /**
   Member function initializing the look-up tables.
@@ -107,7 +126,7 @@ class AbstractMachine {
   @param v a constant reference to the visible configuration.
   @param lt a reference to the look-up table to be initialized.
   */
-  virtual void InitLookup(VisibleConstType v, LookupType &lt) = 0;
+  virtual any InitLookup(VisibleConstType v);
 
   /**
   Member function updating the look-up tables.
@@ -128,13 +147,15 @@ class AbstractMachine {
   */
   virtual void UpdateLookup(VisibleConstType v,
                             const std::vector<int> &tochange,
-                            const std::vector<double> &newconf,
-                            LookupType &lt) = 0;
+                            const std::vector<double> &newconf, any &lt);
 
   /**
   Member function computing the difference between the logarithm of the
   wave-function computed at different values of the visible units (v, and a set
   of v').
+
+  @note performance of the default implementation is pretty bad.
+
   @param v a constant reference to the current visible configuration.
   @param tochange a constant reference to a vector containing the indeces of the
   units to be modified.
@@ -143,27 +164,14 @@ class AbstractMachine {
   the new visible state.
   @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
   */
-  virtual VectorType LogValDiff(
-      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
-      const std::vector<std::vector<double>> &newconf) = 0;
+  VectorType LogValDiff(VisibleConstType v,
+                        const std::vector<std::vector<int>> &tochange,
+                        const std::vector<std::vector<double>> &newconf);
 
-  /**
-  Member function computing the difference between the logarithm of the
-  wave-function computed at different values of the visible units (v, and a
-  single v'). This version uses the look-up tables to speed-up the calculation.
-  @param v a constant reference to the current visible configuration.
-  @param tochange a constant reference to a vector containing the indeces of the
-  units to be modified.
-  @param newconf a constant reference to a vector containing the new values of
-  the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
-  visible state.
-  @param lt a constant eference to the look-up table.
-  @return The value of log(Psi(v')) - log(Psi(v))
-  */
-  virtual Complex LogValDiff(VisibleConstType v,
-                             const std::vector<int> &tochange,
-                             const std::vector<double> &newconf,
-                             const LookupType &lt) = 0;
+  virtual void LogValDiff(VisibleConstType v,
+                          const std::vector<std::vector<int>> &tochange,
+                          const std::vector<std::vector<double>> &newconf,
+                          Eigen::Ref<Eigen::VectorXcd> output);
 
   /**
   Member function computing the derivative of the logarithm of the wave function
@@ -172,19 +180,8 @@ class AbstractMachine {
   @return Derivatives of the logarithm of the wave function with respect to the
   set of parameters.
   */
-  virtual VectorType DerLog(VisibleConstType v) = 0;
-
-  /**
-  Member function computing the derivative of the logarithm of the wave function
-  for a given visible vector. This specialized version, if implemented, should
-  make use of the Lookup table to speed up the calculation.
-  @param v a constant reference to a visible configuration.
-  @return Derivatives of the logarithm of the wave function with respect to the
-  set of parameters.
-  */
-  virtual VectorType DerLog(VisibleConstType v, const LookupType & /*lt*/) {
-    return DerLog(v);
-  }
+  virtual VectorType DerLogSingle(VisibleConstType v,
+                                  const any &cache = any{}) = 0;
 
   /**
   Member function computing O_k(v'), the derivative of
@@ -204,10 +201,61 @@ class AbstractMachine {
                                    const std::vector<int> &tochange,
                                    const std::vector<double> &newconf);
 
+  /**
+  Member function computing O_k(v'), the derivatives of the logarithm of the
+  wave function at a vector of updates visible state v', given the current value
+  at v.
+
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the vectors of
+  indeces of the units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here newconf(i)=v'(tochange(i)), where v' is the new
+  visible state.
+  @param lt a constant eference to the look-up table.
+  @return An integer referring to a row which has the value of v
+  */
+  virtual void DerLogChanged(VisibleConstType v,
+                             const std::vector<std::vector<int>> &tochange,
+                             const std::vector<std::vector<double>> &newconf,
+                             Eigen::Ref<RowMatrix<Complex>> output);
+
+  /**
+  Member function computing the difference between the logarithm of the
+  log-derivative computed at different values of the visible units (v, and a set
+  of v').
+
+  @note performance of the default implementation is pretty bad.
+
+  @param v a constant reference to the current visible configuration.
+  @param tochange a constant reference to a vector containing the indeces of the
+  units to be modified.
+  @param newconf a constant reference to a vector containing the new values of
+  the visible units: here for each v', newconf(i)=v'(tochange(i)), where v' is
+  the new visible state.
+  @return A vector containing, for each v', log(Psi(v')) - log(Psi(v))
+  */
+  RowMatrix<Complex> DerLogDiff(
+      VisibleConstType v, const std::vector<std::vector<int>> &tochange,
+      const std::vector<std::vector<double>> &newconf);
+
+  virtual void DerLogDiff(VisibleConstType v,
+                          const std::vector<std::vector<int>> &tochange,
+                          const std::vector<std::vector<double>> &newconf,
+                          Eigen::Ref<RowMatrix<Complex>> output,
+                          bool subtract_logv = true);
+
   virtual bool IsHolomorphic() const noexcept = 0;
 
-  virtual void Save(const std::string &filename) const = 0;
-  virtual void Load(const std::string &filename) = 0;
+  virtual PyObject *StateDict() {
+    throw std::runtime_error{"Not implemented!"};
+  }
+
+  virtual PyObject *StateDict() const;
+  void StateDict(PyObject *);
+
+  virtual void Save(const std::string &filename) const;
+  virtual void Load(const std::string &filename);
 
   const AbstractHilbert &GetHilbert() const { return *hilbert_; };
   std::shared_ptr<const AbstractHilbert> GetHilbertShared() const {
@@ -223,6 +271,7 @@ class AbstractMachine {
  private:
   std::shared_ptr<const AbstractHilbert> hilbert_;
 };
+
 }  // namespace netket
 
 #endif  // NETKET_ABSTRACTMACHINE_HPP

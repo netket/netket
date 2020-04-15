@@ -15,7 +15,6 @@
 #ifndef NETKET_LOCAL_OPERATOR_HPP
 #define NETKET_LOCAL_OPERATOR_HPP
 
-#include <mpi.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cassert>
@@ -24,6 +23,7 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <utility>
 #include <vector>
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Utils/array_utils.hpp"
@@ -65,24 +65,25 @@ class LocalOperator : public AbstractOperator {
   static constexpr double mel_cutoff_ = 1.0e-6;
 
  public:
-  // explicit LocalOperator(const LocalOperator &rhs)
-  //     : mat_(rhs.mat_),
-  //       sites_(rhs.sites_),
-  //       invstate_(rhs.invstate_),
-  //       states_(rhs.states_),
-  //       connected_(rhs.connected_) {
-  //   SetHilbert(rhs.GetHilbert());
-  // }
+  LocalOperator(const LocalOperator &rhs)
+       : AbstractOperator(rhs.GetHilbertShared()),
+         mat_(rhs.mat_),
+         sites_(rhs.sites_),
+         invstate_(rhs.invstate_),
+         states_(rhs.states_),
+         connected_(rhs.connected_) ,
+         constant_(rhs.constant_),
+         nops_(rhs.nops_){}
 
   explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          double constant = 0.)
-      : AbstractOperator(hilbert), constant_(constant), nops_(0) {}
+      : AbstractOperator(std::move(hilbert)), constant_(constant), nops_(0) {}
 
   explicit LocalOperator(std::shared_ptr<const AbstractHilbert> hilbert,
                          const std::vector<MatType> &mat,
                          const std::vector<SiteType> &sites,
                          double constant = 0.)
-      : AbstractOperator(hilbert), constant_(constant) {
+      : AbstractOperator(std::move(hilbert)), constant_(constant) {
     for (std::size_t i = 0; i < mat.size(); i++) {
       Push(mat[i], sites[i]);
     }
@@ -201,8 +202,6 @@ class LocalOperator : public AbstractOperator {
   void FindConn(VectorConstRefType v, std::vector<Complex> &mel,
                 std::vector<std::vector<int>> &connectors,
                 std::vector<std::vector<double>> &newconfs) const override {
-    assert(v.size() == GetHilbert().Size());
-
     connectors.clear();
     newconfs.clear();
     mel.clear();
@@ -236,7 +235,7 @@ class LocalOperator : public AbstractOperator {
   void ForEachConn(VectorConstRefType v, ConnCallback callback) const override {
     assert(v.size() == GetHilbert().Size());
 
-    Complex mel_diag = 0.;
+    Complex mel_diag = constant_;
 
     for (std::size_t opn = 0; opn < nops_; opn++) {
       int st1 = StateNumber(v, opn);
@@ -320,7 +319,7 @@ class LocalOperator : public AbstractOperator {
   friend LocalOperator operator*(const LocalOperator &lhs,
                                  const LocalOperator &rhs) {
     // TODO
-    // assert(lhs.Hilbert() == rhs.Hilbert());
+    assert(lhs.GetHilbert().Size() == rhs.GetHilbert().Size());
     // check if sites have intersections, in that case this algorithm is wrong
     std::vector<MatType> mat;
     std::vector<SiteType> sites;
@@ -396,7 +395,6 @@ class LocalOperator : public AbstractOperator {
 
   template <class T>
   friend LocalOperator operator*(T lhs, const LocalOperator &rhs) {
-    assert(std::imag(lhs) == 0.);
     auto mat = rhs.mat_;
     auto sites = rhs.sites_;
 

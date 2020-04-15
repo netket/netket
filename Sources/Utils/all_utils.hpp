@@ -18,7 +18,7 @@
 #include "exceptions.hpp"
 #include "json_utils.hpp"
 #include "kronecker_product.hpp"
-#include "lookup.hpp"
+#include "log_cosh.hpp"
 #include "math_helpers.hpp"
 #include "memory_utils.hpp"
 #include "messages.hpp"

@@ -14,6 +14,7 @@
 
 #include "py_utils.hpp"
 
+#include <pybind11/eigen.h>
 #include "Utils/all_utils.hpp"
 
 namespace py = pybind11;
@@ -29,16 +30,65 @@ void AddUtilsModule(py::module m) {
       .def("seed", static_cast<void (netket::default_random_engine::*)(
                        netket::default_random_engine::result_type)>(
                        &netket::default_random_engine::seed));
+  subm.def(
+      "seed",
+      [](const DistributedRandomEngine::ResultType &seed) {
+        GetDistributedRandomEngine().Seed(seed);
+      },
+      py::arg("seed") = netket::default_random_engine::default_seed,
+      R"EOF(seed: The chosen seed for the distributed random number generator.  )EOF");
 
-  py::class_<Lookup<double>>(m, "LookupReal").def(py::init<>());
+  subm.def(
+      "random_engine", []() { return; },
+      R"EOF(seed: The random engine for the distributed random number generator.  )EOF");
 
-  py::class_<Lookup<Complex>>(m, "LookupComplex").def(py::init<>());
+  subm.def("rand_uniform_real",
+           [](Eigen::Ref<Eigen::VectorXd> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_real_distribution<> dis;
+
+             for (Index i = 0; i < samples.size(); i++) {
+               samples(i) = (dis(gen));
+             }
+           },
+           py::arg("samples"));
+
+  subm.def("rand_uniform_real",
+           [](Eigen::Ref<Eigen::MatrixXd> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_real_distribution<> dis;
+
+             for (Index i = 0; i < samples.rows(); i++) {
+               for (Index j = 0; j < samples.cols(); j++) {
+                 samples(i, j) = (dis(gen));
+               }
+             }
+           },
+           py::arg("samples"));
+
+  subm.def("rand_uniform_int",
+           [](Index low, Index high, Eigen::Ref<Eigen::VectorXi> samples) {
+             auto gen = GetDistributedRandomEngine().Get();
+             std::uniform_int_distribution<> dis(low, high);
+
+             for (Index i = 0; i < samples.size(); i++) {
+               samples(i) = dis(gen);
+             }
+           },
+           py::arg("low"), py::arg("high"), py::arg("samples"));
+
+  subm.def("sum_log_cosh_complex",
+           [](Eigen::Ref<const MatrixXcd> input, Eigen::Ref<VectorXcd> output) {
+             SumLogCosh(input, output);
+           },
+           py::arg("input"), py::arg("output"));
 
   py::class_<MPIHelpers>(m, "MPI")
-      .def("rank", &MPIHelpers::MPIRank,
-           R"EOF(int: The MPI rank for the current process.  )EOF")
-      .def("size", &MPIHelpers::MPISize,
-           R"EOF(int: The total number of MPI ranks currently active.  )EOF");
-}
+      .def_static("rank", &MPIHelpers::MPIRank,
+                  R"EOF(int: The MPI rank for the current process.  )EOF")
+      .def_static(
+          "size", &MPIHelpers::MPISize,
+          R"EOF(int: The total number of MPI ranks currently active.  )EOF");
+}  // namespace netket
 
 }  // namespace netket

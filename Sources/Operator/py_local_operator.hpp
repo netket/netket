@@ -29,8 +29,10 @@ namespace py = pybind11;
 namespace netket {
 
 void AddLocalOperator(py::module &subm) {
-  py::class_<LocalOperator, AbstractOperator>(
-      subm, "LocalOperator", R"EOF(A custom local operator.)EOF")
+  py::class_<LocalOperator, AbstractOperator, std::shared_ptr<LocalOperator>>(
+      subm, "LocalOperator",
+      R"EOF(A custom local operator. This is a sum of an arbitrary number of operators
+      acting locally on a limited set of k quantum numbers (i.e. k-local, in the quantum information sense). )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>, double>(),
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("constant") = 0.,
            R"EOF(
@@ -44,7 +46,6 @@ void AddLocalOperator(py::module &subm) {
            Examples:
                Constructs a ``LocalOperator`` without any operators.
 
-               ```python
                >>> from netket.graph import CustomGraph
                >>> from netket.hilbert import CustomHilbert
                >>> from netket.operator import LocalOperator
@@ -54,7 +55,6 @@ void AddLocalOperator(py::module &subm) {
                >>> print(len(empty_hat.acting_on))
                0
 
-               ```
            )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>,
                     std::vector<LocalOperator::MatType>,
@@ -76,7 +76,6 @@ void AddLocalOperator(py::module &subm) {
               Constructs a ``LocalOperator`` from a list of operators acting on
               a corresponding list of sites.
 
-              ```python
               >>> from netket.graph import CustomGraph
               >>> from netket.hilbert import CustomHilbert
               >>> from netket.operator import LocalOperator
@@ -87,7 +86,6 @@ void AddLocalOperator(py::module &subm) {
               >>> print(len(sx_hat.acting_on))
               3
 
-              ```
           )EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>,
                     LocalOperator::MatType, LocalOperator::SiteType, double>(),
@@ -108,7 +106,6 @@ void AddLocalOperator(py::module &subm) {
                Constructs a ``LocalOperator`` from a single operator acting on
                a single site.
 
-               ```python
                >>> from netket.graph import CustomGraph
                >>> from netket.hilbert import CustomHilbert
                >>> from netket.operator import LocalOperator
@@ -119,7 +116,6 @@ void AddLocalOperator(py::module &subm) {
                >>> print(len(sx_hat.acting_on))
                1
 
-               ```
            )EOF")
       .def_property_readonly(
           "local_matrices", &LocalOperator::LocalMatrices,
@@ -131,12 +127,22 @@ void AddLocalOperator(py::module &subm) {
            R"EOF(Returns the transpose of this operator)EOF")
       .def("conjugate", &LocalOperator::Conjugate,
            R"EOF(Returns the complex conjugation of this operator)EOF")
+      .def("conj", &LocalOperator::Conjugate,
+           R"EOF(Returns the complex conjugation of this operator)EOF")
       .def(py::self + py::self)
       .def(
           "__mul__", [](const LocalOperator &a, double b) { return b * a; },
           py::is_operator())
       .def(
           "__rmul__", [](const LocalOperator &a, double b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__mul__",
+          [](const LocalOperator &a, std::complex<double> b) { return b * a; },
+          py::is_operator())
+      .def(
+          "__rmul__",
+          [](const LocalOperator &a, std::complex<double> b) { return b * a; },
           py::is_operator())
       .def(
           "__mul__", [](const LocalOperator &a, int b) { return b * a; },

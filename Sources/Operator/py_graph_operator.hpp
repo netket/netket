@@ -29,7 +29,7 @@ namespace py = pybind11;
 namespace netket {
 
 void AddGraphOperator(py::module &subm) {
-  py::class_<GraphOperator, AbstractOperator>(
+  py::class_<GraphOperator, AbstractOperator, std::shared_ptr<GraphOperator>>(
       subm, "GraphOperator", R"EOF(A custom graph based operator.)EOF")
       .def(py::init<std::shared_ptr<const AbstractHilbert>,
                     GraphOperator::OVecType, GraphOperator::OVecType,
@@ -57,7 +57,6 @@ void AddGraphOperator(py::module &subm) {
          Examples:
              Constructs a ``BosGraphOperator`` operator for a 2D system.
 
-             ```python
              >>> import netket as nk
              >>> sigmax = [[0, 1], [1, 0]]
              >>> mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -71,7 +70,6 @@ void AddGraphOperator(py::module &subm) {
              >>> print(op.hilbert.size)
              20
 
-             ```
          )EOF")
       .def(py::self + py::self);
 }

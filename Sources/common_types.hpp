@@ -17,8 +17,19 @@ using Complex = std::complex<double>;
 
 using VectorXd = Eigen::VectorXd;
 using VectorXcd = Eigen::VectorXcd;
-using MatrixXd = Eigen::MatrixXd;
-using MatrixXcd = Eigen::MatrixXcd;
+
+template <class T>
+using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+
+using MatrixXd = Matrix<double>;
+using MatrixXcd = Matrix<Complex>;
+
+template <class T>
+using RowMatrix =
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+using RowMatrixXd = RowMatrix<double>;
+using RowMatrixXcd = RowMatrix<Complex>;
 
 }  // namespace netket
 

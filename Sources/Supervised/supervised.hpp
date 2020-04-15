@@ -38,8 +38,7 @@ class Supervised {
   AbstractMachine &psi_;
   AbstractOptimizer &opt_;
 
-  SR sr_;
-  bool dosr_;
+  nonstd::optional<SR> sr_;
 
   // Total batchsize
   int batchsize_;
@@ -91,6 +90,7 @@ class Supervised {
              bool use_iterative = false, bool use_cholesky = true)
       : psi_(psi),
         opt_(opt),
+        sr_{nonstd::nullopt},
         trainingSamples_(trainingSamples),
         trainingTargets_(trainingTargets) {
     npar_ = psi_.Npar();
@@ -120,10 +120,10 @@ class Supervised {
         trainingTarget_values_.begin(), trainingTarget_values_.end());
 
     if (method == "Gd") {
-      dosr_ = false;
       InfoMessage() << "Using a gradient-descent based method" << std::endl;
     } else {
-      setSrParameters(diag_shift, use_iterative, use_cholesky);
+      sr_.emplace(diag_shift, use_iterative, use_cholesky,
+                  psi_.IsHolomorphic());
     }
 
     InfoMessage() << "Supervised learning running on " << totalnodes_
@@ -146,7 +146,7 @@ class Supervised {
     double max_log_psi = 0;
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      Complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogValSingle(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -164,13 +164,13 @@ class Supervised {
       // Undo log
       t = exp(t);
 
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
 
       // Compute derivative of log
-      auto der = psi_.DerLog(sample);
+      auto der = psi_.DerLogSingle(sample);
       Ok_.row(i) = der;
 
       der = der.conjugate();
@@ -203,7 +203,7 @@ class Supervised {
     double max_log_psi = -std::numeric_limits<double>::infinity();
     /// [TODO] avoid going through psi twice.
     for (int i = 0; i < batchsize_node_; i++) {
-      Complex value(psi_.LogVal(batchSamples[i]));
+      Complex value(psi_.LogValSingle(batchSamples[i]));
       if (max_log_psi < value.real()) {
         max_log_psi = value.real();
       }
@@ -221,13 +221,13 @@ class Supervised {
       // Undo log
       t = exp(t);
 
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       // Undo Log
       value = value - max_log_psi;
       value = exp(value);
 
       // Compute derivative of log
-      auto der = psi_.DerLog(sample);
+      auto der = psi_.DerLogSingle(sample);
       Ok_.row(i) = der;
       der = der.conjugate();
 
@@ -263,14 +263,14 @@ class Supervised {
     for (int i = 0; i < batchsize_node_; i++) {
       // Extract complex value of log(config)
       Eigen::VectorXd sample(batchSamples[i]);
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
 
       // And the corresponding target
       Eigen::VectorXcd target(batchTargets[i]);
       Complex t(target[0].real(), target[0].imag());
 
       // Compute derivative of log(psi)
-      auto partial_gradient = psi_.DerLog(sample);
+      auto partial_gradient = psi_.DerLogSingle(sample);
       Ok_.row(i) = partial_gradient;
 
       // MSE loss
@@ -294,7 +294,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_uni_(this->GetRandomEngine());
+        index = distribution_uni_(GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }
@@ -302,7 +302,7 @@ class Supervised {
       // Randomly select a batch of training data
       for (int k = 0; k < batchsize_node_; k++) {
         // Draw from the distribution using the netket random number generator
-        index = distribution_phi_(this->GetRandomEngine());
+        index = distribution_phi_(GetRandomEngine());
         batchSamples[k] = trainingSamples_[index];
         batchTargets[k] = trainingTargets_[index];
       }
@@ -371,8 +371,8 @@ class Supervised {
 
     Eigen::VectorXcd deltap(npar_);
 
-    if (dosr_) {
-      sr_.ComputeUpdate(Ok_, grad_, deltap);
+    if (sr_.has_value()) {
+      sr_->ComputeUpdate(Ok_, grad_, deltap);
     } else {
       deltap = grad_;
     }
@@ -397,7 +397,7 @@ class Supervised {
     double mse = 0.0;
     for (int i = 0; i < numSamples; i++) {
       Eigen::VectorXd sample = trainingSamples_[i];
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
 
       Eigen::VectorXcd target = trainingTargets_[i];
       Complex t(target[0].real(), target[0].imag());
@@ -427,7 +427,7 @@ class Supervised {
     double max_log_psi = -std::numeric_limits<double>::infinity();
 
     for (int i = 0; i < numSamples; i++) {
-      logpsi(i) = psi_.LogVal(trainingSamples_[i]);
+      logpsi(i) = psi_.LogValSingle(trainingSamples_[i]);
       if (std::real(logpsi(i)) > max_log_psi) {
         max_log_psi = std::real(logpsi(i));
       }
@@ -440,7 +440,7 @@ class Supervised {
       Eigen::VectorXcd target(trainingTargets_[i]);
 
       // Cast value and target to Complex and undo logs
-      Complex value(psi_.LogVal(sample));
+      Complex value(psi_.LogValSingle(sample));
       value = exp(value - max_log_psi);
       Complex t(target[0].real(), target[0].imag());
       t = exp(t);
@@ -458,13 +458,6 @@ class Supervised {
   }
 
   double GetLogOverlap() const { return loss_log_overlap_; }
-
-  void setSrParameters(double diag_shift = 0.01, bool use_iterative = false,
-                       bool use_cholesky = true) {
-    dosr_ = true;
-    sr_.setParameters(diag_shift, use_iterative, use_cholesky,
-                      psi_.IsHolomorphic());
-  }
 };
 
 }  // namespace netket

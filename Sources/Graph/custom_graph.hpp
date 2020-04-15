@@ -21,7 +21,6 @@ namespace netket {
 
 /**
     Class for user-defined graphs
-    The list of edges and nodes is read from a json input file.
 */
 class CustomGraph : public AbstractGraph {
  public:
@@ -40,6 +39,8 @@ class CustomGraph : public AbstractGraph {
   CustomGraph(std::vector<Edge> edges, ColorMap colors = ColorMap(),
               std::vector<std::vector<int>> automorphisms =
                   std::vector<std::vector<int>>());
+
+  void Init();
 
   int Nsites() const noexcept override;
   int Size() const noexcept override;

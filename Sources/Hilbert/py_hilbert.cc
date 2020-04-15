@@ -23,6 +23,7 @@
 #include "Hilbert/abstract_hilbert.hpp"
 #include "Hilbert/bosons.hpp"
 #include "Hilbert/custom_hilbert.hpp"
+#include "Hilbert/doubled_hilbert.hpp"
 #include "Hilbert/spins.hpp"
 
 namespace py = pybind11;
@@ -44,7 +45,6 @@ void AddBosons(py::module subm) {
            Examples:
                Simple boson hilbert space.
 
-               ```python
                >>> from netket.graph import Hypercube
                >>> from netket.hilbert import Boson
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
@@ -52,7 +52,6 @@ void AddBosons(py::module subm) {
                >>> print(hi.size)
                100
 
-               ```
            )EOF")
       .def(py::init<const AbstractGraph &, int, int>(), py::keep_alive<1, 2>(),
            py::arg("graph"), py::arg("n_max"), py::arg("n_bosons"), R"EOF(
@@ -67,7 +66,6 @@ void AddBosons(py::module subm) {
            Examples:
                Simple boson hilbert space.
 
-               ```python
                >>> from netket.graph import Hypercube
                >>> from netket.hilbert import Boson
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
@@ -75,7 +73,6 @@ void AddBosons(py::module subm) {
                >>> print(hi.size)
                100
 
-               ```
            )EOF");
 }
 
@@ -95,7 +92,6 @@ void AddCustomHilbert(py::module subm) {
            Examples:
                Simple custom hilbert space.
 
-               ```python
                >>> from netket.graph import Hypercube
                >>> from netket.hilbert import CustomHilbert
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
@@ -103,7 +99,6 @@ void AddCustomHilbert(py::module subm) {
                >>> print(hi.size)
                100
 
-               ```
            )EOF");
 }
 
@@ -121,7 +116,6 @@ void AddSpins(py::module subm) {
            Examples:
                Simple spin hilbert space.
 
-               ```python
                >>> from netket.graph import Hypercube
                >>> from netket.hilbert import Spin
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
@@ -129,7 +123,6 @@ void AddSpins(py::module subm) {
                >>> print(hi.size)
                100
 
-               ```
            )EOF")
       .def(py::init<const AbstractGraph &, double, double>(),
            py::keep_alive<1, 2>(), py::arg("graph"), py::arg("s"),
@@ -139,12 +132,11 @@ void AddSpins(py::module subm) {
            Args:
                graph: Graph representation of sites.
                s: Spin at each site. Must be integer or half-integer.
-               total_sz: Constrain total spin of system to a particular value.
+               total_sz: If given, constrains the total spin of system to a particular value.
 
            Examples:
                Simple spin hilbert space.
 
-               ```python
                >>> from netket.graph import Hypercube
                >>> from netket.hilbert import Spin
                >>> g = Hypercube(length=10,n_dim=2,pbc=True)
@@ -152,8 +144,34 @@ void AddSpins(py::module subm) {
                >>> print(hi.size)
                100
 
-               ```
            )EOF");
+}
+
+void AddDoubledHilbert(py::module subm) {
+  py::class_<DoubledHilbert, AbstractHilbert, std::shared_ptr<DoubledHilbert>>(
+      subm, "DoubledHilbert", R"EOF(A doubled hilbert space)EOF")
+      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
+           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
+           Constructs a new ``DoubledHilbert`` given a physical hilbert space.
+
+           Args:
+               hilbert: The physical hilbert space of the system.
+
+           Examples:
+               Simple spin hilbert space.
+
+               ```python
+
+               ```)EOF")
+      .def_property_readonly(
+          "size_physical", &DoubledHilbert::SizePhysical,
+          R"EOF(int: The number of visible units needed to describe the physical system.)EOF")
+      .def_property_readonly(
+          "graph_physical", &DoubledHilbert::GetGraphPhysical,
+          R"EOF(netket.graph.Graph: The Graph used to construct this Hilbert space.)EOF")
+      .def_property_readonly(
+          "hilbert_physical", &DoubledHilbert::GetHilbertPhysical,
+          R"EOF(netket.hilbert.hilbert: The Physical Hilbert space.)EOF");
 }
 }  // namespace
 
@@ -176,10 +194,6 @@ void AddHilbertModule(py::module m) {
 
        Returns:
            bool: Whether the Hilbert space is indexable.)EOF")
-          .def_property_readonly("index", &AbstractHilbert::GetIndex,
-                                 R"EOF(
-       HilbertIndex: An object containing information on the states of an
-               indexable Hilbert space)EOF")
           .def_property_readonly(
               "local_size", &AbstractHilbert::LocalSize,
               R"EOF(int: Size of the local hilbert space.)EOF")
@@ -192,20 +206,28 @@ void AddHilbertModule(py::module m) {
           .def_property_readonly(
               "graph", &AbstractHilbert::GetGraph,
               R"EOF(netket.graph.Graph: The Graph used to construct this Hilbert space.)EOF")
-          .def("random_vals", &AbstractHilbert::RandomVals, py::arg("state"),
-               py::arg("rgen"), R"EOF(
+          .def("random_vals",
+               [](AbstractHilbert &self, Eigen::Ref<Eigen::VectorXd> state,
+                  netket::default_random_engine *rgen) {
+                 if (rgen == nullptr) {
+                   self.RandomVals(state, GetRandomEngine());
+                 } else {
+                   self.RandomVals(state, *rgen);
+                 }
+               },
+               py::arg("state"), py::arg("rgen") = py::none(), R"EOF(
        Member function generating uniformely distributed local random states.
 
        Args:
            state: A reference to a visible configuration, in output this
-               contains the random state.
-           rgen: The random number generator.
+                  contains the random state.
+           rgen: The random number generator. If None, the global
+                 NetKet random number generator is used.
 
        Examples:
            Test that a new random state is a possible state for the hilbert
            space.
 
-           ```python
            >>> import netket as nk
            >>> import numpy as np
            >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
@@ -216,7 +238,6 @@ void AddHilbertModule(py::module m) {
            >>> print(rstate[0] in local_states)
            True
 
-           ```
        )EOF")
           .def(
               "update_conf",
@@ -254,13 +275,28 @@ void AddHilbertModule(py::module m) {
           R"EOF(int: The total dimension of the many-body Hilbert space.
                 Throws an exception iff the space is not indexable.)EOF")
       .def("number_to_state",
-           [](const AbstractHilbert &self, int i) {
+           [](const AbstractHilbert &self, Index i) {
              return self.GetIndex().NumberToState(i);
            },
            py::arg("i"),
            R"EOF(
            Returns the visible configuration corresponding to the i-th basis state
-           for input i. Throws an exception iff the space is not indexable.
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
+      )EOF")
+      .def("number_to_state",
+           [](const AbstractHilbert &self, const std::vector<Index> &indices) {
+             RowMatrix<double> states(indices.size(), self.Size());
+             for (Index i = 0; i < indices.size(); i++) {
+               states.row(i) = self.GetIndex().NumberToState(indices[i]);
+             }
+             return states;
+           },
+           py::arg("i"),
+           R"EOF(
+           Returns the visible configuration corresponding to the i-th basis state
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
       )EOF")
       .def("state_to_number",
            [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
@@ -287,6 +323,7 @@ void AddHilbertModule(py::module m) {
   AddSpins(subm);
   AddBosons(subm);
   AddCustomHilbert(subm);
+  AddDoubledHilbert(subm);
 }
 
 }  // namespace netket

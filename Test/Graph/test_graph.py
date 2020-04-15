@@ -34,6 +34,7 @@ graphs = [
         extent=[6, 7, 4],
         atoms_coord=[[0, 0, 0]],
     ),
+    nk.graph.Edgeless(10),
 ]
 lattices = [
     nk.graph.Lattice(
@@ -172,6 +173,10 @@ def test_adjacency_list():
     for graph in graphs:
         neigh = []
         g = nx.Graph()
+
+        for i in range(graph.n_sites):
+            g.add_node(i)
+
         for edge in graph.edges:
             g.add_edge(edge[0], edge[1])
         for i in range(graph.n_sites):
@@ -189,3 +194,14 @@ def test_automorphisms():
             dim = len(graph.automorphisms)
             for i in range(dim):
                 assert graph.automorphisms[i] in autom
+
+
+def test_edge_color_accessor():
+    edges = sorted([(0, 1, 0), (1, 2, 1), (2, 3, 0), (0, 3, 1)])
+    g = nk.graph.CustomGraph(edges)
+
+    assert edges == sorted(g.edge_colors)
+
+    g = nk.graph.Hypercube(4, 1)
+
+    assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edge_colors)

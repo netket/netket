@@ -15,7 +15,6 @@
 #ifndef NETKET_ONLINESTAT_HPP
 #define NETKET_ONLINESTAT_HPP
 
-#include <mpi.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cassert>

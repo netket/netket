@@ -3,65 +3,17 @@ sudo: required
 
 matrix:
   include:
-    - os: osx
-      osx_image: xcode9.4
-      language: generic
-      env: PYTHON=2.7 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-O1"
 
     - os: osx
       osx_image: xcode10.2
       language: generic
       env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
 
-    # The oldest supported configurations
-    - os: linux
-      dist: xenial
-      python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 -DCMAKE_CXX_FLAGS='-stdlib=libc++ -I/usr/include/libcxxabi -O1'"
-      addons:
-        apt:
-          sources:
-            - 'llvm-toolchain-4.0'
-          packages:
-            - 'ninja-build'
-            - 'clang-4.0'
-            - 'libc++-dev'
-            - 'libc++abi-dev'
-            - 'libomp-dev'
-            - 'libmpich-dev'
-            - 'libopenblas-dev'
 
-    - os: linux
-      dist: xenial
-      python: 2.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5 -DCMAKE_CXX_FLAGS=-O1"
-      addons:
-        apt:
-          sources:
-            - 'ubuntu-toolchain-r-test'
-          packages:
-            - 'ninja-build'
-            - 'g++-5'
-            - 'libmpich-dev'
-            - 'libatlas-base-dev'
-
-    # Not too old toolsets
-    - os: linux
-      dist: xenial
-      python: 3.5
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DCMAKE_CXX_FLAGS=-O2"
-      addons:
-        apt:
-          sources:
-            - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-6.0'
-          packages:
-            - 'ninja-build'
-            - 'g++-7'
-            - 'clang-6.0'
-            - 'libomp-dev'
-            - 'libmpich-dev'
-            - 'libopenblas-dev'
+    - os: osx
+      osx_image: xcode11.3
+      language: generic
+      env: CONDA=3.6 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-O1"
 
     - os: linux
       dist: xenial
@@ -110,20 +62,29 @@ matrix:
 
 before_install:
   - |
+     if [ -n "$CONDA" ]; then
+       if [ "$TRAVIS_OS_NAME" = "linux" ]; then OS=Linux-x86_64; else OS=MacOSX-x86_64; fi
+       wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-$OS.sh
+       bash miniconda.sh -b -p $HOME/miniconda
+       export PATH="$HOME/miniconda/bin:$PATH"
+       conda config --set always_yes yes --set changeps1 no
+       conda update -q conda
+       conda install -q conda-build
+       conda env create --file environment.yml
+       source activate netket_env
      # When Travis starts supporting `addons: brew: packages: [...]` correctly,
      # this can be move this into the build matrix.
-     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+     elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        brew update
        brew ls --versions cmake && brew upgrade cmake || brew install cmake
        brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
        brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
        brew ls --versions openmpi && brew upgrade libomp || brew install libomp
        brew ls --versions openmpi && brew upgrade ninja-build || brew install ninja
-     fi
-  - |
-     # Force OS X to use the correct python version. This is only because
-     # Travis' support for `language: python` on OS X is too buggy.
-     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+
+       # Force OS X to use the correct python version. This is only because
+       # Travis' support for `language: python` on OS X is too buggy.
+
        PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install $PYTHON
        # This part is (apparently) quite important! As per the docs it makes
        # pyenv aware that some executables have been installed/removed. Without it
@@ -144,22 +105,6 @@ before_install:
      if ! which pip; then
        python -m easy_install pip
      fi
-  - |
-     # Check that `python` is actually the version we want
-     # Parses `TRAVIS_PYTHON_VERSION` and throws away the patch level as Travis only
-     # saves the major and minor versions.
-     _WE_WANTED=$(echo "$TRAVIS_PYTHON_VERSION" | sed -E 's/([0-9]+\.[0-9]+)($|\.[0-9]+)/\1/')
-     # Ask python itself what its major and minor versions are
-     _WE_GOT=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-     if [[ $_WE_WANTED != $_WE_GOT ]]; then
-       # The `&& false` here is needed to produce the error code indicating failure, because
-       # we don't want to proceed if Python is not installed properly.
-       echo "Something went wrong during python installation: $_WE_WANTED != $_WE_GOT" && false
-     fi
-
-  # Check that 'Python.h' can be found, i.e. that we didn't forget to install development files.
-  # Otherwise we'll run into trouble when trying to use pybind11.
-  - find $(python -c 'from distutils import sysconfig; print(sysconfig.get_python_inc())') -name 'Python.h'
 
 install:
   - cmake --version
@@ -167,7 +112,11 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy scipy networkx pytest python-igraph mpi4py
+  - python -m pip install numpy scipy networkx pytest python-igraph jax jaxlib
+  - |
+    if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
+      python -m pip install torch
+    fi
   - python -m pip install -U pytest
   - python -m pip install pytest-xdist
   - python -m pytest --version
@@ -175,7 +124,7 @@ install:
   - mkdir workdir && cd workdir
 
 script:
-  - python -c 'from mpi4py import MPI; print(MPI.get_vendor())'
+  - python -c 'import netket'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
-  - python -m pytest -n 2 --verbose ../Test/
-  - python -m pytest --verbose --doctest-glob='*.md' ../Docs/
+  - python -m pytest --durations=0 -n 2 --verbose ../Test/
+  # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/

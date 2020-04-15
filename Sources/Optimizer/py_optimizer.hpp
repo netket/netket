@@ -30,6 +30,7 @@
 #include "py_momentum.hpp"
 #include "py_rms_prop.hpp"
 #include "py_sgd.hpp"
+#include "py_stochastic_reconfiguration.hpp"
 
 namespace py = pybind11;
 
@@ -38,9 +39,24 @@ namespace netket {
 void AddOptimizerModule(py::module &m) {
   auto subm = m.def_submodule("optimizer");
 
+  using Init = void (AbstractOptimizer::*)(int, bool);
+  using UpdateReal =
+      void (AbstractOptimizer::*)(const VectorXd &, Eigen::Ref<VectorXd>);
+  using UpdateCplx =
+      void (AbstractOptimizer::*)(const VectorXcd &, Eigen::Ref<VectorXcd>);
+
   py::class_<AbstractOptimizer>(subm, "Optimizer")
+      .def("init", static_cast<Init>(&AbstractOptimizer::Init))
       .def("reset", &AbstractOptimizer::Reset, R"EOF(
-       Member function resetting the internal state of the optimizer.)EOF");
+       Member function resetting the internal state of the optimizer.)EOF")
+      .def("update", static_cast<UpdateReal>(&AbstractOptimizer::Update),
+           py::arg("grad").noconvert(), py::arg("param").noconvert(),
+           "Update `param` by applying a gradient-based optimization step "
+           "using `grad`.")
+      .def("update", static_cast<UpdateCplx>(&AbstractOptimizer::Update),
+           py::arg("grad").noconvert(), py::arg("param").noconvert(),
+           "Update `param` by applying a gradient-based optimization step "
+           "using `grad`.");
 
   AddSgd(subm);
   AddRmsProp(subm);
@@ -49,6 +65,7 @@ void AddOptimizerModule(py::module &m) {
   AddAdaMax(subm);
   AddAdaGrad(subm);
   AddAdaDelta(subm);
+  AddSR(subm);
 }
 
 }  // namespace netket

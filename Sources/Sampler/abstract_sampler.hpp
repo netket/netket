@@ -17,73 +17,95 @@
 
 #include <functional>
 #include <memory>
-#include <vector>
-#include "Hilbert/abstract_hilbert.hpp"
+#include "Machine/abstract_machine.hpp"
 
 namespace netket {
 
 class AbstractSampler {
  public:
-  using MachineFunction = std::function<double(const Complex&)>;
-
   virtual void Reset(bool initrandom = false) = 0;
 
   virtual void Sweep() = 0;
 
-  virtual const Eigen::VectorXd& Visible() const noexcept = 0;
+  virtual std::pair<Eigen::Ref<const RowMatrix<double>>,
+                    Eigen::Ref<const Eigen::VectorXcd>>
+  CurrentState() const = 0;
 
-  virtual void SetVisible(const Eigen::VectorXd& v) = 0;
-
-  virtual Eigen::VectorXd Acceptance() const = 0;
-
-  // Computes the derivative of the machine on the current visible
-  // Using the lookUp tables if possible
-  virtual AbstractMachine::VectorType DerLogVisible() {
-    return GetMachine().DerLog(Visible());
-  }
+  virtual void SetVisible(Eigen::Ref<const RowMatrix<double>> v) = 0;
 
   virtual ~AbstractSampler() {}
 
   void Seed(DistributedRandomEngine::ResultType base_seed) {
-    engine_.Seed(base_seed);
+    GetDistributedRandomEngine().Seed(base_seed);
     this->Reset(true);
   }
 
-  virtual void SetMachineFunc(MachineFunction machine_func) {
-    if (!machine_func) {
-      throw RuntimeError{"Invalid machine function in Sampler"};
-    }
+  virtual void SetMachinePow(double machine_pow) { machine_pow_ = machine_pow; }
 
-    machine_func_ = std::move(machine_func);
-  }
-
-  std::shared_ptr<const AbstractHilbert> GetHilbertShared() const noexcept {
-    return hilbert_;
-  }
-
-  const AbstractHilbert& GetHilbert() const noexcept { return *hilbert_; }
+  double GetMachinePow() const noexcept { return machine_pow_; }
 
   AbstractMachine& GetMachine() const noexcept { return psi_; }
 
-  const MachineFunction& GetMachineFunc() const noexcept {
-    return machine_func_;
-  }
+  virtual Index BatchSize() const noexcept = 0;
+
+  virtual Index NChains() const noexcept = 0;
 
  protected:
-  AbstractSampler(AbstractMachine& psi)
-      : psi_(psi), hilbert_(psi.GetHilbertShared()) {
-    // Default initialization for the machine function to be sampled from
-    machine_func_ = static_cast<double (*)(const Complex&)>(&std::norm);
-  }
-
-  default_random_engine& GetRandomEngine() { return engine_.Get(); }
+  AbstractSampler(AbstractMachine& psi) : machine_pow_{2.0}, psi_{psi} {}
 
  private:
-  DistributedRandomEngine engine_;
-  MachineFunction machine_func_;
+  double machine_pow_;
   AbstractMachine& psi_;
-  std::shared_ptr<const AbstractHilbert> hilbert_;
-};
+};  // namespace netket
+
+inline Eigen::Ref<const Eigen::VectorXd> VisibleLegacy(
+    const AbstractSampler& sampler) {
+  auto state = sampler.CurrentState();
+  const auto& visible = state.first;
+  const auto& log_val = state.second;
+  NETKET_CHECK(visible.cols() == sampler.GetMachine().Nvisible(),
+               std::runtime_error,
+               "bug in CurrentState(): wrong number of columns: "
+                   << visible.cols() << "; expected "
+                   << sampler.GetMachine().Nvisible());
+  NETKET_CHECK(visible.rows() == 1, std::runtime_error,
+               "bug in CurrentState(): `visible` has wrong number of rows: "
+                   << visible.rows() << "; expected 1");
+  NETKET_CHECK(log_val.size() == 1, std::runtime_error,
+               "bug in CurrentState(): `log_val` has wrong size: "
+                   << log_val.size() << "; expected 1");
+  return visible.row(0);
+}
+
+namespace detail {
+inline Index CheckNChains(const char* func, const Index n_chains) {
+  if (n_chains <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid number of chains: " << n_chains
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return n_chains;
+}
+
+inline Index CheckSweepSize(const char* func, const Index sweep_size) {
+  if (sweep_size <= 0) {
+    std::ostringstream msg;
+    msg << func << ": invalid sweep size: " << sweep_size
+        << "; expected a positive number";
+    throw InvalidInputError{msg.str()};
+  }
+  return sweep_size;
+}
+
+}  // namespace detail
+
+#define NETKET_SAMPLER_ACCEPTANCE_DEFAULT(accepts, moves)                  \
+  double Acceptance() const {                                              \
+    NETKET_CHECK(moves > 0, RuntimeError,                                  \
+                 "Cannot compute acceptance, because no moves were made"); \
+    return static_cast<double>(accepts) / static_cast<double>(moves);      \
+  }
 
 }  // namespace netket
 #endif
