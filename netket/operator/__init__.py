@@ -7,6 +7,7 @@ from .local_values import (
 
 
 from .local_operator import LocalOperator
+from .local_liouvillian import LocalLiouvillian
 from .graph_operator import GraphOperator
 
 from . import spin, boson

@@ -27,12 +27,14 @@ class PyDoubledHilbert(AbstractHilbert):
            >>> print(hi2.size)
            50
         """
-        doubled_graph = _DoubledGraph(hilb.graph)
+        if hasattr(hilb, "graph"):
+            doubled_graph = _DoubledGraph(hilb.graph)
+        else:
+            doubled_graph = None
 
         self.graph = doubled_graph
-        self._size = doubled_graph.size
         self.physical = hilb
-        self._hilbert_index = None
+        self._size = 2 * hilb.size
 
         super().__init__()
 
