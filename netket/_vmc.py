@@ -69,6 +69,8 @@ class Vmc(AbstractVariationalDriver):
         self.n_samples = n_samples
         self.n_discard = n_discard
 
+        self._dp = _np.empty(self._npar, dtype=_np.complex128)
+
     @property
     def n_samples(self):
         return self._n_samples
@@ -157,9 +159,7 @@ class Vmc(AbstractVariationalDriver):
 
             grad = _mean(self._grads, axis=0)
 
-            dp = _np.empty(self._npar, dtype=_np.complex128)
-
-            dp = self._sr.compute_update(_der_logs, grad, dp)
+            self._sr.compute_update(_der_logs, grad, self._dp)
 
             _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
@@ -172,10 +172,9 @@ class Vmc(AbstractVariationalDriver):
             for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
                 self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
 
-            grad = _mean(self._grads, axis=0) / float(self._batch_size)
-            dp = grad
+            self._dp = _mean(self._grads, axis=0) / float(self._batch_size)
 
-        return dp
+        return self._dp
 
     @property
     def energy(self):
