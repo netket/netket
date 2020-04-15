@@ -23,12 +23,11 @@ class Vmc(AbstractVariationalDriver):
         Initializes the driver class.
 
         Args:
-            hamiltonian: The Hamiltonian of the system.
+            hamiltonian (AbstractOperator): The Hamiltonian of the system.
             sampler: The Monte Carlo sampler.
-            optimizer: Determines how optimization steps are performed given the
-                bare energy gradient. This parameter supports three different kinds of inputs,
-                which are described in the docs of `make_optimizer_fn`.
-            n_samples: Number of Markov Chain Monte Carlo sweeps to be
+            optimizer (AbstractOptimizer): Determines how optimization steps are performed given the
+                bare energy gradient.
+            n_samples (int): Number of Markov Chain Monte Carlo sweeps to be
                 performed at each step of the optimization.
             n_discard (int, optional): Number of sweeps to be discarded at the
                 beginning of the sampling, at each step of the optimization.
@@ -211,7 +210,7 @@ class Vmc(AbstractVariationalDriver):
             for name, obj in [
                 ("Hamiltonian", self._ham),
                 ("Machine", self._machine),
-                ("Optimizer", self._optimizer_desc),
+                ("Optimizer", self._optimizer),
                 ("SR solver", self._sr),
             ]
         ]

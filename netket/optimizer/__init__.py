@@ -9,3 +9,9 @@ from .rms_prop import RmsProp
 from .sgd import Sgd
 
 from .stochastic_reconfiguration import SR
+
+try:
+    import torch as _torch
+    from .torch import Torch
+except:
+    pass
