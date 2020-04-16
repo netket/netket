@@ -106,6 +106,15 @@ def test_der_log_val():
 
         np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
 
+        # centered
+        # not necessary for liouvillian but worth checking
+        der_loc_vals = nk.operator.der_local_values(lind, ma, state, center_derivative=True)
+        grad = log_val_diff * (der_log_p - der_log_s)
+        grad_all = grad.sum(axis=0)
+
+        np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
+
+
 
 # Construct the operators for Sx, Sy and Sz
 obs_sx = nk.operator.LocalOperator(hi)

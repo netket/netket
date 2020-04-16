@@ -1,7 +1,7 @@
 import numpy as _np
 from numba import jit
 
-from netket.operator import local_liouvillian as _local_liouvillian
+from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from .._C_netket.machine import DensityMatrix
 
 
@@ -79,7 +79,7 @@ def local_values(op, machine, v, log_vals=None, out=None):
 
     # True when this is the local_value of a densitymatrix times an operator (observable)
     is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
-        op, _local_liouvillian
+        op, _LocalLiouvillian
     )
 
     if log_vals is None:
@@ -166,11 +166,10 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-
     der_log_primes = machine.der_log(v_primes)
 
     _der_local_values_kernel(
-        log_vals, log_val_primes, mels, der_log_vals, der_log_primes, out
+        log_vals, log_val_primes, mels, der_log_vals, der_log_primes, sections, out
     )
 
 
@@ -193,7 +192,6 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-
     der_log_primes = machine.der_log(v_primes)
 
     _der_local_values_notcentered_kernel(
