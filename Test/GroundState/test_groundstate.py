@@ -16,7 +16,7 @@ def _setup_vmc(**kwargs):
     hi = nk.hilbert.Spin(s=0.5, graph=g)
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-    ma.init_random_parameters(sigma=0.01)
+    ma.init_random_parameters(sigma=0.01, seed=SEED)
 
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.MetropolisLocal(machine=ma)

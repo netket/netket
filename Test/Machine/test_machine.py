@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 from pytest import approx
 import os
-
-from rbm import PyRbm
+from netket.hilbert import PySpin as Spin
 
 test_jax = False
 try:
     import torch
+
     test_torch = True
 except:
     test_torch = False
@@ -28,7 +28,7 @@ machines = {}
 g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = Spin(s=0.5, graph=g)
 
 
 if test_jax:
@@ -82,28 +82,26 @@ if test_torch:
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-machines["PyRbm 1d Hypercube spin"] = PyRbm(hilbert=hi, alpha=3)
+# machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
-
-machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=1)
+machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
 machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
 
-machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+# machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
-hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+hi = Spin(s=0.5, graph=g, total_sz=0)
+# machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
 
 dm_machines = {}
-dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
-    hilbert=hi,
-    alpha=2,
-    beta=2,
-    use_visible_bias=True,
-    use_hidden_bias=True,
-    use_ancilla_bias=True,
-)
+# dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
+#     hilbert=hi,
+#     alpha=2,
+#     beta=2,
+#     use_visible_bias=True,
+#     use_hidden_bias=True,
+#     use_ancilla_bias=True,
+# )
 
 # Layers
 layers = (
@@ -112,7 +110,7 @@ layers = (
 )
 
 # FFNN Machine
-machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
+# machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
 
 layers = (
     nk.layer.ConvolutionalHypercube(
@@ -128,10 +126,10 @@ layers = (
 )
 
 # FFNN Machine
-machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
+# machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
 
-machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(hi, bond_dim=3)
-machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
+# machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(hi, bond_dim=3)
+# machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
@@ -149,6 +147,7 @@ machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 np.random.seed(12346)
 
+
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
@@ -159,12 +158,18 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
 
 def log_val_f(par, machine, v):
     machine.parameters = np.copy(par)
-    return machine.log_val(v)
+    if v.ndim == 2:
+        return machine.log_val(v)
+    else:
+        return machine.log_val(v.reshape(1, -1))
 
 
 def log_val_vec_f(par, machine, v, vec):
     machine.parameters = np.copy(par)
-    out_val = machine.log_val(v)
+    if v.ndim == 2:
+        out_val = machine.log_val(v)
+    else:
+        out_val = machine.log_val(v.reshape(1, -1))
     assert vec.shape == out_val.shape
     return np.vdot(out_val, vec)
 
@@ -194,11 +199,14 @@ def test_set_get_parameters():
         assert machine.n_par > 0
         npar = machine.n_par
         randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.parameters = randpars
+        machine.parameters = np.copy(randpars)
         if machine.is_holomorphic:
             assert np.array_equal(machine.parameters, randpars)
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
+
+        machine.parameters = np.zeros(npar)
+        assert np.count_nonzero(np.abs(machine.parameters)) == 0
 
 
 def test_save_load_parameters(tmpdir):
@@ -208,14 +216,15 @@ def test_save_load_parameters(tmpdir):
         n_par = machine.n_par
         randpars = np.random.randn(n_par) + 1.0j * np.random.randn(n_par)
 
-        machine.parameters = np.copy(randpars)
+        machine.parameters = randpars
         fn = tmpdir.mkdir("datawf").join("test.wf")
 
         filename = os.path.join(fn.dirname, fn.basename)
 
         machine.save(filename)
-        machine.parameters = np.zeros(n_par, dtype=complex)
+        machine.parameters = np.empty(n_par)
         machine.load(filename)
+
         os.remove(filename)
         os.rmdir(fn.dirname)
         if machine.is_holomorphic:
@@ -223,57 +232,6 @@ def test_save_load_parameters(tmpdir):
         else:
             assert np.array_equal(machine.parameters.real, randpars.real)
 
-def test_batched_versions():
-    for name, machine in merge_dicts(machines, dm_machines).items():
-        # FIXME: The rank-3 log_val test fails for these two machines
-        if "PyRbm" in name:
-            continue
-        print("Machine test: %s" % name)
-        npar = machine.n_par
-        assert machine.n_par > 0
-
-        hi = machine.hilbert
-        assert hi.size > 0
-
-        randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.parameters = randpars
-
-        rg = nk.utils.RandomEngine(seed=1234)
-
-        v1 = np.zeros((100, hi.size))
-        log_val_1 = np.zeros(100, dtype=complex)
-        der_log_1 = np.zeros((100, npar), dtype=complex)
-        for i in range(100):
-            hi.random_vals(v1[i], rg)
-            log_val_1[i] = machine.log_val(v1[i])
-
-            dr = machine.der_log(v1[i])
-            assert dr.size == npar
-            der_log_1[i, :] = dr
-
-        v2 = np.zeros((10, 8, hi.size))
-        log_val_2 = np.zeros((10, 8), dtype=complex)
-        der_log_2 = np.zeros((10, 8, npar), dtype=complex)
-        for i in range(10):
-            for j in range(8):
-                hi.random_vals(v2[i, j], rg)
-                log_val_2[i, j] = machine.log_val(v2[i, j])
-
-                dr = machine.der_log(v2[i, j])
-                assert dr.size == npar
-                der_log_2[i, j, :] = dr
-
-        for v, log_val, der_log in (
-            (v1, log_val_1, der_log_1),
-            (v2, log_val_2, der_log_2),
-        ):
-            log_val_batch = machine.log_val(v)
-            assert log_val.shape == log_val_batch.shape
-            assert np.allclose(log_val_batch, log_val)
-
-            der_log_batch = machine.der_log(v)
-            assert der_log.shape == der_log_batch.shape
-            assert np.allclose(der_log_batch, der_log)
 
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
@@ -284,15 +242,15 @@ def test_log_derivative():
         # random visibile state
         hi = machine.hilbert
         assert hi.size > 0
-        rg = nk.utils.RandomEngine(seed=1234)
+
         v = np.zeros(hi.size)
 
         for i in range(100):
-            hi.random_vals(v, rg)
+            hi.random_vals(v)
 
             randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
             machine.parameters = randpars
-            der_log = machine.der_log(v)
+            der_log = machine.der_log(v.reshape(1, -1))
 
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
@@ -316,16 +274,15 @@ def test_vector_jacobian():
         # random visibile state
         hi = machine.hilbert
         assert hi.size > 0
-        rg = nk.utils.RandomEngine(seed=1234)
 
         batch_size = 100
         v = np.zeros((batch_size, hi.size))
 
         for i in range(batch_size):
-            hi.random_vals(v[i], rg)
+            hi.random_vals(v[i])
 
-        randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.parameters = randpars
+        machine.init_random_parameters(seed=1234, sigma=0.1)
+        randpars = machine.parameters
 
         vec = np.random.uniform(size=batch_size) + 1.0j * np.random.uniform(
             size=batch_size
@@ -379,7 +336,7 @@ def test_dm_batched():
 
             # generate a random state
             rstate = np.zeros(hi.size)
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
             states[i, :] = rstate
 
         log_val_batch = machine.log_val(states)
@@ -408,35 +365,28 @@ def test_to_array():
 
         hi = machine.hilbert
 
-        rg = nk.utils.RandomEngine(seed=1234)
-
         all_psis = machine.to_array(normalize=False)
         # test shape
         assert all_psis.shape[0] == hi.n_states
         assert len(all_psis.shape) == 1
 
-        logmax = -10000000
-        norm = 0
-        for i in range(hi.n_states):
-            state = hi.number_to_state(i)
-            log_val = machine.log_val(state)
-            logmax = max(logmax, log_val.real)
+        log_vals = machine.log_val(hi.all_states())
+        logmax = log_vals.real.max()
 
-        for i in range(hi.n_states):
-            state = hi.number_to_state(i)
-            log_val = machine.log_val(state)
-            norm += np.abs(np.exp(log_val - logmax)) ** 2
+        norm = (np.abs(np.exp(log_vals - logmax)) ** 2).sum()
 
         # test random values
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
 
             number = hi.state_to_number(rstate)
-            assert np.exp(machine.log_val(rstate) - logmax) - all_psis[
-                number
-            ] == approx(0.0)
+
+            assert np.abs(
+                np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax)
+                - all_psis[number]
+            ) == approx(0.0)
 
         # test rescale
         all_psis_normalized = machine.to_array(normalize=True)
@@ -445,9 +395,11 @@ def test_to_array():
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
 
             number = hi.state_to_number(rstate)
-            assert np.exp(machine.log_val(rstate) - logmax) / np.sqrt(
-                norm
-            ) - all_psis_normalized[number] == approx(0.0)
+
+            assert np.abs(
+                np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
+                - all_psis_normalized[number]
+            ) == approx(0.0)

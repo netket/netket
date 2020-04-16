@@ -15,12 +15,9 @@ class AbstractMachine(abc.ABC):
         configurations `x` and stores the result into `out`.
 
         Args:
-            x: Either a
-                * vector of `float64` of size `self.n_visible` or
-                * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination vector of `complex128`. If `x` is a matrix then
-                length of `out` should be `x.shape[0]`. If `x` is a vector,
-                then length of `out` should be 1.
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination vector of `complex128`. The
+                 length of `out` should be `x.shape[0]`.
 
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
@@ -30,8 +27,9 @@ class AbstractMachine(abc.ABC):
 
     def init_random_parameters(self, seed=None, sigma=0.01):
         rgen = _np.random.RandomState(seed)
-        self.parameters = (rgen.normal(scale=sigma, size=self.n_par) +
-                           1.0j * rgen.normal(scale=sigma, size=self.n_par))
+        self.parameters = rgen.normal(
+            scale=sigma, size=self.n_par
+        ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
     def vector_jacobian_prod(self, x, vec, out=None):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
@@ -56,13 +54,9 @@ class AbstractMachine(abc.ABC):
         batch of visible configurations `x` and stores the result into `out`.
 
         Args:
-            x: Either a
-                * vector of `float64` of size `self.n_visible` or
-                * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination tensor of `complex128`. If `x` is a matrix then of
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination tensor of `complex128`.
                 `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
-                If `x` is a vector, then `out` should be a vector of length
-                `self.n_par`.
 
         Returns:
             `out`
@@ -99,7 +93,7 @@ class AbstractMachine(abc.ABC):
                         batch_states.resize(j, self.hilbert.size)
                         break
                 all_psis[
-                    i * batch_size: i * batch_size + batch_states.shape[0]
+                    i * batch_size : i * batch_size + batch_states.shape[0]
                 ] = self.log_val(batch_states)
 
                 logmax = _np.max(all_psis.real)
@@ -120,10 +114,9 @@ class AbstractMachine(abc.ABC):
         return NotImplementedError
 
     @property
-    @abc.abstractmethod
     def n_par(self):
         r"""The number of variational parameters in the machine."""
-        return NotImplementedError
+        return self.parameters.size
 
     @property
     @abc.abstractmethod
@@ -139,13 +132,18 @@ class AbstractMachine(abc.ABC):
     def parameters(self, p):
         if p.shape != (self.n_par,):
             raise ValueError(
-                "p has wrong shape: {}; expected ({},)".format(
-                    p.shape, self.n_par)
+                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
             )
+
         i = 0
         for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
-            _np.copyto(x, p[i: i + x.size])
+            _np.copyto(x, p[i : i + x.size])
             i += x.size
 
     def save(self, file):
-        _np.save(file, self.parameters, allow_pickle=False)
+        assert type(file) is str
+        with open(file, "wb") as file_ob:
+            _np.save(file_ob, self.parameters, allow_pickle=False)
+
+    def load(self, file):
+        self.parameters = _np.load(file, allow_pickle=False)

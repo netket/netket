@@ -17,13 +17,8 @@ import numpy as _np
 
 from numba import (
     jit,
-    optional,
-    jitclass,
-    int64,
     float64,
     complex128,
-    deferred_type,
-    typeof,
 )
 
 
@@ -138,9 +133,18 @@ class RbmSpin(AbstractMachine):
         return self._npar
 
     def log_val(self, x, out=None):
-        r"""Computes the logarithm of the wave function given a spin
-        configuration ``x``.
-        """
+        r"""Computes the logarithm of the wave function for a batch of visible
+        configurations `x` and stores the result into `out`.
+
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination vector of `complex128`. The
+                 length of `out` should be `x.shape[0]`.
+
+        Returns:
+            A complex number when `x` is a vector and vector when `x` is a
+            matrix.
+            """
         x = x.astype(dtype=self._npdtype)
 
         return self._log_val_kernel(x, out, self._w, self._a, self._b, self._r)
@@ -162,7 +166,17 @@ class RbmSpin(AbstractMachine):
         return out
 
     def der_log(self, x, out=None):
+        r"""Computes the gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and stores the result into `out`.
 
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination tensor of `complex128`.
+                `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
+
+        Returns:
+            `out`
+            """
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
@@ -304,7 +318,7 @@ class RbmSpinPhase(AbstractMachine):
         use_hidden_bias=True,
     ):
         r"""
-        Constructs a new ``RbmSpin`` machine:
+        Constructs a new ``RbmSpinPhase`` machine:
 
         Args:
            hilbert: Hilbert space object for the system.
@@ -378,9 +392,18 @@ class RbmSpinPhase(AbstractMachine):
         return self._npar
 
     def log_val(self, x, out=None):
-        r"""Computes the logarithm of the wave function given a spin
-        configuration ``x``.
-        """
+        r"""Computes the logarithm of the wave function for a batch of visible
+        configurations `x` and stores the result into `out`.
+
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination vector of `complex128`. The
+                 length of `out` should be `x.shape[0]`.
+
+        Returns:
+            A complex number when `x` is a vector and vector when `x` is a
+            matrix.
+            """
         return self._log_val_kernel(
             x,
             out,
@@ -418,7 +441,17 @@ class RbmSpinPhase(AbstractMachine):
         return out
 
     def der_log(self, x, out=None):
+        r"""Computes the gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and stores the result into `out`.
 
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination tensor of `complex128`.
+                `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
+
+        Returns:
+            `out`
+            """
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
