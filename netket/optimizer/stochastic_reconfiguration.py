@@ -139,7 +139,7 @@ class SR:
                 self._apply_preconditioning(grad)
 
                 if self._lsq_solver == "Cholesky":
-                    c, low = _cho_factor(self._S)
+                    c, low = _cho_factor(self._S, check_finite=False)
                     out[:] = _cho_solve((c, low), grad)
 
                 else:
