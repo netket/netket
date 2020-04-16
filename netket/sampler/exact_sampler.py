@@ -51,7 +51,7 @@ class ExactSampler(AbstractSampler):
             replace=True,
             p=self._prob,
         )
-        samples = self.hilbert.numbers_to_states(numbers).reshape(samples.shape)
+        samples[:] = self.hilbert.numbers_to_states(numbers).reshape(samples.shape)
 
         return samples
 

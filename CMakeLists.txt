@@ -283,11 +283,6 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
-    Sources/Sampler/metropolis_hastings.cc
-    Sources/Sampler/metropolis_hastings_pt.cc
-    Sources/Sampler/exchange_kernel.cc
-    Sources/Sampler/hop_kernel.cc
-    Sources/Sampler/local_kernel.cc
     Sources/Stats/mc_stats.cc
     Sources/Stats/py_stats.cc
     Sources/Utils/json_utils.cc

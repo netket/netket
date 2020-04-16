@@ -36,14 +36,12 @@ samplers["MetropolisHamiltonian RbmSpin"] = sa
 # Test with uniform probability
 maz = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 maz.init_random_parameters(sigma=0)
-sa = nk.sampler.MetropolisLocal(
-    machine=maz, sweep_size=hi.size + 1, n_chains=2)
+sa = nk.sampler.MetropolisLocal(machine=maz, sweep_size=hi.size + 1, n_chains=2)
 samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
 
 mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 mas.init_random_parameters(sigma=0.2)
-sa = nk.sampler.MetropolisHamiltonianPt(
-    machine=mas, hamiltonian=ha, n_replicas=4)
+sa = nk.sampler.MetropolisHamiltonianPt(machine=mas, hamiltonian=ha, n_replicas=4)
 samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
 
 hi = nk.hilbert.Boson(graph=g, n_max=3)
@@ -77,8 +75,7 @@ sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin"] = sa
 
 
-sa = nk.sampler.CustomSamplerPt(
-    machine=ma, move_operators=move_op, n_replicas=4)
+sa = nk.sampler.CustomSamplerPt(machine=ma, move_operators=move_op, n_replicas=4)
 samplers["CustomSamplerPt Spin"] = sa
 
 # Two types of custom moves
@@ -91,8 +88,7 @@ ops += [spsm] * l
 acting_on = [[i] for i in range(l)]
 acting_on += [[i, (i + 1) % l] for i in range(l)]
 
-move_op = nk.operator.LocalOperator(
-    hilbert=hi, operators=ops, acting_on=acting_on)
+move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_on)
 
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 samplers["CustomSampler Spin 2 moves"] = sa
@@ -162,21 +158,22 @@ def test_correct_sampling():
         sa.reset(True)
 
         for jrep in range(n_rep):
-            hist_samp = np.zeros(n_states)
-            # fill in the histogram for sampler
 
             # Burnout phase
             samples = sa.generate_samples(n_samples // 10)
 
             assert (samples.shape[1], samples.shape[2]) == sa.sample_shape
 
-            n_s = 0
-            for sample in sa.samples(n_samples):
-                assert sample.shape[1] == hi.size
-                for v in sample:
-                    sttn = hi.state_to_number(v)
-                    hist_samp[sttn] += 1
-                    n_s += 1
+            samples = sa.generate_samples(n_samples)
+
+            assert samples.shape[2] == hi.size
+            sttn = hi.states_to_numbers(samples.reshape(-1, hi.size))
+            n_s = sttn.size
+
+            # fill in the histogram for sampler
+            unique, counts = np.unique(sttn, return_counts=True)
+            hist_samp = np.zeros(n_states)
+            hist_samp[unique] = counts
 
             # expected frequencies
             f_exp = n_s * ps

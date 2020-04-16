@@ -9,7 +9,7 @@ from netket import random as _random
 import math
 
 
-class PyMetropolisHastingsPt(AbstractSampler):
+class MetropolisHastingsPt(AbstractSampler):
     """
     ``MetropolisHastingsPt`` is a generic Metropolis-Hastings sampler using
     a local transition kernel to perform moves in the Markov Chain and replica-exchange moves
@@ -128,7 +128,7 @@ class PyMetropolisHastingsPt(AbstractSampler):
     def reset(self, init_random=False):
         if init_random:
             for state in self._state:
-                self._hilbert.random_state(out=state)
+                self._hilbert.random_vals(out=state)
         self._log_values = self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = _np.zeros(self._n_replicas)

@@ -1,14 +1,13 @@
 import numpy as _np
 from netket import random as _random
 
-from .metropolis_hastings import PyMetropolisHastings
-from .metropolis_hastings_pt import PyMetropolisHastingsPt
+from .metropolis_hastings import MetropolisHastings
+from .metropolis_hastings_pt import MetropolisHastingsPt
 
 from numba import jit
 
 
 class _custom_local_kernel:
-
     def __init__(self, move_operators, move_weights=None):
 
         self._rand_op_n = _np.empty(1, dtype=_np.intp)
@@ -18,7 +17,7 @@ class _custom_local_kernel:
         self._get_conn = move_operators.get_conn_filtered
         self._n_operators = move_operators.n_operators
 
-        if(move_weights is None):
+        if move_weights is None:
             self._move_weights = _np.ones(self._n_operators, dtype=_np.float64)
         else:
             self._move_weights = _np.asarray(move_weights, dtype=_np.float64)
@@ -26,9 +25,9 @@ class _custom_local_kernel:
         self._check_operators(move_operators.operators)
 
         # Check move weights
-        if(self._move_weights.shape != (self._n_operators,)):
+        if self._move_weights.shape != (self._n_operators,):
             raise ValueError("move_weights have the wrong shape")
-        if(self._move_weights.min() < 0):
+        if self._move_weights.min() < 0:
             raise ValueError("move_weights must be positive")
 
         # normalize the probabilities and compute the cumulative
@@ -37,29 +36,31 @@ class _custom_local_kernel:
 
     def _check_operators(self, operators):
         for op in operators:
-            assert(op.imag.max() < 1.0e-10)
-            assert(op.min() >= 0)
-            assert(_np.allclose(op.sum(axis=0), 1.))
-            assert(_np.allclose(op.sum(axis=1), 1.))
-            assert(_np.allclose(op, op.T))
+            assert op.imag.max() < 1.0e-10
+            assert op.min() >= 0
+            assert _np.allclose(op.sum(axis=0), 1.0)
+            assert _np.allclose(op.sum(axis=1), 1.0)
+            assert _np.allclose(op, op.T)
 
     def apply(self, state, state_1, log_prob_corr):
 
-        self._rand_op_n, self._sections = self._pick_random_and_init(state.shape[0],
-                                                                     self._move_cumulative,
-                                                                     self._rand_op_n, self._sections)
+        self._rand_op_n, self._sections = self._pick_random_and_init(
+            state.shape[0], self._move_cumulative, self._rand_op_n, self._sections
+        )
 
         self._x_prime, self._mels = self._get_conn(
-            state, self._sections, self._rand_op_n)
+            state, self._sections, self._rand_op_n
+        )
 
-        self._choose_and_return(state_1, self._x_prime, self._mels,
-                                self._sections, log_prob_corr)
+        self._choose_and_return(
+            state_1, self._x_prime, self._mels, self._sections, log_prob_corr
+        )
 
     @staticmethod
     @jit(nopython=True)
     def _pick_random_and_init(batch_size, move_cumulative, out, sections):
 
-        if(out.size != batch_size):
+        if out.size != batch_size:
             out = _np.empty(batch_size, dtype=out.dtype)
             sections = _np.empty(batch_size, dtype=out.dtype)
 
@@ -76,7 +77,7 @@ class _custom_local_kernel:
             p = _random.uniform()
             exit_state = 0
             cumulative_prob = mels[low].real
-            while (p > cumulative_prob):
+            while p > cumulative_prob:
                 exit_state += 1
                 cumulative_prob += mels[low + exit_state].real
             state_1[i] = x_prime[low + exit_state]
@@ -85,7 +86,7 @@ class _custom_local_kernel:
         log_prob_corr.fill(0.0)
 
 
-class CustomSampler(PyMetropolisHastings):
+class CustomSampler(MetropolisHastings):
     r"""
     Custom Sampler, where transition operators are specified by the user.
     For the moment, this functionality is limited to transition operators which
@@ -153,14 +154,16 @@ class CustomSampler(PyMetropolisHastings):
            >>> move_op = nk.operator.LocalOperator(hilbert=hi,operators=[X] * g.n_sites,acting_on=[[i] for i in range(g.n_sites)])
            >>> sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
         """
-        super().__init__(machine,
-                         _custom_local_kernel(move_operators, move_weights),
-                         n_chains,
-                         sweep_size,
-                         batch_size)
+        super().__init__(
+            machine,
+            _custom_local_kernel(move_operators, move_weights),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )
 
 
-class CustomSamplerPt(PyMetropolisHastingsPt):
+class CustomSamplerPt(MetropolisHastingsPt):
     """
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `CustomSampler`.
@@ -168,8 +171,13 @@ class CustomSamplerPt(PyMetropolisHastingsPt):
     """
 
     def __init__(
-        self, machine, move_operators, move_weights=None,
-        n_replicas=16, sweep_size=None, batch_size=None
+        self,
+        machine,
+        move_operators,
+        move_weights=None,
+        n_replicas=16,
+        sweep_size=None,
+        batch_size=None,
     ):
         r"""
         Args:
@@ -190,5 +198,5 @@ class CustomSamplerPt(PyMetropolisHastingsPt):
             _custom_local_kernel(move_operators, move_weights),
             n_replicas,
             sweep_size,
-            batch_size
+            batch_size,
         )
