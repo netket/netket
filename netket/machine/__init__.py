@@ -3,7 +3,7 @@ from .._C_netket.machine import *
 from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
-from .py_rbm import PyRbm, PyRbmSpinPhase
+from .rbm import RbmSpin, RbmSpinReal, RbmSpinPhase
 
 
 def _has_jax():
@@ -21,6 +21,7 @@ def _has_jax():
 def _has_torch():
     try:
         import torch
+
         return True
     except ImportError:
         return False

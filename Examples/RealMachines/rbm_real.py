@@ -28,7 +28,7 @@ ma = nk.machine.RbmSpinReal(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=32)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
@@ -36,5 +36,7 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 # sr
 sr = nk.optimizer.SR(diag_shift=0.1)
 
-gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
+gs = nk.Vmc(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=5
+)
 gs.run(output_prefix="test", n_iter=300)

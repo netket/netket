@@ -15,26 +15,33 @@
 from .abstract_machine import AbstractMachine
 import numpy as _np
 
-from numba import jit, optional, jitclass, int64, float64, complex128, deferred_type, typeof
-
-__all__ = ["PyRbm"]
+from numba import (
+    jit,
+    optional,
+    jitclass,
+    int64,
+    float64,
+    complex128,
+    deferred_type,
+    typeof,
+)
 
 
 @jit(fastmath=True)
 def _log_cosh_sum(x, out, add_factor=None):
     x = x * _np.sign(x.real)
-    if(add_factor is None):
+    if add_factor is None:
         for i in range(x.shape[0]):
-            out[i] = _np.sum(x[i] - _np.log(2.) +
-                             _np.log(1. + _np.exp(-2. * x[i])))
+            out[i] = _np.sum(x[i] - _np.log(2.0) + _np.log(1.0 + _np.exp(-2.0 * x[i])))
     else:
         for i in range(x.shape[0]):
-            out[i] += add_factor * (_np.sum(x[i] - _np.log(2.) +
-                                            _np.log(1. + _np.exp(-2. * x[i]))))
+            out[i] += add_factor * (
+                _np.sum(x[i] - _np.log(2.0) + _np.log(1.0 + _np.exp(-2.0 * x[i])))
+            )
     return out
 
 
-class PyRbm(AbstractMachine):
+class RbmSpin(AbstractMachine):
     r"""
     A fully connected Restricted Boltzmann Machine (RBM). This type of
     RBM has spin 1/2 hidden units and is defined by:
@@ -43,12 +50,18 @@ class PyRbm(AbstractMachine):
      \left(\sum_i^N W_{ij} s_i + b_j \right)
 
     for arbitrary local quantum numbers :math:`s_i`.
+
+    The weights can be taken to be complex-valued (default option) or real-valued.
     """
 
     def __init__(
-        self, hilbert, n_hidden=None, alpha=None,
-        use_visible_bias=True, use_hidden_bias=True,
-        dtype=complex
+        self,
+        hilbert,
+        n_hidden=None,
+        alpha=None,
+        use_visible_bias=True,
+        use_hidden_bias=True,
+        dtype=complex,
     ):
         r"""
         Constructs a new ``RbmSpin`` machine:
@@ -84,7 +97,7 @@ class PyRbm(AbstractMachine):
 
         n = hilbert.size
 
-        if(dtype is not float and dtype is not complex):
+        if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
 
         self._dtype = dtype
@@ -98,14 +111,14 @@ class PyRbm(AbstractMachine):
             m = int(round(alpha * n))
             if n_hidden is not None:
                 if n_hidden != m:
-                    raise RuntimeError('''n_hidden is inconsistent with the given alpha.
-                                       Remove one of the two or provide consistent values.''')
+                    raise RuntimeError(
+                        """n_hidden is inconsistent with the given alpha.
+                                       Remove one of the two or provide consistent values."""
+                    )
 
         self._w = _np.empty((n, m), dtype=self._npdtype)
-        self._a = _np.empty(
-            n, dtype=self._npdtype) if use_visible_bias else None
-        self._b = _np.empty(
-            m, dtype=self._npdtype) if use_hidden_bias else None
+        self._a = _np.empty(n, dtype=self._npdtype) if use_visible_bias else None
+        self._b = _np.empty(m, dtype=self._npdtype) if use_hidden_bias else None
         self._r = _np.empty((1, m), dtype=self._npdtype)
 
         self.n_hidden = m
@@ -135,7 +148,7 @@ class PyRbm(AbstractMachine):
     @staticmethod
     @jit(nopython=True)
     def _log_val_kernel(x, out, W, a, b, r):
-        if(out is None):
+        if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
         r = x.dot(W)
         if b is None:
@@ -157,7 +170,7 @@ class PyRbm(AbstractMachine):
 
         i = 0
         if self._a is not None:
-            out[:, i: i + x.shape[1]] = x
+            out[:, i : i + x.shape[1]] = x
             i += self.n_visible
 
         r = self._r
@@ -167,10 +180,10 @@ class PyRbm(AbstractMachine):
         r = _np.tanh(r)
 
         if self._b is not None:
-            out[:, i: i + self.n_hidden] = r
+            out[:, i : i + self.n_hidden] = r
             i += self.n_hidden
 
-        t = out[:, i: i + self._w.size]
+        t = out[:, i : i + self._w.size]
         t.shape = (batch_size, self._w.shape[0], self._w.shape[1])
         _np.einsum("ij,il->ijl", x, r, out=t)
 
@@ -188,7 +201,7 @@ class PyRbm(AbstractMachine):
         from collections import OrderedDict
 
         od = OrderedDict()
-        if(self._dtype is complex):
+        if self._dtype is complex:
             if self._a is not None:
                 od["a"] = self._a.view()
 
@@ -214,14 +227,81 @@ class PyRbm(AbstractMachine):
         return od
 
 
-class PyRbmSpinPhase(AbstractMachine):
+class RbmSpinReal(RbmSpin):
     r"""
+    A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
+    See RbmSpin for more details.
 
     """
 
     def __init__(
-        self, hilbert, alpha=None, n_hidden=None, n_hidden_a=None, n_hidden_p=None,
-        use_visible_bias=True, use_hidden_bias=True
+        self,
+        hilbert,
+        n_hidden=None,
+        alpha=None,
+        use_visible_bias=True,
+        use_hidden_bias=True,
+    ):
+        r"""
+        Constructs a new ``RbmSpinReal`` machine:
+
+        Args:
+           hilbert: Hilbert space object for the system.
+           n_hidden: Number of hidden units.
+           alpha: Hidden unit density.
+           use_visible_bias: If ``True`` then there would be a
+                            bias on the visible units.
+                            Default ``True``.
+           use_hidden_bias: If ``True`` then there would be a
+                           bias on the visible units.
+                           Default ``True``.
+
+        Examples:
+           A ``RbmSpinReal`` machine with hidden unit density
+           alpha = 2 for a one-dimensional L=20 spin-half system:
+
+
+           >>> from netket.machine import RbmSpinReal
+           >>> from netket.hilbert import Spin
+           >>> from netket.graph import Hypercube
+           >>> g = Hypercube(length=20, n_dim=1)
+           >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+           >>> ma = RbmSpinReal(hilbert=hi,alpha=2)
+           >>> print(ma.n_par)
+           860
+        """
+        super().__init__(
+            hilbert,
+            n_hidden=n_hidden,
+            alpha=alpha,
+            use_visible_bias=use_visible_bias,
+            use_hidden_bias=use_hidden_bias,
+            dtype=float,
+        )
+
+
+class RbmSpinPhase(AbstractMachine):
+    r"""
+    A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
+    In this case, two RBMs are taken to parameterize, respectively, phase
+    and amplitude of the wave-function, as introduced in Torlai et al., Nature Physics 14, 447–450(2018).
+    This type of RBM has spin 1/2 hidden units and is defined by:
+
+    .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+            \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
+
+    for arbitrary local quantum numbers :math:`s_i`.
+    """
+
+    def __init__(
+        self,
+        hilbert,
+        alpha=None,
+        n_hidden=None,
+        n_hidden_a=None,
+        n_hidden_p=None,
+        use_visible_bias=True,
+        use_hidden_bias=True,
     ):
         r"""
         Constructs a new ``RbmSpin`` machine:
@@ -251,8 +331,10 @@ class PyRbmSpinPhase(AbstractMachine):
                 raise ValueError("`alpha` should be non-negative")
             if n_hidden is not None:
                 if n_hidden != int(round(alpha * n)):
-                    raise RuntimeError('''n_hidden is inconsistent with the given alpha.
-                                       Remove one of the two or provide consistent values.''')
+                    raise RuntimeError(
+                        """n_hidden is inconsistent with the given alpha.
+                                       Remove one of the two or provide consistent values."""
+                    )
             n_hidden = int(round(alpha * n))
 
         if n_hidden is not None:
@@ -262,8 +344,8 @@ class PyRbmSpinPhase(AbstractMachine):
             m_a = n_hidden_a
             m_p = n_hidden_p
 
-        if(m_a is None or m_p is None or m_a < 0 or m_p < 0):
-            raise RuntimeError('''Invalid number of hidden unit.''')
+        if m_a is None or m_p is None or m_a < 0 or m_p < 0:
+            raise RuntimeError("""Invalid number of hidden unit.""")
 
         self._wa = _np.empty((n, m_a))
         self._wp = _np.empty((n, m_p))
@@ -282,7 +364,8 @@ class PyRbmSpinPhase(AbstractMachine):
         self.n_visible = n
 
         self._npar = (
-            self._wa.size + self._wp.size
+            self._wa.size
+            + self._wp.size
             + (self._aa.size + self._ap.size if self._aa is not None else 0)
             + (self._ba.size + self._bp.size if self._ba is not None else 0)
         )
@@ -298,14 +381,23 @@ class PyRbmSpinPhase(AbstractMachine):
         r"""Computes the logarithm of the wave function given a spin
         configuration ``x``.
         """
-        return self._log_val_kernel(x, out, self._wa, self._wp, self._aa,
-                                    self._ap, self._ba, self._bp, self._ra, self._rp)
+        return self._log_val_kernel(
+            x,
+            out,
+            self._wa,
+            self._wp,
+            self._aa,
+            self._ap,
+            self._ba,
+            self._bp,
+            self._ra,
+            self._rp,
+        )
 
     @staticmethod
     @jit(nopython=True)
-    def _log_val_kernel(x, out, wa, wp, aa,
-                        ap, ba, bp, ra, rp):
-        if(out is None):
+    def _log_val_kernel(x, out, wa, wp, aa, ap, ba, bp, ra, rp):
+        if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
 
         ra = x.dot(wa)
@@ -335,7 +427,7 @@ class PyRbmSpinPhase(AbstractMachine):
         # Amplitude parameters
         i = 0
         if self._aa is not None:
-            out[:, i: i + x.shape[1]] = x
+            out[:, i : i + x.shape[1]] = x
             i += self.n_visible
 
         r = self._ra
@@ -345,10 +437,10 @@ class PyRbmSpinPhase(AbstractMachine):
         r = _np.tanh(r)
 
         if self._ba is not None:
-            out[:, i: i + self.n_hidden_a] = r
+            out[:, i : i + self.n_hidden_a] = r
             i += self.n_hidden_a
 
-        t = out[:, i: i + self._wa.size]
+        t = out[:, i : i + self._wa.size]
         t.shape = (batch_size, self._wa.shape[0], self._wa.shape[1])
         _np.einsum("ij,il->ijl", x, r, out=t)
 
@@ -356,7 +448,7 @@ class PyRbmSpinPhase(AbstractMachine):
 
         # Phase parameters
         if self._ap is not None:
-            out[:, i: i + x.shape[1]] = 1.0j * x
+            out[:, i : i + x.shape[1]] = 1.0j * x
             i += self.n_visible
 
         r = self._rp
@@ -366,10 +458,10 @@ class PyRbmSpinPhase(AbstractMachine):
         r = _np.tanh(r)
 
         if self._bp is not None:
-            out[:, i: i + self.n_hidden_p] = 1.0j * r
+            out[:, i : i + self.n_hidden_p] = 1.0j * r
             i += self.n_hidden_p
 
-        t = out[:, i: i + self._wp.size]
+        t = out[:, i : i + self._wp.size]
         t.shape = (batch_size, self._wp.shape[0], self._wp.shape[1])
         _np.einsum("ij,il->ijl", x, r, out=t)
         t *= 1.0j

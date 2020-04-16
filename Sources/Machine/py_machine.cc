@@ -31,9 +31,6 @@
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
 #include "Machine/rbm_multival.hpp"
-#include "Machine/rbm_spin.hpp"
-#include "Machine/rbm_spin_phase.hpp"
-#include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
 #include "Utils/log_cosh.hpp"
 #include "Utils/pybind_helpers.hpp"
@@ -43,50 +40,6 @@ namespace py = pybind11;
 namespace netket {
 
 namespace {
-
-void AddRbmSpin(py::module subm) {
-  py::class_<RbmSpin, AbstractMachine>(subm, "RbmSpin", R"EOF(
-          A fully connected Restricted Boltzmann Machine (RBM). This type of
-          RBM has spin 1/2 hidden units and is defined by:
-
-          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right)
-
-          for arbitrary local quantum numbers :math:`s_i`.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, Index, Index, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
-           R"EOF(
-                   Constructs a new ``RbmSpin`` machine:
-
-                   Args:
-                       hilbert: Hilbert space object for the system.
-                       n_hidden: Number of hidden units.
-                       alpha: Hidden unit density.
-                       use_visible_bias: If ``True`` then there would be a
-                                        bias on the visible units.
-                                        Default ``True``.
-                       use_hidden_bias: If ``True`` then there would be a
-                                       bias on the visible units.
-                                       Default ``True``.
-
-                   Examples:
-                       A ``RbmSpin`` machine with hidden unit density
-                       alpha = 2 for a one-dimensional L=20 spin-half system:
-
-                       >>> from netket.machine import RbmSpin
-                       >>> from netket.hilbert import Spin
-                       >>> from netket.graph import Hypercube
-                       >>> g = Hypercube(length=20, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpin(hilbert=hi,alpha=2)
-                       >>> print(ma.n_par)
-                       860
-
-                   )EOF");
-}
 
 void AddRbmSpinSymm(py::module subm) {
   py::class_<RbmSpinSymm, AbstractMachine>(subm, "RbmSpinSymm", R"EOF(
@@ -142,99 +95,6 @@ void AddRbmMultival(py::module subm) {
            py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
            py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
            py::arg("use_hidden_bias") = true);
-}
-
-void AddRbmSpinPhase(py::module subm) {
-  py::class_<RbmSpinPhase, AbstractMachine>(subm, "RbmSpinPhase", R"EOF(
-          A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
-          In this case, two RBMs are taken to parameterize, respectively, phase
-          and amplitude of the wave-function.
-          This type of RBM has spin 1/2 hidden units and is defined by:
-
-          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                    \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
-
-          for arbitrary local quantum numbers :math:`s_i`.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
-           R"EOF(
-                   Constructs a new ``RbmSpinPhase`` machine:
-
-                   Args:
-                       hilbert: Hilbert space object for the system.
-                       n_hidden: Number of hidden units.
-                       alpha: Hidden unit density.
-                       use_visible_bias: If ``True`` then there would be a
-                                        bias on the visible units.
-                                        Default ``True``.
-                       use_hidden_bias: If ``True`` then there would be a
-                                       bias on the visible units.
-                                       Default ``True``.
-
-                   Examples:
-                       A ``RbmSpinPhase`` machine with hidden unit density
-                       alpha = 2 for a one-dimensional L=20 spin-half system:
-
-
-                       >>> from netket.machine import RbmSpinPhase
-                       >>> from netket.hilbert import Spin
-                       >>> from netket.graph import Hypercube
-                       >>> g = Hypercube(length=20, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpinPhase(hilbert=hi,alpha=2)
-                       >>> print(ma.n_par)
-                       1720
-
-                   )EOF");
-}
-
-void AddRbmSpinReal(py::module subm) {
-  py::class_<RbmSpinReal, AbstractMachine>(subm, "RbmSpinReal", R"EOF(
-          A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
-          This type of RBM has spin 1/2 hidden units and is defined by:
-
-          .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
-             \left(\sum_i^N W_{ij} s_i + b_j \right)
-
-          for arbitrary local quantum numbers :math:`s_i`.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
-           R"EOF(
-                   Constructs a new ``RbmSpinReal`` machine:
-
-                   Args:
-                       hilbert: Hilbert space object for the system.
-                       n_hidden: Number of hidden units.
-                       alpha: Hidden unit density.
-                       use_visible_bias: If ``True`` then there would be a
-                                        bias on the visible units.
-                                        Default ``True``.
-                       use_hidden_bias: If ``True`` then there would be a
-                                       bias on the visible units.
-                                       Default ``True``.
-
-                   Examples:
-                       A ``RbmSpinReal`` machine with hidden unit density
-                       alpha = 2 for a one-dimensional L=20 spin-half system:
-
-
-                       >>> from netket.machine import RbmSpinReal
-                       >>> from netket.hilbert import Spin
-                       >>> from netket.graph import Hypercube
-                       >>> g = Hypercube(length=20, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpinReal(hilbert=hi,alpha=2)
-                       >>> print(ma.n_par)
-                       860
-
-
-                   )EOF");
 }
 
 void AddFFNN(py::module subm) {
@@ -795,11 +655,8 @@ void AddMachineModule(py::module m) {
   auto subm = m.def_submodule("machine");
 
   AddAbstractMachine(subm);
-  AddRbmSpin(subm);
   AddRbmSpinSymm(subm);
   AddRbmMultival(subm);
-  AddRbmSpinReal(subm);
-  AddRbmSpinPhase(subm);
   AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
