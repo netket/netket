@@ -16,6 +16,7 @@
 #include <pybind11/stl_bind.h>
 
 #include "Utils/messages.hpp"
+#include "Utils/pybind_helpers.hpp"
 
 #include "Machine/py_machine.hpp"
 #include "abstract_density_matrix.hpp"
@@ -110,37 +111,36 @@ void AddAbstractDensityMatrix(py::module &subm) {
           "n_visible_physical", &AbstractDensityMatrix::NvisiblePhysical,
           R"EOF(int: The number of inputs into the machine aka visible units in
             the case of Restricted Boltzmann Machines.)EOF")
-      .def(
-          "to_matrix",
-          [](AbstractDensityMatrix &self,
-             bool normalize) -> AbstractDensityMatrix::MatrixType {
-            const auto &hind = self.GetHilbertPhysical().GetIndex();
-            AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
+      .def("to_matrix",
+           [](AbstractDensityMatrix &self,
+              bool normalize) -> AbstractDensityMatrix::MatrixType {
+             const auto &hind = self.GetHilbertPhysical().GetIndex();
+             AbstractMachine::MatrixType vals(hind.NStates(), hind.NStates());
 
-            double maxlog = std::numeric_limits<double>::lowest();
+             double maxlog = std::numeric_limits<double>::lowest();
 
-            for (Index i = 0; i < hind.NStates(); i++) {
-              auto v_r = hind.NumberToState(i);
-              for (Index j = 0; j < hind.NStates(); j++) {
-                auto v_c = hind.NumberToState(j);
+             for (Index i = 0; i < hind.NStates(); i++) {
+               auto v_r = hind.NumberToState(i);
+               for (Index j = 0; j < hind.NStates(); j++) {
+                 auto v_c = hind.NumberToState(j);
 
-                vals(i, j) = self.LogValSingle(v_r, v_c, {});
-                if (std::real(vals(i, j)) > maxlog) {
-                  maxlog = std::real(vals(i, j));
-                }
-              }
-            }
+                 vals(i, j) = self.LogValSingle(v_r, v_c, {});
+                 if (std::real(vals(i, j)) > maxlog) {
+                   maxlog = std::real(vals(i, j));
+                 }
+               }
+             }
 
-            vals.array() -= maxlog;
-            vals = vals.array().exp();
+             vals.array() -= maxlog;
+             vals = vals.array().exp();
 
-            if (normalize) {
-              vals /= vals.trace();
-            }
-            return vals;
-          },
-          py::arg("normalize") = true,
-          R"EOF(
+             if (normalize) {
+               vals /= vals.trace();
+             }
+             return vals;
+           },
+           py::arg("normalize") = true,
+           R"EOF(
                 Returns a numpy matrix representation of the machine.
                 The returned matrix has trace normalized to 1 if `normalize=True`
                 Note that, in general, the size of the matrix is exponential
@@ -149,65 +149,65 @@ void AddAbstractDensityMatrix(py::module &subm) {
 
                 This method requires an indexable Hilbert space.
               )EOF")
-      .def(
-          "diagonal",
-          [](AbstractDensityMatrix &self) -> DiagonalDensityMatrix {
-            return DiagonalDensityMatrix(self);
-          },
-          R"EOF(
+      .def("diagonal",
+           [](AbstractDensityMatrix &self) -> DiagonalDensityMatrix {
+             return DiagonalDensityMatrix(self);
+           },
+           R"EOF(
              Returns the wrapped machine sampling the diagonal of this density matrix.
              )EOF")
-      .def(
-          "log_val",
-          [](AbstractDensityMatrix &self, py::array_t<double> xr,
-             py::array_t<double> xc) {
-            // Ugly. Should use std::optional but does not work with pybind11
-            // If there is only one input
-            if (xc.ndim() == 0) {
-              if (xr.ndim() == 1) {
-                auto input = xr.cast<Eigen::Ref<const VectorXd>>();
-                return py::cast(self.LogValSingle(input, any{}));
-              } else if (xr.ndim() == 2) {
-                auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
-                return py::cast(self.AbstractMachine::LogVal(input, any{}));
-              } else if (xr.ndim() == 3) {
-                auto input = Eigen::Map<const RowMatrix<double>>{
-                    xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
-                py::array_t<Complex> result =
-                    py::cast(self.AbstractMachine::LogVal(input, any{}));
-                result.resize({xr.shape(0), xr.shape(1)});
-                return py::object(result);
-              } else {
-                throw InvalidInputError{"Invalid input dimensions"};
-              }
-            }
+      .def("log_val",
+           [](AbstractDensityMatrix &self, py::array_t<double> xr,
+              py::array_t<double> xc,
+              nonstd::optional<py::array_t<Complex>> out) {
+             // Ugly. Should use std::optional but does not work with pybind11
+             // If there is only one input
+             if (xc.ndim() == 0) {
+               if (xr.ndim() == 1) {
+                 auto input = xr.cast<Eigen::Ref<const VectorXd>>();
+                 return py::cast(self.LogValSingle(input, any{}));
+               } else if (xr.ndim() == 2) {
+                 auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
+                 return py::cast(self.AbstractMachine::LogVal(input, any{}));
+               } else if (xr.ndim() == 3) {
+                 auto input = Eigen::Map<const RowMatrix<double>>{
+                     xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
+                 py::array_t<Complex> result =
+                     py::cast(self.AbstractMachine::LogVal(input, any{}));
+                 result.resize({xr.shape(0), xr.shape(1)});
+                 return py::object(result);
+               } else {
+                 throw InvalidInputError{"Invalid input dimensions"};
+               }
+             }
 
-            if (xr.ndim() != xc.ndim()) {
-              throw InvalidInputError{
-                  "Row and columns must have same dimensions"};
-            }
-            if (xr.ndim() == 1) {
-              auto input_r = xr.cast<Eigen::Ref<const VectorXd>>();
-              auto input_c = xc.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.LogValSingle(input_r, input_c));
-            } else if (xr.ndim() == 2) {
-              auto input_r = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
-              auto input_c = xc.cast<Eigen::Ref<const RowMatrix<double>>>();
-              return py::cast(self.LogVal(input_r, input_c, any{}));
-            } else if (xr.ndim() == 3) {
-              auto input_r = Eigen::Map<const RowMatrix<double>>{
-                  xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
-              auto input_c = Eigen::Map<const RowMatrix<double>>{
-                  xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
-              py::array_t<Complex> result =
-                  py::cast(self.LogVal(input_r, input_c, any{}));
-              result.resize({xr.shape(0), xr.shape(1)});
-              return py::object(result);
-            }
-            { throw InvalidInputError{"Invalid input dimension"}; }
-          },
-          py::arg("x_row"), py::arg("x_col") = nullptr,
-          R"EOF(
+             if (xr.ndim() != xc.ndim()) {
+               throw InvalidInputError{
+                   "Row and columns must have same dimensions"};
+             }
+             if (xr.ndim() == 1) {
+               auto input_r = xr.cast<Eigen::Ref<const VectorXd>>();
+               auto input_c = xc.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.LogValSingle(input_r, input_c));
+             } else if (xr.ndim() == 2) {
+               auto input_r = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
+               auto input_c = xc.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.LogVal(input_r, input_c, any{}));
+             } else if (xr.ndim() == 3) {
+               auto input_r = Eigen::Map<const RowMatrix<double>>{
+                   xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
+               auto input_c = Eigen::Map<const RowMatrix<double>>{
+                   xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.LogVal(input_r, input_c, any{}));
+               result.resize({xr.shape(0), xr.shape(1)});
+               return py::object(result);
+             }
+             { throw InvalidInputError{"Invalid input dimension"}; }
+           },
+           py::arg("x_row"), py::arg("x_col") = nullptr,
+           py::arg("out") = py::none(),
+           R"EOF(
                   Member function to obtain log value of machine given an input
                  vector.
 
@@ -215,58 +215,57 @@ void AddAbstractDensityMatrix(py::module &subm) {
                      vr: Input vector to machine.
                      vc: Input vector to machine.
                 )EOF")
-      .def(
-          "der_log",
-          [](AbstractDensityMatrix &self, py::array_t<double> xr,
-             py::array_t<double> xc) {
-            // Ugly. Should use std::optional but does not work with pybind11
-            if (xc.ndim() == 0) {
-              if (xr.ndim() == 1) {
-                auto input = xr.cast<Eigen::Ref<const VectorXd>>();
-                return py::cast(self.DerLogSingle(input, any{}));
-              } else if (xr.ndim() == 2) {
-                auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
-                return py::cast(self.AbstractMachine::DerLog(input, any{}));
-              } else if (xr.ndim() == 3) {
-                auto input = Eigen::Map<const RowMatrix<double>>{
-                    xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
-                py::array_t<Complex> result =
-                    py::cast(self.AbstractMachine::DerLog(input, any{}));
-                result.resize({xr.shape(0), xr.shape(1),
-                               static_cast<pybind11::ssize_t>(self.Npar())});
-                return py::object(result);
-              } else {
-                throw InvalidInputError{"Invalid input dimensions"};
-              }
-            }
+      .def("der_log",
+           [](AbstractDensityMatrix &self, py::array_t<double> xr,
+              py::array_t<double> xc) {
+             // Ugly. Should use std::optional but does not work with pybind11
+             if (xc.ndim() == 0) {
+               if (xr.ndim() == 1) {
+                 auto input = xr.cast<Eigen::Ref<const VectorXd>>();
+                 return py::cast(self.DerLogSingle(input, any{}));
+               } else if (xr.ndim() == 2) {
+                 auto input = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
+                 return py::cast(self.AbstractMachine::DerLog(input, any{}));
+               } else if (xr.ndim() == 3) {
+                 auto input = Eigen::Map<const RowMatrix<double>>{
+                     xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
+                 py::array_t<Complex> result =
+                     py::cast(self.AbstractMachine::DerLog(input, any{}));
+                 result.resize({xr.shape(0), xr.shape(1),
+                                static_cast<pybind11::ssize_t>(self.Npar())});
+                 return py::object(result);
+               } else {
+                 throw InvalidInputError{"Invalid input dimensions"};
+               }
+             }
 
-            if (xr.ndim() != xc.ndim()) {
-              throw InvalidInputError{
-                  "Row and columns must have same dimensions"};
-            }
-            if (xr.ndim() == 1) {
-              auto input_r = xr.cast<Eigen::Ref<const VectorXd>>();
-              auto input_c = xc.cast<Eigen::Ref<const VectorXd>>();
-              return py::cast(self.DerLogSingle(input_r, input_c));
-            } else if (xr.ndim() == 2) {
-              auto input_r = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
-              auto input_c = xc.cast<Eigen::Ref<const RowMatrix<double>>>();
-              return py::cast(self.DerLog(input_r, input_c, any{}));
-            } else if (xr.ndim() == 3) {
-              auto input_r = Eigen::Map<const RowMatrix<double>>{
-                  xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
-              auto input_c = Eigen::Map<const RowMatrix<double>>{
-                  xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
-              py::array_t<Complex> result =
-                  py::cast(self.DerLog(input_r, input_c, any{}));
-              result.resize({xr.shape(0), xr.shape(1),
-                             static_cast<pybind11::ssize_t>(self.Npar())});
-              return py::object(result);
-            }
-            { throw InvalidInputError{"Invalid input dimension"}; }
-          },
-          py::arg("x_row"), py::arg("x_col") = nullptr,
-          R"EOF(
+             if (xr.ndim() != xc.ndim()) {
+               throw InvalidInputError{
+                   "Row and columns must have same dimensions"};
+             }
+             if (xr.ndim() == 1) {
+               auto input_r = xr.cast<Eigen::Ref<const VectorXd>>();
+               auto input_c = xc.cast<Eigen::Ref<const VectorXd>>();
+               return py::cast(self.DerLogSingle(input_r, input_c));
+             } else if (xr.ndim() == 2) {
+               auto input_r = xr.cast<Eigen::Ref<const RowMatrix<double>>>();
+               auto input_c = xc.cast<Eigen::Ref<const RowMatrix<double>>>();
+               return py::cast(self.DerLog(input_r, input_c, any{}));
+             } else if (xr.ndim() == 3) {
+               auto input_r = Eigen::Map<const RowMatrix<double>>{
+                   xr.data(), xr.shape(0) * xr.shape(1), xr.shape(2)};
+               auto input_c = Eigen::Map<const RowMatrix<double>>{
+                   xc.data(), xc.shape(0) * xc.shape(1), xc.shape(2)};
+               py::array_t<Complex> result =
+                   py::cast(self.DerLog(input_r, input_c, any{}));
+               result.resize({xr.shape(0), xr.shape(1),
+                              static_cast<pybind11::ssize_t>(self.Npar())});
+               return py::object(result);
+             }
+             { throw InvalidInputError{"Invalid input dimension"}; }
+           },
+           py::arg("x_row"), py::arg("x_col") = nullptr,
+           R"EOF(
                  Member function to obtain the derivatives of log value of
                  machine given an input wrt the machine's parameters.
 

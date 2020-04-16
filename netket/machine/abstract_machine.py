@@ -105,7 +105,32 @@ class AbstractMachine(abc.ABC):
 
             return all_psis
         else:
-            return AssertionError
+            return RuntimeError("The hilbert space is not indexable")
+
+    def log_norm(self, order=2):
+        r"""
+        Returns the log of the norm of the machine.
+        Note that, in general, the size of the array is exponential
+        in the number of quantum numbers, and this operation should thus
+        only be performed for low-dimensional Hilbert spaces.
+
+        This method requires an indexable Hilbert space.
+
+        Args:
+            order (int): By default order=2 is the L2 norm.
+
+        Returns:
+            float: log(|machine(x)|^order)
+
+        """
+        if self.hilbert.is_indexable:
+            psi = self.log_val(self.hilbert.all_states())
+            maxl = psi.real.max()
+            log_n = _np.log(_np.exp(order * (psi.real - maxl)).sum())
+
+            return log_n + maxl * order
+        else:
+            return RuntimeError("The hilbert space is not indexable")
 
     @property
     @abc.abstractmethod

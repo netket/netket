@@ -232,14 +232,14 @@ class Qsr(AbstractVariationalDriver):
 
         vec = _np.empty(mels.size, dtype=_np.complex128)
 
-        _rotated_grad_kernel(log_val_primes, mels, vec)
+        self._rotated_grad_kernel(log_val_primes, mels, vec)
 
         self._machine.vector_jacobian_prod(x_primes, vec, out)
 
-    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
-    #     #     max_log_val = log_val_primes.real.max()
-    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
-    #     #     vec /= vec.sum()
+    def _rotated_grad_kernel(self, log_val_primes, mels, vec):
+        max_log_val = log_val_primes.real.max()
+        vec[:] = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
+        vec /= vec.sum()
 
     def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]
