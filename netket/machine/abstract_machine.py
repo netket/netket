@@ -82,28 +82,15 @@ class AbstractMachine(abc.ABC):
 
         """
         if self.hilbert.is_indexable:
-            all_psis = _np.zeros(self.hilbert.n_states, dtype=_np.complex128)
-            batch_states = _np.zeros((batch_size, self.hilbert.size))
-            it = self.hilbert.states().__iter__()
-            for i in range(self.hilbert.n_states // batch_size + 1):
-                for j in range(batch_size):
-                    try:
-                        batch_states[j] = next(it)
-                    except StopIteration:
-                        batch_states.resize(j, self.hilbert.size)
-                        break
-                all_psis[
-                    i * batch_size : i * batch_size + batch_states.shape[0]
-                ] = self.log_val(batch_states)
-
-                logmax = _np.max(all_psis.real)
-                all_psis = _np.exp(all_psis - logmax)
+            psi = self.log_val(self.hilbert.all_states())
+            logmax = psi.real.max()
+            psi = _np.exp(psi - logmax)
 
             if normalize:
-                norm = _np.linalg.norm(all_psis)
-                all_psis = all_psis / norm
+                norm = _np.linalg.norm(psi)
+                psi /= norm
 
-            return all_psis
+            return psi
         else:
             return RuntimeError("The hilbert space is not indexable")
 

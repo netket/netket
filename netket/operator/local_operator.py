@@ -290,16 +290,10 @@ class LocalOperator(AbstractOperator):
 
         # If overlapping support, add the local operators themselves
         if support_i is not None:
-            print("old")
-            print(self._operators[support_i])
-            print("new")
-            print(operator)
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
             _opv = self._operators[support_i][:dim, :dim]
             _opv += operator[:dim, :dim]
 
-            print("result")
-            print(self._operators[support_i])
             self._append_matrix(
                 self._operators[support_i],
                 self._diag_mels[support_i],
@@ -451,7 +445,7 @@ class LocalOperator(AbstractOperator):
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 # partially intersecting support
-                raise RuntimeError(
+                raise NotImplementedError(
                     "Product of intersecting LocalOperator is not implemented."
                 )
 
@@ -497,8 +491,10 @@ class LocalOperator(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return self._get_conn_kernel(
-            x,
+
+        return self._get_conn_flattened_kernel(
+            x.reshape((1, -1)),
+            _np.ones(1),
             self._local_states,
             self._basis,
             self._constant,
@@ -509,66 +505,6 @@ class LocalOperator(AbstractOperator):
             self._acting_on,
             self._acting_size,
         )
-
-    @staticmethod
-    @jit(nopython=True)
-    def _get_conn_kernel(
-        x,
-        local_states,
-        basis,
-        constant,
-        diag_mels,
-        n_conns,
-        all_mels,
-        all_x_prime,
-        acting_on,
-        acting_size,
-    ):
-
-        n_operators = n_conns.shape[0]
-        xs_n = _np.empty(n_operators, dtype=_np.intp)
-        tot_conn = 1
-
-        for i in range(n_operators):
-            acting_size_i = acting_size[i]
-
-            xs_n[i] = 0
-
-            x_i = x[acting_on[i, :acting_size_i]]
-            for k in range(acting_size_i):
-                xs_n[i] += (
-                    _np.searchsorted(local_states, x_i[acting_size_i - k - 1])
-                    * basis[k]
-                )
-
-            tot_conn += n_conns[i, xs_n[i]]
-
-        mels = _np.empty(tot_conn, dtype=_np.complex128)
-        x_prime = _np.empty((tot_conn, x.shape[0]))
-
-        mels[0] = constant
-        x_prime[0] = _np.copy(x)
-        c = 1
-
-        for i in range(n_operators):
-
-            # Diagonal part
-            mels[0] += diag_mels[i, xs_n[i]]
-            n_conn_i = n_conns[i, xs_n[i]]
-
-            if n_conn_i > 0:
-                sites = acting_on[i]
-                acting_size_i = acting_size[i]
-
-                for cc in range(n_conn_i):
-                    mels[c + cc] = all_mels[i, xs_n[i], cc]
-                    x_prime[c + cc] = _np.copy(x)
-
-                    for k in range(acting_size_i):
-                        x_prime[c + cc, sites[k]] = all_x_prime[i, xs_n[i], cc, k]
-                c += n_conn_i
-
-        return x_prime, mels
 
     def get_conn_flattened(self, x, sections):
         r"""Finds the connected elements of the Operator. Starting
