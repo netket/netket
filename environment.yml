@@ -1,6 +1,7 @@
 name: netket_env
 
 channels:
+  - numba
   - defaults
 
 dependencies:
@@ -15,3 +16,4 @@ dependencies:
   - blas
   - mkl
   - numba
+  - icc_rt

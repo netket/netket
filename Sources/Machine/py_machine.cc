@@ -32,7 +32,6 @@
 #include "Machine/py_abstract_machine.hpp"
 #include "Machine/rbm_multival.hpp"
 #include "Machine/rbm_spin.hpp"
-#include "Machine/rbm_spin_kernel.hpp"
 #include "Machine/rbm_spin_phase.hpp"
 #include "Machine/rbm_spin_real.hpp"
 #include "Machine/rbm_spin_symm.hpp"
@@ -580,7 +579,8 @@ void AddAbstractMachine(py::module m) {
 
            )EOF")
       .def("log_val",
-           [](AbstractMachine &self, py::array_t<double> x) {
+           [](AbstractMachine &self, py::array_t<double> x,
+              nonstd::optional<py::array_t<Complex>> out) {
              if (x.ndim() == 1) {
                auto input = x.cast<Eigen::Ref<const VectorXd>>();
                return py::cast(self.LogValSingle(input));
@@ -598,7 +598,7 @@ void AddAbstractMachine(py::module m) {
                throw InvalidInputError{"Invalid input dimension"};
              }
            },
-           py::arg("v"),
+           py::arg("v"), py::arg("out") = py::none(),
            R"EOF(
                  Member function to obtain log value of machine given an input
                  vector.
@@ -789,14 +789,6 @@ void AddAbstractMachine(py::module m) {
                 )EOF");
 }
 
-void AddRbmSpinKernel(py::module subm) {
-  py::class_<RbmSpinKernel>(subm, "RbmSpinKernel")
-      .def(py::init<>())
-      .def("log_val", &RbmSpinKernel::LogVal, py::arg("x").noconvert(),
-           py::arg("out").noconvert(), py::arg("W").noconvert(),
-           py::arg("a").noconvert(), py::arg("b").noconvert());
-}
-
 }  // namespace
 
 void AddMachineModule(py::module m) {
@@ -814,7 +806,6 @@ void AddMachineModule(py::module m) {
   AddFFNN(subm);
   AddLayerModule(m);
   AddDensityMatrixModule(subm);
-  AddRbmSpinKernel(subm);
 }
 
 }  // namespace netket

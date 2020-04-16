@@ -10,7 +10,6 @@ from ._C_netket.utils import random_engine, rand_uniform_int
 
 from netket.stats import (
     statistics as _statistics,
-    covariance_sv as _covariance_sv,
     subtract_mean as _subtract_mean,
     mean as _mean,
 )

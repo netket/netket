@@ -16,7 +16,6 @@
 #define NETKET_SAMPLER_HPP
 
 #include "abstract_sampler.hpp"
-#include "exact_sampler.hpp"
 #include "metropolis_hastings.hpp"
 #include "metropolis_hastings_pt.hpp"
 

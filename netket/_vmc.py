@@ -5,10 +5,7 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from netket.stats import (
-    statistics as _statistics,
-    mean as _mean,
-)
+from netket.stats import statistics as _statistics, mean as _mean
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
@@ -62,6 +59,8 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self._sr = sr
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 
@@ -69,6 +68,8 @@ class Vmc(AbstractVariationalDriver):
 
         self.n_samples = n_samples
         self.n_discard = n_discard
+
+        self._dp = _np.empty(self._npar, dtype=_np.complex128)
 
     @property
     def n_samples(self):
@@ -127,8 +128,9 @@ class Vmc(AbstractVariationalDriver):
             pass
 
         # Generate samples and store them
-        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
-            self._samples[i] = sample
+        self._samples = self._sampler.generate_samples(
+            self._n_samples_node, samples=self._samples
+        )
 
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
@@ -137,28 +139,29 @@ class Vmc(AbstractVariationalDriver):
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
             # Computes the jacobian
+            _der_logs = self._der_logs
+            _der_log = self._machine.der_log
+
             for i, sample in enumerate(self._samples):
-                self._der_logs[i] = self._machine.der_log(sample)
+                _der_logs[i] = _der_log(sample)
 
             # flatten MC chain dimensions:
-            self._der_logs = self._der_logs.reshape(-1, self._npar)
+            _der_logs = _der_logs.reshape(-1, self._npar)
 
             # Center the local energy
             eloc -= _mean(eloc)
 
             # Center the log derivatives
-            self._der_logs -= _mean(self._der_logs, axis=0)
+            _der_logs -= _mean(_der_logs, axis=0)
 
             # Compute the gradient
-            self._grads = _np.conjugate(self._der_logs) * eloc.reshape(-1, 1)
+            self._grads = _np.conjugate(_der_logs) * eloc.reshape(-1, 1)
 
             grad = _mean(self._grads, axis=0)
 
-            dp = _np.empty(self._npar, dtype=_np.complex128)
+            self._sr.compute_update(_der_logs, grad, self._dp)
 
-            self._sr.compute_update(self._der_logs, grad, dp)
-
-            self._der_logs = self._der_logs.reshape(
+            _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar
             )
         else:
@@ -169,10 +172,9 @@ class Vmc(AbstractVariationalDriver):
             for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
                 self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
 
-            grad = _mean(self._grads, axis=0) / float(self._batch_size)
-            dp = grad
+            self._dp = _mean(self._grads, axis=0) / float(self._batch_size)
 
-        return dp
+        return self._dp
 
     @property
     def energy(self):

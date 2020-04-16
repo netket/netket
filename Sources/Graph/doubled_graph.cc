@@ -17,7 +17,7 @@ using Edge = AbstractGraph::Edge;
  */
 std::unique_ptr<AbstractGraph> DoubledGraph(const AbstractGraph &graph) {
   auto n_sites = graph.Nsites();
-  std::vector<Edge> d_edges(graph.Edges().size());
+  std::vector<Edge> d_edges;
   auto eclist = graph.EdgeColors();
 
   // same graph
@@ -46,7 +46,7 @@ std::unique_ptr<AbstractGraph> DoubledGraph(const AbstractGraph &graph) {
   }
 
   if (d_edges.empty()) {
-    return make_unique<Edgeless>(Edgeless(n_sites*2));
+    return make_unique<Edgeless>(Edgeless(n_sites * 2));
   }
 
   return make_unique<CustomGraph>(

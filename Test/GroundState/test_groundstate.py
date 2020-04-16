@@ -141,16 +141,18 @@ def test_imag_time_propagation():
     hi = nk.hilbert.Spin(s=0.5, graph=g)
     ha = nk.operator.Ising(h=0.0, hilbert=hi)
 
-    stepper = nk.dynamics.timestepper(hi.n_states, rel_tol=1e-10, abs_tol=1e-10)
     psi0 = np.random.rand(hi.n_states)
-    driver = nk.exact.ExactTimePropagation(
-        ha, stepper, t0=0, initial_state=psi0, propagation_type="imaginary"
+    driver = nk.exact.PyExactTimePropagation(
+        ha,
+        t0=0,
+        dt=0.1,
+        initial_state=psi0,
+        propagation_type="imaginary",
+        solver_kwargs={"atol": 1e-10, "rtol": 1e-10},
     )
 
-    for step in driver.iter(dt=0.1, n_iter=1000):
-        pass
-
-    assert driver.get_observable_stats()["Energy"]["Mean"] == approx(-8.0)
+    driver.advance(1000)
+    assert driver.estimate(ha).mean.real == approx(-8.0)
 
 
 def test_ed():
@@ -179,6 +181,7 @@ def test_ed():
     assert len(res.eigenvectors) == first_n
     gse = res.mean(ha, 0)
     fse = res.mean(ha, 1)
+
     assert gse == approx(res.eigenvalues[0], rel=1e-12, abs=1e-12)
     assert fse == approx(res.eigenvalues[1], rel=1e-12, abs=1e-12)
 
@@ -186,3 +189,29 @@ def test_ed():
     res = nk.exact.full_ed(ha, first_n=first_n, compute_eigenvectors=False)
     assert len(res.eigenvalues) == first_n
     assert len(res.eigenvectors) == 0
+
+
+def test_ed_restricted():
+    g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
+    hi1 = nk.hilbert.PySpin(s=0.5, graph=g, total_sz=0)
+    hi2 = nk.hilbert.PySpin(s=0.5, graph=g)
+
+    ham1 = nk.operator.Heisenberg(hi1)
+    ham2 = nk.operator.Heisenberg(hi2)
+
+    assert ham1.to_linear_operator().shape == (70, 70)
+    assert ham2.to_linear_operator().shape == (256, 256)
+
+    r1 = nk.exact.lanczos_ed(ham1, compute_eigenvectors=True)
+    r2 = nk.exact.lanczos_ed(ham2, compute_eigenvectors=True)
+
+    assert r1.eigenvalues[0] == approx(r2.eigenvalues[0])
+
+    def overlap(phi, psi):
+        bare_overlap = np.abs(np.vdot(phi, psi)) ** 2
+        return bare_overlap / (np.vdot(phi, phi) * np.vdot(psi, psi)).real
+
+    # Non-zero elements of ground state in full Hilbert space should equal the ground
+    # state in the constrained Hilbert space
+    idx_nonzero = np.abs(r2.eigenvectors[0]) > 1e-4
+    assert overlap(r1.eigenvectors[0], r2.eigenvectors[0][idx_nonzero]) == approx(1.0)

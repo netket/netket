@@ -2,7 +2,8 @@ import numpy as _np
 from netket import random as _random
 
 from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import *
+from .metropolis_hastings import PyMetropolisHastings
+from .metropolis_hastings_pt import PyMetropolisHastingsPt
 from .._C_netket import sampler as c_sampler
 
 from numba import jit, jitclass
@@ -67,7 +68,7 @@ class MetropolisExchange(AbstractSampler):
     otherwise the sampling would be strongly not ergodic.
     """
 
-    def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None):
+    def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None, backend=None):
         """
         Args:
               machine: A machine :math:`\Psi(s)` used for the sampling.
@@ -100,7 +101,7 @@ class MetropolisExchange(AbstractSampler):
               >>> print(sa.machine.hilbert.size)
               100
         """
-        if "_C_netket.machine" in str(type(machine)):
+        if "_C_netket.machine" in str(type(machine)) and backend != 'py':
             self.sampler = c_sampler.MetropolisExchange(
                 machine=machine,
                 n_chains=n_chains,
@@ -148,7 +149,7 @@ class MetropolisExchangePt(AbstractSampler):
     """
 
     def __init__(
-        self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None
+        self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None, backend=None
     ):
         """
         Args:
@@ -160,6 +161,8 @@ class MetropolisExchangePt(AbstractSampler):
             n_replicas: The number of replicas used for parallel tempering.
             sweep_size: The number of exchanges that compose a single sweep.
                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+            batch_size: The batch size to be used when calling log_val on the given Machine.
+                        If None, batch_size is equal to the number of replicas (n_replicas).
 
         Examples:
             Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -178,7 +181,7 @@ class MetropolisExchangePt(AbstractSampler):
             >>> print(sa.machine.hilbert.size)
             100
         """
-        if "_C_netket.machine" in str(type(machine)):
+        if "_C_netket.machine" in str(type(machine)) and backend != 'py':
             self.sampler = c_sampler.MetropolisExchangePt(
                 machine=machine,
                 n_replicas=n_replicas,
@@ -186,9 +189,14 @@ class MetropolisExchangePt(AbstractSampler):
                 sweep_size=sweep_size,
             )
         else:
-            raise ValueError(
-                """Parallel Tempering samplers are not yet implemented
-                for pure python machines"""
+            self.sampler = PyMetropolisHastingsPt(
+                machine,
+                _exchange_kernel(
+                    _np.asarray(machine.hilbert.graph.distances), d_max
+                ),
+                n_chains,
+                sweep_size,
+                batch_size,
             )
         super().__init__(machine, 1)
 
@@ -207,6 +215,6 @@ class MetropolisExchangePt(AbstractSampler):
         self.sampler.machine_pow = m_pow
 
     @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+    def stats(self):
+        """Statistics of the sampling."""
+        return self.sampler.stats

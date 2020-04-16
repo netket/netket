@@ -28,8 +28,12 @@ class AbstractMachine(abc.ABC):
             """
         pass
 
-    @abc.abstractmethod
-    def vector_jacobian_prod(selv, x, vec, out=None):
+    def init_random_parameters(self, seed=None, sigma=0.01):
+        rgen = _np.random.RandomState(seed)
+        self.parameters = (rgen.normal(scale=sigma, size=self.n_par) +
+                           1.0j * rgen.normal(scale=sigma, size=self.n_par))
+
+    def vector_jacobian_prod(self, x, vec, out=None):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
@@ -42,7 +46,7 @@ class AbstractMachine(abc.ABC):
         Returns:
              `out`
         """
-        return NotImplementedError
+        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError
@@ -65,20 +69,37 @@ class AbstractMachine(abc.ABC):
             """
         return NotImplementedError
 
-    def to_array(self, normalize=True, b_size=512):
+    def to_array(self, normalize=True, batch_size=512):
+        r"""
+        Returns a numpy array representation of the machine.
+        Note that, in general, the size of the array is exponential
+        in the number of quantum numbers, and this operation should thus
+        only be performed for low-dimensional Hilbert spaces.
+
+        This method requires an indexable Hilbert space.
+
+        Args:
+            normalize (bool): If True, the returned array is normalized in L2 norm.
+            batch_size (int): The method log_val of the machine is called on
+                              batch_size states at once.
+
+        Returns:
+            numpy.array: The array machine(x) for all states x in the Hilbert space.
+
+        """
         if self.hilbert.is_indexable:
             all_psis = _np.zeros(self.hilbert.n_states, dtype=_np.complex128)
-            batch_states = _np.zeros((b_size, self.hilbert.size))
+            batch_states = _np.zeros((batch_size, self.hilbert.size))
             it = self.hilbert.states().__iter__()
-            for i in range(self.hilbert.n_states // b_size + 1):
-                for j in range(b_size):
+            for i in range(self.hilbert.n_states // batch_size + 1):
+                for j in range(batch_size):
                     try:
                         batch_states[j] = next(it)
                     except StopIteration:
                         batch_states.resize(j, self.hilbert.size)
                         break
                 all_psis[
-                    i * b_size : i * b_size + batch_states.shape[0]
+                    i * batch_size: i * batch_size + batch_states.shape[0]
                 ] = self.log_val(batch_states)
 
                 logmax = _np.max(all_psis.real)

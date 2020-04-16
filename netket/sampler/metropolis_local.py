@@ -2,7 +2,8 @@ import numpy as _np
 from netket import random as _random
 
 from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import *
+from .metropolis_hastings import PyMetropolisHastings
+from .metropolis_hastings_pt import PyMetropolisHastingsPt
 from .._C_netket import sampler as c_sampler
 
 from numba import jit, jitclass
@@ -30,7 +31,7 @@ class _local_kernel:
                 rs + (self.local_states[rs] >= state[i, si])
             ]
 
-        log_prob_corr[:] = 0.0
+        log_prob_corr.fill(0.0)
 
 
 class MetropolisLocal(AbstractSampler):
@@ -127,6 +128,8 @@ class MetropolisLocal(AbstractSampler):
 
     @machine_pow.setter
     def machine_pow(self, m_pow):
+        if(not _np.isscalar(m_pow)):
+            raise ValueError("machine_pow should be a scalar.")
         self.sampler.machine_pow = m_pow
 
     @property
@@ -142,7 +145,7 @@ class MetropolisLocalPt(AbstractSampler):
     The number of replicas can be chosen by the user.
     """
 
-    def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None):
+    def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None, backend=None):
         """
         Args:
              machine: A machine :math:`\Psi(s)` used for the sampling.
@@ -154,14 +157,20 @@ class MetropolisLocalPt(AbstractSampler):
                          If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
         """
-        if "_C_netket.machine" in str(type(machine)):
+        if "_C_netket.machine" in str(type(machine)) and backend != "py":
             self.sampler = c_sampler.MetropolisLocalPt(
                 machine=machine, n_replicas=n_replicas, sweep_size=sweep_size
             )
         else:
-            raise ValueError(
-                """Parallel Tempering samplers are not yet implemented
-                for pure python machines"""
+            self.sampler = PyMetropolisHastingsPt(
+                machine,
+                _local_kernel(
+                    _np.asarray(
+                        machine.hilbert.local_states), machine.hilbert.size
+                ),
+                n_replicas,
+                sweep_size,
+                batch_size,
             )
         super().__init__(machine, 1)
 
@@ -180,6 +189,6 @@ class MetropolisLocalPt(AbstractSampler):
         self.sampler.machine_pow = m_pow
 
     @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+    def stats(self):
+        """Statistics of the sampling."""
+        return self.sampler.stats

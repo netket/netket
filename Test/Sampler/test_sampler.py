@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from pytest import approx
 from scipy.stats import power_divergence, combine_pvalues, chisquare
+from netket.random import randint
 
 samplers = {}
 
@@ -22,6 +23,8 @@ ma.init_random_parameters(sigma=0.2)
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16)
 samplers["MetropolisLocal RbmSpin"] = sa
 
+sa = nk.sampler.ExactSampler(machine=ma, sample_size=8)
+samplers["Exact RbmSpin"] = sa
 
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
 samplers["MetropolisLocalPt RbmSpin"] = sa
@@ -145,7 +148,7 @@ def test_correct_sampling():
 
         n_samples = max(40 * n_states, 10000)
 
-        ord = np.random.randint(1, 3, size=1)
+        ord = randint(1, 3)
         assert ord == 1 or ord == 2
 
         sa.machine_pow = ord
@@ -162,9 +165,10 @@ def test_correct_sampling():
             hist_samp = np.zeros(n_states)
             # fill in the histogram for sampler
 
-            # Burnout fase
-            for _ in sa.samples(n_samples // 10):
-                pass
+            # Burnout phase
+            samples = sa.generate_samples(n_samples // 10)
+
+            assert (samples.shape[1], samples.shape[2]) == sa.sample_shape
 
             n_s = 0
             for sample in sa.samples(n_samples):

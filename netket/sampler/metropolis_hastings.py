@@ -1,13 +1,12 @@
 import numpy as _np
 from .abstract_sampler import AbstractSampler
 
-from .._C_netket import sampler as c_sampler
-from .._C_netket.utils import random_engine
 from ..stats import mean as _mean
 
 from numba import jit, jitclass
 from numba import int64, float64
 from netket import random as _random
+import math
 
 
 class PyMetropolisHastings(AbstractSampler):
@@ -85,6 +84,8 @@ class PyMetropolisHastings(AbstractSampler):
 
     @machine_pow.setter
     def machine_pow(self, m_power):
+        if(not _np.isscalar(m_power)):
+            raise ValueError("machine_pow should be a scalar.")
         self._machine_pow = m_power
 
     @property
@@ -110,8 +111,9 @@ class PyMetropolisHastings(AbstractSampler):
     def reset(self, init_random=False):
         if init_random:
             for state in self._state:
-                self._hilbert.random_vals(state, random_engine())
-        self.machine.log_val(self._state, out=self._log_values)
+                self._hilbert.random_vals(out=state)
+        self._log_values = self.machine.log_val(
+            self._state, out=self._log_values)
 
         self._accepted_samples = 0
         self._total_samples = 0
@@ -128,6 +130,7 @@ class PyMetropolisHastings(AbstractSampler):
                 machine_pow *
                 (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
             )
+            assert(not math.isnan(prob))
 
             if prob > _random.uniform(0, 1):
                 log_values[i] = log_values_1[i]
@@ -154,7 +157,7 @@ class PyMetropolisHastings(AbstractSampler):
             # Propose a new state using the transition kernel
             _t_kernel(_state, _state1, _log_prob_corr)
 
-            _log_val(_state1, out=_log_values_1)
+            _log_values_1 = _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
             acc = _acc_kernel(
