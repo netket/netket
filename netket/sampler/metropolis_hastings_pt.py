@@ -22,7 +22,12 @@ class PyMetropolisHastingsPt(AbstractSampler):
     """
 
     def __init__(
-        self, machine, transition_kernel, n_replicas=32, sweep_size=None, batch_size=None
+        self,
+        machine,
+        transition_kernel,
+        n_replicas=32,
+        sweep_size=None,
+        batch_size=None,
     ):
         """
         Constructs a new ``MetropolisHastingsPt`` sampler given a machine and
@@ -86,7 +91,7 @@ class PyMetropolisHastingsPt(AbstractSampler):
         self._beta = _np.empty(n_replicas)
 
         for i in range(n_replicas):
-            self._beta[i] = (1. - float(i) / float(n_replicas))
+            self._beta[i] = 1.0 - float(i) / float(n_replicas)
 
         # some temporary arrays
         self._proposed_beta = _np.empty(n_replicas)
@@ -123,9 +128,8 @@ class PyMetropolisHastingsPt(AbstractSampler):
     def reset(self, init_random=False):
         if init_random:
             for state in self._state:
-                self._hilbert.random_vals(out=state)
-        self._log_values = self.machine.log_val(
-            self._state, out=self._log_values)
+                self._hilbert.random_state(out=state)
+        self._log_values = self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = _np.zeros(self._n_replicas)
         self._total_samples = 0
@@ -135,21 +139,28 @@ class PyMetropolisHastingsPt(AbstractSampler):
     @staticmethod
     @jit(nopython=True)
     def _fixed_beta_acceptance_kernel(
-        state, state1, log_values, log_values_1,
-        log_prob_corr, machine_pow, beta, accepted
+        state,
+        state1,
+        log_values,
+        log_values_1,
+        log_prob_corr,
+        machine_pow,
+        beta,
+        accepted,
     ):
 
         for i in range(state.shape[0]):
             prob = math.exp(
-                machine_pow * beta[i] *
-                (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
+                machine_pow
+                * beta[i]
+                * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
             )
 
-            assert(not math.isnan(prob))
+            assert not math.isnan(prob)
 
             accept = prob > _random.uniform(0, 1)
 
-            if (accept):
+            if accept:
                 log_values[i] = log_values_1[i]
                 state[i] = state1[i]
                 accepted[i] += 1
@@ -187,7 +198,7 @@ class PyMetropolisHastingsPt(AbstractSampler):
                 _log_prob_corr,
                 _machine_pow,
                 _beta,
-                _accepted_samples
+                _accepted_samples,
             )
 
             # Transition + Acceptance Kernel for replica exchange moves
@@ -198,20 +209,17 @@ class PyMetropolisHastingsPt(AbstractSampler):
                 _proposed_beta,
                 _beta_prob,
                 _beta_stats,
-                _accepted_samples)
+                _accepted_samples,
+            )
 
         self._total_samples += self.sweep_size
         return self._state[_np.intp(_beta_stats[0])].reshape(1, -1)
 
     @staticmethod
     @jit(nopython=True)
-    def _exchange_step_kernel(log_values,
-                              machine_pow,
-                              beta,
-                              proposed_beta,
-                              prob,
-                              beta_stats,
-                              accepted_samples):
+    def _exchange_step_kernel(
+        log_values, machine_pow, beta, proposed_beta, prob, beta_stats, accepted_samples
+    ):
         # Choose a random swap order (odd/even swap)
         swap_order = _random.randint(0, 2)
 
@@ -224,21 +232,25 @@ class PyMetropolisHastingsPt(AbstractSampler):
 
         for i in range(n_replicas):
             prob[i] = math.exp(
-                machine_pow * (proposed_beta[i] - beta[i]) * log_values[i].real)
+                machine_pow * (proposed_beta[i] - beta[i]) * log_values[i].real
+            )
 
         for i in range(swap_order, n_replicas, 2):
             inn = (i + 1) % n_replicas
 
             prob[i] *= prob[inn]
 
-            if(prob[i] > _random.uniform(0, 1)):
+            if prob[i] > _random.uniform(0, 1):
                 # swapping status
                 beta[i], beta[inn] = beta[inn], beta[i]
-                accepted_samples[i], accepted_samples[inn] = accepted_samples[inn], accepted_samples[i]
+                accepted_samples[i], accepted_samples[inn] = (
+                    accepted_samples[inn],
+                    accepted_samples[i],
+                )
 
-                if(beta_stats[0] == i):
+                if beta_stats[0] == i:
                     beta_stats[0] = inn
-                elif(beta_stats[0] == inn):
+                elif beta_stats[0] == inn:
                     beta_stats[0] = i
 
         # Update statistics to compute diffusion coefficient of replicas
@@ -262,12 +274,14 @@ class PyMetropolisHastingsPt(AbstractSampler):
         # Average position of beta=1
         # This is normalized and centered around zero
         # In the ideal case the average should be zero
-        stats["normalized_beta=1_position"] = self._beta_stats[1] / \
-            float(self._n_replicas - 1) - 0.5
+        stats["normalized_beta=1_position"] = (
+            self._beta_stats[1] / float(self._n_replicas - 1) - 0.5
+        )
 
         # Average variance on the position of beta=1
         # In the ideal case this quantity should be of order ~ [0.2, 1]
         stats["normalized_beta=1_diffusion"] = _np.sqrt(
-            self._beta_stats[2] / self._beta_stats[-1]) / float(self._n_replicas)
+            self._beta_stats[2] / self._beta_stats[-1]
+        ) / float(self._n_replicas)
 
         return stats

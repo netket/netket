@@ -38,9 +38,9 @@ class PyCustomHilbert(AbstractHilbert):
 
         self._is_finite = local_states is not None
 
-        if(self._is_finite):
+        if self._is_finite:
             self._local_states = _np.asarray(local_states)
-            assert(self._local_states.ndim == 1)
+            assert self._local_states.ndim == 1
             self._local_size = self._local_states.shape[0]
             self._local_states = self._local_states.tolist()
         else:
@@ -117,11 +117,14 @@ class PyCustomHilbert(AbstractHilbert):
         hind = self._get_hilbert_index()
 
         out = self._to_constrained_numbers_kernel(
-            self._do_constraints, self._bare_numbers, hind.states_to_numbers(states, out))
+            self._do_constraints,
+            self._bare_numbers,
+            hind.states_to_numbers(states, out),
+        )
 
         return out
 
-    def random_vals(self, out=None, rgen=None):
+    def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -138,8 +141,7 @@ class PyCustomHilbert(AbstractHilbert):
            >>> import numpy as np
            >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
            >>> rstate = np.zeros(hi.size)
-           >>> rg = nk.utils.RandomEngine(seed=1234)
-           >>> hi.random_vals(rstate, rg)
+           >>> hi.random_vals(rstate)
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
@@ -147,11 +149,11 @@ class PyCustomHilbert(AbstractHilbert):
 
         # Default version for discrete hilbert spaces without constraints
         # More specialized initializations can be defined in the derived classes
-        if(self.is_discrete and self.is_finite and not self._do_constraints):
+        if self.is_discrete and self.is_finite and not self._do_constraints:
             if out is None:
                 out = _np.empty(self._size)
 
-            if(rgen is None):
+            if rgen is None:
                 rgen = _random
 
             for i in range(self._size):
@@ -163,17 +165,18 @@ class PyCustomHilbert(AbstractHilbert):
         return NotImplementedError
 
     def _get_hilbert_index(self):
-        if(self._hilbert_index is None):
-            if(not self.is_indexable):
-                raise RuntimeError(
-                    'The hilbert space is too large to be indexed.')
+        if self._hilbert_index is None:
+            if not self.is_indexable:
+                raise RuntimeError("The hilbert space is too large to be indexed.")
 
-            self._hilbert_index = HilbertIndex(_np.asarray(
-                self.local_states, dtype=_np.float64), self.size)
+            self._hilbert_index = HilbertIndex(
+                _np.asarray(self.local_states, dtype=_np.float64), self.size
+            )
 
-            if(self._do_constraints):
+            if self._do_constraints:
                 self._bare_numbers = self._gen_to_bare_numbers(
-                    self._constraints(self._hilbert_index.all_states()))
+                    self._constraints(self._hilbert_index.all_states())
+                )
             else:
                 self._bare_numbers = _np.empty(0, dtype=_np.intp)
 
@@ -197,7 +200,8 @@ class PyCustomHilbert(AbstractHilbert):
             return numbers
         else:
             found = _np.searchsorted(bare_numbers, numbers)
-            if(_np.max(found) >= bare_numbers.shape[0]):
+            if _np.max(found) >= bare_numbers.shape[0]:
                 raise RuntimeError(
-                    "The required state does not satisfy the given constraints.")
+                    "The required state does not satisfy the given constraints."
+                )
             return found
