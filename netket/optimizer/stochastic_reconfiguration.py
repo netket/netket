@@ -1,5 +1,7 @@
 import numpy as _np
 from scipy.linalg import lstsq as _lstsq
+from scipy.linalg import cho_factor as _cho_factor
+from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
 from netket.stats import sum_on_nodes as _sum_on_nodes
 from scipy.sparse.linalg import cg, gmres, minres
@@ -49,7 +51,7 @@ class SR:
 
         if lsq_solver in ["gmres", "cg", "minres"]:
             self._use_iterative = True
-        if lsq_solver in ["ColPivHouseholder", "QR", "SVD"]:
+        if lsq_solver in ["ColPivHouseholder", "QR", "SVD", "Cholesky"]:
             self._use_iterative = False
 
         if self._use_iterative:
@@ -76,7 +78,7 @@ class SR:
                 or "QR" in lsq_solver
             ):
                 self._lapack_driver = "gelsy"
-            elif "SVD" in lsq_solver:
+            elif "SVD" in lsq_solver or "Cholesky" in lsq_solver:
                 self._lapack_driver = None
             else:
                 self._lapack_driver = None
@@ -136,12 +138,17 @@ class SR:
 
                 self._apply_preconditioning(grad)
 
-                out[:], residuals, self._last_rank, s_vals = _lstsq(
-                    self._S,
-                    grad,
-                    cond=self._svd_threshold,
-                    lapack_driver=self._lapack_driver,
-                )
+                if self._lsq_solver == "Cholesky":
+                    c, low = _cho_factor(self._S)
+                    out[:] = _cho_solve((c, low), grad)
+
+                else:
+                    out[:], residuals, self._last_rank, s_vals = _lstsq(
+                        self._S,
+                        grad,
+                        cond=self._svd_threshold,
+                        lapack_driver=self._lapack_driver,
+                    )
 
                 self._revert_preconditioning(out)
 
@@ -168,12 +175,16 @@ class SR:
 
                 self._apply_preconditioning(grad)
 
-                out[:].real, residuals, self._last_rank, s_vals = _lstsq(
-                    self._S.real,
-                    grad.real,
-                    cond=self._svd_threshold,
-                    lapack_driver=self._lapack_driver,
-                )
+                if self._lsq_solver == "Cholesky":
+                    c, low = _cho_factor(self._S, check_finite=False)
+                    out[:].real = _cho_solve((c, low), grad)
+                else:
+                    out[:].real, residuals, self._last_rank, s_vals = _lstsq(
+                        self._S.real,
+                        grad.real,
+                        cond=self._svd_threshold,
+                        lapack_driver=self._lapack_driver,
+                    )
 
                 self._revert_preconditioning(out.real)
 
