@@ -283,7 +283,6 @@ set(NETKET_SOURCES
     Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
-    Sources/Operator/abstract_operator.cc
     Sources/Sampler/metropolis_hastings.cc
     Sources/Sampler/metropolis_hastings_pt.cc
     Sources/Sampler/exchange_kernel.cc
@@ -300,8 +299,6 @@ set(NETKET_SOURCES
     Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
     Sources/Machine/DensityMatrices/py_density_matrix.cc
-    Sources/Operator/local_liouvillian.cc
-    Sources/Operator/py_local_liouvillian.cc
     Sources/Graph/doubled_graph.cc
     Sources/Hilbert/doubled_hilbert.cc)
 

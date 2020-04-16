@@ -24,7 +24,6 @@
 #include <complex>
 #include <vector>
 #include "Graph/graph.hpp"
-#include "Operator/operator.hpp"
 #include "Sampler/abstract_sampler.hpp"
 #include "Utils/memory_utils.hpp"
 #include "Utils/parallel_utils.hpp"
