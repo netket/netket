@@ -1,14 +1,7 @@
-from .._C_netket.operator import (
-    _der_local_values_kernel,
-    _der_local_values_notcentered_kernel,
-    LocalLiouvillian
-)
-
-
 import numpy as _np
 from numba import jit
 
-
+from netket.operator import local_liouvillian as _local_liouvillian
 from .._C_netket.machine import DensityMatrix
 
 
@@ -16,8 +9,9 @@ from .._C_netket.machine import DensityMatrix
 def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
     low_range = 0
     for i, s in enumerate(sections):
-        out[i] = (mels[low_range:s] *
-                  _np.exp(log_val_primes[low_range:s] - log_vals[i])).sum()
+        out[i] = (
+            mels[low_range:s] * _np.exp(log_val_primes[low_range:s] - log_vals[i])
+        ).sum()
         low_range = s
 
 
@@ -85,7 +79,7 @@ def local_values(op, machine, v, log_vals=None, out=None):
 
     # True when this is the local_value of a densitymatrix times an operator (observable)
     is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
-        op, LocalLiouvillian
+        op, _local_liouvillian
     )
 
     if log_vals is None:
@@ -148,48 +142,62 @@ def local_values(op, machine, v, log_vals=None, out=None):
         "v has wrong dimension: {}; expected either 1, 2 or 3".format(v.ndim)
     )
 
+    log_val_primes = machine.log_val(v_primes)
+
+    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
+
+
+# TODO: numba or cython to improve performance of this kernel
+def _der_local_values_kernel(
+    log_vals, log_val_p, mels, der_log, der_log_p, sections, out
+):
+    low_range = 0
+    for i, s in enumerate(sections):
+        out[i, :] = (
+            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
+                :, _np.newaxis
+            ]
+            * (der_log_p[low_range:s, :] - der_log[i, :])
+        ).sum(axis=0)
+
 
 def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    vprimes, mels = op.get_conn(v)
+    log_val_primes = machine.log_val(v_primes)
 
-    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
-
-    der_log_primes = [machine.der_log(vprime) for vprime in vprimes]
+    der_log_primes = machine.der_log(v_primes)
 
     _der_local_values_kernel(
         log_vals, log_val_primes, mels, der_log_vals, der_log_primes, out
     )
 
-    # for k, sample in enumerate(v):
-    #
-    #     lvd = machine.log_val(vprimes[k])
-    #
-    #     dld = machine.der_log(vprimes[k])
-    #
-    #     out[k,:] = (((mels[k] * _np.exp(lvd - log_vals[k])) * (dld - der_log_val[k,:])).sum(axis=0)
-
 
 # TODO: numba or cython to improve performance of this kernel
-def der_local_values_notcentered_kernel(log_vals, log_val_p, mels, der_log_p, out):
-    for k in range(len(mels)):
-        out[k, :] = ((mels[k] * _np.exp(log_val_p[k] - log_vals[k]))[:, _np.newaxis]
-                     * der_log_p[k]).sum(axis=0)
+def _der_local_values_notcentered_kernel(
+    log_vals, log_val_p, mels, der_log_p, sections, out
+):
+    low_range = 0
+    for i, s in enumerate(sections):
+        out[i, :] = (
+            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
+                :, _np.newaxis
+            ]
+            * der_log_p[low_range:s, :]
+        ).sum(axis=0)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
+    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    v_primes, mels = op.get_conn_flattened(v, sections)
 
-    vprimes, mels = op.get_conn(v)
+    log_val_primes = machine.log_val(v_primes)
 
-    log_val_primes = [machine.log_val(vprime) for vprime in vprimes]
+    der_log_primes = machine.der_log(v_primes)
 
-    der_log_primes = [machine.der_log(vprime) for vprime in vprimes]
-
-    # Avoid using the C++ kernel because of a pybind11 problem. We are probably
-    # copying list-of-numpy arrays when calling C++, which leads to a huge
-    # performance degradation
-    der_local_values_notcentered_kernel(
-        log_vals, log_val_primes, mels, der_log_primes, out
+    _der_local_values_notcentered_kernel(
+        log_vals, log_val_primes, mels, der_log_primes, sections, out
     )
 
 
