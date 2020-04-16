@@ -17,7 +17,7 @@ import netket as nk
 import numpy as np
 
 # 1D Lattice
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=40, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
-alpha = 1
+alpha = 4
 ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
@@ -35,7 +35,7 @@ py_ma = nk.machine.PyRbm(alpha=alpha, hilbert=hi)
 py_ma.parameters = ma.parameters
 
 # Metropolis Local Sampling
-batch_size = 32
+batch_size = 16
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
 
 n_samples = 1000
