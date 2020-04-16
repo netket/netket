@@ -156,7 +156,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name="netket",
-    version="2.1",
+    version="3.0",
     author="Giuseppe Carleo et al.",
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
@@ -176,5 +176,5 @@ setup(
         "tqdm>=4.42.1",
         "numba>=0.48.0",
     ],
-    python_requires='>=3.6'
+    python_requires=">=3.6",
 )
