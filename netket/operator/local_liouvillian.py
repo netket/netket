@@ -1,5 +1,5 @@
 from .abstract_operator import AbstractOperator
-from ..hilbert import PyDoubledHilbert as DoubledHilbert
+from ..hilbert import DoubledHilbert
 
 import numpy as _np
 from numba import jit
@@ -41,7 +41,7 @@ class LocalLiouvillian(AbstractOperator):
         return self._jump_ops
 
     def _compute_hnh(self):
-        Hnh = self._H
+        Hnh = 1.0 * self._H
         max_conn_size = 0
         for L in self._jump_ops:
             Hnh += -0.5j * L.conjugate().transpose() * L
@@ -77,13 +77,10 @@ class LocalLiouvillian(AbstractOperator):
 
     def get_conn(self, x):
         n_sites = x.shape[0] // 2
-        xr, xc = x[0:n_sites], x[n_sites : 2 * n_sites]
-        i = 0
-
         batch_size = x.shape[0]
 
-        # sec_hnh_l = np.empty(batch_size, dtype=_np.intp)
-        # sec_hnh_r = np.empty(batch_size, dtype=_np.intp)
+        xr, xc = x[0:n_sites], x[n_sites : 2 * n_sites]
+        i = 0
 
         xrp, mel_r = self._Hnh_dag.get_conn(xr)
         self._xrv[i : i + len(mel_r), :] = xrp
@@ -91,8 +88,7 @@ class LocalLiouvillian(AbstractOperator):
         self._mels[i : i + len(mel_r)] = mel_r * 1j
         i = i + len(mel_r)
 
-        # xcp, mel_c = self._Hnh_dag.get_conn_flattened(xc, sec_hnh_r)
-        xcp, mel_c = self._Hnh_dag.get_conn(xc)
+        xcp, mel_c = self._Hnh.get_conn(xc)
         self._xrv[i : i + len(mel_c), :] = xr
         self._xcv[i : i + len(mel_c), :] = xcp
         self._mels[i : i + len(mel_r)] = mel_c * (-1j)

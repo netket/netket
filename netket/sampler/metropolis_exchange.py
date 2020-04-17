@@ -2,9 +2,8 @@ import numpy as _np
 from netket import random as _random
 
 from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import PyMetropolisHastings
-from .metropolis_hastings_pt import PyMetropolisHastingsPt
-from .._C_netket import sampler as c_sampler
+from .metropolis_hastings import MetropolisHastings
+from .metropolis_hastings_pt import MetropolisHastingsPt
 
 from numba import jit, jitclass
 from numba import int64, float64
@@ -17,7 +16,7 @@ class _exchange_kernel:
         size = distances.shape[0]
         for i in range(size):
             for j in range(i + 1, size):
-                if(distances[i][j] <= d_max):
+                if distances[i][j] <= d_max:
                     clusters.append((i, j))
 
         self.clusters = _np.empty((len(clusters), 2), dtype=int64)
@@ -44,7 +43,7 @@ class _exchange_kernel:
         log_prob_corr[:] = 0.0
 
 
-class MetropolisExchange(AbstractSampler):
+class MetropolisExchange(MetropolisHastings):
     """
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -68,7 +67,7 @@ class MetropolisExchange(AbstractSampler):
     otherwise the sampling would be strongly not ergodic.
     """
 
-    def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None, backend=None):
+    def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None):
         """
         Args:
               machine: A machine :math:`\Psi(s)` used for the sampling.
@@ -101,47 +100,16 @@ class MetropolisExchange(AbstractSampler):
               >>> print(sa.machine.hilbert.size)
               100
         """
-        if "_C_netket.machine" in str(type(machine)) and backend != 'py':
-            self.sampler = c_sampler.MetropolisExchange(
-                machine=machine,
-                n_chains=n_chains,
-                d_max=d_max,
-                sweep_size=sweep_size,
-                batch_size=batch_size,
-            )
-        else:
-            self.sampler = PyMetropolisHastings(
-                machine,
-                _exchange_kernel(
-                    _np.asarray(machine.hilbert.graph.distances), d_max
-                ),
-                n_chains,
-                sweep_size,
-                batch_size,
-            )
-        super().__init__(machine, n_chains)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+        super().__init__(
+            machine,
+            _exchange_kernel(_np.asarray(machine.hilbert.graph.distances), d_max),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )
 
 
-class MetropolisExchangePt(AbstractSampler):
+class MetropolisExchangePt(MetropolisHastingsPt):
     """
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisExchange`.
@@ -149,7 +117,7 @@ class MetropolisExchangePt(AbstractSampler):
     """
 
     def __init__(
-        self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None, backend=None
+        self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None
     ):
         """
         Args:
@@ -181,40 +149,10 @@ class MetropolisExchangePt(AbstractSampler):
             >>> print(sa.machine.hilbert.size)
             100
         """
-        if "_C_netket.machine" in str(type(machine)) and backend != 'py':
-            self.sampler = c_sampler.MetropolisExchangePt(
-                machine=machine,
-                n_replicas=n_replicas,
-                d_max=d_max,
-                sweep_size=sweep_size,
-            )
-        else:
-            self.sampler = PyMetropolisHastingsPt(
-                machine,
-                _exchange_kernel(
-                    _np.asarray(machine.hilbert.graph.distances), d_max
-                ),
-                n_chains,
-                sweep_size,
-                batch_size,
-            )
-        super().__init__(machine, 1)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def stats(self):
-        """Statistics of the sampling."""
-        return self.sampler.stats
+        super().__init__(
+            machine,
+            _exchange_kernel(_np.asarray(machine.hilbert.graph.distances), d_max),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )

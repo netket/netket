@@ -53,24 +53,26 @@ def test_vmc_functions():
 
         for _ in sampler.samples(10):
             pass
-        samples = np.array(list(sampler.samples(n_samples)))
+        samples = sampler.generate_samples(n_samples).reshape((-1, ma.hilbert.size))
+
         der_logs = ma.der_log(samples)
-        nk.stats.subtract_mean(der_logs)
+        der_logs -= nk.stats.mean(der_logs)
 
         local_values = nk.operator.local_values(op, ma, samples)
 
-        ex = nk.stats.statistics(local_values)
+        mean = local_values.mean()
+        var = local_values.var()
+        print(mean, var)
 
         # 5-sigma test for expectation values
-        tol = ex.error_of_mean * 5
-        assert ex.mean.real == approx(np.mean(local_values).real, abs=tol)
-        assert ex.mean.real == approx(exact_ex.real, abs=tol)
+        tol = np.sqrt(var / float(local_values.size)) * 5
+        assert mean.real == approx(exact_ex.real, abs=tol)
 
         stats = vmc.estimate_expectations(
             op, sampler, n_samples=n_samples, n_discard=10
         )
 
-        assert stats.mean.real == approx(np.mean(local_values).real, rel=tol)
+        assert stats.mean.real == approx(mean.real, rel=tol)
         assert stats.mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)

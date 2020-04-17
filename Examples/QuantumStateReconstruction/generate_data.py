@@ -7,14 +7,13 @@ import numpy as np
 
 
 def build_rotation(hi, basis):
-    localop = op.LocalOperator(hi, 1.0)
+    localop = op.LocalOperator(hi, constant=1.0)
     U_X = 1.0 / (ma.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (ma.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
 
     N = hi.size
 
     assert len(basis) == hi.size
-
     for j in range(hi.size):
         if basis[j] == "X":
             localop *= op.LocalOperator(hi, U_X, [j])

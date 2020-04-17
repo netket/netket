@@ -3,7 +3,7 @@ import numpy as _np
 
 
 """int: Maximum number of states that can be indexed"""
-max_states = (_np.iinfo(_np.intp).max)
+max_states = _np.iinfo(_np.int32).max
 
 
 class AbstractHilbert(abc.ABC):
@@ -44,7 +44,7 @@ class AbstractHilbert(abc.ABC):
         for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
         Throws an exception iff the space is not indexable.
         Args:
-            numbers: Batch of input numbers to be converted into arrays of quantum numbers.
+            numbers (numpy.array): Batch of input numbers to be converted into arrays of quantum numbers.
             out: Array of quantum numbers corresponding to numbers.
                  If None, memory is allocated.
         """
@@ -54,13 +54,20 @@ class AbstractHilbert(abc.ABC):
         r"""Returns the quantum number corresponding to the n-th basis state
         for input n. n is a integer index such that number=Index(state).
         Throws an exception iff the space is not indexable.
+        For a batch of numbers, prefer ```numbers_to_states```.
+
         Args:
-            numbers: Batch of input numbers to be converted into arrays of quantum numbers.
+            numbers (int or numpy.array): Input numbers to be converted into arrays
+                                          of quantum numbers.
 
         Returns:
-            numpy.array: An array of quantum numbers corresponding to the state.
+            int or numpy.array: A single number or an array (batched version) of
+                                quantum numbers corresponding to the state.
         """
-        return self.numbers_to_states(_np.atleast_1d(number))[0,:]
+        if _np.isscalar(number):
+            return self.numbers_to_states(_np.atleast_1d(number))[0, :]
+        else:
+            return self.numbers_to_states(number)
 
     def states_to_numbers(self, states, out=None):
         r"""Returns the basis state number corresponding to given quantum states.
@@ -80,14 +87,20 @@ class AbstractHilbert(abc.ABC):
     def state_to_number(self, state):
         r"""Returns the basis state number corresponding to given quantum states.
         Throws an exception iff the space is not indexable.
+        For a batch of states, prefer ```states_to_numbers```.
 
         Args:
-            state: A state to be converted into the corresponding integer.
+            state: A state or a batch of states to be converted into the corresponding integer.
 
         Returns:
             int: The index of the given input state.
         """
-        return self.states_to_numbers(_np.atleast_2d(state))[0]
+        if state.ndim == 1:
+            return self.states_to_numbers(_np.atleast_2d(state))[0]
+        elif state.ndim == 2:
+            return self.states_to_numbers(state)
+        else:
+            raise RuntimeError("Invalid shape for state.")
 
     @property
     def n_states(self):
@@ -104,6 +117,30 @@ class AbstractHilbert(abc.ABC):
         """
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
+
+    def random_vals(self, out=None, rgen=None):
+        r"""Member function generating uniformely distributed local random states.
+            Prefer random_state instad.
+
+        Args:
+            out: If provided, the random quantum numbers will be inserted into this array.
+                 It should be of the appropriate shape and dtype.
+            rgen: The random number generator. If None, the global
+                  NetKet random number generator is used.
+        """
+        return self.random_state(out, rgen)
+
+    @abc.abstractmethod
+    def random_state(self, out=None, rgen=None):
+        r"""Member function generating uniformely distributed local random states.
+
+        Args:
+            out: If provided, the random quantum numbers will be inserted into this array.
+                 It should be of the appropriate shape and dtype.
+            rgen: The random number generator. If None, the global
+                  NetKet random number generator is used.
+        """
+        raise NotImplementedError
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.
@@ -123,7 +160,7 @@ class AbstractHilbert(abc.ABC):
         if not self.is_discrete:
             return False
 
-        if(not self.is_finite):
+        if not self.is_finite:
             return False
 
         log_max = _np.log(max_states)

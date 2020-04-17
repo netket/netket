@@ -44,11 +44,11 @@ ma.parameters = 0.1 * (np.random.randn(ma.n_par))
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 
 # Optimizer
-op = nk.optimizer.AdaDelta()
+op = nk.optimizer.Sgd(0.1)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, method="Gd"
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, method="Sr", use_iterative=True
 )
 
-gs.run(output_prefix="test", n_iter=30000)
+gs.run(output_prefix="test", n_iter=300)

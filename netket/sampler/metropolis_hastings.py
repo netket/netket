@@ -9,7 +9,7 @@ from netket import random as _random
 import math
 
 
-class PyMetropolisHastings(AbstractSampler):
+class MetropolisHastings(AbstractSampler):
     """
     ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
     a local transition kernel to perform moves in the Markov Chain.
@@ -84,7 +84,7 @@ class PyMetropolisHastings(AbstractSampler):
 
     @machine_pow.setter
     def machine_pow(self, m_power):
-        if(not _np.isscalar(m_power)):
+        if not _np.isscalar(m_power):
             raise ValueError("machine_pow should be a scalar.")
         self._machine_pow = m_power
 
@@ -112,8 +112,7 @@ class PyMetropolisHastings(AbstractSampler):
         if init_random:
             for state in self._state:
                 self._hilbert.random_vals(out=state)
-        self._log_values = self.machine.log_val(
-            self._state, out=self._log_values)
+        self._log_values = self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = 0
         self._total_samples = 0
@@ -127,10 +126,9 @@ class PyMetropolisHastings(AbstractSampler):
 
         for i in range(state.shape[0]):
             prob = _np.exp(
-                machine_pow *
-                (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
+                machine_pow * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
             )
-            assert(not math.isnan(prob))
+            assert not math.isnan(prob)
 
             if prob > _random.uniform(0, 1):
                 log_values[i] = log_values_1[i]

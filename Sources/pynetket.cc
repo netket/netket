@@ -20,9 +20,6 @@
 #include "Graph/py_graph.hpp"
 #include "Hilbert/py_hilbert.hpp"
 #include "Machine/py_machine.hpp"
-#include "Operator/py_operator.hpp"
-#include "Optimizer/py_optimizer.hpp"
-#include "Sampler/py_sampler.hpp"
 #include "Stats/py_stats.hpp"
 // #include "Supervised/py_supervised.hpp"
 #include "Utils/mpi_interface.hpp"  // for MPIInitializer
@@ -36,9 +33,6 @@ PYBIND11_MODULE(_C_netket, m) {
   AddGraphModule(m);
   AddHilbertModule(m);
   AddMachineModule(m);
-  AddOperatorModule(m);
-  AddOptimizerModule(m);
-  AddSamplerModule(m);
   AddStatsModule(m.ptr());
   AddUtilsModule(m);
   // AddSupervisedModule(m);

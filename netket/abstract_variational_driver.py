@@ -6,7 +6,7 @@ import numpy as _np
 
 from netket.logging import JsonLog as _JsonLog
 
-from netket.vmc_common import make_optimizer_fn, tree_map
+from netket.vmc_common import tree_map
 
 from tqdm import tqdm
 
@@ -38,9 +38,7 @@ class AbstractVariationalDriver(abc.ABC):
         self.step_count = 0
 
         self._machine = machine
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
-            optimizer, self._machine
-        )
+        self._optimizer = optimizer
 
     def _forward_and_backward(self):
         """
@@ -218,9 +216,7 @@ class AbstractVariationalDriver(abc.ABC):
         Args:
             :param dp: the gradient
         """
-        self._machine.parameters = self._optimizer_step(
-            self.step_count, dp, self._machine.parameters
-        )
+        self._machine.parameters = self._optimizer.update(dp, self._machine.parameters)
         self.step_count += 1
 
     @deprecated()

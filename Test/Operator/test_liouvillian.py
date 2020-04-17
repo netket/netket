@@ -31,8 +31,8 @@ L = 5
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
-
+hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi_c = nk.hilbert.Spin(s=0.5, graph=g)
 
 # Defining the Ising hamiltonian (with sign problem here)
 # Using local operators
@@ -83,7 +83,7 @@ def test_lindblad_zero_eigenvalue():
 
 
 def test_der_log_val():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
+    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
     for i in range(0, lind.hilbert.n_states):
@@ -105,6 +105,15 @@ def test_der_log_val():
         grad_all = grad.sum(axis=0)
 
         np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
+
+        # centered
+        # not necessary for liouvillian but worth checking
+        der_loc_vals = nk.operator.der_local_values(lind, ma, state, center_derivative=True)
+        grad = log_val_diff * (der_log_p - der_log_s)
+        grad_all = grad.sum(axis=0)
+
+        np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
+
 
 
 # Construct the operators for Sx, Sy and Sz
