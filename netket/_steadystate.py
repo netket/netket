@@ -274,7 +274,10 @@ class SteadyState(AbstractVariationalDriver):
         if not self._obs_samples_valid:
             self.sweep_diagonal()
 
-        loc = _local_values(op, self._machine, self._samples_obs)
+        loc = _np.empty(self._samples_obs.shape[0:2], dtype=_np.complex128)
+        for i, sample in enumerate(self._samples_obs):
+            _local_values(op, self._machine, sample, out=loc[i])
+
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.
         return loc, _statistics(loc.T)

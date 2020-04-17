@@ -59,11 +59,9 @@ def local_values(op, machine, v, log_vals=None, out=None):
 
             Args:
                 op: Hermitian operator.
-                v: A numpy array or matrix containing either a single
-                    :math:`V = v` or a batch of visible
+                v: A numpy array or matrix containing either a batch of visible
                     configurations :math:`V = v_1,\dots v_M`.
-                    In the latter case, each row of the matrix corresponds to a
-                    visible configuration.
+                    Each row of the matrix corresponds to a visible configuration.
                 machine: Wavefunction :math:`\Psi`.
                 log_vals: A scalar/numpy array containing the value(s) :math:`\Psi(V)`.
                     If not given, it is computed from scratch.
@@ -81,6 +79,8 @@ def local_values(op, machine, v, log_vals=None, out=None):
     is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
         op, _LocalLiouvillian
     )
+    if v.ndim != 2:
+        raise RuntimeError("Invalid input shape, expected a 2d array")
 
     if log_vals is None:
         if not is_op_times_op:
@@ -93,58 +93,16 @@ def local_values(op, machine, v, log_vals=None, out=None):
     else:
         _impl = _local_values_op_op_impl
 
-    if v.ndim == 3:
-        assert (
-            v.shape[2] == op.hilbert.size
-        ), "samples has wrong shape: {}; expected (?, {})".format(
-            v.shape, op.hilbert.size
-        )
+    assert (
+        v.shape[1] == op.hilbert.size
+    ), "samples has wrong shape: {}; expected (?, {})".format(v.shape, op.hilbert.size)
 
-        if out is None:
-            out = _np.empty(v.shape[0] * v.shape[1], dtype=_np.complex128)
+    if out is None:
+        out = _np.empty(v.shape[0], dtype=_np.complex128)
 
-        _impl(
-            op,
-            machine,
-            v.reshape(-1, op.hilbert.size),
-            log_vals.reshape(-1),
-            out.reshape(-1),
-        )
+    _impl(op, machine, v, log_vals, out)
 
-        return out.reshape(v.shape[0:-1])
-    elif v.ndim == 2:
-        assert (
-            v.shape[1] == op.hilbert.size
-        ), "samples has wrong shape: {}; expected (?, {})".format(
-            v.shape, op.hilbert.size
-        )
-
-        if out is None:
-            out = _np.empty(v.shape[0], dtype=_np.complex128)
-
-        _impl(op, machine, v, log_vals, out)
-
-        return out
-    elif v.ndim == 1:
-        assert v.size == op.hilbert.size, "v has wrong size: {}; expected {}".format(
-            v.shape, op.hilbert.size
-        )
-        if out is None:
-            out = _np.empty(1, dtype=_np.complex128)
-        else:
-            out = _np.atleast_1d(out)
-
-        log_vals = _np.atleast_1d(log_vals)
-
-        _impl(op, machine, v.reshape(1, -1), log_vals.reshape(1, -1), out)
-        return out[0]
-    raise ValueError(
-        "v has wrong dimension: {}; expected either 1, 2 or 3".format(v.ndim)
-    )
-
-    log_val_primes = machine.log_val(v_primes)
-
-    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
+    return out
 
 
 # TODO: numba or cython to improve performance of this kernel
