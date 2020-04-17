@@ -5,13 +5,21 @@ from . import var as _var
 from . import total_size as _total_size
 
 
+def _format_decimal(value, std):
+    decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+    return (
+        "{0:.{1}f}".format(value, decimals),
+        "{0:.{1}f}".format(std, decimals + 1),
+    )
+
+
 class Stats:
     """A dict-compatible class containing the result of the statistics function."""
 
     _NaN = float("NaN")
 
     def __init__(
-        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R=_NaN,
+        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R=_NaN
     ):
         self.mean = mean
         self.error_of_mean = error_of_mean
@@ -29,8 +37,9 @@ class Stats:
         return jsd
 
     def __repr__(self):
-        return "{:.4e} ± {:.1e} [var={:.1e}, R={:.3f}]".format(
-            self.mean, self.error_of_mean, self.variance, self.R
+        mean, err = _format_decimal(self.mean, self.error_of_mean)
+        return "{} ± {} [var={:.1e}, R={:.4f}]".format(
+            mean, err, self.variance, self.R
         )
 
     def __getitem__(self, name):
