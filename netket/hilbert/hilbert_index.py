@@ -54,8 +54,8 @@ class HilbertIndex:
 
         if out is None:
             out = _np.empty(self._size)
-        else:
-            assert out.size == self._size
+        # else:
+        #     assert out.size == self._size
 
         out.fill(self._local_states[0])
 
@@ -74,8 +74,8 @@ class HilbertIndex:
 
         if out is None:
             out = _np.empty(states.shape[0], _np.int64)
-        else:
-            assert out.size == states.shape[0]
+        # else:
+        #     assert out.size == states.shape[0]
 
         for i in range(states.shape[0]):
             out[i] = 0
@@ -103,6 +103,7 @@ class HilbertIndex:
     def all_states(self, out=None):
         if out is None:
             out = _np.empty((self.n_states, self._size))
+
         for i in range(self.n_states):
             self.number_to_state(i, out[i])
         return out
