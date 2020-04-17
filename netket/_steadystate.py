@@ -65,6 +65,8 @@ class SteadyState(AbstractVariationalDriver):
         self._sampler = sampler
         self._sampler_obs = sampler_obs
         self._sr = sr
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 

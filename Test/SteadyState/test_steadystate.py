@@ -6,7 +6,7 @@ import shutil
 import tempfile
 
 
-SEED = 3141592
+SEED = 543215
 L = 4
 
 sx = [[0, 1], [1, 0]]
