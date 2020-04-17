@@ -50,7 +50,7 @@ def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
-    """
+    r"""
     Computes local values of the operator `op` for all `samples`.
 
     The local value is defined as
@@ -202,7 +202,7 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 def der_local_values(
     op, machine, v, log_vals=None, der_log_vals=None, out=None, center_derivative=True
 ):
-    """
+    r"""
     Computes the derivative of local values of the operator `op` for all `samples`.
 
     The local value is defined as
