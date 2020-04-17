@@ -92,8 +92,8 @@ class HilbertIndex:
 
         if out is None:
             out = _np.empty((numbers.shape[0], self._size))
-        else:
-            assert out.shape == (numbers.shape[0], self._size)
+        # else:
+        #     assert out.shape == (numbers.shape[0], self._size)
 
         for i in range(numbers.shape[0]):
             out[i] = self.number_to_state(numbers[i])
