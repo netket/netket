@@ -10,7 +10,7 @@ class DoubledHilbert(AbstractHilbert):
     tensorised state H\otimes H, encoded according to Choi's isomorphism."""
 
     def __init__(self, hilb):
-        """Superoperatorial hilbert space for states living in the
+        r"""Superoperatorial hilbert space for states living in the
            tensorised state H\otimes H, encoded according to Choi's isomorphism.
 
         Args:
@@ -108,16 +108,13 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def random_vals(self, out=None, rgen=None):
+    def random_state(self, out=None, rgen=None):
         if out is None:
             out = _np.empty(self._size)
 
-        if rgen is None:
-            rgen = _random
-
         n = self.size_physical
 
-        self.physical.random_vals(out=out[0:n], rgen=rgen)
-        self.physical.random_vals(out=out[n : 2 * n], rgen=rgen)
+        self.physical.random_state(out=out[0:n], rgen=rgen)
+        self.physical.random_state(out=out[n : 2 * n], rgen=rgen)
 
         return out

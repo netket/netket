@@ -1,8 +1,8 @@
 import numpy as _np
 from netket import random as _random
 
-from .metropolis_hastings import PyMetropolisHastings
-from .metropolis_hastings_pt import PyMetropolisHastingsPt
+from .metropolis_hastings import MetropolisHastings
+from .metropolis_hastings_pt import MetropolisHastingsPt
 
 from numba import jit
 import math
@@ -38,7 +38,7 @@ class _hamiltonian_kernel:
             low_range = s
 
 
-class MetropolisHamiltonian(PyMetropolisHastings):
+class MetropolisHamiltonian(MetropolisHastings):
     """
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
@@ -89,22 +89,20 @@ class MetropolisHamiltonian(PyMetropolisHastings):
            >>> sa = nk.sampler.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
         """
         super().__init__(
-            machine,
-            _hamiltonian_kernel(hamiltonian),
-            n_chains,
-            sweep_size,
-            batch_size
+            machine, _hamiltonian_kernel(hamiltonian), n_chains, sweep_size, batch_size
         )
 
 
-class MetropolisHamiltonianPt(PyMetropolisHastingsPt):
+class MetropolisHamiltonianPt(MetropolisHastingsPt):
     """
      This sampler performs parallel-tempering
      moves in addition to the local moves implemented in `MetropolisLocal`.
      The number of replicas can be :math:`N_{\mathrm{rep}}` chosen by the user.
     """
 
-    def __init__(self, machine, hamiltonian, n_replicas=16, sweep_size=None, batch_size=None):
+    def __init__(
+        self, machine, hamiltonian, n_replicas=16, sweep_size=None, batch_size=None
+    ):
         """
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
@@ -118,8 +116,10 @@ class MetropolisHamiltonianPt(PyMetropolisHastingsPt):
             batch_size: The batch size to be used when calling log_val on the given Machine.
                         If None, batch_size is equal to the number of replicas (n_replicas).
         """
-        super().__init__(machine,
-                         _hamiltonian_kernel(hamiltonian),
-                         n_replicas,
-                         sweep_size,
-                         batch_size)
+        super().__init__(
+            machine,
+            _hamiltonian_kernel(hamiltonian),
+            n_replicas,
+            sweep_size,
+            batch_size,
+        )

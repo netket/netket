@@ -5,8 +5,8 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from .operator import _rotated_grad_kernel
-from ._C_netket.utils import random_engine, rand_uniform_int
+
+from netket.random import randint
 
 from netket.stats import (
     statistics as _statistics,
@@ -16,6 +16,8 @@ from netket.stats import (
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
+
+from numba import jit
 
 
 class Qsr(AbstractVariationalDriver):
@@ -172,19 +174,19 @@ class Qsr(AbstractVariationalDriver):
             self._samples[i] = sample
 
         # Randomly select a batch of training data
-        rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
+        self._rand_ind = self._get_rand_ind(
+            self._n_samples_data_node, self._n_training_samples
+        )
 
-        rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
-
-        self._data_samples = self._t_samples[rand_ind]
-        self._data_bases = self._bases[rand_ind]
+        self._data_samples = self._t_samples[self._rand_ind]
+        self._data_bases = self._bases[self._rand_ind]
 
         # Perform update
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
             # Computes the jacobian
             for i, sample in enumerate(self._samples):
-                self._der_logs[i] = self._machine.der_log(sample)
+                self._der_logs[i] = self._machine.der_log(sample, out=self._der_logs[i])
 
             grad_neg = _mean(self._der_logs.reshape(-1, self._npar), axis=0).conjugate()
 
@@ -230,16 +232,27 @@ class Qsr(AbstractVariationalDriver):
 
         log_val_primes = self._machine.log_val(x_primes)
 
-        vec = _np.empty(mels.size, dtype=_np.complex128)
-
-        _rotated_grad_kernel(log_val_primes, mels, vec)
+        vec = self._rotated_grad_kernel(log_val_primes, mels)
 
         self._machine.vector_jacobian_prod(x_primes, vec, out)
 
-    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
-    #     #     max_log_val = log_val_primes.real.max()
-    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
-    #     #     vec /= vec.sum()
+    @staticmethod
+    @jit
+    def _rotated_grad_kernel(log_val_primes, mels):
+        vec = _np.empty(mels.size, dtype=_np.complex128)
+        max_log_val = log_val_primes.real.max()
+        vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
+        vec /= vec.sum()
+        return vec
+
+    @staticmethod
+    @jit
+    def _get_rand_ind(n, n_max):
+        rand_ind = _np.empty(n, dtype=_np.intc)
+
+        for i in range(n):
+            rand_ind[i] = randint(0, n_max)
+        return rand_ind
 
     def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]

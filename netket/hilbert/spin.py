@@ -30,25 +30,28 @@ class PySpin(PyCustomHilbert):
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
 
-        assert(int(2 * s + 1) == local_size)
+        assert int(2 * s + 1) == local_size
 
         for i in range(local_size):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
         self._check_total_sz(total_sz, graph.size)
-        if(total_sz is not None):
-            def constraints(x): return self._sum_constraint(x, total_sz)
+        if total_sz is not None:
+
+            def constraints(x):
+                return self._sum_constraint(x, total_sz)
+
         else:
             constraints = None
 
-        self._total_sz = total_sz
+        self._total_sz = total_sz if total_sz is None else int(total_sz)
         self._s = s
         self._local_size = local_size
 
         super().__init__(graph, local_states, constraints)
 
-    def random_vals(self, out=None, rgen=None):
+    def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -65,8 +68,7 @@ class PySpin(PyCustomHilbert):
            >>> import numpy as np
            >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
            >>> rstate = np.zeros(hi.size)
-           >>> rg = nk.utils.RandomEngine(seed=1234)
-           >>> hi.random_vals(rstate, rg)
+           >>> hi.random_state(rstate)
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
@@ -75,10 +77,10 @@ class PySpin(PyCustomHilbert):
         if out is None:
             out = _np.empty(self._size)
 
-        if(rgen is None):
+        if rgen is None:
             rgen = _random
 
-        if(self._total_sz is None):
+        if self._total_sz is None:
             for i in range(self._size):
                 rs = rgen.randint(0, self._local_size)
                 out[i] = self.local_states[rs]
@@ -93,7 +95,7 @@ class PySpin(PyCustomHilbert):
 
                 out[sites[s]] += 2
 
-                if(out[sites[s]] > round(2 * self._s - 1)):
+                if out[sites[s]] > round(2 * self._s - 1):
                     sites.pop(s)
                     ss -= 1
 
@@ -105,16 +107,16 @@ class PySpin(PyCustomHilbert):
         return _np.sum(x, axis=1) == round(2 * total_sz)
 
     def _check_total_sz(self, total_sz, size):
-        if(total_sz is None):
+        if total_sz is None:
             return
 
         m = round(2 * total_sz)
-        if (_np.abs(m) > size):
+        if _np.abs(m) > size:
             raise Exception(
-                "Cannot fix the total magnetization: 2|M| cannot "
-                "exceed Nspins.")
+                "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
+            )
 
-        if ((size + m) % 2 != 0):
+        if (size + m) % 2 != 0:
             raise Exception(
-                "Cannot fix the total magnetization: Nspins + "
-                "totalSz must be even.")
+                "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
+            )

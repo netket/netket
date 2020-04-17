@@ -20,7 +20,7 @@ import numpy as np
 
 
 mpi_rank = nk.MPI.rank()
-nk.utils.seed(123)
+nk.random.seed(123)
 
 # Generate and load the data
 N = 10
@@ -33,7 +33,7 @@ ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=4)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=32)
 
 # Optimizer
 op = nk.optimizer.AdaDelta()
@@ -54,29 +54,29 @@ qst = nk.Qsr(
 qst.add_observable(ha, "Energy")
 
 
-for step in qst.iter(500, 50):
-    obs = qst.get_observable_stats()
-    if mpi_rank == 0:
-        print("step={}".format(step))
-        print("observables={}".format(obs))
+def run():
+    for step in qst.iter(500, 50):
+        obs = qst.get_observable_stats()
+        if mpi_rank == 0:
+            print("step={}".format(step))
+            print("observables={}".format(obs))
 
-        # Compute fidelity with exact state
-        psima = ma.to_array()
+            # Compute fidelity with exact state
+            psima = ma.to_array(normalize=True)
+            fidelity = np.abs(np.vdot(psima, psi))
+            print("fidelity={}".format(fidelity))
 
-        fidelity = np.abs(np.vdot(psima, psi))
-        print("fidelity={}".format(fidelity))
+            # Compute NLL on training data
+            nll = qst.nll(
+                rotations=rotations,
+                samples=training_samples,
+                bases=training_bases,
+                log_norm=ma.log_norm(),
+            )
+            print("negative log likelihood={}".format(nll))
 
-        # Compute NLL on training data
-        nll = qst.nll(
-            rotations=rotations,
-            samples=training_samples,
-            bases=training_bases,
-            log_norm=ma.log_norm(),
-        )
-        print("negative log likelihood={}".format(nll))
+            # Print output to the console immediately
+            sys.stdout.flush()
 
-        # Print output to the console immediately
-        sys.stdout.flush()
-
-        # Save current parameters to file
-        ma.save("test.wf")
+            # Save current parameters to file
+            ma.save("test.wf")

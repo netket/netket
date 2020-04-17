@@ -105,7 +105,9 @@ def estimate_expectations(
     # Burnout phase
     sampler.generate_samples(n_discard)
     # Generate samples
-    samples = sampler.generate_samples(n_samples)
+    samples = sampler.generate_samples(n_samples).reshape(
+        (-1, sampler.sample_shape[-1])
+    )
 
     if compute_gradients:
         der_logs = psi.der_log(samples)

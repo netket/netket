@@ -3,6 +3,7 @@
 
 #include <Python.h>
 #include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 // TODO: Move me to .cc file!
 // Expose the Stats object to Python as dict

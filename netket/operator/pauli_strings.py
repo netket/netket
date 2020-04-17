@@ -27,28 +27,29 @@ class PauliStrings(AbstractOperator):
            >>> op.hilbert.size
            2
         """
-        if (len(operators) == 0):
+        if len(operators) == 0:
             raise ValueError("No Pauli operators passed.")
 
-        if(len(weights) != len(operators)):
-            raise ValueError(
-                "weights should have the same length as operators.")
+        if len(weights) != len(operators):
+            raise ValueError("weights should have the same length as operators.")
 
-        if(not _np.isscalar(cutoff) or cutoff < 0):
+        if not _np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
 
         _n_qubits = len(operators[0])
         consistent = all(len(op) == _n_qubits for op in operators)
-        if(not consistent):
+        if not consistent:
             raise ValueError("Pauli strings have inhomogeneous lengths.")
 
-        def valid_match(strg, search=re.compile(r'^[XYZI]+$').search):
+        def valid_match(strg, search=re.compile(r"^[XYZI]+$").search):
             return bool(search(strg))
 
         consistent = all(valid_match(op) for op in operators)
-        if(not consistent):
-            raise ValueError("""Operators in string must be one of
-                the Pauli operators X,Y,Z, or the identity I""")
+        if not consistent:
+            raise ValueError(
+                """Operators in string must be one of
+                the Pauli operators X,Y,Z, or the identity I"""
+            )
 
         graph = Edgeless(_n_qubits)
         self._n_qubits = _n_qubits
@@ -70,7 +71,7 @@ class PauliStrings(AbstractOperator):
         def append(key, k):
             # convert list to tuple
             key = tuple(key)
-            if(key in acting):
+            if key in acting:
                 acting[key].append(k)
             else:
                 acting[key] = [k]
@@ -82,18 +83,18 @@ class PauliStrings(AbstractOperator):
             b_z_check = []
             b_weights = weights[i]
 
-            x_ops = find_char(op, 'X')
-            if(len(x_ops)):
+            x_ops = find_char(op, "X")
+            if len(x_ops):
                 b_to_change += x_ops
 
-            y_ops = find_char(op, 'Y')
-            if(len(y_ops)):
+            y_ops = find_char(op, "Y")
+            if len(y_ops):
                 b_to_change += y_ops
-                b_weights *= (1.0j)**(len(y_ops))
+                b_weights *= (1.0j) ** (len(y_ops))
                 b_z_check += y_ops
 
-            z_ops = find_char(op, 'Z')
-            if(len(z_ops)):
+            z_ops = find_char(op, "Z")
+            if len(z_ops):
                 b_z_check += z_ops
 
             _n_z_check_max = max(_n_z_check_max, len(b_z_check))
@@ -109,8 +110,7 @@ class PauliStrings(AbstractOperator):
         _n_op = _np.empty(n_operators, dtype=_np.intp)
         _weights = _np.empty((n_operators, _n_op_max), dtype=_np.complex128)
         _nz_check = _np.empty((n_operators, _n_op_max), dtype=_np.intp)
-        _z_check = _np.empty(
-            (n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
+        _z_check = _np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
 
         for i, act in enumerate(acting.items()):
             sites = act[0]
@@ -122,7 +122,7 @@ class PauliStrings(AbstractOperator):
             for j in range(_n_op[i]):
                 _weights[i, j] = values[j][0]
                 _nz_check[i, j] = len(values[j][1])
-                _z_check[i, j, :_nz_check[i, j]] = values[j][1]
+                _z_check[i, j, : _nz_check[i, j]] = values[j][1]
 
         self._sites = _sites
         self._ns = _ns
@@ -163,40 +163,39 @@ class PauliStrings(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return self._flattened_kernel(_np.atleast_2d(x),  self._x_prime_max, _np.ones(1), self._mels_max,
-                                      self._sites, self._ns, self._n_op,
-                                      self._weights, self._nz_check,
-                                      self._z_check, self._cutoff, self._n_operators)
-
-    # @staticmethod
-    # @jit(nopython=True)
-    # def _get_conn_kernel(x, x_prime, mels, sites, ns, n_op, weights, nz_check, z_check, cutoff):
-    #     n_c = 0
-    #     for i in range(sites.shape[0]):
-    #         mel = 0.0
-    #         for j in range(n_op[i]):
-    #             if(nz_check[i, j] > 0):
-    #                 to_check = z_check[i, j, :nz_check[i, j]]
-    #                 n_z = _np.count_nonzero(x[to_check] == 1)
-    #             else:
-    #                 n_z = 0
-    #             mel += weights[i, j] * (-1.)**n_z
-    #
-    #         if(abs(mel) > cutoff):
-    #             x_prime[n_c] = _np.copy(x)
-    #             for site in sites[i, :ns[i]]:
-    #                 x_prime[n_c, site] = 1 - x_prime[n_c, site]
-    #             mels[n_c] = mel
-    #             n_c += 1
-    #
-    #     return _np.copy(x_prime[:n_c]), _np.copy(mels[:n_c])
+        return self._flattened_kernel(
+            _np.atleast_2d(x),
+            self._x_prime_max,
+            _np.ones(1),
+            self._mels_max,
+            self._sites,
+            self._ns,
+            self._n_op,
+            self._weights,
+            self._nz_check,
+            self._z_check,
+            self._cutoff,
+            self._n_operators,
+        )
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(x, x_prime, sections, mels, sites, ns, n_op, weights, nz_check, z_check, cutoff, max_conn):
-        if(x_prime.shape[0] < x.shape[0] * max_conn):
-            x_prime = _np.empty(
-                (x.shape[0] * max_conn, x_prime.shape[1]))
+    def _flattened_kernel(
+        x,
+        x_prime,
+        sections,
+        mels,
+        sites,
+        ns,
+        n_op,
+        weights,
+        nz_check,
+        z_check,
+        cutoff,
+        max_conn,
+    ):
+        if x_prime.shape[0] < x.shape[0] * max_conn:
+            x_prime = _np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
             mels = _np.empty((x.shape[0] * max_conn), dtype=_np.complex128)
 
         tot_conn = 0
@@ -206,16 +205,16 @@ class PauliStrings(AbstractOperator):
             for i in range(sites.shape[0]):
                 mel = 0.0
                 for j in range(n_op[i]):
-                    if(nz_check[i, j] > 0):
-                        to_check = z_check[i, j, :nz_check[i, j]]
+                    if nz_check[i, j] > 0:
+                        to_check = z_check[i, j, : nz_check[i, j]]
                         n_z = _np.count_nonzero(xb[to_check] == 1)
                     else:
                         n_z = 0
-                    mel += weights[i, j] * (-1.)**n_z
+                    mel += weights[i, j] * (-1.0) ** n_z
 
-                if(abs(mel) > cutoff):
+                if abs(mel) > cutoff:
                     x_prime[n_c] = _np.copy(xb)
-                    for site in sites[i, :ns[i]]:
+                    for site in sites[i, : ns[i]]:
                         x_prime[n_c, site] = 1 - x_prime[n_c, site]
                     mels[n_c] = mel
                     n_c += 1
@@ -246,7 +245,17 @@ class PauliStrings(AbstractOperator):
 
         """
 
-        return self._flattened_kernel(x, self._x_prime_max, sections, self._mels_max,
-                                      self._sites, self._ns, self._n_op,
-                                      self._weights, self._nz_check,
-                                      self._z_check, self._cutoff, self._n_operators)
+        return self._flattened_kernel(
+            x,
+            self._x_prime_max,
+            sections,
+            self._mels_max,
+            self._sites,
+            self._ns,
+            self._n_op,
+            self._weights,
+            self._nz_check,
+            self._z_check,
+            self._cutoff,
+            self._n_operators,
+        )

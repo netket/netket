@@ -88,7 +88,7 @@ class LocalLiouvillian(AbstractOperator):
         self._mels[i : i + len(mel_r)] = mel_r * 1j
         i = i + len(mel_r)
 
-        xcp, mel_c = self._Hnh_dag.get_conn(xc)
+        xcp, mel_c = self._Hnh.get_conn(xc)
         self._xrv[i : i + len(mel_c), :] = xr
         self._xcv[i : i + len(mel_c), :] = xcp
         self._mels[i : i + len(mel_r)] = mel_c * (-1j)

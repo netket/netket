@@ -32,25 +32,30 @@ class PyBoson(PyCustomHilbert):
         """
 
         self._n_max = n_max
-        self._n_bosons = n_bosons
 
-        if(n_bosons is not None):
-            assert(n_bosons > 0)
+        if n_bosons is not None:
+            n_bosons = int(n_bosons)
+            self._n_bosons = n_bosons
+            assert n_bosons > 0
 
-            if(self._n_max is None):
+            if self._n_max is None:
                 self._n_max = n_bosons
             else:
-                if(self._n_max * graph.size < n_bosons):
+                if self._n_max * graph.size < n_bosons:
                     raise Exception(
                         """The required total number of bosons is not compatible
-                        with the given n_max.""")
+                        with the given n_max."""
+                    )
 
-            def constraints(x): return self._sum_constraint(x, n_bosons)
+            def constraints(x):
+                return self._sum_constraint(x, n_bosons)
+
         else:
             constraints = None
+            self._n_bosons = None
 
-        if(self._n_max is not None):
-            assert(self._n_max > 0)
+        if self._n_max is not None:
+            assert self._n_max > 0
             local_states = _np.arange(self._n_max + 1)
         else:
             max_ind = _np.iinfo(_np.intp).max
@@ -73,7 +78,7 @@ class PyBoson(PyCustomHilbert):
                          if the number is unconstrained."""
         return self._n_bosons
 
-    def random_vals(self, out=None, rgen=None):
+    def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -100,20 +105,20 @@ class PyBoson(PyCustomHilbert):
         if out is None:
             out = _np.empty(self.size)
 
-        if(rgen is None):
+        if rgen is None:
             rgen = _random
 
-        if(self.n_bosons is None):
+        if self.n_bosons is None:
             for i in range(self.size):
                 rs = rgen.randint(0, self.local_size)
-                if(self.is_finite):
+                if self.is_finite:
                     out[i] = self.local_states[rs]
                 else:
                     out[i] = rs
         else:
             sites = list(range(self.size))
 
-            out.fill(0.)
+            out.fill(0.0)
             ss = self.size
 
             for i in range(self.n_bosons):
@@ -121,7 +126,7 @@ class PyBoson(PyCustomHilbert):
 
                 out[sites[s]] += 1
 
-                if(out[sites[s]] > self.n_max):
+                if out[sites[s]] == self.n_max:
                     sites.pop(s)
                     ss -= 1
 

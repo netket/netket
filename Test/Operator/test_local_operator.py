@@ -4,6 +4,7 @@ from netket.operator.boson import (
     number as bnumber,
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
+from netket.operator import LocalOperator
 import netket as nk
 import networkx as nx
 import numpy as np
@@ -55,6 +56,12 @@ rg = nk.utils.RandomEngine(seed=1234)
 
 
 def same_matrices(matl, matr, eps=1.0e-6):
+    if isinstance(matl, LocalOperator):
+        matl = matl.to_dense()
+
+    if isinstance(matr, LocalOperator):
+        matr = matr.to_dense()
+
     assert np.max(np.abs(matl - matr)) == approx(0.0, rel=eps, abs=eps)
 
 
@@ -91,6 +98,62 @@ def test_local_operator_transpose_conjugation():
         math_h = oph.transpose().conjugate().to_dense()
         same_matrices(math_h, mat)
 
+def test_local_operator_add():
+    sz0 = nk.operator.spin.sigmaz(hi, 0)
+    sz1 = nk.operator.spin.sigmaz(hi, 1)
+    sz2 = nk.operator.spin.sigmaz(hi, 2)
+
+    ham = 0.5 * sz0.to_dense()
+    ha = 0.5 * sz0
+    ha2 = nk.operator.spin.sigmaz(hi, 0)
+    ha2 *= 0.5
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    ha = ha * 1j
+    ha2 *= 1j
+    ham *= 1j
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    for i in range(1,3):
+        ha = ha + 0.2 * nk.operator.spin.sigmaz(hi, i)
+        ha2 += 0.2 * nk.operator.spin.sigmaz(hi, i)
+        ham += 0.2 * nk.operator.spin.sigmaz(hi, i).to_dense()
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    for i in range(3,5):
+        ha = ha + 0.2 * nk.operator.spin.sigmax(hi, i)
+        ha2 += 0.2 * nk.operator.spin.sigmax(hi, i)
+        ham += 0.2 * nk.operator.spin.sigmax(hi, i).to_dense()
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    for i in range(5,7):
+        ha = ha - 0.3 * nk.operator.spin.sigmam(hi, i)
+        ha2 -= 0.3 * nk.operator.spin.sigmam(hi, i)
+        ham -= 0.3 * nk.operator.spin.sigmam(hi, i).to_dense()
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    ha = ha - 0.3j * nk.operator.spin.sigmam(hi, 7)
+    ha2 -= 0.3j * nk.operator.spin.sigmam(hi, 7)
+    ham -= 0.3j * nk.operator.spin.sigmam(hi, 7).to_dense()
+    same_matrices(ha, ha2)
+    same_matrices(ha, ham)
+
+    # test commutativity
+    ha = LocalOperator(hi)
+    ha2 = LocalOperator(hi)
+    for i in range(0,3):
+        ha += 0.3 * nk.operator.spin.sigmaz(hi, i)  * nk.operator.spin.sigmax(hi, i+1)
+        ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
+        ha2 += 0.5 * nk.operator.spin.sigmay(hi, i)
+
+    ha_ha2 = ha + ha2
+    ha2_ha = ha2 + ha
+    same_matrices(ha_ha2, ha2_ha)
 
 def test_simple_operators():
     L = 4

@@ -20,8 +20,6 @@
 #include "Graph/graph.hpp"
 #include "Hilbert/hilbert.hpp"
 #include "Machine/machine.hpp"
-#include "Operator/operator.hpp"
-#include "Sampler/sampler.hpp"
 #include "Stats/stats.hpp"
 #include "Utils/all_utils.hpp"
 
