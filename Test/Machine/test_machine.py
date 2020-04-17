@@ -88,7 +88,7 @@ machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
 machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
 
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = Spin(s=0.5, graph=g, total_sz=0)
 # machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)

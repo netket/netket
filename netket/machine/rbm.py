@@ -117,7 +117,6 @@ class RbmSpin(AbstractMachine):
         self._r = _np.empty((1, m), dtype=self._npdtype)
 
         self.n_hidden = m
-        self.n_visible = n
 
         self._npar = (
             self._w.size
@@ -375,7 +374,6 @@ class RbmSpinPhase(AbstractMachine):
 
         self.n_hidden_a = m_a
         self.n_hidden_p = m_p
-        self.n_visible = n
 
         self._npar = (
             self._wa.size

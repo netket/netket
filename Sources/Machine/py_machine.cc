@@ -26,7 +26,6 @@
 
 #include "DensityMatrices/py_density_matrix.hpp"
 #include "Machine/ffnn.hpp"
-#include "Machine/jastrow.hpp"
 #include "Machine/jastrow_symm.hpp"
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
@@ -138,40 +137,6 @@ void AddFFNN(py::module subm) {
 
 
               )EOF");
-}
-
-void AddJastrow(py::module subm) {
-  py::class_<Jastrow, AbstractMachine>(subm, "Jastrow", R"EOF(
-           A Jastrow wavefunction Machine. This machine defines the following
-           wavefunction:
-
-           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
-
-           where :math:` W_{ij}` are the Jastrow parameters.
-           )EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
-                 Constructs a new ``Jastrow`` machine:
-
-                 Args:
-                     hilbert: Hilbert space object for the system.
-
-                 Examples:
-                     A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2
-                     system:
-
-
-                     >>> from netket.machine import Jastrow
-                     >>> from netket.hilbert import Spin
-                     >>> from netket.graph import Hypercube
-                     >>> g = Hypercube(length=20, n_dim=1)
-                     >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                     >>> ma = Jastrow(hilbert=hi)
-                     >>> print(ma.n_par)
-                     190
-
-
-                 )EOF");
 }
 
 void AddJastrowSymm(py::module subm) {
@@ -657,7 +622,6 @@ void AddMachineModule(py::module m) {
   AddAbstractMachine(subm);
   AddRbmSpinSymm(subm);
   AddRbmMultival(subm);
-  AddJastrow(subm);
   AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
   AddFFNN(subm);

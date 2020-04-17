@@ -159,3 +159,7 @@ class AbstractMachine(abc.ABC):
 
     def load(self, file):
         self.parameters = _np.load(file, allow_pickle=False)
+
+    @property
+    def n_visible(self):
+        return self.hilbert.size

@@ -4,6 +4,7 @@ from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
 from .rbm import RbmSpin, RbmSpinReal, RbmSpinPhase
+from .jastrow import Jastrow
 
 
 def _has_jax():
