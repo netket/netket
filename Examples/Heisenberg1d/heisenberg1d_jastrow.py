@@ -25,8 +25,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.Jastrow(hilbert=hi)
-
+ma = nk.machine.JastrowSymm(hilbert=hi, dtype=float)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Exchange Sampling
@@ -43,8 +42,8 @@ gs = nk.Vmc(
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    sr=nk.optimizer.SR(diag_shift=0.1),
+    sr=nk.optimizer.SR(diag_shift=0.1, lsq_solver="QR"),
 )
 
-
+gs.run(output_prefix="test", n_iter=1)
 gs.run(output_prefix="test", n_iter=300)

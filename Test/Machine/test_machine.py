@@ -91,7 +91,9 @@ machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
 machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = Spin(s=0.5, graph=g, total_sz=0)
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
+    hilbert=hi, use_visible_bias=True
+)
 
 dm_machines = {}
 # dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
@@ -141,7 +143,9 @@ machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
 )
 machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 
-machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(hilbert=hi)
+machines["JastrowSymm 1d Hypercube boson real"] = nk.machine.JastrowSymm(
+    hilbert=hi, dtype=float
+)
 machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 
