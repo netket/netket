@@ -265,7 +265,9 @@ class Qsr(AbstractVariationalDriver):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
-        return loc, _statistics(loc)
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(loc.T)
 
     def __repr__(self):
         return "Sqr(step_count={}, n_samples={}, n_discard={})".format(

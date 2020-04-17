@@ -166,6 +166,7 @@ setup(
         "netket.hilbert",
         "netket.machine",
         "netket.sampler",
+        "netket.stats",
         "netket.operator",
         "netket.optimizer",
     ],

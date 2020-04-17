@@ -89,13 +89,11 @@ class SteadyState(AbstractVariationalDriver):
         )
 
         self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         self._der_loc_vals = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
         # Set the machine_pow of the sampler over the diagonal of the density matrix
@@ -153,8 +151,7 @@ class SteadyState(AbstractVariationalDriver):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
             n_discard
@@ -169,8 +166,7 @@ class SteadyState(AbstractVariationalDriver):
 
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard_obs = (
             n_discard
@@ -270,14 +266,18 @@ class SteadyState(AbstractVariationalDriver):
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
 
-        return loc, _statistics(_np.square(_np.abs(loc), dtype="complex128"))
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(_np.square(_np.abs(loc.T), dtype="complex128"))
 
     def _get_mc_obs_stats(self, op):
         if not self._obs_samples_valid:
             self.sweep_diagonal()
 
         loc = _local_values(op, self._machine, self._samples_obs)
-        return loc, _statistics(loc)
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(loc.T)
 
     def __repr__(self):
         return "SteadyState(step_count={}, n_samples={}, n_discard={})".format(

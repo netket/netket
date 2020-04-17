@@ -20,7 +20,6 @@ import scipy.integrate as _scint
 from tqdm import tqdm
 
 import netket as _nk
-from netket.abstract_variational_driver import _obs_stat_to_dict
 from netket.logging import JsonLog as _JsonLog
 from netket.vmc_common import tree_map as _tree_map
 
@@ -160,13 +159,7 @@ class PyExactTimePropagation:
         mean = _np.vdot(self.state, v0)
         variance = _np.vdot(self.state, op.dot(v0)) - mean ** 2
 
-        return _nk.stats.Stats(
-            mean=mean,
-            error_of_mean=0.0,
-            variance=variance.real,
-            correlation=_NaN,
-            R=_NaN,
-        )
+        return _nk.stats.Stats(mean=mean, error_of_mean=0.0, variance=variance.real)
 
     def estimate(self, observables):
         return _tree_map(self._estimate_stats, observables)
@@ -282,7 +275,9 @@ class PyExactTimePropagation:
                 obs_data = self.estimate(obs)
                 obs_data["Energy"] = energy
 
-                log_data = _tree_map(_obs_stat_to_dict, obs_data)
+                log_data = {}
+                if self._loss_stats is not None:
+                    obs_data[self._loss_name] = self._loss_stats
                 log_data["Time"] = self.t
 
                 if logger is not None:

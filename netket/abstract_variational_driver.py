@@ -2,20 +2,15 @@ import abc
 
 from netket._core import deprecated
 import netket as _nk
+import numpy as _np
 
 from netket.logging import JsonLog as _JsonLog
 
-from netket.vmc_common import make_optimizer_fn, tree_map
+from netket.vmc_common import tree_map
 
 from tqdm import tqdm
 
 import warnings
-
-
-def _obs_stat_to_dict(value):
-    st = value.asdict()
-    st["Mean"] = st["Mean"].real
-    return st
 
 
 # Note: to implement a new Driver (see also _vmc.py for an example)
@@ -43,9 +38,7 @@ class AbstractVariationalDriver(abc.ABC):
         self.step_count = 0
 
         self._machine = machine
-        self._optimizer_step, self._optimizer_desc = make_optimizer_fn(
-            optimizer, self._machine
-        )
+        self._optimizer = optimizer
 
     def _forward_and_backward(self):
         """
@@ -194,10 +187,8 @@ class AbstractVariationalDriver(abc.ABC):
                 if self._loss_stats is not None:
                     obs_data[self._loss_name] = self._loss_stats
 
-                log_data = tree_map(_obs_stat_to_dict, obs_data)
-
                 if logger is not None:
-                    logger(step, log_data, self.machine)
+                    logger(step, obs_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
@@ -225,9 +216,7 @@ class AbstractVariationalDriver(abc.ABC):
         Args:
             :param dp: the gradient
         """
-        self._machine.parameters = self._optimizer_step(
-            self.step_count, dp, self._machine.parameters
-        )
+        self._machine.parameters = self._optimizer.update(dp, self._machine.parameters)
         self.step_count += 1
 
     @deprecated()
