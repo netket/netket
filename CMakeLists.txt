@@ -273,7 +273,6 @@ set(NETKET_SOURCES
     Sources/Hilbert/custom_hilbert.cc
     Sources/Hilbert/py_hilbert.cc
     Sources/Machine/abstract_machine.cc
-    Sources/Machine/jastrow.cc
     Sources/Machine/jastrow_symm.cc
     Sources/Machine/mps_periodic.cc
     Sources/Machine/rbm_multival.cc
