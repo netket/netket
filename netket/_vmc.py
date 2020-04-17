@@ -191,7 +191,7 @@ class Vmc(AbstractVariationalDriver):
         super().reset()
 
     def _get_mc_stats(self, op):
-        loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
+        loc = _np.empty((self._samples.shape[0:2]), dtype=_np.complex128)
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
 

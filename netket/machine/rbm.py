@@ -152,6 +152,10 @@ class RbmSpin(AbstractMachine):
     @staticmethod
     @jit(nopython=True)
     def _log_val_kernel(x, out, W, a, b, r):
+
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
         if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
         r = x.dot(W)
@@ -177,6 +181,10 @@ class RbmSpin(AbstractMachine):
         Returns:
             `out`
             """
+
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
@@ -420,6 +428,10 @@ class RbmSpinPhase(AbstractMachine):
     @staticmethod
     @jit(nopython=True)
     def _log_val_kernel(x, out, wa, wp, aa, ap, ba, bp, ra, rp):
+
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
         if out is None:
             out = _np.empty(x.shape[0], dtype=_np.complex128)
 
@@ -452,6 +464,10 @@ class RbmSpinPhase(AbstractMachine):
         Returns:
             `out`
             """
+
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
