@@ -142,6 +142,13 @@ class SR {
   bool StoreFullSMatrixEnabled() const { return store_full_S_matrix_; }
   void SetStoreFullSMatrix(bool enabled);
 
+  /**
+   * Returns the is_holomorphic parameter
+   * @return
+   */
+  bool IsHolomorphic() { return is_holomorphic_; };
+  void SetIsHolomorphic(bool is_holomorphic) {is_holomorphic_ = is_holomorphic;};
+
  private:
   LSQSolver solver_;
   double sr_diag_shift_;
