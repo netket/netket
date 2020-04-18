@@ -45,6 +45,6 @@ qst = nk.unsupervised.Qsr(
     method="Sr",
 )
 
-qst.add_observable(ha, "Energy")
+obs = {"Energy": ha}
 
-qst.run(n_iter=2000, output_prefix="output")
+qst.run(n_iter=2000, out="output", obs=obs)
