@@ -45,6 +45,8 @@ void AddSR(py::module& m) {
           )EOF")
       .def_property("store_rank_enabled", &SR::StoreRankEnabled,
                     &SR::SetStoreRank)
+      .def_property("is_holomorphic", &SR::IsHolomorphic,
+                    &SR::SetIsHolomorphic)
       .def_property(
           "scale_invariant_regularization_enabled",
           &SR::ScaleInvariantRegularizationEnabled,
