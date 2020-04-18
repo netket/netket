@@ -23,7 +23,7 @@ class JsonLog:
     """
 
     def __init__(
-        self, output_prefix, save_params_every=50, write_every=50, mode="write"
+        self, output_prefix, mode="write", save_params_every=50, write_every=50
     ):
         # Shorthands for mode
         if mode == "w":
