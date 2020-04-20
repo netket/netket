@@ -78,7 +78,7 @@ def _block_variance(data, l):
 def _batch_variance(data):
     b_means = _np.mean(data, axis=1)
     ts = _total_size(b_means)
-    return _var(b_means) / float(ts), ts
+    return _var(b_means), ts
 
 
 def statistics(data):
@@ -116,7 +116,7 @@ def statistics(data):
 
     ts = _total_size(data)
 
-    bare_var = stats.variance / float(ts)
+    bare_var = stats.variance / ts
 
     batch_var, n_batches = _batch_variance(data)
 
@@ -132,7 +132,7 @@ def statistics(data):
     batch_good = tau_batch < 6 * data.shape[1] and n_batches >= b_s
 
     if batch_good:
-        stats.error_of_mean = _np.sqrt(batch_var)
+        stats.error_of_mean = _np.sqrt(batch_var / ts)
         stats.tau_corr = max(0, tau_batch)
     elif block_good:
         stats.error_of_mean = _np.sqrt(block_var)
@@ -142,6 +142,7 @@ def statistics(data):
         stats.tau_corr = _np.nan
 
     if n_batches > 1:
-        stats.R = _np.sqrt(1.0 + batch_var / stats.variance)
+        N = data.shape[-1]
+        stats.R = _np.sqrt((N - 1) / N + batch_var / stats.variance)
 
     return stats
