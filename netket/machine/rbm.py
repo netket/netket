@@ -188,11 +188,12 @@ class RbmSpin(AbstractMachine):
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
         batch_size = x.shape[0]
+        n_visible = x.shape[1]
 
         i = 0
         if self._a is not None:
-            out[:, i : i + x.shape[1]] = x
-            i += self.n_visible
+            out[:, i : i + n_visible] = x
+            i += n_visible
 
         r = self._r
         r = _np.dot(x, self._w)
@@ -299,6 +300,108 @@ class RbmSpinReal(RbmSpin):
             use_hidden_bias=use_hidden_bias,
             dtype=float,
         )
+
+
+class RbmMultiVal(RbmSpin):
+    r"""
+        A fully connected Restricted Boltzmann Machine suitable for large local hilbert spaces.
+        Local quantum numbers are passed through a one hot encoding that maps them onto
+        an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
+        standard RbmSpin wave function.
+    """
+
+    def __init__(
+        self,
+        hilbert,
+        n_hidden=None,
+        alpha=None,
+        use_visible_bias=True,
+        use_hidden_bias=True,
+        dtype=complex,
+    ):
+
+        r"""
+            Constructs a new ``RbmMultiVal`` machine:
+
+            Args:
+               hilbert: Hilbert space object for the system.
+               n_hidden: The number of hidden spin units. If n_hidden=None, the number
+                       of hidden units is deduced from the parameter alpha.
+               alpha: `alpha * hilbert.size` is the number of hidden spins.
+                       If alpha=None, the number of hidden units must
+                       be explicitely set in the argument n_hidden.
+               use_visible_bias: If ``True`` then there would be a
+                                bias on the visible units.
+                                Default ``True``.
+               use_hidden_bias: If ``True`` then there would be a
+                               bias on the visible units.
+                               Default ``True``.
+               dtype: either complex or float, is the type used for the weights.
+
+            Examples:
+               A ``RbmMultiVal`` machine with hidden unit density
+               alpha = 1 for a one-dimensional bosonic system:
+
+               >>> from netket.machine import RbmMultiVal
+               >>> from netket.hilbert import Boson
+               >>> from netket.graph import Hypercube
+               >>> g = Hypercube(length=10, n_dim=1)
+               >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
+               >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
+               >>> print(ma.n_par)
+               1056
+        """
+        local_states = _np.asarray(hilbert.local_states, dtype=int)
+
+        # creating a fictious hilbert object to pass to the standard rbm
+        l_hilbert = _np.zeros(local_states.size * hilbert.size)
+
+        super().__init__(
+            l_hilbert, n_hidden, alpha, use_visible_bias, use_hidden_bias, dtype
+        )
+        self.hilbert = hilbert
+        self._local_states = local_states
+
+    @staticmethod
+    @jit
+    def _one_hot(vec, local_states):
+        if vec.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
+        # one hotting and converting to -/+ 1
+        res = (
+            vec.reshape((vec.shape[1], vec.shape[0], -1)) == local_states
+        ) * 2.0 - 1.0
+        return res.reshape((vec.shape[0], -1))
+
+    def log_val(self, x, out=None):
+        r"""Computes the logarithm of the wave function for a batch of visible
+        configurations `x` and stores the result into `out`.
+
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination vector of `complex128`. The
+                 length of `out` should be `x.shape[0]`.
+
+        Returns:
+            A complex number when `x` is a vector and vector when `x` is a
+            matrix.
+            """
+        return super().log_val(self._one_hot(x, self._local_states), out)
+
+    def der_log(self, x, out=None):
+        r"""Computes the gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and stores the result into `out`.
+
+        Args:
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination tensor of `complex128`.
+                `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
+
+        Returns:
+            `out`
+            """
+        return super().der_log(self._one_hot(x, self._local_states), out)
 
 
 class RbmSpinPhase(AbstractMachine):

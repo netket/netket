@@ -17,7 +17,6 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include "Machine/rbm_spin.hpp"
 #include "Utils/all_utils.hpp"
 #include "Utils/log_cosh.hpp"
 
@@ -116,7 +115,7 @@ void NdmSpinPhase::BatchSize(Index batch_size) {
 }
 
 VectorType NdmSpinPhase::DerLogSingle(VisibleConstType vr, VisibleConstType vc,
-                                      const any & /*cache*/) {
+                                      const any& /*cache*/) {
   VectorType der(npar_);
 
   const int impar = (npar_ + na_ * used_) / 2;
@@ -398,7 +397,7 @@ void NdmSpinPhase::DerLog(Eigen::Ref<const RowMatrix<double>> vr,
   }
 }
 
-void NdmSpinPhase::Save(const std::string &filename) const {
+void NdmSpinPhase::Save(const std::string& filename) const {
   json state;
   state["Name"] = "NdmSpinPhase";
   state["Nvisible"] = nv_;
@@ -420,7 +419,7 @@ void NdmSpinPhase::Save(const std::string &filename) const {
   WriteJsonToFile(state, filename);
 }
 
-void NdmSpinPhase::Load(const std::string &filename) {
+void NdmSpinPhase::Load(const std::string& filename) {
   auto pars = ReadJsonFromFile(filename);
   std::string name = FieldVal<std::string>(pars, "Name");
   if (name != "NdmSpinPhase") {

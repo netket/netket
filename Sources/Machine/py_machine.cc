@@ -28,7 +28,6 @@
 #include "Machine/ffnn.hpp"
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
-#include "Machine/rbm_multival.hpp"
 #include "Machine/rbm_spin_symm.hpp"
 #include "Utils/log_cosh.hpp"
 #include "Utils/pybind_helpers.hpp"
@@ -82,17 +81,6 @@ void AddRbmSpinSymm(py::module subm) {
                        43
 
                    )EOF");
-}
-
-void AddRbmMultival(py::module subm) {
-  py::class_<RbmMultival, AbstractMachine>(subm, "RbmMultiVal", R"EOF(
-             A fully connected Restricted Boltzmann Machine for handling larger
-             local Hilbert spaces.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true);
 }
 
 void AddFFNN(py::module subm) {
@@ -586,7 +574,6 @@ void AddMachineModule(py::module m) {
 
   AddAbstractMachine(subm);
   AddRbmSpinSymm(subm);
-  AddRbmMultival(subm);
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);

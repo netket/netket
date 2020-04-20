@@ -3,7 +3,7 @@ from .._C_netket.machine import *
 from .cxx_machine import *
 from .abstract_machine import AbstractMachine
 
-from .rbm import RbmSpin, RbmSpinReal, RbmSpinPhase
+from .rbm import RbmSpin, RbmSpinReal, RbmMultiVal, RbmSpinPhase
 from .jastrow import Jastrow, JastrowSymm
 
 

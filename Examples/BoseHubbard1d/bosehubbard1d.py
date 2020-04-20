@@ -13,35 +13,34 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
+from scipy.sparse.linalg import eigsh
 
 # 1D Periodic Lattice
-g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
-hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=12)
+hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=8)
 
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Jastrow Machine with Symmetry
-ma = nk.machine.RbmSpinSymm(alpha=4, hilbert=hi)
+# ma = nk.machine.RbmSpinSymm(alpha=4, hilbert=hi)
+ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
 ma.init_random_parameters(seed=1234, sigma=0.01)
+print(ma.n_par)
 
 # Sampler
-sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
+sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha, batch_size=16)
 
 # Stochastic gradient descent optimization
-op = nk.optimizer.AdaMax()
+op = nk.optimizer.Sgd(0.1)
 
 # Variational Monte Carlo
-vmc = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    diag_shift=5e-3,
-    use_iterative=False,
-    method="Sr",
+sr = nk.optimizer.SR(diag_shift=0.1)
+vmc = nk.Vmc(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=4000, n_discard=0, sr=sr
 )
 
-vmc.run(output_prefix="test", n_iter=4000)
+vmc.run(output_prefix="test", n_iter=300)

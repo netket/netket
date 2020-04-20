@@ -14,7 +14,6 @@
 
 #include "rbm_spin_symm.hpp"
 
-#include "Machine/rbm_spin.hpp"
 #include "Utils/json_utils.hpp"
 #include "Utils/log_cosh.hpp"
 #include "Utils/messages.hpp"

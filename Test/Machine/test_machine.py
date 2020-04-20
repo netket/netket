@@ -139,7 +139,7 @@ machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
 machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
-    hilbert=hi, n_hidden=10
+    hilbert=hi, n_hidden=2
 )
 machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 
@@ -153,6 +153,7 @@ np.random.seed(12346)
 
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
+    assert der_log.shape == num_der_log.shape
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
@@ -162,10 +163,13 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
 
 def log_val_f(par, machine, v):
     machine.parameters = np.copy(par)
-    if v.ndim == 2:
-        return machine.log_val(v)
-    else:
-        return machine.log_val(v.reshape(1, -1))
+    if v.ndim != 1:
+        if v.size != v.shape[1]:
+            raise RuntimeError(
+                "numerical derivatives can be tested only for non batched inputs"
+            )
+
+    return machine.log_val(v.reshape(1, -1))[0]
 
 
 def log_val_vec_f(par, machine, v, vec):
@@ -239,6 +243,7 @@ def test_save_load_parameters(tmpdir):
 
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
+
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -254,7 +259,8 @@ def test_log_derivative():
 
             randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
             machine.parameters = randpars
-            der_log = machine.der_log(v.reshape(1, -1))
+
+            der_log = machine.der_log(v.reshape((1, -1))).reshape(-1)
 
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
