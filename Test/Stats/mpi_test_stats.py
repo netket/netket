@@ -61,6 +61,25 @@ def test_mean():
         assert nk_mean.shape == ref_mean.shape, "axis={}".format(axis)
         assert nk_mean == approx(ref_mean), "axis={}".format(axis)
 
+    # Test with out
+    out = np.array(0.0)  # ndim=0 array
+    nk.stats.mean(mydata, out=out)
+    assert out == approx(np.mean(data))
+
+    # Test with out and axis
+    out = np.empty((11, 12))
+    nk.stats.mean(mydata, axis=0, out=out)
+    assert out == approx(np.mean(data.mean(0), axis=0))
+
+    # Test with complex dtype
+    out = nk.stats.mean(1j * mydata, axis=0)
+    assert out == approx(np.mean(1j * data.mean(0), axis=0))
+
+    # Test with complex dtype and out
+    out = np.empty((11, 12), dtype=np.complex128)
+    nk.stats.mean(1j * mydata, axis=0, out=out)
+    assert out == approx(np.mean(1j * data.mean(0), axis=0))
+
 
 def test_var():
     data = np.random.rand(size, 10, 11, 12)
@@ -82,6 +101,11 @@ def test_var():
         assert nk_var.shape == ref_var.shape, "axis={}".format(axis)
         assert nk_var == approx(ref_var), "axis={}".format(axis)
 
+    # Test with out
+    out = np.array(0.0)  # ndim=0 array
+    nk.stats.var(mydata, out=out)
+    assert out == approx(np.var(data))
+
 
 def test_sum():
     data = np.arange(size * 10 * 11).reshape(size, 10, 11)
@@ -93,3 +117,15 @@ def test_sum():
     # mydata should be changed in place
     assert mydata == approx(ref_sum)
     assert np.all(ret == mydata)
+
+
+def test_subtract_mean():
+    data = np.random.rand(size, 10, 11, 12)
+    data = comm.bcast(data)
+    mydata = data[rank]
+
+    ref_mean = nk.stats.mean(mydata, axis=0)
+    ref_data = mydata - ref_mean[np.newaxis, :, :]
+
+    nk.stats.subtract_mean(mydata, axis=0)
+    assert mydata == approx(ref_data)

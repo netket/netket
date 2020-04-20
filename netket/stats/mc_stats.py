@@ -12,6 +12,7 @@ def _format_decimal(value, std):
         "{0:.{1}f}".format(std, decimals + 1),
     )
 
+
 class Stats:
     """A dict-compatible class containing the result of the statistics function."""
 

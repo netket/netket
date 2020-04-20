@@ -2,7 +2,7 @@ import numpy as _np
 from mpi4py import MPI
 
 
-def subtract_mean(x, axis=None, dtype=None, mean_out=None):
+def subtract_mean(x, axis=None):
     """
     Subtracts the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
@@ -10,11 +10,8 @@ def subtract_mean(x, axis=None, dtype=None, mean_out=None):
     Args:
         axis: Axis or axes along which the means are computed. The default is to
               compute the mean of the flattened array.
-        dtype: Type to use in computing the mean
-        mean_out: pre-allocated array to store the mean
     """
-    x_mean = mean(x, axis=axis, dtype=dtype, out=mean_out)
-
+    x_mean = mean(x, axis=axis)
     x -= x_mean
 
     return x
@@ -24,7 +21,7 @@ _MPI_comm = MPI.COMM_WORLD
 _n_nodes = _MPI_comm.Get_size()
 
 
-def mean(a, axis=None, dtype=None, out=None):
+def mean(a, axis=None, out=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
@@ -32,18 +29,12 @@ def mean(a, axis=None, dtype=None, out=None):
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
 
-    out = _np.mean(a, axis=axis, dtype=None, out=out)
+    out = _np.mean(a, axis=axis, out=out)
 
-    if _np.isscalar(out):
-        out = _MPI_comm.allreduce(out, op=MPI.SUM) / float(_n_nodes)
-        return out
-
-    old_shape = out.shape
-    out = out.reshape(-1)
-    _MPI_comm.Allreduce(MPI.IN_PLACE, out, op=MPI.SUM)
+    _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
     out /= float(_n_nodes)
 
-    return out.reshape(old_shape)
+    return out
 
 
 def mpi_sum_inplace(a):
@@ -57,12 +48,12 @@ def mpi_sum_inplace(a):
     return a
 
 
-def var(a, axis=None, dtype=None, out=None):
+def var(a, axis=None, out=None):
     """
     Compute the variance mean along the specified axis and over MPI processes.
     """
 
-    m = mean(a, axis=axis, dtype=dtype, out=out)
+    m = mean(a, axis=axis)
 
     if axis is None or axis == 0:
         ssq = _np.abs(a - m) ** 2.0
@@ -73,8 +64,7 @@ def var(a, axis=None, dtype=None, out=None):
     else:
         raise RuntimeError("var implemented only for ndim<=3.")
 
-    out = mean(ssq, axis=axis, dtype=dtype, out=out)
-
+    out = mean(ssq, axis=axis, out=out)
     return out
 
 
