@@ -82,11 +82,11 @@ def test_mean():
 
 
 def test_var():
-    data = np.random.rand(size, 10, 11, 12)
+    data = np.random.rand(size, 10, 11, 12, 13)
     data = comm.bcast(data)
     mydata = data[rank]
 
-    for axis in None, 0, 1, 2:
+    for axis in None, 0, 1, 2, 3:
         if axis is not None:
             # Merge first "MPI axis" with target axis
             refdata = np.moveaxis(data, axis + 1, 0)

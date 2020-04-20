@@ -55,14 +55,10 @@ def var(a, axis=None, out=None):
 
     m = mean(a, axis=axis)
 
-    if axis is None or axis == 0:
+    if axis is None:
         ssq = _np.abs(a - m) ** 2.0
-    elif axis == 1:
-        ssq = _np.abs(a - m[:, _np.newaxis]) ** 2.0
-    elif axis == 2:
-        ssq = _np.abs(a - m[:, :, _np.newaxis]) ** 2.0
     else:
-        raise RuntimeError("var implemented only for ndim<=3.")
+        ssq = _np.abs(a - _np.expand_dims(m, axis)) ** 2.0
 
     out = mean(ssq, axis=axis, out=out)
     return out
