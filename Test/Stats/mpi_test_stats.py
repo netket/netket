@@ -20,13 +20,13 @@ def reference_stats(data):
     data_ = data.reshape(M_full, N)
 
     chain_means = np.mean(data_, axis=1)
-    chain_vars = np.var(data_, axis=1, ddof=1)
+    chain_vars = np.var(data_, axis=1, ddof=0)
 
     mean_full = np.mean(data)
-    var_full = np.var(data, ddof=1)
+    var_full = np.var(data, ddof=0)
 
     var_mean = np.mean(chain_vars)
-    var_between = N * np.var(chain_means, ddof=1)
+    var_between = N * np.var(chain_means, ddof=0)
 
     Rhat = np.sqrt((N - 1) / N + var_between / (N * var_mean))
 
