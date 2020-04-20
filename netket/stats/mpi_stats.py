@@ -21,7 +21,6 @@ def subtract_mean(x, axis=None, dtype=None, mean_out=None):
 
 
 _MPI_comm = MPI.COMM_WORLD
-
 _n_nodes = _MPI_comm.Get_size()
 
 
@@ -47,17 +46,15 @@ def mean(a, axis=None, dtype=None, out=None):
     return out.reshape(old_shape)
 
 
-def sum_on_nodes(a, out=None):
+def mpi_sum_inplace(a):
     """
-    Computes the sum of a numpy array over MPI processes.
+    Computes the elementwise sum of a numpy array over all MPI processes.
+
+    Args:
+        a (numpy.ndarray): The input array, which will be overwritten in place.
     """
-    if out is None:
-        _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
-        return a
-    else:
-        out = _np.copy(a)
-        _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
-        return out
+    _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
+    return a
 
 
 def var(a, axis=None, dtype=None, out=None):

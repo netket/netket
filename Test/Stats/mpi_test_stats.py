@@ -81,3 +81,15 @@ def test_var():
 
         assert nk_var.shape == ref_var.shape, "axis={}".format(axis)
         assert nk_var == approx(ref_var), "axis={}".format(axis)
+
+
+def test_sum():
+    data = np.arange(size * 10 * 11).reshape(size, 10, 11)
+    data = comm.bcast(data)
+    mydata = data[rank]
+
+    ref_sum = np.sum(data, axis=0)
+    ret = nk.stats.mpi_sum_inplace(mydata)
+    # mydata should be changed in place
+    assert mydata == approx(ref_sum)
+    assert np.all(ret == mydata)
