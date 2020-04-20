@@ -32,12 +32,21 @@ def mean(a, axis=None, out=None):
     out = _np.mean(a, axis=axis, out=out)
 
     _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
-    out /= float(_n_nodes)
+    out /= _n_nodes
 
     return out
 
 
-def mpi_sum_inplace(a):
+def sum(a, axis=None, out=None):
+    """
+    Compute the arithmetic mean along the specified axis and over MPI processes.
+    """
+    out = _np.sum(a, axis=axis, out=out)
+    _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+    return out
+
+
+def sum_inplace(a):
     """
     Computes the elementwise sum of a numpy array over all MPI processes.
 
@@ -48,11 +57,10 @@ def mpi_sum_inplace(a):
     return a
 
 
-def var(a, axis=None, out=None):
+def var(a, axis=None, out=None, ddof=0):
     """
     Compute the variance mean along the specified axis and over MPI processes.
     """
-
     m = mean(a, axis=axis)
 
     if axis is None:
@@ -60,7 +68,11 @@ def var(a, axis=None, out=None):
     else:
         ssq = _np.abs(a - _np.expand_dims(m, axis)) ** 2.0
 
-    out = mean(ssq, axis=axis, out=out)
+    out = sum(ssq, axis=axis, out=out)
+
+    n_all = total_size(a, axis=axis)
+    out /= n_all - ddof
+
     return out
 
 

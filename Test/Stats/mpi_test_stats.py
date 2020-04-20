@@ -1,7 +1,7 @@
+import itertools
 import netket as nk
 import numpy as np
 from mpi4py import MPI
-
 import pytest
 from pytest import approx
 
@@ -86,20 +86,20 @@ def test_var():
     data = comm.bcast(data)
     mydata = data[rank]
 
-    for axis in None, 0, 1, 2, 3:
+    for axis, ddof in itertools.product((None, 0, 1, 2, 3), (0, 1)):
         if axis is not None:
             # Merge first "MPI axis" with target axis
             refdata = np.moveaxis(data, axis + 1, 0)
             refdata = refdata.reshape(-1, *refdata.shape[2:])
             # Compute variance over merged axis
-            ref_var = np.var(refdata, axis=0, ddof=0)
+            ref_var = np.var(refdata, axis=0, ddof=ddof)
         else:
-            ref_var = np.var(data, ddof=0)
+            ref_var = np.var(data, ddof=ddof)
 
-        nk_var = nk.stats.var(mydata, axis=axis)
+        nk_var = nk.stats.var(mydata, axis=axis, ddof=ddof)
 
-        assert nk_var.shape == ref_var.shape, "axis={}".format(axis)
-        assert nk_var == approx(ref_var), "axis={}".format(axis)
+        assert nk_var.shape == ref_var.shape, "axis={},ddof={}".format(axis, ddof)
+        assert nk_var == approx(ref_var), "axis={},ddof={}".format(axis, ddof)
 
     # Test with out
     out = np.array(0.0)  # ndim=0 array
@@ -107,13 +107,13 @@ def test_var():
     assert out == approx(np.var(data))
 
 
-def test_sum():
+def test_sum_inplace():
     data = np.arange(size * 10 * 11).reshape(size, 10, 11)
     data = comm.bcast(data)
     mydata = data[rank]
 
     ref_sum = np.sum(data, axis=0)
-    ret = nk.stats.mpi_sum_inplace(mydata)
+    ret = nk.stats.sum_inplace(mydata)
     # mydata should be changed in place
     assert mydata == approx(ref_sum)
     assert np.all(ret == mydata)
