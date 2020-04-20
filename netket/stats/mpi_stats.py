@@ -60,23 +60,20 @@ def mpi_sum_inplace(a):
 def var(a, axis=None, dtype=None, out=None):
     """
     Compute the variance mean along the specified axis and over MPI processes.
-
-
     """
 
     m = mean(a, axis=axis, dtype=dtype, out=out)
+
     if axis is None or axis == 0:
-        out = mean(_np.abs(a - m) ** 2.0, axis=axis, dtype=dtype, out=out)
+        ssq = _np.abs(a - m) ** 2.0
     elif axis == 1:
-        out = mean(
-            _np.abs(a - m[:, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
-        )
+        ssq = _np.abs(a - m[:, _np.newaxis]) ** 2.0
     elif axis == 2:
-        out = mean(
-            _np.abs(a - m[:, :, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
-        )
+        ssq = _np.abs(a - m[:, :, _np.newaxis]) ** 2.0
     else:
         raise RuntimeError("var implemented only for ndim<=3.")
+
+    out = mean(ssq, axis=axis, dtype=dtype, out=out)
 
     return out
 
