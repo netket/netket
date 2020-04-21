@@ -23,15 +23,15 @@ hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=8)
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
-# RBM Machine with one-hot encoding
-ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
+# RBM Machine with one-hot encoding, real parameters, and symmetries
+ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1, dtype=float, symmetry=True)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler using Hamiltonian moves, thus preserving the total number of particles
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha, batch_size=16)
 
 # Stochastic gradient descent optimization
-op = nk.optimizer.Sgd(0.1)
+op = nk.optimizer.Sgd(0.05)
 
 # Variational Monte Carlo
 sr = nk.optimizer.SR(diag_shift=0.1)

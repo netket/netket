@@ -100,25 +100,16 @@ class RbmSpin(AbstractMachine):
         self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
-        if alpha is None:
-            m = n_hidden
-        else:
-            if alpha < 0:
-                raise ValueError("`alpha` should be non-negative")
-            m = int(round(alpha * n))
-            if n_hidden is not None:
-                if n_hidden != m:
-                    raise RuntimeError(
-                        """n_hidden is inconsistent with the given alpha.
-                                       Remove one of the two or provide consistent values."""
-                    )
+        self._autom, self.n_hidden, alpha_symm = self._get_hidden(
+            symmetry, hilbert, n_hidden, alpha
+        )
+
+        m = self.n_hidden
 
         self._w = _np.empty((n, m), dtype=self._npdtype)
         self._a = _np.empty(n, dtype=self._npdtype) if use_visible_bias else None
         self._b = _np.empty(m, dtype=self._npdtype) if use_hidden_bias else None
         self._r = _np.empty((1, m), dtype=self._npdtype)
-
-        self.n_hidden = m
 
         self._n_bare_par = (
             self._w.size
@@ -126,37 +117,21 @@ class RbmSpin(AbstractMachine):
             + (self._b.size if self._b is not None else 0)
         )
 
-        if symmetry is None:
+        if symmetry is None or symmetry is False:
             self._ws = self._w.view()
             self._as = self._a.view() if use_visible_bias else None
             self._bs = self._b.view() if use_hidden_bias else None
-            self._autom = None
             self._n_par = self._n_bare_par
         else:
-            if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
-            else:
-                try:
-                    autom = _np.asarray(symmetry)
-                    assert n == autom.shape[1]
-                except:
-                    raise RuntimeError("Cannot find a valid automorphism array.")
-
-            if not _np.issubdtype(type(alpha), _np.integer):
-                raise ValueError(
-                    "alpha must be specified and be a positive integer value when using symmetries."
-                )
-
             self._der_mat_symm, self._n_par = self._build_der_mat(
-                use_visible_bias, use_hidden_bias, n, alpha, autom
+                use_visible_bias, use_hidden_bias, n, alpha_symm, self._autom
             )
 
-            self._ws = _np.empty((n, alpha), dtype=self._npdtype)
+            self._ws = _np.empty((n, alpha_symm), dtype=self._npdtype)
             self._as = _np.empty(1, dtype=self._npdtype) if use_visible_bias else None
             self._bs = (
-                _np.empty(alpha, dtype=self._npdtype) if use_hidden_bias else None
+                _np.empty(alpha_symm, dtype=self._npdtype) if use_hidden_bias else None
             )
-            self._autom = autom
 
             self._set_bare_parameters(
                 self._a, self._b, self._w, self._as, self._bs, self._ws, self._autom
@@ -325,8 +300,8 @@ class RbmSpin(AbstractMachine):
     @staticmethod
     @jit
     def _build_der_mat(use_visible_bias, use_hidden_bias, n_visible, alpha, permtable):
-
-        n_hidden = alpha * n_visible
+        perm_size = permtable.shape[0]
+        n_hidden = alpha * perm_size
 
         n_par = int(n_visible * alpha + use_visible_bias + alpha * use_hidden_bias)
         n_bare_par = int(
@@ -334,8 +309,6 @@ class RbmSpin(AbstractMachine):
             + use_visible_bias * n_visible
             + n_hidden * use_hidden_bias
         )
-
-        perm_size = permtable.shape[0]
 
         der_mat_symm = _np.zeros((n_par, n_bare_par))
 
@@ -370,6 +343,50 @@ class RbmSpin(AbstractMachine):
                 k_bare += 1
 
         return der_mat_symm.T, n_par
+
+    @staticmethod
+    def _get_hidden(symmetry, hilbert, n_hidden, alpha):
+        if (symmetry is None) or (symmetry is False):
+            if alpha is None:
+                m = n_hidden
+                if n_hidden < 0:
+                    raise RuntimeError("n_hidden must be positive.")
+            else:
+                m = int(round(alpha * hilbert.size))
+                if alpha < 0:
+                    raise ValueError("`alpha` should be non-negative")
+
+            if n_hidden is not None:
+                if n_hidden != m:
+                    raise RuntimeError(
+                        """n_hidden is inconsistent with the given alpha.
+                                       Remove one of the two or provide consistent values."""
+                    )
+
+            return None, m, m
+        else:
+            if symmetry is True:
+                autom = _np.asarray(hilbert.graph.automorphisms)
+            else:
+                try:
+                    autom = _np.asarray(symmetry)
+                    assert hilbert.size == autom.shape[1]
+                except:
+                    raise RuntimeError("Cannot find a valid automorphism array.")
+
+            if not _np.issubdtype(type(alpha), _np.integer):
+                raise ValueError(
+                    "alpha must be a positive integer value when using symmetries."
+                )
+
+            alphasym = int(alpha * autom.shape[1] / autom.shape[0])
+            if alphasym == 0 and alpha > 0:
+                print(
+                    "Warning, the given value of alpha is too small, given the size of the symmetry."
+                )
+            m = int(alphasym * autom.shape[0])
+
+            return autom, m, alphasym
 
     @staticmethod
     @jit
@@ -532,37 +549,42 @@ class RbmMultiVal(RbmSpin):
             Constructs a new ``RbmMultiVal`` machine:
 
             Args:
-               hilbert: Hilbert space object for the system.
-               n_hidden: The number of hidden spin units. If n_hidden=None, the number
+                hilbert: Hilbert space object for the system.
+                n_hidden: The number of hidden spin units. If n_hidden=None, the number
                        of hidden units is deduced from the parameter alpha.
-               alpha: `alpha * hilbert.size` is the number of hidden spins.
+                alpha: `alpha * hilbert.size` is the number of hidden spins.
                        If alpha=None, the number of hidden units must
                        be explicitely set in the argument n_hidden.
-               use_visible_bias: If ``True`` then there would be a
+                use_visible_bias: If ``True`` then there would be a
                                 bias on the visible units.
                                 Default ``True``.
-               use_hidden_bias: If ``True`` then there would be a
+                use_hidden_bias: If ``True`` then there would be a
                                bias on the visible units.
                                Default ``True``.
-               dtype: either complex or float, is the type used for the weights.
+                symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+                                     otherwise a valid array of automorphisms can be passed.
+                dtype: either complex or float, is the type used for the weights.
 
             Examples:
-               A ``RbmMultiVal`` machine with hidden unit density
-               alpha = 1 for a one-dimensional bosonic system:
+                A ``RbmMultiVal`` machine with hidden unit density
+                alpha = 1 for a one-dimensional bosonic system:
 
-               >>> from netket.machine import RbmMultiVal
-               >>> from netket.hilbert import Boson
-               >>> from netket.graph import Hypercube
-               >>> g = Hypercube(length=10, n_dim=1)
-               >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
-               >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
-               >>> print(ma.n_par)
-               1056
+                >>> from netket.machine import RbmMultiVal
+                >>> from netket.hilbert import Boson
+                >>> from netket.graph import Hypercube
+                >>> g = Hypercube(length=10, n_dim=1)
+                >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
+                >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
+                >>> print(ma.n_par)
+                1056
         """
         local_states = _np.asarray(hilbert.local_states, dtype=int)
 
         # creating a fictious hilbert object to pass to the standard rbm
         l_hilbert = _np.zeros(local_states.size * hilbert.size)
+
+        # creating the symmetries for the extended space
+        symmetry = self._make_extended_symmetry(symmetry, hilbert)
 
         super().__init__(
             l_hilbert,
@@ -573,6 +595,7 @@ class RbmMultiVal(RbmSpin):
             symmetry,
             dtype,
         )
+
         self.hilbert = hilbert
         self._local_states = local_states
 
@@ -587,6 +610,31 @@ class RbmMultiVal(RbmSpin):
             vec.reshape((vec.shape[1], vec.shape[0], -1)) == local_states
         ) * 2.0 - 1.0
         return res.reshape((vec.shape[0], -1))
+
+    @staticmethod
+    def _make_extended_symmetry(symmetry, hilbert):
+        if symmetry is not None:
+            if symmetry is True:
+                autom = _np.asarray(hilbert.graph.automorphisms)
+            else:
+                try:
+                    autom = _np.asarray(symmetry)
+                    assert hilbert.size == autom.shape[1]
+                except:
+                    raise RuntimeError("Cannot find a valid automorphism array.")
+
+            ldim = len(hilbert.local_states)
+
+            autop = _np.zeros((autom.shape[0], autom.shape[1] * ldim), dtype=int)
+
+            for k in range(autom.shape[0]):
+                for i in range(autom.shape[1]):
+                    autop[k, i * ldim : (i + 1) * ldim] = _np.arange(
+                        autom[k, i] * ldim, (autom[k, i] + 1) * ldim, 1, dtype=int
+                    )
+        else:
+            autop = None
+        return autop
 
     def log_val(self, x, out=None):
         r"""Computes the logarithm of the wave function for a batch of visible
