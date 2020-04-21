@@ -22,7 +22,6 @@
 #include "abstract_machine.hpp"
 #include "ffnn.hpp"
 #include "mps_periodic.hpp"
-#include "rbm_spin_symm.hpp"
 
 #include "DensityMatrices/density_matrix_machine.hpp"
 

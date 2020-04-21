@@ -28,8 +28,6 @@
 #include "Machine/ffnn.hpp"
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
-#include "Machine/rbm_spin_symm.hpp"
-#include "Utils/log_cosh.hpp"
 #include "Utils/pybind_helpers.hpp"
 
 namespace py = pybind11;
@@ -37,51 +35,6 @@ namespace py = pybind11;
 namespace netket {
 
 namespace {
-
-void AddRbmSpinSymm(py::module subm) {
-  py::class_<RbmSpinSymm, AbstractMachine>(subm, "RbmSpinSymm", R"EOF(
-             A fully connected Restricted Boltzmann Machine with lattice
-             symmetries. This type of RBM has spin 1/2 hidden units and is
-             defined by:
-
-             .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
-
-             for arbitrary local quantum numbers :math:`s_i`. However, the weights
-             (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
-             specified symmetries of the lattice.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
-           R"EOF(
-                   Constructs a new ``RbmSpinSymm`` machine:
-
-                   Args:
-                       hilbert: Hilbert space object for the system.
-                       alpha: Hidden unit density.
-                       use_visible_bias: If ``True`` then there would be a
-                                        bias on the visible units.
-                                        Default ``True``.
-                       use_hidden_bias: If ``True`` then there would be a
-                                       bias on the visible units.
-                                       Default ``True``.
-
-                   Examples:
-                       A ``RbmSpinSymm`` machine with hidden unit density
-                       alpha = 2 for a one-dimensional L=20 spin-half system:
-
-                       >>> from netket.machine import RbmSpinSymm
-                       >>> from netket.hilbert import Spin
-                       >>> from netket.graph import Hypercube
-                       >>> g = Hypercube(length=20, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-                       >>> print(ma.n_par)
-                       43
-
-                   )EOF");
-}
 
 void AddFFNN(py::module subm) {
   py::class_<FFNN, AbstractMachine>(subm, "FFNN", R"EOF(
@@ -573,7 +526,6 @@ void AddMachineModule(py::module m) {
   auto subm = m.def_submodule("machine");
 
   AddAbstractMachine(subm);
-  AddRbmSpinSymm(subm);
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);

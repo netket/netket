@@ -39,11 +39,11 @@ class Jastrow(AbstractMachine):
         Constructs a new ``Jastrow`` machine:
 
         Args:
-         hilbert: Hilbert space object for the system.
-         use_visible_bias (bool): Whether to use the visible bias a_i.
-         symmetry (optional): if True, the automorphisms in hilbert.graph.automorphisms are used.
-                              A custom matrix of automorphisms can also be passed instead.
-         dtype: either complex or float, it is the type used for the weights and biases.
+            hilbert: Hilbert space object for the system.
+            use_visible_bias (bool): Whether to use the visible bias a_i.
+            symmetry (optional): if True, the automorphisms in hilbert.graph.automorphisms are used.
+                                 A custom matrix of automorphisms can also be passed instead.
+            dtype: either complex or float, it is the type used for the weights and biases.
 
         Examples:
             A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2
@@ -57,7 +57,6 @@ class Jastrow(AbstractMachine):
             >>> ma = Jastrow(hilbert=hi)
             >>> print(ma.n_par)
             190
-
         """
 
         n = hilbert.size

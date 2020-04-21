@@ -1,4 +1,4 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2018-2020 The Simons Foundation, Inc. - All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import numpy as np
-from scipy.sparse.linalg import eigsh
 
 # 1D Periodic Lattice
 g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
@@ -25,13 +23,11 @@ hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=8)
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
-# Jastrow Machine with Symmetry
-# ma = nk.machine.RbmSpinSymm(alpha=4, hilbert=hi)
+# RBM Machine with one-hot encoding
 ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
 ma.init_random_parameters(seed=1234, sigma=0.01)
-print(ma.n_par)
 
-# Sampler
+# Sampler using Hamiltonian moves, thus preserving the total number of particles
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha, batch_size=16)
 
 # Stochastic gradient descent optimization

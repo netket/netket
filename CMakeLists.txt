@@ -274,7 +274,6 @@ set(NETKET_SOURCES
     Sources/Hilbert/py_hilbert.cc
     Sources/Machine/abstract_machine.cc
     Sources/Machine/mps_periodic.cc
-    Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Stats/mc_stats.cc

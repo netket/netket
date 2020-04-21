@@ -44,7 +44,8 @@ class RbmSpin(AbstractMachine):
     .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M \cosh
      \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-    for arbitrary local quantum numbers :math:`s_i`.
+    for arbitrary local quantum numbers :math:`s_i`. Here a and b are
+    called, respectively, visible and hidden bias.
 
     The weights can be taken to be complex-valued (default option) or real-valued.
     """
@@ -56,38 +57,39 @@ class RbmSpin(AbstractMachine):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
+        symmetry=None,
         dtype=complex,
     ):
         r"""
         Constructs a new ``RbmSpin`` machine:
 
         Args:
-           hilbert: Hilbert space object for the system.
-           n_hidden: The number of hidden spin units. If n_hidden=None, the number
+            hilbert: Hilbert space object for the system.
+            n_hidden: The number of hidden spin units. If n_hidden=None, the number
                    of hidden units is deduced from the parameter alpha.
-           alpha: `alpha * hilbert.size` is the number of hidden spins.
+            alpha: `alpha * hilbert.size` is the number of hidden spins.
                    If alpha=None, the number of hidden units must
                    be explicitely set in the argument n_hidden.
-           use_visible_bias: If ``True`` then there would be a
-                            bias on the visible units.
-                            Default ``True``.
-           use_hidden_bias: If ``True`` then there would be a
-                           bias on the visible units.
-                           Default ``True``.
-           dtype: either complex or float, is the type used for the weights.
+            use_visible_bias: If ``True`` a bias on the visible units is taken.
+                              Default ``True``.
+            use_hidden_bias: If ``True`` bias on the hidden units is taken.
+                             Default ``True``.
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+                                 otherwise a valid array of automorphisms can be passed.
+            dtype: either complex or float, is the type used for the weights.
 
         Examples:
-           A ``RbmSpin`` machine with hidden unit density
-           alpha = 2 for a one-dimensional L=20 spin-half system:
+            A ``RbmSpin`` machine with hidden unit density
+            alpha = 2 for a one-dimensional L=20 spin-half system:
 
-           >>> from netket.machine import RbmSpin
-           >>> from netket.hilbert import Spin
-           >>> from netket.graph import Hypercube
-           >>> g = Hypercube(length=20, n_dim=1)
-           >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-           >>> ma = RbmSpin(hilbert=hi,alpha=2)
-           >>> print(ma.n_par)
-           860
+            >>> from netket.machine import RbmSpin
+            >>> from netket.hilbert import Spin
+            >>> from netket.graph import Hypercube
+            >>> g = Hypercube(length=20, n_dim=1)
+            >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+            >>> ma = RbmSpin(hilbert=hi,alpha=2)
+            >>> print(ma.n_par)
+            860
         """
 
         n = hilbert.size
@@ -118,18 +120,54 @@ class RbmSpin(AbstractMachine):
 
         self.n_hidden = m
 
-        self._npar = (
+        self._n_bare_par = (
             self._w.size
             + (self._a.size if self._a is not None else 0)
             + (self._b.size if self._b is not None else 0)
         )
+
+        if symmetry is None:
+            self._ws = self._w.view()
+            self._as = self._a.view() if use_visible_bias else None
+            self._bs = self._b.view() if use_hidden_bias else None
+            self._autom = None
+            self._n_par = self._n_bare_par
+        else:
+            if symmetry is True:
+                autom = _np.asarray(hilbert.graph.automorphisms)
+            else:
+                try:
+                    autom = _np.asarray(symmetry)
+                    assert n == autom.shape[1]
+                except:
+                    raise RuntimeError("Cannot find a valid automorphism array.")
+
+            if not _np.issubdtype(type(alpha), _np.integer):
+                raise ValueError(
+                    "alpha must be specified and be a positive integer value when using symmetries."
+                )
+
+            self._der_mat_symm, self._n_par = self._build_der_mat(
+                use_visible_bias, use_hidden_bias, n, alpha, autom
+            )
+
+            self._ws = _np.empty((n, alpha), dtype=self._npdtype)
+            self._as = _np.empty(1, dtype=self._npdtype) if use_visible_bias else None
+            self._bs = (
+                _np.empty(alpha, dtype=self._npdtype) if use_hidden_bias else None
+            )
+            self._autom = autom
+
+            self._set_bare_parameters(
+                self._a, self._b, self._w, self._as, self._bs, self._ws, self._autom
+            )
 
         super().__init__(hilbert)
 
     @property
     def n_par(self):
         r"""The number of variational parameters in the machine."""
-        return self._npar
+        return self._n_par
 
     def log_val(self, x, out=None):
         r"""Computes the logarithm of the wave function for a batch of visible
@@ -180,12 +218,21 @@ class RbmSpin(AbstractMachine):
         Returns:
             `out`
             """
+        if self._autom is None:
+            return self._bare_der_log(x, out)
+        else:
+            self._outb = self._bare_der_log(x)
+            if out is None:
+                out = _np.empty((x.shape[0], self._n_par), dtype=_np.complex128)
+            return _np.matmul(self._outb, self._der_mat_symm, out=out)
+
+    def _bare_der_log(self, x, out=None):
 
         if x.ndim != 2:
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
+            out = _np.empty((x.shape[0], self._n_bare_par), dtype=_np.complex128)
 
         batch_size = x.shape[0]
         n_visible = x.shape[1]
@@ -225,28 +272,123 @@ class RbmSpin(AbstractMachine):
         od = OrderedDict()
         if self._dtype is complex:
             if self._a is not None:
-                od["a"] = self._a.view()
+                od["a"] = self._as.view()
 
             if self._b is not None:
-                od["b"] = self._b.view()
+                od["b"] = self._bs.view()
 
-            od["w"] = self._w.view()
+            od["w"] = self._ws.view()
         else:
             if self._a is not None:
-                self._ac = self._a.astype(_np.complex128)
-                self._a = self._ac.real.view()
+                self._ac = self._as.astype(_np.complex128)
+                self._as = self._ac.real.view()
                 od["a"] = self._ac.view()
+                if self._autom is None:
+                    self._a = self._as.view()
 
             if self._b is not None:
-                self._bc = self._b.astype(_np.complex128)
-                self._b = self._bc.real.view()
+                self._bc = self._bs.astype(_np.complex128)
+                self._bs = self._bc.real.view()
                 od["b"] = self._bc.view()
+                if self._autom is None:
+                    self._b = self._bs.view()
 
-            self._wc = self._w.astype(_np.complex128)
-            self._w = self._wc.real.view()
+            self._wc = self._ws.astype(_np.complex128)
+            self._ws = self._wc.real.view()
             od["w"] = self._wc.view()
+            if self._autom is None:
+                self._w = self._ws.view()
 
         return od
+
+    @property
+    def parameters(self):
+        return _np.concatenate(tuple(p.reshape(-1) for p in self.state_dict.values()))
+
+    @parameters.setter
+    def parameters(self, p):
+        if p.shape != (self.n_par,):
+            raise ValueError(
+                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
+            )
+
+        i = 0
+        for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
+            _np.copyto(x, p[i : i + x.size])
+            i += x.size
+
+        if self._autom is not None:
+            self._set_bare_parameters(
+                self._a, self._b, self._w, self._as, self._bs, self._ws, self._autom
+            )
+
+    @staticmethod
+    @jit
+    def _build_der_mat(use_visible_bias, use_hidden_bias, n_visible, alpha, permtable):
+
+        n_hidden = alpha * n_visible
+
+        n_par = int(n_visible * alpha + use_visible_bias + alpha * use_hidden_bias)
+        n_bare_par = int(
+            n_visible * n_hidden
+            + use_visible_bias * n_visible
+            + n_hidden * use_hidden_bias
+        )
+
+        perm_size = permtable.shape[0]
+
+        der_mat_symm = _np.zeros((n_par, n_bare_par))
+
+        k = 0
+        k_bare = 0
+
+        if use_visible_bias:
+            # derivative with respect to a
+            for p in range(n_visible):
+                der_mat_symm[k, p] = 1
+                k_bare += 1
+            k += 1
+
+        if use_hidden_bias:
+            # derivatives with respect to b
+            for p in range(n_hidden):
+                k_symm = int(_np.floor(p / perm_size))
+                der_mat_symm[k_symm + k, k_bare] = 1
+                k_bare += 1
+
+            k += alpha
+
+        # derivatives with respect to W
+        for i in range(n_visible):
+            for j in range(n_hidden):
+                isymm = permtable[j % perm_size, i]
+                jsymm = int(_np.floor(j / perm_size))
+                ksymm = jsymm + int(alpha * isymm)
+
+                der_mat_symm[ksymm + k, k_bare] = 1
+
+                k_bare += 1
+
+        return der_mat_symm.T, n_par
+
+    @staticmethod
+    @jit
+    def _set_bare_parameters(a, b, W, a_s, b_s, W_s, permtable):
+
+        perm_size = permtable.shape[0]
+
+        if a is not None:
+            a.fill(a_s)
+
+        if b is not None:
+            for j in range(b.shape[0]):
+                jsymm = int(_np.floor(j / perm_size))
+                b[j] = b_s[jsymm]
+
+        for i in range(W.shape[0]):
+            for j in range(W.shape[1]):
+                jsymm = int(_np.floor(j / perm_size))
+                W[i, j] = W_s[permtable[j % perm_size][i], jsymm]
 
 
 class RbmSpinReal(RbmSpin):
@@ -263,20 +405,23 @@ class RbmSpinReal(RbmSpin):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
+        symmetry=None,
     ):
         r"""
         Constructs a new ``RbmSpinReal`` machine:
 
         Args:
-           hilbert: Hilbert space object for the system.
-           n_hidden: Number of hidden units.
-           alpha: Hidden unit density.
-           use_visible_bias: If ``True`` then there would be a
+            hilbert: Hilbert space object for the system.
+            n_hidden: Number of hidden units.
+            alpha: Hidden unit density.
+            use_visible_bias: If ``True`` then there would be a
                             bias on the visible units.
                             Default ``True``.
-           use_hidden_bias: If ``True`` then there would be a
+            use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+                                 otherwise a valid array of automorphisms can be passed.
 
         Examples:
            A ``RbmSpinReal`` machine with hidden unit density
@@ -298,6 +443,68 @@ class RbmSpinReal(RbmSpin):
             alpha=alpha,
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
+            symmetry=symmetry,
+            dtype=float,
+        )
+
+
+class RbmSpinSymm(RbmSpin):
+    r"""
+        A fully connected Restricted Boltzmann Machine with lattice
+        symmetries. This type of RBM has spin 1/2 hidden units and is
+        defined by:
+
+        .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+        \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
+
+        for arbitrary local quantum numbers :math:`s_i`. However, the weights
+        (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
+        symmetries of the lattice as specificed in hilbert.graph.automorphisms.
+
+        The values of the weights can be chosen to be complex or real-valued.
+
+    """
+
+    def __init__(
+        self,
+        hilbert,
+        alpha=None,
+        use_visible_bias=True,
+        use_hidden_bias=True,
+        dtype=complex,
+    ):
+        r"""
+            Constructs a new ``RbmSpinSymm`` machine with complex weights:
+
+            Args:
+               hilbert: Hilbert space object for the system.
+               alpha: Hidden unit density.
+               use_visible_bias: If ``True`` then there would be a
+                                bias on the visible units.
+                                Default ``True``.
+               use_hidden_bias: If ``True`` then there would be a
+                               bias on the visible units.
+                               Default ``True``.
+
+            Examples:
+               A ``RbmSpinSymm`` machine with hidden unit density
+               alpha = 2 for a one-dimensional L=20 spin-half system:
+
+               >>> from netket.machine import RbmSpinSymm
+               >>> from netket.hilbert import Spin
+               >>> from netket.graph import Hypercube
+               >>> g = Hypercube(length=20, n_dim=1)
+               >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+               >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
+               >>> print(ma.n_par)
+               43
+        """
+        super().__init__(
+            hilbert,
+            alpha=alpha,
+            use_visible_bias=use_visible_bias,
+            use_hidden_bias=use_hidden_bias,
+            symmetry=True,
             dtype=float,
         )
 
@@ -317,6 +524,7 @@ class RbmMultiVal(RbmSpin):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
+        symmetry=None,
         dtype=complex,
     ):
 
@@ -357,7 +565,13 @@ class RbmMultiVal(RbmSpin):
         l_hilbert = _np.zeros(local_states.size * hilbert.size)
 
         super().__init__(
-            l_hilbert, n_hidden, alpha, use_visible_bias, use_hidden_bias, dtype
+            l_hilbert,
+            n_hidden,
+            alpha,
+            use_visible_bias,
+            use_hidden_bias,
+            symmetry,
+            dtype,
         )
         self.hilbert = hilbert
         self._local_states = local_states
