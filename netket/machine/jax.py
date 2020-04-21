@@ -38,6 +38,10 @@ class Jax(AbstractMachine):
             module: A pair `(init_fn, predict_fn)`. See the documentation of
                 `jax.experimental.stax` for more info.
             dtype: either complex or float, is the type used for the weights.
+                If dtype is float, the network should have 2 outputs corresponding
+                to the real and imaginary part of log(psi(x)).
+                If dtype is complex, the network should have only 1 output
+                representing the complex amplitude log(psi(x)).
             seed: Seed to use to construct `jax.random.PRNGKey` for
                 initialisation of parameters. If `None` seed will be chosen
                 automatically (which is __not__ synchronized between MPI
