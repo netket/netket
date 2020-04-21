@@ -25,7 +25,7 @@ hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.RbmSpinSymm(alpha=1, hilbert=hi)
+ma = nk.machine.RbmSpin(alpha=1, hilbert=hi, symmetry=True)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Exchange Sampling
@@ -36,13 +36,12 @@ sa = nk.sampler.MetropolisExchange(machine=ma)
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.05)
 
-# Stochastic reconfiguration
+# Stochastic Reconfifugration
+sr = nk.optimizer.SR(diag_shift=0.1)
+
+# Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    sr=nk.optimizer.SR(diag_shift=0.1)
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=2, sr=sr
 )
 
 gs.run(output_prefix="test", n_iter=300)

@@ -505,7 +505,7 @@ class RbmSpinSymm(RbmSpin):
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
             symmetry=True,
-            dtype=float,
+            dtype=dtype,
         )
 
 

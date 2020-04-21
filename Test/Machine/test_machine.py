@@ -82,7 +82,7 @@ if test_torch:
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-# machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
@@ -92,7 +92,7 @@ machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = Spin(s=0.5, graph=g, total_sz=0)
 machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
-    hilbert=hi, use_visible_bias=True
+    hilbert=hi, use_visible_bias=True, symmetry=True
 )
 
 dm_machines = {}
