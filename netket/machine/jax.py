@@ -12,24 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
+import jax
 from collections import OrderedDict
 from functools import reduce
-from pickle import dump, load
 import os
+from .abstract_machine import AbstractMachine
 
-import numpy as np
+import numpy as _np
 
 os.environ["JAX_ENABLE_X64"] = "1"
-import jax
 
-from .cxx_machine import CxxMachine
 
 __all__ = ["Jax"]
 
 
-class Jax(CxxMachine):
-    def __init__(self, hilbert, module, seed=None):
+class Jax(AbstractMachine):
+    def __init__(self, hilbert, module, dtype=complex, seed=None):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -39,131 +37,140 @@ class Jax(CxxMachine):
                 subclass of `netket.hilbert.Hilbert`.
             module: A pair `(init_fn, predict_fn)`. See the documentation of
                 `jax.experimental.stax` for more info.
+            dtype: either complex or float, is the type used for the weights.
             seed: Seed to use to construct `jax.random.PRNGKey` for
                 initialisation of parameters. If `None` seed will be chosen
                 automatically (which is __not__ synchronized between MPI
                 processes so prefer `self.init_random_parameters` if you're
                 using multiple MPI tasks)
         """
-        # NOTE: The following call to __init__ is important!
         super(Jax, self).__init__(hilbert)
-        if seed is None:
-            # NOTE(twesterhout): I believe, jax uses 32-bit integers internally
-            # to represent the seed. Hence the limit
-            seed = np.random.randint(2 ** 32 - 1)
+
+        if dtype is not float and dtype is not complex:
+            raise TypeError("dtype must be either float or complex")
+
+        self._dtype = dtype
+        self._npdtype = _np.complex128 if dtype is complex else _np.float64
+
+        self.n_visible = hilbert.size
+
         init_fn, self._forward_fn = module
         self._forward_fn = jax.jit(self._forward_fn)
-        input_shape = (-1, hilbert.size)
-        output_shape, self._params = init_fn(jax.random.PRNGKey(seed), input_shape)
-        if output_shape != (-1, 2):
-            raise ValueError("module's output_shape is weird, check your network")
+
+        if seed is None:
+            seed = _np.random.randint(2 ** 32 - 2)
+        input_shape = (-1, self.n_visible)
+        self._params = []
+        if self._dtype is complex:
+            output_shape, pars_real = init_fn(
+                jax.random.PRNGKey(seed), input_shape)
+            _, pars_imag = init_fn(
+                jax.random.PRNGKey(seed + 1), input_shape)
+            if output_shape != (-1, 1):
+                raise ValueError(
+                    "A complex valued network must have only 1 output.")
+            for x1, x2 in zip(pars_real, pars_imag):
+                layer_state = []
+                for l1, l2 in zip(x1, x2):
+                    layer_state += [_np.array(l1 + 1j *
+                                              l2, dtype=self._npdtype), ]
+                self._params.append(layer_state)
+        else:
+            output_shape, pars = init_fn(
+                jax.random.PRNGKey(seed), input_shape)
+            if output_shape != (-1, 2):
+                raise ValueError(
+                    "A real valued network must have 2 outputs.")
+            for x1 in pars:
+                layer_state = []
+                for l1 in x1:
+                    layer_state += [_np.array(l1, dtype=self._npdtype), ]
+                self._params.append(layer_state)
+
         # Computes total number of parameters
-        n_par = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
-        # Save the initial dtype (for debugging mostly)
-        dtypes = set(p.dtype for layer in self._params for p in layer)
-        if len(dtypes) != 1:
-            raise ValueError("module parameters have different dtypes")
-        self._dtype = next(iter(dtypes))
-        self._complex_dtype = {
-            np.dtype("float32"): np.complex64,
-            np.dtype("float64"): np.complex128,
-        }[self._dtype]
+        self._npar = sum(reduce(lambda n, p: n + p.size, layer, 0)
+                         for layer in self._params)
+
         assert all(
-            np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
+            _np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
         ), "sorry, column major order is not supported (yet)"
-        self._n_par = lambda: n_par
+
         # Computes the Jacobian matrix using backprop
-        self._jacobian = jax.jacrev(self._forward_fn)
+        self._jacobian = jax.jacrev(
+            self._forward_fn, holomorphic=(self._dtype is complex))
         self._jacobian = jax.jit(self._jacobian)
 
-    def _log_val(self, x, out):
-        """
-        Do not use this function directly! It's an implementation detail!
+    @property
+    def n_par(self):
+        r"""The number of variational parameters in the machine."""
+        return self._npar
 
-        See `self.log_val`.
-        """
-        out[:] = (
-            np.asarray(self._forward_fn(self._params, x))
-            .view(dtype=self._complex_dtype)
-            .squeeze()
-        )
+    def log_val(self, x, out=None):
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
 
-    def _der_log(self, x, out):
-        """
-        Do not use this function directly! It's an implementation detail!
+        if out is None:
+            out = _np.empty(x.shape[0], dtype=_np.complex128)
 
-        See `self.log_val`.
-        """
+        if self._dtype is complex:
+            out = _np.array(self._forward_fn(
+                self._params, x).reshape(x.shape[0],))
+        else:
+            a = _np.asarray(self._forward_fn(self._params, x))
+            out[:] = (a[:, 0] + 1j * a[:, 1]).squeeze()
+        return out
+
+    def der_log(self, x, out=None):
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
+        if out is None:
+            out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
+
         J = self._jacobian(self._params, x)
         batch_size = x.shape[0]
         i = 0
-        for g in (g.reshape(batch_size, 2, -1) for layer in J for g in layer):
-            n = g.shape[2]
-            out[:, i : i + n].real = g[:, 0, :]
-            out[:, i : i + n].imag = g[:, 1, :]
-            i += n
-
-    def _is_holomorphic(self):
-        return False
-
-    def _set_parameters(self, new_parameters):
-        state = []
-        i = 0
-        for layer in self._params:
-            layer_state = ()
-            for p in layer:
-                if not np.all(p.imag == 0):
-                    raise ValueError("parameters are purely real")
-                # NOTE: This relies on the fact that all our parameters are
-                # stored in row major order
-                layer_state += (
-                    np.ascontiguousarray(
-                        new_parameters[i : i + p.size].real.reshape(p.shape)
-                    ),
-                )
-                i += p.size
-            state.append(layer_state)
-        self._params = state
+        if self._dtype is complex:
+            for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
+                n = g.shape[2]
+                out[:, i: i + n] = g[:, 0, :]
+                i += n
+        else:
+            for g in (g.reshape(batch_size, 2, -1) for layer in J for g in layer):
+                n = g.shape[2]
+                out[:, i: i + n].real = g[:, 0, :]
+                out[:, i: i + n].imag = g[:, 1, :]
+                i += n
+        return out
 
     @property
-    def dtype(self):
-        """
-        Datatype of the parameters.
-        """
-        return self._dtype
+    def is_holomorphic(self):
+        return self._dtype is complex
 
+    @property
     def state_dict(self):
         state = []
         for i, layer in enumerate(self._params):
             for j, p in enumerate(layer):
-                state.append((str((i, j)), np.asarray(p).view()))
+                state.append((str((i, j)), _np.asarray(p).view()))
         return OrderedDict(state)
 
-    def load_state_dict(self, other):
-        state = []
-        for i, layer in enumerate(self._params):
-            layer_state = ()
-            for j, p in enumerate(layer):
-                name = str((i, j))
-                if name not in other:
-                    raise ValueError(
-                        "state is missing required field {!r}".format(name)
-                    )
-                value = other[name]
-                if p.shape != value.shape:
-                    raise ValueError(
-                        "field {!r} has wrong shape: {}; expected {}".format(
-                            value.shape, p.shape
-                        )
-                    )
-                layer_state += (value,)
-            state.append(layer_state)
-        self._params = state
+    @property
+    def parameters(self):
+        return _np.concatenate(tuple(p.astype(dtype=_np.complex128).reshape(-1) for p in self.state_dict.values()))
 
-    def save(self, filename):
-        with open(filename, "wb") as output:
-            dump(self.state_dict(), output)
+    @parameters.setter
+    def parameters(self, p):
+        if p.shape != (self.n_par,):
+            raise ValueError(
+                "p has wrong shape: {}; expected ({},)".format(
+                    p.shape, self.n_par)
+            )
 
-    def load(self, filename):
-        with open(filename, "rb") as input:
-            self.load_state_dict(load(input))
+        i = 0
+        for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
+            if self._dtype is complex:
+                _np.copyto(x, p[i: i + x.size])
+            else:
+                _np.copyto(x, p[i: i + x.size].real)
+            i += x.size
