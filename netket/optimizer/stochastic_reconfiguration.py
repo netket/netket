@@ -3,7 +3,7 @@ from scipy.linalg import lstsq as _lstsq
 from scipy.linalg import cho_factor as _cho_factor
 from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
-from netket.stats import sum_on_nodes as _sum_on_nodes
+from netket.stats import sum_inplace as _sum_inplace
 from scipy.sparse.linalg import cg, gmres, minres
 from mpi4py import MPI
 
@@ -106,7 +106,7 @@ class SR:
             out: Output array for the update ẋ.
         """
 
-        n_samp = _sum_on_nodes(_np.atleast_1d(oks.shape[0]))
+        n_samp = _sum_inplace(_np.atleast_1d(oks.shape[0]))
 
         n_par = grad.shape[0]
 
@@ -133,7 +133,7 @@ class SR:
                 self._x0 = out
             else:
                 self._S = _np.matmul(oks.conj().T, oks, self._S)
-                self._S = _sum_on_nodes(self._S)
+                self._S = _sum_inplace(self._S)
                 self._S /= float(n_samp)
 
                 self._apply_preconditioning(grad)
@@ -290,7 +290,7 @@ class SR:
 
                 v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
                 res = _np.matmul(v_tilde, oks_conj, res)
-                res = _sum_on_nodes(res) + shift * v
+                res = _sum_inplace(res) + shift * v
                 return res
 
         else:
@@ -301,7 +301,7 @@ class SR:
 
                 v_tilde = _np.matmul(oks, v, v_tilde) / float(n_samp)
                 res = _np.matmul(v_tilde, oks_conj, res)
-                res = _sum_on_nodes(res) + shift * v
+                res = _sum_inplace(res) + shift * v
 
                 return res.real
 
