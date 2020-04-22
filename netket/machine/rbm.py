@@ -788,14 +788,15 @@ class RbmSpinPhase(AbstractMachine):
             `out`
             """
         n_par = self._n_par
+        n_par_a = self._rbm_a.n_par
 
         if out is None:
             out = _np.empty((x.shape[0], n_par), dtype=_np.complex128)
 
-        self._rbm_a.der_log(x, out[:, : n_par // 2])
+        self._rbm_a.der_log(x, out[:, :n_par_a])
 
-        self._rbm_p.der_log(x, out[:, n_par // 2 :])
-        out[:, n_par // 2 :] *= 1.0j
+        self._rbm_p.der_log(x, out[:, n_par_a:])
+        out[:, n_par_a:] *= 1.0j
 
         return out
 
@@ -811,3 +812,12 @@ class RbmSpinPhase(AbstractMachine):
         od = self._rbm_a.state_dict_with_prefix(prefix="amplitude_")
         od.update(self._rbm_p.state_dict_with_prefix(prefix="phase_"))
         return od
+
+    @property
+    def parameters(self):
+        return _np.concatenate(tuple(p.reshape(-1) for p in self.state_dict.values()))
+
+    @parameters.setter
+    def parameters(self, p):
+        self._rbm_a.parameters = p[: self._rbm_a.n_par]
+        self._rbm_p.parameters = p[self._rbm_a.n_par :]
