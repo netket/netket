@@ -93,7 +93,7 @@ class Vmc(AbstractVariationalDriver):
         )
 
         self._grads = _np.empty(
-            (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
+            (self._n_samples_node * self._batch_size, self._machine.n_par), dtype=_np.complex128
         )
 
     @property
