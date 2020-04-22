@@ -241,36 +241,39 @@ class RbmSpin(AbstractMachine):
 
     @property
     def state_dict(self):
+        return self.state_dict_with_prefix()
+
+    def state_dict_with_prefix(self, prefix=""):
         r"""A dictionary containing the parameters of this machine"""
         from collections import OrderedDict
 
         od = OrderedDict()
         if self._dtype is complex:
             if self._a is not None:
-                od["a"] = self._as.view()
+                od[prefix + "a"] = self._as.view()
 
             if self._b is not None:
-                od["b"] = self._bs.view()
+                od[prefix + "b"] = self._bs.view()
 
-            od["w"] = self._ws.view()
+            od[prefix + "w"] = self._ws.view()
         else:
             if self._a is not None:
                 self._ac = self._as.astype(_np.complex128)
                 self._as = self._ac.real.view()
-                od["a"] = self._ac.view()
+                od[prefix + "a"] = self._ac.view()
                 if self._autom is None:
                     self._a = self._as.view()
 
             if self._b is not None:
                 self._bc = self._bs.astype(_np.complex128)
                 self._bs = self._bc.real.view()
-                od["b"] = self._bc.view()
+                od[prefix + "b"] = self._bc.view()
                 if self._autom is None:
                     self._b = self._bs.view()
 
             self._wc = self._ws.astype(_np.complex128)
             self._ws = self._wc.real.view()
-            od["w"] = self._wc.view()
+            od[prefix + "w"] = self._wc.view()
             if self._autom is None:
                 self._w = self._ws.view()
 
@@ -684,83 +687,75 @@ class RbmSpinPhase(AbstractMachine):
         hilbert,
         alpha=None,
         n_hidden=None,
+        alpha_a=None,
+        alpha_p=None,
         n_hidden_a=None,
         n_hidden_p=None,
         use_visible_bias=True,
         use_hidden_bias=True,
+        symmetry=None,
     ):
         r"""
         Constructs a new ``RbmSpinPhase`` machine:
 
         Args:
-           hilbert: Hilbert space object for the system.
-           alpha: Hidden unit density.
-           n_hidden: The number of hidden spin units to be used in both RBMs. If None,
+            hilbert: Hilbert space object for the system.
+            alpha: Hidden unit density.
+            n_hidden: The number of hidden spin units to be used in both RBMs. If None,
                      n_hidden_a and n_hidden_p must be specified.
-           n_hidden_a: The number of hidden spin units to be used to represent the amplitude.
-           n_hidden_p: The number of hidden spin units to be used to represent the phase.
-           use_visible_bias: If ``True`` then there would be a
+            alpha_a: Hidden unit density for the amplitude. If None, the general parameter alpha is used.
+            alpha_p: Hidden unit density for the phase. If None, the general parameter alpha is used.
+                    n_hidden_a: The number of hidden spin units to be used to represent the amplitude.
+            If None, the general parameter alpha (or n_hidden) is used to derive the number of hidden units.
+            n_hidden_p: The number of hidden spin units to be used to represent the phase.
+            If None, the general parameter alpha (or n_hidden) is used to derive the number of hidden units.
+            use_visible_bias: If ``True`` then there would be a
                             bias on the visible units.
                             Default ``True``.
-           use_hidden_bias: If ``True`` then there would be a
+            use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+                                 otherwise a valid array of automorphisms can be passed.
 
         Examples:
 
         """
-
-        n = hilbert.size
+        if n_hidden is not None:
+            n_hidden_a = n_hidden
+            n_hidden_p = n_hidden
 
         if alpha is not None:
-            if alpha < 0:
-                raise ValueError("`alpha` should be non-negative")
-            if n_hidden is not None:
-                if n_hidden != int(round(alpha * n)):
-                    raise RuntimeError(
-                        """n_hidden is inconsistent with the given alpha.
-                                       Remove one of the two or provide consistent values."""
-                    )
-            n_hidden = int(round(alpha * n))
+            alpha_a = alpha
+            alpha_p = alpha
 
-        if n_hidden is not None:
-            m_a = n_hidden
-            m_p = n_hidden
-        else:
-            m_a = n_hidden_a
-            m_p = n_hidden_p
-
-        if m_a is None or m_p is None or m_a < 0 or m_p < 0:
-            raise RuntimeError("""Invalid number of hidden unit.""")
-
-        self._wa = _np.empty((n, m_a))
-        self._wp = _np.empty((n, m_p))
-
-        self._aa = _np.empty(n) if use_visible_bias else None
-        self._ap = _np.empty(n) if use_visible_bias else None
-
-        self._ba = _np.empty(m_a) if use_hidden_bias else None
-        self._bp = _np.empty(m_p) if use_hidden_bias else None
-
-        self._ra = _np.empty((1, m_a))
-        self._rp = _np.empty((1, m_p))
-
-        self.n_hidden_a = m_a
-        self.n_hidden_p = m_p
-
-        self._npar = (
-            self._wa.size
-            + self._wp.size
-            + (self._aa.size + self._ap.size if self._aa is not None else 0)
-            + (self._ba.size + self._bp.size if self._ba is not None else 0)
+        self._rbm_a = RbmSpin(
+            hilbert=hilbert,
+            n_hidden=n_hidden_a,
+            alpha=alpha_a,
+            use_visible_bias=use_visible_bias,
+            use_hidden_bias=use_hidden_bias,
+            symmetry=symmetry,
+            dtype=float,
         )
+        self._rbm_p = RbmSpin(
+            hilbert=hilbert,
+            n_hidden=n_hidden_p,
+            alpha=alpha_p,
+            use_visible_bias=use_visible_bias,
+            use_hidden_bias=use_hidden_bias,
+            symmetry=symmetry,
+            dtype=float,
+        )
+
+        self._n_par = self._rbm_a.n_par + self._rbm_p.n_par
 
         super().__init__(hilbert)
 
     @property
     def n_par(self):
         r"""The number of variational parameters in the machine."""
-        return self._npar
+        return self._n_par
 
     def log_val(self, x, out=None):
         r"""Computes the logarithm of the wave function for a batch of visible
@@ -775,43 +770,8 @@ class RbmSpinPhase(AbstractMachine):
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
             """
-        return self._log_val_kernel(
-            x,
-            out,
-            self._wa,
-            self._wp,
-            self._aa,
-            self._ap,
-            self._ba,
-            self._bp,
-            self._ra,
-            self._rp,
-        )
-
-    @staticmethod
-    @jit(nopython=True)
-    def _log_val_kernel(x, out, wa, wp, aa, ap, ba, bp, ra, rp):
-
-        if x.ndim != 2:
-            raise RuntimeError("Invalid input shape, expected a 2d array")
-
-        if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.complex128)
-
-        ra = x.dot(wa)
-        if ba is None:
-            _log_cosh_sum(ra, out)
-        else:
-            _log_cosh_sum(ra + ba, out)
-
-        rp = x.dot(wp)
-        if bp is None:
-            _log_cosh_sum(rp, out, add_factor=(1.0j))
-        else:
-            _log_cosh_sum(rp + bp, out, add_factor=(1.0j))
-
-        if aa is not None:
-            out = out + x.dot(aa) + 1.0j * x.dot(ap)
+        out = self._rbm_a.log_val(x, out)
+        out += 1.0j * self._rbm_p.log_val(x)
 
         return out
 
@@ -827,97 +787,27 @@ class RbmSpinPhase(AbstractMachine):
         Returns:
             `out`
             """
-
-        if x.ndim != 2:
-            raise RuntimeError("Invalid input shape, expected a 2d array")
+        n_par = self._n_par
 
         if out is None:
-            out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
+            out = _np.empty((x.shape[0], n_par), dtype=_np.complex128)
 
-        batch_size = x.shape[0]
+        self._rbm_a.der_log(x, out[:, : n_par // 2])
 
-        # Amplitude parameters
-        i = 0
-        if self._aa is not None:
-            out[:, i : i + x.shape[1]] = x
-            i += self.n_visible
-
-        r = self._ra
-        r = _np.dot(x, self._wa)
-        if self._ba is not None:
-            r += self._ba
-        r = _np.tanh(r)
-
-        if self._ba is not None:
-            out[:, i : i + self.n_hidden_a] = r
-            i += self.n_hidden_a
-
-        t = out[:, i : i + self._wa.size]
-        t.shape = (batch_size, self._wa.shape[0], self._wa.shape[1])
-        _np.einsum("ij,il->ijl", x, r, out=t)
-
-        i += self._wa.size
-
-        # Phase parameters
-        if self._ap is not None:
-            out[:, i : i + x.shape[1]] = 1.0j * x
-            i += self.n_visible
-
-        r = self._rp
-        r = _np.dot(x, self._wp)
-        if self._bp is not None:
-            r += self._bp
-        r = _np.tanh(r)
-
-        if self._bp is not None:
-            out[:, i : i + self.n_hidden_p] = 1.0j * r
-            i += self.n_hidden_p
-
-        t = out[:, i : i + self._wp.size]
-        t.shape = (batch_size, self._wp.shape[0], self._wp.shape[1])
-        _np.einsum("ij,il->ijl", x, r, out=t)
-        t *= 1.0j
+        self._rbm_p.der_log(x, out[:, n_par // 2 :])
+        out[:, n_par // 2 :] *= 1.0j
 
         return out
 
     @property
     def is_holomorphic(self):
-        r"""This is not holomorphic.
+        r"""This machine is not holomorphic.
         """
         return False
 
     @property
     def state_dict(self):
         r"""A dictionary containing the parameters of this machine"""
-        from collections import OrderedDict
-
-        od = OrderedDict()
-        if self._aa is not None:
-            self._aac = self._aa.astype(_np.complex128)
-            self._aa = self._aac.real.view()
-            od["a1"] = self._aac.view()
-
-        if self._ba is not None:
-            self._bac = self._ba.astype(_np.complex128)
-            self._ba = self._bac.real.view()
-            od["b1"] = self._bac.view()
-
-        self._wac = self._wa.astype(_np.complex128)
-        self._wa = self._wac.real.view()
-        od["w1"] = self._wac.view()
-
-        if self._ap is not None:
-            self._apc = self._ap.astype(_np.complex128)
-            self._ap = self._apc.real.view()
-            od["a2"] = self._apc.view()
-
-        if self._bp is not None:
-            self._bpc = self._bp.astype(_np.complex128)
-            self._bp = self._bpc.real.view()
-            od["b2"] = self._bpc.view()
-
-        self._wpc = self._wp.astype(_np.complex128)
-        self._wp = self._wpc.real.view()
-        od["w2"] = self._wpc.view()
-
+        od = self._rbm_a.state_dict_with_prefix(prefix="amplitude_")
+        od.update(self._rbm_p.state_dict_with_prefix(prefix="phase_"))
         return od

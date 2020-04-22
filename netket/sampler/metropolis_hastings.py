@@ -147,8 +147,9 @@ class MetropolisHastings(AbstractSampler):
         _log_values_1 = self._log_values_1
         _log_prob_corr = self._log_prob_corr
         _machine_pow = self._machine_pow
-        _accepted_samples = self._accepted_samples
         _t_kernel = self._kernel.apply
+
+        accepted = 0
 
         for sweep in range(self.sweep_size):
 
@@ -158,7 +159,7 @@ class MetropolisHastings(AbstractSampler):
             _log_values_1 = _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
-            acc = _acc_kernel(
+            accepted += _acc_kernel(
                 _state,
                 _state1,
                 _log_values,
@@ -167,9 +168,8 @@ class MetropolisHastings(AbstractSampler):
                 _machine_pow,
             )
 
-            _accepted_samples += acc
-
         self._total_samples += self.sweep_size * self.n_chains
+        self._accepted_samples += accepted
 
         return self._state
 
