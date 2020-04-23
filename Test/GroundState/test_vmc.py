@@ -29,10 +29,10 @@ def _setup_vmc():
     X = [[0, 1], [1, 0]]
     sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
 
-    driver = nk.variational.Vmc(ha, sa, op, 1000)
+    sr = nk.optimizer.SR(use_iterative=False)
+    driver = nk.Vmc(ha, sa, op, 1000, sr=sr)
 
     return ha, sx, ma, sa, driver
-
 
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
@@ -120,3 +120,43 @@ def test_vmc_progress_bar():
         driver.run(prefix, 5, show_progress=None)
     pbar = f.getvalue()
     assert not len(pbar)
+
+def _energy(par, machine, H):
+    machine.parameters = np.copy(par)
+    psi = machine.to_array()
+    return np.real(psi.conj()@H@psi)
+
+def central_diff_grad(func, x, eps, *args):
+    grad = np.zeros(len(x), dtype=complex)
+    epsd = np.zeros(len(x), dtype=complex)
+    epsd[0] = eps
+    for i in range(len(x)):
+        assert not np.any(np.isnan(x + epsd))
+        grad_r =  0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
+        grad_i =  0.5 * (func(x + 1j*epsd, *args) - func(x - 1j*epsd, *args))
+        grad[i] = 0.5 * grad_r + 0.5j*grad_i
+        assert not np.isnan(grad[i])
+        grad[i] /= eps
+        epsd = np.roll(epsd, 1)
+    return grad
+
+def same_derivatives(der_log, num_der_log, eps=1.0e-6):
+    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+    # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
+        0.0, rel=eps, abs=eps
+    )
+
+def test_vmc_gradient():
+    ha, sx, ma, sampler, driver = _setup_vmc()
+    pars = np.copy(ma.parameters)
+    driver._sr = None
+    grad_exact = central_diff_grad(_energy, pars, 1.0e-5, ma, ha.to_sparse())
+
+    driver.n_samples = 1e6
+    driver.n_discard = 1e3
+    driver.machine.parameters = np.copy(pars)
+    grad_approx = driver._forward_and_backward()
+
+    err = 5/np.sqrt(driver.n_samples)
+    same_derivatives(grad_approx, grad_exact, eps=err)
