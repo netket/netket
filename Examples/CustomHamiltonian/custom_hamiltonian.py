@@ -56,4 +56,4 @@ gs = nk.variational.Vmc(
     method="Sr",
 )
 
-gs.run(output_prefix="test", n_iter=3000)
+gs.run(out="test", n_iter=3000)

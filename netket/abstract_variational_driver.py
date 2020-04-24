@@ -1,6 +1,6 @@
 import abc
 
-from netket._core import deprecated
+from netket._core import deprecated, warn_deprecation
 import netket as _nk
 import numpy as _np
 
@@ -135,24 +135,29 @@ class AbstractVariationalDriver(abc.ABC):
 
     def run(
         self,
-        output_prefix,
         n_iter,
+        out=None,
         obs=None,
-        save_params_every=50,
-        write_every=50,
-        step_size=1,
         show_progress=True,
+        save_params_every=50,  # for default logger
+        write_every=50,  # for default logger
+        step_size=1,  # for default logger
+        output_prefix=None,  # TODO: deprecated
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
         stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output. The output is a json file at `output_prefix`, overwriting files with
-        the same prefix.
+        in the output `logger`. If no logger is specified, creates a json file at `output_prefix`,
+        overwriting files with the same prefix.
+
+        !! Compatibility v2.1
+            Before v2.1 the order of the first two arguments, `n_iter` and `output_prefix` was
+            reversed. The reversed ordering will still be supported until v3.0, but is deprecated.
 
         Args:
-            :output_prefix: The prefix at which json output should be stored (ignored if logger
-              is provided).
             :n_iter: the total number of iterations
+            :out: A logger object to be used to store simulation log and data.
+                If this argument is a string, it will be used as output prefix for the standard JSON logger.
             :obs: An iterable containing all observables that should be computed
             :save_params_every: Every how many steps the parameters of the network should be
             serialized to disk (ignored if logger is provided)
@@ -160,7 +165,20 @@ class AbstractVariationalDriver(abc.ABC):
             logger is provided)
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
+            :output_prefix: (Deprecated) The prefix at which json output should be stored (ignored if out
+              is provided).
         """
+
+        # TODO Remove this deprecated code in v3.0
+        # manage deprecated where argument names are not specified, and
+        # prefix is passed as the first positional argument and the number
+        # of iterations as a second argument.
+        if type(n_iter) is str and type(out) is int:
+            n_iter, out = out, n_iter
+            warn_deprecation(
+                "The positional syntax run(output_prefix, n_iter, **args) is deprecated, use run(n_iter, output_prefix, **args) instead."
+            )
+
         if obs is None:
             # TODO remove the first case after deprecation of self._obs in 3.0
             if len(self._obs) != 0:
@@ -168,10 +186,25 @@ class AbstractVariationalDriver(abc.ABC):
             else:
                 obs = {}
 
-        logger = _JsonLog(output_prefix, save_params_every, write_every)
+        # output_prefix is deprecated. out should be used and takes over
+        # error out if both are passed
+        # TODO: remove in v3.0
+        if out is not None and output_prefix is not None:
+            raise ValueError(
+                "Invalid out and output_prefix arguments. Only one of the two can be passed. Note that output_prefix is deprecated and you should use out."
+            )
+        elif out is None:
+            warn_deprecation("The output_prefix argument is deprecated. Use out instead.")
+            out = output_prefix
 
-        # Don't log on non-root nodes
-        if self._mynode != 0:
+        # Log only non-root nodes
+        if self._mynode == 0:
+            # if out is a path, create an overwriting Json Log for output
+            if isinstance(out, str):
+                logger = _JsonLog(out, "w", save_params_every, write_every)
+            else:
+                logger = out
+        else:
             logger = None
 
         with tqdm(

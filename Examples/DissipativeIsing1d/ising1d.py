@@ -77,9 +77,6 @@ op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
 
 ss = nk.SteadyState(lind, sa, op, 2000, sampler_obs=sa_obs, n_samples_obs=500)
-ss.add_observable(obs_sx, "Sx")
-ss.add_observable(obs_sy, "Sy")
-ss.add_observable(obs_sz, "Sz")
+obs = {'Sx': obs_sx, 'Sy': obs_sy, 'Sz': obs_sz}
 
-
-ss.run(output_prefix="test", n_iter=200)
+ss.run(n_iter=200, out="test", obs=obs)

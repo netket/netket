@@ -45,4 +45,4 @@ gs = nk.Vmc(
     sr=nk.optimizer.SR(diag_shift=0.1)
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(out="test", n_iter=300)
