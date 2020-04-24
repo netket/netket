@@ -112,18 +112,28 @@ def _der_local_values_kernel(
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            _np.expand_dims(mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]),1)
+            _np.expand_dims(
+                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            )
             * (der_log_p[low_range:s, :] - der_log[i, :])
         ).sum(axis=0)
         low_range = s
 
 
-def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
+def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out, batch_size=64):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-    der_log_primes = machine.der_log(v_primes)
+
+    # Compute the der_log in small batches and not in one go.
+    # For C++ machines there is a 100% slowdown when the batch is too big.
+    n_primes = len(log_val_primes)
+    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+
+    for s in range(0, n_primes, batch_size):
+        end = min(s + batch_size, n_primes)
+        der_log_primes[s:end, :] = machine.der_log(v_primes[s:end])
 
     _der_local_values_kernel(
         log_vals, log_val_primes, mels, der_log_vals, der_log_primes, sections, out
@@ -137,18 +147,28 @@ def _der_local_values_notcentered_kernel(
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-                _np.expand_dims(mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1)
+            _np.expand_dims(
+                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            )
             * der_log_p[low_range:s, :]
         ).sum(axis=0)
         low_range = s
 
 
-def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
+def _der_local_values_notcentered_impl(op, machine, v, log_vals, out, batch_size=64):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-    der_log_primes = machine.der_log(v_primes)
+
+    # Compute the der_log in small batches and not in one go.
+    # For C++ machines there is a 100% slowdown when the batch is too big.
+    n_primes = len(log_val_primes)
+    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+
+    for s in range(0, n_primes, batch_size):
+        end = min(s + batch_size, n_primes)
+        der_log_primes[s:end, :] = machine.der_log(v_primes[s:end])
 
     _der_local_values_notcentered_kernel(
         log_vals, log_val_primes, mels, der_log_primes, sections, out
@@ -156,7 +176,14 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 
 
 def der_local_values(
-    op, machine, v, log_vals=None, der_log_vals=None, out=None, center_derivative=True
+    op,
+    machine,
+    v,
+    log_vals=None,
+    der_log_vals=None,
+    out=None,
+    center_derivative=True,
+    batch_size=64,
 ):
     r"""
     Computes the derivative of local values of the operator `op` for all `samples`.
@@ -217,6 +244,7 @@ def der_local_values(
                 log_vals.reshape(-1),
                 der_log_vals.reshape(-1, machine.n_par),
                 out.reshape(-1, machine.n_par),
+                batch_size=batch_size,
             )
         else:
             _der_local_values_notcentered_impl(
@@ -225,6 +253,7 @@ def der_local_values(
                 v.reshape(-1, op.hilbert.size),
                 log_vals.reshape(-1),
                 out.reshape(-1, machine.n_par),
+                batch_size=batch_size,
             )
 
         return out.reshape(v.shape[0], v.shape[1], machine.n_par)
@@ -245,9 +274,13 @@ def der_local_values(
             der_log_vals = machine.der_log(v)
 
         if center_derivative is True:
-            _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out)
+            _der_local_values_impl(
+                op, machine, v, log_vals, der_log_vals, out, batch_size=batch_size
+            )
         else:
-            _der_local_values_notcentered_impl(op, machine, v, log_vals, out)
+            _der_local_values_notcentered_impl(
+                op, machine, v, log_vals, out, batch_size=batch_size
+            )
 
         return out
     elif v.ndim == 1:
@@ -277,10 +310,16 @@ def der_local_values(
                 log_vals.reshape(1, -1),
                 der_log_vals,
                 out,
+                batch_size=batch_size,
             )
         else:
             _der_local_values_notcentered_impl(
-                op, machine, v.reshape(1, -1), log_vals.reshape(1, -1), out
+                op,
+                machine,
+                v.reshape(1, -1),
+                log_vals.reshape(1, -1),
+                out,
+                batch_size=batch_size,
             )
 
         return out[0, :]
