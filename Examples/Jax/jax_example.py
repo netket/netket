@@ -5,7 +5,7 @@ from jax.experimental import stax
 from jax.experimental.stax import Dense, Tanh
 
 # 1D Lattice
-L = 4
+L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
@@ -18,30 +18,34 @@ def initializer(rng, shape):
     return np.random.normal(scale=0.1, size=shape)
 
 
+def logcosh(x):
+    x = jax.numpy.abs(x)
+    return x + jax.numpy.logaddexp(-2.0 * x, 0) - jax.numpy.log(2.0)
+
+
+LogCoshLayer = jax.experimental.stax.elementwise(logcosh)
+alpha = 4
 ma = nk.machine.Jax(
     hi,
     jax.experimental.stax.serial(
-        jax.experimental.stax.Dense(1 * L, initializer, initializer),
-        jax.experimental.stax.Tanh,
-        jax.experimental.stax.Dense(1, initializer, initializer)
+        jax.experimental.stax.Dense(alpha * L, initializer, initializer),
+        LogCoshLayer,
+        jax.experimental.stax.Dense(1, initializer, initializer),
     ),
-    dtype=complex
+    dtype=complex,
 )
 
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=32)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.03)
+op = nk.optimizer.Sgd(0.1)
 
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=100,
-    diag_shift=0.01,
-    method="Sr",
-    use_iterative=True
+sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=True)
+
+# Variational Monte Carlo
+gs = nk.Vmc(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=0, sr=sr
 )
 
-gs.run(output_prefix="test", n_iter=100, show_progress=True)
+gs.run(output_prefix="test", n_iter=300)
