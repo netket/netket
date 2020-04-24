@@ -49,5 +49,5 @@ X = [[0, 1], [1, 0]]
 sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
 obs = {"SigmaX": sx}
 
-gs.run(output_prefix="test", n_iter=300, obs=obs)
+gs.run(n_iter=300, out="test", obs=obs)
 

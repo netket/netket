@@ -33,14 +33,21 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=False,
+                     lsq_solver="LLT")
+
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
+gs = nk.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
+    sr=sr,
     n_samples=1000,
-    diag_shift=0.1,
-    method="Sr",
 )
 
-gs.run(output_prefix="test", n_iter=1000)
+# Create a JSON output file, and overwrite if file exists
+logger = nk.logging.JsonLog("test", 'w')
+
+# Run the optimization
+gs.run(n_iter=1000, out=logger)

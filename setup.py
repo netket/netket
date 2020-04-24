@@ -164,6 +164,7 @@ setup(
     packages=[
         "netket",
         "netket.hilbert",
+        "netket.logging",
         "netket.machine",
         "netket.sampler",
         "netket.stats",
