@@ -64,9 +64,17 @@ opt = nk.optimizer.Sgd(learning_rate=0.02)
 # Stochastic reconfiguration
 sr = nk.optimizer.SR(diag_shift=0.1)
 
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
+
 # Variational Monte Carlo
-vmc = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=opt, n_samples=4000, n_discard=5, sr=sr
+gs = nk.Vmc(
+    hamiltonian=op,
+    sampler=sa,
+    optimizer=opt,
+    sr=sr,
+    n_samples=4000,
+    n_discard=5
 )
 
-vmc.run(output_prefix="test", n_iter=300)
+vmc.run(n_iter=300, out="test")

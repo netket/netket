@@ -37,3 +37,14 @@ def deprecated(reason=None):
         return wrapper
 
     return decorator
+
+
+def warn_deprecation(message):
+    """
+    This is a function that sends a deprecation warning to the user about a
+    function that will is now deprecated and will be removed in a future
+    major release.
+
+    :param message: A mandatory message documenting the deprecation.
+    """
+    warnings.warn(message, category=FutureWarning, stacklevel=2)

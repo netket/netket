@@ -110,6 +110,19 @@ samplers["Diagonal Density Matrix"] = sa
 sa = nk.sampler.ExactSampler(machine=dm)
 samplers["Exact Diagonal Density Matrix"] = sa
 
+g = nk.graph.Hypercube(length=3, n_dim=1)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
+ma = nk.machine.NdmSpinPhase(
+    hilbert=hi,
+    alpha=1,
+    beta=1,
+    use_visible_bias=True,
+    use_hidden_bias=True,
+    use_ancilla_bias=True,
+)
+ma.init_random_parameters(sigma=0.2)
+samplers["Metropolis Density Matrix"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
+
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():

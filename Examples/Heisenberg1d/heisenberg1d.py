@@ -44,4 +44,4 @@ gs = nk.Vmc(
     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=2, sr=sr
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(out="test", n_iter=300)

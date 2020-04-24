@@ -39,4 +39,4 @@ vmc = nk.Vmc(
     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=4000, n_discard=0, sr=sr
 )
 
-vmc.run(output_prefix="test", n_iter=300)
+vmc.run(n_iter=300, out="test")

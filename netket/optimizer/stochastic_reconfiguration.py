@@ -18,7 +18,7 @@ class SR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        is_holomorphic=True,
+        is_holomorphic=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
@@ -105,6 +105,9 @@ class SR:
             grad: The vector of forces f.
             out: Output array for the update ẋ.
         """
+
+        if self.is_holomorphic is None:
+            raise ValueError("is_holomorphic not set: this SR object is not properly initialized.")
 
         n_samp = _sum_on_nodes(_np.atleast_1d(oks.shape[0]))
 

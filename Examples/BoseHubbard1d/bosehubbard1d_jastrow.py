@@ -44,4 +44,4 @@ vmc = nk.variational.Vmc(
     method="Sr",
 )
 
-vmc.run(output_prefix="test", n_iter=4000)
+vmc.run(n_iter=4000, out="test")
