@@ -44,7 +44,8 @@ class AbstractMachine(abc.ABC):
         Returns:
              `out`
         """
-        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        out = _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        return out
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError

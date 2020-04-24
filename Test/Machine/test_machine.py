@@ -48,7 +48,7 @@ if test_jax:
             jax.experimental.stax.Relu,
             jax.experimental.stax.Dense(2, initializer, initializer),
         ),
-        dtype=float
+        dtype=float,
     )
 
     machines["Jax Complex"] = nk.machine.Jax(
@@ -60,7 +60,7 @@ if test_jax:
             jax.experimental.stax.Tanh,
             jax.experimental.stax.Dense(1, initializer, initializer),
         ),
-        dtype=complex
+        dtype=complex,
     )
 
 
@@ -134,11 +134,9 @@ layers = (
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
-machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
-    hilbert=hi, alpha=1)
+machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
     hilbert=hi, n_hidden=2
 )
@@ -259,8 +257,7 @@ def test_log_derivative():
         for i in range(100):
             hi.random_vals(v)
 
-            randpars = 0.1 * (np.random.randn(npar) +
-                              1.0j * np.random.randn(npar))
+            randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
             machine.parameters = randpars
 
             der_log = machine.der_log(v.reshape((1, -1))).reshape(-1)
@@ -268,8 +265,7 @@ def test_log_derivative():
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(
-                log_val_f, randpars, 1.0e-9, machine, v)
+            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-9, machine, v)
 
             same_derivatives(der_log, num_der_log)
             # print(np.linalg.norm(der_log - num_der_log))
@@ -414,7 +410,6 @@ def test_to_array():
             number = hi.state_to_number(rstate)
 
             assert np.abs(
-                np.exp(machine.log_val(rstate.reshape(1, -1)) -
-                       logmax) / np.sqrt(norm)
+                np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
                 - all_psis_normalized[number]
             ) == approx(0.0)
