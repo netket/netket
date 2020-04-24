@@ -105,18 +105,17 @@ def local_values(op, machine, v, log_vals=None, out=None):
     return out
 
 
-# TODO: numba or cython to improve performance of this kernel
+@jit(nopython=True)
 def _der_local_values_kernel(
     log_vals, log_val_p, mels, der_log, der_log_p, sections, out
 ):
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
-                :, _np.newaxis
-            ]
+            _np.expand_dims(mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]),1)
             * (der_log_p[low_range:s, :] - der_log[i, :])
         ).sum(axis=0)
+        low_range = s
 
 
 def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
@@ -131,18 +130,17 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
     )
 
 
-# TODO: numba or cython to improve performance of this kernel
+@jit(nopython=True)
 def _der_local_values_notcentered_kernel(
     log_vals, log_val_p, mels, der_log_p, sections, out
 ):
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
-                :, _np.newaxis
-            ]
+                _np.expand_dims(mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1)
             * der_log_p[low_range:s, :]
         ).sum(axis=0)
+        low_range = s
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
