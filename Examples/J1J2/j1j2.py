@@ -61,14 +61,16 @@ sa = nk.sampler.MetropolisHamiltonianPt(machine=ma, hamiltonian=op, n_replicas=1
 # Optimizer
 opt = nk.optimizer.Sgd(learning_rate=0.01)
 
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
+
 # Variational Monte Carlo
-gs = nk.variational.Vmc(
+gs = nk.Vmc(
     hamiltonian=op,
     sampler=sa,
     optimizer=opt,
+    sr=sr,
     n_samples=1000,
-    use_iterative=True,
-    method="Sr",
 )
 
-gs.run(output_prefix="test", n_iter=10000)
+gs.run(n_iter=10000, out="test")

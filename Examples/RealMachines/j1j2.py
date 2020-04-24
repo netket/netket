@@ -66,4 +66,4 @@ gs = nk.variational.Vmc(
     hamiltonian=op, sampler=sa, optimizer=opt, n_samples=1000, method="Sr"
 )
 
-gs.run(output_prefix="test", n_iter=10000)
+gs.run(out="test", n_iter=10000)
