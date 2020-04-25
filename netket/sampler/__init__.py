@@ -1,5 +1,6 @@
 from .abstract_sampler import AbstractSampler
 from .metropolis_hastings import MetropolisHastings
+from .jax_metropolis_hastings import JaxMetropolisHastings
 from .metropolis_hastings_pt import MetropolisHastingsPt
 from .metropolis_local import MetropolisLocal, MetropolisLocalPt
 from .metropolis_exchange import MetropolisExchange, MetropolisExchangePt
