@@ -104,6 +104,12 @@ class Binning {
         }
       } else {
         Merge();
+        // finally, add the value
+        nb1_ = bins1_[0].N();
+        bins2_[last2_] << val;
+        if (bins2_[last2_].N() == nb1_) {
+          last2_++;
+        }
       }
     }
   }
