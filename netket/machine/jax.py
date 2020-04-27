@@ -70,9 +70,19 @@ class Jax(AbstractMachine):
         )
 
         # Computes the Jacobian matrix using forward ad
+        grad_fun = jax.jit(jax.grad(self._forward_fn, holomorphic=self.is_holomorphic))
         self._forward_fn = jax.jit(self._forward_fn)
-        grad_fun = jax.jit(jax.grad(self._forward_fn, holomorphic=True))
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+
+    # TODO use initializers in layers
+    def init_random_parameters(self, seed=None, sigma=0.01):
+        rgen = _np.random.RandomState(seed)
+        if self._dtype is complex:
+            self.parameters = rgen.normal(
+                scale=sigma, size=self.n_par
+            ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
+        else:
+            self.parameters = rgen.normal(scale=sigma, size=self.n_par)
 
     @property
     def n_par(self):
@@ -110,18 +120,9 @@ class Jax(AbstractMachine):
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
-        # J = self._jacobian(self._params, x)
         J = self._perex_grads(self._params, x)
-        # return J
-        return self._convert_jacobian(J, out, x.shape[0])
-        # batch_size = x.shape[0]
-        # i = 0
-        # for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
-        #     n = g.shape[2]
-        #     out[:, i : i + n] = g[:, 0, :]
-        #     i += n
 
-        return out
+        return self._convert_jacobian(J, out, x.shape[0])
 
     def _convert_jacobian(self, J, out, bsize):
         k = 0

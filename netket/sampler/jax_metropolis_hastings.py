@@ -5,12 +5,6 @@ from functools import partial
 from netket import random as _random
 
 
-@jax.jit
-def _local_kernel(key, state):
-    r_int = jax.random.randint(key, shape=(1,), minval=0, maxval=state.size)
-    return jax.ops.index_update(state, r_int, -state[r_int])
-
-
 class JaxMetropolisHastings(AbstractSampler):
     def __init__(
         self, machine, transition_kernel, n_chains=16, sweep_size=None, rng_key=None

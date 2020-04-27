@@ -1,41 +1,26 @@
 import netket as nk
 import numpy as np
 import jax
-from jax.experimental import stax
-from jax.experimental.stax import Dense, Tanh
+import cProfile
+from jax.config import config
 
+# config.update("jax_log_compiles", 1)
 # 1D Lattice
 L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.PySpin(s=0.5, graph=g)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-
-def initializer(rng, shape):
-    return np.random.normal(scale=0.1, size=shape)
-
-
-def logcosh(x):
-    x = jax.numpy.abs(x)
-    return x + jax.numpy.logaddexp(-2.0 * x, 0) - jax.numpy.log(2.0)
+alpha = 1
+ma = nk.machine.JaxRbm(hi, alpha, dtype=complex)
+ma.init_random_parameters(sigma=0.01, seed=1232)
 
 
-LogCoshLayer = jax.experimental.stax.elementwise(logcosh)
-alpha = 4
-ma = nk.machine.Jax(
-    hi,
-    jax.experimental.stax.serial(
-        jax.experimental.stax.Dense(alpha * L, initializer, initializer),
-        LogCoshLayer,
-        jax.experimental.stax.Dense(1, initializer, initializer),
-    ),
-    dtype=complex,
-)
-
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=32)
+# Jax Sampler
+sa = nk.sampler.JaxMetropolisLocal(machine=ma, n_chains=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(0.1)
@@ -45,7 +30,10 @@ sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=True)
 
 # Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=0, sr=sr
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=0
 )
 
-gs.run(output_prefix="test", n_iter=300)
+# The first iteration is slower because of start-up jit times
+gs.run(out="test", n_iter=1)
+
+gs.run(n_iter=300, out="test")
