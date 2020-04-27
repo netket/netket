@@ -50,7 +50,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         # R estimate
         B_over_n = stats.error_of_mean ** 2
         W = stats.variance
-        assert stats.R == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
+        assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
 def test_stats_mean_std():

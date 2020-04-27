@@ -19,27 +19,32 @@ class Stats:
     _NaN = float("NaN")
 
     def __init__(
-        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R=_NaN
+        self,
+        mean=_NaN,
+        error_of_mean=_NaN,
+        variance=_NaN,
+        tau_corr=_NaN,
+        R_hat=_NaN,
     ):
         self.mean = mean
         self.error_of_mean = error_of_mean
         self.variance = variance
         self.tau_corr = tau_corr
-        self.R = R
+        self.R_hat = R_hat
 
     def to_json(self):
         jsd = {}
         jsd["Mean"] = self.mean.real
         jsd["Variance"] = self.variance
         jsd["Sigma"] = self.error_of_mean
-        jsd["R"] = self.R
+        jsd["R_hat"] = self.R_hat
         jsd["TauCorr"] = self.tau_corr
         return jsd
 
     def __repr__(self):
         mean, err = _format_decimal(self.mean, self.error_of_mean)
-        return "{} ± {} [var={:.1e}, R={:.4f}]".format(
-            mean, err, self.variance, self.R
+        return "{} ± {} [var={:.1e}, R_hat={:.4f}]".format(
+            mean, err, self.variance, self.R_hat
         )
 
     def __getitem__(self, name):
@@ -49,8 +54,8 @@ class Stats:
             return self.variance
         elif name is "error_of_mean" or "Sigma":
             return self.error_of_mean
-        elif name is "R":
-            return self.R
+        elif name is "R_hat":
+            return self.R_hat
         elif name is "tau_corr" or "TauCorr":
             return self.tau_corr
 
@@ -144,6 +149,13 @@ def statistics(data):
 
     if n_batches > 1:
         N = data.shape[-1]
-        stats.R = _np.sqrt((N - 1) / N + batch_var / stats.variance)
+
+        # V_loc = _np.var(data, axis=-1, ddof=0)
+        # W_loc = _np.mean(V_loc)
+        # W = _mean(W_loc)
+        # # This approximation seems to hold well enough for larger n_samples
+        W = stats.variance
+
+        stats.R_hat = _np.sqrt((N - 1) / N + batch_var / W)
 
     return stats

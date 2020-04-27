@@ -28,9 +28,9 @@ def reference_stats(data):
     var_mean = np.mean(chain_vars)
     var_between = N * np.var(chain_means, ddof=0)
 
-    Rhat = np.sqrt((N - 1) / N + var_between / (N * var_mean))
+    R_hat = np.sqrt((N - 1) / N + var_between / (N * var_mean))
 
-    return mean_full, var_full, Rhat
+    return mean_full, var_full, R_hat
 
 
 def test_mc_stats():
@@ -46,7 +46,7 @@ def test_mc_stats():
 
     assert stats.mean == approx(ref_mean)
     assert stats.variance == approx(ref_var)
-    assert stats.R == approx(ref_R)
+    assert stats.R_hat == approx(ref_R)
 
 
 def test_mean():
