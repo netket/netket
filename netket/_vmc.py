@@ -6,7 +6,11 @@ import math
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from netket.stats import statistics as _statistics, mean as _mean
+from netket.stats import (
+    statistics as _statistics,
+    mean as _mean,
+    sum_on_nodes as _sum_on_nodes,
+)
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
@@ -81,9 +85,11 @@ class Vmc(AbstractVariationalDriver):
             raise ValueError(
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
-        self._n_samples = n_samples
+
         n_samples_chain = int(math.ceil((n_samples / self._batch_size)))
         self._n_samples_node = int(math.ceil(n_samples_chain / _nk.MPI.size()))
+
+        self._n_samples = int(self._n_samples_node * self._batch_size * _nk.MPI.size())
 
         self._samples = None
 
@@ -91,9 +97,7 @@ class Vmc(AbstractVariationalDriver):
             (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
         )
 
-        self._grads = _np.empty(
-            (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
-        )
+        self._grads = None
 
     @property
     def n_discard(self):
@@ -166,10 +170,11 @@ class Vmc(AbstractVariationalDriver):
             # Center the local energy
             eloc -= _mean(eloc)
 
-            for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
-                self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
+            self._grads = self._machine.vector_jacobian_prod(
+                self._samples, eloc, self._grads
+            )
 
-            self._dp = _mean(self._grads, axis=0) / float(self._batch_size)
+            self._dp = _sum_on_nodes(self._grads) / float(self._n_samples)
 
         return self._dp
 

@@ -36,16 +36,27 @@ class AbstractMachine(abc.ABC):
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
         Args:
-             x: a matrix of `float64` of shape `(*, self.n_visible)`.
-             vec: a `complex128` vector used to compute the inner product with the jacobian.
+             x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
+             vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
              out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
 
 
         Returns:
              `out`
         """
-        out = _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
-        return out
+
+        if x.ndim == 3:
+            if out is None:
+                out = _np.zeros(self.n_par, dtype=_np.complex128)
+            else:
+                out.fill(0.0)
+
+            for xb, vb in zip(x, vec):
+                out += _np.dot(self.der_log(xb).conjugate().transpose(), vb)
+
+            return out
+        elif x.ndim == 2:
+            return _np.dot(_np.asmatrix(self.der_log(x)).H, v, out)
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError

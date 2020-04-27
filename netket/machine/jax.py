@@ -23,9 +23,6 @@ import numpy as _np
 os.environ["JAX_ENABLE_X64"] = "1"
 
 
-__all__ = ["Jax"]
-
-
 class Jax(AbstractMachine):
     def __init__(self, hilbert, module, dtype=complex, seed=None):
         """
@@ -61,40 +58,17 @@ class Jax(AbstractMachine):
 
         if seed is None:
             seed = _np.random.randint(2 ** 32 - 2)
+
         input_shape = (-1, self.n_visible)
-        self._params = []
-        if self._dtype is complex:
-            output_shape, pars_real = init_fn(jax.random.PRNGKey(seed), input_shape)
-            _, pars_imag = init_fn(jax.random.PRNGKey(seed + 1), input_shape)
-            if output_shape != (-1, 1):
-                raise ValueError("A complex valued network must have only 1 output.")
-            for x1, x2 in zip(pars_real, pars_imag):
-                layer_state = []
-                for l1, l2 in zip(x1, x2):
-                    layer_state += [
-                        _np.array(l1 + 1j * l2, dtype=self._npdtype),
-                    ]
-                self._params.append(layer_state)
-        else:
-            output_shape, pars = init_fn(jax.random.PRNGKey(seed), input_shape)
-            if output_shape != (-1, 2):
-                raise ValueError("A real valued network must have 2 outputs.")
-            for x1 in pars:
-                layer_state = []
-                for l1 in x1:
-                    layer_state += [
-                        _np.array(l1, dtype=self._npdtype),
-                    ]
-                self._params.append(layer_state)
+        output_shape, self._params = init_fn(jax.random.PRNGKey(seed), input_shape)
+
+        if output_shape != (-1, 1):
+            raise ValueError("A valid network must have 1 output.")
 
         # Computes total number of parameters
         self._npar = sum(
             reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
         )
-
-        assert all(
-            _np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
-        ), "sorry, column major order is not supported (yet)"
 
         # Computes the Jacobian matrix using backprop
         self._jacobian = jax.jacrev(
@@ -112,14 +86,24 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.complex128)
-
-        if self._dtype is complex:
-            out = _np.array(self._forward_fn(self._params, x).reshape(x.shape[0],))
+            out = _np.array(
+                self._forward_fn(self._params, x).reshape(x.shape[0],),
+                dtype=_np.complex128,
+            )
         else:
-            a = _np.asarray(self._forward_fn(self._params, x))
-            out[:] = (a[:, 0] + 1j * a[:, 1]).squeeze()
+            out[:] = _np.array(
+                self._forward_fn(self._params, x).reshape(x.shape[0],),
+                dtype=_np.complex128,
+            )
         return out
+
+    @property
+    def jax_forward(self):
+        return self._forward_fn
+
+    @property
+    def jax_parameters(self):
+        return self._params
 
     def der_log(self, x, out=None):
         if x.ndim != 2:
@@ -131,17 +115,30 @@ class Jax(AbstractMachine):
         J = self._jacobian(self._params, x)
         batch_size = x.shape[0]
         i = 0
-        if self._dtype is complex:
-            for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
-                n = g.shape[2]
-                out[:, i : i + n] = g[:, 0, :]
-                i += n
-        else:
-            for g in (g.reshape(batch_size, 2, -1) for layer in J for g in layer):
-                n = g.shape[2]
-                out[:, i : i + n].real = g[:, 0, :]
-                out[:, i : i + n].imag = g[:, 1, :]
-                i += n
+        for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
+            n = g.shape[2]
+            out[:, i : i + n] = g[:, 0, :]
+            i += n
+
+        return out
+
+    def vector_jacobian_prod(self, x, vec, out=None):
+        vals, f_jvp = jax.vjp(
+            self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
+        )
+
+        pout = f_jvp(vec.reshape(vals.shape).conjugate())
+
+        if out is None:
+            out = _np.empty((self.n_par), dtype=_np.complex128)
+
+        k = 0
+        for layer in pout:
+            for pl in layer:
+                for p in pl:
+                    out[k : k + p.size] = p.reshape(-1).conjugate()
+                    k += p.size
+
         return out
 
     @property
@@ -153,29 +150,48 @@ class Jax(AbstractMachine):
         state = []
         for i, layer in enumerate(self._params):
             for j, p in enumerate(layer):
-                state.append((str((i, j)), _np.asarray(p).view()))
+                state.append((str((i, j)), p))
         return OrderedDict(state)
 
     @property
     def parameters(self):
-        return _np.concatenate(
-            tuple(
-                p.astype(dtype=_np.complex128).reshape(-1)
-                for p in self.state_dict.values()
-            )
-        )
+        k = 0
+        pars = _np.empty(self._npar, dtype=_np.complex128)
+        for i, layers in enumerate(self._params):
+            for layer in layers:
+                pars[k : k + layer.size] = _np.array(
+                    layer.reshape(-1), dtype=_np.complex128
+                )
+                k += layer.size
+
+        return pars
 
     @parameters.setter
     def parameters(self, p):
+
         if p.shape != (self.n_par,):
             raise ValueError(
                 "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
             )
 
-        i = 0
-        for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
-            if self._dtype is complex:
-                _np.copyto(x, p[i : i + x.size])
-            else:
-                _np.copyto(x, p[i : i + x.size].real)
-            i += x.size
+        k = 0
+        pars = []
+        for i, layers in enumerate(self._params):
+            lp = []
+            for layer in layers:
+                if self._dtype is complex:
+                    lp.append(
+                        jax.numpy.array(p[k : k + layer.size]).reshape(layer.shape)
+                    )
+                else:
+                    lp.append(
+                        jax.numpy.array(p[k : k + layer.size].real).reshape(layer.shape)
+                    )
+                k += layer.size
+            pars.append(tuple(lp))
+
+        self._params = pars
+
+        npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
+
+        assert npar == self._npar
