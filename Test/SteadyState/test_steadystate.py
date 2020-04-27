@@ -119,7 +119,7 @@ def test_ss_iterator():
                     and hasattr(e, "error_of_mean")
                     and hasattr(e, "variance")
                     and hasattr(e, "tau_corr")
-                    and hasattr(e, "R")
+                    and hasattr(e, "R_hat")
             )
         losses.append(vmc.ldagl["mean"])
 
@@ -147,7 +147,7 @@ def test_ss_iterator_sr():
         for name in "LdagL", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R")
+            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R_hat")
         losses.append(vmc.ldagl["mean"])
 
     assert count == N_iters
