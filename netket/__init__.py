@@ -36,6 +36,7 @@ from . import (
     graph,
     hilbert,
     layer,
+    logging,
     machine,
     operator,
     optimizer,

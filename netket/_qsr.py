@@ -286,7 +286,7 @@ class Qsr(AbstractVariationalDriver):
         return "\n  ".join([str(self)] + lines)
 
     def nll(self, rotations, samples, bases, log_norm=0):
-        """
+        r"""
         Negative log-likelihood, :math:`\langle log(|Psi_b(x)|^2) \rangle`,
         where the average is over the given samples, and :math:`b` denotes
         the given bases associated to the samples.

@@ -28,7 +28,7 @@ def test_svd_threshold():
     b = np.array([1.0 + 0j, 1.0, 1.0])
 
     def SR_with_threshold(t):
-        return SR(lsq_solver="SVD", svd_threshold=t, diag_shift=0)
+        return SR(lsq_solver="SVD", svd_threshold=t, diag_shift=0, is_holomorphic=True)
 
     def solve(sr, a, b):
         a1 = np.sqrt(a) * np.sqrt(a.shape[0])

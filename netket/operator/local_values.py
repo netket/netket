@@ -50,7 +50,7 @@ def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
-    """
+    r"""
     Computes local values of the operator `op` for all `samples`.
 
     The local value is defined as
@@ -59,11 +59,9 @@ def local_values(op, machine, v, log_vals=None, out=None):
 
             Args:
                 op: Hermitian operator.
-                v: A numpy array or matrix containing either a single
-                    :math:`V = v` or a batch of visible
+                v: A numpy array or matrix containing either a batch of visible
                     configurations :math:`V = v_1,\dots v_M`.
-                    In the latter case, each row of the matrix corresponds to a
-                    visible configuration.
+                    Each row of the matrix corresponds to a visible configuration.
                 machine: Wavefunction :math:`\Psi`.
                 log_vals: A scalar/numpy array containing the value(s) :math:`\Psi(V)`.
                     If not given, it is computed from scratch.
@@ -81,6 +79,8 @@ def local_values(op, machine, v, log_vals=None, out=None):
     is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
         op, _LocalLiouvillian
     )
+    if v.ndim != 2:
+        raise RuntimeError("Invalid input shape, expected a 2d array")
 
     if log_vals is None:
         if not is_op_times_op:
@@ -93,106 +93,82 @@ def local_values(op, machine, v, log_vals=None, out=None):
     else:
         _impl = _local_values_op_op_impl
 
-    if v.ndim == 3:
-        assert (
-            v.shape[2] == op.hilbert.size
-        ), "samples has wrong shape: {}; expected (?, {})".format(
-            v.shape, op.hilbert.size
-        )
+    assert (
+        v.shape[1] == op.hilbert.size
+    ), "samples has wrong shape: {}; expected (?, {})".format(v.shape, op.hilbert.size)
 
-        if out is None:
-            out = _np.empty(v.shape[0] * v.shape[1], dtype=_np.complex128)
+    if out is None:
+        out = _np.empty(v.shape[0], dtype=_np.complex128)
 
-        _impl(
-            op,
-            machine,
-            v.reshape(-1, op.hilbert.size),
-            log_vals.reshape(-1),
-            out.reshape(-1),
-        )
+    _impl(op, machine, v, log_vals, out)
 
-        return out.reshape(v.shape[0:-1])
-    elif v.ndim == 2:
-        assert (
-            v.shape[1] == op.hilbert.size
-        ), "samples has wrong shape: {}; expected (?, {})".format(
-            v.shape, op.hilbert.size
-        )
-
-        if out is None:
-            out = _np.empty(v.shape[0], dtype=_np.complex128)
-
-        _impl(op, machine, v, log_vals, out)
-
-        return out
-    elif v.ndim == 1:
-        assert v.size == op.hilbert.size, "v has wrong size: {}; expected {}".format(
-            v.shape, op.hilbert.size
-        )
-        if out is None:
-            out = _np.empty(1, dtype=_np.complex128)
-        else:
-            out = _np.atleast_1d(out)
-
-        log_vals = _np.atleast_1d(log_vals)
-
-        _impl(op, machine, v.reshape(1, -1), log_vals.reshape(1, -1), out)
-        return out[0]
-    raise ValueError(
-        "v has wrong dimension: {}; expected either 1, 2 or 3".format(v.ndim)
-    )
-
-    log_val_primes = machine.log_val(v_primes)
-
-    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
+    return out
 
 
-# TODO: numba or cython to improve performance of this kernel
+@jit(nopython=True)
 def _der_local_values_kernel(
     log_vals, log_val_p, mels, der_log, der_log_p, sections, out
 ):
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
-                :, _np.newaxis
-            ]
+            _np.expand_dims(
+                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            )
             * (der_log_p[low_range:s, :] - der_log[i, :])
         ).sum(axis=0)
+        low_range = s
 
 
-def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out):
+def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out, batch_size=64):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-    der_log_primes = machine.der_log(v_primes)
+
+    # Compute the der_log in small batches and not in one go.
+    # For C++ machines there is a 100% slowdown when the batch is too big.
+    n_primes = len(log_val_primes)
+    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+
+    for s in range(0, n_primes, batch_size):
+        end = min(s + batch_size, n_primes)
+        der_log_primes[s:end, :] = machine.der_log(v_primes[s:end])
 
     _der_local_values_kernel(
         log_vals, log_val_primes, mels, der_log_vals, der_log_primes, sections, out
     )
 
 
-# TODO: numba or cython to improve performance of this kernel
+@jit(nopython=True)
 def _der_local_values_notcentered_kernel(
     log_vals, log_val_p, mels, der_log_p, sections, out
 ):
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            (mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]))[
-                :, _np.newaxis
-            ]
+            _np.expand_dims(
+                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            )
             * der_log_p[low_range:s, :]
         ).sum(axis=0)
+        low_range = s
 
 
-def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
+def _der_local_values_notcentered_impl(op, machine, v, log_vals, out, batch_size=64):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
-    der_log_primes = machine.der_log(v_primes)
+
+    # Compute the der_log in small batches and not in one go.
+    # For C++ machines there is a 100% slowdown when the batch is too big.
+    n_primes = len(log_val_primes)
+    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+
+    for s in range(0, n_primes, batch_size):
+        end = min(s + batch_size, n_primes)
+        der_log_primes[s:end, :] = machine.der_log(v_primes[s:end])
 
     _der_local_values_notcentered_kernel(
         log_vals, log_val_primes, mels, der_log_primes, sections, out
@@ -200,9 +176,16 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out):
 
 
 def der_local_values(
-    op, machine, v, log_vals=None, der_log_vals=None, out=None, center_derivative=True
+    op,
+    machine,
+    v,
+    log_vals=None,
+    der_log_vals=None,
+    out=None,
+    center_derivative=True,
+    batch_size=64,
 ):
-    """
+    r"""
     Computes the derivative of local values of the operator `op` for all `samples`.
 
     The local value is defined as
@@ -261,6 +244,7 @@ def der_local_values(
                 log_vals.reshape(-1),
                 der_log_vals.reshape(-1, machine.n_par),
                 out.reshape(-1, machine.n_par),
+                batch_size=batch_size,
             )
         else:
             _der_local_values_notcentered_impl(
@@ -269,6 +253,7 @@ def der_local_values(
                 v.reshape(-1, op.hilbert.size),
                 log_vals.reshape(-1),
                 out.reshape(-1, machine.n_par),
+                batch_size=batch_size,
             )
 
         return out.reshape(v.shape[0], v.shape[1], machine.n_par)
@@ -289,9 +274,13 @@ def der_local_values(
             der_log_vals = machine.der_log(v)
 
         if center_derivative is True:
-            _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out)
+            _der_local_values_impl(
+                op, machine, v, log_vals, der_log_vals, out, batch_size=batch_size
+            )
         else:
-            _der_local_values_notcentered_impl(op, machine, v, log_vals, out)
+            _der_local_values_notcentered_impl(
+                op, machine, v, log_vals, out, batch_size=batch_size
+            )
 
         return out
     elif v.ndim == 1:
@@ -321,10 +310,16 @@ def der_local_values(
                 log_vals.reshape(1, -1),
                 der_log_vals,
                 out,
+                batch_size=batch_size,
             )
         else:
             _der_local_values_notcentered_impl(
-                op, machine, v.reshape(1, -1), log_vals.reshape(1, -1), out
+                op,
+                machine,
+                v.reshape(1, -1),
+                log_vals.reshape(1, -1),
+                out,
+                batch_size=batch_size,
             )
 
         return out[0, :]

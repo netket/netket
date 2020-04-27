@@ -6,9 +6,7 @@ from .operator import local_values as _local_values
 from .operator import der_local_values as _der_local_values
 from netket.stats import (
     statistics as _statistics,
-    covariance_sv as _covariance_sv,
     mean as _mean,
-    subtract_mean as _subtract_mean,
 )
 
 from netket.vmc_common import info
@@ -65,6 +63,8 @@ class SteadyState(AbstractVariationalDriver):
         self._sampler = sampler
         self._sampler_obs = sampler_obs
         self._sr = sr
+        if sr is not None:
+            self._sr.is_holomorphic = sampler.machine.is_holomorphic
 
         self._npar = self._machine.n_par
 
@@ -77,28 +77,14 @@ class SteadyState(AbstractVariationalDriver):
         self.n_discard_obs = n_discard_obs
 
         self._obs_samples_valid = False
-        self._samples = _np.ndarray(
-            (self._n_samples_node, self._batch_size, lindblad.hilbert.size)
-        )
-        self._samples_obs = _np.ndarray(
-            (
-                self._n_samples_obs_node,
-                self._batch_size_obs,
-                lindblad.hilbert.size_physical,
-            )
-        )
-
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
-        )
-
-        self._der_loc_vals = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
-        )
 
         # Set the machine_pow of the sampler over the diagonal of the density matrix
         # to be |\rho(x,x)|
         sampler_obs.machine_pow = 1.0
+
+        self._der_logs_ave = _np.ndarray(self._npar, dtype=_np.complex128)
+
+        self._dp = _np.empty(self._npar, dtype=_np.complex128)
 
     @property
     def n_samples(self):
@@ -126,6 +112,23 @@ class SteadyState(AbstractVariationalDriver):
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
         self._n_samples_node = int(_np.ceil(n_samples_chain / _MPI.size()))
 
+        self._samples = _np.ndarray(
+            (self._n_samples_node, self._batch_size, self._lind.hilbert.size)
+        )
+
+        self._der_logs = _np.ndarray(
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
+        )
+
+        self._der_loc_vals = _np.ndarray(
+            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
+        )
+
+        self._grads = _np.empty(
+            (self._n_samples_node * self._batch_size, self._machine.n_par),
+            dtype=_np.complex128,
+        )
+
     @n_samples_obs.setter
     def n_samples_obs(self, n_samples):
         if self._sampler_obs is None:
@@ -138,6 +141,13 @@ class SteadyState(AbstractVariationalDriver):
         self._n_samples_obs = n_samples
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size_obs)))
         self._n_samples_obs_node = int(_np.ceil(n_samples_chain / _MPI.size()))
+        self._samples_obs = _np.ndarray(
+            (
+                self._n_samples_obs_node,
+                self._batch_size_obs,
+                self._lind.hilbert.size_physical,
+            )
+        )
 
     @property
     def n_discard(self):
@@ -203,38 +213,30 @@ class SteadyState(AbstractVariationalDriver):
             )
 
         # flatten MC chain dimensions:
-        self._der_logs = self._der_logs.reshape(-1, self._npar)
+        _der_logs = self._der_logs.reshape(-1, self._npar)
+        _der_loc_vals = self._der_loc_vals.reshape(-1, self._npar)
 
         # Estimate energy
         lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
 
         # Compute the (MPI-aware-)average of the derivatives
-        der_logs_ave = _mean(self._der_logs, axis=0)
-
-        # Center the log derivatives
-        self._der_logs -= der_logs_ave
+        _mean(_der_logs, axis=0, out=self._der_logs_ave)
 
         # Compute the gradient
-        grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
-        grad -= self._loss_stats.mean * der_logs_ave.conj()
+        self._grads = _np.conjugate(_der_loc_vals) * lloc.reshape(-1, 1)
+        grad = _mean(self._grads, axis=0)
+        grad -= self._loss_stats.mean * self._der_logs_ave.conj()
 
         # Perform update
         if self._sr:
-            dp = _np.empty(self._npar, dtype=_np.complex128)
-            # flatten MC chain dimensions:
-            derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
-            self._sr.compute_update(derlogs, grad, dp)
-            derlogs = self._der_logs.reshape(
-                self._n_samples_node, self._batch_size, self._npar
-            )
+            # Center the log derivatives
+            _der_logs -= self._der_logs_ave
+
+            self._sr.compute_update(_der_logs, grad, self._dp)
         else:
-            dp = grad
+            self._dp = grad
 
-        self._der_logs = self._der_logs.reshape(
-            self._n_samples_node, self._batch_size, self._npar
-        )
-
-        return dp
+        return self._dp
 
     def sweep_diagonal(self):
         """
@@ -274,7 +276,10 @@ class SteadyState(AbstractVariationalDriver):
         if not self._obs_samples_valid:
             self.sweep_diagonal()
 
-        loc = _local_values(op, self._machine, self._samples_obs)
+        loc = _np.empty(self._samples_obs.shape[0:2], dtype=_np.complex128)
+        for i, sample in enumerate(self._samples_obs):
+            _local_values(op, self._machine, sample, out=loc[i])
+
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.
         return loc, _statistics(loc.T)

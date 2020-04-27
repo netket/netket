@@ -86,6 +86,7 @@ def test_der_log_val():
     ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
+    # test single input
     for i in range(0, lind.hilbert.n_states):
         state = lind.hilbert.number_to_state(i)
         der_loc_vals = nk.operator.der_local_values(lind, ma, state, center_derivative=False)
@@ -113,6 +114,26 @@ def test_der_log_val():
         grad_all = grad.sum(axis=0)
 
         np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
+
+def test_der_log_val_batched():
+    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
+    ma.init_random_parameters(seed=1234, sigma=0.01)
+
+    states = np.empty((5, hi_c.size*2), dtype=np.float64)
+    der_locs = np.empty((5, ma.n_par), dtype=np.complex128)
+    der_locs_c = np.empty((5, ma.n_par), dtype=np.complex128)
+    # test single input
+    for i in range(0, 5):
+        state = lind.hilbert.number_to_state(i)
+        states[i,:] = state
+        der_locs[i,:] = nk.operator.der_local_values(lind, ma, state, center_derivative=False)
+        der_locs_c[i,:] = nk.operator.der_local_values(lind, ma, state, center_derivative=True)
+
+    der_locs_all = nk.operator.der_local_values(lind, ma, states, center_derivative=False)
+    der_locs_all_c = nk.operator.der_local_values(lind, ma, states, center_derivative=True)
+
+    np.testing.assert_array_almost_equal(der_locs, der_locs_all)
+    np.testing.assert_array_almost_equal(der_locs_c, der_locs_all_c)
 
 
 

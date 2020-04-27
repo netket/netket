@@ -33,8 +33,9 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     samples = sampler.generate_samples(num_samples_per_chain)
     assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
-    eloc = local_values(ham, ma, samples)
-    assert eloc.shape == (num_samples_per_chain, n_chains)
+    eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
+    for i in range(num_samples_per_chain):
+        eloc[i] = local_values(ham, ma, samples[i])
 
     stats = statistics(eloc.T)
 
@@ -54,7 +55,6 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 
 def test_stats_mean_std():
     hi, ham, ma = _setup()
-
     for bs in (1, 2, 16, 32):
         _test_stats_mean_std(hi, ham, ma, bs)
 
