@@ -93,9 +93,7 @@ class Vmc(AbstractVariationalDriver):
 
         self._samples = None
 
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
-        )
+        self._der_logs = None
 
         self._grads = None
 
@@ -142,12 +140,9 @@ class Vmc(AbstractVariationalDriver):
             # Computes the jacobian
             _der_logs = self._der_logs
             _der_log = self._machine.der_log
+            _samples = self._samples
 
-            for i, sample in enumerate(self._samples):
-                _der_logs[i] = _der_log(sample)
-
-            # flatten MC chain dimensions:
-            _der_logs = _der_logs.reshape(-1, self._npar)
+            _der_logs = _der_log(_samples.reshape((-1, _samples.shape[-1])), _der_logs)
 
             # Center the local energy
             eloc -= _mean(eloc)

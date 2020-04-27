@@ -54,7 +54,6 @@ class Jax(AbstractMachine):
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
         init_fn, self._forward_fn = module
-        self._forward_fn = jax.jit(self._forward_fn)
 
         if seed is None:
             seed = _np.random.randint(2 ** 32 - 2)
@@ -70,11 +69,10 @@ class Jax(AbstractMachine):
             reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
         )
 
-        # Computes the Jacobian matrix using backprop
-        self._jacobian = jax.jacrev(
-            self._forward_fn, holomorphic=(self._dtype is complex)
-        )
-        self._jacobian = jax.jit(self._jacobian)
+        # Computes the Jacobian matrix using forward ad
+        self._forward_fn = jax.jit(self._forward_fn)
+        grad_fun = jax.jit(jax.grad(self._forward_fn, holomorphic=True))
+        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
     @property
     def n_par(self):
@@ -112,14 +110,26 @@ class Jax(AbstractMachine):
         if out is None:
             out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
 
-        J = self._jacobian(self._params, x)
-        batch_size = x.shape[0]
-        i = 0
-        for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
-            n = g.shape[2]
-            out[:, i : i + n] = g[:, 0, :]
-            i += n
+        # J = self._jacobian(self._params, x)
+        J = self._perex_grads(self._params, x)
+        # return J
+        return self._convert_jacobian(J, out, x.shape[0])
+        # batch_size = x.shape[0]
+        # i = 0
+        # for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
+        #     n = g.shape[2]
+        #     out[:, i : i + n] = g[:, 0, :]
+        #     i += n
 
+        return out
+
+    def _convert_jacobian(self, J, out, bsize):
+        k = 0
+        for layer in J:
+            for pl in layer:
+                pl = pl.reshape((bsize, -1))
+                out[:, k : k + pl.shape[1]] = pl
+                k += pl.shape[1]
         return out
 
     def vector_jacobian_prod(self, x, vec, out=None):
@@ -195,3 +205,36 @@ class Jax(AbstractMachine):
         npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
 
         assert npar == self._npar
+
+
+from jax.experimental import stax
+from jax.experimental.stax import Dense
+
+
+def SumLayer():
+    def init_fun(rng, input_shape):
+        output_shape = (-1, 1)
+        return output_shape, ()
+
+    @jax.jit
+    def apply_fun(params, inputs, **kwargs):
+        return inputs.sum(axis=-1)
+
+    return init_fun, apply_fun
+
+
+@jax.jit
+def logcosh(x):
+    x = x * jax.numpy.sign(x.real)
+    return x + jax.numpy.log(1.0 + jax.numpy.exp(-2.0 * x)) - jax.numpy.log(2.0)
+
+
+LogCoshLayer = stax.elementwise(logcosh)
+
+
+def JaxRbm(hilbert, alpha, dtype=complex):
+    return Jax(
+        hilbert,
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+        dtype=dtype,
+    )
