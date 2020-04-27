@@ -26,13 +26,8 @@
 
 #include "DensityMatrices/py_density_matrix.hpp"
 #include "Machine/ffnn.hpp"
-#include "Machine/jastrow.hpp"
-#include "Machine/jastrow_symm.hpp"
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
-#include "Machine/rbm_multival.hpp"
-#include "Machine/rbm_spin_symm.hpp"
-#include "Utils/log_cosh.hpp"
 #include "Utils/pybind_helpers.hpp"
 
 namespace py = pybind11;
@@ -40,62 +35,6 @@ namespace py = pybind11;
 namespace netket {
 
 namespace {
-
-void AddRbmSpinSymm(py::module subm) {
-  py::class_<RbmSpinSymm, AbstractMachine>(subm, "RbmSpinSymm", R"EOF(
-             A fully connected Restricted Boltzmann Machine with lattice
-             symmetries. This type of RBM has spin 1/2 hidden units and is
-             defined by:
-
-             .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-                \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
-
-             for arbitrary local quantum numbers :math:`s_i`. However, the weights
-             (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
-             specified symmetries of the lattice.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, bool, bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("alpha") = 0,
-           py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true,
-           R"EOF(
-                   Constructs a new ``RbmSpinSymm`` machine:
-
-                   Args:
-                       hilbert: Hilbert space object for the system.
-                       alpha: Hidden unit density.
-                       use_visible_bias: If ``True`` then there would be a
-                                        bias on the visible units.
-                                        Default ``True``.
-                       use_hidden_bias: If ``True`` then there would be a
-                                       bias on the visible units.
-                                       Default ``True``.
-
-                   Examples:
-                       A ``RbmSpinSymm`` machine with hidden unit density
-                       alpha = 2 for a one-dimensional L=20 spin-half system:
-
-                       >>> from netket.machine import RbmSpinSymm
-                       >>> from netket.hilbert import Spin
-                       >>> from netket.graph import Hypercube
-                       >>> g = Hypercube(length=20, n_dim=1)
-                       >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                       >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-                       >>> print(ma.n_par)
-                       43
-
-                   )EOF");
-}
-
-void AddRbmMultival(py::module subm) {
-  py::class_<RbmMultival, AbstractMachine>(subm, "RbmMultiVal", R"EOF(
-             A fully connected Restricted Boltzmann Machine for handling larger
-             local Hilbert spaces.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>, int, int, bool,
-                    bool>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), py::arg("n_hidden") = 0,
-           py::arg("alpha") = 0, py::arg("use_visible_bias") = true,
-           py::arg("use_hidden_bias") = true);
-}
 
 void AddFFNN(py::module subm) {
   py::class_<FFNN, AbstractMachine>(subm, "FFNN", R"EOF(
@@ -138,74 +77,6 @@ void AddFFNN(py::module subm) {
 
 
               )EOF");
-}
-
-void AddJastrow(py::module subm) {
-  py::class_<Jastrow, AbstractMachine>(subm, "Jastrow", R"EOF(
-           A Jastrow wavefunction Machine. This machine defines the following
-           wavefunction:
-
-           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
-
-           where :math:` W_{ij}` are the Jastrow parameters.
-           )EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
-                 Constructs a new ``Jastrow`` machine:
-
-                 Args:
-                     hilbert: Hilbert space object for the system.
-
-                 Examples:
-                     A ``Jastrow`` machine for a one-dimensional L=20 spin 1/2
-                     system:
-
-
-                     >>> from netket.machine import Jastrow
-                     >>> from netket.hilbert import Spin
-                     >>> from netket.graph import Hypercube
-                     >>> g = Hypercube(length=20, n_dim=1)
-                     >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                     >>> ma = Jastrow(hilbert=hi)
-                     >>> print(ma.n_par)
-                     190
-
-
-                 )EOF");
-}
-
-void AddJastrowSymm(py::module subm) {
-  py::class_<JastrowSymm, AbstractMachine>(subm, "JastrowSymm", R"EOF(
-           A Jastrow wavefunction Machine with lattice symmetries.This machine
-           defines the wavefunction as follows:
-
-           .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
-
-           where :math:` W_{ij}` are the Jastrow parameters respects the
-           specified symmetries of the lattice.)EOF")
-      .def(py::init<std::shared_ptr<const AbstractHilbert>>(),
-           py::keep_alive<1, 2>(), py::arg("hilbert"), R"EOF(
-                 Constructs a new ``JastrowSymm`` machine:
-
-                 Args:
-                     hilbert: Hilbert space object for the system.
-
-                 Examples:
-                     A ``JastrowSymm`` machine for a one-dimensional L=20 spin
-                     1/2 system:
-
-
-                     >>> from netket.machine import JastrowSymm
-                     >>> from netket.hilbert import Spin
-                     >>> from netket.graph import Hypercube
-                     >>> g = Hypercube(length=20, n_dim=1)
-                     >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-                     >>> ma = JastrowSymm(hilbert=hi)
-                     >>> print(ma.n_par)
-                     10
-
-
-                 )EOF");
 }
 
 void AddMpsPeriodic(py::module subm) {
@@ -655,10 +526,6 @@ void AddMachineModule(py::module m) {
   auto subm = m.def_submodule("machine");
 
   AddAbstractMachine(subm);
-  AddRbmSpinSymm(subm);
-  AddRbmMultival(subm);
-  AddJastrow(subm);
-  AddJastrowSymm(subm);
   AddMpsPeriodic(subm);
   AddFFNN(subm);
   AddLayerModule(m);

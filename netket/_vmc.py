@@ -1,6 +1,7 @@
 import sys
 
 import numpy as _np
+import math
 
 import netket as _nk
 from netket._core import deprecated
@@ -68,7 +69,7 @@ class Vmc(AbstractVariationalDriver):
         self.n_samples = n_samples
         self.n_discard = n_discard
 
-        self._dp = _np.empty(self._npar, dtype=_np.complex128)
+        self._dp = None
 
     @property
     def n_samples(self):
@@ -81,12 +82,10 @@ class Vmc(AbstractVariationalDriver):
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
         self._n_samples = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+        n_samples_chain = int(math.ceil((n_samples / self._batch_size)))
+        self._n_samples_node = int(math.ceil(n_samples_chain / _nk.MPI.size()))
 
-        self._samples = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._ham.hilbert.size)
-        )
+        self._samples = None
 
         self._der_logs = _np.ndarray(
             (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
@@ -154,11 +153,11 @@ class Vmc(AbstractVariationalDriver):
             _der_logs -= _mean(_der_logs, axis=0)
 
             # Compute the gradient
-            self._grads = _np.conjugate(_der_logs) * eloc.reshape(-1, 1)
+            self._grads = _der_logs.conjugate() * eloc.reshape(-1, 1)
 
             grad = _mean(self._grads, axis=0)
 
-            self._sr.compute_update(_der_logs, grad, self._dp)
+            self._dp = self._sr.compute_update(_der_logs, grad, self._dp)
 
             _der_logs = _der_logs.reshape(
                 self._n_samples_node, self._batch_size, self._npar

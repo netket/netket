@@ -20,7 +20,7 @@ class Torch(AbstractMachine):
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
         self._parameters = list(_get_differentiable_parameters(self._module))
-        self.n_visible = hilbert.size
+
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert)
 

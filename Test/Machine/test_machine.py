@@ -48,7 +48,7 @@ if test_jax:
             jax.experimental.stax.Relu,
             jax.experimental.stax.Dense(2, initializer, initializer),
         ),
-        dtype=float
+        dtype=float,
     )
 
     machines["Jax Complex"] = nk.machine.Jax(
@@ -60,7 +60,7 @@ if test_jax:
             jax.experimental.stax.Tanh,
             jax.experimental.stax.Dense(1, initializer, initializer),
         ),
-        dtype=complex
+        dtype=complex,
     )
 
 
@@ -81,16 +81,18 @@ if test_torch:
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-# machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
 machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
 
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
+machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
 hi = Spin(s=0.5, graph=g, total_sz=0)
-# machines["Jastrow 1d Hypercube spin"] = nk.machine.JastrowSymm(hilbert=hi)
+machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
+    hilbert=hi, use_visible_bias=True, symmetry=True
+)
 
 dm_machines = {}
 # dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
@@ -132,17 +134,17 @@ layers = (
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
-machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
-    hilbert=hi, alpha=1)
+machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
-    hilbert=hi, n_hidden=10
+    hilbert=hi, n_hidden=2
 )
 machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 
-machines["JastrowSymm 1d Hypercube boson"] = nk.machine.JastrowSymm(hilbert=hi)
+machines["JastrowSymm 1d Hypercube boson real"] = nk.machine.JastrowSymm(
+    hilbert=hi, dtype=float
+)
 machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 
@@ -150,8 +152,9 @@ np.random.seed(12346)
 
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
-    assert np.max(np.real(der_log - num_der_log)
-                  ) == approx(0.0, rel=eps, abs=eps)
+    assert der_log.shape == num_der_log.shape
+    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
         0.0, rel=eps, abs=eps
@@ -160,10 +163,13 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
 
 def log_val_f(par, machine, v):
     machine.parameters = np.copy(par)
-    if v.ndim == 2:
-        return machine.log_val(v)
-    else:
-        return machine.log_val(v.reshape(1, -1))
+    if v.ndim != 1:
+        if v.size != v.shape[1]:
+            raise RuntimeError(
+                "numerical derivatives can be tested only for non batched inputs"
+            )
+
+    return machine.log_val(v.reshape(1, -1))[0]
 
 
 def log_val_vec_f(par, machine, v, vec):
@@ -237,6 +243,7 @@ def test_save_load_parameters(tmpdir):
 
 def test_log_derivative():
     for name, machine in merge_dicts(machines, dm_machines).items():
+
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -250,16 +257,15 @@ def test_log_derivative():
         for i in range(100):
             hi.random_vals(v)
 
-            randpars = 0.1 * (np.random.randn(npar) +
-                              1.0j * np.random.randn(npar))
+            randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
             machine.parameters = randpars
-            der_log = machine.der_log(v.reshape(1, -1))
+
+            der_log = machine.der_log(v.reshape((1, -1))).reshape(-1)
 
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(
-                log_val_f, randpars, 1.0e-9, machine, v)
+            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-9, machine, v)
 
             same_derivatives(der_log, num_der_log)
             # print(np.linalg.norm(der_log - num_der_log))
@@ -404,7 +410,6 @@ def test_to_array():
             number = hi.state_to_number(rstate)
 
             assert np.abs(
-                np.exp(machine.log_val(rstate.reshape(1, -1)) -
-                       logmax) / np.sqrt(norm)
+                np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
                 - all_psis_normalized[number]
             ) == approx(0.0)

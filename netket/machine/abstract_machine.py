@@ -44,7 +44,8 @@ class AbstractMachine(abc.ABC):
         Returns:
              `out`
         """
-        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        out = _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        return out
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError
@@ -159,3 +160,7 @@ class AbstractMachine(abc.ABC):
 
     def load(self, file):
         self.parameters = _np.load(file, allow_pickle=False)
+
+    @property
+    def n_visible(self):
+        return self.hilbert.size

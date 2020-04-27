@@ -21,11 +21,7 @@
 #include "Graph/graph.hpp"
 #include "abstract_machine.hpp"
 #include "ffnn.hpp"
-#include "jastrow.hpp"
-#include "jastrow_symm.hpp"
 #include "mps_periodic.hpp"
-#include "rbm_multival.hpp"
-#include "rbm_spin_symm.hpp"
 
 #include "DensityMatrices/density_matrix_machine.hpp"
 

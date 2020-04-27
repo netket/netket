@@ -56,8 +56,6 @@ class Jax(AbstractMachine):
         self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
-        self.n_visible = hilbert.size
-
         init_fn, self._forward_fn = module
         self._forward_fn = jax.jit(self._forward_fn)
 
@@ -66,34 +64,33 @@ class Jax(AbstractMachine):
         input_shape = (-1, self.n_visible)
         self._params = []
         if self._dtype is complex:
-            output_shape, pars_real = init_fn(
-                jax.random.PRNGKey(seed), input_shape)
-            _, pars_imag = init_fn(
-                jax.random.PRNGKey(seed + 1), input_shape)
+            output_shape, pars_real = init_fn(jax.random.PRNGKey(seed), input_shape)
+            _, pars_imag = init_fn(jax.random.PRNGKey(seed + 1), input_shape)
             if output_shape != (-1, 1):
-                raise ValueError(
-                    "A complex valued network must have only 1 output.")
+                raise ValueError("A complex valued network must have only 1 output.")
             for x1, x2 in zip(pars_real, pars_imag):
                 layer_state = []
                 for l1, l2 in zip(x1, x2):
-                    layer_state += [_np.array(l1 + 1j *
-                                              l2, dtype=self._npdtype), ]
+                    layer_state += [
+                        _np.array(l1 + 1j * l2, dtype=self._npdtype),
+                    ]
                 self._params.append(layer_state)
         else:
-            output_shape, pars = init_fn(
-                jax.random.PRNGKey(seed), input_shape)
+            output_shape, pars = init_fn(jax.random.PRNGKey(seed), input_shape)
             if output_shape != (-1, 2):
-                raise ValueError(
-                    "A real valued network must have 2 outputs.")
+                raise ValueError("A real valued network must have 2 outputs.")
             for x1 in pars:
                 layer_state = []
                 for l1 in x1:
-                    layer_state += [_np.array(l1, dtype=self._npdtype), ]
+                    layer_state += [
+                        _np.array(l1, dtype=self._npdtype),
+                    ]
                 self._params.append(layer_state)
 
         # Computes total number of parameters
-        self._npar = sum(reduce(lambda n, p: n + p.size, layer, 0)
-                         for layer in self._params)
+        self._npar = sum(
+            reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
+        )
 
         assert all(
             _np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
@@ -101,7 +98,8 @@ class Jax(AbstractMachine):
 
         # Computes the Jacobian matrix using backprop
         self._jacobian = jax.jacrev(
-            self._forward_fn, holomorphic=(self._dtype is complex))
+            self._forward_fn, holomorphic=(self._dtype is complex)
+        )
         self._jacobian = jax.jit(self._jacobian)
 
     @property
@@ -117,8 +115,7 @@ class Jax(AbstractMachine):
             out = _np.empty(x.shape[0], dtype=_np.complex128)
 
         if self._dtype is complex:
-            out = _np.array(self._forward_fn(
-                self._params, x).reshape(x.shape[0],))
+            out = _np.array(self._forward_fn(self._params, x).reshape(x.shape[0],))
         else:
             a = _np.asarray(self._forward_fn(self._params, x))
             out[:] = (a[:, 0] + 1j * a[:, 1]).squeeze()
@@ -137,13 +134,13 @@ class Jax(AbstractMachine):
         if self._dtype is complex:
             for g in (g.reshape(batch_size, 1, -1) for layer in J for g in layer):
                 n = g.shape[2]
-                out[:, i: i + n] = g[:, 0, :]
+                out[:, i : i + n] = g[:, 0, :]
                 i += n
         else:
             for g in (g.reshape(batch_size, 2, -1) for layer in J for g in layer):
                 n = g.shape[2]
-                out[:, i: i + n].real = g[:, 0, :]
-                out[:, i: i + n].imag = g[:, 1, :]
+                out[:, i : i + n].real = g[:, 0, :]
+                out[:, i : i + n].imag = g[:, 1, :]
                 i += n
         return out
 
@@ -161,20 +158,24 @@ class Jax(AbstractMachine):
 
     @property
     def parameters(self):
-        return _np.concatenate(tuple(p.astype(dtype=_np.complex128).reshape(-1) for p in self.state_dict.values()))
+        return _np.concatenate(
+            tuple(
+                p.astype(dtype=_np.complex128).reshape(-1)
+                for p in self.state_dict.values()
+            )
+        )
 
     @parameters.setter
     def parameters(self, p):
         if p.shape != (self.n_par,):
             raise ValueError(
-                "p has wrong shape: {}; expected ({},)".format(
-                    p.shape, self.n_par)
+                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
             )
 
         i = 0
         for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
             if self._dtype is complex:
-                _np.copyto(x, p[i: i + x.size])
+                _np.copyto(x, p[i : i + x.size])
             else:
-                _np.copyto(x, p[i: i + x.size].real)
+                _np.copyto(x, p[i : i + x.size].real)
             i += x.size
