@@ -15,3 +15,10 @@ try:
     from .torch import Torch
 except:
     pass
+
+
+try:
+    import jax
+    from .jax import Jax
+except:
+    pass

@@ -9,7 +9,7 @@ from .operator import local_values as _local_values
 from netket.stats import (
     statistics as _statistics,
     mean as _mean,
-    sum as _sum_on_nodes,
+    sum_inplace as _sum_inplace,
 )
 
 from netket.vmc_common import info
@@ -169,7 +169,9 @@ class Vmc(AbstractVariationalDriver):
                 self._samples, eloc, self._grads
             )
 
-            self._dp = _sum_on_nodes(self._grads) / float(self._n_samples)
+            _sum_inplace(self._grads)
+
+            self._dp = self._grads / float(self._n_samples)
 
         return self._dp
 
