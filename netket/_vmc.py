@@ -9,7 +9,7 @@ from .operator import local_values as _local_values
 from netket.stats import (
     statistics as _statistics,
     mean as _mean,
-    sum_on_nodes as _sum_on_nodes,
+    sum as _sum_on_nodes,
 )
 
 from netket.vmc_common import info
