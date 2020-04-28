@@ -4,7 +4,7 @@ import time
 
 
 # 1D Lattice
-L = 40
+L = 100
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
@@ -52,14 +52,14 @@ samples = j_bench(1, j_sa)
 samples.block_until_ready()
 t0 = time.time_ns()
 samples = j_bench(300, j_sa)
-print(samples.shape)
+print("Jax sampler (dtype " + str(dtype) + ")")
 tf = time.time_ns()
-print((tf - t0) / 1.0e9)
+print("time (s) ", (tf - t0) / 1.0e9)
 
 
 samples = bench(1, sa)
 t0 = time.time_ns()
 samples = bench(300, sa)
-print(samples.shape)
+print("Numpy sampler (dtype " + str(dtype) + ")")
 tf = time.time_ns()
-print((tf - t0) / 1.0e9)
+print("time (s) ", (tf - t0) / 1.0e9)
