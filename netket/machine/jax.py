@@ -154,7 +154,7 @@ class Jax(AbstractMachine):
             # when viewed as numpy types
             np_arr = list(map(_np.array, flat_out))
 
-            # reduction
+            # sum reduction in place
             safe_map(_sum_inplace, np_arr)
 
             # back to jax types
