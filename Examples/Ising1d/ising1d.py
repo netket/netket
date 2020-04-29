@@ -47,4 +47,4 @@ gs = nk.Vmc(
 )
 
 # Run the optimization for 300 iterations
-gs.run(n_iter=100)
+gs.run(n_iter=100, out="test")
