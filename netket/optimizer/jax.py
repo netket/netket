@@ -6,13 +6,13 @@ class Jax(AbstractOptimizer):
     r"""Wrapper for Jax optimizers.
     """
 
-    def __init__(self, machine, optim):
+    def __init__(self, machine, optimizer):
         r"""
            Constructs a new ``Jax`` optimizer that can be used in NetKet drivers.
 
            Args:
                machine (AbstractMachine): The machine to be optimized.
-               opt (jax.experimental.optimizers): A Jax optimizer.
+               optimizer (jax.experimental.optimizers): A Jax optimizer.
 
            Examples:
                Simple SGD optimizer from Jax.
@@ -22,14 +22,13 @@ class Jax(AbstractOptimizer):
                >>>
 
         """
-        self._init_fun, self._update_fun, self._params_fun = optim
+        self._init_fun, self._update_fun, self._params_fun = optimizer
 
         self._machine = machine
 
         self.reset()
 
     def update(self, grad, pars):
-
         self._opt_state = self._update_fun(self._step, grad, self._opt_state)
         self._step += 1
         pars = self._params_fun(self._opt_state)

@@ -70,6 +70,10 @@ class Vmc(AbstractVariationalDriver):
 
         self._batch_size = sampler.sample_shape[0]
 
+        # Check how many parallel nodes we are running on
+        self.n_nodes = _nk.utils.n_nodes
+        self._distributed = self.n_nodes > 1
+
         self.n_samples = n_samples
         self.n_discard = n_discard
 
@@ -87,9 +91,9 @@ class Vmc(AbstractVariationalDriver):
             )
 
         n_samples_chain = int(math.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(math.ceil(n_samples_chain / _nk.MPI.size()))
+        self._n_samples_node = int(math.ceil(n_samples_chain / self.n_nodes))
 
-        self._n_samples = int(self._n_samples_node * self._batch_size * _nk.MPI.size())
+        self._n_samples = int(self._n_samples_node * self._batch_size * self.n_nodes)
 
         self._samples = None
 
@@ -166,12 +170,13 @@ class Vmc(AbstractVariationalDriver):
             eloc -= _mean(eloc)
 
             self._grads = self._machine.vector_jacobian_prod(
-                self._samples, eloc, self._grads
+                self._samples,
+                eloc / float(self._n_samples),
+                out=self._grads,
+                distributed=self._distributed,
             )
 
-            _sum_inplace(self._grads)
-
-            self._dp = self._grads / float(self._n_samples)
+            self._dp = self._grads
 
         return self._dp
 

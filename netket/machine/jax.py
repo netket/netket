@@ -19,12 +19,16 @@ import os
 from .abstract_machine import AbstractMachine
 
 import numpy as _np
+from netket.random import randint as _randint
+from jax.tree_util import tree_flatten, tree_unflatten
+from jax.util import safe_map
+from netket.stats import sum_inplace as _sum_inplace
 
 os.environ["JAX_ENABLE_X64"] = "1"
 
 
 class Jax(AbstractMachine):
-    def __init__(self, hilbert, module, dtype=complex, seed=None):
+    def __init__(self, hilbert, module, dtype=complex):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -39,11 +43,6 @@ class Jax(AbstractMachine):
                 to the real and imaginary part of log(psi(x)).
                 If dtype is complex, the network should have only 1 output
                 representing the complex amplitude log(psi(x)).
-            seed: Seed to use to construct `jax.random.PRNGKey` for
-                initialisation of parameters. If `None` seed will be chosen
-                automatically (which is __not__ synchronized between MPI
-                processes so prefer `self.init_random_parameters` if you're
-                using multiple MPI tasks)
         """
         super(Jax, self).__init__(hilbert)
 
@@ -53,36 +52,42 @@ class Jax(AbstractMachine):
         self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
-        init_fn, self._forward_fn = module
-
-        if seed is None:
-            seed = _np.random.randint(2 ** 32 - 2)
-
-        input_shape = (-1, self.n_visible)
-        output_shape, self._params = init_fn(jax.random.PRNGKey(seed), input_shape)
-
-        if output_shape != (-1, 1):
-            raise ValueError("A valid network must have 1 output.")
-
-        # Computes total number of parameters
-        self._npar = sum(
-            reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
-        )
+        self._init_fn, self._forward_fn = module
 
         # Computes the Jacobian matrix using forward ad
         grad_fun = jax.jit(jax.grad(self._forward_fn, holomorphic=self.is_holomorphic))
         self._forward_fn = jax.jit(self._forward_fn)
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
-    # TODO use initializers in layers
-    def init_random_parameters(self, seed=None, sigma=0.01):
-        rgen = _np.random.RandomState(seed)
+        self.init_random_parameters()
+
+        # Computes total number of parameters
+        self._npar = sum(
+            reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
+        )
+
+    def init_random_parameters(self, seed=None, sigma=None):
+        if seed is None:
+            seed = _randint(0, 2 ** 32 - 2)
+
+        input_shape = (-1, self.n_visible)
+        output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
+
+        self._params = self._cast(params)
+
+        if output_shape != (-1, 1):
+            raise ValueError("A valid network must have 1 output.")
+
+    def _cast(self, p):
         if self._dtype is complex:
-            self.parameters = rgen.normal(
-                scale=sigma, size=self.n_par
-            ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
+            from jax.tree_util import tree_unflatten, tree_flatten
+
+            value_flat, value_tree = tree_flatten(p)
+            values_c = list(map(lambda v: v.astype(jax.numpy.complex128), value_flat))
+
+            return tree_unflatten(value_tree, values_c)
         else:
-            self.parameters = rgen.normal(scale=sigma, size=self.n_par)
+            return p
 
     @property
     def n_par(self):
@@ -133,22 +138,18 @@ class Jax(AbstractMachine):
                 k += pl.shape[1]
         return out
 
-    def vector_jacobian_prod(self, x, vec, out=None):
+    def vector_jacobian_prod(self, x, vec, out=None, distributed=True):
         vals, f_jvp = jax.vjp(
             self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
         )
 
         pout = f_jvp(vec.reshape(vals.shape).conjugate())
+        out = pout[0]
 
-        if out is None:
-            out = _np.empty((self.n_par), dtype=_np.complex128)
-
-        k = 0
-        for layer in pout:
-            for pl in layer:
-                for p in pl:
-                    out[k : k + p.size] = p.reshape(-1).conjugate()
-                    k += p.size
+        if distributed:
+            flat_out, tree = tree_flatten(out)
+            safe_map(_sum_inplace, flat_out)
+            out = tree_unflatten(tree, flat_out)
 
         return out
 
@@ -164,44 +165,53 @@ class Jax(AbstractMachine):
                 state.append((str((i, j)), p))
         return OrderedDict(state)
 
+    def save(self, file):
+        assert type(file) is str
+        with open(file, "wb") as file_ob:
+            jax.numpy.save(file_ob, self.parameters, allow_pickle=True)
+
+    def load(self, file):
+        self.parameters = jax.numpy.load(file, allow_pickle=True)
+
     @property
     def parameters(self):
-        k = 0
-        pars = _np.empty(self._npar, dtype=_np.complex128)
-        for i, layers in enumerate(self._params):
-            for layer in layers:
-                pars[k : k + layer.size] = _np.array(
-                    layer.reshape(-1), dtype=_np.complex128
-                )
-                k += layer.size
+        return self._params
+        # k = 0
+        # pars = _np.empty(self._npar, dtype=_np.complex128)
+        # for i, layers in enumerate(self._params):
+        #     for layer in layers:
+        #         pars[k : k + layer.size] = _np.array(
+        #             layer.reshape(-1), dtype=_np.complex128
+        #         )
+        #         k += layer.size
 
-        return pars
+        # return pars
 
     @parameters.setter
     def parameters(self, p):
-
-        if p.shape != (self.n_par,):
-            raise ValueError(
-                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
-            )
-
-        k = 0
-        pars = []
-        for i, layers in enumerate(self._params):
-            lp = []
-            for layer in layers:
-                if self._dtype is complex:
-                    lp.append(
-                        jax.numpy.array(p[k : k + layer.size]).reshape(layer.shape)
-                    )
-                else:
-                    lp.append(
-                        jax.numpy.array(p[k : k + layer.size].real).reshape(layer.shape)
-                    )
-                k += layer.size
-            pars.append(tuple(lp))
-
-        self._params = pars
+        self._params = p
+        # if p.shape != (self.n_par,):
+        #     raise ValueError(
+        #         "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
+        #     )
+        #
+        # k = 0
+        # pars = []
+        # for i, layers in enumerate(self._params):
+        #     lp = []
+        #     for layer in layers:
+        #         if self._dtype is complex:
+        #             lp.append(
+        #                 jax.numpy.array(p[k : k + layer.size]).reshape(layer.shape)
+        #             )
+        #         else:
+        #             lp.append(
+        #                 jax.numpy.array(p[k : k + layer.size].real).reshape(layer.shape)
+        #             )
+        #         k += layer.size
+        #     pars.append(tuple(lp))
+        #
+        # self._params = pars
 
         npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
 
