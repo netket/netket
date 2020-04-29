@@ -44,7 +44,7 @@ class AbstractMachine(abc.ABC):
         Returns:
              `out`
         """
-        out = _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        out = _np.dot(self.der_log(x).conjugate().transpose(), vec, out)
         return out
 
     def jacobian_vector_prod(self, v, vec, out=None):

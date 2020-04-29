@@ -40,7 +40,7 @@ def test_mc_stats():
 
     ref_mean, ref_var, ref_R = reference_stats(data)
 
-    mydata = data[rank]
+    mydata = np.copy(data[rank])
 
     stats = nk.stats.statistics(mydata)
 
@@ -52,7 +52,7 @@ def test_mc_stats():
 def test_mean():
     data = np.random.rand(size, 10, 11, 12)
     data = comm.bcast(data)
-    mydata = data[rank]
+    mydata = np.copy(data[rank])
 
     for axis in None, 0, 1, 2:
         ref_mean = np.mean(data.mean(0), axis=axis)
@@ -81,10 +81,42 @@ def test_mean():
     assert out == approx(np.mean(1j * data.mean(0), axis=0))
 
 
+def test_sum():
+    data = np.ones((size, 10, 11, 12))
+    data = comm.bcast(data)
+    mydata = np.copy(data[rank])
+
+    for axis in None, 0, 1, 2:
+        ref_sum = np.sum(data.sum(axis=0), axis=axis)
+        nk_sum = nk.stats.sum(mydata, axis=axis)
+
+        assert nk_sum.shape == ref_sum.shape, "axis={}".format(axis)
+        assert np.all(nk_sum == ref_sum), "axis={}".format(axis)
+
+    # Test with out
+    out = np.array(0.0)  # ndim=0 array
+    nk.stats.sum(mydata, out=out)
+    assert np.all(out == np.sum(data))
+
+    # Test with out and axis
+    out = np.empty((11, 12))
+    nk.stats.sum(mydata, axis=0, out=out)
+    assert np.all(out == np.sum(data.sum(axis=0), axis=0))
+
+    # Test with complex dtype
+    out = nk.stats.sum(1j * mydata, axis=0)
+    assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
+
+    # Test with complex dtype and out
+    out = np.empty((11, 12), dtype=np.complex128)
+    nk.stats.sum(1j * mydata, axis=0, out=out)
+    assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
+
+
 def test_var():
     data = np.random.rand(size, 10, 11, 12, 13)
     data = comm.bcast(data)
-    mydata = data[rank]
+    mydata = np.copy(data[rank])
 
     for axis, ddof in itertools.product((None, 0, 1, 2, 3), (0, 1)):
         if axis is not None:
@@ -110,7 +142,7 @@ def test_var():
 def test_sum_inplace():
     data = np.arange(size * 10 * 11).reshape(size, 10, 11)
     data = comm.bcast(data)
-    mydata = data[rank]
+    mydata = np.copy(data[rank])
 
     ref_sum = np.sum(data, axis=0)
     ret = nk.stats.sum_inplace(mydata)
@@ -122,7 +154,7 @@ def test_sum_inplace():
 def test_subtract_mean():
     data = np.random.rand(size, 10, 11, 12)
     data = comm.bcast(data)
-    mydata = data[rank]
+    mydata = np.copy(data[rank])
 
     ref_mean = nk.stats.mean(mydata, axis=0)
     ref_data = mydata - ref_mean[np.newaxis, :, :]

@@ -28,8 +28,8 @@ def mean(a, axis=None, out=None):
     Returns the average of the array elements. The average is taken over the flattened array by default,
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
-
-    out = _np.mean(a, axis=axis, out=out)
+    # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
+    out = _np.asarray(_np.mean(a, axis=axis, out=out))
 
     _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
     out /= _n_nodes
@@ -41,7 +41,8 @@ def sum(a, axis=None, out=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
     """
-    out = _np.sum(a, axis=axis, out=out)
+    # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
+    out = _np.asarray(_np.sum(a, axis=axis, out=out))
     _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
     return out
 

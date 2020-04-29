@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as _np
 from scipy.linalg import lstsq as _lstsq
 from scipy.linalg import cho_factor as _cho_factor
@@ -56,20 +57,22 @@ class SR:
 
         if self._use_iterative:
             if lsq_solver is None:
-                self._sparse_solver = gmres if self.is_holomorphic else minres
-            elif lsq_solver == "gmres":
-                self._sparse_solver = gmres
+                lsq_solver = "gmres" if self._is_holomorphic else "minres"
+
+            if lsq_solver == "gmres":
+                self._sparse_solver = partial(gmres, atol="legacy")
             elif lsq_solver == "cg":
-                self._sparse_solver = cg
+                self._sparse_solver = partial(cg, atol="legacy")
             elif lsq_solver == "minres":
                 if self._is_holomorphic:
-                    self._sparse_solver = minres
-                else:
                     raise RuntimeError(
                         "minres can be used only for real-valued parameters."
                     )
+                self._sparse_solver = minres
             else:
-                raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
+                raise RuntimeError(
+                    "Unknown sparse lsq_solver " + lsq_solver + "."
+                )
 
         else:
             if (
