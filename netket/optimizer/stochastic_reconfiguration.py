@@ -57,7 +57,7 @@ class SR:
 
         if self._use_iterative:
             if lsq_solver is None:
-                lsq_solver = "gmres" if self.is_holomorphic else "minres"
+                lsq_solver = "gmres" if self._is_holomorphic else "minres"
 
             if lsq_solver == "gmres":
                 self._sparse_solver = partial(gmres, atol="legacy")
@@ -65,13 +65,14 @@ class SR:
                 self._sparse_solver = partial(cg, atol="legacy")
             elif lsq_solver == "minres":
                 if self._is_holomorphic:
-                    self._sparse_solver = minres
-                else:
                     raise RuntimeError(
                         "minres can be used only for real-valued parameters."
                     )
+                self._sparse_solver = minres
             else:
-                raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
+                raise RuntimeError(
+                    "Unknown sparse lsq_solver " + lsq_solver + "."
+                )
 
         else:
             if (
