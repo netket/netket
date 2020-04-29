@@ -5,9 +5,14 @@ from .._C_netket import sampler as c_sampler
 from .._C_netket.utils import random_engine
 from ..stats import mean as _mean
 
-from numba import jit, jitclass
-from numba import int64, float64
 from netket import random as _random
+
+from numba import jit, int64, float64
+from pkg_resources import get_distribution
+if get_distribution("numba").version < '0.49':
+    from numba import jitclass
+else:
+    from numba.experimental import jitclass
 
 
 class PyMetropolisHastings(AbstractSampler):
