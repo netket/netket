@@ -59,7 +59,7 @@ class AbstractMachine(abc.ABC):
                 out += _np.dot(self.der_log(xb).conjugate().transpose(), vb)
 
         elif x.ndim == 2:
-            out = _np.dot(_np.asmatrix(self.der_log(x)).H, v, out)
+            out = _np.dot(self.der_log(x).conjugate().transpose(), vec, out)
 
         if distributed:
             _sum_inplace(out)

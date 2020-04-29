@@ -26,11 +26,11 @@ class Stats:
         tau_corr=_NaN,
         R_hat=_NaN,
     ):
-        self.mean = mean
-        self.error_of_mean = error_of_mean
-        self.variance = variance
-        self.tau_corr = tau_corr
-        self.R_hat = R_hat
+        self.mean = complex(mean) if _np.iscomplexobj(mean) else float(mean)
+        self.error_of_mean = float(error_of_mean)
+        self.variance = float(variance)
+        self.tau_corr = float(tau_corr)
+        self.R_hat = float(R_hat)
 
     def to_json(self):
         jsd = {}
@@ -117,12 +117,12 @@ def statistics(data):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    stats.mean = _mean(data)
-    stats.variance = _var(data)
+    mean = _mean(data)
+    variance = _var(data)
 
     ts = _total_size(data)
 
-    bare_var = stats.variance / ts
+    bare_var = variance / ts
 
     batch_var, n_batches = _batch_variance(data)
 
@@ -138,14 +138,14 @@ def statistics(data):
     batch_good = tau_batch < 6 * data.shape[1] and n_batches >= b_s
 
     if batch_good:
-        stats.error_of_mean = _np.sqrt(batch_var / ts)
-        stats.tau_corr = max(0, tau_batch)
+        error_of_mean = _np.sqrt(batch_var / ts)
+        tau_corr = max(0, tau_batch)
     elif block_good:
-        stats.error_of_mean = _np.sqrt(block_var)
-        stats.tau_corr = max(0, tau_block)
+        error_of_mean = _np.sqrt(block_var)
+        tau_corr = max(0, tau_block)
     else:
-        stats.error_of_mean = _np.nan
-        stats.tau_corr = _np.nan
+        error_of_mean = _np.nan
+        tau_corr = _np.nan
 
     if n_batches > 1:
         N = data.shape[-1]
@@ -154,8 +154,10 @@ def statistics(data):
         # W_loc = _np.mean(V_loc)
         # W = _mean(W_loc)
         # # This approximation seems to hold well enough for larger n_samples
-        W = stats.variance
+        W = variance
 
-        stats.R_hat = _np.sqrt((N - 1) / N + batch_var / W)
+        R_hat = _np.sqrt((N - 1) / N + batch_var / W)
+    else:
+        R_hat = float("nan")
 
-    return stats
+    return Stats(mean, error_of_mean, variance, tau_corr, R_hat)

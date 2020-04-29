@@ -23,6 +23,7 @@ from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten
 from jax.util import safe_map
 from netket.stats import sum_inplace as _sum_inplace
+from netket.utils import node_number
 
 os.environ["JAX_ENABLE_X64"] = "1"
 
@@ -148,7 +149,16 @@ class Jax(AbstractMachine):
 
         if distributed:
             flat_out, tree = tree_flatten(out)
-            safe_map(_sum_inplace, flat_out)
+            # converting to numpy before the reduction
+            # this copy is unavoidable because jax types are not writable
+            # when viewed as numpy types
+            np_arr = list(map(_np.array, flat_out))
+
+            # reduction
+            safe_map(_sum_inplace, np_arr)
+
+            # back to jax types
+            flat_out = list(map(jax.numpy.array, np_arr))
             out = tree_unflatten(tree, flat_out)
 
         return out
@@ -176,43 +186,10 @@ class Jax(AbstractMachine):
     @property
     def parameters(self):
         return self._params
-        # k = 0
-        # pars = _np.empty(self._npar, dtype=_np.complex128)
-        # for i, layers in enumerate(self._params):
-        #     for layer in layers:
-        #         pars[k : k + layer.size] = _np.array(
-        #             layer.reshape(-1), dtype=_np.complex128
-        #         )
-        #         k += layer.size
-
-        # return pars
 
     @parameters.setter
     def parameters(self, p):
         self._params = p
-        # if p.shape != (self.n_par,):
-        #     raise ValueError(
-        #         "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
-        #     )
-        #
-        # k = 0
-        # pars = []
-        # for i, layers in enumerate(self._params):
-        #     lp = []
-        #     for layer in layers:
-        #         if self._dtype is complex:
-        #             lp.append(
-        #                 jax.numpy.array(p[k : k + layer.size]).reshape(layer.shape)
-        #             )
-        #         else:
-        #             lp.append(
-        #                 jax.numpy.array(p[k : k + layer.size].real).reshape(layer.shape)
-        #             )
-        #         k += layer.size
-        #     pars.append(tuple(lp))
-        #
-        # self._params = pars
-
         npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
 
         assert npar == self._npar
