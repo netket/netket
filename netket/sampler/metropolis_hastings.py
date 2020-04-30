@@ -8,11 +8,7 @@ from ..stats import mean as _mean
 from netket import random as _random
 
 from numba import jit, int64, float64
-from pkg_resources import get_distribution
-if get_distribution("numba").version < '0.49':
-    from numba import jitclass
-else:
-    from numba.experimental import jitclass
+from .._jitclass import jitclass
 
 
 class PyMetropolisHastings(AbstractSampler):

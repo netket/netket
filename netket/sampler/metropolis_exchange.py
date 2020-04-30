@@ -5,13 +5,8 @@ from .abstract_sampler import AbstractSampler
 from .metropolis_hastings import *
 from .._C_netket import sampler as c_sampler
 
-
 from numba import jit, int64, float64
-from pkg_resources import get_distribution
-if get_distribution("numba").version < '0.49':
-    from numba import jitclass
-else:
-    from numba.experimental import jitclass
+from .._jitclass import jitclass
 
 @jitclass([("clusters", int64[:, :])])
 class _exchange_kernel:
