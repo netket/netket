@@ -34,8 +34,7 @@ sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=False,
-                     lsq_solver="LLT")
+sr = nk.optimizer.SR(diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(
@@ -47,4 +46,4 @@ gs = nk.Vmc(
 )
 
 # Run the optimization for 300 iterations
-gs.run(n_iter=100)
+gs.run(n_iter=300, out="test")

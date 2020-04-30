@@ -5,9 +5,8 @@ from .abstract_sampler import AbstractSampler
 from .metropolis_hastings import *
 from .._C_netket import sampler as c_sampler
 
-from numba import jit, jitclass
-from numba import int64, float64
-
+from numba import jit, int64, float64
+from .._jitclass import jitclass
 
 @jitclass([("clusters", int64[:, :])])
 class _exchange_kernel:

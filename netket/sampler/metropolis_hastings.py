@@ -5,9 +5,10 @@ from .._C_netket import sampler as c_sampler
 from .._C_netket.utils import random_engine
 from ..stats import mean as _mean
 
-from numba import jit, jitclass
-from numba import int64, float64
 from netket import random as _random
+
+from numba import jit, int64, float64
+from .._jitclass import jitclass
 
 
 class PyMetropolisHastings(AbstractSampler):
