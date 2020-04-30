@@ -156,12 +156,18 @@ class CMakeBuild(build_ext):
 
 setup(
     name="netket",
-    version="2.1",
+    version="2.1.1",
     author="Giuseppe Carleo et al.",
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    packages=["netket", "netket.machine", "netket.sampler", "netket.operator", "netket.logging"],
+    packages=[
+        "netket",
+        "netket.machine",
+        "netket.sampler",
+        "netket.operator",
+        "netket.logging",
+    ],
     ext_modules=[CMakeExtension("netket._C_netket")],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
@@ -176,5 +182,5 @@ setup(
         "tqdm>=4.42.1",
         "numba>=0.48.0",
     ],
-    python_requires='>=3.6'
+    python_requires=">=3.6",
 )
