@@ -167,6 +167,7 @@ setup(
         "netket.logging",
         "netket.machine",
         "netket.sampler",
+        "netket.sampler.jax",
         "netket.stats",
         "netket.operator",
         "netket.optimizer",
