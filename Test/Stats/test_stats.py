@@ -127,7 +127,7 @@ def _test_tau_corr(batch_size, sig_corr):
     assert tau_fit_m == pytest.approx(stats.tau_corr, rel=1, abs=3)
 
     eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
-    assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
+    assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6, abs=1.0e-4)
 
 
 def test_tau_corr():

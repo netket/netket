@@ -22,7 +22,6 @@ class JaxMetropolisHastings(AbstractSampler):
             self._rng_key = jax.random.PRNGKey(_random.randint(low=0, high=(2 ** 32)))
 
         self.machine_pow = 2
-        self._params = self.machine.jax_parameters
 
         super().__init__(machine, n_chains)
 
@@ -120,7 +119,6 @@ class JaxMetropolisHastings(AbstractSampler):
 
         self._accepted_samples = 0
         self._total_samples = 0
-        self._params = self.machine.jax_parameters
 
     def generate_samples(self, n_samples, init_random=False, samples=None):
         if n_samples == 0:
@@ -135,7 +133,7 @@ class JaxMetropolisHastings(AbstractSampler):
             self._transition_kernel,
             self._state,
             self.machine.jax_forward,
-            self.machine.jax_parameters,
+            self.machine.parameters,
             self.machine_pow,
             self._rng_key,
         )
@@ -151,7 +149,7 @@ class JaxMetropolisHastings(AbstractSampler):
             self._transition_kernel,
             self._state,
             self.machine.jax_forward,
-            self.machine.jax_parameters,
+            self.machine.parameters,
             self.machine_pow,
             self._rng_key,
         )

@@ -72,7 +72,6 @@ class Vmc(AbstractVariationalDriver):
 
         # Check how many parallel nodes we are running on
         self.n_nodes = _nk.utils.n_nodes
-        self._distributed = self.n_nodes > 1
 
         self.n_samples = n_samples
         self.n_discard = n_discard
@@ -170,11 +169,10 @@ class Vmc(AbstractVariationalDriver):
             eloc -= _mean(eloc)
 
             self._grads = self._machine.vector_jacobian_prod(
-                self._samples,
-                eloc / float(self._n_samples),
-                out=self._grads,
-                distributed=self._distributed,
+                self._samples, eloc / float(self._n_samples), self._grads
             )
+
+            _sum_inplace(self._grads)
 
             self._dp = self._grads
 

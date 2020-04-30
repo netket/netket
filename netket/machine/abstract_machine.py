@@ -34,7 +34,7 @@ class AbstractMachine(abc.ABC):
             scale=sigma, size=self.n_par
         ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
-    def vector_jacobian_prod(self, x, vec, out=None, distributed=True):
+    def vector_jacobian_prod(self, x, vec, out=None):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
@@ -42,7 +42,6 @@ class AbstractMachine(abc.ABC):
              x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
              vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
              out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
-             distributed (bool): True if x and vec are distributed over several threads with MPI.
 
 
         Returns:
@@ -60,9 +59,6 @@ class AbstractMachine(abc.ABC):
 
         elif x.ndim == 2:
             out = _np.dot(self.der_log(x).conjugate().transpose(), vec, out)
-
-        if distributed:
-            _sum_inplace(out)
 
         return out
 

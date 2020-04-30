@@ -21,9 +21,7 @@ from .abstract_machine import AbstractMachine
 import numpy as _np
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten
-from jax.util import safe_map
-from netket.stats import sum_inplace as _sum_inplace
-from netket.utils import node_number
+
 
 os.environ["JAX_ENABLE_X64"] = "1"
 
@@ -71,7 +69,7 @@ class Jax(AbstractMachine):
         if seed is None:
             seed = _randint(0, 2 ** 32 - 2)
 
-        input_shape = (-1, self.n_visible)
+        input_shape = (-1, self.hilbert.size)
         output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
 
         self._params = self._cast(params)
@@ -83,6 +81,7 @@ class Jax(AbstractMachine):
         if self._dtype is complex:
             from jax.tree_util import tree_unflatten, tree_flatten
 
+            # TODO use tree_map instead
             value_flat, value_tree = tree_flatten(p)
             values_c = list(map(lambda v: v.astype(jax.numpy.complex128), value_flat))
 
@@ -115,51 +114,21 @@ class Jax(AbstractMachine):
     def jax_forward(self):
         return self._forward_fn
 
-    @property
-    def jax_parameters(self):
-        return self._params
-
     def der_log(self, x, out=None):
         if x.ndim != 2:
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
-        if out is None:
-            out = _np.empty((x.shape[0], self.n_par), dtype=_np.complex128)
+        out = self._perex_grads(self._params, x)
 
-        J = self._perex_grads(self._params, x)
-
-        return self._convert_jacobian(J, out, x.shape[0])
-
-    def _convert_jacobian(self, J, out, bsize):
-        k = 0
-        for layer in J:
-            for pl in layer:
-                pl = pl.reshape((bsize, -1))
-                out[:, k : k + pl.shape[1]] = pl
-                k += pl.shape[1]
         return out
 
-    def vector_jacobian_prod(self, x, vec, out=None, distributed=True):
+    def vector_jacobian_prod(self, x, vec, out=None):
         vals, f_jvp = jax.vjp(
             self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
         )
 
         pout = f_jvp(vec.reshape(vals.shape).conjugate())
         out = pout[0]
-
-        if distributed:
-            flat_out, tree = tree_flatten(out)
-            # converting to numpy before the reduction
-            # this copy is unavoidable because jax types are not writable
-            # when viewed as numpy types
-            np_arr = list(map(_np.array, flat_out))
-
-            # sum reduction in place
-            safe_map(_sum_inplace, np_arr)
-
-            # back to jax types
-            flat_out = list(map(jax.numpy.array, np_arr))
-            out = tree_unflatten(tree, flat_out)
 
         return out
 
