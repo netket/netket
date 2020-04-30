@@ -111,7 +111,7 @@ class Vmc(AbstractVariationalDriver):
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
-            n_discard
+            int(n_discard)
             if n_discard != None
             else self._n_samples_node * self._batch_size // 10
         )
