@@ -19,7 +19,7 @@ ma.init_random_parameters(sigma=0.01, seed=1232)
 
 
 # Jax Sampler
-sa = nk.sampler.JaxMetropolisLocal(machine=ma, n_chains=16)
+sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=16)
 
 # Using a Jax Optimizer
 j_op = JaxSgd(0.05)
@@ -30,7 +30,7 @@ sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=True)
 
 # Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard=0
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=0
 )
 
 # The first iteration is slower because of start-up jit times

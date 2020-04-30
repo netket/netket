@@ -15,15 +15,12 @@
 import jax
 from collections import OrderedDict
 from functools import reduce
-import os
+
 from .abstract_machine import AbstractMachine
 
 import numpy as _np
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten
-
-
-os.environ["JAX_ENABLE_X64"] = "1"
 
 
 class Jax(AbstractMachine):

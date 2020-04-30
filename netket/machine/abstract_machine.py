@@ -1,9 +1,6 @@
 import abc
 import numpy as _np
 
-from netket.stats import sum_inplace as _sum_inplace
-from netket.utils import node_number
-
 
 class AbstractMachine(abc.ABC):
     """Abstract class for NetKet machines"""

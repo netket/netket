@@ -10,15 +10,10 @@ from .sgd import Sgd
 
 from .stochastic_reconfiguration import SR
 
-try:
-    import torch as _torch
-    from .torch import Torch
-except:
-    pass
+from ..utils import jax_available, torch_available
 
-
-try:
-    import jax
+if jax_available:
     from .jax import Jax
-except:
-    pass
+
+if torch_available:
+    from .torch import Torch

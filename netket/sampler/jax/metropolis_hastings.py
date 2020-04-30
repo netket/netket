@@ -1,11 +1,11 @@
-from .abstract_sampler import AbstractSampler
+from ..abstract_sampler import AbstractSampler
 
 import jax
 from functools import partial
 from netket import random as _random
 
 
-class JaxMetropolisHastings(AbstractSampler):
+class MetropolisHastings(AbstractSampler):
     def __init__(
         self, machine, transition_kernel, n_chains=16, sweep_size=None, rng_key=None
     ):

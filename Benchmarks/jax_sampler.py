@@ -4,7 +4,7 @@ import time
 
 
 # 1D Lattice
-L = 100
+L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
@@ -15,7 +15,7 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 # RBM Spin Machine
 alpha = 1
-dtype = float
+dtype = complex
 ma = nk.machine.RbmSpin(alpha=alpha, hilbert=hi, dtype=dtype)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
@@ -24,10 +24,10 @@ j_ma = nk.machine.JaxRbm(alpha=alpha, hilbert=hi, dtype=dtype)
 j_ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
-n_chains = 8
+n_chains = 2
 
 
-j_sa = nk.sampler.JaxMetropolisLocal(machine=j_ma, n_chains=n_chains)
+j_sa = nk.sampler.jax.MetropolisLocal(machine=j_ma, n_chains=n_chains)
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=n_chains)
 
 n_samples = 1000 // n_chains

@@ -31,7 +31,7 @@ j_ma = nk.machine.JaxRbm(hi, alpha, dtype=dtype)
 # Metropolis Local Sampling
 n_chains = 8
 
-j_sa = nk.sampler.JaxMetropolisLocal(machine=j_ma, n_chains=n_chains)
+j_sa = nk.sampler.jax.MetropolisLocal(machine=j_ma, n_chains=n_chains)
 sa = nk.sampler.MetropolisLocal(machine=j_ma, n_chains=n_chains)
 
 n_samples = 1000 // n_chains

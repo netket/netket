@@ -1,36 +1,24 @@
-import numpy as _np
-from netket import random as _random
-
-from .abstract_sampler import AbstractSampler
+import jax
+from functools import partial
 from .metropolis_hastings import MetropolisHastings
-from .metropolis_hastings_pt import MetropolisHastingsPt
-
-from numba import jit
-from numba.experimental import jitclass
-from numba import int64, float64
 
 
-@jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
 class _local_kernel:
     def __init__(self, local_states, size):
-        self.local_states = _np.sort(_np.asarray(local_states, dtype=_np.float64))
+        self.local_states = jax.numpy.sort(jax.numpy.array(local_states))
         self.size = size
         self.n_states = self.local_states.size
 
-    def apply(self, state, state_1, log_prob_corr):
+    @partial(jax.jit, static_argnums=(0))
+    def apply(self, key, state):
 
-        for i in range(state.shape[0]):
-            state_1[i] = state[i]
+        keys = jax.random.split(key, 2)
+        si = jax.random.randint(keys[0], shape=(1,), minval=0, maxval=self.size)
+        rs = jax.random.randint(keys[1], shape=(1,), minval=0, maxval=self.n_states - 1)
 
-            si = _random.randint(0, self.size)
-
-            rs = _random.randint(0, self.n_states - 1)
-
-            state_1[i, si] = self.local_states[
-                rs + (self.local_states[rs] >= state[i, si])
-            ]
-
-        log_prob_corr.fill(0.0)
+        return jax.ops.index_update(
+            state, si, self.local_states[rs + (self.local_states[rs] >= state[si])]
+        )
 
 
 class MetropolisLocal(MetropolisHastings):
@@ -86,50 +74,14 @@ class MetropolisLocal(MetropolisHastings):
              >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
              >>>
              >>> # RBM Spin Machine
-             >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+             >>> ma = nk.machine.JaxRbm(alpha=1, hilbert=hi)
              >>>
              >>> # Construct a MetropolisLocal Sampler
              >>> sa = nk.sampler.MetropolisLocal(machine=ma)
              >>> print(sa.machine.hilbert.size)
              100
         """
-
+        kernel = _local_kernel(machine.hilbert.local_states, machine.hilbert.size)
         super().__init__(
-            machine,
-            _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
-            ),
-            n_chains,
-            sweep_size,
-            batch_size,
-        )
-
-
-class MetropolisLocalPt(MetropolisHastingsPt):
-    """
-    This sampler performs parallel-tempering
-    moves in addition to the local moves implemented in `MetropolisLocal`.
-    The number of replicas can be chosen by the user.
-    """
-
-    def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None):
-        """
-        Args:
-             machine: A machine :math:`\Psi(s)` used for the sampling.
-                      The probability distribution being sampled
-                      from is :math:`F(\Psi(s))`, where the function
-                      :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
-             n_replicas: The number of replicas used for parallel tempering.
-             sweep_size: The number of exchanges that compose a single sweep.
-                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-
-        """
-        super().__init__(
-            machine,
-            _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
-            ),
-            n_replicas,
-            sweep_size,
-            batch_size,
+            machine, kernel.apply, n_chains, sweep_size,
         )
