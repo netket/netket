@@ -141,35 +141,30 @@ class Vmc(AbstractVariationalDriver):
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
             # Computes the jacobian
-            _der_logs = self._der_logs
-            _der_log = self._machine.der_log
-            _samples = self._samples
+            samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+            der_logs = self._der_logs
+            eloc_r = eloc.reshape(-1, 1)
 
-            _der_logs = _der_log(_samples.reshape((-1, _samples.shape[-1])), _der_logs)
-
-            # Center the local energy
-            eloc -= _mean(eloc)
+            der_logs = self._machine.der_log(samples_r, der_logs)
 
             # Center the log derivatives
-            _der_logs -= _mean(_der_logs, axis=0)
+            der_logs -= _mean(der_logs, axis=0)
 
             # Compute the gradient
-            self._grads = _der_logs.conjugate() * eloc.reshape(-1, 1)
-
-            grad = _mean(self._grads, axis=0)
-
-            self._dp = self._sr.compute_update(_der_logs, grad, self._dp)
-
-            _der_logs = _der_logs.reshape(
-                self._n_samples_node, self._batch_size, self._npar
+            self._grads = self._machine.vector_jacobian_prod(
+                samples_r, eloc_r / self._n_samples, self._grads, jacobian=der_logs
             )
+            _sum_inplace(self._grads)
+
+            self._dp = self._sr.compute_update(der_logs, self._grads, self._dp)
+
         else:
             # Computing updates using the simple gradient
             # Center the local energy
             eloc -= _mean(eloc)
 
             self._grads = self._machine.vector_jacobian_prod(
-                self._samples, eloc / float(self._n_samples), self._grads
+                self._samples, eloc / self._n_samples, self._grads
             )
 
             _sum_inplace(self._grads)

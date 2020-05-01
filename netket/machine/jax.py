@@ -20,7 +20,7 @@ from .abstract_machine import AbstractMachine
 
 import numpy as _np
 from netket.random import randint as _randint
-from jax.tree_util import tree_flatten, tree_unflatten
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
 class Jax(AbstractMachine):
@@ -119,13 +119,38 @@ class Jax(AbstractMachine):
 
         return out
 
-    def vector_jacobian_prod(self, x, vec, out=None):
-        vals, f_jvp = jax.vjp(
-            self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
-        )
+    def vector_jacobian_prod(self, x, vec, out=None, jacobian=None, conjugate=True):
+        r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
-        pout = f_jvp(vec.reshape(vals.shape).conjugate())
-        out = pout[0]
+        Args:
+             x: a matrix of `float64` of shape `(*, self.n_visible)`.
+             vec: a `complex128` vector used to compute the inner product with the jacobian.
+             out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+             jacobian (optional): If passed, the Jacobian is not recomputed from scratch.
+             conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+
+
+        Returns:
+             `out`
+        """
+        if jacobian is None:
+            vals, f_jvp = jax.vjp(
+                self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
+            )
+
+            pout = f_jvp(vec.reshape(vals.shape).conjugate())
+
+            if conjugate and self._dtype is complex:
+                out = tree_map(jax.numpy.conjugate, pout[0])
+
+        else:
+            if conjugate and self._dtype is complex:
+                prodj = lambda j: jax.np.tensordot(vec, j.conjugate(), axes=vec.ndim)
+            else:
+                prodj = lambda j: jax.np.tensordot(vec.conjugate(), j, axes=vec.ndim)
+
+            out = tree_map(prodj, jacobian)
 
         return out
 
