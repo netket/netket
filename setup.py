@@ -186,5 +186,5 @@ setup(
         "numba>=0.48.0",
     ],
     python_requires=">=3.6",
-    extras_require={"dev": ["pytest", "pre-commit"],},
+    extras_require={"dev": ["pytest", "pre-commit", "black"],},
 )
