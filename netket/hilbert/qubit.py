@@ -30,6 +30,6 @@ class Qubit(PyCustomHilbert):
             100
         """
 
-        if(graph is None):
+        if graph is None:
             graph = Edgeless(size)
         super().__init__(graph, [0, 1])

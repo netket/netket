@@ -1,6 +1,7 @@
 from .abstract_optimizer import AbstractOptimizer
 import numpy as _np
 
+
 class Momentum(AbstractOptimizer):
     r"""Momentum-based Optimizer.
         The momentum update incorporates an exponentially weighted moving average
@@ -15,7 +16,7 @@ class Momentum(AbstractOptimizer):
         p^\prime_k &= \eta m^\prime_k
     """
 
-    def __init__(self,learning_rate, beta=0.9,l2reg = 0):
+    def __init__(self, learning_rate, beta=0.9, l2reg=0):
         r"""
            Constructs a new ``Momentum`` optimizer.
 
@@ -30,37 +31,35 @@ class Momentum(AbstractOptimizer):
                >>> from netket.optimizer import Momentum
                >>> op = Momentum(learning_rate=0.01)
         """
-        self._learning_rate=learning_rate
-        self._l2reg=l2reg
-        self._beta=beta
-        self._eta=learning_rate
-        self._mt=None
+        self._learning_rate = learning_rate
+        self._l2reg = l2reg
+        self._beta = beta
+        self._eta = learning_rate
+        self._mt = None
 
-        if(learning_rate<=0):
+        if learning_rate <= 0:
             raise ValueError("Invalid learning rate.")
-        if(l2reg<0):
+        if l2reg < 0:
             raise ValueError("Invalid L2 regularization.")
-        if(beta<0 or beta>1):
+        if beta < 0 or beta > 1:
             raise ValueError("Invalid beta.")
 
-
-    def update(self,grad,pars):
+    def update(self, grad, pars):
         if self._mt is None:
-            self._mt=_np.zeros(pars.shape[0],dtype=pars.dtype)
+            self._mt = _np.zeros(pars.shape[0], dtype=pars.dtype)
 
-        self._mt= self._beta * self._mt + (1. - self._beta) * grad;
-        pars -= self._eta * (self._mt+self._l2reg * pars)
+        self._mt = self._beta * self._mt + (1.0 - self._beta) * grad
+        pars -= self._eta * (self._mt + self._l2reg * pars)
 
         return pars
 
-
     def reset(self):
         if self._mt is not None:
-            self._mt.fill(0.)
+            self._mt.fill(0.0)
 
     def __repr__(self):
-        rep="Momentum optimizer with these parameters :"
-        rep+="\nLearning Rate = " +str(self._learning_rate)
-        rep+="\nL2 Regularization = "+str(self._l2reg)
-        rep+="\nBeta = "+str(self._beta)
+        rep = "Momentum optimizer with these parameters :"
+        rep += "\nLearning Rate = " + str(self._learning_rate)
+        rep += "\nL2 Regularization = " + str(self._l2reg)
+        rep += "\nBeta = " + str(self._beta)
         return rep

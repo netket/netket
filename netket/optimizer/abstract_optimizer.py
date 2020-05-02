@@ -5,7 +5,7 @@ import numpy as _np
 class AbstractOptimizer(abc.ABC):
     """Abstract class for NetKet optimizers"""
 
-    def init(self, n_par,is_holomorphic):
+    def init(self, n_par, is_holomorphic):
         r""" Initializes the optimizer.
 
         Args:
@@ -14,7 +14,6 @@ class AbstractOptimizer(abc.ABC):
 
         """
         pass
-
 
     @abc.abstractmethod
     def update(self, grad, pars):
@@ -28,7 +27,6 @@ class AbstractOptimizer(abc.ABC):
             array: Updated parameters
         """
         pass
-
 
     @abc.abstractmethod
     def reset(self):
