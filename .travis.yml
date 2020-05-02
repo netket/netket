@@ -130,5 +130,5 @@ script:
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
   - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
-  - black --check netket/
+  - black --check ../netket/
   # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/
