@@ -76,11 +76,6 @@ def test_vmc_functions():
         assert stats.mean.real == approx(mean.real, rel=tol)
         assert stats.mean.real == approx(exact_ex.real, abs=tol)
 
-    local_values = nk.operator.local_values(ha, ma, samples)
-    grad = nk.stats.covariance_sv(local_values, der_logs)
-    assert grad.shape == (ma.n_par,)
-    assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
-
     _, grads = vmc.estimate_expectations(
         ha, sampler, n_samples, 10, compute_gradients=True
     )

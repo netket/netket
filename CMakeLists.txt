@@ -276,8 +276,6 @@ set(NETKET_SOURCES
     Sources/Machine/mps_periodic.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
-    Sources/Stats/mc_stats.cc
-    Sources/Stats/py_stats.cc
     Sources/Utils/json_utils.cc
     Sources/Utils/log_cosh.cc
     Sources/Utils/exceptions.cc
