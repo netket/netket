@@ -39,8 +39,7 @@ def sigmay(hilbert, site):
     S = (N - 1) / 2
 
     D = _np.array(
-        [1j * _np.sqrt((S + 1) * 2 * a - a * (a + 1))
-         for a in _np.arange(1, N)]
+        [1j * _np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
     )
     mat = _np.diag(D, -1) + _np.diag(-D, 1)
     return LocalOperator(hilbert, mat, [site])
@@ -103,7 +102,6 @@ def sigmap(hilbert, site):
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
-    D = _np.array([_np.sqrt(S2 - m * (m + 1))
-                   for m in _np.arange(S - 1, -(S + 1), -1)])
+    D = _np.array([_np.sqrt(S2 - m * (m + 1)) for m in _np.arange(S - 1, -(S + 1), -1)])
     mat = _np.diag(D, 1)
     return LocalOperator(hilbert, mat, [site])

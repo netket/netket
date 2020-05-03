@@ -40,8 +40,7 @@ class BoseHubbard(AbstractOperator):
         self._J = J
         self._mu = mu
         self._hilbert = hilbert
-        assert(isinstance(hilbert, PyBoson)
-               or isinstance(hilbert, Boson))
+        assert isinstance(hilbert, PyBoson) or isinstance(hilbert, Boson)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
@@ -81,7 +80,7 @@ class BoseHubbard(AbstractOperator):
         mels = self._max_mels
         x_prime = self._max_xprime
 
-        mels[0] = 0.
+        mels[0] = 0.0
         x_prime[0] = _np.copy(x)
 
         J = self._J
@@ -97,7 +96,7 @@ class BoseHubbard(AbstractOperator):
             mels[0] += V * n_i * n_j
 
             # destroy on i create on j
-            if(n_i > 0 and n_j < n_max):
+            if n_i > 0 and n_j < n_max:
                 mels[c] = -J * sqrt(n_i) * sqrt(n_j + 1)
                 x_prime[c] = _np.copy(x)
                 x_prime[c, i] -= 1.0
@@ -105,7 +104,7 @@ class BoseHubbard(AbstractOperator):
                 c += 1
 
             # destroy on j create on i
-            if(n_j > 0 and n_i < n_max):
+            if n_j > 0 and n_i < n_max:
                 mels[c] = -J * sqrt(n_j) * sqrt(n_i + 1)
                 x_prime[c] = _np.copy(x)
                 x_prime[c, j] -= 1.0
@@ -118,36 +117,36 @@ class BoseHubbard(AbstractOperator):
             # chemical potential
             mels[0] -= mu * x[i]
             # on-site interaction
-            mels[0] += Uh * x[i] * (x[i] - 1.)
+            mels[0] += Uh * x[i] * (x[i] - 1.0)
 
         return _np.copy(x_prime[:c]), _np.copy(mels[:c])
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn):
+    def _flattened_kernel(
+        x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn
+    ):
 
         batch_size = x.shape[0]
         n_sites = x.shape[1]
 
-        if(mels.size < batch_size * max_conn):
-            mels = _np.empty(
-                batch_size * max_conn, dtype=_np.complex128)
-            x_prime = _np.empty(
-                (batch_size * max_conn, n_sites))
+        if mels.size < batch_size * max_conn:
+            mels = _np.empty(batch_size * max_conn, dtype=_np.complex128)
+            x_prime = _np.empty((batch_size * max_conn, n_sites))
 
         sqrt = _m.sqrt
         Uh = 0.5 * U
 
         diag_ind = 0
         for b in range(batch_size):
-            mels[diag_ind] = 0.
+            mels[diag_ind] = 0.0
             x_prime[diag_ind] = _np.copy(x[b])
 
             for i in range(n_sites):
                 # chemical potential
                 mels[diag_ind] -= mu * x[b, i]
                 # on-site interaction
-                mels[diag_ind] += Uh * x[b, i] * (x[b, i] - 1.)
+                mels[diag_ind] += Uh * x[b, i] * (x[b, i] - 1.0)
 
             odiag_ind = 1 + diag_ind
             for e in range(edges.shape[0]):
@@ -157,7 +156,7 @@ class BoseHubbard(AbstractOperator):
                 mels[diag_ind] += V * n_i * n_j
 
                 # destroy on i create on j
-                if(n_i > 0 and n_j < n_max):
+                if n_i > 0 and n_j < n_max:
                     mels[odiag_ind] = -J * sqrt(n_i) * sqrt(n_j + 1)
                     x_prime[odiag_ind] = _np.copy(x[b])
                     x_prime[odiag_ind, i] -= 1.0
@@ -165,7 +164,7 @@ class BoseHubbard(AbstractOperator):
                     odiag_ind += 1
 
                 # destroy on j create on i
-                if(n_j > 0 and n_i < n_max):
+                if n_j > 0 and n_i < n_max:
                     mels[odiag_ind] = -J * sqrt(n_j) * sqrt(n_i + 1)
                     x_prime[odiag_ind] = _np.copy(x[b])
                     x_prime[odiag_ind, j] -= 1.0
@@ -199,5 +198,16 @@ class BoseHubbard(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return self._flattened_kernel(x, sections, self._edges, self._max_mels, self._max_xprime, self._U,
-                                      self._V, self._J, self._mu, self._n_max, self._max_conn)
+        return self._flattened_kernel(
+            x,
+            sections,
+            self._edges,
+            self._max_mels,
+            self._max_xprime,
+            self._U,
+            self._V,
+            self._J,
+            self._mu,
+            self._n_max,
+            self._max_conn,
+        )

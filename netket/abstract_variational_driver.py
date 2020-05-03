@@ -194,7 +194,9 @@ class AbstractVariationalDriver(abc.ABC):
                 "Invalid out and output_prefix arguments. Only one of the two can be passed. Note that output_prefix is deprecated and you should use out."
             )
         elif out is None:
-            warn_deprecation("The output_prefix argument is deprecated. Use out instead.")
+            warn_deprecation(
+                "The output_prefix argument is deprecated. Use out instead."
+            )
             out = output_prefix
 
         # Log only non-root nodes

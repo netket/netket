@@ -115,7 +115,7 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy scipy networkx 'pytest==5.3' python-igraph jax jaxlib
+  - python -m pip install numpy scipy networkx 'pytest==5.3' python-igraph jax jaxlib black
   - |
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
@@ -130,4 +130,7 @@ script:
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
   - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
+  - black --check ../netket/
+  - black --check ../Test ../Test_MPI
+  - black --check ../Examples ../Benchmarks
   # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/

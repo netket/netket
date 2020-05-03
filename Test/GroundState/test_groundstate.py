@@ -99,11 +99,7 @@ def test_vmc_iterator_iterative():
         for name in "Energy", "SigmaX":
             assert name in obs
             e = obs[name]
-            assert (
-                hasattr(e, "mean")
-                and hasattr(e, "variance")
-                and hasattr(e, "R_hat")
-            )
+            assert hasattr(e, "mean") and hasattr(e, "variance") and hasattr(e, "R_hat")
         last_obs = obs
 
     assert count == 300
