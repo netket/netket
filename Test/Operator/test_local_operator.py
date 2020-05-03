@@ -98,6 +98,7 @@ def test_local_operator_transpose_conjugation():
         math_h = oph.transpose().conjugate().to_dense()
         same_matrices(math_h, mat)
 
+
 def test_local_operator_add():
     sz0 = nk.operator.spin.sigmaz(hi, 0)
     sz1 = nk.operator.spin.sigmaz(hi, 1)
@@ -116,21 +117,21 @@ def test_local_operator_add():
     same_matrices(ha, ha2)
     same_matrices(ha, ham)
 
-    for i in range(1,3):
+    for i in range(1, 3):
         ha = ha + 0.2 * nk.operator.spin.sigmaz(hi, i)
         ha2 += 0.2 * nk.operator.spin.sigmaz(hi, i)
         ham += 0.2 * nk.operator.spin.sigmaz(hi, i).to_dense()
     same_matrices(ha, ha2)
     same_matrices(ha, ham)
 
-    for i in range(3,5):
+    for i in range(3, 5):
         ha = ha + 0.2 * nk.operator.spin.sigmax(hi, i)
         ha2 += 0.2 * nk.operator.spin.sigmax(hi, i)
         ham += 0.2 * nk.operator.spin.sigmax(hi, i).to_dense()
     same_matrices(ha, ha2)
     same_matrices(ha, ham)
 
-    for i in range(5,7):
+    for i in range(5, 7):
         ha = ha - 0.3 * nk.operator.spin.sigmam(hi, i)
         ha2 -= 0.3 * nk.operator.spin.sigmam(hi, i)
         ham -= 0.3 * nk.operator.spin.sigmam(hi, i).to_dense()
@@ -146,14 +147,15 @@ def test_local_operator_add():
     # test commutativity
     ha = LocalOperator(hi)
     ha2 = LocalOperator(hi)
-    for i in range(0,3):
-        ha += 0.3 * nk.operator.spin.sigmaz(hi, i)  * nk.operator.spin.sigmax(hi, i+1)
+    for i in range(0, 3):
+        ha += 0.3 * nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmax(hi, i + 1)
         ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
         ha2 += 0.5 * nk.operator.spin.sigmay(hi, i)
 
     ha_ha2 = ha + ha2
     ha2_ha = ha2 + ha
     same_matrices(ha_ha2, ha2_ha)
+
 
 def test_simple_operators():
     L = 4
