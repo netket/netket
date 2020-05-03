@@ -81,3 +81,16 @@ pytest Test --verbose
 
 this will highlight cases where tests are failing. These must be addressed before any pull request can be merged on stable branches.
  
+#### Test MPI code
+
+For code that relies on MPI operations, there are units tests in the `Test_MPI` subfolder.
+If you add MPI-related code, please also add corresponding unit tests to that directory.
+
+The MPI tests can be run with
+```bash
+mpirun -np 2 pytest Test_MPI --verbose
+```
+Note that this will print the test output twice, as `pytest` itself is not aware of being run with MPI.
+Running these tests also provides a quick way to check if your MPI setup is working.
+If `test_is_running_with_multiple_procs` or `test_mpi_setup` is failing, you should check your MPI configuration,
+for example whether `mpi4py` is compiled against the correct MPI libraries for your machine.

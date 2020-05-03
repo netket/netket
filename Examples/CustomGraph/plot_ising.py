@@ -14,7 +14,6 @@ while True:
     energy = []
     sigma = []
     evar = []
-    
 
     data = json.load(open("test.log"))
     for iteration in data["Output"]:
@@ -22,7 +21,6 @@ while True:
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
         evar.append(iteration["Energy"]["Variance"])
-        
 
     plt.semilogy()
     plt.errorbar(iters, evar, yerr=evarsig, color="red")

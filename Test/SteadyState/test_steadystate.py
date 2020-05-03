@@ -15,6 +15,7 @@ sz = [[1, 0], [0, -1]]
 
 sigmam = [[0, 0], [1, 0]]
 
+
 def _setup_ss(**kwargs):
     nk.utils.seed(SEED)
     nk.random.seed(SEED)
@@ -30,7 +31,9 @@ def _setup_ss(**kwargs):
     j_ops = []
     for i in range(L):
         ha += (0.3 / 2.0) * nk.operator.LocalOperator(hi, sx, [i])
-        ha += (2.0 / 4.0) * nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
+        ha += (2.0 / 4.0) * nk.operator.LocalOperator(
+            hi, np.kron(sz, sz), [i, (i + 1) % L]
+        )
         j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
 
     #  Create the liouvillian
@@ -41,10 +44,12 @@ def _setup_ss(**kwargs):
 
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    ss = nk.SteadyState(lindblad=lind, sampler=sa, optimizer=op, sampler_obs=sa_obs,
-                        **kwargs)
+    ss = nk.SteadyState(
+        lindblad=lind, sampler=sa, optimizer=op, sampler_obs=sa_obs, **kwargs
+    )
 
     return ma, ss
+
 
 def _setup_obs():
     g = nk.graph.Hypercube(length=L, n_dim=1)
@@ -54,7 +59,7 @@ def _setup_obs():
     for i in range(L):
         obs_sx += nk.operator.LocalOperator(hi, sx, [i])
 
-    obs = {"SigmaX":obs_sx}
+    obs = {"SigmaX": obs_sx}
     return obs
 
 
@@ -115,16 +120,17 @@ def test_ss_iterator():
             assert name in obs
             e = obs[name]
             assert (
-                    hasattr(e, "mean")
-                    and hasattr(e, "error_of_mean")
-                    and hasattr(e, "variance")
-                    and hasattr(e, "tau_corr")
-                    and hasattr(e, "R_hat")
+                hasattr(e, "mean")
+                and hasattr(e, "error_of_mean")
+                and hasattr(e, "variance")
+                and hasattr(e, "tau_corr")
+                and hasattr(e, "R_hat")
             )
         losses.append(vmc.ldagl["mean"])
 
     assert count == N_iters
     assert np.mean(losses[-10:]) == approx(0.0, abs=0.003)
+
 
 def test_ss_iterator_sr():
     sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=False)
@@ -192,7 +198,8 @@ def test_ss_run():
 def _ldagl(par, machine, L):
     machine.parameters = np.copy(par)
     rho = machine.to_array()
-    return np.sum(np.abs(L@rho)**2)
+    return np.sum(np.abs(L @ rho) ** 2)
+
 
 def central_diff_grad(func, x, eps, *args):
     grad = np.zeros(len(x), dtype=complex)
@@ -200,13 +207,14 @@ def central_diff_grad(func, x, eps, *args):
     epsd[0] = eps
     for i in range(len(x)):
         assert not np.any(np.isnan(x + epsd))
-        grad_r =  0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
-        grad_i =  0.5 * (func(x + 1j*epsd, *args) - func(x - 1j*epsd, *args))
-        grad[i] = 0.5 * grad_r + 0.5j*grad_i
+        grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
+        grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
+        grad[i] = 0.5 * grad_r + 0.5j * grad_i
         assert not np.isnan(grad[i])
         grad[i] /= eps
         epsd = np.roll(epsd, 1)
     return grad
+
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
@@ -214,6 +222,7 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
         0.0, rel=eps, abs=eps
     )
+
 
 # disable test because to make it work we need MUCH more samples than travis
 # can handle
@@ -230,5 +239,5 @@ def _test_ldagl_gradient():
     driver.machine.parameters = np.copy(pars)
     grad_approx = driver._forward_and_backward()
 
-    err = 5/np.sqrt(driver.n_samples)
+    err = 5 / np.sqrt(driver.n_samples)
     same_derivatives(np.real(grad_approx), np.real(grad_exact), eps=err)
