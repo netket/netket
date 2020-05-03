@@ -1,15 +1,98 @@
+import math
 import sys
+import warnings
 
 import numpy as _np
-import math
 
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
 from netket.stats import statistics as _statistics, mean as _mean
 
-from netket.vmc_common import info
+from netket.vmc_common import info, tree_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
+
+
+# Higher-level VMC functions:
+def estimate_expectations(
+    ops,
+    sampler,
+    n_samples,
+    n_discard=None,
+    compute_gradients=None,
+    return_gradients=False,
+    return_intermediate=False,
+):
+    """
+    For a pytree of linear operators, computes a statistical estimate of the
+    respective expectation values, variances, and optionally gradients of the
+    expectation values with respect to the variational parameters.
+
+    The estimate is based on `n_samples` configurations
+    obtained from `sampler`.
+
+    Args:
+        ops: pytree of linear operators
+        sampler: A NetKet sampler
+        n_samples: Number of MC samples used to estimate expectation values
+        n_discard: Number of MC samples dropped from the start of the
+            chain (burn-in). Defaults to `min(n_samples // 10, 100)`.
+        return_gradients: Whether to compute the gradients of the observables.
+        return_intermediate: Whether to return samples and potentially log-derivatives
+            which have been used to compute the VMC statistics.
+
+    Returns:
+        A pytree of the same structure as `ops` where the leaves are Stats
+        objects containing mean, variance, and MC diagonstics for the corresponding
+        operator. If `return_gradients` is True, the leaves are tuples of
+        MC stats and the gradients, which are ndarray of shape `(psi.n_par,)`.
+
+        If `return_intermediate` is True, the MC samples and log-derivatives
+        are returned as well.
+    """
+    if compute_gradients is not None:
+        warnings.warn(
+            "Argument compute_gradients is deprecated, use return_gradients instead.",
+            FutureWarning,
+        )
+        return_gradients = compute_gradients
+
+    psi = sampler.machine
+
+    if not n_discard:
+        n_discard = min(n_samples // 10, 100)
+
+    # Burnout phase
+    sampler.generate_samples(n_discard)
+    # Generate samples
+    samples = sampler.generate_samples(n_samples)
+    samples_flat = samples.reshape((-1, sampler.sample_shape[-1]))
+
+    if return_gradients:
+        der_logs = psi.der_log(samples_flat)
+
+    def estimate(op):
+        lvs = _local_values(op, psi, samples_flat)
+        stats = _statistics(lvs)
+
+        if return_gradients:
+            lvs -= _mean(lvs)
+            grad = der_logs.conjugate() * lvs.reshape(-1, 1)
+            grad = _mean(grad, axis=0)
+
+            return stats, grad
+        else:
+            return stats
+
+    mc_result = tree_map(estimate, ops)
+
+    if return_intermediate:
+        if return_gradients:
+            return mc_result, (samples, der_logs)
+        else:
+            return mc_result, samples
+    else:
+        return mc_result
 
 
 class Vmc(AbstractVariationalDriver):
@@ -86,11 +169,7 @@ class Vmc(AbstractVariationalDriver):
         self._n_samples_node = int(math.ceil(n_samples_chain / _nk.MPI.size()))
 
         self._samples = None
-
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
-        )
-
+        self._der_logs = None
         self._grads = _np.empty(
             (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
         )
@@ -113,56 +192,36 @@ class Vmc(AbstractVariationalDriver):
 
     def _forward_and_backward(self):
         """
-        Performs a number of VMC optimization steps.
-
-        Args:
-            n_steps (int): Number of steps to perform.
+        Estimates the current gradient via VMC sampling.
         """
 
         self._sampler.reset()
 
-        # Burnout phase
-        for _ in self._sampler.samples(self._n_discard):
-            pass
-
-        # Generate samples and store them
-        self._samples = self._sampler.generate_samples(
-            self._n_samples_node, samples=self._samples
-        )
-
-        # Compute the local energy estimator and average Energy
-        eloc, self._loss_stats = self._get_mc_stats(self._ham)
-
         # Perform update
         if self._sr:
-            # When using the SR (Natural gradient) we need to have the full jacobian
-            # Computes the jacobian
-            _der_logs = self._der_logs
-            _der_log = self._machine.der_log
-
-            for i, sample in enumerate(self._samples):
-                _der_logs[i] = _der_log(sample)
-
-            # flatten MC chain dimensions:
-            _der_logs = _der_logs.reshape(-1, self._npar)
-
-            # Center the local energy
-            eloc -= _mean(eloc)
-
-            # Center the log derivatives
-            _der_logs -= _mean(_der_logs, axis=0)
-
-            # Compute the gradient
-            self._grads = _der_logs.conjugate() * eloc.reshape(-1, 1)
-
-            grad = _mean(self._grads, axis=0)
-
-            self._dp = self._sr.compute_update(_der_logs, grad, self._dp)
-
-            _der_logs = _der_logs.reshape(
-                self._n_samples_node, self._batch_size, self._npar
+            loss_data, intermediate = estimate_expectations(
+                self._ham,
+                self._sampler,
+                self._n_samples,
+                self._n_discard,
+                return_gradients=True,
+                return_intermediate=True,
             )
+            self._loss_stats, self._grads = loss_data
+            self._samples, self._der_logs = intermediate
+
+            self._dp = self._sr.compute_update(self._der_logs, self._grads, self._dp)
         else:
+            # Burnout phase
+            for _ in self._sampler.samples(self._n_discard):
+                pass
+
+            # Generate samples and store them
+            self._samples = self._sampler.generate_samples(
+                self._n_samples_node, samples=self._samples
+            )
+            # Compute the local energy estimator and average Energy
+            eloc, self._loss_stats = self._get_mc_stats(self._ham)
             # Computing updates using the simple gradient
             # Center the local energy
             eloc -= _mean(eloc)

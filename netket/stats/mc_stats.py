@@ -7,10 +7,7 @@ from . import total_size as _total_size
 
 def _format_decimal(value, std):
     decimals = max(int(_np.ceil(-_np.log10(std))), 0)
-    return (
-        "{0:.{1}f}".format(value, decimals),
-        "{0:.{1}f}".format(std, decimals + 1),
-    )
+    return ("{0:.{1}f}".format(value, decimals), "{0:.{1}f}".format(std, decimals + 1))
 
 
 class Stats:
@@ -19,7 +16,7 @@ class Stats:
     _NaN = float("NaN")
 
     def __init__(
-        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R_hat=_NaN,
+        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R_hat=_NaN
     ):
         self.mean = complex(mean) if _np.iscomplexobj(mean) else float(mean)
         self.error_of_mean = float(error_of_mean)
