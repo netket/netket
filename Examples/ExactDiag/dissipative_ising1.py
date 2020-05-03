@@ -44,7 +44,7 @@ for i in range(L):
     j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
 
 
-# Create the lindbladian with no jump operators
+#  Create the lindbladian with no jump operators
 lind = nk.operator.LocalLiouvillian(ha)
 
 # add the jump operators
@@ -52,4 +52,6 @@ for j_op in j_ops:
     lind.add_jump_op(j_op)
 
 
-rho = nk.exact.steady_state(lind, method='iterative', sparse=True, maxiter=1000, tol=1e-5)
+rho = nk.exact.steady_state(
+    lind, method="iterative", sparse=True, maxiter=1000, tol=1e-5
+)

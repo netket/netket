@@ -28,7 +28,6 @@ while True:
     energy = []
     sigma = []
     evar = []
-    
 
     data = json.load(open("test.log"))
     for iteration in data["Output"]:
@@ -36,7 +35,6 @@ while True:
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
         evar.append(iteration["Energy"]["Variance"])
-        
 
     plt.errorbar(iters, energy, yerr=sigma, color="red")
     plt.axhline(y=exact, xmin=0, xmax=iters[-1], linewidth=2, color="k", label="Exact")

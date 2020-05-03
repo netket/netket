@@ -132,4 +132,5 @@ script:
   - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
   - black --check ../netket/
   - black --check ../Test ../Test_MPI
+  - black --check ../Examples ../Benchmarks
   # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/

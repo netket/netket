@@ -50,8 +50,6 @@ op = nk.optimizer.Sgd(0.1)
 sr = nk.optimizer.SR(diag_shift=0.1, use_iterative=True)
 
 # Driver
-gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, sr=sr
-)
+gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500, sr=sr)
 
 gs.run(n_iter=300, out="test")

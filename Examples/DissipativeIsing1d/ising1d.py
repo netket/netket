@@ -49,8 +49,7 @@ obs_sz = nk.operator.LocalOperator(hi)
 
 for i in range(L):
     ha += (gp / 2.0) * nk.operator.LocalOperator(hi, sx, [i])
-    ha += (Vp / 4.0) * nk.operator.LocalOperator(hi,
-                                                 np.kron(sz, sz), [i, (i + 1) % L])
+    ha += (Vp / 4.0) * nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
 
     # sigma_{-} dissipation on every site
     j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
@@ -77,6 +76,6 @@ op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
 
 ss = nk.SteadyState(lind, sa, op, 2000, sampler_obs=sa_obs, n_samples_obs=500)
-obs = {'Sx': obs_sx, 'Sy': obs_sy, 'Sz': obs_sz}
+obs = {"Sx": obs_sx, "Sy": obs_sy, "Sz": obs_sz}
 
 ss.run(n_iter=200, out="test", obs=obs)
