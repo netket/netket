@@ -136,6 +136,9 @@ class Vmc(AbstractVariationalDriver):
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
 
+        # Center the local energy
+        eloc -= _mean(eloc)
+
         samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
         eloc_r = eloc.reshape(-1, 1)
 
@@ -154,13 +157,9 @@ class Vmc(AbstractVariationalDriver):
 
         else:
             # Computing updates using the simple gradient
-            # Center the local energy
-            eloc -= _mean(eloc)
-
             self._grads = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads
             )
-
             _sum_inplace(self._grads)
 
             self._dp = self._grads
