@@ -11,7 +11,7 @@ try:
     import os
 
     os.environ["JAX_ENABLE_X64"] = "1"
-
+    # os.environ["JAX_LOG_COMPILES"] = "1"
     import jax
 
     jax_available = True

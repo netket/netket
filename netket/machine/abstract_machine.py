@@ -49,7 +49,6 @@ class AbstractMachine(abc.ABC):
         vec = vec.reshape(-1)
 
         if x.ndim == 3:
-
             if jacobian is None:
                 jacobian = _np.stack([self.der_log(xb) for xb in x])
 

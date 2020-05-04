@@ -8,7 +8,8 @@ from ..utils import jax_available, torch_available
 
 
 if jax_available:
-    from .jax import *
+    from .jax import Jax, JaxRbm
+
 
 if torch_available:
     from .torch import Torch, TorchLogCosh, TorchView

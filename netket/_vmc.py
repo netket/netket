@@ -137,13 +137,15 @@ class Vmc(AbstractVariationalDriver):
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
 
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+        eloc_r = eloc.reshape(-1, 1)
+
         # Perform update
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
             # Computes the jacobian
-            samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+
             der_logs = self._der_logs
-            eloc_r = eloc.reshape(-1, 1)
 
             der_logs = self._machine.der_log(samples_r, der_logs)
 
@@ -164,7 +166,7 @@ class Vmc(AbstractVariationalDriver):
             eloc -= _mean(eloc)
 
             self._grads = self._machine.vector_jacobian_prod(
-                self._samples, eloc / self._n_samples, self._grads
+                samples_r, eloc_r / self._n_samples, self._grads
             )
 
             _sum_inplace(self._grads)
@@ -189,9 +191,12 @@ class Vmc(AbstractVariationalDriver):
         super().reset()
 
     def _get_mc_stats(self, op):
-        loc = _np.empty((self._samples.shape[0:2]), dtype=_np.complex128)
-        for i, sample in enumerate(self._samples):
-            _local_values(op, self._machine, sample, out=loc[i])
+
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+
+        loc = _local_values(op, self._machine, samples_r).reshape(
+            self._samples.shape[0:2]
+        )
 
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.
