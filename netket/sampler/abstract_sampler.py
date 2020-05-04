@@ -48,8 +48,7 @@ class AbstractSampler(abc.ABC):
         self.reset(init_random)
 
         if samples is None:
-            samples = _np.empty(
-                (n_samples, self.sample_shape[0], self.sample_shape[1]))
+            samples = _np.empty((n_samples, self.sample_shape[0], self.sample_shape[1]))
 
         for i in range(n_samples):
             samples[i] = self.__next__()

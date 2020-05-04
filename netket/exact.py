@@ -35,8 +35,7 @@ class EdResult(object):
         # eigenvalues and eigenvectors as Python lists :(
         self._eigenvalues = eigenvalues.tolist()
         self._eigenvectors = (
-            [np.asarray(eigenvectors[:, i])
-             for i in range(eigenvectors.shape[1])]
+            [np.asarray(eigenvectors[:, i]) for i in range(eigenvectors.shape[1])]
             if eigenvectors is not None
             else []
         )

@@ -146,7 +146,7 @@ class PyExactTimePropagation:
             self.state,
             t_bound=_np.inf,
             max_step=dt,
-            **solver_kwargs
+            **solver_kwargs,
         )
 
     def _estimate_stats(self, obs):

@@ -19,7 +19,6 @@ while True:
     energy = []
     sigma = []
     evar = []
-    
 
     data = json.load(open("test.log"))
     for iteration in data["Output"]:

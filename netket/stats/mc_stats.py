@@ -19,12 +19,7 @@ class Stats:
     _NaN = float("NaN")
 
     def __init__(
-        self,
-        mean=_NaN,
-        error_of_mean=_NaN,
-        variance=_NaN,
-        tau_corr=_NaN,
-        R_hat=_NaN,
+        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R_hat=_NaN,
     ):
         self.mean = complex(mean) if _np.iscomplexobj(mean) else float(mean)
         self.error_of_mean = float(error_of_mean)

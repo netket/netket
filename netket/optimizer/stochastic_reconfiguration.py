@@ -70,9 +70,7 @@ class SR:
                     )
                 self._sparse_solver = minres
             else:
-                raise RuntimeError(
-                    "Unknown sparse lsq_solver " + lsq_solver + "."
-                )
+                raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
         else:
             if (
@@ -109,9 +107,10 @@ class SR:
             out: Output array for the update ẋ.
         """
 
-
         if self.is_holomorphic is None:
-            raise ValueError("is_holomorphic not set: this SR object is not properly initialized.")
+            raise ValueError(
+                "is_holomorphic not set: this SR object is not properly initialized."
+            )
 
         n_samp = _sum_inplace(_np.atleast_1d(oks.shape[0]))
 
