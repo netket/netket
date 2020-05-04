@@ -96,9 +96,8 @@ class Vmc(AbstractVariationalDriver):
 
         self._samples = None
 
-        self._der_logs = None
-
         self._grads = None
+        self._jac = None
 
     @property
     def n_discard(self):
@@ -143,22 +142,15 @@ class Vmc(AbstractVariationalDriver):
         # Perform update
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
-            # Computes the jacobian
-
-            der_logs = self._der_logs
-
-            der_logs = self._machine.der_log(samples_r, der_logs)
-
-            # Center the log derivatives
-            der_logs -= _mean(der_logs, axis=0)
-
-            # Compute the gradient
-            self._grads = self._machine.vector_jacobian_prod(
-                samples_r, eloc_r / self._n_samples, self._grads, jacobian=der_logs
+            self._grads, self._jac = self._machine.vector_jacobian_prod(
+                samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
             )
             _sum_inplace(self._grads)
 
-            self._dp = self._sr.compute_update(der_logs, self._grads, self._dp)
+            # Center the log derivatives
+            self._jac -= _mean(self._jac, axis=0)
+
+            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
         else:
             # Computing updates using the simple gradient

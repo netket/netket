@@ -31,7 +31,9 @@ class AbstractMachine(abc.ABC):
             scale=sigma, size=self.n_par
         ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
-    def vector_jacobian_prod(self, x, vec, out=None, jacobian=None, conjugate=True):
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
@@ -39,18 +41,18 @@ class AbstractMachine(abc.ABC):
              x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
              vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
              out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
-             jacobian (optional): If passed, the Jacobian is not recomputed from scratch.
              conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+             return_jacobian (bool): If true, the Jacobian is returned.
 
 
         Returns:
-             `out`
+             `out` or (out,jacobian) if return_jacobian is True
         """
         vec = vec.reshape(-1)
 
         if x.ndim == 3:
-            if jacobian is None:
-                jacobian = _np.stack([self.der_log(xb) for xb in x])
+
+            jacobian = _np.stack([self.der_log(xb) for xb in x])
 
             if conjugate:
                 out = _np.tensordot(vec, jacobian.conjugate(), axes=1)
@@ -58,8 +60,8 @@ class AbstractMachine(abc.ABC):
                 out = _np.tensordot(vec.conjugate(), jacobian, axes=1)
 
         elif x.ndim == 2:
-            if jacobian is None:
-                jacobian = self.der_log(x)
+
+            jacobian = self.der_log(x)
 
             if conjugate:
                 out = _np.dot(jacobian.transpose().conjugate(), vec, out)
@@ -67,7 +69,8 @@ class AbstractMachine(abc.ABC):
                 out = _np.dot(jacobian.transpose(), vec.conjugate(), out)
 
         out = out.reshape(-1)
-        return out
+
+        return (out, jacobian) if return_jacobian else out
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError

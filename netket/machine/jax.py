@@ -119,7 +119,9 @@ class Jax(AbstractMachine):
 
         return out
 
-    def vector_jacobian_prod(self, x, vec, out=None, jacobian=None, conjugate=True):
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
@@ -127,14 +129,14 @@ class Jax(AbstractMachine):
              x: a matrix of `float64` of shape `(*, self.n_visible)`.
              vec: a `complex128` vector used to compute the inner product with the jacobian.
              out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
-             jacobian (optional): If passed, the Jacobian is not recomputed from scratch.
              conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+             return_jacobian (bool): If true, the Jacobian is explicitely computed and returned.
 
 
         Returns:
-             `out`
+             `out` only or (out,jacobian) if return_jacobian is True
         """
-        if jacobian is None:
+        if not return_jacobian:
             vals, f_jvp = jax.vjp(
                 self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
             )
@@ -144,15 +146,16 @@ class Jax(AbstractMachine):
             if conjugate and self._dtype is complex:
                 out = tree_map(jax.numpy.conjugate, pout[0])
 
+            return out
         else:
             if conjugate and self._dtype is complex:
                 prodj = lambda j: jax.np.tensordot(vec, j.conjugate(), axes=vec.ndim)
             else:
                 prodj = lambda j: jax.np.tensordot(vec.conjugate(), j, axes=vec.ndim)
 
+            jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
-
-        return out
+            return out, jacobian
 
     @property
     def is_holomorphic(self):
