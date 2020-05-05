@@ -178,6 +178,33 @@ class AbstractMachine(abc.ABC):
             _np.copyto(x, p[i : i + x.size])
             i += x.size
 
+    def numpy_flatten(self, data):
+        r"""Returns a flattened numpy array representing the given data.
+            This is typically used to serialize parameters and gradients.
+            The default implementation attempts to return a simple reshaped view.
+
+        Args:
+             data: a contigous numpy-compatible array.
+
+        Returns:
+             numpy.ndarray: a one-dimensional array containing a view of the data
+        """
+        return _np.asarray(data).reshape(-1)
+
+    def numpy_unflatten(self, data, shape_like):
+        r"""Attempts a deserialization of the given numpy data.
+            This is typically used to deserialize parameters and gradients.
+
+        Args:
+             data: a 1d numpy array.
+             shape_like: this as in instance having the same type and shape of
+                         the desired conversion.
+
+        Returns:
+             A numpy array containing a view of data and compatible with the given shape.
+        """
+        return _np.asarray(data).reshape(shape_like.shape)
+
     def save(self, file):
         assert type(file) is str
         with open(file, "wb") as file_ob:

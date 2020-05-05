@@ -188,6 +188,42 @@ class Jax(AbstractMachine):
 
         assert npar == self._npar
 
+    def numpy_flatten(self, data):
+        r"""Returns a flattened numpy array representing the given data.
+            This is typically used to serialize parameters and gradients.
+
+        Args:
+             data: a (possibly non-flat) structure containing jax arrays.
+
+        Returns:
+             numpy.ndarray: a one-dimensional array containing a copy of data
+        """
+        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
+
+    def numpy_unflatten(self, data, shape_like):
+        r"""Attempts a deserialization of the given numpy data.
+            This is typically used to deserialize parameters and gradients.
+
+        Args:
+             data: a 1d numpy array.
+             shape_like: this as in instance having the same type and shape of
+                         the desired conversion.
+
+        Returns:
+             A possibly non-flat structure of jax arrays containing a copy of data
+             compatible with the given shape.
+        """
+        shf, tree = tree_flatten(shape_like)
+
+        datalist = []
+        k = 0
+        for s in shf:
+            size = s.size
+            datalist.append(jax.numpy.asarray(data[k : k + size]).reshape(s.shape))
+            k += size
+
+        return tree_unflatten(tree, datalist)
+
 
 from jax.experimental import stax
 from jax.experimental.stax import Dense
