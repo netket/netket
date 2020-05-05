@@ -12,7 +12,7 @@ from netket.stats import (
     sum_inplace as _sum_inplace,
 )
 
-from netket.vmc_common import info
+from netket.vmc_common import info, tree_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -160,7 +160,8 @@ class Vmc(AbstractVariationalDriver):
             self._grads = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads
             )
-            _sum_inplace(self._grads)
+            
+            self._grads = tree_map(_sum_inplace, self._grads)
 
             self._dp = self._grads
 
