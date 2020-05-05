@@ -193,11 +193,17 @@ class AbstractVariationalDriver(abc.ABC):
             raise ValueError(
                 "Invalid out and output_prefix arguments. Only one of the two can be passed. Note that output_prefix is deprecated and you should use out."
             )
-        elif out is None:
+        elif out is None and output_prefix is not None:
             warn_deprecation(
                 "The output_prefix argument is deprecated. Use out instead."
             )
             out = output_prefix
+
+        if out is None:
+            print(
+                "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
+                "Running the optimization but not saving the output."
+            )
 
         # Log only non-root nodes
         if self._mynode == 0:
