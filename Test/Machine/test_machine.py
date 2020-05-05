@@ -39,17 +39,17 @@ if test_jax:
     def initializer(rng, shape):
         return np.random.normal(scale=0.05, size=shape)
 
-    machines["Jax Real"] = nk.machine.Jax(
-        hi,
-        jax.experimental.stax.serial(
-            jax.experimental.stax.Dense(4, initializer, initializer),
-            jax.experimental.stax.Relu,
-            jax.experimental.stax.Dense(2, initializer, initializer),
-            jax.experimental.stax.Relu,
-            jax.experimental.stax.Dense(2, initializer, initializer),
-        ),
-        dtype=float,
-    )
+    # machines["Jax Real"] = nk.machine.Jax(
+    #     hi,
+    #     jax.experimental.stax.serial(
+    #         jax.experimental.stax.Dense(4, initializer, initializer),
+    #         jax.experimental.stax.Relu,
+    #         jax.experimental.stax.Dense(2, initializer, initializer),
+    #         jax.experimental.stax.Relu,
+    #         jax.experimental.stax.Dense(2, initializer, initializer),
+    #     ),
+    #     dtype=float,
+    # )
 
     machines["Jax Complex"] = nk.machine.Jax(
         hi,
@@ -104,30 +104,6 @@ dm_machines = {}
 #     use_ancilla_bias=True,
 # )
 
-# Layers
-layers = (
-    nk.layer.FullyConnected(input_size=g.n_sites, output_size=40),
-    nk.layer.Lncosh(input_size=40),
-)
-
-# FFNN Machine
-# machines["FFFN 1d Hypercube spin FullyConnected"] = nk.machine.FFNN(hi, layers)
-
-layers = (
-    nk.layer.ConvolutionalHypercube(
-        length=4,
-        n_dim=1,
-        input_channels=1,
-        output_channels=2,
-        stride=1,
-        kernel_length=2,
-        use_bias=True,
-    ),
-    nk.layer.Lncosh(input_size=8),
-)
-
-# FFNN Machine
-# machines["FFFN 1d Hypercube spin Convolutional Hypercube"] = nk.machine.FFNN(hi, layers)
 
 # machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(hi, bond_dim=3)
 # machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
@@ -145,13 +121,13 @@ machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 machines["JastrowSymm 1d Hypercube boson real"] = nk.machine.JastrowSymm(
     hilbert=hi, dtype=float
 )
-machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
+# machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 
 
 np.random.seed(12346)
 
 
-def same_derivatives(der_log, num_der_log, eps=1.0e-6):
+def same_derivatives(der_log, num_der_log, eps=1.0e-5):
     assert der_log.shape == num_der_log.shape
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
 
@@ -162,7 +138,7 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-6):
 
 
 def log_val_f(par, machine, v):
-    machine.parameters = np.copy(par)
+    machine.parameters = machine.numpy_unflatten(par, machine.parameters)
     if v.ndim != 1:
         if v.size != v.shape[1]:
             raise RuntimeError(
@@ -173,7 +149,7 @@ def log_val_f(par, machine, v):
 
 
 def log_val_vec_f(par, machine, v, vec):
-    machine.parameters = np.copy(par)
+    machine.parameters = machine.numpy_unflatten(par, machine.parameters)
     if v.ndim == 2:
         out_val = machine.log_val(v)
     else:
@@ -203,18 +179,22 @@ def check_holomorphic(func, x, eps, *args):
 
 def test_set_get_parameters():
     for name, machine in merge_dicts(machines, dm_machines).items():
+        unflatten = machine.numpy_unflatten
+        flatten = machine.numpy_flatten
+
         print("Machine test: %s" % name)
         assert machine.n_par > 0
         npar = machine.n_par
-        randpars = np.random.randn(npar) + 1.0j * np.random.randn(npar)
-        machine.parameters = np.copy(randpars)
-        if machine.is_holomorphic:
-            assert np.array_equal(machine.parameters, randpars)
-        else:
-            assert np.array_equal(machine.parameters.real, randpars.real)
+        machine.init_random_parameters()
+        randpars = flatten(machine.parameters)
 
-        machine.parameters = np.zeros(npar)
-        assert np.count_nonzero(np.abs(machine.parameters)) == 0
+        if machine.is_holomorphic:
+            assert np.array_equal(flatten(machine.parameters), randpars)
+        else:
+            assert np.array_equal(flatten(machine.parameters.real), randpars.real)
+
+        machine.parameters = unflatten(np.zeros(npar), machine.parameters)
+        assert np.count_nonzero(np.abs(flatten(machine.parameters))) == 0
 
 
 def test_save_load_parameters(tmpdir):
@@ -222,26 +202,33 @@ def test_save_load_parameters(tmpdir):
         print("Machine test: %s" % name)
         assert machine.n_par > 0
         n_par = machine.n_par
-        randpars = np.random.randn(n_par) + 1.0j * np.random.randn(n_par)
 
-        machine.parameters = randpars
+        unflatten = machine.numpy_unflatten
+        flatten = machine.numpy_flatten
+
+        machine.init_random_parameters()
+        randpars = flatten(machine.parameters)
+
+        machine.parameters = unflatten(randpars, machine.parameters)
         fn = tmpdir.mkdir("datawf").join("test.wf")
 
         filename = os.path.join(fn.dirname, fn.basename)
 
         machine.save(filename)
-        machine.parameters = np.empty(n_par)
+        machine.parameters = unflatten(np.zeros(n_par), machine.parameters)
         machine.load(filename)
 
         os.remove(filename)
         os.rmdir(fn.dirname)
         if machine.is_holomorphic:
-            assert np.array_equal(machine.parameters, randpars)
+            assert np.array_equal(flatten(machine.parameters), randpars)
         else:
-            assert np.array_equal(machine.parameters.real, randpars.real)
+            assert np.array_equal(flatten(machine.parameters.real), randpars.real)
 
 
 def test_log_derivative():
+    np.random.seed(12345)
+
     for name, machine in merge_dicts(machines, dm_machines).items():
 
         print("Machine test: %s" % name)
@@ -254,18 +241,22 @@ def test_log_derivative():
 
         v = np.zeros(hi.size)
 
+        flatten = machine.numpy_flatten
+
         for i in range(100):
             hi.random_vals(v)
 
-            randpars = 0.1 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-            machine.parameters = randpars
+            machine.init_random_parameters(seed=i)
+            randpars = flatten(machine.parameters)
 
-            der_log = machine.der_log(v.reshape((1, -1))).reshape(-1)
+            der_log = flatten(machine.der_log(v.reshape((1, -1))))
+
+            assert der_log.shape == (machine.n_par,)
 
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-9, machine, v)
+            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-8, machine, v)
 
             same_derivatives(der_log, num_der_log)
             # print(np.linalg.norm(der_log - num_der_log))
@@ -288,24 +279,25 @@ def test_vector_jacobian():
         batch_size = 100
         v = np.zeros((batch_size, hi.size))
 
+        flatten = machine.numpy_flatten
+
         for i in range(batch_size):
             hi.random_vals(v[i])
 
         machine.init_random_parameters(seed=1234, sigma=0.1)
-        randpars = machine.parameters
+        randpars = flatten(machine.parameters)
 
         vec = np.random.uniform(size=batch_size) + 1.0j * np.random.uniform(
             size=batch_size
         ) / float(batch_size)
 
-        vjp = np.zeros(machine.n_par, dtype=np.complex128)
-        machine.vector_jacobian_prod(v, vec, vjp)
+        vjp = machine.vector_jacobian_prod(v, vec)
+        vjp = flatten(vjp)
 
         num_der_log = central_diff_grad(
             log_val_vec_f, randpars, 1.0e-6, machine, v, vec
         )
-        print(np.max(vjp.imag - num_der_log.imag))
-        print(np.max(vjp.real - num_der_log.real))
+
         same_derivatives(vjp, num_der_log)
 
 
@@ -371,7 +363,7 @@ def test_to_array():
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
         if "Torch" in name:
             randpars = randpars.real
-        machine.parameters = randpars
+        machine.parameters = machine.numpy_unflatten(randpars, machine.parameters)
 
         hi = machine.hilbert
 
@@ -413,3 +405,6 @@ def test_to_array():
                 np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
                 - all_psis_normalized[number]
             ) == approx(0.0)
+
+
+test_log_derivative()

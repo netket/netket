@@ -6,3 +6,5 @@ from .metropolis_exchange import MetropolisExchange, MetropolisExchangePt
 from .metropolis_hamiltonian import MetropolisHamiltonian, MetropolisHamiltonianPt
 from .custom_sampler import CustomSampler, CustomSamplerPt
 from .exact_sampler import ExactSampler
+
+from . import jax

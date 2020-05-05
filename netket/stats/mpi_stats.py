@@ -47,17 +47,6 @@ def sum(a, axis=None, out=None):
     return out
 
 
-def sum_inplace(a):
-    """
-    Computes the elementwise sum of a numpy array over all MPI processes.
-
-    Args:
-        a (numpy.ndarray): The input array, which will be overwritten in place.
-    """
-    _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
-    return a
-
-
 def var(a, axis=None, out=None, ddof=0):
     """
     Compute the variance mean along the specified axis and over MPI processes.
