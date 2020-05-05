@@ -5,9 +5,8 @@ from .abstract_sampler import AbstractSampler
 from .metropolis_hastings import MetropolisHastings
 from .metropolis_hastings_pt import MetropolisHastingsPt
 
-from numba import jit
-from numba.experimental import jitclass
-from numba import int64, float64
+from numba import jit, int64, float64
+from .._jitclass import jitclass
 
 
 @jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
