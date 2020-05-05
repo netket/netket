@@ -75,13 +75,14 @@ if jax_available:
     import jax
 
     @define_sum_inplace(atype=jax.interpreters.xla.DeviceArray)
-    def sum_inplacememaybe_jax(x):
+    def sum_inplace_jax(x):
         # if not isinstance(x, jax.interpreters.xla.DeviceArray):
         #    raise TypeError("Argument to sum_inplace_jax must be a DeviceArray, got {}"
         #            .format(type(x)))
 
         if _n_nodes == 1:
             return x
+
         # This below only works on cpus...
         # we should make this work for gpus too..
         # TODO: unsafe_buffer_pointer is considered not yet definitive interface
@@ -91,10 +92,11 @@ if jax_available:
         # This below should work more often, but might copy.
         # Depending on future changes in jaxlib, we might have to switch to
         # this below.
+        # see Google/jax #2123 and #1009
         # _x = jax.xla._force(x.block_until_ready())
         # ptr = _x.device_buffer.unsafe_buffer_pointer()
 
-        # see Google/jax#2123 and #1009
+        # using native numpy because jax's numpy does not have ctypeslib
         data_pointer = _np.ctypeslib.ndpointer(x.dtype, shape=x.shape)
 
         # wrap jax data into a standard numpy array which is handled by MPI
