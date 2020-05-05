@@ -208,10 +208,12 @@ class AbstractMachine(abc.ABC):
     def save(self, file):
         assert type(file) is str
         with open(file, "wb") as file_ob:
-            _np.save(file_ob, self.parameters, allow_pickle=False)
+            _np.save(file_ob, self.numpy_flatten(self.parameters), allow_pickle=False)
 
     def load(self, file):
-        self.parameters = _np.load(file, allow_pickle=False)
+        self.parameters = self.numpy_unflatten(
+            _np.load(file, allow_pickle=False), self.parameters
+        )
 
     @property
     def n_visible(self):

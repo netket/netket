@@ -51,8 +51,10 @@ class Jax(AbstractMachine):
         self._init_fn, self._forward_fn = module
 
         # Computes the Jacobian matrix using forward ad
-        grad_fun = jax.jit(jax.grad(self._forward_fn, holomorphic=self.is_holomorphic))
         self._forward_fn = jax.jit(self._forward_fn)
+
+        forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
+        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
         self.init_random_parameters()
@@ -168,14 +170,6 @@ class Jax(AbstractMachine):
             for j, p in enumerate(layer):
                 state.append((str((i, j)), p))
         return OrderedDict(state)
-
-    def save(self, file):
-        assert type(file) is str
-        with open(file, "wb") as file_ob:
-            jax.numpy.save(file_ob, self.parameters, allow_pickle=True)
-
-    def load(self, file):
-        self.parameters = jax.numpy.load(file, allow_pickle=True)
 
     @property
     def parameters(self):
