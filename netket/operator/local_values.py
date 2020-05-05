@@ -18,11 +18,13 @@ def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
 def _local_values_impl(op, machine, v, log_vals, out):
 
     sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v, sections)
+    v_primes, mels = op.get_conn_flattened(_np.asarray(v), sections)
 
     log_val_primes = machine.log_val(v_primes)
 
-    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
+    _local_values_kernel(
+        _np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out
+    )
 
 
 @jit(nopython=True)

@@ -20,7 +20,6 @@
 
 #include "Graph/graph.hpp"
 #include "abstract_machine.hpp"
-#include "ffnn.hpp"
 #include "mps_periodic.hpp"
 
 #include "DensityMatrices/density_matrix_machine.hpp"
