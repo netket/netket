@@ -9,7 +9,8 @@ class MetropolisHastings(AbstractSampler):
     def __init__(
         self, machine, transition_kernel, n_chains=16, sweep_size=None, rng_key=None
     ):
-        self._machine = machine
+        super().__init__(machine, n_chains)
+
         self._hilbert = machine.hilbert
         self.n_chains = n_chains
 
@@ -23,7 +24,7 @@ class MetropolisHastings(AbstractSampler):
 
         self.machine_pow = 2
 
-        super().__init__(machine, n_chains)
+        self.reset(True)
 
     @staticmethod
     @partial(jax.jit, static_argnums=(0, 2, 3, 5))

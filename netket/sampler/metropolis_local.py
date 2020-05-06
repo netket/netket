@@ -16,7 +16,7 @@ class _local_kernel:
         self.size = size
         self.n_states = self.local_states.size
 
-    def apply(self, state, state_1, log_prob_corr):
+    def transition(self, state, state_1, log_prob_corr):
 
         for i in range(state.shape[0]):
             state_1[i] = state[i]
@@ -30,6 +30,13 @@ class _local_kernel:
             ]
 
         log_prob_corr.fill(0.0)
+
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            for si in range(state.shape[1]):
+                rs = _random.randint(0, self.n_states)
+                state[i, si] = self.local_states[rs]
 
 
 class MetropolisLocal(MetropolisHastings):

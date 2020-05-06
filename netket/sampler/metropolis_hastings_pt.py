@@ -3,7 +3,7 @@ from .abstract_sampler import AbstractSampler
 
 from ..stats import mean as _mean
 
-from numba import jit, jitclass
+from numba import jit
 from numba import int64, float64
 from netket import random as _random
 import math
@@ -22,36 +22,35 @@ class MetropolisHastingsPt(AbstractSampler):
     """
 
     def __init__(
-        self,
-        machine,
-        transition_kernel,
-        n_replicas=32,
-        sweep_size=None,
-        batch_size=None,
+        self, machine, kernel, n_replicas=32, sweep_size=None, batch_size=None,
     ):
         """
         Constructs a new ``MetropolisHastingsPt`` sampler given a machine and
         a transition kernel and a number of replicas.
 
         Args:
-            machine: A machine :math:`\Psi(s)` used for the sampling.
-                          The probability distribution being sampled
-                          from is :math:`|\Psi(s)|^p`, where the exponent p
-                          is arbitrary and by default :math:`p=2`.
-            transition_kernel: A function to generate a transition.
-                          This should take as an input the current state (in batches)
-                          and return a modified state (also in batches).
-                          This function must also return an array containing the
-                          `log_prob_corrections` :math:`L(s,s^\prime)`.
+            machine: A machine :math:`M(s)` used for the sampling.
+                    The probability distribution being sampled
+                    from is :math:`P(s)=|M(s)|^p`, where the power :math:`p`
+                    is arbitrary, and by default :math:`p=2`.
+            kernel: A kernel to generate random transitions from a given state as
+                    well as uniform random states.
+                    This must have two methods, `random_state` and `transition`.
+                    `random_state` takes an input state (in batches) and
+                    changes it in-place to a valid random state.
+                    `transition` takes an input state (in batches) and
+                    returns a batch of random states obtained transitioning from the initial state.
+                    `transition` must also return an array containing the
+                    `log_prob_corrections` :math:`L(s,s^\prime)`.
             n_replicas (int): The number of replicas used for replica-exchange moves. Each replica samples
             sweep_size (int): The number of exchanges that compose a single sweep.
-                        If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+                        If None, sweep_size is equal to the number of degrees of freedom (the input size of the machine).
             batch_size (int): The batch size to be used when calling log_val on the given Machine.
                         If None, batch_size is equal to the number of replicas (n_replicas).
 
         """
+        super().__init__(machine)
 
-        self.machine = machine
         self.n_replicas = n_replicas
 
         self.sweep_size = sweep_size
@@ -67,7 +66,7 @@ class MetropolisHastingsPt(AbstractSampler):
         # beta_stats[3] = current number of exchange steps performed
         self._beta_stats = _np.zeros(4)
 
-        super().__init__(machine)
+        self.reset(True)
 
     @property
     def n_replicas(self):
@@ -80,7 +79,7 @@ class MetropolisHastingsPt(AbstractSampler):
 
         self._n_replicas = n_replicas
 
-        self._state = _np.zeros((n_replicas, self._n_visible))
+        self._state = _np.zeros((n_replicas, self._input_size))
         self._state1 = _np.copy(self._state)
 
         self._log_values = _np.zeros(n_replicas, dtype=_np.complex128)
@@ -111,24 +110,14 @@ class MetropolisHastingsPt(AbstractSampler):
 
     @sweep_size.setter
     def sweep_size(self, sweep_size):
-        self._sweep_size = sweep_size if sweep_size != None else self._n_visible
+        self._sweep_size = sweep_size if sweep_size != None else self._input_size
         if self._sweep_size < 0:
             raise ValueError("Expected a positive integer for sweep_size ")
 
-    @property
-    def machine(self):
-        return self._machine
-
-    @machine.setter
-    def machine(self, machine):
-        self._machine = machine
-        self._n_visible = machine.hilbert.size
-        self._hilbert = machine.hilbert
-
     def reset(self, init_random=False):
         if init_random:
-            for state in self._state:
-                self._hilbert.random_vals(out=state)
+            self._kernel.random_state(self._state)
+
         self._log_values = self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = _np.zeros(self._n_replicas)
@@ -176,7 +165,7 @@ class MetropolisHastingsPt(AbstractSampler):
         _log_prob_corr = self._log_prob_corr
         _machine_pow = self._machine_pow
         _accepted_samples = self._accepted_samples
-        _t_kernel = self._kernel.apply
+        _t_kernel = self._kernel.transition
         _beta = self._beta
         _beta_stats = self._beta_stats
         _proposed_beta = self._proposed_beta
