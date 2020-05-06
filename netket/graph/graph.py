@@ -9,27 +9,27 @@ class Graph(AbstractGraph):
 
     def __init__(self, edges=[]):
         """
-		Constructs a new graph given a list of edges.
+        Constructs a new graph given a list of edges.
 
-		Args:
-		    edges: If `edges` has elements of type `Tuple[int, int]` it is treated
-		        as a list of edges. Then each element `(i, j)` means a connection
-		        between sites `i` and `j`. Also,
-		        `edges` should contain no duplicates. If `edges` has elements of
-		        type `Tuple[int, int, int]` each element `(i, j, c)` represents an
-		        edge between sites `i` and `j` colored into `c`. It is again assumed
-		        that there are no duplicate elements in `edges`.
+        Args:
+            edges: If `edges` has elements of type `Tuple[int, int]` it is treated
+                as a list of edges. Then each element `(i, j)` means a connection
+                between sites `i` and `j`. Also,
+                `edges` should contain no duplicates. If `edges` has elements of
+                type `Tuple[int, int, int]` each element `(i, j, c)` represents an
+                edge between sites `i` and `j` colored into `c`. It is again assumed
+                that there are no duplicate elements in `edges`.
 
 
-		Examples:
-		    A 10-site one-dimensional lattice with periodic boundary conditions can be
-		    constructed specifying the edges as follows:
+        Examples:
+            A 10-site one-dimensional lattice with periodic boundary conditions can be
+            constructed specifying the edges as follows:
 
-		    >>> import netket
-		    >>> g=netket.graph.Graph([[i, (i + 1) % 10] for i in range(10)])
-		    >>> print(g.size)
-		    10
-		"""
+            >>> import netket
+            >>> g=netket.graph.Graph([[i, (i + 1) % 10] for i in range(10)])
+            >>> print(g.size)
+            10
+        """
 
         if not isinstance(edges, list):
             raise TypeError("edges must be a list")
@@ -74,7 +74,6 @@ class Graph(AbstractGraph):
         else:
             return list(self.graph.edges(keys=False))
 
-    @property
     def distances(self):
         return _nx.floyd_warshall_numpy(self.graph)
 
@@ -84,6 +83,11 @@ class Graph(AbstractGraph):
 
     @property
     def size(self):
+        print("DeprecationWarning: size is deprecated. Use n_nodes from now on.")
+        return self.n_nodes
+
+    @property
+    def n_nodes(self):
         return self.graph.number_of_nodes()
 
     def automorphisms(self):
@@ -91,7 +95,8 @@ class Graph(AbstractGraph):
         #       be a duplicated edge with two different colors.
 
         # For the moment, if there are colors, the method returns a NotImplementedError:
-        colors = _np.unique(_np.array(self.edges(color=True))[:, 2])
+        if self.edges():
+            colors = _np.unique(_np.array(self.edges(color=True))[:, 2])
         if colors.size >= 2:
             return NotImplementedError
 
