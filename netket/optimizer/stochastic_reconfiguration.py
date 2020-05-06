@@ -8,6 +8,9 @@ from netket.stats import sum_inplace as _sum_inplace
 from scipy.sparse.linalg import cg, gmres, minres
 from mpi4py import MPI
 
+import jax
+from jax.scipy.sparse.linalg import cg as jcg
+
 
 class SR:
     r"""
@@ -50,7 +53,7 @@ class SR:
     def _init_solver(self):
         lsq_solver = self._lsq_solver
 
-        if lsq_solver in ["gmres", "cg", "minres"]:
+        if lsq_solver in ["gmres", "cg", "minres","jaxcg"]:
             self._use_iterative = True
         if lsq_solver in ["ColPivHouseholder", "QR", "SVD", "Cholesky"]:
             self._use_iterative = False
@@ -69,6 +72,8 @@ class SR:
                         "minres can be used only for real-valued parameters."
                     )
                 self._sparse_solver = minres
+            elif lsq_solver == "jaxcg":
+                self._is_holomorphic = True
             else:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
@@ -121,20 +126,24 @@ class SR:
 
         if self._is_holomorphic:
             if self._use_iterative:
-                op = self._linear_operator(oks, n_samp)
+                if self._lsq_solver == "jaxcg":
+                    out = self._jax_cg_solve(oks,grad,n_samp)
 
-                if self._x0 is None:
-                    self._x0 = _np.zeros(n_par, dtype=_np.complex128)
+                else:
+                    op = self._linear_operator(oks, n_samp)
 
-                out[:], info = self._sparse_solver(
-                    op,
-                    grad,
-                    x0=self._x0,
-                    tol=self.sparse_tol,
-                    maxiter=self.sparse_maxiter,
-                )
-                if info < 0:
-                    raise RuntimeError("SR sparse solver did not converge.")
+                    if self._x0 is None:
+                        self._x0 = _np.zeros(n_par, dtype=_np.complex128)
+
+                    out[:], info = self._sparse_solver(
+                        op,
+                        grad,
+                        x0=self._x0,
+                        tol=self.sparse_tol,
+                        maxiter=self.sparse_maxiter,
+                    )
+                    if info < 0:
+                        raise RuntimeError("SR sparse solver did not converge.")
 
                 self._x0 = out
             else:
@@ -198,6 +207,39 @@ class SR:
         self._comm.bcast(out, root=0)
         self._comm.barrier()
         return out
+
+    def _jax_cg_solve(self,oks,grad,n_samp):
+        """
+        Solves the SR flow equation using the conjugate gradient method 
+        """
+
+        n_par = grad.shape[0]
+        if self._x0 is None:
+            self._x0 = _np.zeros(n_par, dtype=_np.complex128)
+
+        cov_op = self._jax_linear_function(oks,n_samp)
+        
+        out, _ = jcg(cov_op,grad,x0=self._x0,tol=self.sparse_tol,maxiter=self.sparse_maxiter)
+
+        return out
+
+    def _jax_linear_function(self,oks,n_samp):
+        """
+        Outputs function A(x) = Ax needed for conjugate gradient
+        """
+        v_tilde = self._v_tilde
+        res = self._res_t 
+        shift = self._diag_shift
+        oks_conj = oks.conjugate()
+
+        def matvec(oks,oks_conj,x):
+            y = jax.numpy.matmul(oks,x)/n_samp
+            y = jax.numpy.matmul(y,oks_conj) 
+            y = x*shift + y 
+
+            return y
+
+        return partial(matvec,oks,oks_conj)
 
     def _apply_preconditioning(self, grad):
         if self._scale_invariant_pc:
