@@ -7,13 +7,13 @@ class Torch(AbstractOptimizer):
     r"""Wrapper for Torch optimizers.
     """
 
-    def __init__(self, machine, optim, **opt_pars):
+    def __init__(self, machine, optimizer, **opt_pars):
         r"""
            Constructs a new ``Torch`` optimizer that can be used in NetKet drivers.
 
            Args:
                machine (AbstractMachine): The machine to be optimized.
-               opt (torch.optim.Optimizer): A PyTorch optimizer.
+               optimizer (torch.optim.Optimizer): A PyTorch optimizer.
                opt_pars: named parameters to be passed to opt at construction
 
            Examples:
@@ -38,7 +38,7 @@ class Torch(AbstractOptimizer):
             )
 
         self._t_pars = _torch.from_numpy(machine.parameters.real)
-        self._t_opt = optim([self._t_pars], **opt_pars)
+        self._t_opt = optimizer([self._t_pars], **opt_pars)
 
         self.reset()
 

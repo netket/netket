@@ -3,11 +3,11 @@ from .abstract_sampler import AbstractSampler
 
 from ..stats import mean as _mean
 
-from numba import jit
-from numba import int64, float64
-from numba.experimental import jitclass
 from netket import random as _random
 import math
+
+from numba import jit, int64, float64
+from .._jitclass import jitclass
 
 
 class MetropolisHastings(AbstractSampler):

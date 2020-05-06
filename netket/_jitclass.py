@@ -12,45 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    "dynamics",
-    "exact",
-    "graph",
-    "hilbert",
-    "machine",
-    "operator",
-    "optimizer",
-    "random",
-    "sampler",
-    "stats",
-    # "supervised",
-    "utils",
-    "variational",
-]
+# This file permits loading numba's jitclass without throwing deprecation
+# warnings in v > 0.49.
 
-from . import (
-    _C_netket,
-    dynamics,
-    exact,
-    graph,
-    hilbert,
-    logging,
-    machine,
-    operator,
-    optimizer,
-    random,
-    sampler,
-    stats,
-    # supervised,
-    utils,
-    variational,
-    _exact_dynamics,
-    _vmc,
-    _steadystate,
-)
-from ._C_netket import MPI
+# TODO if numba's minimum version is raised to 0.49, remove this file and
+# change all usages to from numba.experimental import jitclass
 
-# Main applications
-from ._vmc import Vmc
-from ._qsr import Qsr
-from ._steadystate import SteadyState
+from pkg_resources import get_distribution
+
+if get_distribution("numba").version < "0.49":
+    from numba import jitclass
+else:
+    from numba.experimental import jitclass

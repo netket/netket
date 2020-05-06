@@ -45,5 +45,4 @@ gs = nk.Vmc(
     sr=nk.optimizer.SR(diag_shift=0.1, lsq_solver="QR"),
 )
 
-gs.run(n_iter=1)
-gs.run(n_iter=300, out="test")
+gs.run(out="test", n_iter=300)
