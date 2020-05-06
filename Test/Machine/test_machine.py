@@ -301,21 +301,18 @@ def test_vector_jacobian():
         same_derivatives(vjp, num_der_log)
 
 
-def test_nvisible():
+def test_input_size():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
         hi = machine.hilbert
 
-        assert machine.n_visible == hi.size
+        assert machine.input_size == hi.size
 
     for name, machine in dm_machines.items():
         print("Machine test: %s" % name)
-        hip = machine.hilbert_physical
         hi = machine.hilbert
 
-        assert machine.n_visible_physical * 2 == machine.n_visible
-        assert machine.n_visible_physical == hip.size
-        assert machine.n_visible == hi.size
+        assert machine.input_size == 2 * hi.size
 
 
 def test_dm_batched():

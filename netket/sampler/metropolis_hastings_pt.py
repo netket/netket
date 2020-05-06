@@ -55,7 +55,7 @@ class MetropolisHastingsPt(AbstractSampler):
 
         self.sweep_size = sweep_size
 
-        self._kernel = transition_kernel
+        self._kernel = kernel
 
         self.machine_pow = 2.0
 
