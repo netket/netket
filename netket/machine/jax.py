@@ -55,7 +55,7 @@ class Jax(AbstractMachine):
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
         grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
-        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None,0)))
 
         self.init_random_parameters()
 
@@ -149,14 +149,19 @@ class Jax(AbstractMachine):
                 out = tree_map(jax.numpy.conjugate, pout[0])
 
             return out
+
         else:
-            if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.np.tensordot(vec, j.conjugate(), axes=vec.ndim)
-            else:
-                prodj = lambda j: jax.np.tensordot(vec.conjugate(), j, axes=vec.ndim)
+
+            vals, f_jvp = jax.vjp(
+                self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
+            )
+
+            pout = f_jvp(vec.reshape(vals.shape).conjugate())
+            out = self.jax_flatten(pout[0])
 
             jacobian = self._perex_grads(self._params, x)
-            out = tree_map(prodj, jacobian)
+            jacobian = self.jacobian_flatten(jacobian)
+
             return out, jacobian
 
     @property
@@ -182,6 +187,24 @@ class Jax(AbstractMachine):
 
         assert npar == self._npar
 
+    def jacobian_flatten(self,jac):
+        r"""Flattens the jacobian to be shape [-1,n_params] 
+
+        Args:
+             data: a (possibly non-flat) structure containing jax arrays.
+
+        Returns:
+             jax.numpy.ndarray: a 2-dimensional array corresponding to the
+             Jacobian of the examples w.r.t. the parameters
+        """
+
+        return jax.numpy.concatenate(tuple(fd.reshape(len(fd),-1) for fd in tree_flatten(jac)[0]),-1)
+
+
+
+    def jax_flatten(self,data):
+        return jax.numpy.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
+
     def numpy_flatten(self, data):
         r"""Returns a flattened numpy array representing the given data.
             This is typically used to serialize parameters and gradients.
@@ -192,9 +215,10 @@ class Jax(AbstractMachine):
         Returns:
              numpy.ndarray: a one-dimensional array containing a copy of data
         """
+
         return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
 
-    def numpy_unflatten(self, data, shape_like):
+    def unflatten(self, data, shape_like):
         r"""Attempts a deserialization of the given numpy data.
             This is typically used to deserialize parameters and gradients.
 
