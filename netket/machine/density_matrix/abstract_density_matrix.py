@@ -1,5 +1,6 @@
 import abc
-from . import AbstractMachine
+from .. import AbstractMachine
+from . import Diagonal
 import numpy as _np
 
 
@@ -7,8 +8,7 @@ class AbstractDensityMatrix(AbstractMachine):
     """Abstract class for NetKet density matrices"""
 
     def __init__(self, hilbert):
-        super().__init__()
-        self.hilbert = hilbert
+        super().__init__(hilbert)
 
     @abc.abstractmethod
     def log_val(self, xr, xc=None, out=None):
@@ -47,11 +47,14 @@ class AbstractDensityMatrix(AbstractMachine):
         raise NotImplementedError
 
     def diagonal(self):
-        r"""Returns a view of this density matrix as a Machine computing log_val(x)=rho(x,x).
+        r"""Returns a view of this density matrix as a Machine computing
+            log_val(x)=rho(x,x).
 
         Returns:
             `diagonal`
         """
+
+        return Diagonal(self)
 
     def to_matrix(self, normalize=True):
         r"""
@@ -70,8 +73,46 @@ class AbstractDensityMatrix(AbstractMachine):
 
         """
         if self.hilbert.is_indexable:
-            raise NotImplementedError("to_matrix to be implemented")
+            n_states = self.hilbert.n_states
+            return self.to_array(normalize).reshape((n_states, n_states))
 
+        else:
+            raise RuntimeError("The hilbert space is not indexable")
+
+    def to_array(self, normalize=True):
+        r"""
+        Returns a numpy array representation of the density matrix.
+        Note that, in general, the size of the array is exponential
+        in the number of quantum numbers, and this operation should thus
+        only be performed for low-dimensional Hilbert spaces.
+
+        This method requires an indexable Hilbert space.
+
+        Args:
+            normalize (bool): If True, the returned array is normalized in such a way that Tr(rho)=1.
+
+        Returns:
+            numpy.array: The array machine(x) for all states (xr,xc) in the Hilbert space.
+
+        """
+        if self.hilbert.is_indexable:
+            import itertools
+
+            all_states = self.hilbert.all_states()
+            x = _np.asarray(list(itertools.product(all_states, all_states)))
+
+            n_states = self.hilbert.n_states
+
+            rho_vec = self.log_val(x[:, 0, :], x[:, 1, :])
+
+            logmax = x.real.max()
+            rho_vec = _np.exp(rho_vec - logmax)
+
+            if normalize:
+                norm = _np.trace(rho_vec.reshape((n_states, n_states)))
+                rho_vec /= norm
+
+            return rho_vec
         else:
             raise RuntimeError("The hilbert space is not indexable")
 
