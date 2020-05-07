@@ -6,17 +6,12 @@ from netket import random as _random
 
 
 class MetropolisHastings(AbstractSampler):
-    def __init__(
-        self, machine, transition_kernel, n_chains=16, sweep_size=None, rng_key=None
-    ):
+    def __init__(self, machine, kernel, n_chains=16, sweep_size=None, rng_key=None):
+
         super().__init__(machine, n_chains)
 
-        self._hilbert = machine.hilbert
-        self.n_chains = n_chains
-
-        self.sweep_size = sweep_size
-
-        self._transition_kernel = jax.jit(transition_kernel)
+        self._random_state_kernel = jax.jit(kernel.random_state)
+        self._transition_kernel = jax.jit(kernel.transition)
 
         self._rng_key = rng_key
         if rng_key is None:
@@ -24,7 +19,9 @@ class MetropolisHastings(AbstractSampler):
 
         self.machine_pow = 2
 
-        self.reset(True)
+        self.n_chains = n_chains
+
+        self.sweep_size = sweep_size
 
     @staticmethod
     @partial(jax.jit, static_argnums=(0, 2, 3, 5))
@@ -104,19 +101,18 @@ class MetropolisHastings(AbstractSampler):
 
     @sweep_size.setter
     def sweep_size(self, sweep_size):
-        self._sweep_size = sweep_size if sweep_size != None else self._hilbert.size
+        self._sweep_size = sweep_size if sweep_size != None else self._input_size
         if self._sweep_size < 0:
             raise ValueError("Expected a positive integer for sweep_size ")
 
     def reset(self, init_random=False):
         if init_random:
-            self._state = [None] * self._n_chains
-            for chain in range(self._n_chains):
-                self._state[chain] = self._hilbert.random_vals()
 
-            self._state = jax.numpy.asarray(self._state)
+            self._rng_key, self._state = jax.lax.scan(
+                self._random_state_kernel, self._rng_key, xs=None, length=self._n_chains
+            )
 
-            assert self._state.shape == (self._n_chains, self._hilbert.size)
+            assert self._state.shape == (self._n_chains, self._input_size)
 
         self._accepted_samples = 0
         self._total_samples = 0

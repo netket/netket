@@ -103,7 +103,7 @@ class MetropolisLocal(MetropolisHastings):
         super().__init__(
             machine,
             _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+                _np.asarray(machine.hilbert.local_states), machine.input_size
             ),
             n_chains,
             sweep_size,
@@ -133,7 +133,7 @@ class MetropolisLocalPt(MetropolisHastingsPt):
         super().__init__(
             machine,
             _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+                _np.asarray(machine.hilbert.local_states), machine.input_size
             ),
             n_replicas,
             sweep_size,
