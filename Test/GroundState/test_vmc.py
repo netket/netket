@@ -156,7 +156,7 @@ def test_vmc_gradient():
     ha, sx, ma, sampler, driver = _setup_vmc()
     pars = np.copy(ma.parameters)
     driver._sr = None
-    grad_exact = central_diff_grad(_energy, pars, 1.0e-5, ma, ha.to_sparse())
+    grad_exact = central_diff_grad(_energy, pars, 5.0e-6, ma, ha.to_sparse())
 
     driver.n_samples = 1e6
     driver.n_discard = 1e3
