@@ -62,7 +62,7 @@ class JaxSR:
 
         if self._use_iterative:
             if lsq_solver is None:
-                lsq_solver = "gmres" if self._is_holomorphic else "minres"
+                lsq_solver = "jaxcg"
 
             if lsq_solver == "gmres":
                 self._sparse_solver = partial(gmres, atol="legacy")
