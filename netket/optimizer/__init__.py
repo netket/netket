@@ -9,6 +9,7 @@ from .rms_prop import RmsProp
 from .sgd import Sgd
 
 from .stochastic_reconfiguration import SR
+from .jax_stochastic_reconfiguration import JaxSR
 
 from ..utils import jax_available, torch_available
 
