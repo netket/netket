@@ -112,7 +112,7 @@ class MetropolisHastings(AbstractSampler):
                 self._random_state_kernel, self._rng_key, xs=None, length=self._n_chains
             )
 
-            assert self._state.shape == (self._n_chains, self._input_size)
+            assert self._state.shape == self.sample_shape
 
         self._accepted_samples = 0
         self._total_samples = 0

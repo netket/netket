@@ -35,3 +35,8 @@ class Diagonal(AbstractMachine):
     def state_dict(self):
         r"""A dictionary containing the parameters of this machine"""
         return self._rho.state_dict
+
+    @property
+    def parameters(self):
+        r"""The parameters of the machine."""
+        return self._rho.parameters

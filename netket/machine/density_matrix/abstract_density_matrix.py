@@ -35,9 +35,9 @@ class AbstractDensityMatrix(AbstractMachine):
         batch of visible configurations `(xr,xc)` and stores the result into `out`.
 
         Args:
-            xr: A matrix of `float64` of shape `(*, self.n_visible)` if xc is given.
-                If xc is None, then this should be a matrix of `float64` of shape `(*, 2*self.n_visible)`.
-            xc (optional): A matrix of `float64` of shape `(*, self.n_visible)`.
+            xr: A matrix of `float64` of shape `(*, self.input_size/2)` if xc is given.
+                If xc is None, then this should be a matrix of `float64` of shape `(*, self.input_size)`.
+            xc (optional): A matrix of `float64` of shape `(*, self.input_size/2)`.
             out: Destination tensor of `complex128`.
                 `out` should be a matrix of shape `(x.shape[0], self.n_par)`.
 

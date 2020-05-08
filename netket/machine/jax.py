@@ -33,14 +33,11 @@ class Jax(AbstractMachine):
             hilbert: Hilbert space on which the state is defined. Should be a
                 subclass of `netket.hilbert.Hilbert`.
             module: A pair `(init_fn, predict_fn)`. See the documentation of
-                `jax.experimental.stax` for more info.
+                jax.experimental.stax` for more info.
             dtype: either complex or float, is the type used for the weights.
-                If dtype is float, the network should have 2 outputs corresponding
-                to the real and imaginary part of log(psi(x)).
-                If dtype is complex, the network should have only 1 output
-                representing the complex amplitude log(psi(x)).
+                In both cases the network must have a single output.
         """
-        super(Jax, self).__init__(hilbert)
+        super().__init__(hilbert)
 
         if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
@@ -68,7 +65,7 @@ class Jax(AbstractMachine):
         if seed is None:
             seed = _randint(0, 2 ** 32 - 2)
 
-        input_shape = (-1, self.hilbert.size)
+        input_shape = (-1, self.input_size)
         output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
 
         self._params = self._cast(params)
