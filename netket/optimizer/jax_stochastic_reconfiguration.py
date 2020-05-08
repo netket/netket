@@ -106,8 +106,8 @@ class JaxSR:
         gradient).
 
         Args:
-            oks: The matrix 𝕆 of centered log-derivatives,
-               𝕆_ij = O_i(v_j) - ⟨O_i⟩.
+            oks: The matrix of log-derivatives,
+		O_i(v_j)
             grad: The vector of forces f.
             out: Output array for the update ẋ.
         """
