@@ -165,5 +165,5 @@ def test_vmc_gradient():
     driver.machine.parameters = np.copy(pars)
     grad_approx = driver._forward_and_backward()
 
-    err = 5 / np.sqrt(driver.n_samples)
+    err = 6 / np.sqrt(driver.n_samples)
     same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)

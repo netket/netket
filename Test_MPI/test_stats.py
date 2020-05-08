@@ -11,7 +11,7 @@ rank = comm.Get_rank()
 
 
 def approx(data):
-    return pytest.approx(data, abs=1.0e-6)
+    return pytest.approx(data, abs=1.0e-6, rel=1.0e-5)
 
 
 def reference_stats(data):
