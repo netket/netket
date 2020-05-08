@@ -3,11 +3,15 @@ import netket as nk
 import numpy as np
 from mpi4py import MPI
 import pytest
-from pytest import approx
+
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
+
+
+def approx(data):
+    return pytest.approx(data, abs=1.0e-6)
 
 
 def reference_stats(data):

@@ -144,11 +144,13 @@ def central_diff_grad(func, x, eps, *args):
     return grad
 
 
-def same_derivatives(der_log, num_der_log, eps=1.0e-6):
-    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
+    assert np.max(np.real(der_log - num_der_log)) == approx(
+        0.0, rel=rel_eps, abs=abs_eps
+    )
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
-        0.0, rel=eps, abs=eps
+        0.0, rel=rel_eps, abs=abs_eps
     )
 
 
@@ -156,7 +158,7 @@ def test_vmc_gradient():
     ha, sx, ma, sampler, driver = _setup_vmc()
     pars = np.copy(ma.parameters)
     driver._sr = None
-    grad_exact = central_diff_grad(_energy, pars, 5.0e-6, ma, ha.to_sparse())
+    grad_exact = central_diff_grad(_energy, pars, 1.0e-5, ma, ha.to_sparse())
 
     driver.n_samples = 1e6
     driver.n_discard = 1e3
@@ -164,4 +166,4 @@ def test_vmc_gradient():
     grad_approx = driver._forward_and_backward()
 
     err = 5 / np.sqrt(driver.n_samples)
-    same_derivatives(grad_approx, grad_exact, eps=err)
+    same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)
