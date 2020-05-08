@@ -14,7 +14,7 @@ if jax_available:
     import jax
     from jax.scipy.sparse.linalg import cg as jcg
 
-class SR:
+class JaxSR:
     r"""
     Performs stochastic reconfiguration (SR) updates.
     """
