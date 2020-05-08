@@ -11,8 +11,10 @@ from netket.stats import (
 
 from netket.vmc_common import info, tree_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
-import jax
 
+from netket.utils import jax_available
+if jax_available:
+    from netket.vmc_common import shape_for_sr, shape_for_update
 
 class Vmc(AbstractVariationalDriver):
     """
@@ -148,24 +150,18 @@ class Vmc(AbstractVariationalDriver):
             )
             
             self._grads = tree_map(_sum_inplace, self._grads)
+            self._grads, self._jac = shape_for_sr(self._grads,self._jac)
             
-            self._grads = self._machine.jax_flatten(self._grads)
-            self._jac = self._machine.jacobian_flatten(self._jac)
-
-            # Center the log derivatives
-            # self._jac -= _mean(self._jac, axis=0)
-            self._jac -= jax.numpy.mean(self._jac,axis=0)
-
             self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
-            self._dp = self._machine.unflatten(self._dp, self._machine._params)
+            self._dp = shape_for_update(self._dp,self._machine.parameters) 
 
         else:
             # Computing updates using the simple gradient
             self._grads = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads
             )
-
+            
             self._grads = tree_map(_sum_inplace, self._grads)
 
             self._dp = self._grads
