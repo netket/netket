@@ -26,7 +26,7 @@ op = nk.optimizer.Jax(ma, j_op)
 
 
 # Stochastic Reconfiguration
-sr = nk.optimizer.SR(lsq_solver="jaxcg",diag_shift=0.1)
+sr = nk.optimizer.JaxSR(diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(
