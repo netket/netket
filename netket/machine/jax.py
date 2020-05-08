@@ -157,10 +157,11 @@ class Jax(AbstractMachine):
             )
 
             pout = f_jvp(vec.reshape(vals.shape).conjugate())
-            out = self.jax_flatten(pout[0])
+
+            if conjugate and self._dtype is complex:
+                out = tree_map(jax.numpy.conjugate, pout[0])
 
             jacobian = self._perex_grads(self._params, x)
-            jacobian = self.jacobian_flatten(jacobian)
 
             return out, jacobian
 
@@ -187,24 +188,6 @@ class Jax(AbstractMachine):
 
         assert npar == self._npar
 
-    def jacobian_flatten(self,jac):
-        r"""Flattens the jacobian to be shape [-1,n_params] 
-
-        Args:
-             data: a (possibly non-flat) structure containing jax arrays.
-
-        Returns:
-             jax.numpy.ndarray: a 2-dimensional array corresponding to the
-             Jacobian of the examples w.r.t. the parameters
-        """
-
-        return jax.numpy.concatenate(tuple(fd.reshape(len(fd),-1) for fd in tree_flatten(jac)[0]),-1)
-
-
-
-    def jax_flatten(self,data):
-        return jax.numpy.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
-
     def numpy_flatten(self, data):
         r"""Returns a flattened numpy array representing the given data.
             This is typically used to serialize parameters and gradients.
@@ -218,7 +201,7 @@ class Jax(AbstractMachine):
 
         return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
 
-    def unflatten(self, data, shape_like):
+    def numpy_unflatten(self, data, shape_like):
         r"""Attempts a deserialization of the given numpy data.
             This is typically used to deserialize parameters and gradients.
 
@@ -241,7 +224,6 @@ class Jax(AbstractMachine):
             k += size
 
         return tree_unflatten(tree, datalist)
-
 
 from jax.experimental import stax
 from jax.experimental.stax import Dense
@@ -267,10 +249,10 @@ def logcosh(x):
 
 LogCoshLayer = stax.elementwise(logcosh)
 
-
 def JaxRbm(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size),LogCoshLayer, SumLayer()),
         dtype=dtype,
     )
+
