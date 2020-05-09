@@ -14,31 +14,19 @@
 
 import itertools as _itertools
 
-from . import _core
-from ._C_netket.exact import *
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
+from . import _core
+from ._exact_dynamics import PyExactTimePropagation
 
-def _ExactTimePropagation_iter(self, dt, n_iter=None):
-    """
-    iter(self: ExactTimePropagation, dt: float, n_iter: int=None) -> int
 
-    Returns a generator which advances the time evolution by dt,
-    yielding after every step.
-
-    Args:
-        dt (float): The size of the time step.
-        n_iter (int=None): The number of steps or None, for no limit.
-
-    Yields:
-        int: The current step.
-    """
-    for i in _itertools.count():
-        if n_iter and i >= n_iter:
-            return
-        self.advance(dt)
-        yield i
+class ExactTimePropagation:
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError(
+            "ExactTimePropagation has been deprecated and removed. "
+            "Please consider PyExactTimePropagation instead."
+        )
 
 
 class EdResult(object):
@@ -47,7 +35,7 @@ class EdResult(object):
         # eigenvalues and eigenvectors as Python lists :(
         self._eigenvalues = eigenvalues.tolist()
         self._eigenvectors = (
-            [eigenvectors[:, i] for i in range(eigenvectors.shape[1])]
+            [np.asarray(eigenvectors[:, i]) for i in range(eigenvectors.shape[1])]
             if eigenvectors is not None
             else []
         )
@@ -68,6 +56,7 @@ class EdResult(object):
         import numpy
 
         x = self._eigenvectors[which]
+
         return numpy.vdot(x, operator(x))
 
 
@@ -168,9 +157,6 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
     else:
         w = eigvalsh(dense_op)
         return EdResult(w[:first_n], None)
-
-
-ExactTimePropagation.iter = _ExactTimePropagation_iter
 
 
 def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):

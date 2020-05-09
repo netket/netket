@@ -7,7 +7,6 @@
 #include <pybind11/pybind11.h>
 
 #include "Stats/mc_stats.hpp"
-#include "Stats/obs_manager.hpp"
 #include "Utils/exceptions.hpp"
 #include "common_types.hpp"
 
@@ -16,13 +15,10 @@ namespace py = pybind11;
 namespace netket {
 namespace detail {
 
-py::dict GetItem(const ObsManager& self, const std::string& name) {
-  py::dict dict;
-  self.InsertAllStats(name, dict);
-  return dict;
-}
-
 int GetPrecision(double /* value */, double error) {
+  if (error < 1e-6) {
+    return 6;
+  }
   const int loge = std::floor(std::log10(std::abs(error)));
   return std::max(1 - loge, 0);
 }
@@ -35,30 +31,6 @@ int GetPrecision(Complex value, double error) {
 void AddStatsModule(py::module m) {
   auto subm = m.def_submodule("stats");
 
-  py::class_<ObsManager>(subm, "ObsManager")
-      .def("__getitem__", &detail::GetItem, py::arg("name"))
-      .def("__getattr__", &detail::GetItem, py::arg("name"))
-      .def("__contains__", &ObsManager::Contains, py::arg("name"))
-      .def("__len__", &ObsManager::Size)
-      .def("keys", &ObsManager::Names)
-      .def("__repr__", [](const ObsManager& self) {
-        std::string s("<netket.stats.ObsManager: size=");
-        auto size = self.Size();
-        s += std::to_string(size);
-        if (size > 0) {
-          s += " [";
-          for (const auto& name : self.Names()) {
-            s += name + ", ";
-          }
-          // remove last comma + space:
-          s.pop_back();
-          s.pop_back();
-
-          s += "]";
-        }
-        return s + ">";
-      });
-
   auto as_dict = [](const Stats& self) {
     py::dict d;
     d["Mean"] = self.mean;
@@ -70,6 +42,9 @@ void AddStatsModule(py::module m) {
   };
 
   py::class_<Stats>(subm, "Stats")
+      .def(py::init<Complex, double, double, double, double>(), py::arg("mean"),
+           py::arg("error_of_mean"), py::arg("variance"),
+           py::arg("correlation"), py::arg("R"))
       .def_readonly("mean", &Stats::mean)
       .def_readonly("error_of_mean", &Stats::error_of_mean)
       .def_readonly("variance", &Stats::variance)

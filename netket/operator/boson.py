@@ -1,4 +1,4 @@
-from .._C_netket.operator import LocalOperator as _LocalOperator
+from .local_operator import LocalOperator
 
 import numpy as _np
 
@@ -19,7 +19,7 @@ def destroy(hilbert, site):
 
     D = _np.array([_np.sqrt(m) for m in _np.arange(1, N)])
     mat = _np.diag(D, 1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def create(hilbert, site):
@@ -38,7 +38,7 @@ def create(hilbert, site):
 
     D = _np.array([_np.sqrt(m) for m in _np.arange(1, N)])
     mat = _np.diag(D, -1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def number(hilbert, site):
@@ -57,4 +57,4 @@ def number(hilbert, site):
 
     D = _np.array([m for m in _np.arange(0, N)])
     mat = _np.diag(D, 0)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])

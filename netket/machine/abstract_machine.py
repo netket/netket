@@ -15,12 +15,9 @@ class AbstractMachine(abc.ABC):
         configurations `x` and stores the result into `out`.
 
         Args:
-            x: Either a
-                * vector of `float64` of size `self.n_visible` or
-                * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination vector of `complex128`. If `x` is a matrix then
-                length of `out` should be `x.shape[0]`. If `x` is a vector,
-                then length of `out` should be 1.
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination vector of `complex128`. The
+                 length of `out` should be `x.shape[0]`.
 
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
@@ -28,21 +25,52 @@ class AbstractMachine(abc.ABC):
             """
         pass
 
-    @abc.abstractmethod
-    def vector_jacobian_prod(selv, x, vec, out=None):
+    def init_random_parameters(self, seed=None, sigma=0.01):
+        rgen = _np.random.RandomState(seed)
+        self.parameters = rgen.normal(
+            scale=sigma, size=self.n_par
+        ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
+
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
         Args:
-             x: a matrix of `float64` of shape `(*, self.n_visible)`.
-             vec: a `complex128` vector used to compute the inner product with the jacobian.
+             x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
+             vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
              out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+             conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+             return_jacobian (bool): If true, the Jacobian is returned.
 
 
         Returns:
-             `out`
+             `out` or (out,jacobian) if return_jacobian is True
         """
-        return NotImplementedError
+        vec = vec.reshape(-1)
+
+        if x.ndim == 3:
+
+            jacobian = _np.stack([self.der_log(xb) for xb in x])
+
+            if conjugate:
+                out = _np.tensordot(vec, jacobian.conjugate(), axes=1)
+            else:
+                out = _np.tensordot(vec.conjugate(), jacobian, axes=1)
+
+        elif x.ndim == 2:
+
+            jacobian = self.der_log(x)
+
+            if conjugate:
+                out = _np.dot(jacobian.transpose().conjugate(), vec, out)
+            else:
+                out = _np.dot(jacobian.transpose(), vec.conjugate(), out)
+
+        out = out.reshape(-1)
+
+        return (out, jacobian) if return_jacobian else out
 
     def jacobian_vector_prod(self, v, vec, out=None):
         return NotImplementedError
@@ -52,45 +80,70 @@ class AbstractMachine(abc.ABC):
         batch of visible configurations `x` and stores the result into `out`.
 
         Args:
-            x: Either a
-                * vector of `float64` of size `self.n_visible` or
-                * a matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination tensor of `complex128`. If `x` is a matrix then of
+            x: A matrix of `float64` of shape `(*, self.n_visible)`.
+            out: Destination tensor of `complex128`.
                 `out` should be a matrix of shape `(v.shape[0], self.n_par)`.
-                If `x` is a vector, then `out` should be a vector of length
-                `self.n_par`.
 
         Returns:
             `out`
             """
         return NotImplementedError
 
-    def to_array(self, normalize=True, b_size=512):
-        if self.hilbert.is_indexable:
-            all_psis = _np.zeros(self.hilbert.n_states, dtype=_np.complex128)
-            batch_states = _np.zeros((b_size, self.hilbert.size))
-            it = self.hilbert.states().__iter__()
-            for i in range(self.hilbert.n_states // b_size + 1):
-                for j in range(b_size):
-                    try:
-                        batch_states[j] = next(it)
-                    except StopIteration:
-                        batch_states.resize(j, self.hilbert.size)
-                        break
-                all_psis[
-                    i * b_size : i * b_size + batch_states.shape[0]
-                ] = self.log_val(batch_states)
+    def to_array(self, normalize=True, batch_size=512):
+        r"""
+        Returns a numpy array representation of the machine.
+        Note that, in general, the size of the array is exponential
+        in the number of quantum numbers, and this operation should thus
+        only be performed for low-dimensional Hilbert spaces.
 
-                logmax = _np.max(all_psis.real)
-                all_psis = _np.exp(all_psis - logmax)
+        This method requires an indexable Hilbert space.
+
+        Args:
+            normalize (bool): If True, the returned array is normalized in L2 norm.
+            batch_size (int): The method log_val of the machine is called on
+                              batch_size states at once.
+
+        Returns:
+            numpy.array: The array machine(x) for all states x in the Hilbert space.
+
+        """
+        if self.hilbert.is_indexable:
+            psi = self.log_val(self.hilbert.all_states())
+            logmax = psi.real.max()
+            psi = _np.exp(psi - logmax)
 
             if normalize:
-                norm = _np.linalg.norm(all_psis)
-                all_psis = all_psis / norm
+                norm = _np.linalg.norm(psi)
+                psi /= norm
 
-            return all_psis
+            return psi
         else:
-            return AssertionError
+            return RuntimeError("The hilbert space is not indexable")
+
+    def log_norm(self, order=2):
+        r"""
+        Returns the log of the norm of the machine.
+        Note that, in general, the size of the array is exponential
+        in the number of quantum numbers, and this operation should thus
+        only be performed for low-dimensional Hilbert spaces.
+
+        This method requires an indexable Hilbert space.
+
+        Args:
+            order (int): By default order=2 is the L2 norm.
+
+        Returns:
+            float: log(|machine(x)|^order)
+
+        """
+        if self.hilbert.is_indexable:
+            psi = self.log_val(self.hilbert.all_states())
+            maxl = psi.real.max()
+            log_n = _np.log(_np.exp(order * (psi.real - maxl)).sum())
+
+            return log_n + maxl * order
+        else:
+            return RuntimeError("The hilbert space is not indexable")
 
     @property
     @abc.abstractmethod
@@ -99,10 +152,9 @@ class AbstractMachine(abc.ABC):
         return NotImplementedError
 
     @property
-    @abc.abstractmethod
     def n_par(self):
         r"""The number of variational parameters in the machine."""
-        return NotImplementedError
+        return self.parameters.size
 
     @property
     @abc.abstractmethod
@@ -118,13 +170,51 @@ class AbstractMachine(abc.ABC):
     def parameters(self, p):
         if p.shape != (self.n_par,):
             raise ValueError(
-                "p has wrong shape: {}; expected ({},)".format(
-                    p.shape, self.n_par)
+                "p has wrong shape: {}; expected ({},)".format(p.shape, self.n_par)
             )
+
         i = 0
         for x in map(lambda x: x.reshape(-1), self.state_dict.values()):
-            _np.copyto(x, p[i: i + x.size])
+            _np.copyto(x, p[i : i + x.size])
             i += x.size
 
+    def numpy_flatten(self, data):
+        r"""Returns a flattened numpy array representing the given data.
+            This is typically used to serialize parameters and gradients.
+            The default implementation attempts to return a simple reshaped view.
+
+        Args:
+             data: a contigous numpy-compatible array.
+
+        Returns:
+             numpy.ndarray: a one-dimensional array containing a view of the data
+        """
+        return _np.asarray(data).reshape(-1)
+
+    def numpy_unflatten(self, data, shape_like):
+        r"""Attempts a deserialization of the given numpy data.
+            This is typically used to deserialize parameters and gradients.
+
+        Args:
+             data: a 1d numpy array.
+             shape_like: this as in instance having the same type and shape of
+                         the desired conversion.
+
+        Returns:
+             A numpy array containing a view of data and compatible with the given shape.
+        """
+        return _np.asarray(data).reshape(shape_like.shape)
+
     def save(self, file):
-        _np.save(file, self.parameters, allow_pickle=False)
+        assert type(file) is str
+        with open(file, "wb") as file_ob:
+            _np.save(file_ob, self.numpy_flatten(self.parameters), allow_pickle=False)
+
+    def load(self, file):
+        self.parameters = self.numpy_unflatten(
+            _np.load(file, allow_pickle=False), self.parameters
+        )
+
+    @property
+    def n_visible(self):
+        return self.hilbert.size

@@ -2,8 +2,8 @@ import numpy as _np
 from netket import random as _random
 
 from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import *
-from .._C_netket import sampler as c_sampler
+from .metropolis_hastings import MetropolisHastings
+from .metropolis_hastings_pt import MetropolisHastingsPt
 
 from numba import jit, int64, float64
 from .._jitclass import jitclass
@@ -12,8 +12,7 @@ from .._jitclass import jitclass
 @jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
 class _local_kernel:
     def __init__(self, local_states, size):
-        self.local_states = _np.sort(
-            _np.asarray(local_states, dtype=_np.float64))
+        self.local_states = _np.sort(_np.asarray(local_states, dtype=_np.float64))
         self.size = size
         self.n_states = self.local_states.size
 
@@ -30,10 +29,10 @@ class _local_kernel:
                 rs + (self.local_states[rs] >= state[i, si])
             ]
 
-        log_prob_corr[:] = 0.0
+        log_prob_corr.fill(0.0)
 
 
-class MetropolisLocal(AbstractSampler):
+class MetropolisLocal(MetropolisHastings):
     """
     Sampler acting on one local degree of freedom.
 
@@ -59,9 +58,7 @@ class MetropolisLocal(AbstractSampler):
     and :math:`n_{\mathrm{max}}`.
     """
 
-    def __init__(
-        self, machine, n_chains=16, sweep_size=None, batch_size=None, backend=None
-    ):
+    def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
         """
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
@@ -95,47 +92,19 @@ class MetropolisLocal(AbstractSampler):
              >>> print(sa.machine.hilbert.size)
              100
         """
-        if "_C_netket.machine" in str(type(machine)) and backend != "py":
-            self.sampler = c_sampler.MetropolisLocal(
-                machine=machine,
-                n_chains=n_chains,
-                sweep_size=sweep_size,
-                batch_size=batch_size,
-            )
-        else:
-            self.sampler = PyMetropolisHastings(
-                machine,
-                _local_kernel(
-                    _np.asarray(
-                        machine.hilbert.local_states), machine.hilbert.size
-                ),
-                n_chains,
-                sweep_size,
-                batch_size,
-            )
-        super().__init__(machine, n_chains)
 
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+        super().__init__(
+            machine,
+            _local_kernel(
+                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+            ),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )
 
 
-class MetropolisLocalPt(AbstractSampler):
+class MetropolisLocalPt(MetropolisHastingsPt):
     """
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
@@ -154,32 +123,12 @@ class MetropolisLocalPt(AbstractSampler):
                          If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
         """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.MetropolisLocalPt(
-                machine=machine, n_replicas=n_replicas, sweep_size=sweep_size
-            )
-        else:
-            raise ValueError(
-                """Parallel Tempering samplers are not yet implemented
-                for pure python machines"""
-            )
-        super().__init__(machine, 1)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+        super().__init__(
+            machine,
+            _local_kernel(
+                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+            ),
+            n_replicas,
+            sweep_size,
+            batch_size,
+        )

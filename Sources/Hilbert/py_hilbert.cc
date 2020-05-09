@@ -73,7 +73,10 @@ void AddBosons(py::module subm) {
                >>> print(hi.size)
                100
 
-           )EOF");
+           )EOF")
+      .def_property_readonly(
+          "n_max", &Boson::NMax,
+          R"EOF(int: The maximum number of bosons per site.)EOF");
 }
 
 void AddCustomHilbert(py::module subm) {
@@ -215,11 +218,11 @@ void AddHilbertModule(py::module m) {
                    self.RandomVals(state, *rgen);
                  }
                },
-               py::arg("state"), py::arg("rgen") = py::none(), R"EOF(
+               py::arg("out") = py::none(), py::arg("rgen") = py::none(), R"EOF(
        Member function generating uniformely distributed local random states.
 
        Args:
-           state: A reference to a visible configuration, in output this
+           out: A reference to a visible configuration, in output this
                   contains the random state.
            rgen: The random number generator. If None, the global
                  NetKet random number generator is used.
@@ -298,6 +301,20 @@ void AddHilbertModule(py::module m) {
            for input i. i can be a single integer or an array.
            Throws an exception iff the space is not indexable.
       )EOF")
+      .def("numbers_to_states",
+           [](const AbstractHilbert &self, const std::vector<Index> &indices) {
+             RowMatrix<double> states(indices.size(), self.Size());
+             for (Index i = 0; i < indices.size(); i++) {
+               states.row(i) = self.GetIndex().NumberToState(indices[i]);
+             }
+             return states;
+           },
+           py::arg("i"),
+           R"EOF(
+           Returns the visible configuration corresponding to the i-th basis state
+           for input i. i can be a single integer or an array.
+           Throws an exception iff the space is not indexable.
+      )EOF")
       .def("state_to_number",
            [](const AbstractHilbert &self, const Eigen::VectorXd &conf) {
              return self.GetIndex().StateToNumber(conf);
@@ -305,13 +322,35 @@ void AddHilbertModule(py::module m) {
            py::arg("conf"),
            R"EOF(Returns index of the given many-body configuration.
                 Throws an exception iff the space is not indexable.)EOF")
+      .def("states_to_numbers",
+           [](const AbstractHilbert &self, const RowMatrix<double> &conf) {
+             Eigen::VectorXi numbers(conf.rows());
+             for (Index i = 0; i < conf.rows(); i++) {
+               numbers(i) = self.GetIndex().StateToNumber(conf.row(i));
+             }
+             return numbers;
+           },
+           py::arg("states"),
+           R"EOF(Returns index of the given many-body configuration.
+                          Throws an exception iff the space is not indexable.)EOF")
       .def(
           "states",
           [](const AbstractHilbert &self) {
             return StateGenerator(self.GetIndex());
           },
           R"EOF(Returns an iterator over all valid configurations of the Hilbert space.
-                 Throws an exception iff the space is not indexable.)EOF");
+                 Throws an exception iff the space is not indexable.)EOF")
+      .def("all_states",
+           [](const AbstractHilbert &self) {
+             Index n_states = self.GetIndex().NStates();
+             RowMatrix<double> states(n_states, self.Size());
+             for (Index i = 0; i < n_states; i++) {
+               states.row(i) = self.GetIndex().NumberToState(i);
+             }
+             return states;
+           },
+           R"EOF(Returns all allowed states of the Hilbert space.
+                                  Throws an exception iff the space is not indexable.)EOF");
 
   subm.attr("max_states") = HilbertIndex::MaxStates;
 

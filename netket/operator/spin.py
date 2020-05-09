@@ -1,4 +1,4 @@
-from .._C_netket.operator import LocalOperator as _LocalOperator
+from .local_operator import LocalOperator
 
 import numpy as _np
 
@@ -20,7 +20,7 @@ def sigmax(hilbert, site):
 
     D = [_np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
     mat = _np.diag(D, 1) + _np.diag(D, -1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def sigmay(hilbert, site):
@@ -42,7 +42,7 @@ def sigmay(hilbert, site):
         [1j * _np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
     )
     mat = _np.diag(D, -1) + _np.diag(-D, 1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def sigmaz(hilbert, site):
@@ -62,7 +62,7 @@ def sigmaz(hilbert, site):
 
     D = _np.array([2 * m for m in _np.arange(S, -(S + 1), -1)])
     mat = _np.diag(D, 0)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def sigmam(hilbert, site):
@@ -83,7 +83,7 @@ def sigmam(hilbert, site):
     S2 = (S + 1) * S
     D = _np.array([_np.sqrt(S2 - m * (m - 1)) for m in _np.arange(S, -S, -1)])
     mat = _np.diag(D, -1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])
 
 
 def sigmap(hilbert, site):
@@ -104,4 +104,4 @@ def sigmap(hilbert, site):
     S2 = (S + 1) * S
     D = _np.array([_np.sqrt(S2 - m * (m + 1)) for m in _np.arange(S - 1, -(S + 1), -1)])
     mat = _np.diag(D, 1)
-    return _LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site])

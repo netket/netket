@@ -1,35 +1,17 @@
-from __future__ import absolute_import
 from .._C_netket.machine import *
-from .cxx_machine import *
+
 from .abstract_machine import AbstractMachine
 
-from .py_rbm import *
+from .rbm import RbmSpin, RbmSpinReal, RbmSpinSymm, RbmMultiVal, RbmSpinPhase
+from .jastrow import Jastrow, JastrowSymm
+from ..utils import jax_available, torch_available
 
 
-def _has_jax():
-    try:
-        import os
-
-        os.environ["JAX_ENABLE_X64"] = "1"
-        import jax
-
-        return True
-    except ImportError:
-        return False
+if jax_available:
+    from .jax import Jax, JaxRbm
 
 
-def _has_torch():
-    try:
-        import torch
-        return True
-    except ImportError:
-        return False
-
-
-if _has_jax():
-    from .jax import *
-
-if _has_torch():
+if torch_available:
     from .torch import Torch, TorchLogCosh, TorchView
 
 

@@ -12,24 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
+import jax
 from collections import OrderedDict
 from functools import reduce
-from pickle import dump, load
-import os
 
-import numpy as np
+from .abstract_machine import AbstractMachine
 
-os.environ["JAX_ENABLE_X64"] = "1"
-import jax
-
-from .cxx_machine import CxxMachine
-
-__all__ = ["Jax"]
+import numpy as _np
+from netket.random import randint as _randint
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
-class Jax(CxxMachine):
-    def __init__(self, hilbert, module, seed=None):
+class Jax(AbstractMachine):
+    def __init__(self, hilbert, module, dtype=complex):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -39,131 +34,219 @@ class Jax(CxxMachine):
                 subclass of `netket.hilbert.Hilbert`.
             module: A pair `(init_fn, predict_fn)`. See the documentation of
                 `jax.experimental.stax` for more info.
-            seed: Seed to use to construct `jax.random.PRNGKey` for
-                initialisation of parameters. If `None` seed will be chosen
-                automatically (which is __not__ synchronized between MPI
-                processes so prefer `self.init_random_parameters` if you're
-                using multiple MPI tasks)
+            dtype: either complex or float, is the type used for the weights.
+                If dtype is float, the network should have 2 outputs corresponding
+                to the real and imaginary part of log(psi(x)).
+                If dtype is complex, the network should have only 1 output
+                representing the complex amplitude log(psi(x)).
         """
-        # NOTE: The following call to __init__ is important!
         super(Jax, self).__init__(hilbert)
-        if seed is None:
-            # NOTE(twesterhout): I believe, jax uses 32-bit integers internally
-            # to represent the seed. Hence the limit
-            seed = np.random.randint(2 ** 32 - 1)
-        init_fn, self._forward_fn = module
+
+        if dtype is not float and dtype is not complex:
+            raise TypeError("dtype must be either float or complex")
+
+        self._dtype = dtype
+        self._npdtype = _np.complex128 if dtype is complex else _np.float64
+
+        self._init_fn, self._forward_fn = module
+
+        # Computes the Jacobian matrix using forward ad
         self._forward_fn = jax.jit(self._forward_fn)
-        input_shape = (-1, hilbert.size)
-        output_shape, self._params = init_fn(jax.random.PRNGKey(seed), input_shape)
-        if output_shape != (-1, 2):
-            raise ValueError("module's output_shape is weird, check your network")
+
+        forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
+        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
+        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+
+        self.init_random_parameters()
+
         # Computes total number of parameters
-        n_par = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
-        # Save the initial dtype (for debugging mostly)
-        dtypes = set(p.dtype for layer in self._params for p in layer)
-        if len(dtypes) != 1:
-            raise ValueError("module parameters have different dtypes")
-        self._dtype = next(iter(dtypes))
-        self._complex_dtype = {
-            np.dtype("float32"): np.complex64,
-            np.dtype("float64"): np.complex128,
-        }[self._dtype]
-        assert all(
-            np.asarray(p).flags.c_contiguous for layer in self._params for p in layer
-        ), "sorry, column major order is not supported (yet)"
-        self._n_par = lambda: n_par
-        # Computes the Jacobian matrix using backprop
-        self._jacobian = jax.jacrev(self._forward_fn)
-        self._jacobian = jax.jit(self._jacobian)
-
-    def _log_val(self, x, out):
-        """
-        Do not use this function directly! It's an implementation detail!
-
-        See `self.log_val`.
-        """
-        out[:] = (
-            np.asarray(self._forward_fn(self._params, x))
-            .view(dtype=self._complex_dtype)
-            .squeeze()
+        self._npar = sum(
+            reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
         )
 
-    def _der_log(self, x, out):
-        """
-        Do not use this function directly! It's an implementation detail!
+    def init_random_parameters(self, seed=None, sigma=None):
+        if seed is None:
+            seed = _randint(0, 2 ** 32 - 2)
 
-        See `self.log_val`.
-        """
-        J = self._jacobian(self._params, x)
-        batch_size = x.shape[0]
-        i = 0
-        for g in (g.reshape(batch_size, 2, -1) for layer in J for g in layer):
-            n = g.shape[2]
-            out[:, i : i + n].real = g[:, 0, :]
-            out[:, i : i + n].imag = g[:, 1, :]
-            i += n
+        input_shape = (-1, self.hilbert.size)
+        output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
 
-    def _is_holomorphic(self):
-        return False
+        self._params = self._cast(params)
 
-    def _set_parameters(self, new_parameters):
-        state = []
-        i = 0
-        for layer in self._params:
-            layer_state = ()
-            for p in layer:
-                if not np.all(p.imag == 0):
-                    raise ValueError("parameters are purely real")
-                # NOTE: This relies on the fact that all our parameters are
-                # stored in row major order
-                layer_state += (
-                    np.ascontiguousarray(
-                        new_parameters[i : i + p.size].real.reshape(p.shape)
-                    ),
-                )
-                i += p.size
-            state.append(layer_state)
-        self._params = state
+        if output_shape != (-1, 1):
+            raise ValueError("A valid network must have 1 output.")
+
+    def _cast(self, p):
+        if self._dtype is complex:
+            from jax.tree_util import tree_unflatten, tree_flatten
+
+            # TODO use tree_map instead
+            value_flat, value_tree = tree_flatten(p)
+            values_c = list(map(lambda v: v.astype(jax.numpy.complex128), value_flat))
+
+            return tree_unflatten(value_tree, values_c)
+        else:
+            return p
 
     @property
-    def dtype(self):
-        """
-        Datatype of the parameters.
-        """
-        return self._dtype
+    def n_par(self):
+        r"""The number of variational parameters in the machine."""
+        return self._npar
 
+    def log_val(self, x, out=None):
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
+        if out is None:
+            out = _np.array(
+                self._forward_fn(self._params, x).reshape(x.shape[0],),
+                dtype=_np.complex128,
+            )
+        else:
+            out[:] = _np.array(
+                self._forward_fn(self._params, x).reshape(x.shape[0],),
+                dtype=_np.complex128,
+            )
+        return out
+
+    @property
+    def jax_forward(self):
+        return self._forward_fn
+
+    def der_log(self, x, out=None):
+        if x.ndim != 2:
+            raise RuntimeError("Invalid input shape, expected a 2d array")
+
+        out = self._perex_grads(self._params, x)
+
+        return out
+
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
+        r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
+        batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
+
+        Args:
+             x: a matrix of `float64` of shape `(*, self.n_visible)`.
+             vec: a `complex128` vector used to compute the inner product with the jacobian.
+             out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+             conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+             return_jacobian (bool): If true, the Jacobian is explicitely computed and returned.
+
+
+        Returns:
+             `out` only or (out,jacobian) if return_jacobian is True
+        """
+        if not return_jacobian:
+            vals, f_jvp = jax.vjp(
+                self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
+            )
+
+            pout = f_jvp(vec.reshape(vals.shape).conjugate())
+
+            if conjugate and self._dtype is complex:
+                out = tree_map(jax.numpy.conjugate, pout[0])
+
+            return out
+        else:
+            if conjugate and self._dtype is complex:
+                prodj = lambda j: jax.np.tensordot(vec, j.conjugate(), axes=vec.ndim)
+            else:
+                prodj = lambda j: jax.np.tensordot(vec.conjugate(), j, axes=vec.ndim)
+
+            jacobian = self._perex_grads(self._params, x)
+            out = tree_map(prodj, jacobian)
+            return out, jacobian
+
+    @property
+    def is_holomorphic(self):
+        return self._dtype is complex
+
+    @property
     def state_dict(self):
         state = []
         for i, layer in enumerate(self._params):
             for j, p in enumerate(layer):
-                state.append((str((i, j)), np.asarray(p).view()))
+                state.append((str((i, j)), p))
         return OrderedDict(state)
 
-    def load_state_dict(self, other):
-        state = []
-        for i, layer in enumerate(self._params):
-            layer_state = ()
-            for j, p in enumerate(layer):
-                name = str((i, j))
-                if name not in other:
-                    raise ValueError(
-                        "state is missing required field {!r}".format(name)
-                    )
-                value = other[name]
-                if p.shape != value.shape:
-                    raise ValueError(
-                        "field {!r} has wrong shape: {}; expected {}".format(
-                            value.shape, p.shape
-                        )
-                    )
-                layer_state += (value,)
-            state.append(layer_state)
-        self._params = state
+    @property
+    def parameters(self):
+        return self._params
 
-    def save(self, filename):
-        with open(filename, "wb") as output:
-            dump(self.state_dict(), output)
+    @parameters.setter
+    def parameters(self, p):
+        self._params = p
+        npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
 
-    def load(self, filename):
-        with open(filename, "rb") as input:
-            self.load_state_dict(load(input))
+        assert npar == self._npar
+
+    def numpy_flatten(self, data):
+        r"""Returns a flattened numpy array representing the given data.
+            This is typically used to serialize parameters and gradients.
+
+        Args:
+             data: a (possibly non-flat) structure containing jax arrays.
+
+        Returns:
+             numpy.ndarray: a one-dimensional array containing a copy of data
+        """
+        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
+
+    def numpy_unflatten(self, data, shape_like):
+        r"""Attempts a deserialization of the given numpy data.
+            This is typically used to deserialize parameters and gradients.
+
+        Args:
+             data: a 1d numpy array.
+             shape_like: this as in instance having the same type and shape of
+                         the desired conversion.
+
+        Returns:
+             A possibly non-flat structure of jax arrays containing a copy of data
+             compatible with the given shape.
+        """
+        shf, tree = tree_flatten(shape_like)
+
+        datalist = []
+        k = 0
+        for s in shf:
+            size = s.size
+            datalist.append(jax.numpy.asarray(data[k : k + size]).reshape(s.shape))
+            k += size
+
+        return tree_unflatten(tree, datalist)
+
+
+from jax.experimental import stax
+from jax.experimental.stax import Dense
+
+
+def SumLayer():
+    def init_fun(rng, input_shape):
+        output_shape = (-1, 1)
+        return output_shape, ()
+
+    @jax.jit
+    def apply_fun(params, inputs, **kwargs):
+        return inputs.sum(axis=-1)
+
+    return init_fun, apply_fun
+
+
+@jax.jit
+def logcosh(x):
+    x = x * jax.numpy.sign(x.real)
+    return x + jax.numpy.log(1.0 + jax.numpy.exp(-2.0 * x)) - jax.numpy.log(2.0)
+
+
+LogCoshLayer = stax.elementwise(logcosh)
+
+
+def JaxRbm(hilbert, alpha, dtype=complex):
+    return Jax(
+        hilbert,
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+        dtype=dtype,
+    )

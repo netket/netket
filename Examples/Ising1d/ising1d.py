@@ -27,8 +27,9 @@ ha = nk.operator.Ising(h=1.0, hilbert=hi)
 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(ma, n_chains=32)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
@@ -37,13 +38,7 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 sr = nk.optimizer.SR(diag_shift=0.1)
 
 # Create the optimization driver
-gs = nk.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    sr=sr,
-)
+gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out="test")

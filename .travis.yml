@@ -27,6 +27,7 @@ matrix:
             - 'ninja-build'
             - 'g++-7'
             - 'libopenmpi-dev'
+            - 'openmpi-bin'
 
     # Modern toolsets
     - os: linux
@@ -44,6 +45,7 @@ matrix:
             - 'g++-9'
             - 'libomp-dev'
             - 'libmpich-dev'
+            - 'mpich'
             - 'libopenblas-dev'
 
     - os: linux
@@ -58,6 +60,7 @@ matrix:
             - 'ninja-build'
             - 'g++-9'
             - 'libopenmpi-dev'
+            - 'openmpi-bin'
             - 'libopenblas-dev'
 
 before_install:
@@ -112,12 +115,11 @@ install:
   - python -m pip install -U pip
   - python -m pip --version
   - python -m easy_install -U setuptools
-  - python -m pip install numpy scipy networkx pytest python-igraph jax jaxlib
+  - python -m pip install numpy scipy networkx 'pytest==5.3' python-igraph jax jaxlib black
   - |
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
     fi
-  - python -m pip install -U pytest
   - python -m pip install pytest-xdist
   - python -m pytest --version
   - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
@@ -127,4 +129,8 @@ script:
   - python -c 'import netket'
   - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
+  - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
+  - python -m black --check ../netket/
+  - python -m black --check ../Test ../Test_MPI
+  - python -m black --check ../Examples ../Benchmarks
   # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/

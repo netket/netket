@@ -37,8 +37,7 @@ py_ma.parameters = ma.parameters
 # Metropolis Local Sampling
 batch_size = 32
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=batch_size)
-py_sa = nk.sampler.MetropolisLocal(
-    machine=py_ma, n_chains=batch_size)
+py_sa = nk.sampler.MetropolisLocal(machine=py_ma, n_chains=batch_size)
 
 n_samples = 500
 samples = np.zeros((n_samples, sa.sample_shape[0], sa.sample_shape[1]))

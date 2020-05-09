@@ -1,17 +1,16 @@
 import numpy as _np
 from .abstract_sampler import AbstractSampler
 
-from .._C_netket import sampler as c_sampler
-from .._C_netket.utils import random_engine
 from ..stats import mean as _mean
 
 from netket import random as _random
+import math
 
 from numba import jit, int64, float64
 from .._jitclass import jitclass
 
 
-class PyMetropolisHastings(AbstractSampler):
+class MetropolisHastings(AbstractSampler):
     """
     ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
     a local transition kernel to perform moves in the Markov Chain.
@@ -86,6 +85,8 @@ class PyMetropolisHastings(AbstractSampler):
 
     @machine_pow.setter
     def machine_pow(self, m_power):
+        if not _np.isscalar(m_power):
+            raise ValueError("machine_pow should be a scalar.")
         self._machine_pow = m_power
 
     @property
@@ -111,8 +112,8 @@ class PyMetropolisHastings(AbstractSampler):
     def reset(self, init_random=False):
         if init_random:
             for state in self._state:
-                self._hilbert.random_vals(state, random_engine())
-        self.machine.log_val(self._state, out=self._log_values)
+                self._hilbert.random_vals(out=state)
+        self._log_values = self.machine.log_val(self._state, out=self._log_values)
 
         self._accepted_samples = 0
         self._total_samples = 0
@@ -126,9 +127,9 @@ class PyMetropolisHastings(AbstractSampler):
 
         for i in range(state.shape[0]):
             prob = _np.exp(
-                machine_pow *
-                (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
+                machine_pow * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
             )
+            assert not math.isnan(prob)
 
             if prob > _random.uniform(0, 1):
                 log_values[i] = log_values_1[i]
@@ -147,18 +148,19 @@ class PyMetropolisHastings(AbstractSampler):
         _log_values_1 = self._log_values_1
         _log_prob_corr = self._log_prob_corr
         _machine_pow = self._machine_pow
-        _accepted_samples = self._accepted_samples
         _t_kernel = self._kernel.apply
+
+        accepted = 0
 
         for sweep in range(self.sweep_size):
 
             # Propose a new state using the transition kernel
             _t_kernel(_state, _state1, _log_prob_corr)
 
-            _log_val(_state1, out=_log_values_1)
+            _log_values_1 = _log_val(_state1, out=_log_values_1)
 
             # Acceptance Kernel
-            acc = _acc_kernel(
+            accepted += _acc_kernel(
                 _state,
                 _state1,
                 _log_values,
@@ -167,9 +169,8 @@ class PyMetropolisHastings(AbstractSampler):
                 _machine_pow,
             )
 
-            _accepted_samples += acc
-
         self._total_samples += self.sweep_size * self.n_chains
+        self._accepted_samples += accepted
 
         return self._state
 

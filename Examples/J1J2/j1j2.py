@@ -33,11 +33,11 @@ for i in range(L):
 
     for d in [0, 1]:
         # \sum_i J*sigma^z(i)*sigma^z(i+d)
-        mats.append((J[d] * mszsz).tolist())
+        mats.append((J[d] * mszsz))
         sites.append([i, (i + d + 1) % L])
 
         # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        mats.append(((-1.0) ** (d + 1) * J[d] * exchange).tolist())
+        mats.append(((-1.0) ** (d + 1) * J[d] * exchange))
         sites.append([i, (i + d + 1) % L])
 
 # Custom Graph
@@ -47,30 +47,32 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
 
 # Custom Hamiltonian operator
-op = nk.operator.LocalOperator(hi)
+ha = nk.operator.LocalOperator(hi)
 for mat, site in zip(mats, sites):
-    op += nk.operator.LocalOperator(hi, mat, site)
+    ha += nk.operator.LocalOperator(hi, mat, site)
 
 # Restricted Boltzmann Machine
-ma = nk.machine.RbmSpin(hi, alpha=1)
+ma = nk.machine.RbmSpin(hi, alpha=1, symmetry=True)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
-# Sampler
-sa = nk.sampler.MetropolisHamiltonianPt(machine=ma, hamiltonian=op, n_replicas=16)
+# Exchange Sampler randomly exchange up to next-to-nearest neighbours
+sa = nk.sampler.MetropolisExchange(machine=ma, n_chains=16, d_max=2)
 
 # Optimizer
-opt = nk.optimizer.Sgd(learning_rate=0.01)
+opt = nk.optimizer.Sgd(learning_rate=0.02)
+
+# Stochastic reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.1)
+
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
 
 # Stochastic Reconfiguration
 sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
 
 # Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=op,
-    sampler=sa,
-    optimizer=opt,
-    sr=sr,
-    n_samples=1000,
+    hamiltonian=op, sampler=sa, optimizer=opt, sr=sr, n_samples=4000, n_discard=5
 )
 
-gs.run(n_iter=10000, out="test")
+vmc.run(n_iter=300, out="test")

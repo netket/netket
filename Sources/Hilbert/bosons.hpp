@@ -47,6 +47,8 @@ class Boson : public AbstractHilbert {
                   nonstd::span<const int> tochange,
                   nonstd::span<const double> newconf) const override;
 
+  int NMax() const { return nmax_; }
+
  private:
   void Init();
   inline void SetNbosons(int nbosons);

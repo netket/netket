@@ -5,17 +5,20 @@ import json
 plt.ion()
 
 
-# U=1 N=10
-# exact=-16.17945609
+# U=1 L=4 N=4
+# exact = -6.64569337
 
-# U=4 N=10
-# exact=-9.23881058
+# U=4 L=4 N=4
+# exact = -3.97392265
 
-# U=10 N=10
-# exact=-3.95910804
+# U=4 L=4 N=8
+# exact = 7.54356642
 
-# U=4 N=12
-exact = -11.03872267
+# U=4 L=6 N=6
+# exact = -5.68371178
+
+# U=4 L=8 N=8
+exact = -7.4500453
 
 while True:
     plt.clf()
@@ -38,8 +41,8 @@ while True:
     cut = 100
     if nres > cut:
 
-        fitx = iters[-cut:-1]
-        fity = energy[-cut:-1]
+        fitx = iters[-cut // 2 : -1]
+        fity = energy[-cut // 2 : -1]
         z = np.polyfit(fitx, fity, deg=0)
         p = np.poly1d(z)
 

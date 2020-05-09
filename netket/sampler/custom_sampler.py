@@ -1,13 +1,93 @@
 import numpy as _np
 from netket import random as _random
 
-from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import *
-from .._C_netket import sampler as c_sampler
+from .metropolis_hastings import MetropolisHastings
+from .metropolis_hastings_pt import MetropolisHastingsPt
+
+from numba import jit
 
 
-class CustomSampler(AbstractSampler):
-    """
+class _custom_local_kernel:
+    def __init__(self, move_operators, move_weights=None):
+
+        self._rand_op_n = _np.empty(1, dtype=_np.intp)
+        self._sections = _np.empty(1, dtype=_np.intp)
+        self._x_prime = _np.empty(1)
+        self._mels = _np.empty(1)
+        self._get_conn = move_operators.get_conn_filtered
+        self._n_operators = move_operators.n_operators
+
+        if move_weights is None:
+            self._move_weights = _np.ones(self._n_operators, dtype=_np.float64)
+        else:
+            self._move_weights = _np.asarray(move_weights, dtype=_np.float64)
+
+        self._check_operators(move_operators.operators)
+
+        # Check move weights
+        if self._move_weights.shape != (self._n_operators,):
+            raise ValueError("move_weights have the wrong shape")
+        if self._move_weights.min() < 0:
+            raise ValueError("move_weights must be positive")
+
+        # normalize the probabilities and compute the cumulative
+        self._move_weights /= self._move_weights.sum()
+        self._move_cumulative = _np.cumsum(self._move_weights)
+
+    def _check_operators(self, operators):
+        for op in operators:
+            assert op.imag.max() < 1.0e-10
+            assert op.min() >= 0
+            assert _np.allclose(op.sum(axis=0), 1.0)
+            assert _np.allclose(op.sum(axis=1), 1.0)
+            assert _np.allclose(op, op.T)
+
+    def apply(self, state, state_1, log_prob_corr):
+
+        self._rand_op_n, self._sections = self._pick_random_and_init(
+            state.shape[0], self._move_cumulative, self._rand_op_n, self._sections
+        )
+
+        self._x_prime, self._mels = self._get_conn(
+            state, self._sections, self._rand_op_n
+        )
+
+        self._choose_and_return(
+            state_1, self._x_prime, self._mels, self._sections, log_prob_corr
+        )
+
+    @staticmethod
+    @jit(nopython=True)
+    def _pick_random_and_init(batch_size, move_cumulative, out, sections):
+
+        if out.size != batch_size:
+            out = _np.empty(batch_size, dtype=out.dtype)
+            sections = _np.empty(batch_size, dtype=out.dtype)
+
+        for i in range(batch_size):
+            p = _random.uniform()
+            out[i] = _np.searchsorted(move_cumulative, p)
+        return out, sections
+
+    @staticmethod
+    @jit(nopython=True)
+    def _choose_and_return(state_1, x_prime, mels, sections, log_prob_corr):
+        low = 0
+        for i in range(state_1.shape[0]):
+            p = _random.uniform()
+            exit_state = 0
+            cumulative_prob = mels[low].real
+            while p > cumulative_prob:
+                exit_state += 1
+                cumulative_prob += mels[low + exit_state].real
+            state_1[i] = x_prime[low + exit_state]
+            low = sections[i]
+
+        log_prob_corr.fill(0.0)
+
+
+class CustomSampler(MetropolisHastings):
+    r"""
     Custom Sampler, where transition operators are specified by the user.
     For the moment, this functionality is limited to transition operators which
     are sums of :math:`k`-local operators:
@@ -43,7 +123,7 @@ class CustomSampler(AbstractSampler):
         sweep_size=None,
         batch_size=None,
     ):
-        """
+        r"""
         Args:
            machine: A machine :math:`\Psi(s)` used for the sampling.
                   The probability distribution being sampled
@@ -74,46 +154,16 @@ class CustomSampler(AbstractSampler):
            >>> move_op = nk.operator.LocalOperator(hilbert=hi,operators=[X] * g.n_sites,acting_on=[[i] for i in range(g.n_sites)])
            >>> sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
         """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.CustomSampler(
-                machine=machine,
-                move_operators=move_operators,
-                move_weights=move_weights,
-                n_chains=n_chains,
-                sweep_size=sweep_size,
-                batch_size=batch_size,
-            )
-        else:
-            self.sampler = PyMetropolisHastings(
-                machine,
-                c_sampler.CustomLocalKernel(move_operators, move_weights),
-                n_chains,
-                sweep_size,
-                batch_size,
-            )
-        super().__init__(machine, n_chains)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+        super().__init__(
+            machine,
+            _custom_local_kernel(move_operators, move_weights),
+            n_chains,
+            sweep_size,
+            batch_size,
+        )
 
 
-class CustomSamplerPt(AbstractSampler):
+class CustomSamplerPt(MetropolisHastingsPt):
     """
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `CustomSampler`.
@@ -121,9 +171,15 @@ class CustomSamplerPt(AbstractSampler):
     """
 
     def __init__(
-        self, machine, move_operators, move_weights=None, n_replicas=16, sweep_size=None
+        self,
+        machine,
+        move_operators,
+        move_weights=None,
+        n_replicas=16,
+        sweep_size=None,
+        batch_size=None,
     ):
-        """
+        r"""
         Args:
           machine: A machine :math:`\Psi(s)` used for the sampling.
                    The probability distribution being sampled
@@ -137,36 +193,10 @@ class CustomSamplerPt(AbstractSampler):
           sweep_size: The number of exchanges that compose a single sweep.
                       If None, sweep_size is equal to the number of degrees of freedom (n_visible).
         """
-        if "_C_netket.machine" in str(type(machine)):
-            self.sampler = c_sampler.CustomSamplerPt(
-                machine=machine,
-                move_operators=move_operators,
-                move_weights=move_weights,
-                n_replicas=n_replicas,
-                sweep_size=sweep_size,
-            )
-        else:
-            raise ValueError(
-                """Parallel Tempering samplers are not yet implemented
-                            for pure python machines"""
-            )
-        super().__init__(machine, 1)
-
-    def reset(self, init_random=False):
-        self.sampler.reset(init_random)
-
-    def __next__(self):
-        return self.sampler.__next__()
-
-    @property
-    def machine_pow(self):
-        return self.sampler.machine_pow
-
-    @machine_pow.setter
-    def machine_pow(self, m_pow):
-        self.sampler.machine_pow = m_pow
-
-    @property
-    def acceptance(self):
-        """The measured acceptance probability."""
-        return self.sampler.acceptance
+        super().__init__(
+            machine,
+            _custom_local_kernel(move_operators, move_weights),
+            n_replicas,
+            sweep_size,
+            batch_size,
+        )

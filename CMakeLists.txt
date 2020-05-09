@@ -273,31 +273,11 @@ set(NETKET_SOURCES
     Sources/Hilbert/custom_hilbert.cc
     Sources/Hilbert/py_hilbert.cc
     Sources/Machine/abstract_machine.cc
-    Sources/Machine/jastrow.cc
-    Sources/Machine/jastrow_symm.cc
     Sources/Machine/mps_periodic.cc
-    Sources/Machine/rbm_multival.cc
-    Sources/Machine/rbm_spin.cc
-    Sources/Machine/rbm_spin_phase.cc
-    Sources/Machine/rbm_spin_real.cc
-    Sources/Machine/rbm_spin_symm.cc
     Sources/Machine/py_machine.cc
     Sources/Machine/DensityMatrices/abstract_density_matrix.cc
-    Sources/Operator/abstract_operator.cc
-    Sources/Operator/pauli_strings.cc
-    Sources/Operator/graph_operator.cc
-    Sources/Optimizer/stochastic_reconfiguration.cc
-    Sources/Sampler/metropolis_hastings.cc
-    Sources/Sampler/metropolis_hastings_pt.cc
-    Sources/Sampler/custom_local_kernel.cc
-    Sources/Sampler/exchange_kernel.cc
-    Sources/Sampler/hamiltonian_kernel.cc
-    Sources/Sampler/hop_kernel.cc
-    Sources/Sampler/local_kernel.cc
     Sources/Stats/mc_stats.cc
     Sources/Stats/py_stats.cc
-    Sources/Optimizer/stochastic_reconfiguration.cc
-    Sources/Optimizer/py_stochastic_reconfiguration.cc
     Sources/Utils/json_utils.cc
     Sources/Utils/log_cosh.cc
     Sources/Utils/exceptions.cc
@@ -307,8 +287,6 @@ set(NETKET_SOURCES
     Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
     Sources/Machine/DensityMatrices/py_density_matrix.cc
-    Sources/Operator/local_liouvillian.cc
-    Sources/Operator/py_local_liouvillian.cc
     Sources/Graph/doubled_graph.cc
     Sources/Hilbert/doubled_hilbert.cc)
 

@@ -50,7 +50,7 @@ edges = [
 g = nk.graph.CustomGraph(edges=edges)
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 ha = nk.operator.GraphOperator(
-    hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0]
+    hi, site_ops=[sigmax], bond_ops=[mszsz], bond_ops_colors=[0]
 )
 operators["Graph Hamiltonian"] = ha
 
@@ -83,8 +83,6 @@ operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 
-rg = nk.utils.RandomEngine(seed=1234)
-
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
@@ -97,7 +95,7 @@ def test_produce_elements_in_hilbert():
         local_states = hi.local_states
 
         for i in range(1000):
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
 
             rstatet, _ = ha.get_conn(rstate)
 
@@ -115,7 +113,7 @@ def test_operator_is_hermitean():
         local_states = hi.local_states
 
         for i in range(100):
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
             rstatet, mels = ha.get_conn(rstate)
 
             for k, state in enumerate(rstatet):

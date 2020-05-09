@@ -156,17 +156,21 @@ class CMakeBuild(build_ext):
 
 setup(
     name="netket",
-    version="2.1.1",
+    version="3.0",
     author="Giuseppe Carleo et al.",
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
     packages=[
         "netket",
+        "netket.hilbert",
+        "netket.logging",
         "netket.machine",
         "netket.sampler",
+        "netket.sampler.jax",
+        "netket.stats",
         "netket.operator",
-        "netket.logging",
+        "netket.optimizer",
     ],
     ext_modules=[CMakeExtension("netket._C_netket")],
     long_description="""NetKet is an open - source project delivering cutting - edge
@@ -183,4 +187,7 @@ setup(
         "numba>=0.48.0",
     ],
     python_requires=">=3.6",
+    extras_require={
+        "dev": ["pytest", "networkx", "python-igraph", "pre-commit", "black"],
+    },
 )

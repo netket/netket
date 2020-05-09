@@ -10,6 +10,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+netket.egg-info/
 
 # Packages #
 ############

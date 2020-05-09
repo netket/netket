@@ -2,7 +2,7 @@
 <img src="https://www.netket.org/_static/logo_simple.jpg" alt="logo" width="400"></img>
 </div>
 
-# __NetKet__ 
+# __NetKet__
 
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/installer/conda.svg)](https://conda.anaconda.org/conda-forge)
@@ -11,6 +11,7 @@
 [![Paper](https://img.shields.io/badge/paper-arXiv%3A1904.00031-B31B1B.svg)](https://arxiv.org/abs/1904.00031)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/v.2.0)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
@@ -20,7 +21,7 @@ It is a Python library built on C++ primitives.
 - **Citing:** <https://www.netket.org/citing>
 - **Documentation:** <https://netket.org/documentation>
 - **Tutorials:** <https://www.netket.org/tutorials>
-- **Examples:** <https://github.com/netket/netket/tree/master/Examples> 
+- **Examples:** <https://github.com/netket/netket/tree/master/Examples>
 - **Source code:** <https://github.com/netket/netket>
 
 ## Installation and Usage
