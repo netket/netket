@@ -52,6 +52,8 @@ class Graph(AbstractGraph):
             )
 
         self.graph = _nx.MultiGraph()
+        nodes = _np.sort(_np.unique(edges_array[:, :2]))
+        self.graph.add_nodes_from(nodes)
         self.graph.add_edges_from(edges_array)
         self._automorphisms = None
 
@@ -103,7 +105,9 @@ class Graph(AbstractGraph):
         if self._automorphisms:
             return self._automorphisms
         else:
-            aux_graph = _nx.Graph(self.edges())
+            aux_graph = _nx.Graph()
+            aux_graph.add_nodes_from(self.graph.nodes())
+            aux_graph.add_edges_from(self.edges())
             ismags = _nx.isomorphism.GraphMatcher(aux_graph, aux_graph)
             _automorphisms = [
                 [iso[i] for i in aux_graph.nodes()]
