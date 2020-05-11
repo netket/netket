@@ -22,6 +22,7 @@ import numpy as _np
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
+
 class Jax(AbstractMachine):
     def __init__(self, hilbert, module, dtype=complex):
         """
@@ -54,7 +55,7 @@ class Jax(AbstractMachine):
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
         grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
-        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None,0)))
+        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
         self.init_random_parameters()
 
@@ -152,15 +153,18 @@ class Jax(AbstractMachine):
         else:
 
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.np.tensordot(vec.transpose(), j.conjugate(), axes=1)
+                prodj = lambda j: jax.np.tensordot(
+                    vec.transpose(), j.conjugate(), axes=1
+                )
             else:
-                prodj = lambda j: jax.np.tensordot(vec.transpose().conjugate(), j, axes=1)
+                prodj = lambda j: jax.np.tensordot(
+                    vec.transpose().conjugate(), j, axes=1
+                )
 
             jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
-            
-            return out, jacobian
 
+            return out, jacobian
 
     @property
     def is_holomorphic(self):
@@ -222,6 +226,7 @@ class Jax(AbstractMachine):
 
         return tree_unflatten(tree, datalist)
 
+
 from jax.experimental import stax
 from jax.experimental.stax import Dense
 
@@ -246,10 +251,10 @@ def logcosh(x):
 
 LogCoshLayer = stax.elementwise(logcosh)
 
+
 def JaxRbm(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size),LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
         dtype=dtype,
     )
-
