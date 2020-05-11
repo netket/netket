@@ -65,6 +65,11 @@ class JaxSR:
             else:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
+        if self._use_iterative and self._svd_threshold is not None:
+            raise ValueError(
+                "The svd_threshold option is available only for non-sparse solvers."
+            )
+
     def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -112,7 +117,10 @@ class JaxSR:
                 if self._lsq_solver == "Cholesky":
                     c, low = cho_factor(self._S, check_finite=False)
                     out = cho_solve((c, low), grad)
-                if self._lsq_solver in ["QR", "ColPivHouseholder"]:
+                if (
+                    self._lsq_solver in ["QR", "ColPivHouseholder"]
+                    or self._lsq_solver == None
+                ):
                     Q, R = qr(self._S)
                     grad = jax.numpy.matmul(Q.transpose().conjugate(), grad)
                     out = solve_triangular(R, grad)
@@ -139,7 +147,10 @@ class JaxSR:
                 if self._lsq_solver == "Cholesky":
                     c, low = cho_factor(self._S.real, check_finite=False)
                     out = cho_solve((c, low), grad.real)
-                if self._lsq_solver in ["QR", "ColPivHouseholder"]:
+                if (
+                    self._lsq_solver in ["QR", "ColPivHouseholder"]
+                    or self._lsq_solver == None
+                ):
                     Q, R = qr(self._S.real)
                     grad = jax.numpy.matmul(Q.transpose().conjugate(), grad.real)
                     out = solve_triangular(R, grad)
