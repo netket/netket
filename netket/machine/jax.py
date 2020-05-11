@@ -22,7 +22,6 @@ import numpy as _np
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
-
 class Jax(AbstractMachine):
     def __init__(self, hilbert, module, dtype=complex):
         """
@@ -152,18 +151,16 @@ class Jax(AbstractMachine):
 
         else:
 
-            vals, f_jvp = jax.vjp(
-                self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
-            )
-
-            pout = f_jvp(vec.reshape(vals.shape).conjugate())
-
             if conjugate and self._dtype is complex:
-                out = tree_map(jax.numpy.conjugate, pout[0])
+                prodj = lambda j: jax.np.tensordot(vec.transpose(), j.conjugate(), axes=1)
+            else:
+                prodj = lambda j: jax.np.tensordot(vec.transpose().conjugate(), j, axes=1)
 
             jacobian = self._perex_grads(self._params, x)
-
+            out = tree_map(prodj, jacobian)
+            
             return out, jacobian
+
 
     @property
     def is_holomorphic(self):
