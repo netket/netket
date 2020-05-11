@@ -4,7 +4,7 @@ from scipy.linalg import lstsq as _lstsq
 from scipy.linalg import cho_factor as _cho_factor
 from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
-from netket.stats import (sum_inplace as _sum_inplace, mean as  _mean)
+from netket.stats import sum_inplace as _sum_inplace, mean as _mean
 from scipy.sparse.linalg import cg, gmres, minres
 from mpi4py import MPI
 
@@ -107,7 +107,7 @@ class SR:
             out: Output array for the update ẋ.
         """
 
-        oks -= _mean(oks,axis=0)
+        oks -= _mean(oks, axis=0)
 
         if self.is_holomorphic is None:
             raise ValueError(
