@@ -12,9 +12,6 @@ from netket.stats import (
 from netket.vmc_common import info, tree_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
 
-from netket.utils import jax_available
-if jax_available:
-    from netket.vmc_common import shape_for_sr, shape_for_update
 
 class Vmc(AbstractVariationalDriver):
     """
@@ -65,6 +62,7 @@ class Vmc(AbstractVariationalDriver):
         self._sr = sr
         if sr is not None:
             self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.machine = sampler.machine
 
         self._npar = self._machine.n_par
 
@@ -150,11 +148,8 @@ class Vmc(AbstractVariationalDriver):
             )
             
             self._grads = tree_map(_sum_inplace, self._grads)
-            self._grads, self._jac = shape_for_sr(self._grads,self._jac)
-            
-            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
-            self._dp = shape_for_update(self._dp,self._machine.parameters) 
+            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
         else:
             # Computing updates using the simple gradient
