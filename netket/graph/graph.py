@@ -74,7 +74,7 @@ class NetworkX(AbstractGraph):
         if colors.size >= 2:
             return NotImplementedError
 
-        if self._automorphisms:
+        if self._automorphisms is not None:
             return self._automorphisms
         else:
             aux_graph = _nx.Graph()
@@ -163,4 +163,3 @@ def Edgeless(nodes):
     edgelessgraph = _nx.MultiGraph()
     edgelessgraph.add_nodes_from(nodes)
     return NetworkX(edgelessgraph)
-
