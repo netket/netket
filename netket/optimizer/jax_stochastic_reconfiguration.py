@@ -5,7 +5,8 @@ from mpi4py import MPI
 import jax
 from jax.scipy.sparse.linalg import cg
 from netket.vmc_common import shape_for_sr, shape_for_update
-from jax.scipy.linalg import cho_factor,  cho_solve, svd, qr, solve_triangular
+from jax.scipy.linalg import cho_factor, cho_solve, svd, qr, solve_triangular
+
 
 class JaxSR:
     r"""
@@ -48,7 +49,7 @@ class JaxSR:
     def _init_solver(self):
         lsq_solver = self._lsq_solver
 
-        if lsq_solver in ["gmres", "cg", "minres","jaxcg"]:
+        if lsq_solver in ["gmres", "cg", "minres", "jaxcg"]:
             self._use_iterative = True
         if lsq_solver in ["ColPivHouseholder", "QR", "SVD", "Cholesky"]:
             self._use_iterative = False
@@ -56,10 +57,10 @@ class JaxSR:
         if self._use_iterative:
             if lsq_solver is None or lsq_solver == "cg":
                 self._lsq_solver = "cg"
-            elif lsq_solver in ["gmres","minres"]:
+            elif lsq_solver in ["gmres", "minres"]:
                 raise Warning(
                     "Conjugate gradient is the only sparse solver currently implemented in Jax. Defaulting to cg"
-                    )
+                )
                 self._lsq_solver = "cg"
             else:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
@@ -80,9 +81,9 @@ class JaxSR:
             out: A pytree of the parameter updates
         """
 
-        grad, oks = shape_for_sr(grad,oks)    
-        
-        oks -= jax.numpy.mean(oks,axis=0)
+        grad, oks = shape_for_sr(grad, oks)
+
+        oks -= jax.numpy.mean(oks, axis=0)
 
         if self.is_holomorphic is None:
             raise ValueError(
@@ -99,7 +100,7 @@ class JaxSR:
         if self._is_holomorphic:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
-                    out = self._jax_cg_solve(oks,grad,n_samp)
+                    out = self._jax_cg_solve(oks, grad, n_samp)
                 self._x0 = out
             else:
                 self._S = jax.numpy.matmul(oks.conj().T, oks)
@@ -107,27 +108,26 @@ class JaxSR:
                 self._S /= float(n_samp)
 
                 self._apply_preconditioning(grad)
-                
+
                 if self._lsq_solver == "Cholesky":
                     c, low = cho_factor(self._S, check_finite=False)
                     out = cho_solve((c, low), grad)
-                if self._lsq_solver in ["QR","ColPivHouseholder"]:
+                if self._lsq_solver in ["QR", "ColPivHouseholder"]:
                     Q, R = qr(self._S)
-                    grad = jax.numpy.matmul(Q.transpose().conjugate(),grad)
-                    out = solve_triangular(R,grad)
+                    grad = jax.numpy.matmul(Q.transpose().conjugate(), grad)
+                    out = solve_triangular(R, grad)
                 if self._lsq_solver == "SVD":
                     U, S, V = svd(self._S)
-                    grad = jax.numpy.matmul(U.transpose().conjugate(),grad)/S 
-                    out = jax.numpy.matmul(V.transpose().conjugate(),grad)
+                    grad = jax.numpy.matmul(U.transpose().conjugate(), grad) / S
+                    out = jax.numpy.matmul(V.transpose().conjugate(), grad)
 
                 self._revert_preconditioning(out)
-
 
         else:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
-                    out = self._jax_cg_solve(oks,grad.real,n_samp)     
-                self._x0 = jax.numpy.real(out)  
+                    out = self._jax_cg_solve(oks, grad.real, n_samp)
+                self._x0 = jax.numpy.real(out)
 
             else:
                 self._S = jax.numpy.matmul(oks.conj().T, oks)
@@ -139,28 +139,26 @@ class JaxSR:
                 if self._lsq_solver == "Cholesky":
                     c, low = cho_factor(self._S.real, check_finite=False)
                     out = cho_solve((c, low), grad.real)
-                if self._lsq_solver in ["QR","ColPivHouseholder"]:
+                if self._lsq_solver in ["QR", "ColPivHouseholder"]:
                     Q, R = qr(self._S.real)
-                    grad = jax.numpy.matmul(Q.transpose().conjugate(),grad.real)
-                    out = solve_triangular(R,grad)
+                    grad = jax.numpy.matmul(Q.transpose().conjugate(), grad.real)
+                    out = solve_triangular(R, grad)
                 if self._lsq_solver == "SVD":
                     U, S, V = svd(self._S.real)
-                    grad = jax.numpy.matmul(U.transpose().conjugate(),grad.real)/S 
-                    out = jax.numpy.matmul(V.transpose().conjugate(),grad)
-
+                    grad = jax.numpy.matmul(U.transpose().conjugate(), grad.real) / S
+                    out = jax.numpy.matmul(V.transpose().conjugate(), grad)
 
                 self._revert_preconditioning(out)
- 
+
             out = jax.numpy.real(out)
 
-
-        out = shape_for_update(out,self.machine.parameters) 
+        out = shape_for_update(out, self.machine.parameters)
 
         self._comm.bcast(out, root=0)
         self._comm.barrier()
         return out
 
-    def _jax_cg_solve(self,oks,grad,n_samp):
+    def _jax_cg_solve(self, oks, grad, n_samp):
         """
         Solves the SR flow equation using the conjugate gradient method 
         """
@@ -169,29 +167,31 @@ class JaxSR:
         if self._x0 is None:
             self._x0 = jax.numpy.zeros(n_par, dtype=jax.numpy.complex128)
 
-        cov_op = self._jax_linear_function(oks,n_samp)
-        
-        out, _ = cg(cov_op,grad,x0=self._x0,tol=self.sparse_tol,maxiter=self.sparse_maxiter)
+        cov_op = self._jax_linear_function(oks, n_samp)
+
+        out, _ = cg(
+            cov_op, grad, x0=self._x0, tol=self.sparse_tol, maxiter=self.sparse_maxiter
+        )
 
         return out
 
-    def _jax_linear_function(self,oks,n_samp):
+    def _jax_linear_function(self, oks, n_samp):
         """
         Outputs function A(x) = Ax needed for conjugate gradient
         """
         v_tilde = self._v_tilde
-        res = self._res_t 
+        res = self._res_t
         shift = self._diag_shift
         oks_conj = oks.conjugate()
 
-        def matvec(oks,oks_conj,x):
-            y = jax.numpy.matmul(oks,x)/n_samp
-            y = jax.numpy.matmul(y,oks_conj) 
-            y = x*shift + y 
+        def matvec(oks, oks_conj, x):
+            y = jax.numpy.matmul(oks, x) / n_samp
+            y = jax.numpy.matmul(y, oks_conj)
+            y = x * shift + y
 
             return y
 
-        return partial(matvec,oks,oks_conj)
+        return partial(matvec, oks, oks_conj)
 
     def _apply_preconditioning(self, grad):
         if self._scale_invariant_pc:
@@ -205,7 +205,7 @@ class JaxSR:
             self._diag_S[index] = 1.0
             self._S[index, :].fill(0.0)
             self._S[:, index].fill(0.0)
-            self._S[range(len(self._S)),range(len(self._S))]
+            self._S[range(len(self._S)), range(len(self._S))]
             self._S /= jax.numpy.vdot(self._diag_S, self._diag_S)
             grad /= self._diag_S
 
