@@ -3,58 +3,28 @@ from abstract_graph import AbstractGraph
 import numpy as _np
 import networkx as _nx
 
-
-class Graph(AbstractGraph):
-    r"""A custom graph, specified by a list of edges and optionally colors."""
-
-    def __init__(self, edges=[]):
+class NetworkX(AbstractGraph):
+    """ Wrapper for a networkx graph"""
+    def __init__(self, graph):
         """
-        Constructs a new graph given a list of edges.
+        Constructs a netket graph from a networkx graph.
 
-        Args:
-            edges: If `edges` has elements of type `Tuple[int, int]` it is treated
-                as a list of edges. Then each element `(i, j)` means a connection
-                between sites `i` and `j`. Also,
-                `edges` should contain no duplicates. If `edges` has elements of
-                type `Tuple[int, int, int]` each element `(i, j, c)` represents an
-                edge between sites `i` and `j` colored into `c`. It is again assumed
-                that there are no duplicate elements in `edges`.
-
-
+        Args: 
+            graph: A networkx graph (might be a networkx.Graph or a networkx.MultiGraph)
         Examples:
-            A 10-site one-dimensional lattice with periodic boundary conditions can be
-            constructed specifying the edges as follows:
-
+            A graph of nodes [0,1,2] with edges [(0,1), (0,2), (1,2)]
             >>> import netket
-            >>> g=netket.graph.Graph([[i, (i + 1) % 10] for i in range(10)])
-            >>> print(g.size)
-            10
+            >>> import networkx
+            >>> nx_g = networkx.Graph([(0,1), (0,2), (1,2)])
+            >>> nk_g = netket.graph.NetworkX(nx_g)
+            >>> print(nk_g.n_nodes)
+            3
         """
+        assert isinstance(graph, _nx.classes.graph.Graph) or isinstance(graph, _nx.classes.multigraph.MultiGraph)
 
-        if not isinstance(edges, list):
-            raise TypeError("edges must be a list")
+        if isinstance(graph, _nx.classes.graph.Graph):
+            self.graph = _nx.MultiGraph(graph)
 
-        type_condition = [
-            isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
-        ]
-        if False in type_condition:
-            raise TypeError("edges must be a list of lists or tuples")
-
-        edges_array = _np.array(edges, dtype=_np.int32)
-        if edges_array.ndim != 2:
-            raise TypeError(
-                "edges must be a list of lists or tuples of the same length (2 or 3)"
-            )
-
-        if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
-            raise TypeError(
-                "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
-            )
-
-        self.graph = _nx.MultiGraph()
-        nodes = _np.sort(_np.unique(edges_array[:, :2]))
-        self.graph.add_nodes_from(nodes)
-        self.graph.add_edges_from(edges_array)
         self._automorphisms = None
 
         super().__init__()
@@ -99,6 +69,8 @@ class Graph(AbstractGraph):
         # For the moment, if there are colors, the method returns a NotImplementedError:
         if self.edges():
             colors = _np.unique(_np.array(self.edges(color=True))[:, 2])
+        else:
+            colors = _np.array([])
         if colors.size >= 2:
             return NotImplementedError
 
@@ -115,3 +87,80 @@ class Graph(AbstractGraph):
             ]
             self._automorphisms = _automorphisms
             return _automorphisms
+
+def Graph(nodes=[], edges=[]):
+    """ A Custom Graph provided nodes or edges.
+        Constructs a Custom Graph given a list of nodes and edges.
+        Args:
+            nodes: A list of ints that index nodes of a graph
+            edges: A list of 2- or 3-tuples that denote an edge with an optional color
+
+        The Graph can be constructed specifying only the edges and the nodes will be deduced from the edges.
+
+        Examples:
+            A 10-site one-dimensional lattice with periodic boundary conditions can be
+            constructed specifying the edges as follows:
+
+            >>> import netket
+            >>> g=netket.graph.Graph(edges=[[i, (i + 1) % 10] for i in range(10)])
+            >>> print(g.n_nodes)
+            10
+
+    """
+    if not isinstance(nodes, list):
+        raise TypeError("nodes must be a list")
+
+    if not isinstance(edges, list):
+        raise TypeError("edges must be a list")
+
+    if not edges:
+        return Edgeless(nodes)
+
+    type_condition = [
+        isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
+    ]
+    if False in type_condition:
+        raise TypeError("edges must be a list of lists or tuples")
+
+    edges_array = _np.array(edges, dtype=_np.int32)
+    if edges_array.ndim != 2:
+        raise TypeError(
+            "edges must be a list of lists or tuples of the same length (2 or 3)"
+        )
+
+    if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
+        raise TypeError(
+            "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
+        )
+
+    # Sort node names for ordering reasons:
+    if nodes:
+        node_names = sorted(nodes)
+    else:
+        node_names = sorted(set((node for edge in edges_array for node in edge)))
+
+    graph = _nx.MultiGraph()
+    graph.add_nodes_from(node_names)
+    graph.add_edges_from(edges_array)
+    return NetworkX(graph)
+
+def Edgeless(nodes):
+    """A set graph (collection of unconnected vertices).
+        Args:
+            nodes: A list of ints that index nodes of a graph
+        Example:
+            A 10-site one-dimensional lattice with periodic boundary conditions can be
+            constructed specifying the edges as follows:
+
+            >>> import netket
+            >>> g=netket.graph.Edgeless([0,1,2,3])
+            >>> print(g.n_nodes)
+            4
+    """
+    if not isinstance(nodes, list):
+        raise TypeError("nodes must be a list")
+
+    edgelessgraph = _nx.MultiGraph()
+    edgelessgraph.add_nodes_from(nodes)
+    return NetworkX(edgelessgraph)
+
