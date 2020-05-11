@@ -107,7 +107,7 @@ class SR:
             out: Output array for the update ẋ.
         """
 
-	    oks -= _mean(oks,axis=0)
+        oks -= _mean(oks,axis=0)
 
         if self.is_holomorphic is None:
             raise ValueError(
@@ -140,7 +140,6 @@ class SR:
 
                 self._x0 = out
             else:
-
                 self._S = _np.matmul(oks.conj().T, oks, self._S)
                 self._S = _sum_inplace(self._S)
                 self._S /= float(n_samp)
