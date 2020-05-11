@@ -146,7 +146,7 @@ class Vmc(AbstractVariationalDriver):
             self._grads, self._jac = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
             )
-            
+
             self._grads = tree_map(_sum_inplace, self._grads)
 
             self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
@@ -156,7 +156,7 @@ class Vmc(AbstractVariationalDriver):
             self._grads = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads
             )
-            
+
             self._grads = tree_map(_sum_inplace, self._grads)
 
             self._dp = self._grads
