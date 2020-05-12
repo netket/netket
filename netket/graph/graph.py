@@ -73,7 +73,7 @@ class NetworkX(AbstractGraph):
         if colors.size >= 2:
             raise NotImplementedError
 
-        if self._automorphisms:
+        if self._automorphisms is not None:
             return self._automorphisms
         else:
             aux_graph = _nx.Graph()
