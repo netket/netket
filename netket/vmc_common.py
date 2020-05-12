@@ -18,32 +18,16 @@ def tree_map(fun, tree):
         return fun(tree)
 
 
-import numpy as np
 from netket.utils import jax_available
 
 if jax_available:
+    import jax
     from jax.tree_util import tree_flatten, tree_unflatten, tree_map
     import jax.numpy as jnp
 
-    def shape_for_sr(grads, jac):
-        r"""Reshapes grads and jax from tree like structures to arrays if jax_available 
-
-        Args:
-            grads,jac: pytrees of jax arrays or numpy array
-
-        Returns:
-            A 1D array of gradients and a 2D array of the jacobian
-        """
-
-        grads = jnp.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(grads)[0]))
-        jac = jnp.concatenate(
-            tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
-        )
-
-        return grads, jac
-
-    def shape_for_update(update, shape_like):
-        r"""Reshapes grads from array to tree like structure if neccesary for update 
+    @jax.jit
+    def jax_shape_for_update(update, shape_like):
+        r"""Reshapes grads from array to tree like structure if neccesary for update
 
         Args:
             grads: a 1d jax/numpy array

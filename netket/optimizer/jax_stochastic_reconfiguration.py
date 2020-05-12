@@ -1,11 +1,13 @@
 from functools import partial
 from netket.stats import sum_inplace as _sum_inplace
+from netket.utils import n_nodes
 from mpi4py import MPI
 
 import jax
 from jax.scipy.sparse.linalg import cg
-from netket.vmc_common import shape_for_sr, shape_for_update
-from jax.scipy.linalg import cho_factor, cho_solve, svd, qr, solve_triangular
+from jax.tree_util import tree_flatten
+from netket.vmc_common import jax_shape_for_update
+import jax.numpy as jnp
 
 
 class JaxSR:
@@ -28,14 +30,6 @@ class JaxSR:
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
         self._is_holomorphic = is_holomorphic
-        self._svd_threshold = svd_threshold
-        self._scale_invariant_pc = False
-        self._S = None
-        self._last_rank = None
-
-        # Temporary arrays
-        self._v_tilde = None
-        self._res_t = None
 
         # Quantities for sparse solver
         self.sparse_tol = 1.0e-5 if sparse_tol is None else sparse_tol
@@ -44,7 +38,12 @@ class JaxSR:
         self._x0 = None
         self._init_solver()
 
-        self._comm = MPI.COMM_WORLD
+        # self._comm = MPI.COMM_WORLD
+        if n_nodes > 1:
+            raise NotImplementedError("JaxSR currently works only for serial CPU jobs")
+
+        if not self._use_iterative:
+            raise NotImplementedError("JaxSR supports only iterative solvers")
 
     def _init_solver(self):
         lsq_solver = self._lsq_solver
@@ -65,11 +64,7 @@ class JaxSR:
             else:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
-        if self._use_iterative and self._svd_threshold is not None:
-            raise ValueError(
-                "The svd_threshold option is available only for non-sparse solvers."
-            )
-
+    @partial(jax.jit, static_argnums=(0,))
     def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -86,185 +81,87 @@ class JaxSR:
             out: A pytree of the parameter updates
         """
 
-        grad, oks = shape_for_sr(grad, oks)
+        grad, oks = self.shape_for_sr(grad, oks)
 
-        oks -= jax.numpy.mean(oks, axis=0)
+        oks -= jnp.mean(oks, axis=0)
 
-        if self.is_holomorphic is None:
-            raise ValueError(
-                "is_holomorphic not set: this SR object is not properly initialized."
-            )
+        if self.is_holomorphic is None or self.machine is None:
+            raise ValueError("This SR object is not properly initialized.")
 
-        n_samp = _sum_inplace(jax.numpy.atleast_1d(oks.shape[0]))
+        # n_samp = _sum_inplace(jnp.atleast_1d(oks.shape[0]))
+        n_samp = oks.shape[0]
 
         n_par = grad.shape[0]
 
         if out is None:
-            out = jax.numpy.zeros(n_par, dtype=jax.numpy.complex128)
+            out = jnp.zeros(n_par, dtype=jnp.complex128)
 
         if self._is_holomorphic:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
                     out = self._jax_cg_solve(oks, grad, n_samp)
                 self._x0 = out
-            else:
-                self._S = jax.numpy.matmul(oks.conj().T, oks)
-                self._S = _sum_inplace(self._S)
-                self._S /= float(n_samp)
-
-                self._apply_preconditioning(grad)
-
-                if self._lsq_solver == "Cholesky":
-                    c, low = cho_factor(self._S, check_finite=False)
-                    out = cho_solve((c, low), grad)
-                if (
-                    self._lsq_solver in ["QR", "ColPivHouseholder"]
-                    or self._lsq_solver == None
-                ):
-                    Q, R = qr(self._S)
-                    grad = jax.numpy.matmul(Q.transpose().conjugate(), grad)
-                    out = solve_triangular(R, grad)
-                if self._lsq_solver == "SVD":
-                    U, S, V = svd(self._S)
-                    grad = jax.numpy.matmul(U.transpose().conjugate(), grad) / S
-                    out = jax.numpy.matmul(V.transpose().conjugate(), grad)
-
-                self._revert_preconditioning(out)
-
         else:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
                     out = self._jax_cg_solve(oks, grad.real, n_samp)
-                self._x0 = jax.numpy.real(out)
+                self._x0 = jnp.real(out)
 
-            else:
-                self._S = jax.numpy.matmul(oks.conj().T, oks)
-                self._S = _sum_inplace(self._S)
-                self._S /= float(n_samp)
+            out = out.real
 
-                self._apply_preconditioning(grad)
+        out = jax_shape_for_update(out, self.machine.parameters)
 
-                if self._lsq_solver == "Cholesky":
-                    c, low = cho_factor(self._S.real, check_finite=False)
-                    out = cho_solve((c, low), grad.real)
-                if (
-                    self._lsq_solver in ["QR", "ColPivHouseholder"]
-                    or self._lsq_solver == None
-                ):
-                    Q, R = qr(self._S.real)
-                    grad = jax.numpy.matmul(Q.transpose().conjugate(), grad.real)
-                    out = solve_triangular(R, grad)
-                if self._lsq_solver == "SVD":
-                    U, S, V = svd(self._S.real)
-                    grad = jax.numpy.matmul(U.transpose().conjugate(), grad.real) / S
-                    out = jax.numpy.matmul(V.transpose().conjugate(), grad)
-
-                self._revert_preconditioning(out)
-
-            out = jax.numpy.real(out)
-
-        out = shape_for_update(out, self.machine.parameters)
-
-        self._comm.bcast(out, root=0)
-        self._comm.barrier()
+        # self._comm.bcast(out, root=0)
+        # self._comm.barrier()
         return out
 
+    @partial(jax.jit, static_argnums=(0, 3))
     def _jax_cg_solve(self, oks, grad, n_samp):
         """
-        Solves the SR flow equation using the conjugate gradient method 
+        Solves the SR flow equation using the conjugate gradient method
         """
 
         n_par = grad.shape[0]
         if self._x0 is None:
-            self._x0 = jax.numpy.zeros(n_par, dtype=jax.numpy.complex128)
+            self._x0 = jnp.zeros(n_par, dtype=jnp.complex128)
 
-        cov_op = self._jax_linear_function(oks, n_samp)
+        def mat_vec(x):
+            y = jnp.matmul(oks, x) / n_samp
+            y = jnp.matmul(oks.conjugate().transpose(), y)
+            y = x * self._diag_shift + y
+
+            return y
 
         out, _ = cg(
-            cov_op, grad, x0=self._x0, tol=self.sparse_tol, maxiter=self.sparse_maxiter
+            mat_vec, grad, x0=self._x0, tol=self.sparse_tol, maxiter=self.sparse_maxiter
         )
 
         return out
 
-    def _jax_linear_function(self, oks, n_samp):
+    @staticmethod
+    @jax.jit
+    def shape_for_sr(grads, jac):
+        r"""Reshapes grads and jax from tree like structures to arrays if jax_available
+
+        Args:
+            grads,jac: pytrees of jax arrays or numpy array
+
+        Returns:
+            A 1D array of gradients and a 2D array of the jacobian
         """
-        Outputs function A(x) = Ax needed for conjugate gradient
-        """
-        v_tilde = self._v_tilde
-        res = self._res_t
-        shift = self._diag_shift
-        oks_conj = oks.conjugate()
 
-        def matvec(oks, oks_conj, x):
-            y = jax.numpy.matmul(oks, x) / n_samp
-            y = jax.numpy.matmul(y, oks_conj)
-            y = x * shift + y
+        grads = jnp.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(grads)[0]))
+        jac = jnp.concatenate(
+            tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
+        )
 
-            return y
-
-        return partial(matvec, oks, oks_conj)
-
-    def _apply_preconditioning(self, grad):
-        if self._scale_invariant_pc:
-            # Even if S is complex, its diagonal elements should be real since it
-            # is Hermitian.
-            self._diag_S = jax.numpy.sqrt(self._S.diagonal().real)
-
-            cutoff = 1.0e-10
-
-            index = self._diag_S <= cutoff
-            self._diag_S[index] = 1.0
-            self._S[index, :].fill(0.0)
-            self._S[:, index].fill(0.0)
-            self._S[range(len(self._S)), range(len(self._S))]
-            self._S /= jax.numpy.vdot(self._diag_S, self._diag_S)
-            grad /= self._diag_S
-
-        # Apply diagonal shift
-        self._S += self._diag_shift * jax.numpy.eye(self._S.shape[0])
-
-    @property
-    def last_rank(self):
-        return self._last_rank
-
-    @property
-    def last_covariance_matrix(self):
-        return self._S
-
-    def _revert_preconditioning(self, out):
-        if self._scale_invariant_pc:
-            out /= self._diag_S
-        return out
-
-    @property
-    def scale_invariant_regularization(self):
-        r"""bool: Whether to use the scale-invariant regularization as described by
-                    Becca and Sorella (2017), pp. 143-144.
-                    https://doi.org/10.1017/9781316417041
-        """
-        return self._scale_invariant_pc
-
-    @scale_invariant_regularization.setter
-    def scale_invariant_regularization(self, activate):
-        assert activate is True or activate is False
-
-        if activate and self._use_iterative:
-            raise NotImplementedError(
-                """Scale-invariant regularization is
-                   not implemented for iterative solvers at the moment."""
-            )
-
-        self._scale_invariant_pc = activate
+        return grads, jac
 
     def __repr__(self):
         rep = "SR(solver="
 
         if self._use_iterative:
             rep += "iterative"
-        else:
-            rep += self._lsq_solver + ", diag_shift=" + str(self._diag_shift)
-            if self._svd_threshold is not None:
-                rep += ", threshold=" << self._svd_threshold
 
         rep += ", is_holomorphic=" + str(self._is_holomorphic) + ")"
         return rep
@@ -280,8 +177,7 @@ class JaxSR:
 
         if self._use_iterative:
             rep += "iterative (Conjugate Gradient)"
-        else:
-            rep += self._lsq_solver
+
         rep += "\n"
 
         return rep

@@ -34,6 +34,6 @@ gs = nk.Vmc(
 )
 
 # The first iteration is slower because of start-up jit times
-gs.run(out="test", n_iter=1)
+gs.run(out="test", n_iter=2)
 
 gs.run(out="test", n_iter=300)
