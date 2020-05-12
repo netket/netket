@@ -149,14 +149,21 @@ class Jax(AbstractMachine):
                 out = tree_map(jax.numpy.conjugate, pout[0])
 
             return out
+
         else:
+
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.np.tensordot(vec, j.conjugate(), axes=vec.ndim)
+                prodj = lambda j: jax.np.tensordot(
+                    vec.transpose(), j.conjugate(), axes=1
+                )
             else:
-                prodj = lambda j: jax.np.tensordot(vec.conjugate(), j, axes=vec.ndim)
+                prodj = lambda j: jax.np.tensordot(
+                    vec.transpose().conjugate(), j, axes=1
+                )
 
             jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
+
             return out, jacobian
 
     @property
@@ -192,6 +199,7 @@ class Jax(AbstractMachine):
         Returns:
              numpy.ndarray: a one-dimensional array containing a copy of data
         """
+
         return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
 
     def numpy_unflatten(self, data, shape_like):
