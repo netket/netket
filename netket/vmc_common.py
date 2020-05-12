@@ -25,7 +25,6 @@ if jax_available:
     from jax.tree_util import tree_flatten, tree_unflatten, tree_map
     import jax.numpy as jnp
 
-
     def shape_for_sr(grads, jac):
         r"""Reshapes grads and jax from tree like structures to arrays if jax_available 
 
@@ -42,7 +41,6 @@ if jax_available:
         )
 
         return grads, jac
-
 
     def shape_for_update(update, shape_like):
         r"""Reshapes grads from array to tree like structure if neccesary for update 
