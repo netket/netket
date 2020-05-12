@@ -3,6 +3,7 @@ from graph import NetworkX
 import numpy as _np
 import networkx as _nx
 
+
 class Hypergrid(NetworkX):
     r"""A hypergrid lattice of d dimensions, and possibly different sizes of each dimension. 
     Periodic boundary conditions can also be imposed"""
@@ -53,6 +54,7 @@ class Hypergrid(NetworkX):
         graph = _nx.relabel_nodes(graph, newnames)
         super().__init__(graph)
 
+
 def Hypercube(length, n_dim=1, pbc=True):
     r"""A hypercube lattice of side L in d dimensions. 
     Periodic boundary conditions can also be imposed.
@@ -79,6 +81,7 @@ def Hypercube(length, n_dim=1, pbc=True):
     length_vector = [length] * n_dim
     return Hypergrid(length_vector, pbc)
 
+
 def Square(length, pbc=True):
     r"""A square lattice of side L. 
     Periodic boundary conditions can also be imposed
@@ -102,6 +105,7 @@ def Square(length, pbc=True):
         100
       """
     return Hypercube(length, n_dim=2, pbc=pbc)
+
 
 def Chain(length, pbc=True):
     r"""A chain of L sites. 

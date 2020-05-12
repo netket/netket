@@ -3,8 +3,10 @@ from abstract_graph import AbstractGraph
 import numpy as _np
 import networkx as _nx
 
+
 class NetworkX(AbstractGraph):
     """ Wrapper for a networkx graph"""
+
     def __init__(self, graph):
         """
         Constructs a netket graph from a networkx graph.
@@ -20,7 +22,9 @@ class NetworkX(AbstractGraph):
             >>> print(nk_g.n_nodes)
             3
         """
-        assert isinstance(graph, _nx.classes.graph.Graph) or isinstance(graph, _nx.classes.multigraph.MultiGraph)
+        assert isinstance(graph, _nx.classes.graph.Graph) or isinstance(
+            graph, _nx.classes.multigraph.MultiGraph
+        )
 
         if isinstance(graph, _nx.classes.graph.Graph):
             self.graph = _nx.MultiGraph(graph)
@@ -54,11 +58,6 @@ class NetworkX(AbstractGraph):
         return _nx.is_bipartite(self.graph)
 
     @property
-    def size(self):
-        print("DeprecationWarning: size is deprecated. Use n_nodes from now on.")
-        return self.n_nodes
-
-    @property
     def n_nodes(self):
         return self.graph.number_of_nodes()
 
@@ -72,7 +71,7 @@ class NetworkX(AbstractGraph):
         else:
             colors = _np.array([])
         if colors.size >= 2:
-            return NotImplementedError
+            raise NotImplementedError
 
         if self._automorphisms:
             return self._automorphisms
@@ -87,6 +86,7 @@ class NetworkX(AbstractGraph):
             ]
             self._automorphisms = _automorphisms
             return _automorphisms
+
 
 def Graph(nodes=[], edges=[]):
     """ A Custom Graph provided nodes or edges.
@@ -144,6 +144,7 @@ def Graph(nodes=[], edges=[]):
     graph.add_edges_from(edges_array)
     return NetworkX(graph)
 
+
 def Edgeless(nodes):
     """A set graph (collection of unconnected vertices).
         Args:
@@ -163,4 +164,3 @@ def Edgeless(nodes):
     edgelessgraph = _nx.MultiGraph()
     edgelessgraph.add_nodes_from(nodes)
     return NetworkX(edgelessgraph)
-
