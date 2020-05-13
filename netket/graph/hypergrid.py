@@ -32,10 +32,8 @@ class Hypergrid(NetworkX):
             12
         """
 
-        try:
-            assert isinstance(length, list)
-        except AssertionError:
-            raise TypeError("length must be a list of integers >= 1")
+    if not isinstance(length, list):
+        raise TypeError("length must be a list of integers")
 
         try:
             condition = [isinstance(x, int) and x >= 1 for x in length]
