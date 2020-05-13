@@ -5,7 +5,7 @@ from functools import partial
 
 from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from .._C_netket.machine import DensityMatrix
-from ..vmc_common import map_leafs
+from ..vmc_common import tree_map
 
 ########################################
 # Perform AD through the local values and then vmap.
@@ -83,7 +83,7 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
     v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
     mels_r = mels.reshape(-1, n_primes)
 
-    pars = machine._pars_ascomplex
+    pars = machine._params_ascomplex
 
 
     val, grad = _local_values_and_grads_notcentered_kernel(
@@ -104,7 +104,7 @@ def _der_local_values_impl(op, machine, v, log_vals):
     v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
     mels_r = mels.reshape(-1, n_primes)
 
-    pars = machine._pars_ascomplex
+    pars = machine._params_ascomplex
 
     val, grad = _local_values_and_grads_kernel(
         pars, v_primes_r, mels_r, v, machine.jax_forward

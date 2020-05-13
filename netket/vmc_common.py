@@ -5,7 +5,7 @@ def info(obj, depth=None):
         return str(obj)
 
 
-def map_leafs(fun, tree, *args, **kwargs):
+def tree_map(fun, tree, *args, **kwargs):
     """
     Maps all the leafs in the tree, applying the function with the leave as first 
     positional argument. 
@@ -23,21 +23,18 @@ def map_leafs(fun, tree, *args, **kwargs):
     if tree is None:
         return None
     elif isinstance(tree, list):
-        return [map_leafs(fun, val, *args, **kwargs) for val in tree]
+        return [tree_map(fun, val, *args, **kwargs) for val in tree]
     elif isinstance(tree, tuple):
-        return tuple(map_leafs(fun, val, *args, **kwargs) for val in tree)
+        return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
     elif isinstance(tree, dict):
         return {
-            key: map_leafs(fun, value, *args, **kwargs) for key, value in tree.items()
+            key: tree_map(fun, value, *args, **kwargs) for key, value in tree.items()
         }
     else:
         return fun(tree, *args, **kwargs)
 
 
-tree_map = map_leafs
-
-
-def map_2leafs(fun, tree1, tree2, *args, **kwargs):
+def trees2_map(fun, tree1, tree2, *args, **kwargs):
     """
     Maps all the leafs in the two trees, applying the function with the leafs of tree1 
     as first argument and the leafs of tree2 as second argument
@@ -59,17 +56,17 @@ def map_2leafs(fun, tree1, tree2, *args, **kwargs):
         return None
     elif isinstance(tree1, list):
         return [
-            map_2leafs(fun, val1, val2, *args, **kwargs)
+            trees2_map(fun, val1, val2, *args, **kwargs)
             for val1, val2 in zip(tree1, tree2)
         ]
     elif isinstance(tree1, tuple):
         return tuple(
-            map_2leafs(fun, val1, val2, *args, **kwargs)
+            trees2_map(fun, val1, val2, *args, **kwargs)
             for val1, val2 in zip(tree1, tree2)
         )
     elif isinstance(tree1, dict):
         return {
-            key: map_2leafs(fun, val1, val2, *args, **kwargs)
+            key: trees2_map(fun, val1, val2, *args, **kwargs)
             for (key, val1), (key2, val2) in zip(tree1.items(), tree2.items())
         }
     else:

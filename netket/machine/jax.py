@@ -20,7 +20,7 @@ from .abstract_machine import AbstractMachine
 
 import numpy as _np
 from netket.random import randint as _randint
-from jax.tree_util import tree_flatten, tree_unflatten, map_leafs
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
 class Jax(AbstractMachine):
