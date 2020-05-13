@@ -60,7 +60,7 @@ class Jax(JaxPure, AbstractDensityMatrix):
     def der_log(self, xr, xc=None, out=None):
         x = self._dminput(xr, xc)
 
-        out = self._perex_grads(self._params, x)
+        out = self._perex_grads(self._params_ascomplex, x)
 
         return out
 

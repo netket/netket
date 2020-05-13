@@ -20,7 +20,7 @@ from .abstract_machine import AbstractMachine
 
 import numpy as _np
 from netket.random import randint as _randint
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+from jax.tree_util import tree_flatten, tree_unflatten, map_leafs
 
 
 class Jax(AbstractMachine):
@@ -114,7 +114,8 @@ class Jax(AbstractMachine):
         if x.ndim != 2:
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
-        out = self._perex_grads(self._params, x)
+        # Jax has bugs for R->C functions...
+        out = self._perex_grads(self._params_ascomplex, x)
 
         return out
 
@@ -139,11 +140,11 @@ class Jax(AbstractMachine):
             vals, f_jvp = jax.vjp(
                 self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
             )
-
             pout = f_jvp(vec.reshape(vals.shape).conjugate())
-
             if conjugate and self._dtype is complex:
                 out = tree_map(jax.numpy.conjugate, pout[0])
+            else:
+                out = pout
 
             return out
 
@@ -165,7 +166,7 @@ class Jax(AbstractMachine):
 
     @property
     def is_holomorphic(self):
-        return self._dtype is complex
+        return True
 
     @property
     def state_dict(self):
@@ -178,6 +179,13 @@ class Jax(AbstractMachine):
     @property
     def parameters(self):
         return self._params
+
+    @property
+    def _params_ascomplex(self):
+        if self._dtype is not complex:
+            return tree_map(lambda v: v.astype(jax.numpy.complex128), self._params)
+        else:
+            return self._params
 
     @parameters.setter
     def parameters(self, p):
