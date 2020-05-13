@@ -71,7 +71,7 @@ class NetworkX(AbstractGraph):
         else:
             colors = _np.array([])
         if colors.size >= 2:
-            raise NotImplementedError
+            raise NotImplementedError("automorphisms is not yet implemented for colored edges")
 
         if self._automorphisms is not None:
             return self._automorphisms
