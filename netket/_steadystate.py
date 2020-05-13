@@ -16,6 +16,7 @@ from netket.vmc_common import info, tree_map, trees2_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
 import operator
 
+
 class SteadyState(AbstractVariationalDriver):
     """
     Variational steady-state search by minimization of the L2,2 norm of L\rho using
@@ -88,7 +89,7 @@ class SteadyState(AbstractVariationalDriver):
             self.n_samples_obs = n_samples_obs
             self.n_discard_obs = n_discard_obs
 
-        self._der_logs_ave = None#_np.ndarray(self._npar, dtype=_np.complex128)
+        self._der_logs_ave = None 
 
         self._dp = None
 
@@ -139,7 +140,9 @@ class SteadyState(AbstractVariationalDriver):
         n_samples_chain = int(math.ceil((n_samples / self._batch_size_obs)))
         self._n_samples_node_obs = int(math.ceil(n_samples_chain / self.n_nodes))
 
-        self._n_samples_obs = int(self._n_samples_node_obs * self._batch_size_obs * self.n_nodes)
+        self._n_samples_obs = int(
+            self._n_samples_node_obs * self._batch_size_obs * self.n_nodes
+        )
 
         self._samples_obs = None
 
@@ -170,7 +173,9 @@ class SteadyState(AbstractVariationalDriver):
 
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard_obs={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard_obs={}".format(
+                    n_discard
+                )
             )
         self._n_discard_obs = (
             int(n_discard)
@@ -192,42 +197,53 @@ class SteadyState(AbstractVariationalDriver):
         # Burnout phase
         self._sampler.generate_samples(self._n_discard)
 
-        # Generate samples
-        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+        # Generate samples and store them
+        self._samples = self._sampler.generate_samples(
+            self._n_samples_node, samples=self._samples
+        )
 
-            # Store the current sample
-            self._samples[i] = sample
-
-            # Compute Log derivatives
-            self._der_logs[i] = self._machine.der_log(sample)
-
-            self._der_loc_vals[i] = _der_local_values(
-                self._lind, self._machine, sample, center_derivative=False
-            )
-
-        # flatten MC chain dimensions:
-        _der_logs = self._der_logs.reshape(-1, self._npar)
-        _der_loc_vals = self._der_loc_vals.reshape(-1, self._npar)
-
-        # Estimate energy
+        # Estimate C^[loc] (local energy) and LdagL
         lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
 
-        # Compute the (MPI-aware-)average of the derivatives
-        _mean(_der_logs, axis=0, out=self._der_logs_ave)
+        # Flatten chain dimension
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+        lloc_r = lloc.reshape(-1, 1)
 
-        # Compute the gradient
-        self._grads = _np.conjugate(_der_loc_vals) * lloc.reshape(-1, 1)
-        grad = _mean(self._grads, axis=0)
-        grad -= self._loss_stats.mean * self._der_logs_ave.conj()
+        # Compute Log derivatives
+        self._der_logs = self._machine.der_log(samples_r)
+        # Compute statistical average (also across nodes)
+        self._der_logs_ave = tree_map(_mean, self._der_logs, axis=0)
+
+        # Compute \nabla C^[Loc]
+        self._der_loc_vals = _der_local_values(
+            self._lind, self._machine, samples_r, center_derivative=False
+        )
+
+        # apply this function to every element of the gradient.
+        n_samples_node = lloc_r.shape[0]
+
+        def gradfun(der_loc_vals, der_logs_ave):
+            par_dims = der_loc_vals.ndim - 1
+
+            _lloc_r = lloc_r.reshape(
+                (n_samples_node,) + tuple(1 for i in range(par_dims))
+            )
+            grad = _mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
+                der_logs_ave.conjugate() * self._loss_stats.mean
+            )
+
+            return grad
+
+        self._grad = trees2_map(gradfun, self._der_loc_vals, self._der_logs_ave)
 
         # Perform update
         if self._sr:
             # Center the log derivatives
-            _der_logs -= self._der_logs_ave
+            self._der_logs -= self._der_logs_ave
 
-            self._sr.compute_update(_der_logs, grad, self._dp)
+            self._sr.compute_update(self._der_logs, self._grad, self._dp)
         else:
-            self._dp = grad
+            self._dp = self._grad
 
         return self._dp
 
@@ -263,7 +279,7 @@ class SteadyState(AbstractVariationalDriver):
 
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.
-        return loc, _statistics(abs(loc.T)**2)
+        return loc, _statistics(abs(loc.T) ** 2)
 
     def _get_mc_obs_stats(self, op):
         if not self._obs_samples_valid:
