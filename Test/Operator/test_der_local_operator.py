@@ -22,6 +22,8 @@ import pytest
 from pytest import approx
 import os
 
+test_jax = True
+
 np.set_printoptions(linewidth=180)
 rg = nk.utils.RandomEngine(seed=1234)
 
@@ -54,32 +56,6 @@ for i in range(L):
 lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 
-def test_lindblad_form():
-    ## Construct the lindbladian by hand:
-    idmat = sparse.eye(2 ** L)
-
-    # Build the non hermitian matrix
-    hnh_mat = ha.to_sparse()
-    for j_op in j_ops:
-        j_mat = j_op.to_sparse()
-        hnh_mat -= 0.5j * j_mat.H * j_mat
-
-    # Compute the left and right product with identity
-    lind_mat = -1j * sparse.kron(idmat, hnh_mat) + 1j * sparse.kron(hnh_mat.H, idmat)
-    # add jump operators
-    for j_op in j_ops:
-        j_mat = j_op.to_sparse()
-        lind_mat += sparse.kron(j_mat.conj(), j_mat)
-
-    assert (lind_mat.todense() == lind.to_dense()).all()
-
-
-def test_lindblad_zero_eigenvalue():
-    lind_mat = lind.to_sparse()
-    w, v = linalg.eigsh(lind_mat.H * lind_mat, which="SM")
-    assert w[0] <= 10e-10
-
-
 def test_der_log_val():
     ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
@@ -88,7 +64,7 @@ def test_der_log_val():
     for i in range(0, lind.hilbert.n_states):
         state = lind.hilbert.number_to_state(i)
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
+            lind, ma, np.atleast_2d(state), center_derivative=False
         )
 
         log_val_s = ma.log_val(state)
@@ -112,7 +88,7 @@ def test_der_log_val():
         # centered
         # not necessary for liouvillian but worth checking
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=True
+            lind, ma, np.atleast_2d(state), center_derivative=True
         )
         grad = log_val_diff * (der_log_p - der_log_s)
         grad_all = grad.sum(axis=0)
@@ -132,10 +108,10 @@ def test_der_log_val_batched():
         state = lind.hilbert.number_to_state(i)
         states[i, :] = state
         der_locs[i, :] = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
+            lind, ma, np.atleast_2d(state), center_derivative=False
         )
         der_locs_c[i, :] = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=True
+            lind, ma, np.atleast_2d(state), center_derivative=True
         )
 
     der_locs_all = nk.operator.der_local_values(
@@ -149,16 +125,65 @@ def test_der_log_val_batched():
     np.testing.assert_array_almost_equal(der_locs_c, der_locs_all_c)
 
 
-# Construct the operators for Sx, Sy and Sz
-obs_sx = nk.operator.LocalOperator(hi)
-obs_sy = nk.operator.LocalOperator(hi)
-obs_sz = nk.operator.LocalOperator(hi)
-for i in range(L):
-    obs_sx += nk.operator.LocalOperator(hi, sx, [i])
-    obs_sy += nk.operator.LocalOperator(hi, sy, [i])
-    obs_sz += nk.operator.LocalOperator(hi, sz, [i])
+if test_jax:
+    import jax
+    import jax.experimental
+    import jax.experimental.stax
 
+def test_der_log_val_jax():
+    if not test_jax:
+        return 
 
-sxmat = obs_sx.to_dense()
-symat = obs_sy.to_dense()
-szmat = obs_sz.to_dense()
+    ma = nk.machine.density_matrix.JaxNdmSpin(hilbert=hi, alpha=1, beta=1)
+    ma.init_random_parameters(seed=1234, sigma=0.01)
+
+    # test single input
+    for i in range(0, lind.hilbert.n_states):
+        state = np.atleast_2d(lind.hilbert.number_to_state(i))
+        der_loc_vals = nk.operator.der_local_values(
+            lind, ma, np.atleast_2d(state), center_derivative=False
+        )
+
+        log_val_s = ma.log_val(state)
+        der_log_s = ma.der_log(state)
+
+        statet, mel = lind.get_conn(state[0,:])
+
+        log_val_p = ma.log_val(statet)
+        der_log_p = ma.der_log(statet)
+
+        log_val_diff = mel * np.exp(log_val_p - log_val_s)
+        log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
+
+        grad_all = nk._map_leafs(
+            lambda x: (
+                log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1))) * x
+            ).sum(axis=0),
+            der_log_p,
+        )
+
+        nk._map_2leafs(
+            lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
+            grad_all,
+            der_loc_vals,
+        )
+
+        # centered
+        # not necessary for liouvillian but worth checking
+        der_loc_vals = nk.operator.der_local_values(
+            lind, ma, np.atleast_2d(state), center_derivative=True
+        )
+        grad_all = nk._map_2leafs(
+            lambda xp, x: (
+                log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1)))
+                * (xp - x)
+            ).sum(axis=0),
+            der_log_p,
+            der_log_s,
+        )
+
+        nk._map_2leafs(
+            lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
+            grad_all,
+            der_loc_vals,
+        )
