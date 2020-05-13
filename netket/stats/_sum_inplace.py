@@ -27,7 +27,7 @@ class sum_inplace:
         return mcls.funcs[t](arr)
 
 
-def define_sum_inplace(atype):
+def define_sum_inplace(atypes):
     """
     Defines a method implementing sum_inplace for a specific array type
     atype.
@@ -35,17 +35,20 @@ def define_sum_inplace(atype):
     To be used as a decorator.
 
     Args:
-        atype: type to use for dispatch
+        atype: type, or list of types, to use for dispatch
     Returns:
         Decorator
     """
+    if isinstance(atypes, type):
+        atypes = (atypes,)
 
     def _define_sum_inplace(func):
-        sum_inplace.funcs[atype] = func
+        for atype in atypes:
+            sum_inplace.funcs[atype] = func
+
         return func
 
     return _define_sum_inplace
-
 
 #######
 # MPI
@@ -54,7 +57,7 @@ from netket.stats.mpi_stats import MPI as _MPI
 import numpy as _np
 
 
-@define_sum_inplace(atype=_np.ndarray)
+@define_sum_inplace(_np.ndarray)
 def sum_inplace_MPI(a):
     """
     Computes the elementwise sum of a numpy array over all MPI processes.
@@ -65,6 +68,15 @@ def sum_inplace_MPI(a):
     _MPI_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
     return a
 
+#######
+# Scalar
+@define_sum_inplace(atypes=(float, complex, _np.float64, _np.float32, _np.complex64, _np.complex128))
+def sum_inplace_scalar(a):
+    ar = _np.asarray(a)
+    _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
+    return a
+
+
 
 #######
 # Jax
@@ -74,7 +86,7 @@ if jax_available:
     import numpy as _np
     import jax
 
-    @define_sum_inplace(atype=jax.interpreters.xla.DeviceArray)
+    @define_sum_inplace(jax.interpreters.xla.DeviceArray)
     def sum_inplace_jax(x):
         # if not isinstance(x, jax.interpreters.xla.DeviceArray):
         #    raise TypeError("Argument to sum_inplace_jax must be a DeviceArray, got {}"

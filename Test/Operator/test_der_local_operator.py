@@ -155,14 +155,14 @@ def test_der_log_val_jax():
         log_val_diff = mel * np.exp(log_val_p - log_val_s)
         log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
 
-        grad_all = nk._map_leafs(
+        grad_all = nk._tree_map(
             lambda x: (
                 log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1))) * x
             ).sum(axis=0),
             der_log_p,
         )
 
-        nk._map_2leafs(
+        nk._trees2_map(
             lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
             grad_all,
             der_loc_vals,
@@ -173,7 +173,7 @@ def test_der_log_val_jax():
         der_loc_vals = nk.operator.der_local_values(
             lind, ma, np.atleast_2d(state), center_derivative=True
         )
-        grad_all = nk._map_2leafs(
+        grad_all = nk._trees2_map(
             lambda xp, x: (
                 log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1)))
                 * (xp - x)
@@ -182,7 +182,7 @@ def test_der_log_val_jax():
             der_log_s,
         )
 
-        nk._map_2leafs(
+        nk._trees2_map(
             lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
             grad_all,
             der_loc_vals,
