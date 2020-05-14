@@ -49,8 +49,8 @@ class MetropolisHastings(AbstractSampler):
             uniform = jax.random.uniform(keys[2])
             do_accept = uniform < jax.numpy.exp(proposal_log_prob - log_prob)
 
-            state = jax.np.where(do_accept, proposal, state)
-            log_prob = jax.np.where(do_accept, proposal_log_prob, log_prob)
+            state = jax.numpy.where(do_accept, proposal, state)
+            log_prob = jax.numpy.where(do_accept, proposal_log_prob, log_prob)
 
             return (keys[0], state, log_prob)
 

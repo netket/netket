@@ -150,11 +150,11 @@ class Jax(AbstractMachine):
         else:
 
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.np.tensordot(
+                prodj = lambda j: jax.numpy.tensordot(
                     vec.transpose(), j.conjugate(), axes=1
                 )
             else:
-                prodj = lambda j: jax.np.tensordot(
+                prodj = lambda j: jax.numpy.tensordot(
                     vec.transpose().conjugate(), j, axes=1
                 )
 

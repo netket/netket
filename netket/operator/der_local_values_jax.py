@@ -15,7 +15,7 @@ from ..vmc_common import tree_map
 #  Assumes that v is a single state (Vector) and vp is a batch (matrix). pars can be a pytree.
 @partial(jax.jit, static_argnums=4)
 def _local_value_kernel(pars, vp, mel, v, logpsi):
-    return jax.np.sum(mel * jax.np.exp(logpsi(pars, vp) - logpsi(pars, v)))
+    return jax.numpy.sum(mel * jax.numpy.exp(logpsi(pars, vp) - logpsi(pars, v)))
 
 
 #  Assumes that v is a single state (Vector) and vp is a batch (matrix). pars can be a pytree.
@@ -55,7 +55,7 @@ _local_values_and_grads_kernel = jax.jit(
 @partial(jax.jit, static_argnums=4)
 def _local_value_and_grad_notcentered_kernel(pars, vp, mel, v, logpsi):
     logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
-    vec = mel * jax.np.exp(logpsi_vp - logpsi(pars, v))
+    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
     
     loc_val = vec.sum()
     grad_c = f_vjp(vec)[0] 
