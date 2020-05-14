@@ -53,7 +53,7 @@ class Jax(AbstractMachine):
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
 
         # FIXME: not everything is holomorphic.
-        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=true))
+        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
         self.init_random_parameters()
