@@ -51,7 +51,9 @@ class Jax(AbstractMachine):
         self._forward_fn = jax.jit(self._forward_fn)
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
-        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
+
+        # FIXME: not everything is holomorphic.
+        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=true))
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
         self.init_random_parameters()
@@ -165,7 +167,7 @@ class Jax(AbstractMachine):
 
     @property
     def is_holomorphic(self):
-        return True
+        return self._dtype is complex
 
     @property
     def state_dict(self):

@@ -74,7 +74,7 @@ def sum_inplace_MPI(a):
 def sum_inplace_scalar(a):
     ar = _np.asarray(a)
     _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
-    return a
+    return ar
 
 
 
