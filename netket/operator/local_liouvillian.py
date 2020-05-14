@@ -165,14 +165,18 @@ class LocalLiouvillian(AbstractOperator):
 
             if pad:
                 if batch_size > 1:
-                    max_lr = _np.max(_np.diff(sections_Lr[i * batch_size : (i + 1) * batch_size]))
-                    max_lc = _np.max(_np.diff(sections_Lc[i * batch_size : (i + 1) * batch_size]))
+                    max_lr = _np.max(
+                        _np.diff(sections_Lr[i * batch_size : (i + 1) * batch_size])
+                    )
+                    max_lc = _np.max(
+                        _np.diff(sections_Lc[i * batch_size : (i + 1) * batch_size])
+                    )
                 else:
                     max_lr = sections_Lr[i * batch_size]
                     max_lc = sections_Lc[i * batch_size]
 
-                max_conns_Lrc += max_lr * max_lc 
-                
+                max_conns_Lrc += max_lr * max_lc
+
         # compose everything again
         if self._xprime.shape[0] < self._max_conn_size * batch_size:
             self._xprime_f.resize(self._max_conn_size * batch_size, self.hilbert.size)
@@ -181,7 +185,10 @@ class LocalLiouvillian(AbstractOperator):
         if pad:
             pad = max_conns_Lrc + max_conns_r + max_conns_c
         else:
-            pad=0
+            pad = 0
+
+        self._xprime_f[:] = 0
+        self._mels_f[:] = 0
 
         return self._get_conn_flattened_kernel(
             self._xprime_f,
@@ -207,8 +214,8 @@ class LocalLiouvillian(AbstractOperator):
             pad,
         )
 
+    # @jit(nopython=True)
     @staticmethod
-    @jit(nopython=True)
     def _get_conn_flattened_kernel(
         xs,
         mels,
@@ -242,6 +249,7 @@ class LocalLiouvillian(AbstractOperator):
         n_Lc_is = _np.zeros(n_jops, dtype=_np.int32)
 
         for i in range(batch_size):
+            off_i = off
             n_hr_f = sections_r[i]
             n_hr = n_hr_f - n_hr_i
             xs[off : off + n_hr, 0:N] = xr_prime[n_hr_i:n_hr_f, :]
@@ -281,7 +289,9 @@ class LocalLiouvillian(AbstractOperator):
                 n_Lc_is[j] = n_Lc_f
 
             if pad != 0:
-                off = (i+1) * pad
+                n_entries = off - off_i
+                mels[off : off + n_entries] = 0
+                off = (i + 1) * pad
 
             sections[i] = off
 

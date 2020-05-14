@@ -58,7 +58,7 @@ def _local_value_and_grad_notcentered_kernel(pars, vp, mel, v, logpsi):
     vec = mel * jax.np.exp(logpsi_vp - logpsi(pars, v))
     
     loc_val = vec.sum()
-    grad_c = f_vjp(vec)[0] #tree_map(jax.numpy.conjugate, f_vjp(vec)[0])
+    grad_c = f_vjp(vec)[0] 
     # get out of the lambda function
     return loc_val, grad_c
 
@@ -85,11 +85,9 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
 
     pars = machine._params_ascomplex
 
-
     val, grad = _local_values_and_grads_notcentered_kernel(
         pars, v_primes_r, mels_r, v, machine.jax_forward
     )
-
     return grad
 
 

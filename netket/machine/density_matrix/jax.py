@@ -262,6 +262,7 @@ def DensePureRowCol(
 
     return init_fun, apply_fun
 
+
 def FanInSum2():
     """Layer construction function for a fan-in sum layer."""
 
@@ -275,7 +276,9 @@ def FanInSum2():
 
     return init_fun, apply_fun
 
+
 FanInSum2 = FanInSum2()
+
 
 def FanInSub2():
     """Layer construction function for a fan-in sum layer."""
@@ -289,6 +292,7 @@ def FanInSub2():
         return output
 
     return init_fun, apply_fun
+
 
 FanInSub2 = FanInSub2()
 

@@ -90,6 +90,7 @@ class SteadyState(AbstractVariationalDriver):
             self.n_discard_obs = n_discard_obs
 
         self._der_logs_ave = None 
+        self._lloc = None
 
         self._dp = None
 
@@ -203,11 +204,11 @@ class SteadyState(AbstractVariationalDriver):
         )
 
         # Estimate C^[loc] (local energy) and LdagL
-        lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
+        self._lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
 
         # Flatten chain dimension
         samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
-        lloc_r = lloc.reshape(-1, 1)
+        lloc_r = self._lloc.reshape(-1, 1)
 
         # Compute Log derivatives
         self._der_logs = self._machine.der_log(samples_r)
