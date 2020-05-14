@@ -241,7 +241,7 @@ class SteadyState(AbstractVariationalDriver):
         # Perform update
         if self._sr:
             # Center the log derivatives
-            self._jac = self.trees2_map(
+            self._jac = trees2_map(
                 lambda x, y: x - y, self._der_logs, self._der_logs_ave
             )
 
