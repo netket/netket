@@ -214,8 +214,8 @@ class LocalLiouvillian(AbstractOperator):
             pad,
         )
 
-    # @jit(nopython=True)
     @staticmethod
+    @jit(nopython=True)
     def _get_conn_flattened_kernel(
         xs,
         mels,
