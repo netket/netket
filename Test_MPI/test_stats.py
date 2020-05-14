@@ -48,6 +48,7 @@ def test_mc_stats():
 
     stats = nk.stats.statistics(mydata)
 
+    assert nk.stats.mean(data) == approx(ref_mean)
     assert stats.mean == approx(ref_mean)
     assert stats.variance == approx(ref_var)
     assert stats.R_hat == approx(ref_R)
@@ -66,13 +67,11 @@ def test_mean():
         assert nk_mean == approx(ref_mean), "axis={}".format(axis)
 
     # Test with out
-    out = np.array(0.0)  # ndim=0 array
-    nk.stats.mean(mydata, out=out)
+    out = nk.stats.mean(mydata)
     assert out == approx(np.mean(data))
 
     # Test with out and axis
-    out = np.empty((11, 12))
-    nk.stats.mean(mydata, axis=0, out=out)
+    out = nk.stats.mean(mydata, axis=0)
     assert out == approx(np.mean(data.mean(0), axis=0))
 
     # Test with complex dtype
@@ -81,7 +80,7 @@ def test_mean():
 
     # Test with complex dtype and out
     out = np.empty((11, 12), dtype=np.complex128)
-    nk.stats.mean(1j * mydata, axis=0, out=out)
+    out = nk.stats.mean(1j * mydata, axis=0)
     assert out == approx(np.mean(1j * data.mean(0), axis=0))
 
 
@@ -99,7 +98,7 @@ def test_sum():
 
     # Test with out
     out = np.array(0.0)  # ndim=0 array
-    nk.stats.sum(mydata, out=out)
+    out = nk.stats.sum(mydata, out=out)
     assert np.all(out == np.sum(data))
 
     # Test with out and axis

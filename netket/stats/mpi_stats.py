@@ -32,19 +32,18 @@ def mean(a, axis=None):
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
     out = a.mean(axis=axis)
 
-    _sum_inplace(out)
+    out = _sum_inplace(out)
     out /= _n_nodes
 
     return out
 
 
-def sum(a, axis=None, out=None):
+def sum(a, axis=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
     """
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
-    if out is None:
-        out = _np.asarray(_np.sum(a, axis=axis, out=out))
+    out = _np.asarray(_np.sum(a, axis=axis, out=out))
 
     _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
     return out
