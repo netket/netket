@@ -38,7 +38,7 @@ def mean(a, axis=None):
     return out
 
 
-def sum(a, axis=None):
+def sum(a, axis=None, out=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
     """
