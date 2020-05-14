@@ -89,7 +89,6 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
     val, grad = _local_values_and_grads_notcentered_kernel(
         pars, v_primes_r, mels_r, v, machine.jax_forward
     )
-    print(val)
 
     return grad
 

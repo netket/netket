@@ -77,7 +77,7 @@ from netket.utils import jax_available
 
 if jax_available:
     import jax
-    from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+    from jax.tree_util import tree_flatten, tree_unflatten#, tree_map
     import jax.numpy as jnp
 
     @jax.jit

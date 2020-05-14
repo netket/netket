@@ -56,6 +56,6 @@ from ._qsr import Qsr
 from ._steadystate import SteadyState
 
 from .vmc_common import (
-    tree_map as tree_map,
+    tree_map as _tree_map,
     trees2_map as _trees2_map,
 )
