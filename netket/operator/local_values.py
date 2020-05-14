@@ -2,7 +2,8 @@ import numpy as _np
 from numba import jit
 
 from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
-from .._C_netket.machine import DensityMatrix
+from .._C_netket.machine import DensityMatrix as CDensityMatrix
+from netket.machine.density_matrix.abstract_density_matrix import AbstractDensityMatrix as PyDensityMatrix
 
 
 @jit(nopython=True)
@@ -41,14 +42,14 @@ def _op_op_unpack_kernel(v, sections, vold):
 def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
     sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v, sections)
+    v_primes, mels = op.get_conn_flattened(_np.asarray(v), sections)
 
     vold = _np.empty((sections[-1], v.shape[1]))
     _op_op_unpack_kernel(v, sections, vold)
 
     log_val_primes = machine.log_val(v_primes, vold)
 
-    _local_values_kernel(log_vals, log_val_primes, mels, sections, out)
+    _local_values_kernel(_np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out)
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
@@ -78,7 +79,7 @@ def local_values(op, machine, v, log_vals=None, out=None):
     """
 
     # True when this is the local_value of a densitymatrix times an operator (observable)
-    is_op_times_op = isinstance(machine, DensityMatrix) and not isinstance(
+    is_op_times_op = (isinstance(machine, CDensityMatrix) or isinstance(machine, PyDensityMatrix)) and not isinstance(
         op, _LocalLiouvillian
     )
     if v.ndim != 2:

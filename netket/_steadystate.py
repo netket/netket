@@ -89,7 +89,7 @@ class SteadyState(AbstractVariationalDriver):
             self.n_samples_obs = n_samples_obs
             self.n_discard_obs = n_discard_obs
 
-        self._der_logs_ave = None 
+        self._der_logs_ave = None
         self._lloc = None
 
         self._dp = None
@@ -229,22 +229,26 @@ class SteadyState(AbstractVariationalDriver):
             _lloc_r = lloc_r.reshape(
                 (n_samples_node,) + tuple(1 for i in range(par_dims))
             )
+
             grad = _mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
                 der_logs_ave.conjugate() * self._loss_stats.mean
             )
 
             return grad
 
-        self._grad = trees2_map(gradfun, self._der_loc_vals, self._der_logs_ave)
+        self._grads = trees2_map(gradfun, self._der_loc_vals, self._der_logs_ave)
 
         # Perform update
         if self._sr:
             # Center the log derivatives
-            self._der_logs -= self._der_logs_ave
+            self._jac = self.trees2_map(
+                lambda x, y: x - y, self._der_logs, self._der_logs_ave
+            )
 
-            self._sr.compute_update(self._der_logs, self._grad, self._dp)
+            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
+
         else:
-            self._dp = self._grad
+            self._dp = self._grads
 
         return self._dp
 
