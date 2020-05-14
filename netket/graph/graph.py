@@ -22,12 +22,16 @@ class NetworkX(AbstractGraph):
             >>> print(nk_g.n_nodes)
             3
         """
-        assert isinstance(graph, _nx.classes.graph.Graph) or isinstance(
-            graph, _nx.classes.multigraph.MultiGraph
-        )
+        if not (
+            isinstance(graph, _nx.classes.graph.Graph)
+            or isinstance(graph, _nx.classes.multigraph.MultiGraph)
+        ):
+            raise TypeError("graph must be a networx Graph or MultiGraph", type(graph))
 
         if isinstance(graph, _nx.classes.graph.Graph):
             self.graph = _nx.MultiGraph(graph)
+        else:
+            self.graph = graph
 
         self._automorphisms = None
 
@@ -39,7 +43,6 @@ class NetworkX(AbstractGraph):
 
     @property
     def is_connected(self):
-        # TODO: how to check if a multigraph is connected?
         return _nx.is_connected(self.graph)
 
     def edges(self, color=False):
@@ -71,7 +74,9 @@ class NetworkX(AbstractGraph):
         else:
             colors = _np.array([])
         if colors.size >= 2:
-            raise NotImplementedError("automorphisms is not yet implemented for colored edges")
+            raise NotImplementedError(
+                "automorphisms is not yet implemented for colored edges"
+            )
 
         if self._automorphisms is not None:
             return self._automorphisms
@@ -113,35 +118,34 @@ def Graph(nodes=[], edges=[]):
     if not isinstance(edges, list):
         raise TypeError("edges must be a list")
 
-    if not edges:
-        return Edgeless(nodes)
+    if edges:
+        type_condition = [
+            isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
+        ]
+        if False in type_condition:
+            raise ValueError("edges must be a list of lists or tuples")
 
-    type_condition = [
-        isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
-    ]
-    if False in type_condition:
-        raise TypeError("edges must be a list of lists or tuples")
+        edges_array = _np.array(edges, dtype=_np.int32)
+        if edges_array.ndim != 2:
+            raise ValueError(
+                "edges must be a list of lists or tuples of the same length (2 or 3)"
+            )
 
-    edges_array = _np.array(edges, dtype=_np.int32)
-    if edges_array.ndim != 2:
-        raise TypeError(
-            "edges must be a list of lists or tuples of the same length (2 or 3)"
-        )
-
-    if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
-        raise TypeError(
-            "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
-        )
+        if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
+            raise ValueError(
+                "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
+            )
 
     # Sort node names for ordering reasons:
     if nodes:
         node_names = sorted(nodes)
-    else:
+    if edges:
         node_names = sorted(set((node for edge in edges_array for node in edge)))
 
     graph = _nx.MultiGraph()
     graph.add_nodes_from(node_names)
-    graph.add_edges_from(edges_array)
+    if edges:
+        graph.add_edges_from(edges_array)
     return NetworkX(graph)
 
 
