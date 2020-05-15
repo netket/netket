@@ -181,6 +181,9 @@ void AddAbstractMachine(py::module m) {
           R"EOF(int: The number of inputs into the machine aka visible units in
             the case of Restricted Boltzmann Machines.)EOF")
       .def_property_readonly(
+          "input_size", &AbstractMachine::Nvisible,
+          R"EOF(int: The number of inputs into the machine.)EOF")
+      .def_property_readonly(
           "hilbert", &AbstractMachine::GetHilbert,
           R"EOF(netket.hilbert.Hilbert: The hilbert space object of the system.)EOF")
       .def_property_readonly(

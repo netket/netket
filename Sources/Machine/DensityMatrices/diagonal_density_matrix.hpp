@@ -22,7 +22,6 @@
 
 namespace netket {
 class DiagonalDensityMatrix : public AbstractMachine {
-
   AbstractDensityMatrix &density_matrix_;
 
  public:
@@ -46,13 +45,13 @@ class DiagonalDensityMatrix : public AbstractMachine {
 
   void SetParameters(VectorConstRefType pars) override;
 
-  int Nvisible() const override ;
+  int Nvisible() const override;
 
-  bool IsHolomorphic() const noexcept override ;
+  bool IsHolomorphic() const noexcept override;
 
-  void Save(const std::string &filename) const override ;
+  void Save(const std::string &filename) const override;
 
-  void Load(const std::string &filename) override ;
+  void Load(const std::string &filename) override;
 };
 }  // namespace netket
 

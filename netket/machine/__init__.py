@@ -17,3 +17,6 @@ if torch_available:
 
 def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
     return MPSPeriodic(hilbert, bond_dim, diag=True, symperiod=symperiod)
+
+
+from . import density_matrix

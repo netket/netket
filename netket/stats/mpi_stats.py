@@ -1,5 +1,6 @@
 import numpy as _np
 from mpi4py import MPI
+from ._sum_inplace import sum_inplace as _sum_inplace
 
 
 def subtract_mean(x, axis=None):
@@ -21,7 +22,7 @@ _MPI_comm = MPI.COMM_WORLD
 _n_nodes = _MPI_comm.Get_size()
 
 
-def mean(a, axis=None, out=None):
+def mean(a, axis=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
@@ -29,9 +30,9 @@ def mean(a, axis=None, out=None):
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
-    out = _np.asarray(_np.mean(a, axis=axis, out=out))
+    out = a.mean(axis=axis)
 
-    _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+    out = _sum_inplace(out)
     out /= _n_nodes
 
     return out
@@ -43,6 +44,7 @@ def sum(a, axis=None, out=None):
     """
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
     out = _np.asarray(_np.sum(a, axis=axis, out=out))
+
     _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
     return out
 
