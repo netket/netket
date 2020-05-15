@@ -15,6 +15,8 @@ from netket.stats import (
     mean as _mean,
 )
 
+from numba import jit
+
 
 def info(obj, depth=None):
     if hasattr(obj, "info"):
@@ -258,52 +260,41 @@ class Qdmr(object):
             self._data_samples = self._t_samples[rand_ind]
             self._data_bases = self._bases[rand_ind]
 
-            # Perform update
-            if self._sr:
-                # When using the SR (Natural gradient) we need to have the full jacobian
-                # Computes the jacobian
-                for i, sample in enumerate(self._samples):
-                    self._der_logs[i] = self._machine.der_log(sample)
+            # Negative phase driven by the model
+            for i in range(self._samples.shape[0]):
+                self._der_logs[i] = self._diag_machine.der_log(self._samples[i])
+                self._grads[i] = self._der_logs[i].sum(axis=0)
 
-                grad_neg = _mean(
-                    self._der_logs.reshape(-1, self._npar), axis=0
-                ).conjugate()
+            grad_neg = _mean(self._grads, axis=0) / float(self._batch_size)
 
-                # Positive phase driven by the data
-                for x, b_x, grad_x in zip(
-                    self._data_samples, self._data_bases, self._data_grads
-                ):
-                    self._compute_rotated_grad(x, b_x, grad_x)
+            # Positive phase driven by the data
+            for i in range(self._data_samples.shape[0]):
+                self._data_grads[i] = self._compute_rotated_grad(
+                    self._data_samples[i], self._data_bases[i], self._data_grads[i]
+                )
 
-                grad_pos = _mean(self._data_grads, axis=0)
+            grad_pos = _mean(self._data_grads, axis=0)
 
-                grad = 2.0 * (grad_neg - grad_pos)
+            grad = grad_neg - grad_pos
 
+            if self._sr is not None:
                 dp = _np.empty(self._npar, dtype=_np.complex128)
+                # flatten MC chain dimensions:
+                self._der_logs = self._der_logs.reshape(-1, self._npar)
+
+                # Center the log derivatives
+                self._der_logs -= _mean(self._der_logs, axis=0)
 
                 self._sr.compute_update(
                     self._der_logs.reshape(-1, self._npar), grad, dp
                 )
+
+                self._der_logs = self._der_logs.reshape(
+                    self._n_samples_node, self._batch_size, self._npar
+                )
             else:
                 # Computing updates using the simple gradient
-
-                # Negative phase driven by the model
-                for i in range(self._samples.shape[0]):
-                    self._grads[i] = self._diag_machine.der_log(self._samples[i]).sum(
-                        axis=0
-                    )
-
-                grad_neg = _mean(self._grads, axis=0) / float(self._batch_size)
-
-                # Positive phase driven by the data
-                for i in range(self._data_samples.shape[0]):
-                    self._data_grads[i] = self._compute_rotated_grad(
-                        self._data_samples[i], self._data_bases[i], self._data_grads[i]
-                    )
-
-                grad_pos = _mean(self._data_grads, axis=0)
-
-                dp = grad_neg - grad_pos
+                dp = grad
 
             self._machine.parameters = self._optimizer_step(
                 self.step_count, dp, self._machine.parameters
@@ -345,11 +336,6 @@ class Qdmr(object):
         out /= den
 
         return out
-
-    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
-    #     #     max_log_val = log_val_primes.real.max()
-    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
-    #     #     vec /= vec.sum()
 
     def iter(self, n_steps, step=1):
         """
