@@ -130,9 +130,10 @@ if test_jax:
     import jax.experimental
     import jax.experimental.stax
 
+
 def test_der_log_val_jax():
     if not test_jax:
-        return 
+        return
 
     ma = nk.machine.density_matrix.JaxNdmSpin(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
@@ -147,7 +148,7 @@ def test_der_log_val_jax():
         log_val_s = ma.log_val(state)
         der_log_s = ma.der_log(state)
 
-        statet, mel = lind.get_conn(state[0,:])
+        statet, mel = lind.get_conn(state[0, :])
 
         log_val_p = ma.log_val(statet)
         der_log_p = ma.der_log(statet)
