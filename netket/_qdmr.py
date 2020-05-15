@@ -303,29 +303,62 @@ class Qdmr(object):
             self.step_count += 1
 
     def _compute_rotated_grad(self, x, basis, out):
-        out = _np.zeros(out.shape, dtype=_np.complex128)
+        out[:] = _np.zeros(out.shape, dtype=_np.complex128)
 
         x_primes, mels = self._rotations[basis].get_conn(x)
 
-        log_val_rho = _np.empty(
+        self._log_val_rho = _np.empty(
             (x_primes.shape[0], x_primes.shape[0]), dtype=_np.complex128
         )
 
-        der_log_val_rho = _np.empty(
+        self._der_log_val_rho = _np.empty(
             (x_primes.shape[0], x_primes.shape[0], self._machine.n_par),
             dtype=_np.complex128,
         )
 
-        for i, x_prime in enumerate(x_primes):
-            x_row = _np.tile(x_prime, [x_primes.shape[0], 1])
-            log_val_rho[i] = self._machine.log_val(x_row, x_primes)
-            der_log_val_rho[i] = self._machine.der_log(x_row, x_primes)
+        self._inputr = _np.empty(
+            (x_primes.shape[0], x_primes.shape[0], x_primes.shape[1])
+        )
+        self._inputc = _np.empty(
+            (x_primes.shape[0], x_primes.shape[0], x_primes.shape[1])
+        )
+        self._inputr, self._inputc = self._prepare_input(
+            x_primes, self._inputr, self._inputc
+        )
 
+        self._log_val_rho = _np.asarray(
+            [
+                self._machine.log_val(row, col)
+                for row, col in zip(self._inputr, self._inputc)
+            ]
+        )
+        self._der_log_val_rho = _np.asarray(
+            [
+                self._machine.der_log(row, col)
+                for row, col in zip(self._inputr, self._inputc)
+            ]
+        )
+
+        return self._inner_loop(
+            mels, x_primes.shape[0], self._log_val_rho, self._der_log_val_rho, out
+        )
+
+    @staticmethod
+    @jit(nopython=True)
+    def _prepare_input(x_primes, inputr, inputc):
+        for i, x_prime in enumerate(x_primes):
+            for j in range(x_primes.shape[0]):
+                inputr[i, j] = x_prime
+            inputc[i] = x_primes
+        return inputr, inputc
+
+    @staticmethod
+    @jit(nopython=True)
+    def _inner_loop(mels, n_samples, log_val_rho, der_log_val_rho, out):
         den = 0.0
         max_log_val = log_val_rho.real.max()
-
-        for i in range(x_primes.shape[0]):
-            for j in range(x_primes.shape[0]):
+        for i in range(n_samples):
+            for j in range(n_samples):
                 den_ij = (
                     mels[i]
                     * _np.conjugate(mels[j])
@@ -334,7 +367,6 @@ class Qdmr(object):
                 den += den_ij
                 out += den_ij * der_log_val_rho[i, j]
         out /= den
-
         return out
 
     def iter(self, n_steps, step=1):
@@ -445,23 +477,28 @@ class Qdmr(object):
                 x_row = _np.tile(x_prime, [x_primes.shape[0], 1])
                 log_val_rho[i] = self._machine.log_val(x_row, x_primes)
 
-            den = 0.0
-            max_log_val = log_val_rho.real.max()
-
-            for i in range(x_primes.shape[0]):
-                for j in range(x_primes.shape[0]):
-                    den_ij = (
-                        mels[i]
-                        * _np.conjugate(mels[j])
-                        * _np.exp(log_val_rho[i, j] - max_log_val)
-                    )
-                    den += den_ij
-
+            den, max_log_val = self._nll_kernel(x_primes.shape[0], mels, log_val_rho)
             nll -= _np.log(den) + max_log_val
 
         nll /= float(len(samples))
         nll = _np.mean(_np.atleast_1d(nll)) + log_trace
         return nll.real
+
+    @staticmethod
+    @jit
+    def _nll_kernel(n_samples, mels, log_val_rho):
+        den = 0.0
+        max_log_val = log_val_rho.real.max()
+
+        for i in range(n_samples):
+            for j in range(n_samples):
+                den_ij = (
+                    mels[i]
+                    * _np.conjugate(mels[j])
+                    * _np.exp(log_val_rho[i, j] - max_log_val)
+                )
+                den += den_ij
+        return den, max_log_val
 
     def test_derivatives(self, epsilon=1e-5):
         """
@@ -537,5 +574,3 @@ class Qdmr(object):
             )
             self._machine.parameters += delta
             num_der = (nll_p - nll_m) / (2.0 * epsilon)
-
-            print(num_der.real, "  ", alg_der[p].real)
