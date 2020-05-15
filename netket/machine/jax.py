@@ -61,7 +61,7 @@ class Jax(AbstractMachine):
         # Computes total number of parameters
         weights, _ = tree_flatten(self._params)
         self._npar = sum([w.size for w in weights])
-        
+
     def init_random_parameters(self, seed=None, sigma=None):
         if seed is None:
             seed = _randint(0, 2 ** 32 - 2)

@@ -56,9 +56,9 @@ _local_values_and_grads_kernel = jax.jit(
 def _local_value_and_grad_notcentered_kernel(pars, vp, mel, v, logpsi):
     logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
     vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
-    
+
     loc_val = vec.sum()
-    grad_c = f_vjp(vec)[0] 
+    grad_c = f_vjp(vec)[0]
     # get out of the lambda function
     return loc_val, grad_c
 

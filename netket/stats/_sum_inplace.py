@@ -50,6 +50,7 @@ def define_sum_inplace(atypes):
 
     return _define_sum_inplace
 
+
 #######
 # MPI
 from netket.stats.mpi_stats import _MPI_comm, _n_nodes
@@ -68,14 +69,16 @@ def sum_inplace_MPI(a):
     _MPI_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
     return a
 
+
 #######
 # Scalar
-@define_sum_inplace(atypes=(float, complex, _np.float64, _np.float32, _np.complex64, _np.complex128))
+@define_sum_inplace(
+    atypes=(float, complex, _np.float64, _np.float32, _np.complex64, _np.complex128)
+)
 def sum_inplace_scalar(a):
     ar = _np.asarray(a)
     _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
     return ar
-
 
 
 #######

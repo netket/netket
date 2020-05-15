@@ -1,10 +1,6 @@
-from .local_values import (
-    local_values,
-)
+from .local_values import local_values
 
-from .der_local_values import (
-    der_local_values,
-)
+from .der_local_values import der_local_values
 
 
 from .local_operator import LocalOperator

@@ -3,7 +3,9 @@ from numba import jit
 
 from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from .._C_netket.machine import DensityMatrix as CDensityMatrix
-from netket.machine.density_matrix.abstract_density_matrix import AbstractDensityMatrix as PyDensityMatrix
+from netket.machine.density_matrix.abstract_density_matrix import (
+    AbstractDensityMatrix as PyDensityMatrix,
+)
 
 
 @jit(nopython=True)
@@ -49,7 +51,9 @@ def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
     log_val_primes = machine.log_val(v_primes, vold)
 
-    _local_values_kernel(_np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out)
+    _local_values_kernel(
+        _np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out
+    )
 
 
 def local_values(op, machine, v, log_vals=None, out=None):
@@ -79,9 +83,9 @@ def local_values(op, machine, v, log_vals=None, out=None):
     """
 
     # True when this is the local_value of a densitymatrix times an operator (observable)
-    is_op_times_op = (isinstance(machine, CDensityMatrix) or isinstance(machine, PyDensityMatrix)) and not isinstance(
-        op, _LocalLiouvillian
-    )
+    is_op_times_op = (
+        isinstance(machine, CDensityMatrix) or isinstance(machine, PyDensityMatrix)
+    ) and not isinstance(op, _LocalLiouvillian)
     if v.ndim != 2:
         raise RuntimeError("Invalid input shape, expected a 2d array")
 
@@ -106,4 +110,3 @@ def local_values(op, machine, v, log_vals=None, out=None):
     _impl(op, machine, v, log_vals, out)
 
     return out
-
