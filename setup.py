@@ -166,6 +166,7 @@ setup(
         "netket.hilbert",
         "netket.logging",
         "netket.machine",
+        "netket.machine.density_matrix",
         "netket.sampler",
         "netket.sampler.jax",
         "netket.stats",

@@ -16,13 +16,12 @@ class AbstractMachine(abc.ABC):
 
         Args:
             x: A matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination vector of `complex128`. The
-                 length of `out` should be `x.shape[0]`.
+            out: Destination vector of `complex128`. The length of `out` should be `x.shape[0]`.
 
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         pass
 
     def init_random_parameters(self, seed=None, sigma=0.01):
@@ -38,15 +37,15 @@ class AbstractMachine(abc.ABC):
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
         Args:
-             x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
-             vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
-             out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
-             conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
-             return_jacobian (bool): If true, the Jacobian is returned.
+            x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
+            vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
+            out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+            conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+            return_jacobian (bool): If true, the Jacobian is returned.
 
 
         Returns:
-             `out` or (out,jacobian) if return_jacobian is True
+            `out` or (out,jacobian) if return_jacobian is True
         """
         vec = vec.reshape(-1)
 
@@ -72,8 +71,10 @@ class AbstractMachine(abc.ABC):
 
         return (out, jacobian) if return_jacobian else out
 
-    def jacobian_vector_prod(self, v, vec, out=None):
-        return NotImplementedError
+    def jacobian_vector_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
+        raise NotImplementedError
 
     def der_log(self, x, out=None):
         r"""Computes the gradient of the logarithm of the wavefunction for a
@@ -87,7 +88,7 @@ class AbstractMachine(abc.ABC):
         Returns:
             `out`
             """
-        return NotImplementedError
+        raise NotImplementedError
 
     def to_array(self, normalize=True, batch_size=512):
         r"""
@@ -118,7 +119,7 @@ class AbstractMachine(abc.ABC):
 
             return psi
         else:
-            return RuntimeError("The hilbert space is not indexable")
+            raise RuntimeError("The hilbert space is not indexable")
 
     def log_norm(self, order=2):
         r"""
@@ -143,13 +144,13 @@ class AbstractMachine(abc.ABC):
 
             return log_n + maxl * order
         else:
-            return RuntimeError("The hilbert space is not indexable")
+            raise RuntimeError("The hilbert space is not indexable")
 
     @property
     @abc.abstractmethod
     def is_holomorphic(self):
         r"""Returns whether the wave function is holomorphic."""
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def n_par(self):
@@ -160,7 +161,7 @@ class AbstractMachine(abc.ABC):
     @abc.abstractmethod
     def state_dict(self):
         r"""A dictionary containing the parameters of this machine"""
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def parameters(self):
@@ -184,10 +185,10 @@ class AbstractMachine(abc.ABC):
             The default implementation attempts to return a simple reshaped view.
 
         Args:
-             data: a contigous numpy-compatible array.
+            data: a contigous numpy-compatible array.
 
         Returns:
-             numpy.ndarray: a one-dimensional array containing a view of the data
+            numpy.ndarray: a one-dimensional array containing a view of the data
         """
         return _np.asarray(data).reshape(-1)
 
@@ -196,12 +197,11 @@ class AbstractMachine(abc.ABC):
             This is typically used to deserialize parameters and gradients.
 
         Args:
-             data: a 1d numpy array.
-             shape_like: this as in instance having the same type and shape of
-                         the desired conversion.
+            data: a 1d numpy array.
+            shape_like: this as in instance having the same type and shape of the desired conversion.
 
         Returns:
-             A numpy array containing a view of data and compatible with the given shape.
+            A numpy array containing a view of data and compatible with the given shape.
         """
         return _np.asarray(data).reshape(shape_like.shape)
 
@@ -216,5 +216,5 @@ class AbstractMachine(abc.ABC):
         )
 
     @property
-    def n_visible(self):
+    def input_size(self):
         return self.hilbert.size

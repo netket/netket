@@ -34,6 +34,8 @@ class _custom_local_kernel:
         self._move_weights /= self._move_weights.sum()
         self._move_cumulative = _np.cumsum(self._move_weights)
 
+        self._hilbert = move_operators.hilbert
+
     def _check_operators(self, operators):
         for op in operators:
             assert op.imag.max() < 1.0e-10
@@ -42,7 +44,7 @@ class _custom_local_kernel:
             assert _np.allclose(op.sum(axis=1), 1.0)
             assert _np.allclose(op, op.T)
 
-    def apply(self, state, state_1, log_prob_corr):
+    def transition(self, state, state_1, log_prob_corr):
 
         self._rand_op_n, self._sections = self._pick_random_and_init(
             state.shape[0], self._move_cumulative, self._rand_op_n, self._sections
@@ -84,6 +86,11 @@ class _custom_local_kernel:
             low = sections[i]
 
         log_prob_corr.fill(0.0)
+
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            self._hilbert.random_vals(out=state[i])
 
 
 class CustomSampler(MetropolisHastings):

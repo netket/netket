@@ -33,14 +33,11 @@ class Jax(AbstractMachine):
             hilbert: Hilbert space on which the state is defined. Should be a
                 subclass of `netket.hilbert.Hilbert`.
             module: A pair `(init_fn, predict_fn)`. See the documentation of
-                `jax.experimental.stax` for more info.
+                jax.experimental.stax` for more info.
             dtype: either complex or float, is the type used for the weights.
-                If dtype is float, the network should have 2 outputs corresponding
-                to the real and imaginary part of log(psi(x)).
-                If dtype is complex, the network should have only 1 output
-                representing the complex amplitude log(psi(x)).
+                In both cases the network must have a single output.
         """
-        super(Jax, self).__init__(hilbert)
+        super().__init__(hilbert)
 
         if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
@@ -54,21 +51,22 @@ class Jax(AbstractMachine):
         self._forward_fn = jax.jit(self._forward_fn)
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
-        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=self.is_holomorphic))
+
+        # FIXME: not everything is holomorphic.
+        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
         self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
         self.init_random_parameters()
 
         # Computes total number of parameters
-        self._npar = sum(
-            reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params
-        )
+        weights, _ = tree_flatten(self._params)
+        self._npar = sum([w.size for w in weights])
 
     def init_random_parameters(self, seed=None, sigma=None):
         if seed is None:
             seed = _randint(0, 2 ** 32 - 2)
 
-        input_shape = (-1, self.hilbert.size)
+        input_shape = (-1, self.input_size)
         output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
 
         self._params = self._cast(params)
@@ -117,7 +115,8 @@ class Jax(AbstractMachine):
         if x.ndim != 2:
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
-        out = self._perex_grads(self._params, x)
+        # Jax has bugs for R->C functions...
+        out = self._perex_grads(self._params_ascomplex, x)
 
         return out
 
@@ -142,22 +141,22 @@ class Jax(AbstractMachine):
             vals, f_jvp = jax.vjp(
                 self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
             )
-
             pout = f_jvp(vec.reshape(vals.shape).conjugate())
-
             if conjugate and self._dtype is complex:
                 out = tree_map(jax.numpy.conjugate, pout[0])
+            else:
+                out = pout
 
             return out
 
         else:
 
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.np.tensordot(
+                prodj = lambda j: jax.numpy.tensordot(
                     vec.transpose(), j.conjugate(), axes=1
                 )
             else:
-                prodj = lambda j: jax.np.tensordot(
+                prodj = lambda j: jax.numpy.tensordot(
                     vec.transpose().conjugate(), j, axes=1
                 )
 
@@ -182,10 +181,18 @@ class Jax(AbstractMachine):
     def parameters(self):
         return self._params
 
+    @property
+    def _params_ascomplex(self):
+        if self._dtype is not complex:
+            return tree_map(lambda v: v.astype(jax.numpy.complex128), self._params)
+        else:
+            return self._params
+
     @parameters.setter
     def parameters(self, p):
         self._params = p
-        npar = sum(reduce(lambda n, p: n + p.size, layer, 0) for layer in self._params)
+        weights, _ = tree_flatten(self._params)
+        npar = sum([w.size for w in weights])
 
         assert npar == self._npar
 

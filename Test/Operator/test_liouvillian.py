@@ -22,7 +22,6 @@ import pytest
 from pytest import approx
 import os
 
-
 np.set_printoptions(linewidth=180)
 rg = nk.utils.RandomEngine(seed=1234)
 
@@ -79,75 +78,6 @@ def test_lindblad_zero_eigenvalue():
     lind_mat = lind.to_sparse()
     w, v = linalg.eigsh(lind_mat.H * lind_mat, which="SM")
     assert w[0] <= 10e-10
-
-
-def test_der_log_val():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
-    ma.init_random_parameters(seed=1234, sigma=0.01)
-
-    # test single input
-    for i in range(0, lind.hilbert.n_states):
-        state = lind.hilbert.number_to_state(i)
-        der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
-        )
-
-        log_val_s = ma.log_val(state)
-        der_log_s = ma.der_log(state)
-
-        statet, mel = lind.get_conn(state)
-
-        log_val_p = ma.log_val(statet)
-        der_log_p = ma.der_log(statet)
-
-        log_val_diff = mel * np.exp(log_val_p - log_val_s)
-        log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
-
-        grad = log_val_diff * (
-            der_log_p
-        )  # - der_log_s) because derivative not centered
-        grad_all = grad.sum(axis=0)
-
-        np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
-
-        # centered
-        # not necessary for liouvillian but worth checking
-        der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=True
-        )
-        grad = log_val_diff * (der_log_p - der_log_s)
-        grad_all = grad.sum(axis=0)
-
-        np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
-
-
-def test_der_log_val_batched():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
-    ma.init_random_parameters(seed=1234, sigma=0.01)
-
-    states = np.empty((5, hi_c.size * 2), dtype=np.float64)
-    der_locs = np.empty((5, ma.n_par), dtype=np.complex128)
-    der_locs_c = np.empty((5, ma.n_par), dtype=np.complex128)
-    # test single input
-    for i in range(0, 5):
-        state = lind.hilbert.number_to_state(i)
-        states[i, :] = state
-        der_locs[i, :] = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
-        )
-        der_locs_c[i, :] = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=True
-        )
-
-    der_locs_all = nk.operator.der_local_values(
-        lind, ma, states, center_derivative=False
-    )
-    der_locs_all_c = nk.operator.der_local_values(
-        lind, ma, states, center_derivative=True
-    )
-
-    np.testing.assert_array_almost_equal(der_locs, der_locs_all)
-    np.testing.assert_array_almost_equal(der_locs_c, der_locs_all_c)
 
 
 # Construct the operators for Sx, Sy and Sz

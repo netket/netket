@@ -25,10 +25,9 @@ class ExactSampler(AbstractSampler):
 
              sample_size: The number of independent samples to be generated at each invocation of __next__.
         """
-
+        super().__init__(machine, sample_size)
         self.hilbert = machine.hilbert
         self._machine_pow = 2.0
-        super().__init__(machine, sample_size)
 
     def reset(self, init_random=False):
         self._prob = _np.absolute(self.machine.to_array()) ** self.machine_pow

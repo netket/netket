@@ -14,8 +14,9 @@ class _hamiltonian_kernel:
         self._sections = _np.empty(1, dtype=_np.int32)
         self._hamconn = self._hamiltonian.get_conn_flattened
         self._n_conn = self._hamiltonian.n_conn
+        self._hilbert = hamiltonian.hilbert
 
-    def apply(self, state, state_1, log_prob_corr):
+    def transition(self, state, state_1, log_prob_corr):
 
         sections = self._sections
         sections = _np.empty(state.shape[0], dtype=_np.int32)
@@ -26,6 +27,11 @@ class _hamiltonian_kernel:
         self._n_conn(state_1, sections)
 
         log_prob_corr -= _np.log(sections)
+
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            self._hilbert.random_vals(out=state[i])
 
     @staticmethod
     @jit(nopython=True)
