@@ -77,12 +77,6 @@ void AddUtilsModule(py::module m) {
            },
            py::arg("low"), py::arg("high"), py::arg("samples"));
 
-  py::class_<MPIHelpers>(m, "MPI")
-      .def_static("rank", &MPIHelpers::MPIRank,
-                  R"EOF(int: The MPI rank for the current process.  )EOF")
-      .def_static(
-          "size", &MPIHelpers::MPISize,
-          R"EOF(int: The total number of MPI ranks currently active.  )EOF");
 }  // namespace netket
 
 }  // namespace netket
