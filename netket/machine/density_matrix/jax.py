@@ -21,7 +21,7 @@ from functools import partial
 
 
 class Jax(JaxPure, AbstractDensityMatrix):
-    def __init__(self, hilbert, module, dtype=complex):
+    def __init__(self, hilbert, module, dtype=complex, outdtype=complex):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet density matrix.
@@ -34,8 +34,9 @@ class Jax(JaxPure, AbstractDensityMatrix):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the module must have a single output.
         """
-        JaxPure.__init__(self, hilbert, module, dtype)
         AbstractDensityMatrix.__init__(self, hilbert)
+        JaxPure.__init__(self, hilbert, module, dtype, outdtype)
+
         assert self.input_size == self.hilbert.size * 2
 
     @staticmethod
@@ -173,6 +174,7 @@ def JaxNdmSpin(hilbert, alpha, beta, use_hidden_bias=True):
             SumLayer(),
         ),
         dtype=float,
+        outdtype=complex,
     )
 
 
@@ -339,4 +341,4 @@ def JaxNdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
         stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
     )
 
-    return Jax(hilbert, net, dtype=float,)
+    return Jax(hilbert, net, dtype=float, outdtype=complex)
