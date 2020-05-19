@@ -6,4 +6,4 @@ from ...utils import jax_available
 
 
 if jax_available:
-    from .jax import Jax, JaxNdmSpin, JaxNdmSpinPhase
+    from .jax import Jax, NdmSpin, NdmSpinPhase

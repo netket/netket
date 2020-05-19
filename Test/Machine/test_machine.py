@@ -64,9 +64,7 @@ if test_jax:
         dtype=complex,
     )
 
-    dm_machines["Jax NDM"] = nk.machine.density_matrix.JaxNdmSpinPhase(
-        hi, alpha=1, beta=1
-    )
+    dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
 
 if test_torch:

@@ -144,7 +144,7 @@ def DensePurificationComplex(
 from ..jax import LogCoshLayer, SumLayer
 
 
-def JaxNdmSpin(hilbert, alpha, beta, use_hidden_bias=True):
+def NdmSpin(hilbert, alpha, beta, use_hidden_bias=True):
     r"""
     A fully connected Neural Density Matrix (DBM). This type density matrix is
     obtained purifying a RBM with spin 1/2 hidden units.
@@ -299,7 +299,7 @@ def FanInSub2():
 FanInSub2 = FanInSub2()
 
 
-def JaxNdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
+def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
     r"""
     A fully connected Neural Density Matrix (DBM). This type density matrix is
     obtained purifying a RBM with spin 1/2 hidden units.

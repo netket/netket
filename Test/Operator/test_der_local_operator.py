@@ -135,7 +135,7 @@ def test_der_log_val_jax():
     if not test_jax:
         return
 
-    ma = nk.machine.density_matrix.JaxNdmSpin(hilbert=hi, alpha=1, beta=1)
+    ma = nk.machine.density_matrix.NdmSpin(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
     # test single input
@@ -194,7 +194,7 @@ def test_der_log_val_batched_jax():
     if not test_jax:
         return
 
-    ma = nk.machine.density_matrix.JaxNdmSpin(hilbert=hi, alpha=1, beta=1)
+    ma = nk.machine.density_matrix.NdmSpin(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
     # test single input
