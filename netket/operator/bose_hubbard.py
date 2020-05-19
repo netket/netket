@@ -1,5 +1,5 @@
 from .abstract_operator import AbstractOperator
-from ..hilbert import Boson, PyBoson
+from ..hilbert import Boson
 
 import math as _m
 import numpy as _np
@@ -40,7 +40,7 @@ class BoseHubbard(AbstractOperator):
         self._J = J
         self._mu = mu
         self._hilbert = hilbert
-        assert isinstance(hilbert, PyBoson) or isinstance(hilbert, Boson)
+        assert isinstance(hilbert, Boson)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size

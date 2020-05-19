@@ -9,24 +9,24 @@ L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 alpha = 1
-ma = nk.machine.JaxRbm(hi, alpha, dtype=complex)
+ma = nk.machine.JaxRbm(hi, alpha, dtype=float)
 ma.init_random_parameters(seed=1232)
 
 # Jax Sampler
 sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=8)
 
 # Using a Jax Optimizer
-j_op = JaxSgd(0.01)
+j_op = JaxSgd(0.1)
 op = nk.optimizer.Jax(ma, j_op)
 
 
 # Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.JaxSR(diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(
@@ -34,6 +34,6 @@ gs = nk.Vmc(
 )
 
 # The first iteration is slower because of start-up jit times
-gs.run(out="test", n_iter=1)
+gs.run(out="test", n_iter=2)
 
 gs.run(out="test", n_iter=300)

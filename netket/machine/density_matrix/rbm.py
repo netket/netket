@@ -79,7 +79,7 @@ class RbmSpin(AbstractDensityMatrix):
     @property
     def is_holomorphic(self):
         r"""Returns whether the density matrix is holomorphic."""
-        raise self._prbm.is_holomorphic
+        return self._prbm.is_holomorphic
 
     @property
     def state_dict(self):

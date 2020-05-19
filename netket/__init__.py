@@ -48,7 +48,6 @@ from . import (
     _vmc,
     _steadystate,
 )
-from ._C_netket import MPI
 
 # Main applications
 from ._vmc import Vmc

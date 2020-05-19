@@ -4,7 +4,6 @@ from numba import jit
 from functools import partial
 
 from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
-from .._C_netket.machine import DensityMatrix
 from ..vmc_common import tree_map
 
 ########################################
@@ -75,7 +74,7 @@ def _local_values_and_grads_notcentered_kernel(pars, vp, mel, v, logpsi):
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v, sections, pad=True)
+    v_primes, mels = op.get_conn_flattened(v._value, sections, pad=True)
 
     n_primes = sections[0]
     n_visible = v.shape[1]
@@ -93,7 +92,7 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
 
 def _der_local_values_impl(op, machine, v, log_vals):
     sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v, sections, pad=True)
+    v_primes, mels = op.get_conn_flattened(v._value, sections, pad=True)
 
     n_primes = sections[0]
     n_visible = v.shape[1]
