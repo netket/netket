@@ -28,7 +28,7 @@ np.set_printoptions(linewidth=180)
 rg = nk.utils.RandomEngine(seed=1234)
 
 # 1D Lattice
-L = 5
+L = 3
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
@@ -62,15 +62,15 @@ def test_der_log_val():
 
     # test single input
     for i in range(0, lind.hilbert.n_states):
-        state = lind.hilbert.number_to_state(i)
+        state = np.atleast_2d(lind.hilbert.number_to_state(i))
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, np.atleast_2d(state), center_derivative=False
+            lind, ma, state, center_derivative=False
         )
 
-        log_val_s = ma.log_val(state)
-        der_log_s = ma.der_log(state)
+        log_val_s = ma.log_val(state)[0]
+        der_log_s = ma.der_log(state)[0]
 
-        statet, mel = lind.get_conn(state)
+        statet, mel = lind.get_conn(state[0, :])
 
         log_val_p = ma.log_val(statet)
         der_log_p = ma.der_log(statet)
@@ -88,7 +88,7 @@ def test_der_log_val():
         # centered
         # not necessary for liouvillian but worth checking
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, np.atleast_2d(state), center_derivative=True
+            lind, ma, state, center_derivative=True
         )
         grad = log_val_diff * (der_log_p - der_log_s)
         grad_all = grad.sum(axis=0)
@@ -140,15 +140,15 @@ def test_der_log_val_jax():
 
     # test single input
     for i in range(0, lind.hilbert.n_states):
-        state = np.atleast_2d(lind.hilbert.number_to_state(i))
+        state = jax.numpy.array(np.atleast_2d(lind.hilbert.number_to_state(i)))
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, np.atleast_2d(state), center_derivative=False
+            lind, ma, state, center_derivative=False
         )
 
         log_val_s = ma.log_val(state)
         der_log_s = ma.der_log(state)
 
-        statet, mel = lind.get_conn(state[0, :])
+        statet, mel = lind.get_conn(state[0, :]._value)
 
         log_val_p = ma.log_val(statet)
         der_log_p = ma.der_log(statet)
@@ -172,7 +172,7 @@ def test_der_log_val_jax():
         # centered
         # not necessary for liouvillian but worth checking
         der_loc_vals = nk.operator.der_local_values(
-            lind, ma, np.atleast_2d(state), center_derivative=True
+            lind, ma, state, center_derivative=True
         )
         grad_all = nk._trees2_map(
             lambda xp, x: (
@@ -203,16 +203,16 @@ def test_der_log_val_batched_jax():
         states[i, :] = lind.hilbert.number_to_state(i)
 
     der_loc_notc_vals = nk.operator.der_local_values(
-        lind, ma, states, center_derivative=False
+        lind, ma, jax.numpy.array(states), center_derivative=False
     )
 
     der_loc_vals = nk.operator.der_local_values(
-        lind, ma, states, center_derivative=True
+        lind, ma, jax.numpy.array(states), center_derivative=True
     )
 
     for i in range(0, states.shape[0]):
         print("doing ", i)
-        state = np.atleast_2d(states[i, :])
+        state = jax.numpy.array(np.atleast_2d(states[i, :]))
 
         grad_all = nk.operator.der_local_values(
             lind, ma, state, center_derivative=False
