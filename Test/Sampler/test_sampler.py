@@ -59,7 +59,7 @@ ma.init_random_parameters(sigma=0.1)
 sa = nk.sampler.ExactSampler(machine=ma)
 samplers["Exact Boson"] = sa
 
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.PySpin(s=0.5, graph=g)
 g = nk.graph.Hypercube(length=3, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(sigma=0.2)
@@ -98,7 +98,7 @@ ma = nk.machine.density_matrix.RbmSpin(
     hilbert=hi, alpha=1, use_visible_bias=True, use_hidden_bias=True,
 )
 ma.init_random_parameters(sigma=0.2)
-dm = nk.machine.DiagonalDensityMatrix(ma)
+dm = ma.diagonal()
 sa = nk.sampler.MetropolisLocal(machine=dm)
 samplers["Diagonal Density Matrix"] = sa
 
@@ -106,7 +106,7 @@ sa = nk.sampler.ExactSampler(machine=dm)
 samplers["Exact Diagonal Density Matrix"] = sa
 
 g = nk.graph.Hypercube(length=3, n_dim=1)
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.PySpin(s=0.5, graph=g)
 ma = nk.machine.density_matrix.RbmSpin(
     hilbert=hi, alpha=1, use_visible_bias=True, use_hidden_bias=True,
 )
@@ -124,7 +124,7 @@ def test_states_in_hilbert():
         localstates = hi.local_states
 
         for sample in sa.samples(100):
-            assert sample.shape[1] == hi.size
+            assert sample.shape[1] == ma.input_size
             for v in sample.reshape(-1):
                 assert v in localstates
 
@@ -144,6 +144,8 @@ def test_correct_sampling():
         ma = sa.machine
         hi = ma.hilbert
 
+        if ma.input_size == 2 * hi.size:
+            hi = nk.hilbert.DoubledHilbert(hi)
         n_states = hi.n_states
 
         n_samples = max(40 * n_states, 10000)
@@ -170,8 +172,8 @@ def test_correct_sampling():
 
             samples = sa.generate_samples(n_samples)
 
-            assert samples.shape[2] == hi.size
-            sttn = hi.states_to_numbers(samples.reshape(-1, hi.size))
+            assert samples.shape[2] == ma.input_size
+            sttn = hi.states_to_numbers(samples.reshape(-1, ma.input_size))
             n_s = sttn.size
 
             # fill in the histogram for sampler
