@@ -51,19 +51,12 @@ class Jax(JaxPure, AbstractDensityMatrix):
     def log_val(self, xr, xc=None, out=None):
         x = self._dminput(xr, xc)
 
-        if out is None:
-            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
-        else:
-            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
-
-        return out
+        return JaxPure.log_val(self, x, out=out)
 
     def der_log(self, xr, xc=None, out=None):
         x = self._dminput(xr, xc)
 
-        out = self._perex_grads(self._params_ascomplex, x)
-
-        return out
+        return JaxPure.der_log(self, x, out=out)
 
     def diagonal(self):
         from .diagonal import Diagonal

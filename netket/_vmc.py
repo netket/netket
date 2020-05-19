@@ -159,7 +159,10 @@ class Vmc(AbstractVariationalDriver):
 
             self._grads = tree_map(_sum_inplace, self._grads)
 
-            self._dp = self._grads
+            if self._machine._dtype is complex:
+                self._dp = self._grads
+            else:
+                self._dp = tree_map(lambda x: x.real, self._grads)
 
         return self._dp
 

@@ -44,6 +44,7 @@ class Jax(AbstractMachine):
 
         if outdtype is None:
             outdtype = dtype
+
         elif outdtype is not float and outdtype is not complex:
             raise TypeError("outdtype must be either float or complex or None")
 
@@ -90,7 +91,7 @@ class Jax(AbstractMachine):
                 r_flat, r_fun = tree_flatten(grad_r)
                 j_flat, j_fun = tree_flatten(grad_j)
 
-                grad_flat = [0.5 * re + 0.5j * im for re, im in zip(r_flat, j_flat)]
+                grad_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 return tree_unflatten(r_fun, grad_flat)
 
             grad_fun = jax.jit(_gradfun)
@@ -121,7 +122,7 @@ class Jax(AbstractMachine):
 
                 r_flat = [rr - 1j * jr for rr, jr in zip(rjr_flat, jjr_flat)]
                 j_flat = [rr - 1j * jr for rr, jr in zip(rjj_flat, jjj_flat)]
-                out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
+                out_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 if conjugate:
                     out_flat = [x.conjugate() for x in out_flat]
 
@@ -172,15 +173,9 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = _np.array(
-                self._forward_fn(self._params, x).reshape(x.shape[0],),
-                dtype=_np.complex128,
-            )
+            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
         else:
-            out[:] = _np.array(
-                self._forward_fn(self._params, x).reshape(x.shape[0],),
-                dtype=_np.complex128,
-            )
+            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
         return out
 
     @property
@@ -331,4 +326,37 @@ def JaxRbm(hilbert, alpha, dtype=complex):
         hilbert,
         stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
         dtype=dtype,
+    )
+
+
+def FanInSum2ModPhase():
+    """Layer construction function for a fan-in sum layer."""
+
+    def init_fun(rng, input_shape):
+        output_shape = input_shape[0]
+        return output_shape, tuple()
+
+    def apply_fun(params, inputs, **kwargs):
+        output = 1.0 * inputs[0] + 1.0j * inputs[1]
+        return output
+
+    return init_fun, apply_fun
+
+
+FanInSum2ModPhase = FanInSum2ModPhase()
+
+
+def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
+    return Jax(
+        hilbert,
+        stax.serial(
+            stax.FanOut(2),
+            stax.parallel(
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+            ),
+            FanInSum2ModPhase,
+        ),
+        dtype=dtype,
+        outdtype=complex,
     )
