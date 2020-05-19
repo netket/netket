@@ -74,7 +74,7 @@ class AbstractDensityMatrix(AbstractMachine):
         """
         if self.hilbert.is_indexable:
             n_states = self.hilbert.n_states
-            return self.to_array(normalize).reshape((n_states, n_states))
+            return self.to_array(normalize="trace").reshape((n_states, n_states))
 
         else:
             raise RuntimeError("The hilbert space is not indexable")
@@ -108,8 +108,11 @@ class AbstractDensityMatrix(AbstractMachine):
             logmax = x.real.max()
             rho_vec = _np.exp(rho_vec - logmax)
 
-            if normalize:
+            if normalize == "trace":
                 norm = _np.trace(rho_vec.reshape((n_states, n_states)))
+                rho_vec /= norm
+            elif normalize == True or normalize == "L2":
+                norm = _np.linalg.norm(rho_vec)
                 rho_vec /= norm
 
             return rho_vec

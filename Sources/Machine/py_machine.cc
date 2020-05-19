@@ -24,7 +24,6 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 
-#include "DensityMatrices/py_density_matrix.hpp"
 #include "Machine/mps_periodic.hpp"
 #include "Machine/py_abstract_machine.hpp"
 #include "Utils/pybind_helpers.hpp"
@@ -290,7 +289,6 @@ void AddMachineModule(py::module m) {
 
   AddAbstractMachine(subm);
   AddMpsPeriodic(subm);
-  AddDensityMatrixModule(subm);
 }
 
 }  // namespace netket
