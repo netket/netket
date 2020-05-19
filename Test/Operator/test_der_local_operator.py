@@ -57,7 +57,7 @@ lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 
 def test_der_log_val():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
+    ma = nk.machine.density_matrix.RbmSpin(hilbert=hi, alpha=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
     # test single input
@@ -97,7 +97,7 @@ def test_der_log_val():
 
 
 def test_der_log_val_batched():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi_c, alpha=1, beta=1)
+    ma = nk.machine.density_matrix.RbmSpin(hilbert=hi, alpha=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
 
     states = np.empty((5, hi_c.size * 2), dtype=np.float64)
