@@ -59,7 +59,7 @@ ma.init_random_parameters(sigma=0.1)
 sa = nk.sampler.ExactSampler(machine=ma)
 samplers["Exact Boson"] = sa
 
-hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 g = nk.graph.Hypercube(length=3, n_dim=1)
 ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
 ma.init_random_parameters(sigma=0.2)
@@ -106,7 +106,7 @@ sa = nk.sampler.ExactSampler(machine=dm)
 samplers["Exact Diagonal Density Matrix"] = sa
 
 g = nk.graph.Hypercube(length=3, n_dim=1)
-hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.density_matrix.RbmSpin(
     hilbert=hi, alpha=1, use_visible_bias=True, use_hidden_bias=True,
 )

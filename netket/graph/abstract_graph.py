@@ -1,5 +1,4 @@
 import abc
-import numpy as _np
 
 
 class AbstractGraph(abc.ABC):

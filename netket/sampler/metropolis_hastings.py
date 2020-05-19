@@ -9,7 +9,7 @@ from .._jitclass import jitclass
 
 
 class MetropolisHastings(AbstractSampler):
-    """
+    r"""
     ``MetropolisHastings`` is a generic Metropolis-Hastings sampler using
     a transition kernel to perform moves in the Markov Chain.
     The transition kernel is used to generate
@@ -27,7 +27,7 @@ class MetropolisHastings(AbstractSampler):
     def __init__(
         self, machine, kernel, n_chains=16, sweep_size=None, batch_size=None,
     ):
-        """
+        r"""
         Constructs a new ``MetropolisHastings`` sampler given a machine and
         a kernel.
 

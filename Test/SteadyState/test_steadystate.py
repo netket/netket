@@ -20,7 +20,7 @@ def _setup_ss(**kwargs):
     nk.random.seed(SEED)
     np.random.seed(SEED)
     g = nk.graph.Hypercube(length=L, n_dim=1)
-    hi = nk.hilbert.PySpin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5, graph=g)
 
     # ma = nk.machine.density_matrix.RbmSpin(hilbert=hi, alpha=1)
     ma = nk.machine.density_matrix.RbmSpin(hilbert=hi, alpha=1)

@@ -55,31 +55,31 @@ class _exchange_kernel:
 
 
 class MetropolisExchange(MetropolisHastings):
-    """
-    This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
-    and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
-    where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.
-    The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph
-    distance of :math:`d_{\mathrm{max}}`.
+    r"""
+        This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
+        and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
+        where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.
+        The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph
+        distance of :math:`d_{\mathrm{max}}`.
 
-    The transition probability associated to this sampler can
-    be decomposed into two steps:
+        The transition probability associated to this sampler can
+        be decomposed into two steps:
 
-    1. A pair of indices :math:`i,j = 1\dots N`, and such
-       that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
-       is chosen with uniform probability.
-    2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
+        1. A pair of indices :math:`i,j = 1\dots N`, and such
+           that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
+           is chosen with uniform probability.
+        2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
 
-    Notice that this sampling method generates random permutations of the quantum
-    numbers, thus global quantities such as the sum of the local quantum numbers
-    are conserved during the sampling.
-    This scheme should be used then only when sampling in a
-    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
-    otherwise the sampling would be strongly not ergodic.
+        Notice that this sampling method generates random permutations of the quantum
+        numbers, thus global quantities such as the sum of the local quantum numbers
+        are conserved during the sampling.
+        This scheme should be used then only when sampling in a
+        region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
+        otherwise the sampling would be strongly not ergodic.
     """
 
     def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
         Args:
               machine: A machine :math:`\Psi(s)` used for the sampling.
                        The probability distribution being sampled
@@ -121,16 +121,16 @@ class MetropolisExchange(MetropolisHastings):
 
 
 class MetropolisExchangePt(MetropolisHastingsPt):
-    """
-    This sampler performs parallel-tempering
-    moves in addition to the local moves implemented in `MetropolisExchange`.
-    The number of replicas can be chosen by the user.
+    r"""
+        This sampler performs parallel-tempering
+        moves in addition to the local moves implemented in `MetropolisExchange`.
+        The number of replicas can be chosen by the user.
     """
 
     def __init__(
         self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
                      The probability distribution being sampled

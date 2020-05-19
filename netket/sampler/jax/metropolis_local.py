@@ -32,7 +32,7 @@ class _local_kernel:
 
 
 class MetropolisLocal(MetropolisHastings):
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
@@ -58,7 +58,7 @@ class MetropolisLocal(MetropolisHastings):
     """
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
 

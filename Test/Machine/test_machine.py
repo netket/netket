@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from pytest import approx
 import os
-from netket.hilbert import PySpin as Spin
+from netket.hilbert import Spin
 
 test_jax = True
 try:

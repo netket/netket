@@ -11,7 +11,7 @@ class NetworkX(AbstractGraph):
         """
         Constructs a netket graph from a networkx graph.
 
-        Args: 
+        Args:
             graph: A networkx graph (might be a networkx.Graph or a networkx.MultiGraph)
         Examples:
             A graph of nodes [0,1,2] with edges [(0,1), (0,2), (1,2)]
@@ -94,7 +94,7 @@ class NetworkX(AbstractGraph):
 
 
 def Graph(nodes=[], edges=[]):
-    """ A Custom Graph provided nodes or edges.
+    r""" A Custom Graph provided nodes or edges.
         Constructs a Custom Graph given a list of nodes and edges.
         Args:
             nodes: A list of ints that index nodes of a graph
