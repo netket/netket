@@ -267,15 +267,6 @@ set(NETKET_SOURCES
     Sources/Graph/edgeless.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
-    Sources/Hilbert/hilbert_index.cc
-    Sources/Hilbert/bosons.cc
-    Sources/Hilbert/spins.cc
-    Sources/Hilbert/custom_hilbert.cc
-    Sources/Hilbert/py_hilbert.cc
-    Sources/Machine/abstract_machine.cc
-    Sources/Machine/mps_periodic.cc
-    Sources/Machine/py_machine.cc
-    Sources/Machine/DensityMatrices/abstract_density_matrix.cc
     Sources/Stats/mc_stats.cc
     Sources/Stats/py_stats.cc
     Sources/Utils/json_utils.cc
@@ -284,11 +275,7 @@ set(NETKET_SOURCES
     Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
     Sources/Utils/random_utils.cc
-    Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
-    Sources/Machine/DensityMatrices/ndm_spin_phase.cc
-    Sources/Machine/DensityMatrices/py_density_matrix.cc
-    Sources/Graph/doubled_graph.cc
-    Sources/Hilbert/doubled_hilbert.cc)
+    Sources/Graph/doubled_graph.cc)
 
 add_library(netket MODULE ${NETKET_SOURCES})
 

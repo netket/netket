@@ -1,11 +1,11 @@
-from .custom_hilbert import PyCustomHilbert
+from .custom_hilbert import CustomHilbert
 
 import numpy as _np
 from netket import random as _random
 from numba import jit
 
 
-class PySpin(PyCustomHilbert):
+class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
     def __init__(self, graph, s, total_sz=None):

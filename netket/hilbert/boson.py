@@ -1,11 +1,11 @@
-from .custom_hilbert import PyCustomHilbert
+from .custom_hilbert import CustomHilbert
 
 import numpy as _np
 from netket import random as _random
 from numba import jit
 
 
-class PyBoson(PyCustomHilbert):
+class Boson(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local bosonic states."""
 
     def __init__(self, graph, n_max=None, n_bosons=None):
