@@ -243,13 +243,6 @@ class Jax(AbstractMachine):
     def parameters(self):
         return self._params
 
-    @property
-    def _params_ascomplex(self):
-        if self._dtype is not complex:
-            return tree_map(lambda v: v.astype(jax.numpy.complex128), self._params)
-        else:
-            return self._params
-
     @parameters.setter
     def parameters(self, p):
         self._params = p

@@ -69,6 +69,7 @@ class SteadyState(AbstractVariationalDriver):
         self._sr = sr
         if sr is not None:
             self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.machine = sampler.machine
 
         self._npar = self._machine.n_par
 
@@ -233,7 +234,6 @@ class SteadyState(AbstractVariationalDriver):
             grad = _mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
                 der_logs_ave.conjugate() * self._loss_stats.mean
             )
-
             return grad
 
         self._grads = trees2_map(gradfun, self._der_loc_vals, self._der_logs_ave)
@@ -247,8 +247,14 @@ class SteadyState(AbstractVariationalDriver):
 
             self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
+            if self._machine._dtype is float:
+                self._dp = tree_map(lambda x: x.real, self._dp)
+
         else:
             self._dp = self._grads
+
+            if self._machine._dtype is float:
+                self._dp = tree_map(lambda x: x.real, self._dp)
 
         return self._dp
 
