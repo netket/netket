@@ -1,5 +1,7 @@
 import abc
 
+from mpi4py import MPI
+
 from netket._core import deprecated, warn_deprecation
 import netket as _nk
 import numpy as _np
@@ -31,7 +33,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, machine, optimizer, minimized_quantity_name=""):
-        self._mynode = _nk.MPI.rank()
+        self._mynode = MPI.COMM_WORLD.rank
+        self._mpi_nodes = MPI.COMM_WORLD.Get_size()
         self._obs = {}  # to deprecate
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
