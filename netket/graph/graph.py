@@ -136,7 +136,7 @@ def Graph(nodes=[], edges=[]):
     # Sort node names for ordering reasons:
     if nodes:
         node_names = sorted(nodes)
-    if edges:
+    elif edges:
         node_names = sorted(set((node for edge in edges_array for node in edge)))
 
     graph = _nx.MultiGraph()
