@@ -334,8 +334,8 @@ def JaxRbm(hilbert, alpha, dtype=complex):
     )
 
 
-def JaxMpsPeriodic(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex):
-    return Jax(hilbert, stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)), dtype=dtype)
+def JaxMpsPeriodic(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex, outdtype=complex):
+    return Jax(hilbert, stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)), dtype=dtype, outdtype=outdtype)
 
 
 def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex):
