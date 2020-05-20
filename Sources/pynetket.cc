@@ -18,7 +18,6 @@
 #include <netket.hpp>
 #include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
-#include "Stats/py_stats.hpp"
 // #include "Supervised/py_supervised.hpp"
 #include "Utils/py_utils.hpp"
 #include "Utils/pybind_helpers.hpp"

@@ -41,7 +41,7 @@ class Boson(CustomHilbert):
             if self._n_max is None:
                 self._n_max = n_bosons
             else:
-                if self._n_max * graph.size < n_bosons:
+                if self._n_max * graph.n_nodes < n_bosons:
                     raise Exception(
                         """The required total number of bosons is not compatible
                         with the given n_max."""

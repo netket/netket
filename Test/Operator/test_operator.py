@@ -47,18 +47,16 @@ edges = [
     [19, 0],
 ]
 
-g = nk.graph.CustomGraph(edges=edges)
+g = nk.graph.Graph(edges=edges)
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
-ha = nk.operator.GraphOperator(
-    hi, site_ops=[sigmax], bond_ops=[mszsz], bond_ops_colors=[0]
-)
+ha = nk.operator.GraphOperator(hi, site_ops=[sigmax], bond_ops=[mszsz])
 operators["Graph Hamiltonian"] = ha
 
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
 sy = [[0, 1.0j], [-1.0j, 0]]
 sz = [[1, 0], [0, -1]]
-g = nk.graph.CustomGraph(edges=[[i, i + 1] for i in range(20)])
+g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[1, -1], graph=g)
 
 sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])

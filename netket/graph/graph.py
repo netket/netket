@@ -167,3 +167,15 @@ def Edgeless(nodes):
     edgelessgraph = _nx.MultiGraph()
     edgelessgraph.add_nodes_from(nodes)
     return NetworkX(edgelessgraph)
+
+
+def DoubledGraph(graph):
+    """
+    """
+
+    dedges = graph.edges()
+    n_v = graph.n_vertices
+
+    dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
+
+    return Graph(edges=dedges)
