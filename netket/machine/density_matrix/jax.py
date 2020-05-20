@@ -370,3 +370,12 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
         )
 
     return Jax(hilbert, net, dtype=float, outdtype=complex)
+
+
+def JaxRbmSpin(hilbert, alpha, dtype=complex):
+    return Jax(
+        hilbert,
+        stax.serial(stax.Dense(alpha * hilbert.size * 2), LogCoshLayer, SumLayer()),
+        dtype=dtype,
+        outdtype=dtype,
+    )
