@@ -292,7 +292,34 @@ def FanInSub2():
 FanInSub2 = FanInSub2()
 
 
-def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
+def BiasRealModPhase(b_init=normal()):
+    def init_fun(rng, input_shape):
+        assert input_shape[-1] % 2 == 0
+        input_size = input_shape[-1] // 2
+
+        output_shape = input_shape[:-1]
+
+        k = jax.random.split(rng, 2)
+
+        br = b_init(k[0], (input_size,))
+        bj = b_init(k[1], (input_size,))
+
+        return output_shape, (br, bj)
+
+    def apply_fun(params, inputs, **kwargs):
+        br, bj = params
+
+        xr, xc = jax.numpy.split(inputs, 2, axis=-1)
+
+        biasr = jax.numpy.dot((xr + xc)[:,], br)
+        biasj = jax.numpy.dot((xr - xc)[:,], bj)
+
+        return 0.5 * biasr + 0.5j * biasj
+
+    return init_fun, apply_fun
+
+
+def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=True):
     r"""
     A fully connected Neural Density Matrix (DBM). This type density matrix is
     obtained purifying a RBM with spin 1/2 hidden units.
@@ -330,8 +357,16 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
         DenseMixingReal(beta * hilbert.size, use_hidden_bias), LogCoshLayer, SumLayer(),
     )
 
-    net = stax.serial(
-        stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
-    )
+    if use_visible_bias:
+        biases = BiasRealModPhase()
+        net = stax.serial(
+            stax.FanOut(4),
+            stax.parallel(mod_pure, phs_pure, mixing, biases),
+            stax.FanInSum,
+        )
+    else:
+        net = stax.serial(
+            stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
+        )
 
     return Jax(hilbert, net, dtype=float, outdtype=complex)
