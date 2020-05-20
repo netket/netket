@@ -139,10 +139,10 @@ def test_is_bipartite():
         for j in range(1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
             y = nk.graph.Graph(list(x.edges()))
-            # if len(x) == len(set((i for (i, j) in x.edges())) | set((j for (i, j) in x.edges()))):
-            assert y.is_bipartite() == nx.is_bipartite(x)
-            # else:
-            # assert not nx.is_bipartite(x)
+            if len(x) == len(
+                set((i for (i, j) in x.edges())) | set((j for (i, j) in x.edges()))
+            ):
+                assert y.is_bipartite() == nx.is_bipartite(x)
 
 
 def test_computes_distances():

@@ -172,6 +172,6 @@ def test_Heisenberg():
         g = nk.graph.Hypercube(7, 1)
         hi = nk.hilbert.Spin(g, 0.5)
 
-        assert not hi.graph.is_bipartite
+        assert not hi.graph.is_bipartite()
 
         ha = nk.operator.Heisenberg(hi, sign_rule=True)
