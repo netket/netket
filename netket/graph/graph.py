@@ -1,4 +1,4 @@
-from abstract_graph import AbstractGraph
+from .abstract_graph import AbstractGraph
 
 import numpy as _np
 import networkx as _nx
@@ -11,7 +11,7 @@ class NetworkX(AbstractGraph):
         """
         Constructs a netket graph from a networkx graph.
 
-        Args: 
+        Args:
             graph: A networkx graph (might be a networkx.Graph or a networkx.MultiGraph)
         Examples:
             A graph of nodes [0,1,2] with edges [(0,1), (0,2), (1,2)]
@@ -37,11 +37,9 @@ class NetworkX(AbstractGraph):
 
         super().__init__()
 
-    @property
     def adjacency_list(self):
         return [list(self.graph.neighbors(node)) for node in self.graph.nodes]
 
-    @property
     def is_connected(self):
         return _nx.is_connected(self.graph)
 
@@ -54,9 +52,8 @@ class NetworkX(AbstractGraph):
             return list(self.graph.edges(keys=False))
 
     def distances(self):
-        return _nx.floyd_warshall_numpy(self.graph)
+        return _nx.floyd_warshall_numpy(self.graph).tolist()
 
-    @property
     def is_bipartite(self):
         return _nx.is_bipartite(self.graph)
 
@@ -94,7 +91,7 @@ class NetworkX(AbstractGraph):
 
 
 def Graph(nodes=[], edges=[]):
-    """ A Custom Graph provided nodes or edges.
+    r""" A Custom Graph provided nodes or edges.
         Constructs a Custom Graph given a list of nodes and edges.
         Args:
             nodes: A list of ints that index nodes of a graph
@@ -139,7 +136,7 @@ def Graph(nodes=[], edges=[]):
     # Sort node names for ordering reasons:
     if nodes:
         node_names = sorted(nodes)
-    if edges:
+    elif edges:
         node_names = sorted(set((node for edge in edges_array for node in edge)))
 
     graph = _nx.MultiGraph()
@@ -152,7 +149,7 @@ def Graph(nodes=[], edges=[]):
 def Edgeless(nodes):
     """A set graph (collection of unconnected vertices).
         Args:
-            nodes: A list of ints that index nodes of a graph
+            nodes: An integer number of nodes or a list of ints that index nodes of a graph
         Example:
             A 10-site one-dimensional lattice with periodic boundary conditions can be
             constructed specifying the edges as follows:
@@ -163,8 +160,22 @@ def Edgeless(nodes):
             4
     """
     if not isinstance(nodes, list):
-        raise TypeError("nodes must be a list")
+        if not isinstance(nodes, int):
+            raise TypeError("nodes must be either an integer or a list")
+        nodes = range(nodes)
 
     edgelessgraph = _nx.MultiGraph()
     edgelessgraph.add_nodes_from(nodes)
     return NetworkX(edgelessgraph)
+
+
+def DoubledGraph(graph):
+    """
+    """
+
+    dedges = graph.edges()
+    n_v = graph.n_vertices
+
+    dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
+
+    return Graph(edges=dedges)

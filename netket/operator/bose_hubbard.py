@@ -1,5 +1,5 @@
 from .abstract_operator import AbstractOperator
-from ..hilbert import Boson, PyBoson
+from ..hilbert import Boson
 
 import math as _m
 import numpy as _np
@@ -40,11 +40,11 @@ class BoseHubbard(AbstractOperator):
         self._J = J
         self._mu = mu
         self._hilbert = hilbert
-        assert isinstance(hilbert, PyBoson) or isinstance(hilbert, Boson)
+        assert isinstance(hilbert, Boson)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = _np.asarray(hilbert.graph.edges)
+        self._edges = _np.asarray(hilbert.graph.edges())
         self._max_conn = 1 + self._edges.shape[0] * 2
         self._max_mels = _np.empty(self._max_conn, dtype=_np.complex128)
         self._max_xprime = _np.empty((self._max_conn, self._n_sites))

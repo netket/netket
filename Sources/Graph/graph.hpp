@@ -16,9 +16,6 @@
 #define NETKET_GRAPH_HPP
 
 #include "Graph/abstract_graph.hpp"
-#include "Graph/custom_graph.hpp"
-#include "Graph/edgeless.hpp"
-#include "Graph/hypercube.hpp"
 #include "Graph/lattice.hpp"
 
 #endif

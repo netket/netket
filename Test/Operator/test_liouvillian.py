@@ -23,14 +23,13 @@ from pytest import approx
 import os
 
 np.set_printoptions(linewidth=180)
-rg = nk.utils.RandomEngine(seed=1234)
 
 # 1D Lattice
 L = 5
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 hi_c = nk.hilbert.Spin(s=0.5, graph=g)
 
 # Defining the Ising hamiltonian (with sign problem here)
