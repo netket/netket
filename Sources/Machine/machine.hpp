@@ -22,6 +22,4 @@
 #include "abstract_machine.hpp"
 #include "mps_periodic.hpp"
 
-#include "DensityMatrices/density_matrix_machine.hpp"
-
 #endif

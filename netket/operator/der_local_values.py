@@ -2,8 +2,6 @@ import numpy as _np
 from numba import jit
 
 from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
-from .._C_netket.machine import DensityMatrix
-
 
 from netket.utils import jax_available
 

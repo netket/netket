@@ -24,7 +24,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
 class Jax(AbstractMachine):
-    def __init__(self, hilbert, module, dtype=complex):
+    def __init__(self, hilbert, module, dtype=complex, outdtype=None):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -42,19 +42,95 @@ class Jax(AbstractMachine):
         if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
 
+        if outdtype is None:
+            outdtype = dtype
+        elif outdtype is not float and outdtype is not complex:
+            raise TypeError("outdtype must be either float or complex or None")
+
         self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
+        self._outdtype = outdtype
+
         self._init_fn, self._forward_fn = module
+
+        self._forward_fn_nj = self._forward_fn
 
         # Computes the Jacobian matrix using forward ad
         self._forward_fn = jax.jit(self._forward_fn)
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
 
-        # FIXME: not everything is holomorphic.
-        grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
-        self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+        # if R->R or C-> C
+        if (self._dtype is float and self._outdtype is float) or (
+            self._dtype is complex and self._outdtype is complex
+        ):
+
+            grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
+            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+
+            def _vjp_fun(pars, v, vec, conjugate, forward_fun):
+                vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
+
+                out = f_jvp(vec.reshape(vals.shape).conjugate())[0]
+
+                if conjugate:
+                    out = tree_map(jax.numpy.conjugate, out)
+
+                return out
+
+            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+
+        elif self._dtype is float and self._outdtype is complex:
+
+            def _gradfun(pars, v):
+                grad_r = jax.grad(lambda pars, v: forward_scalar(pars, v).real)(pars, v)
+                grad_j = jax.grad(lambda pars, v: forward_scalar(pars, v).imag)(pars, v)
+
+                r_flat, r_fun = tree_flatten(grad_r)
+                j_flat, j_fun = tree_flatten(grad_j)
+
+                grad_flat = [0.5 * re + 0.5j * im for re, im in zip(r_flat, j_flat)]
+                return tree_unflatten(r_fun, grad_flat)
+
+            grad_fun = jax.jit(_gradfun)
+            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+
+            def _vjp_fun(pars, v, vec, conjugate, forward_fun):
+                v = v.reshape((-1, v.shape[-1]))
+                vals_r, f_jvp_r = jax.vjp(
+                    lambda pars, v: forward_fun(pars, v).real, pars, v
+                )
+
+                vals_j, f_jvp_j = jax.vjp(
+                    lambda pars, v: forward_fun(pars, v).imag, pars, v
+                )
+                vec_r = vec.reshape(vals_r.shape).real
+                vec_j = vec.reshape(vals_r.shape).imag
+
+                # val = vals_r + vals_j
+                vr_jr = f_jvp_r(vec_r)[0]
+                vj_jr = f_jvp_r(vec_j)[0]
+                vr_jj = f_jvp_j(vec_r)[0]
+                vj_jj = f_jvp_j(vec_j)[0]
+
+                rjr_flat, tree_fun = tree_flatten(vr_jr)
+                jjr_flat, _ = tree_flatten(vj_jr)
+                rjj_flat, _ = tree_flatten(vr_jj)
+                jjj_flat, _ = tree_flatten(vj_jj)
+
+                r_flat = [rr - 1j * jr for rr, jr in zip(rjr_flat, jjr_flat)]
+                j_flat = [rr - 1j * jr for rr, jr in zip(rjj_flat, jjj_flat)]
+                out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
+                if conjugate:
+                    out_flat = [x.conjugate() for x in out_flat]
+
+                return tree_unflatten(tree_fun, out_flat)
+
+            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+
+        else:
+            raise ValueError("We do not support C->R wavefunctions.")
 
         self.init_random_parameters()
 
@@ -116,7 +192,7 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         # Jax has bugs for R->C functions...
-        out = self._perex_grads(self._params_ascomplex, x)
+        out = self._perex_grads(self._params, x)
 
         return out
 
@@ -138,16 +214,7 @@ class Jax(AbstractMachine):
              `out` only or (out,jacobian) if return_jacobian is True
         """
         if not return_jacobian:
-            vals, f_jvp = jax.vjp(
-                self._forward_fn, self._params, x.reshape((-1, x.shape[-1]))
-            )
-            pout = f_jvp(vec.reshape(vals.shape).conjugate())
-            if conjugate and self._dtype is complex:
-                out = tree_map(jax.numpy.conjugate, pout[0])
-            else:
-                out = pout
-
-            return out
+            return self._vjp_fun(self._params, x, vec, conjugate, self._forward_fn)
 
         else:
 
