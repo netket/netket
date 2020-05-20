@@ -265,3 +265,95 @@ def JaxRbm(hilbert, alpha, dtype=complex):
         stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
         dtype=dtype,
     )
+
+
+def JaxMpsPeriodic(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex):
+    return Jax(hilbert, stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)), dtype=dtype)
+
+
+def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex):
+    #default standard deviation equals 1e-2
+    normal_init = jax.nn.initializers.normal()
+
+    L = hilbert.size
+    phys_dim = hilbert.local_size
+    diag = diag
+    dtype = dtype
+
+    #determine transformation from local states to indices
+    local_states = jax.numpy.array(hilbert.local_states)
+    loc_vals_spacing = jax.numpy.roll(local_states, -1)[0:-1] - local_states[0:-1]
+    if jax.numpy.max(loc_vals_spacing) == jax.numpy.min(loc_vals_spacing):
+        loc_vals_spacing = loc_vals_spacing[0]
+    else:
+        raise AssertionError("JaxMpsPeriodic can only be used with evenly spaced hilbert local values")
+    loc_vals_bias = jax.numpy.min(local_states)
+
+    #determine shape of unit cell
+    if symperiod < 0:
+        symperiod = L
+    if L%symperiod == 0:
+        if diag:
+            unit_cell_shape = (symperiod, phys_dim, bond_dim)
+        else:
+            unit_cell_shape = (symperiod, phys_dim, bond_dim, bond_dim)
+    else:
+        raise AssertionError("The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS")
+
+    #define diagonal tensors with correct unit cell shape
+    if diag:
+        iden_tensors = jax.numpy.ones((symperiod, phys_dim, bond_dim), dtype=dtype)
+    else:
+        iden_tensors = jax.numpy.repeat(jax.numpy.eye(bond_dim, dtype=dtype)[jax.numpy.newaxis,:, :], symperiod*phys_dim, axis=0)
+        iden_tensors = iden_tensors.reshape(symperiod, phys_dim, bond_dim, bond_dim)
+
+    def init_fun(rng, input_shape):
+        random_tensors_real = normal_init(rng, unit_cell_shape)
+        if dtype == complex:
+            random_tensors_imag = normal_init(rng, unit_cell_shape)
+            random_tensors = random_tensors_real + 1j*random_tensors_imag
+        else:
+            random_tensors = random_tensors_real
+
+        tensors = random_tensors + iden_tensors
+
+        return (-1,1), (tensors)
+
+    @jax.jit
+    def apply_fun(params, x, **kwargs):
+        #expand diagonal to square matrices if diagonal mps
+        if diag:
+            params = jax.numpy.einsum("ijk,kl->ijkl", params, jax.numpy.eye(params.shape[-1]))
+
+        #create all tensors in mps from unit cell
+        all_tensors = jax.numpy.tile(params, (L/symperiod,1,1,1))
+
+        #transform input to indices
+        x = (x - loc_vals_bias)/loc_vals_spacing
+        if len(x.shape) == 1:  #batch size is one
+            x = jax.numpy.expand_dims(x, 0)
+
+        def select_tensor(tensor, index):
+            return tensor[index.astype(int)]
+        def select_all_tensors(all_tensors, indices):
+            return jax.vmap(select_tensor)(all_tensors, indices)
+
+        #select right tensors using input for matrix multiplication
+        selected_tensors = jax.vmap(select_all_tensors, (None,0))(all_tensors, x)
+
+        #create loop carry, in this case a unit matrix
+        edges = jax.numpy.repeat(jax.numpy.eye(bond_dim, dtype=selected_tensors.dtype)[jax.numpy.newaxis,:,:], selected_tensors.shape[0], axis=0)
+
+        def trace_mps(tensors, edge):
+            def multiply_tensors(left_tensor, right_tensor):
+                return jax.numpy.einsum('ij,jk->ik', left_tensor, right_tensor), None
+
+            edge, _ = jax.lax.scan(multiply_tensors, edge, tensors)
+
+            return jax.numpy.trace(edge)
+
+        #trace the matrix multiplication
+        z = jax.vmap(trace_mps)(selected_tensors, edges)
+        return z
+
+    return init_fun, apply_fun

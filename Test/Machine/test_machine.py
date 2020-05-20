@@ -63,6 +63,8 @@ if test_jax:
         dtype=complex,
     )
 
+    machines["Jax mps"] = nk.machine.JaxMpsPeriodic(hi, bond_dim=4, dtype=complex)
+
 
 if test_torch:
     import torch
