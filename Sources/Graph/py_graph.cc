@@ -16,7 +16,6 @@
 
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
-#include "custom_graph.hpp"
 #include "lattice.hpp"
 
 namespace py = pybind11;
@@ -159,20 +158,6 @@ auto WithEdges(py::iterator first, Function&& callback)
   }
 }
 
-// Work around the lack of C++11 support for defaulted arguments in lambdas.
-struct CustomGraphInit {
-  using Edge = AbstractGraph::Edge;
-  using ColorMap = AbstractGraph::ColorMap;
-
-  std::vector<std::vector<int>> automorphisms;
-
-  auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
-      -> std::unique_ptr<CustomGraph> {
-    return make_unique<CustomGraph>(std::move(edges), std::move(colors),
-                                    std::move(automorphisms));
-  }
-};
-
 void AddAbstractGraph(py::module subm) {
   py::class_<AbstractGraph>(subm, "Graph")
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
@@ -241,44 +226,6 @@ void AddAbstractGraph(py::module subm) {
            R"EOF(
       list[list]: The automorphisms of the graph,
           including translation symmetries only.)EOF");
-}
-
-void AddCustomGraph(py::module subm) {
-  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
-      A custom graph, specified by a list of edges and optionally colors.)EOF")
-      .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms) {
-             auto iterator = xs.attr("__iter__")();
-             return WithEdges(iterator,
-                              CustomGraphInit{std::move(automorphisms)});
-           }),
-           py::arg("edges"),
-           py::arg("automorphisms") = std::vector<std::vector<int>>(), R"EOF(
-           Constructs a new graph given a list of edges.
-
-           Args:
-               edges: If `edges` has elements of type `Tuple[int, int]` it is treated
-                   as a list of edges. Then each element `(i, j)` means a connection
-                   between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also,
-                   `edges` should contain no duplicates. If `edges` has elements of
-                   type `Tuple[int, int, int]` each element `(i, j, c)` represents an
-                   edge between sites `i` and `j` colored into `c`. It is again assumed
-                   that `0 <= i <= j` and that there are no duplicate elements in `edges`.
-               automorphisms: The automorphisms of the graph, i.e. a List[List[int]]
-                   where the inner List[int] is a unique permutation of the
-                   graph sites.
-
-
-           Examples:
-               A 10-site one-dimensional lattice with periodic boundary conditions can be
-               constructed specifying the edges as follows:
-
-               >>> import netket
-               >>> g=netket.graph.CustomGraph([[i, (i + 1) % 10] for i in range(10)])
-               >>> print(g.n_sites)
-               10
-
-           )EOF");
 }
 
 void AddLattice(py::module subm) {
@@ -384,7 +331,6 @@ void AddGraphModule(py::module m) {
   auto subm = m.def_submodule("graph");
 
   AddAbstractGraph(subm);
-  AddCustomGraph(subm);
   AddLattice(subm);
 }
 

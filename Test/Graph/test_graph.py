@@ -10,7 +10,7 @@ graphs = [
     Hypercube(length=10, n_dim=1, pbc=True),
     Hypercube(length=4, n_dim=2, pbc=True),
     Hypercube(length=5, n_dim=1, pbc=False),
-    Graph(list(nxg.edges)),
+    Graph(edges=list(nxg.edges())),
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[10, 10],
@@ -124,7 +124,7 @@ def test_is_connected():
     for i in range(5, 10):
         for j in range(i + 1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
-            y = nk.graph.Graph(list(x.edges()))
+            y = nk.graph.Graph(nodes=list(x.nodes()), edges=list(x.edges()))
 
             if len(x) == len(
                 set((i for (i, j) in x.edges)) | set((j for (i, j) in x.edges))
@@ -138,7 +138,7 @@ def test_is_bipartite():
     for i in range(1, 10):
         for j in range(1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
-            y = nk.graph.Graph(list(x.edges()))
+            y = nk.graph.Graph(nodes=list(x.nodes()), edges=list(x.edges()))
             if len(x) == len(
                 set((i for (i, j) in x.edges())) | set((j for (i, j) in x.edges()))
             ):

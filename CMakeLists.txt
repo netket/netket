@@ -168,7 +168,6 @@ endif()
 set(NETKET_SOURCES
     Sources/pynetket.cc
     Sources/Graph/lattice.cc
-    Sources/Graph/custom_graph.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
     Sources/Utils/exceptions.cc
