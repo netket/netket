@@ -18,14 +18,11 @@
 #include <netket.hpp>
 #include "Graph/py_graph.hpp"
 // #include "Supervised/py_supervised.hpp"
-#include "Utils/py_utils.hpp"
-#include "Utils/pybind_helpers.hpp"
 
 namespace netket {
 
 PYBIND11_MODULE(_C_netket, m) {
   AddGraphModule(m);
-  AddUtilsModule(m);
   // AddSupervisedModule(m);
 }  // PYBIND11_MODULE
 

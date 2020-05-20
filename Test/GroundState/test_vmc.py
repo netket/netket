@@ -10,7 +10,7 @@ import tempfile
 import re
 
 SEED = 214748364
-nk.utils.seed(SEED)
+nk.random.seed(SEED)
 
 
 def _setup_vmc():

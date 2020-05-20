@@ -25,7 +25,7 @@ import os
 test_jax = True
 
 np.set_printoptions(linewidth=180)
-rg = nk.utils.RandomEngine(seed=1234)
+
 
 # 1D Lattice
 L = 3

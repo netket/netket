@@ -23,7 +23,6 @@ from pytest import approx
 import os
 
 np.set_printoptions(linewidth=180)
-rg = nk.utils.RandomEngine(seed=1234)
 
 # 1D Lattice
 L = 5

@@ -10,7 +10,6 @@ SEED = 3141592
 
 
 def _setup_vmc(**kwargs):
-    nk.utils.seed(SEED)
     nk.random.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)

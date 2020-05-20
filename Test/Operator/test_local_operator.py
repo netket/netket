@@ -52,9 +52,6 @@ sp_hat = nk.operator.LocalOperator(hi, [sp] * 3, [[0], [1], [4]])
 generic_operators["sigma +/-"] = (sm_hat, sp_hat)
 
 
-rg = nk.utils.RandomEngine(seed=1234)
-
-
 def same_matrices(matl, matr, eps=1.0e-6):
     if isinstance(matl, LocalOperator):
         matl = matl.to_dense()

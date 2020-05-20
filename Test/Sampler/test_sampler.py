@@ -8,7 +8,7 @@ from netket.random import randint
 
 samplers = {}
 
-nk.utils.seed(1234567)
+nk.random.seed(1234567)
 np.random.seed(1234)
 
 # TESTS FOR SPIN HILBERT

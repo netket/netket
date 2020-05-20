@@ -1,4 +1,3 @@
-from ._C_netket.utils import *
 from mpi4py import MPI
 
 

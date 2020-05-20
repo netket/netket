@@ -35,21 +35,6 @@ endif()
 #
 # Dependencies
 #
-# json
-################################################################################
-ExternalProject_Add(
-    json_project
-    SOURCE_DIR "${CMAKE_BINARY_DIR}/External/json/include"
-    URL "https://github.com/nlohmann/json/releases/download/v3.6.1/include.zip"
-    URL_HASH MD5=0dc903888211db3a0f170304cd9f3a89
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-)
-ExternalProject_Get_Property(json_project SOURCE_DIR)
-add_library(nlohmann_json INTERFACE)
-target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
-
 
 
 # optional-lite
@@ -141,33 +126,8 @@ if(MPI_C_VERSION_MAJOR LESS 3)
 message( FATAL_ERROR "NetKet requires at least MPI 3." )
 endif()
 
-# OpenMP
-################################################################################
-if(NETKET_USE_OPENMP)
-    find_package(OpenMP REQUIRED)
-    if(NOT TARGET OpenMP::OpenMP_CXX)
-        find_package(Threads REQUIRED)
-        add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
-        set_property(TARGET OpenMP::OpenMP_CXX
-                     PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-        # Only works if the same flag is passed to the linker; use CMake 3.9+ otherwise (Intel, AppleClang)
-        set_property(TARGET OpenMP::OpenMP_CXX
-                     PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
-    endif()
-endif()
 
-# Catch2
-################################################################################
-if (BUILD_TESTING AND NETKET_BUILD_TESTING)
-    if (NOT EXISTS "${CMAKE_BINARY_DIR}/External/Catch2/catch2/catch.hpp")
-        file(DOWNLOAD
-            "https://github.com/catchorg/Catch2/releases/download/v2.4.0/catch.hpp"
-            "External/Catch2/catch2/catch.hpp")
-    endif()
-    add_library(Catch2 INTERFACE)
-    target_include_directories(Catch2
-        INTERFACE "${CMAKE_BINARY_DIR}/External/Catch2/catch2")
-endif()
+
 
 
 #
@@ -181,15 +141,11 @@ target_link_libraries(netket_lib
     INTERFACE
         ${MPI_CXX_LIBRARIES}
         Eigen3
-        nlohmann_json
         optional_lite
         span_lite
         linb_any
         ${CMAKE_DL_LIBS}
 )
-if(NETKET_USE_OPENMP)
-    target_link_libraries(netket_lib INTERFACE OpenMP::OpenMP_CXX)
-endif()
 
 
 set(NETKET_WARNING_FLAGS
@@ -198,9 +154,6 @@ set(NETKET_WARNING_FLAGS
 )
 target_compile_options(netket_lib INTERFACE ${NETKET_WARNING_FLAGS})
 
-if(NETKET_NATIVE)
-    target_compile_options(netket_lib INTERFACE "-march=native")
-endif()
 
 if(${CMAKE_GENERATOR} STREQUAL "Ninja")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -210,26 +163,6 @@ if(${CMAKE_GENERATOR} STREQUAL "Ninja")
     endif()
 endif()
 
-if(NETKET_USE_BLAS)
-    find_package(BLAS REQUIRED)
-    target_compile_definitions(netket_lib INTERFACE EIGEN_USE_BLAS=1)
-    target_link_libraries(netket_lib INTERFACE ${BLAS_LIBRARIES})
-endif()
-
-if(NETKET_USE_LAPACK)
-    find_package(LAPACK REQUIRED)
-    find_package(LAPACKE)
-
-    if(LAPACKE_FOUND)
-        message("Found LAPACKE.")
-        target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1 EIGEN_USE_LAPACKE=1)
-        target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES} ${LAPACKE_LIBRARIES})
-    else()
-        message(WARNING "Found LAPACK, but not LAPACKE.")
-        target_compile_definitions(netket_lib INTERFACE EIGEN_USE_LAPACK=1)
-        target_link_libraries(netket_lib INTERFACE ${LAPACK_LIBRARIES})
-    endif()
-endif()
 
 
 set(NETKET_SOURCES
@@ -239,8 +172,7 @@ set(NETKET_SOURCES
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
     Sources/Utils/exceptions.cc
-    Sources/Utils/py_utils.cc
-    Sources/Utils/random_utils.cc)
+    )
 
 add_library(netket MODULE ${NETKET_SOURCES})
 
@@ -285,30 +217,5 @@ endif()
 target_link_libraries(netket PUBLIC netket_lib pybind11)
 set_target_properties(netket PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
                                         SUFFIX "${PYTHON_MODULE_EXTENSION}")
-add_dependencies(netket json_project eigen_project pybind11_project)
+add_dependencies(netket eigen_project pybind11_project)
 set_target_properties(netket PROPERTIES OUTPUT_NAME "_C_netket")
-
-
-# if(NETKET_SANITIZER)
-#     message(STATUS "[NetKet] Building python library with address and UB sanitizers")
-#     target_compile_options(netket_lib
-#         INTERFACE
-#             -g -fno-omit-frame-pointer
-#             -fsanitize=address -fsanitize=undefined
-#     )
-#     target_link_libraries(netket_lib
-#         INTERFACE
-#             -fsanitize=address -fsanitize=undefined
-#     )
-# endif()
-
-#
-# Testing
-#
-
-if(BUILD_TESTING AND NETKET_BUILD_TESTING)
-    add_library(netket_test INTERFACE)
-    target_link_libraries(netket_test INTERFACE netket_lib Catch2)
-    enable_testing()
-    add_subdirectory(Test)
-endif()
