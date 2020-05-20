@@ -16,7 +16,6 @@
 #define NETKET_PYNETKET_CC
 
 #include <netket.hpp>
-#include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
 // #include "Supervised/py_supervised.hpp"
 #include "Utils/py_utils.hpp"
@@ -25,7 +24,6 @@
 namespace netket {
 
 PYBIND11_MODULE(_C_netket, m) {
-  AddDynamicsModule(m);
   AddGraphModule(m);
   AddUtilsModule(m);
   // AddSupervisedModule(m);

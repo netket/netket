@@ -22,7 +22,6 @@ option(NETKET_USE_LAPACK "Use system LAPACK instead of Eigen's implementation" O
 
 option(NETKET_NATIVE "Use -march=native" OFF)
 
-option(NETKET_USE_SLEEF "Use Sleef vector math library" OFF)
 
 set(NETKET_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 
@@ -51,29 +50,7 @@ ExternalProject_Get_Property(json_project SOURCE_DIR)
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json SYSTEM INTERFACE ${SOURCE_DIR})
 
-# Sleef
-################################################################################
-if (NETKET_USE_SLEEF)
-    ExternalProject_Add(
-        sleef_project
-        SOURCE_DIR "${CMAKE_BINARY_DIR}/External/sleef/"
-        URL "https://github.com/shibatch/sleef/archive/3.4.0.tar.gz"
-        URL_HASH MD5=fdf620e232a56affaca90c107b70539b
-        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-        CMAKE_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_BUILD_TYPE=Release
-        -DBUILD_SHARED_LIBS=OFF -DBUILD_DFT=OFF -DBUILD_GNUABI_LIBS=OFF
-        -DBUILD_TESTS=OFF -DBUILD_QUAD=OFF -DSLEEF_SHOW_CONFIG=ON
-        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        INSTALL_COMMAND ""
-        # NOTE: This is kind of a hack since we're explicitly specifying
-        # "sleef_project-prefix/...", but at least it works.
-        BUILD_BYPRODUCTS "sleef_project-prefix/src/sleef_project-build/lib/libsleef.a"
-    )
-    add_library(Sleef INTERFACE)
-    ExternalProject_Get_Property(sleef_project BINARY_DIR)
-    target_include_directories(Sleef SYSTEM INTERFACE ${BINARY_DIR}/include)
-    target_link_libraries(Sleef INTERFACE ${BINARY_DIR}/lib/libsleef.a)
-endif()
+
 
 # optional-lite
 ################################################################################
@@ -213,10 +190,7 @@ target_link_libraries(netket_lib
 if(NETKET_USE_OPENMP)
     target_link_libraries(netket_lib INTERFACE OpenMP::OpenMP_CXX)
 endif()
-if(NETKET_USE_SLEEF)
-    target_link_libraries(netket_lib INTERFACE Sleef)
-    target_compile_definitions(netket_lib INTERFACE NETKET_USE_SLEEF)
-endif()
+
 
 set(NETKET_WARNING_FLAGS
     -Wall -Wextra -pedantic
@@ -260,42 +234,15 @@ endif()
 
 set(NETKET_SOURCES
     Sources/pynetket.cc
-    Sources/Dynamics/py_dynamics.cpp
-    Sources/Graph/hypercube.cc
     Sources/Graph/lattice.cc
     Sources/Graph/custom_graph.cc
-    Sources/Graph/edgeless.cc
     Sources/Graph/abstract_graph.cc
     Sources/Graph/py_graph.cc
-    Sources/Stats/mc_stats.cc
-    Sources/Stats/py_stats.cc
-    Sources/Utils/json_utils.cc
-    Sources/Utils/log_cosh.cc
     Sources/Utils/exceptions.cc
-    Sources/Utils/mpi_interface.cc
     Sources/Utils/py_utils.cc
-    Sources/Utils/random_utils.cc
-    Sources/Graph/doubled_graph.cc)
+    Sources/Utils/random_utils.cc)
 
 add_library(netket MODULE ${NETKET_SOURCES})
-
-if (NETKET_USE_SLEEF)
-    add_library(log_cosh_avx2 OBJECT Sources/Utils/log_cosh_avx2.cc)
-    target_compile_options(log_cosh_avx2 PRIVATE
-        -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mfma)
-    set_property(TARGET log_cosh_avx2 PROPERTY POSITION_INDEPENDENT_CODE ON)
-    target_compile_definitions(log_cosh_avx2 PUBLIC
-        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_DEFINITIONS>)
-    target_compile_options(log_cosh_avx2 PUBLIC
-        $<TARGET_PROPERTY:netket_lib,INTERFACE_COMPILE_OPTIONS>)
-    target_include_directories(log_cosh_avx2 PRIVATE Sources)
-    add_dependencies(log_cosh_avx2 eigen_project sleef_project)
-    ExternalProject_Get_Property(sleef_project BINARY_DIR)
-    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${BINARY_DIR}/include)
-    ExternalProject_Get_Property(eigen_project SOURCE_DIR)
-    target_include_directories(log_cosh_avx2 SYSTEM PUBLIC ${SOURCE_DIR})
-    target_sources(netket PRIVATE $<TARGET_OBJECTS:log_cosh_avx2>)
-endif()
 
 # A workaround for missing __cpu_model bug in gcc-5 and Clangs earlier than 6
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"

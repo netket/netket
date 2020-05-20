@@ -17,9 +17,6 @@
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
 #include "custom_graph.hpp"
-#include "doubled_graph.hpp"
-#include "edgeless.hpp"
-#include "hypercube.hpp"
 #include "lattice.hpp"
 
 namespace py = pybind11;
@@ -284,54 +281,6 @@ void AddCustomGraph(py::module subm) {
            )EOF");
 }
 
-void AddHypercube(py::module subm) {
-  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube",
-                                       R"EOF(
-         A hypercube lattice of side L in d dimensions.
-         Periodic boundary conditions can also be imposed.)EOF")
-      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
-           py::arg("pbc") = true, R"EOF(
-         Constructs a new ``Hypercube`` given its side length and dimension.
-
-         Args:
-             length: Side length of the hypercube.
-                 It must always be >=1,
-                 but if ``pbc==True`` then the minimal
-                 valid length is 3.
-             n_dim: Dimension of the hypercube. It must be at least 1.
-             pbc: If ``True`` then the constructed hypercube
-                 will have periodic boundary conditions, otherwise
-                 open boundary conditions are imposed.
-
-         Examples:
-             A 10x10 square lattice with periodic boundary conditions can be
-             constructed as follows:
-
-             >>> import netket
-             >>> g=netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
-             >>> print(g.n_sites)
-             100
-
-         )EOF")
-      .def(py::init([](int length, py::iterable xs) {
-             auto iterator = xs.attr("__iter__")();
-             return Hypercube{length, detail::Iterable2ColorMap(iterator)};
-           }),
-           py::arg("length"), py::arg("colors"), R"EOF(
-         Constructs a new `Hypercube` given its side length and edge coloring.
-
-         Args:
-             length: Side length of the hypercube.
-                 It must always be >=3 if the
-                 hypercube has periodic boundary conditions
-                 and >=1 otherwise.
-             colors: Edge colors, must be an iterable of
-                 `Tuple[int, int, int]` where each
-                 element `(i, j, c) represents an
-                 edge `i <-> j` of color `c`.
-                 Colors must be assigned to **all** edges.)EOF");
-}
-
 void AddLattice(py::module subm) {
   py::class_<Lattice, AbstractGraph>(subm, "Lattice", R"EOF(
                              A generic lattice built translating a unit cell and adding edges between nearest neighbours sites.
@@ -429,41 +378,14 @@ void AddLattice(py::module subm) {
             )EOF");
 }
 
-void AddEdgeless(py::module subm) {
-  py::class_<Edgeless, AbstractGraph>(subm, "Edgeless", R"EOF(
-      A set graph (collection of unconnected vertices).)EOF")
-      .def(py::init<int>(), py::arg("n_vertices"), R"EOF(
-           Constructs a new set of given number of vertices.
-
-           Args:
-               n_vertices: The number of vertices.
-
-           Examples:
-               A 10-site set:
-
-               >>> import netket
-               >>> g=netket.graph.Edgeless(10)
-               >>> print(g.n_sites)
-               10
-
-           )EOF");
-}
 }  // namespace
-
-void AddDoubledGraph(py::module subm) {
-  subm.def("DoubledGraph",
-           [](const AbstractGraph& graph) { return DoubledGraph(graph); });
-}
 
 void AddGraphModule(py::module m) {
   auto subm = m.def_submodule("graph");
 
   AddAbstractGraph(subm);
-  AddHypercube(subm);
   AddCustomGraph(subm);
-  AddDoubledGraph(subm);
   AddLattice(subm);
-  AddEdgeless(subm);
 }
 
 }  // namespace netket
