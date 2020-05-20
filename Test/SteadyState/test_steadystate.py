@@ -16,7 +16,6 @@ sigmam = [[0, 0], [1, 0]]
 
 
 def _setup_ss(**kwargs):
-    nk.utils.seed(SEED)
     nk.random.seed(SEED)
     np.random.seed(SEED)
     g = nk.graph.Hypercube(length=L, n_dim=1)
