@@ -163,6 +163,7 @@ setup(
     license="Apache 2.0",
     packages=[
         "netket",
+        "netket.graph",
         "netket.hilbert",
         "netket.logging",
         "netket.machine",
@@ -186,9 +187,8 @@ setup(
         "mpi4py>=3.0.1",
         "tqdm>=4.42.1",
         "numba>=0.48.0",
+        "networkx>=2.4",
     ],
     python_requires=">=3.6",
-    extras_require={
-        "dev": ["pytest", "networkx", "python-igraph", "pre-commit", "black"],
-    },
+    extras_require={"dev": ["pytest", "python-igraph", "pre-commit", "black"],},
 )

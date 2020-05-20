@@ -15,6 +15,8 @@
 import itertools as _itertools
 import json
 
+from mpi4py import MPI
+
 import numpy as _np
 import scipy.integrate as _scint
 from tqdm import tqdm
@@ -129,6 +131,9 @@ class PyExactTimePropagation:
         else:
             raise NotImplementedError("Time-dependent hHamiltonian not yet supported.")
         self._rhs = _make_rhs(self._h, propagation_type)
+
+        self._mynode = MPI.COMM_WORLD.rank
+        self._mpi_nodes = MPI.COMM_WORLD.Get_size()
 
         self.state = initial_state
         self._dt = dt
@@ -259,7 +264,7 @@ class PyExactTimePropagation:
         logger = _JsonLog(output_prefix, save_params_every, write_every)
 
         # Don't log on non-root nodes
-        if _nk.MPI.rank() != 0:
+        if self._mpi_nodes != 0:
             logger = None
 
         with tqdm(

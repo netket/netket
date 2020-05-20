@@ -9,7 +9,7 @@ L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.PySpin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 

@@ -40,7 +40,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     stats = statistics(eloc.T)
 
     # These tests only work for one MPI process
-    assert nk.MPI.size() == 1
+    assert nk.stats.MPI.COMM_WORLD.size == 1
 
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:

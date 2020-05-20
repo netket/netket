@@ -40,7 +40,7 @@ class _local_kernel:
 
 
 class MetropolisLocal(MetropolisHastings):
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
@@ -66,7 +66,7 @@ class MetropolisLocal(MetropolisHastings):
     """
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
 
@@ -112,14 +112,14 @@ class MetropolisLocal(MetropolisHastings):
 
 
 class MetropolisLocalPt(MetropolisHastingsPt):
-    """
+    r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
     The number of replicas can be chosen by the user.
     """
 
     def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None):
-        """
+        r"""
         Args:
              machine: A machine :math:`\Psi(s)` used for the sampling.
                       The probability distribution being sampled

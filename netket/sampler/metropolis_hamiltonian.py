@@ -45,7 +45,7 @@ class _hamiltonian_kernel:
 
 
 class MetropolisHamiltonian(MetropolisHastings):
-    """
+    r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
 
@@ -64,7 +64,7 @@ class MetropolisHamiltonian(MetropolisHastings):
     def __init__(
         self, machine, hamiltonian, n_chains=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
            machine: A machine :math:`\Psi(s)` used for the sampling.
                     The probability distribution being sampled
@@ -100,7 +100,7 @@ class MetropolisHamiltonian(MetropolisHastings):
 
 
 class MetropolisHamiltonianPt(MetropolisHastingsPt):
-    """
+    r"""
      This sampler performs parallel-tempering
      moves in addition to the local moves implemented in `MetropolisLocal`.
      The number of replicas can be :math:`N_{\mathrm{rep}}` chosen by the user.
@@ -109,7 +109,7 @@ class MetropolisHamiltonianPt(MetropolisHastingsPt):
     def __init__(
         self, machine, hamiltonian, n_replicas=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
                       The probability distribution being sampled

@@ -16,25 +16,13 @@
 #define NETKET_PYNETKET_CC
 
 #include <netket.hpp>
-#include "Dynamics/py_dynamics.hpp"
 #include "Graph/py_graph.hpp"
-#include "Hilbert/py_hilbert.hpp"
-#include "Machine/py_machine.hpp"
-#include "Stats/py_stats.hpp"
 // #include "Supervised/py_supervised.hpp"
-#include "Utils/mpi_interface.hpp"  // for MPIInitializer
-#include "Utils/py_utils.hpp"
-#include "Utils/pybind_helpers.hpp"
 
 namespace netket {
 
 PYBIND11_MODULE(_C_netket, m) {
-  AddDynamicsModule(m);
   AddGraphModule(m);
-  AddHilbertModule(m);
-  AddMachineModule(m);
-  AddStatsModule(m.ptr());
-  AddUtilsModule(m);
   // AddSupervisedModule(m);
 }  // PYBIND11_MODULE
 

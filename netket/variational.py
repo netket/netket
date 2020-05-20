@@ -95,7 +95,11 @@ def estimate_expectations(
     """
 
     from netket.operator import local_values as _local_values
-    from ._C_netket import stats as nst
+    from netket.stats import (
+        statistics as _statistics,
+        mean as _mean,
+        sum_inplace as _sum_inplace,
+    )
 
     psi = sampler.machine
 
@@ -109,15 +113,14 @@ def estimate_expectations(
         (-1, sampler.sample_shape[-1])
     )
 
-    if compute_gradients:
-        der_logs = psi.der_log(samples)
-
     def estimate(op):
         lvs = _local_values(op, psi, samples)
-        stats = nst.statistics(lvs)
+        stats = _statistics(lvs.T)
 
         if compute_gradients:
-            grad = nst.covariance_sv(lvs, der_logs)
+            samples_r = samples.reshape((-1, samples.shape[-1]))
+            eloc_r = (lvs - _mean(lvs)).reshape(-1, 1)
+            grad = sampler.machine.vector_jacobian_prod(samples_r, eloc_r / n_samples,)
             return stats, grad
         else:
             return stats

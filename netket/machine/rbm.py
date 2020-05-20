@@ -74,7 +74,7 @@ class RbmSpin(AbstractMachine):
                               Default ``True``.
             use_hidden_bias: If ``True`` bias on the hidden units is taken.
                              Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
                                  otherwise a valid array of automorphisms can be passed.
             dtype: either complex or float, is the type used for the weights.
 
@@ -369,7 +369,7 @@ class RbmSpin(AbstractMachine):
             return None, m, m
         else:
             if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
+                autom = _np.asarray(hilbert.graph.automorphisms())
             else:
                 try:
                     autom = _np.asarray(symmetry)
@@ -618,7 +618,7 @@ class RbmMultiVal(RbmSpin):
     def _make_extended_symmetry(symmetry, hilbert):
         if symmetry is not None:
             if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
+                autom = _np.asarray(hilbert.graph.automorphisms())
             else:
                 try:
                     autom = _np.asarray(symmetry)
@@ -715,7 +715,7 @@ class RbmSpinPhase(AbstractMachine):
             use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
                                  otherwise a valid array of automorphisms can be passed.
 
         Examples:
