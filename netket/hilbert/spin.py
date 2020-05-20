@@ -36,7 +36,7 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        self._check_total_sz(total_sz, graph.size)
+        self._check_total_sz(total_sz, graph.n_nodes)
         if total_sz is not None:
 
             def constraints(x):

@@ -11,7 +11,7 @@ from numba import jit, int64, float64
 class _exchange_kernel:
     def __init__(self, hilbert, d_max):
         clusters = []
-        distances = _np.asarray(hilbert.graph.distances)
+        distances = _np.asarray(hilbert.graph.distances())
         size = distances.shape[0]
         for i in range(size):
             for j in range(i + 1, size):

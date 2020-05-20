@@ -1,4 +1,4 @@
-from abstract_graph import AbstractGraph
+from .abstract_graph import AbstractGraph
 
 import numpy as _np
 import networkx as _nx
@@ -37,11 +37,9 @@ class NetworkX(AbstractGraph):
 
         super().__init__()
 
-    @property
     def adjacency_list(self):
         return [list(self.graph.neighbors(node)) for node in self.graph.nodes]
 
-    @property
     def is_connected(self):
         return _nx.is_connected(self.graph)
 
@@ -54,9 +52,8 @@ class NetworkX(AbstractGraph):
             return list(self.graph.edges(keys=False))
 
     def distances(self):
-        return _nx.floyd_warshall_numpy(self.graph)
+        return _nx.floyd_warshall_numpy(self.graph).tolist()
 
-    @property
     def is_bipartite(self):
         return _nx.is_bipartite(self.graph)
 
@@ -152,7 +149,7 @@ def Graph(nodes=[], edges=[]):
 def Edgeless(nodes):
     """A set graph (collection of unconnected vertices).
         Args:
-            nodes: A list of ints that index nodes of a graph
+            nodes: An integer number of nodes or a list of ints that index nodes of a graph
         Example:
             A 10-site one-dimensional lattice with periodic boundary conditions can be
             constructed specifying the edges as follows:
@@ -163,7 +160,9 @@ def Edgeless(nodes):
             4
     """
     if not isinstance(nodes, list):
-        raise TypeError("nodes must be a list")
+        if not isinstance(nodes, int):
+            raise TypeError("nodes must be either an integer or a list")
+        nodes = range(nodes)
 
     edgelessgraph = _nx.MultiGraph()
     edgelessgraph.add_nodes_from(nodes)

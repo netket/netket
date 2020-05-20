@@ -184,60 +184,64 @@ void AddAbstractGraph(py::module subm) {
       .def_property_readonly("size", &AbstractGraph::Nsites,
                              R"EOF(
       int: The number of vertices in the graph.)EOF")
-      .def_property_readonly(
-          "edges",
-          [](const AbstractGraph& x) {
-            using vector_type =
-                std::remove_reference<decltype(x.Edges())>::type;
-            return vector_type{x.Edges()};
-          },
-          R"EOF(
-      list: The graph edges.)EOF")
-      .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
+      .def_property_readonly("n_nodes", &AbstractGraph::Nsites,
                              R"EOF(
+      int: The number of vertices in the graph.)EOF")
+      .def_property_readonly("n_vertices", &AbstractGraph::Nsites,
+                             R"EOF(
+      int: The number of vertices in the graph.)EOF")
+      .def("edges",
+           [](const AbstractGraph& x) {
+             using vector_type =
+                 std::remove_reference<decltype(x.Edges())>::type;
+             return vector_type{x.Edges()};
+           },
+           R"EOF(
+      list: The graph edges.)EOF")
+      .def("adjacency_list", &AbstractGraph::AdjacencyList,
+           R"EOF(
       list: The adjacency list of the graph where each node is
           represented by an integer in `[0, n_sites)`.)EOF")
-      .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
-                             R"EOF(
+      .def("is_bipartite", &AbstractGraph::IsBipartite,
+           R"EOF(
       bool: Whether the graph is bipartite.)EOF")
-      .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
-                             R"EOF(
+      .def("is_connected", &AbstractGraph::IsConnected,
+           R"EOF(
       bool: Whether the graph is connected.)EOF")
-      .def_property_readonly("distances", &AbstractGraph::AllDistances,
-                             R"EOF(
+      .def("distances", &AbstractGraph::AllDistances,
+           R"EOF(
       list[list]: The distances between the nodes. The fact that some node
           may not be reachable from another is represented by -1.)EOF")
-      .def_property_readonly("edge_colors",
-                             [](const AbstractGraph& self) {
-                               auto& color_map = self.EdgeColors();
-                               std::vector<py::tuple> result;
-                               for (auto& it : color_map) {
-                                 result.push_back(py::make_tuple(
-                                     it.first[0], it.first[1], it.second));
-                               }
-                               return result;
-                             },
-                             R"EOF(
+      .def("edge_colors",
+           [](const AbstractGraph& self) {
+             auto& color_map = self.EdgeColors();
+             std::vector<py::tuple> result;
+             for (auto& it : color_map) {
+               result.push_back(
+                   py::make_tuple(it.first[0], it.first[1], it.second));
+             }
+             return result;
+           },
+           R"EOF(
       list[tuple]: Returns a list of tuples of the form (i, j, col) containing each edge `(i,j)`
       with its corresponding color `col`.
       )EOF")
-      .def_property_readonly(
-          "edges_and_colors",
-          [](const AbstractGraph& self) {
-            auto& color_map = self.EdgeColors();
-            std::vector<py::tuple> result;
-            for (auto& it : color_map) {
-              result.push_back(py::make_tuple(
-                  py::make_tuple(it.first[0], it.first[1]), it.second));
-            }
-            return result;
-          },
-          R"EOF(
+      .def("edges_and_colors",
+           [](const AbstractGraph& self) {
+             auto& color_map = self.EdgeColors();
+             std::vector<py::tuple> result;
+             for (auto& it : color_map) {
+               result.push_back(py::make_tuple(
+                   py::make_tuple(it.first[0], it.first[1]), it.second));
+             }
+             return result;
+           },
+           R"EOF(
       list[tuple]: Returns a list of tuples of the form (edge, color) containing each edge `(i,j)`
       with its corresponding color `color`.
       )EOF")
-      .def_property_readonly("automorphisms", &AbstractGraph::SymmetryTable,
-                             R"EOF(
+      .def("automorphisms", &AbstractGraph::SymmetryTable,
+           R"EOF(
       list[list]: The automorphisms of the graph,
           including translation symmetries only.)EOF");
 }

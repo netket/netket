@@ -4,13 +4,11 @@ import abc
 class AbstractGraph(abc.ABC):
     """Abstract class for NetKet graph objects"""
 
-    @property
     @abc.abstractmethod
     def is_connected(self):
         r"""bool: True if the graph is connected"""
         raise NotImplementedError
 
-    @property
     @abc.abstractmethod
     def is_bipartite(self):
         r"""bool: True if the graph is bipartite"""
@@ -39,6 +37,15 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @property
+    def n_sites(self):
+        r"""int: The number of vertices in the graph"""
+        return self.n_nodes
+
+    @property
+    def n_vertices(self):
+        r"""int: The number of vertices in the graph"""
+        return self.n_nodes
+
     @abc.abstractmethod
     def adjacency_list(self):
         r"""list[list]: List containing the adjacency list of the graph where each node

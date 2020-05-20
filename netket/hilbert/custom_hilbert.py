@@ -34,7 +34,7 @@ class CustomHilbert(AbstractHilbert):
         """
 
         self.graph = graph
-        self._size = graph.size
+        self._size = graph.n_nodes
 
         self._is_finite = local_states is not None
 
