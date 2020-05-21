@@ -68,7 +68,7 @@ class SteadyState(AbstractVariationalDriver):
 
         self._sr = sr
         if sr is not None:
-            self._sr.has_complex_weights = sampler.machine.has_complex_weights
+            self._sr.has_complex_parameters = sampler.machine.has_complex_parameters
             self._sr.machine = sampler.machine
 
         self._npar = self._machine.n_par
@@ -251,7 +251,7 @@ class SteadyState(AbstractVariationalDriver):
             #  if Real pars but complex gradient, take only real part
             # not necessary for SR because sr already does it.
             if (
-                not self._machine.has_complex_weights
+                not self._machine.has_complex_parameters
                 and self._machine.outdtype is complex
             ):
                 self._dp = tree_map(lambda x: x.real, self._grads)

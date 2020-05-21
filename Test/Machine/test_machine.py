@@ -181,7 +181,7 @@ def test_set_get_parameters():
         machine.init_random_parameters()
         randpars = flatten(machine.parameters)
 
-        if machine.has_complex_weights:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
             assert not all(randpars.real == 0)
             assert not all(randpars.imag == 0)
@@ -216,7 +216,7 @@ def test_save_load_parameters(tmpdir):
 
         os.remove(filename)
         os.rmdir(fn.dirname)
-        if machine.has_complex_weights:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
         else:
             assert np.array_equal(flatten(machine.parameters).real, randpars.real)

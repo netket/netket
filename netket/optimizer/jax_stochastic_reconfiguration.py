@@ -20,7 +20,7 @@ class JaxSR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        has_complex_weights=None,
+        has_complex_parameters=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
@@ -29,7 +29,7 @@ class JaxSR:
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._has_complex_weights = has_complex_weights
+        self._has_complex_parameters = has_complex_parameters
 
         # Quantities for sparse solver
         self.sparse_tol = 1.0e-5 if sparse_tol is None else sparse_tol
@@ -85,7 +85,7 @@ class JaxSR:
 
         oks -= jnp.mean(oks, axis=0)
 
-        if self.has_complex_weights is None or self.machine is None:
+        if self.has_complex_parameters is None or self.machine is None:
             raise ValueError("This SR object is not properly initialized.")
 
         # n_samp = _sum_inplace(jnp.atleast_1d(oks.shape[0]))
@@ -96,7 +96,7 @@ class JaxSR:
         if out is None:
             out = jnp.zeros(n_par, dtype=jnp.complex128)
 
-        if self.has_complex_weights:
+        if self.has_complex_parameters:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
                     out = self._jax_cg_solve(oks, grad, n_samp)
@@ -163,14 +163,16 @@ class JaxSR:
         if self._use_iterative:
             rep += "iterative"
 
-        rep += ", has_complex_weights=" + str(self._has_complex_weights) + ")"
+        rep += ", has_complex_parameters=" + str(self._has_complex_parameters) + ")"
         return rep
 
     def info(self, depth=0):
         indent = " " * 4 * depth
         rep = indent
         rep += "Stochastic reconfiguration method for "
-        rep += "complex-parameters" if self._has_complex_weights else "real-parameters"
+        rep += (
+            "complex-parameters" if self._has_complex_parameters else "real-parameters"
+        )
         rep += " wavefunctions\n"
 
         rep += indent + "Solver: "
@@ -183,10 +185,10 @@ class JaxSR:
         return rep
 
     @property
-    def has_complex_weights(self):
-        return self._has_complex_weights
+    def has_complex_parameters(self):
+        return self._has_complex_parameters
 
-    @has_complex_weights.setter
-    def has_complex_weights(self, is_real):
-        self._has_complex_weights = is_real
+    @has_complex_parameters.setter
+    def has_complex_parameters(self, is_real):
+        self._has_complex_parameters = is_real
         self._init_solver()

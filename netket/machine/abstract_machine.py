@@ -167,7 +167,7 @@ class AbstractMachine(abc.ABC):
         return self._outdtype
 
     @property
-    def has_complex_weights(self):
+    def has_complex_parameters(self):
         return self._dtype is complex
 
     @property
