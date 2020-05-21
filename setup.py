@@ -23,7 +23,6 @@ setup(
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
-    zip_safe=False,
     install_requires=[
         "numpy>=1.16",
         "cmake>=3.12",
