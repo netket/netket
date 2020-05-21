@@ -7,61 +7,43 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       language: generic
-      env: PYTHON=3.6.0 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DNETKET_USE_OPENMP=ON -DCMAKE_CXX_FLAGS=-O2"
-
+      env: PYTHON=3.6.0 
 
     - os: osx
       osx_image: xcode11.3
       language: generic
-      env: CONDA=3.6 CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-O1"
+      env: CONDA=3.6 
 
     - os: linux
       dist: xenial
       python: 3.6
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=gcc-7 -DCMAKE_CXX_COMPILER=g++-7 -DNETKET_USE_BLAS=OFF -DNETKET_USE_LAPACK=OFF -DCMAKE_CXX_FLAGS=-O1"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
           packages:
-            - 'ninja-build'
-            - 'g++-7'
-            - 'libopenmpi-dev'
             - 'openmpi-bin'
 
     # Modern toolsets
     - os: linux
       dist: xenial
       python: 3.7
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-8 -DCMAKE_CXX_COMPILER=clang++-8 -DCMAKE_CXX_FLAGS=-std=c++17 -DCMAKE_CXX_FLAGS=-O2"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
-            - 'llvm-toolchain-xenial-8'
           packages:
-            - 'ninja-build'
-            - 'clang-8'
-            - 'g++-9'
-            - 'libomp-dev'
-            - 'libmpich-dev'
             - 'mpich'
-            - 'libopenblas-dev'
 
     - os: linux
       dist: xenial
       python: 3.8
-      env: CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 -DCMAKE_CXX_FLAGS=-O1"
       addons:
         apt:
           sources:
             - 'ubuntu-toolchain-r-test'
           packages:
-            - 'ninja-build'
-            - 'g++-9'
-            - 'libopenmpi-dev'
             - 'openmpi-bin'
-            - 'libopenblas-dev'
 
 before_install:
   - |
@@ -79,11 +61,8 @@ before_install:
      # this can be move this into the build matrix.
      elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
        brew update
-       brew ls --versions cmake && brew upgrade cmake || brew install cmake
        brew ls --versions openmpi && brew upgrade openmpi || brew install openmpi
        brew ls --versions pyenv && brew upgrade pyenv || brew install pyenv
-       brew ls --versions openmpi && brew upgrade libomp || brew install libomp
-       brew ls --versions openmpi && brew upgrade ninja-build || brew install ninja
 
        # Force OS X to use the correct python version. This is only because
        # Travis' support for `language: python` on OS X is too buggy.

@@ -6,14 +6,9 @@ channels:
 
 dependencies:
   - python=3.8
-  - clang
-  - cmake
-  - ninja
   - pip
   - matplotlib
   - openmpi
   - mpi4py
-  - blas
   - mkl
   - numba
-  - icc_rt

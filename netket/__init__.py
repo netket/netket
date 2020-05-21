@@ -29,7 +29,6 @@ __all__ = [
 ]
 
 from . import (
-    _C_netket,
     dynamics,
     exact,
     graph,
