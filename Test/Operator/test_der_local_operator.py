@@ -164,7 +164,9 @@ def test_der_log_val_jax():
         )
 
         nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
+            lambda x, y: np.testing.assert_array_almost_equal(
+                x.flatten(), y.flatten(), decimal=3
+            ),
             grad_all,
             der_loc_vals,
         )
@@ -184,7 +186,9 @@ def test_der_log_val_jax():
         )
 
         nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(x.flatten(), y.flatten()),
+            lambda x, y: np.testing.assert_array_almost_equal(
+                x.flatten(), y.flatten(), decimal=3
+            ),
             grad_all,
             der_loc_vals,
         )
@@ -211,7 +215,6 @@ def test_der_log_val_batched_jax():
     )
 
     for i in range(0, states.shape[0]):
-        print("doing ", i)
         state = jax.numpy.array(np.atleast_2d(states[i, :]))
 
         grad_all = nk.operator.der_local_values(

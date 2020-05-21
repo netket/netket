@@ -64,6 +64,8 @@ if test_jax:
         dtype=complex,
     )
 
+    machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
+
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
 
@@ -168,12 +170,6 @@ def central_diff_grad(func, x, eps, *args):
     return grad
 
 
-def check_holomorphic(func, x, eps, *args):
-    gr = central_diff_grad(func, x, eps, *args)
-    gi = central_diff_grad(func, x, eps * 1.0j, *args)
-    same_derivatives(gr, gi)
-
-
 def test_set_get_parameters():
     for name, machine in merge_dicts(machines, dm_machines).items():
         unflatten = machine.numpy_unflatten
@@ -185,7 +181,7 @@ def test_set_get_parameters():
         machine.init_random_parameters()
         randpars = flatten(machine.parameters)
 
-        if machine.is_holomorphic:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
             assert not all(randpars.real == 0)
             assert not all(randpars.imag == 0)
@@ -220,7 +216,7 @@ def test_save_load_parameters(tmpdir):
 
         os.remove(filename)
         os.rmdir(fn.dirname)
-        if machine.is_holomorphic:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
         else:
             assert np.array_equal(flatten(machine.parameters).real, randpars.real)
@@ -264,8 +260,6 @@ def test_log_derivative():
             # print(np.linalg.norm(der_log - num_der_log))
             # Check if machine is correctly set to be holomorphic
             # The check is done only on smaller subset of parameters, for speed
-            if i % 10 == 0 and machine.is_holomorphic:
-                check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
 
 
 def test_vector_jacobian():

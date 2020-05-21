@@ -34,7 +34,7 @@ class Jax(JaxPure, AbstractDensityMatrix):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the module must have a single output.
         """
-        AbstractDensityMatrix.__init__(self, hilbert)
+        AbstractDensityMatrix.__init__(self, hilbert, dtype, outdtype)
         JaxPure.__init__(self, hilbert, module, dtype, outdtype)
 
         assert self.input_size == self.hilbert.size * 2
@@ -51,19 +51,12 @@ class Jax(JaxPure, AbstractDensityMatrix):
     def log_val(self, xr, xc=None, out=None):
         x = self._dminput(xr, xc)
 
-        if out is None:
-            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
-        else:
-            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
-
-        return out
+        return JaxPure.log_val(self, x, out=out)
 
     def der_log(self, xr, xc=None, out=None):
         x = self._dminput(xr, xc)
 
-        out = self._perex_grads(self._params_ascomplex, x)
-
-        return out
+        return JaxPure.der_log(self, x, out=out)
 
     def diagonal(self):
         from .diagonal import Diagonal
@@ -299,7 +292,34 @@ def FanInSub2():
 FanInSub2 = FanInSub2()
 
 
-def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
+def BiasRealModPhase(b_init=normal()):
+    def init_fun(rng, input_shape):
+        assert input_shape[-1] % 2 == 0
+        input_size = input_shape[-1] // 2
+
+        output_shape = input_shape[:-1]
+
+        k = jax.random.split(rng, 2)
+
+        br = b_init(k[0], (input_size,))
+        bj = b_init(k[1], (input_size,))
+
+        return output_shape, (br, bj)
+
+    def apply_fun(params, inputs, **kwargs):
+        br, bj = params
+
+        xr, xc = jax.numpy.split(inputs, 2, axis=-1)
+
+        biasr = jax.numpy.dot((xr + xc)[:,], br)
+        biasj = jax.numpy.dot((xr - xc)[:,], bj)
+
+        return 0.5 * biasr + 0.5j * biasj
+
+    return init_fun, apply_fun
+
+
+def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=True):
     r"""
     A fully connected Neural Density Matrix (DBM). This type density matrix is
     obtained purifying a RBM with spin 1/2 hidden units.
@@ -337,8 +357,25 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True):
         DenseMixingReal(beta * hilbert.size, use_hidden_bias), LogCoshLayer, SumLayer(),
     )
 
-    net = stax.serial(
-        stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
-    )
+    if use_visible_bias:
+        biases = BiasRealModPhase()
+        net = stax.serial(
+            stax.FanOut(4),
+            stax.parallel(mod_pure, phs_pure, mixing, biases),
+            stax.FanInSum,
+        )
+    else:
+        net = stax.serial(
+            stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
+        )
 
     return Jax(hilbert, net, dtype=float, outdtype=complex)
+
+
+def JaxRbmSpin(hilbert, alpha, dtype=complex):
+    return Jax(
+        hilbert,
+        stax.serial(stax.Dense(alpha * hilbert.size * 2), LogCoshLayer, SumLayer()),
+        dtype=dtype,
+        outdtype=dtype,
+    )

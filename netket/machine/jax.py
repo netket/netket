@@ -37,20 +37,9 @@ class Jax(AbstractMachine):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the network must have a single output.
         """
-        super().__init__(hilbert)
+        super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
 
-        if dtype is not float and dtype is not complex:
-            raise TypeError("dtype must be either float or complex")
-
-        if outdtype is None:
-            outdtype = dtype
-        elif outdtype is not float and outdtype is not complex:
-            raise TypeError("outdtype must be either float or complex or None")
-
-        self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
-
-        self._outdtype = outdtype
 
         self._init_fn, self._forward_fn = module
 
@@ -90,7 +79,7 @@ class Jax(AbstractMachine):
                 r_flat, r_fun = tree_flatten(grad_r)
                 j_flat, j_fun = tree_flatten(grad_j)
 
-                grad_flat = [0.5 * re + 0.5j * im for re, im in zip(r_flat, j_flat)]
+                grad_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 return tree_unflatten(r_fun, grad_flat)
 
             grad_fun = jax.jit(_gradfun)
@@ -121,7 +110,7 @@ class Jax(AbstractMachine):
 
                 r_flat = [rr - 1j * jr for rr, jr in zip(rjr_flat, jjr_flat)]
                 j_flat = [rr - 1j * jr for rr, jr in zip(rjj_flat, jjj_flat)]
-                out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
+                out_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 if conjugate:
                     out_flat = [x.conjugate() for x in out_flat]
 
@@ -160,9 +149,11 @@ class Jax(AbstractMachine):
 
     def init_random_parameters(self, seed=None, sigma=0.01):
         rgen = _np.random.RandomState(seed)
-        pars = rgen.normal(scale=sigma, size=self.n_par,) + 1.0j * rgen.normal(
-            scale=sigma, size=self.n_par
-        )
+
+        pars = rgen.normal(scale=sigma, size=self.n_par)
+
+        if self.has_complex_parameters:
+            pars = pars + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
         self.parameters = self.numpy_unflatten(pars, self.parameters)
 
@@ -188,15 +179,9 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = _np.array(
-                self._forward_fn(self._params, x).reshape(x.shape[0],),
-                dtype=_np.complex128,
-            )
+            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
         else:
-            out[:] = _np.array(
-                self._forward_fn(self._params, x).reshape(x.shape[0],),
-                dtype=_np.complex128,
-            )
+            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
         return out
 
     @property
@@ -249,10 +234,6 @@ class Jax(AbstractMachine):
             return out, jacobian
 
     @property
-    def is_holomorphic(self):
-        return self._dtype is complex
-
-    @property
     def state_dict(self):
         state = []
         for i, layer in enumerate(self._params):
@@ -263,13 +244,6 @@ class Jax(AbstractMachine):
     @property
     def parameters(self):
         return self._params
-
-    @property
-    def _params_ascomplex(self):
-        if self._dtype is not complex:
-            return tree_map(lambda v: v.astype(jax.numpy.complex128), self._params)
-        else:
-            return self._params
 
     @parameters.setter
     def parameters(self, p):
@@ -347,4 +321,37 @@ def JaxRbm(hilbert, alpha, dtype=complex):
         hilbert,
         stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
         dtype=dtype,
+    )
+
+
+def FanInSum2ModPhase():
+    """Layer construction function for a fan-in sum layer."""
+
+    def init_fun(rng, input_shape):
+        output_shape = input_shape[0]
+        return output_shape, tuple()
+
+    def apply_fun(params, inputs, **kwargs):
+        output = 1.0 * inputs[0] + 1.0j * inputs[1]
+        return output
+
+    return init_fun, apply_fun
+
+
+FanInSum2ModPhase = FanInSum2ModPhase()
+
+
+def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
+    return Jax(
+        hilbert,
+        stax.serial(
+            stax.FanOut(2),
+            stax.parallel(
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+            ),
+            FanInSum2ModPhase,
+        ),
+        dtype=dtype,
+        outdtype=complex,
     )

@@ -14,7 +14,7 @@ class RbmSpin(AbstractDensityMatrix):
         symmetry=None,
         dtype=complex,
     ):
-        super().__init__(hilbert)
+        super().__init__(hilbert, dtype=dtype, outdtype=complex)
 
         if symmetry is True:
             autom = hilbert.graph.automorphisms
@@ -75,11 +75,6 @@ class RbmSpin(AbstractDensityMatrix):
             return self._pder_log(xr, out)
         else:
             return self._pder_log(_np.hstack((xr, xc)), out)
-
-    @property
-    def is_holomorphic(self):
-        r"""Returns whether the density matrix is holomorphic."""
-        return self._prbm.is_holomorphic
 
     @property
     def state_dict(self):

@@ -5,7 +5,11 @@ import numpy as _np
 class Diagonal(AbstractMachine):
     def __init__(self, density_matrix):
         self._rho = density_matrix
-        super().__init__(density_matrix.hilbert)
+        super().__init__(
+            density_matrix.hilbert,
+            dtype=density_matrix.dtype,
+            outdtype=density_matrix.outdtype,
+        )
 
     def log_val(self, x, out=None):
         r"""Computes the logarithm of the wave function for a batch of visible
@@ -20,11 +24,6 @@ class Diagonal(AbstractMachine):
             matrix.
         """
         return self._rho.log_val(x, x, out)
-
-    @property
-    def is_holomorphic(self):
-        r"""Returns whether the wave function is holomorphic."""
-        return self._rho.is_holomorphic
 
     @property
     def n_par(self):
