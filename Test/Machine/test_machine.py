@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from pytest import approx
 import os
-from netket.hilbert import PySpin as Spin
+from netket.hilbert import Spin
 
 test_jax = True
 try:
@@ -191,8 +191,11 @@ def test_set_get_parameters():
 
         if machine.is_holomorphic:
             assert np.array_equal(flatten(machine.parameters), randpars)
+            assert not all(randpars.real == 0)
+            assert not all(randpars.imag == 0)
         else:
             assert np.array_equal(flatten(machine.parameters).real, randpars.real)
+            assert not all(randpars.real == 0)
 
         machine.parameters = unflatten(np.zeros(npar), machine.parameters)
         assert np.count_nonzero(np.abs(flatten(machine.parameters))) == 0

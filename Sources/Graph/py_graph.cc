@@ -16,10 +16,6 @@
 
 #include "Utils/memory_utils.hpp"
 #include "abstract_graph.hpp"
-#include "custom_graph.hpp"
-#include "doubled_graph.hpp"
-#include "edgeless.hpp"
-#include "hypercube.hpp"
 #include "lattice.hpp"
 
 namespace py = pybind11;
@@ -162,20 +158,6 @@ auto WithEdges(py::iterator first, Function&& callback)
   }
 }
 
-// Work around the lack of C++11 support for defaulted arguments in lambdas.
-struct CustomGraphInit {
-  using Edge = AbstractGraph::Edge;
-  using ColorMap = AbstractGraph::ColorMap;
-
-  std::vector<std::vector<int>> automorphisms;
-
-  auto operator()(std::vector<Edge> edges, ColorMap colors = ColorMap{})
-      -> std::unique_ptr<CustomGraph> {
-    return make_unique<CustomGraph>(std::move(edges), std::move(colors),
-                                    std::move(automorphisms));
-  }
-};
-
 void AddAbstractGraph(py::module subm) {
   py::class_<AbstractGraph>(subm, "Graph")
       .def_property_readonly("n_sites", &AbstractGraph::Nsites,
@@ -184,148 +166,66 @@ void AddAbstractGraph(py::module subm) {
       .def_property_readonly("size", &AbstractGraph::Nsites,
                              R"EOF(
       int: The number of vertices in the graph.)EOF")
-      .def_property_readonly(
-          "edges",
-          [](const AbstractGraph& x) {
-            using vector_type =
-                std::remove_reference<decltype(x.Edges())>::type;
-            return vector_type{x.Edges()};
-          },
-          R"EOF(
-      list: The graph edges.)EOF")
-      .def_property_readonly("adjacency_list", &AbstractGraph::AdjacencyList,
+      .def_property_readonly("n_nodes", &AbstractGraph::Nsites,
                              R"EOF(
+      int: The number of vertices in the graph.)EOF")
+      .def_property_readonly("n_vertices", &AbstractGraph::Nsites,
+                             R"EOF(
+      int: The number of vertices in the graph.)EOF")
+      .def("edges",
+           [](const AbstractGraph& x) {
+             using vector_type =
+                 std::remove_reference<decltype(x.Edges())>::type;
+             return vector_type{x.Edges()};
+           },
+           R"EOF(
+      list: The graph edges.)EOF")
+      .def("adjacency_list", &AbstractGraph::AdjacencyList,
+           R"EOF(
       list: The adjacency list of the graph where each node is
           represented by an integer in `[0, n_sites)`.)EOF")
-      .def_property_readonly("is_bipartite", &AbstractGraph::IsBipartite,
-                             R"EOF(
+      .def("is_bipartite", &AbstractGraph::IsBipartite,
+           R"EOF(
       bool: Whether the graph is bipartite.)EOF")
-      .def_property_readonly("is_connected", &AbstractGraph::IsConnected,
-                             R"EOF(
+      .def("is_connected", &AbstractGraph::IsConnected,
+           R"EOF(
       bool: Whether the graph is connected.)EOF")
-      .def_property_readonly("distances", &AbstractGraph::AllDistances,
-                             R"EOF(
+      .def("distances", &AbstractGraph::AllDistances,
+           R"EOF(
       list[list]: The distances between the nodes. The fact that some node
           may not be reachable from another is represented by -1.)EOF")
-      .def_property_readonly("edge_colors",
-                             [](const AbstractGraph& self) {
-                               auto& color_map = self.EdgeColors();
-                               std::vector<py::tuple> result;
-                               for (auto& it : color_map) {
-                                 result.push_back(py::make_tuple(
-                                     it.first[0], it.first[1], it.second));
-                               }
-                               return result;
-                             },
-                             R"EOF(
+      .def("edge_colors",
+           [](const AbstractGraph& self) {
+             auto& color_map = self.EdgeColors();
+             std::vector<py::tuple> result;
+             for (auto& it : color_map) {
+               result.push_back(
+                   py::make_tuple(it.first[0], it.first[1], it.second));
+             }
+             return result;
+           },
+           R"EOF(
       list[tuple]: Returns a list of tuples of the form (i, j, col) containing each edge `(i,j)`
       with its corresponding color `col`.
       )EOF")
-      .def_property_readonly(
-          "edges_and_colors",
-          [](const AbstractGraph& self) {
-            auto& color_map = self.EdgeColors();
-            std::vector<py::tuple> result;
-            for (auto& it : color_map) {
-              result.push_back(py::make_tuple(
-                  py::make_tuple(it.first[0], it.first[1]), it.second));
-            }
-            return result;
-          },
-          R"EOF(
+      .def("edges_and_colors",
+           [](const AbstractGraph& self) {
+             auto& color_map = self.EdgeColors();
+             std::vector<py::tuple> result;
+             for (auto& it : color_map) {
+               result.push_back(py::make_tuple(
+                   py::make_tuple(it.first[0], it.first[1]), it.second));
+             }
+             return result;
+           },
+           R"EOF(
       list[tuple]: Returns a list of tuples of the form (edge, color) containing each edge `(i,j)`
       with its corresponding color `color`.
       )EOF")
-      .def_property_readonly("automorphisms", &AbstractGraph::SymmetryTable,
-                             R"EOF(
+      .def("automorphisms", &AbstractGraph::SymmetryTable,
+           R"EOF(
       list[list]: The automorphisms of the graph,
           including translation symmetries only.)EOF");
-}
-
-void AddCustomGraph(py::module subm) {
-  py::class_<CustomGraph, AbstractGraph>(subm, "CustomGraph", R"EOF(
-      A custom graph, specified by a list of edges and optionally colors.)EOF")
-      .def(py::init([](py::iterable xs,
-                       std::vector<std::vector<int>> automorphisms) {
-             auto iterator = xs.attr("__iter__")();
-             return WithEdges(iterator,
-                              CustomGraphInit{std::move(automorphisms)});
-           }),
-           py::arg("edges"),
-           py::arg("automorphisms") = std::vector<std::vector<int>>(), R"EOF(
-           Constructs a new graph given a list of edges.
-
-           Args:
-               edges: If `edges` has elements of type `Tuple[int, int]` it is treated
-                   as a list of edges. Then each element `(i, j)` means a connection
-                   between sites `i` and `j`. It is assumed that `0 <= i <= j`. Also,
-                   `edges` should contain no duplicates. If `edges` has elements of
-                   type `Tuple[int, int, int]` each element `(i, j, c)` represents an
-                   edge between sites `i` and `j` colored into `c`. It is again assumed
-                   that `0 <= i <= j` and that there are no duplicate elements in `edges`.
-               automorphisms: The automorphisms of the graph, i.e. a List[List[int]]
-                   where the inner List[int] is a unique permutation of the
-                   graph sites.
-
-
-           Examples:
-               A 10-site one-dimensional lattice with periodic boundary conditions can be
-               constructed specifying the edges as follows:
-
-               >>> import netket
-               >>> g=netket.graph.CustomGraph([[i, (i + 1) % 10] for i in range(10)])
-               >>> print(g.n_sites)
-               10
-
-           )EOF");
-}
-
-void AddHypercube(py::module subm) {
-  py::class_<Hypercube, AbstractGraph>(subm, "Hypercube",
-                                       R"EOF(
-         A hypercube lattice of side L in d dimensions.
-         Periodic boundary conditions can also be imposed.)EOF")
-      .def(py::init<int, int, bool>(), py::arg("length"), py::arg("n_dim") = 1,
-           py::arg("pbc") = true, R"EOF(
-         Constructs a new ``Hypercube`` given its side length and dimension.
-
-         Args:
-             length: Side length of the hypercube.
-                 It must always be >=1,
-                 but if ``pbc==True`` then the minimal
-                 valid length is 3.
-             n_dim: Dimension of the hypercube. It must be at least 1.
-             pbc: If ``True`` then the constructed hypercube
-                 will have periodic boundary conditions, otherwise
-                 open boundary conditions are imposed.
-
-         Examples:
-             A 10x10 square lattice with periodic boundary conditions can be
-             constructed as follows:
-
-             >>> import netket
-             >>> g=netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
-             >>> print(g.n_sites)
-             100
-
-         )EOF")
-      .def(py::init([](int length, py::iterable xs) {
-             auto iterator = xs.attr("__iter__")();
-             return Hypercube{length, detail::Iterable2ColorMap(iterator)};
-           }),
-           py::arg("length"), py::arg("colors"), R"EOF(
-         Constructs a new `Hypercube` given its side length and edge coloring.
-
-         Args:
-             length: Side length of the hypercube.
-                 It must always be >=3 if the
-                 hypercube has periodic boundary conditions
-                 and >=1 otherwise.
-             colors: Edge colors, must be an iterable of
-                 `Tuple[int, int, int]` where each
-                 element `(i, j, c) represents an
-                 edge `i <-> j` of color `c`.
-                 Colors must be assigned to **all** edges.)EOF");
 }
 
 void AddLattice(py::module subm) {
@@ -425,41 +325,13 @@ void AddLattice(py::module subm) {
             )EOF");
 }
 
-void AddEdgeless(py::module subm) {
-  py::class_<Edgeless, AbstractGraph>(subm, "Edgeless", R"EOF(
-      A set graph (collection of unconnected vertices).)EOF")
-      .def(py::init<int>(), py::arg("n_vertices"), R"EOF(
-           Constructs a new set of given number of vertices.
-
-           Args:
-               n_vertices: The number of vertices.
-
-           Examples:
-               A 10-site set:
-
-               >>> import netket
-               >>> g=netket.graph.Edgeless(10)
-               >>> print(g.n_sites)
-               10
-
-           )EOF");
-}
 }  // namespace
-
-void AddDoubledGraph(py::module subm) {
-  subm.def("DoubledGraph",
-           [](const AbstractGraph& graph) { return DoubledGraph(graph); });
-}
 
 void AddGraphModule(py::module m) {
   auto subm = m.def_submodule("graph");
 
   AddAbstractGraph(subm);
-  AddHypercube(subm);
-  AddCustomGraph(subm);
-  AddDoubledGraph(subm);
   AddLattice(subm);
-  AddEdgeless(subm);
 }
 
 }  // namespace netket

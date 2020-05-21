@@ -1,11 +1,11 @@
-from graph import NetworkX
+from .graph import NetworkX
 
 import numpy as _np
 import networkx as _nx
 
 
 class Grid(NetworkX):
-    r"""A Grid lattice of d dimensions, and possibly different sizes of each dimension. 
+    r"""A Grid lattice of d dimensions, and possibly different sizes of each dimension.
     Periodic boundary conditions can also be imposed"""
 
     def __init__(self, length, pbc=True):
@@ -52,9 +52,9 @@ class Grid(NetworkX):
 
 
 def Hypercube(length, n_dim=1, pbc=True):
-    r"""A hypercube lattice of side L in d dimensions. 
+    r"""A hypercube lattice of side L in d dimensions.
     Periodic boundary conditions can also be imposed.
-    
+
     Constructs a new ``Hypercube`` given its side length and dimension.
 
     Args:
@@ -79,7 +79,7 @@ def Hypercube(length, n_dim=1, pbc=True):
 
 
 def Square(length, pbc=True):
-    r"""A square lattice of side L. 
+    r"""A square lattice of side L.
     Periodic boundary conditions can also be imposed
 
     Constructs a new ``Square`` given its side length.
@@ -104,7 +104,7 @@ def Square(length, pbc=True):
 
 
 def Chain(length, pbc=True):
-    r"""A chain of L sites. 
+    r"""A chain of L sites.
     Periodic boundary conditions can also be imposed
 
     Constructs a new ``Chain`` given its length.

@@ -85,7 +85,7 @@ class Jastrow(AbstractMachine):
 
         else:
             if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
+                autom = _np.asarray(hilbert.graph.automorphisms())
             else:
                 try:
                     autom = _np.asarray(symmetry)
