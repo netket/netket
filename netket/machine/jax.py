@@ -149,9 +149,11 @@ class Jax(AbstractMachine):
 
     def init_random_parameters(self, seed=None, sigma=0.01):
         rgen = _np.random.RandomState(seed)
-        pars = rgen.normal(scale=sigma, size=self.n_par,) + 1.0j * rgen.normal(
-            scale=sigma, size=self.n_par
-        )
+
+        pars = rgen.normal(scale=sigma, size=self.n_par)
+
+        if self.has_complex_parameters:
+            pars = pars + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
         self.parameters = self.numpy_unflatten(pars, self.parameters)
 
