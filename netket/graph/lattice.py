@@ -43,6 +43,12 @@ class Lattice(NetworkX):
             raise ValueError(
                 "basis_vectors must be an orthogonal basis for the N-dimensional vector space you chose"
             )
+        # Check orthogonality (because only orthorhombic cells are allowed atm)
+        if self._basis_vectors.shape[0] > 1:
+            product = _np.dot(self._basis_vectors, self._basis_vectors.T)
+            _np.fill_diagonal(product, 0)
+            if product.any():
+                raise ValueError("basis_vectors must be an orthogonal basis for the N-dimensional vector space you chose")
 
         if not atoms_coord:
             atoms_coord = [_np.zeros(self._basis_vectors.shape[0]).tolist()]
@@ -98,6 +104,10 @@ class Lattice(NetworkX):
         graph = _nx.MultiGraph(edges)
         super().__init__(graph)
 
+    @property
+    def basis_vectors(self):
+        return self._basis_vectors
+
     def get_edges(self):
         atoms_position = _np.asarray(self._coord_to_site)
         boxsize = _np.matmul(self._basis_vectors, self._extent)
@@ -125,3 +135,12 @@ class Lattice(NetworkX):
 
     def coord_to_site(self, coord):
         return self._coord_to_site.index(tuple(coord))
+
+    def site_to_vector(self, site):
+        coord = self.site_to_coord(site)
+        cell_size = _np.matmul(self._basis_vectors, _np.ones(self._basis_vectors.shape[1]))
+        vector = [axis_coord//axis_L for (axis_coord, axis_L) in zip(coord, cell_size)]
+        return vector
+
+    def vector_to_coord(self, vector):
+        return _np.matmul(self._basis_vectors, vector)
