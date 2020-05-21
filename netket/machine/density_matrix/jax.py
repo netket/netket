@@ -34,7 +34,7 @@ class Jax(JaxPure, AbstractDensityMatrix):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the module must have a single output.
         """
-        AbstractDensityMatrix.__init__(self, hilbert)
+        AbstractDensityMatrix.__init__(self, hilbert, dtype, outdtype)
         JaxPure.__init__(self, hilbert, module, dtype, outdtype)
 
         assert self.input_size == self.hilbert.size * 2

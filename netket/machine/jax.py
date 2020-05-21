@@ -37,21 +37,9 @@ class Jax(AbstractMachine):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the network must have a single output.
         """
-        super().__init__(hilbert)
+        super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
 
-        if dtype is not float and dtype is not complex:
-            raise TypeError("dtype must be either float or complex")
-
-        if outdtype is None:
-            outdtype = dtype
-
-        elif outdtype is not float and outdtype is not complex:
-            raise TypeError("outdtype must be either float or complex or None")
-
-        self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
-
-        self._outdtype = outdtype
 
         self._init_fn, self._forward_fn = module
 
@@ -226,10 +214,6 @@ class Jax(AbstractMachine):
             out = tree_map(prodj, jacobian)
 
             return out, jacobian
-
-    @property
-    def is_holomorphic(self):
-        return self._dtype is complex
 
     @property
     def state_dict(self):

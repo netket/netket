@@ -68,7 +68,7 @@ class SteadyState(AbstractVariationalDriver):
 
         self._sr = sr
         if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.has_complex_weights = sampler.machine.has_complex_weights
             self._sr.machine = sampler.machine
 
         self._npar = self._machine.n_par
