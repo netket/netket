@@ -1,12 +1,3 @@
-import os
-import platform
-import multiprocessing
-import re
-import shlex
-import subprocess
-import sys
-
-from distutils import log
 from setuptools import setup
 
 setup(

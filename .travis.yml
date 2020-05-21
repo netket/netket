@@ -7,12 +7,12 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       language: generic
-      env: PYTHON=3.6.0 
+      env: PYTHON=3.6.0
 
     - os: osx
       osx_image: xcode11.3
       language: generic
-      env: CONDA=3.6 
+      env: CONDA=3.6
 
     - os: linux
       dist: xenial
@@ -101,12 +101,11 @@ install:
     fi
   - python -m pip install pytest-xdist
   - python -m pytest --version
-  - NETKET_CMAKE_FLAGS="$CMAKE_FLAGS" python -m pip install -v .
+  - python -m pip install -v .
   - mkdir workdir && cd workdir
 
 script:
   - python -c 'import netket'
-  - python -c 'import netket; g = netket.graph.Hypercube(4, 1); h = netket.hilbert.Spin(g, 0.5); m = netket.machine.RbmSpin(h, 10)'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
   - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
   - python -m black --check ../netket/
