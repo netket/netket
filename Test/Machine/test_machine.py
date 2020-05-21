@@ -183,8 +183,11 @@ def test_set_get_parameters():
 
         if machine.has_complex_weights:
             assert np.array_equal(flatten(machine.parameters), randpars)
+            assert not all(randpars.real == 0)
+            assert not all(randpars.imag == 0)
         else:
             assert np.array_equal(flatten(machine.parameters).real, randpars.real)
+            assert not all(randpars.real == 0)
 
         machine.parameters = unflatten(np.zeros(npar), machine.parameters)
         assert np.count_nonzero(np.abs(flatten(machine.parameters))) == 0

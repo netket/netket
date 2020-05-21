@@ -121,13 +121,21 @@ class Jax(AbstractMachine):
         else:
             raise ValueError("We do not support C->R wavefunctions.")
 
-        self.init_random_parameters()
+        self.jax_init_parameters()
 
         # Computes total number of parameters
         weights, _ = tree_flatten(self._params)
         self._npar = sum([w.size for w in weights])
+        self.init_random_parameters()
 
-    def init_random_parameters(self, seed=None, sigma=None):
+    def jax_init_parameters(self, seed=None):
+        """
+        Uses the init function of the jax networks to generate a set of parameters.
+        Beware that usually jax does not correctly set the imaginary part of
+        networks, so for complex networks it MUST be followed by a call to
+        init_random_parameters, unless your network correctly initialised the 
+        imaginary part.
+        """
         if seed is None:
             seed = _randint(0, 2 ** 32 - 2)
 
@@ -138,6 +146,14 @@ class Jax(AbstractMachine):
 
         if output_shape != (-1, 1):
             raise ValueError("A valid network must have 1 output.")
+
+    def init_random_parameters(self, seed=None, sigma=0.01):
+        rgen = _np.random.RandomState(seed)
+        pars = rgen.normal(scale=sigma, size=self.n_par,) + 1.0j * rgen.normal(
+            scale=sigma, size=self.n_par
+        )
+
+        self.parameters = self.numpy_unflatten(pars, self.parameters)
 
     def _cast(self, p):
         if self._dtype is complex:
