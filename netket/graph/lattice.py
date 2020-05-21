@@ -1,4 +1,4 @@
-from graph import NetworkX
+from .graph import NetworkX
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 import numpy as _np
