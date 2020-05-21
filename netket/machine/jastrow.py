@@ -103,7 +103,7 @@ class Jastrow(AbstractMachine):
 
         self._npar = n_sym + (self._a.size if self._a is not None else 0)
 
-        super().__init__(hilbert)
+        super().__init__(hilbert, dtype)
 
     @property
     def n_par(self):
@@ -184,12 +184,6 @@ class Jastrow(AbstractMachine):
                     out[b, Smap[i, j] + k] += x[b, i] * x[b, j]
 
         return out
-
-    @property
-    def is_holomorphic(self):
-        r"""Complex valued Jastrow is a holomorphic function.
-        """
-        return self._dtype is complex
 
     @property
     def state_dict(self):

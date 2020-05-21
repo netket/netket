@@ -49,7 +49,6 @@ def Vmc(
             lsq_solver=sr_lsq_solver,
             diag_shift=diag_shift,
             use_iterative=use_iterative,
-            is_holomorphic=sampler.machine.is_holomorphic,
         )
         return _Vmc(
             hamiltonian=hamiltonian,

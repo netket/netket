@@ -61,7 +61,7 @@ class Vmc(AbstractVariationalDriver):
         self._sampler = sampler
         self._sr = sr
         if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.has_complex_parameters = sampler.machine.has_complex_parameters
             self._sr.machine = sampler.machine
 
         self._npar = self._machine.n_par
@@ -159,7 +159,15 @@ class Vmc(AbstractVariationalDriver):
 
             self._grads = tree_map(_sum_inplace, self._grads)
 
-            self._dp = self._grads
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if (
+                not self._machine.has_complex_parameters
+                and self._machine.outdtype is complex
+            ):
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
         return self._dp
 

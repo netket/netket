@@ -19,7 +19,7 @@ class SR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        is_holomorphic=None,
+        has_complex_parameters=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
@@ -28,7 +28,7 @@ class SR:
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._is_holomorphic = is_holomorphic
+        self._has_complex_parameters = has_complex_parameters
         self._svd_threshold = svd_threshold
         self._scale_invariant_pc = False
         self._S = None
@@ -57,14 +57,14 @@ class SR:
 
         if self._use_iterative:
             if lsq_solver is None:
-                lsq_solver = "gmres" if self._is_holomorphic else "minres"
+                lsq_solver = "gmres" if self._has_complex_parameters else "minres"
 
             if lsq_solver == "gmres":
                 self._sparse_solver = partial(gmres, atol="legacy")
             elif lsq_solver == "cg":
                 self._sparse_solver = partial(cg, atol="legacy")
             elif lsq_solver == "minres":
-                if self._is_holomorphic:
+                if self._has_complex_parameters:
                     raise RuntimeError(
                         "minres can be used only for real-valued parameters."
                     )
@@ -109,9 +109,9 @@ class SR:
 
         oks -= _mean(oks, axis=0)
 
-        if self.is_holomorphic is None:
+        if self.has_complex_parameters is None:
             raise ValueError(
-                "is_holomorphic not set: this SR object is not properly initialized."
+                "has_complex_parameters not set: this SR object is not properly initialized."
             )
 
         n_samp = _sum_inplace(_np.atleast_1d(oks.shape[0]))
@@ -121,7 +121,7 @@ class SR:
         if out is None:
             out = _np.zeros(n_par, dtype=_np.complex128)
 
-        if self._is_holomorphic:
+        if self._has_complex_parameters:
             if self._use_iterative:
                 op = self._linear_operator(oks, n_samp)
 
@@ -265,14 +265,14 @@ class SR:
             if self._svd_threshold is not None:
                 rep += ", threshold=" << self._svd_threshold
 
-        rep += ", is_holomorphic=" + str(self._is_holomorphic) + ")"
+        rep += ", has_complex_parameters=" + str(self._has_complex_parameters) + ")"
         return rep
 
     def info(self, depth=0):
         indent = " " * 4 * depth
         rep = indent
         rep += "Stochastic reconfiguration method for "
-        rep += "holomorphic" if self._is_holomorphic else "real-parameter"
+        rep += "holomorphic" if self._has_complex_parameters else "real-parameter"
         rep += " wavefunctions\n"
 
         rep += indent + "Solver: "
@@ -290,7 +290,7 @@ class SR:
         shift = self._diag_shift
         oks_conj = oks.conjugate()
 
-        if self._is_holomorphic:
+        if self._has_complex_parameters:
 
             def matvec(v):
                 v_tilde = self._v_tilde
@@ -316,10 +316,10 @@ class SR:
         return LinearOperator((n_par, n_par), matvec=matvec, rmatvec=matvec)
 
     @property
-    def is_holomorphic(self):
-        return self._is_holomorphic
+    def has_complex_parameters(self):
+        return self._has_complex_parameters
 
-    @is_holomorphic.setter
-    def is_holomorphic(self, is_holo):
-        self._is_holomorphic = is_holo
+    @has_complex_parameters.setter
+    def has_complex_parameters(self, is_real):
+        self._has_complex_parameters = is_real
         self._init_solver()

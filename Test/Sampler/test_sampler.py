@@ -11,6 +11,8 @@ samplers = {}
 nk.random.seed(1234567)
 np.random.seed(1234)
 
+test_jax = True
+
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
 g = nk.graph.Hypercube(length=4, n_dim=1)
@@ -114,6 +116,17 @@ ma = nk.machine.density_matrix.RbmSpin(
 ma.init_random_parameters(sigma=0.2)
 samplers["Metropolis Density Matrix"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
 
+if test_jax:
+    ma = nk.machine.density_matrix.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
+    ma.init_random_parameters(sigma=0.2)
+    samplers["Metropolis Density Matrix Jax"] = nk.sampler.jax.MetropolisLocal(
+        ma, n_chains=16
+    )
+
+    ma = nk.machine.JaxRbm(hilbert=hi, alpha=1)
+    ma.init_random_parameters(sigma=0.2)
+    samplers["Metropolis Rbm Jax"] = nk.sampler.jax.MetropolisLocal(ma, n_chains=16)
+
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():
@@ -173,7 +186,7 @@ def test_correct_sampling():
             samples = sa.generate_samples(n_samples)
 
             assert samples.shape[2] == ma.input_size
-            sttn = hi.states_to_numbers(samples.reshape(-1, ma.input_size))
+            sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, ma.input_size)))
             n_s = sttn.size
 
             # fill in the histogram for sampler

@@ -5,12 +5,12 @@ import numpy as _np
 class AbstractOptimizer(abc.ABC):
     """Abstract class for NetKet optimizers"""
 
-    def init(self, n_par, is_holomorphic):
+    def init(self, n_par, has_complex_parameters):
         r""" Initializes the optimizer.
 
         Args:
             n_par (int): Number of parameters to be optimized.
-            is_holomorphic (bool): Whether the target function is holomorphic.
+            has_complex_parameters (bool): Whether the target function has complex weights.
 
         """
         pass

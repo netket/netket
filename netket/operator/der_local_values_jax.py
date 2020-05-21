@@ -51,25 +51,54 @@ _local_values_and_grads_kernel = jax.jit(
 ########################################
 # Computes the non-centered gradient of local values
 # \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
-@partial(jax.jit, static_argnums=4)
-def _local_value_and_grad_notcentered_kernel(pars, vp, mel, v, logpsi):
-    logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
-    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+@partial(jax.jit, static_argnums=(4, 5))
+def _local_value_and_grad_notcentered_kernel(
+    pars, vp, mel, v, logpsi, real_to_complex=False
+):
+    # can use if with jit because that argument is exposed statically to the jit!
+    if real_to_complex:
+        logpsi_vp_r, f_vjp_r = jax.vjp(lambda w: (logpsi(w, vp).real), pars)
+        logpsi_vp_j, f_vjp_j = jax.vjp(lambda w: (logpsi(w, vp).imag), pars)
 
-    loc_val = vec.sum()
-    grad_c = f_vjp(vec)[0]
-    # get out of the lambda function
+        logpsi_vp = logpsi_vp_r + 1.0j * logpsi_vp_j
+
+        vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+        vec_r = vec.real
+        vec_j = vec.imag
+
+        loc_val = vec.sum()
+
+        vr_grad_r, tree_fun = jax.tree_flatten(f_vjp_r(vec_r)[0])
+        vj_grad_r, _ = jax.tree_flatten(f_vjp_r(vec_j)[0])
+        vr_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_r)[0])
+        vj_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_j)[0])
+
+        r_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_r, vj_grad_r)]
+        j_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_j, vj_grad_j)]
+        out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
+
+        grad_c = jax.tree_unflatten(tree_fun, out_flat)
+    else:
+        logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
+
+        vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+
+        loc_val = vec.sum()
+        grad_c = f_vjp(vec)[0]
+
     return loc_val, grad_c
 
 
-@partial(jax.jit, static_argnums=4)
-def _local_values_and_grads_notcentered_kernel(pars, vp, mel, v, logpsi):
+@partial(jax.jit, static_argnums=(4, 5))
+def _local_values_and_grads_notcentered_kernel(
+    pars, vp, mel, v, logpsi, real_to_complex=False
+):
     f_vmap = jax.vmap(
         _local_value_and_grad_notcentered_kernel,
-        in_axes=(None, 0, 0, 0, None),
+        in_axes=(None, 0, 0, 0, None, None),
         out_axes=(0, 0),
     )
-    return f_vmap(pars, vp, mel, v, logpsi)
+    return f_vmap(pars, vp, mel, v, logpsi, real_to_complex)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
@@ -82,10 +111,13 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
     v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
     mels_r = mels.reshape(-1, n_primes)
 
-    pars = machine._params_ascomplex
+    if machine._dtype is float and machine._outdtype is complex:
+        real_to_complex = True
+    else:
+        real_to_complex = False
 
     val, grad = _local_values_and_grads_notcentered_kernel(
-        pars, v_primes_r, mels_r, v, machine.jax_forward
+        machine.parameters, v_primes_r, mels_r, v, machine.jax_forward, real_to_complex
     )
     return grad
 
@@ -100,7 +132,10 @@ def _der_local_values_impl(op, machine, v, log_vals):
     v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
     mels_r = mels.reshape(-1, n_primes)
 
-    pars = machine._params_ascomplex
+    if machine._dtype is complex:
+        pars = pars
+    else:
+        pars = tree_map(lambda v: v.astype(jax.numpy.complex128), machine._params)
 
     val, grad = _local_values_and_grads_kernel(
         pars, v_primes_r, mels_r, v, machine.jax_forward
