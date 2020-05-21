@@ -159,7 +159,15 @@ class Vmc(AbstractVariationalDriver):
 
             self._grads = tree_map(_sum_inplace, self._grads)
 
-            self._dp = self._grads
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if (
+                not self._machine.has_complex_weights
+                and self._machine.outdtype is complex
+            ):
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
         return self._dp
 

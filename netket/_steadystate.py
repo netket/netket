@@ -247,14 +247,16 @@ class SteadyState(AbstractVariationalDriver):
 
             self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
-            if self._machine._dtype is float:
-                self._dp = tree_map(lambda x: x.real, self._dp)
-
         else:
-            self._dp = self._grads
-
-            if self._machine._dtype is float:
-                self._dp = tree_map(lambda x: x.real, self._dp)
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if (
+                not self._machine.has_complex_weights
+                and self._machine.outdtype is complex
+            ):
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
         return self._dp
 
