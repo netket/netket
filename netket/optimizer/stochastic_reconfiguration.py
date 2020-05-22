@@ -93,7 +93,7 @@ class SR:
                 "The svd_threshold option is available only for non-sparse solvers."
             )
 
-    def setup(self, machine=None):
+    def setup(self, machine):
         """
         Sets up this Sr object to work with the selected machine.
         This mainly sets internal flags `has_complex_parameters` and the
@@ -104,7 +104,7 @@ class SR:
 
         """
 
-        self._has_complex_parameters = has_complex_parameters
+        self._has_complex_parameters = machine.has_complex_parameters
 
     def compute_update(self, oks, grad, out=None):
         r"""
