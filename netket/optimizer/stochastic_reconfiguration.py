@@ -28,7 +28,7 @@ class SR:
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._has_complex_parameters = has_complex_parameters
+        self._has_complex_parameters = None
         self._svd_threshold = svd_threshold
         self._scale_invariant_pc = False
         self._S = None
@@ -46,6 +46,9 @@ class SR:
         self._init_solver()
 
         self._comm = MPI.COMM_WORLD
+
+        if machine is not None:
+            self.setup(machine)
 
     def _init_solver(self):
         lsq_solver = self._lsq_solver

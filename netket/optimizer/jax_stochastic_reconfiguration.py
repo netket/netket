@@ -108,15 +108,14 @@ class JaxSR:
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._has_complex_parameters = has_complex_parameters
+        self._has_complex_parameters = None
+        self._machine = None
 
         # Quantities for sparse solver
         self.sparse_tol = 1.0e-5 if sparse_tol is None else sparse_tol
         self.sparse_maxiter = sparse_maxiter
         self._lsq_solver = lsq_solver
         self._x0 = None
-        self._machine = None
-        self._has_complex_parameters = None
         self._mat_vec = None
         self._init_solver()
 
