@@ -103,8 +103,8 @@ class SR:
             machine: the machine
 
         """
-
         self._has_complex_parameters = machine.has_complex_parameters
+        self._init_solver()
 
     def compute_update(self, oks, grad, out=None):
         r"""
