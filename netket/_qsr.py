@@ -70,7 +70,8 @@ class Qsr(AbstractVariationalDriver):
         self._sampler = sampler
         self._sr = sr
         if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.has_complex_parameters = sampler.machine.has_complex_parameters
+            self._sr.machine = sampler.machine
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)

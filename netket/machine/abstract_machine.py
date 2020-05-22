@@ -5,9 +5,21 @@ import numpy as _np
 class AbstractMachine(abc.ABC):
     """Abstract class for NetKet machines"""
 
-    def __init__(self, hilbert):
+    def __init__(self, hilbert, dtype=complex, outdtype=None):
         super().__init__()
         self.hilbert = hilbert
+
+        if dtype is not float and dtype is not complex:
+            raise TypeError("dtype must be either float or complex")
+
+        if outdtype is None:
+            outdtype = dtype
+
+        elif outdtype is not float and outdtype is not complex:
+            raise TypeError("outdtype must be either float or complex or None")
+
+        self._outdtype = outdtype
+        self._dtype = dtype
 
     @abc.abstractmethod
     def log_val(self, x, out=None):
@@ -147,10 +159,16 @@ class AbstractMachine(abc.ABC):
             raise RuntimeError("The hilbert space is not indexable")
 
     @property
-    @abc.abstractmethod
-    def is_holomorphic(self):
-        r"""Returns whether the wave function is holomorphic."""
-        raise NotImplementedError
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def outdtype(self):
+        return self._outdtype
+
+    @property
+    def has_complex_parameters(self):
+        return self._dtype is complex
 
     @property
     def n_par(self):
