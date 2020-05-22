@@ -71,7 +71,6 @@ if test_jax:
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
 
-
 if test_torch:
     import torch
 
