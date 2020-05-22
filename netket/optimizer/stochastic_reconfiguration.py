@@ -19,10 +19,10 @@ class SR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        has_complex_parameters=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
+        machine=None,
     ):
 
         self._lsq_solver = lsq_solver
@@ -89,6 +89,19 @@ class SR:
             raise ValueError(
                 "The svd_threshold option is available only for non-sparse solvers."
             )
+
+    def setup(self, machine=None):
+        """
+        Sets up this Sr object to work with the selected machine.
+        This mainly sets internal flags `has_complex_parameters` and the
+        method used to flatten/unflatten the gradients.
+
+        Args:
+            machine: the machine
+
+        """
+
+        self._has_complex_parameters = has_complex_parameters
 
     def compute_update(self, oks, grad, out=None):
         r"""
@@ -318,8 +331,3 @@ class SR:
     @property
     def has_complex_parameters(self):
         return self._has_complex_parameters
-
-    @has_complex_parameters.setter
-    def has_complex_parameters(self, is_real):
-        self._has_complex_parameters = is_real
-        self._init_solver()
