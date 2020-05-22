@@ -9,12 +9,12 @@ L = 16
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.PySpin(graph=g, s=0.5)
+hi = nk.hilbert.Spin(graph=g, s=0.5)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
 ma = nk.machine.JaxMpsPeriodic(hi, bond_dim=4, diag=False, symperiod=-1, dtype=complex)
-ma.init_random_parameters(seed=1232)
+ma.jax_init_parameters(seed=1232)
 
 # Jax Sampler
 sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=8)
