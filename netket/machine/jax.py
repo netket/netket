@@ -133,9 +133,13 @@ class Jax(AbstractMachine):
 
                 r_flat = [rr - 1j * jr for rr, jr in zip(rjr_flat, jjr_flat)]
                 j_flat = [rr - 1j * jr for rr, jr in zip(rjj_flat, jjj_flat)]
-                out_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
+
                 if conjugate:
-                    out_flat = [x.conjugate() for x in out_flat]
+                    out_flat = out_flat = [
+                        re - 1j * im for re, im in zip(r_flat, j_flat)
+                    ]
+                else:
+                    out_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
 
                 return tree_unflatten(tree_fun, out_flat)
 
