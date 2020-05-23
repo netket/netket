@@ -324,9 +324,37 @@ def JaxRbm(hilbert, alpha, dtype=complex):
     )
 
 
-def JaxMpsPeriodic(
+def MpsPeriodic(
     hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex, outdtype=complex
 ):
+    r"""
+    Constructs a periodic Matrix Product State (MPS) for a quantum state of discrete
+    degrees of freedom, wrapped as Jax machine.  The MPS is defined as
+
+    .. math:: \Psi(s_1,\dots s_N) = \Tr(A[s_1]\dots A[s_N]),
+
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
+    of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
+
+        Args:
+            hilbert: Hilbert space on which the state is defined. Should be a
+                subclass of `netket.hilbert.Hilbert`.
+            bond_dim (int): Virtual dimension of the MPS tensors.
+            diag (bool): Whether or not to use diagonal matrices in the MPS tensors.
+                default=False
+            symperiod (int): Periodicity in the chain of MPS tensors. For positive
+                values, the chain of MPS tensors is constructed as a sequence of
+                identical unit cells consisting of symperiod tensors. For negative
+                values, the period is equal to the number of local physical variables.
+                default=-1
+            dtype: complex or float, whether the variational parameters of the MPS
+                are real or complex. default=complex
+            outdtype: complex or float, whether the scalar output of the MPS is
+                real or complec. default=complex
+
+        returns:
+            Jax machine of the Matrix Product state.
+    """
     return Jax(
         hilbert,
         stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)),
