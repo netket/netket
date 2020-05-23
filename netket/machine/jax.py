@@ -324,7 +324,7 @@ def JaxRbm(hilbert, alpha, dtype=complex):
     )
 
 
-def MpsPeriodic(
+def MPSPeriodic(
     hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex, outdtype=complex
 ):
     r"""
