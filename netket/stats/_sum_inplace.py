@@ -119,3 +119,17 @@ if jax_available:
         _MPI_comm.Allreduce(_MPI.IN_PLACE, arr.reshape(-1), op=_MPI.SUM)
 
         return x
+
+    @define_sum_inplace(
+        atypes=(
+            jax.interpreters.partial_eval.JaxprTracer,
+            jax.interpreters.ad.JVPTracer,
+        )
+    )
+    def sum_inplace_jax_jittracer(x):
+        if _n_nodes == 1:
+            return x
+        else:
+            raise RuntimError(
+                "Cannot jit sum_inplace when running with multiple MPI processes."
+            )

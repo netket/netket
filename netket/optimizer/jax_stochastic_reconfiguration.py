@@ -4,10 +4,89 @@ from netket.utils import n_nodes
 from mpi4py import MPI
 
 import jax
+import jax.numpy as jnp
+
+from jax import jit
 from jax.scipy.sparse.linalg import cg
 from jax.tree_util import tree_flatten
 from netket.vmc_common import jax_shape_for_update
-import jax.numpy as jnp
+from netket.utils import jit_if_singleproc
+
+
+@jit
+def _S_grad_mul(oks, v, n_samp):
+    """
+    Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
+    length n_parameters, and O is a matrix (n_samples, n_parameters)
+    """
+    v_tilde = jnp.matmul(oks, v) / n_samp
+    y = jnp.matmul(oks.conjugate().transpose(), v_tilde)
+    return y
+
+
+@jit
+def _compose_result_cmplx(v, y, diag_shift):
+    return v * diag_shift + y
+
+
+@jit
+def _compose_result_real(v, y, diag_shift):
+    return (v * diag_shift + y).real
+
+
+#  Note: n_samp must be the total number of samples across all MPI processes!
+# Note: _sum_inplace can only be jitted through if we are in single process.
+@jit_if_singleproc
+def _matvec_cmplx(v, oks, n_samp, diag_shift):
+    y = _S_grad_mul(oks, v, n_samp)
+    return _compose_result_cmplx(v, _sum_inplace(y), diag_shift)
+
+
+@jit_if_singleproc
+def _matvec_real(v, oks, n_samp, diag_shift):
+    y = _S_grad_mul(oks, v, n_samp)
+    return _compose_result_real(v, _sum_inplace(y), diag_shift)
+
+
+@partial(jit_if_singleproc, static_argnums=1)
+def _jax_cg_solve(
+    x0, mat_vec, oks, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
+):
+    """
+    Solves the SR flow equation using the conjugate gradient method
+    """
+
+    _mat_vec = partial(mat_vec, oks=oks, diag_shift=diag_shift, n_samp=n_samp)
+
+    out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
+
+    return out
+
+
+@jit
+def _shape_for_sr(grads, jac):
+    r"""Reshapes grads and jax from tree like structures to arrays if jax_available
+
+    Args:
+        grads,jac: pytrees of jax arrays or numpy array
+
+    Returns:
+        A 1D array of gradients and a 2D array of the jacobian
+    """
+
+    grads = jnp.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(grads)[0]))
+    jac = jnp.concatenate(
+        tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
+    )
+
+    return grads, jac
+
+
+@jit
+def _flatten_grad_and_oks(grad, oks):
+    grad, oks = _shape_for_sr(grad, oks)
+    oks -= jnp.mean(oks, axis=0)
+    return grad, oks
 
 
 class JaxSR:
@@ -20,30 +99,31 @@ class JaxSR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        has_complex_parameters=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
+        machine=None,
     ):
 
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._has_complex_parameters = has_complex_parameters
+        self._has_complex_parameters = None
+        self._machine = None
 
         # Quantities for sparse solver
         self.sparse_tol = 1.0e-5 if sparse_tol is None else sparse_tol
         self.sparse_maxiter = sparse_maxiter
         self._lsq_solver = lsq_solver
         self._x0 = None
+        self._mat_vec = None
         self._init_solver()
-
-        # self._comm = MPI.COMM_WORLD
-        if n_nodes > 1:
-            raise NotImplementedError("JaxSR currently works only for serial CPU jobs")
 
         if not self._use_iterative:
             raise NotImplementedError("JaxSR supports only iterative solvers")
+
+        if machine is not None:
+            self.setup(machine)
 
     def _init_solver(self):
         lsq_solver = self._lsq_solver
@@ -64,7 +144,23 @@ class JaxSR:
             else:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
-    @partial(jax.jit, static_argnums=(0,))
+    def setup(self, machine):
+        """
+        Sets up this Sr object to work with the selected machine.
+        This mainly sets internal flags `has_complex_parameters` and the
+        method used to flatten/unflatten the gradients.
+
+        Args:
+            machine: the machine
+        """
+        self._machine = machine
+        self._has_complex_parameters = machine.has_complex_parameters
+
+        if self._has_complex_parameters:
+            self._mat_vec = _matvec_cmplx
+        else:
+            self._mat_vec = _matvec_real
+
     def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -78,84 +174,56 @@ class JaxSR:
         Args:
             oks: A pytree of the jacobians ∂/∂x_i log Ψ(v_j)
             grad: A pytree of the forces f
-            out: A pytree of the parameter updates
+            out: A pytree of the parameter updates that will be ignored
         """
 
-        grad, oks = self.shape_for_sr(grad, oks)
-
-        oks -= jnp.mean(oks, axis=0)
-
-        if self.has_complex_parameters is None or self.machine is None:
+        if self.has_complex_parameters is None or self._machine is None:
             raise ValueError("This SR object is not properly initialized.")
 
-        # n_samp = _sum_inplace(jnp.atleast_1d(oks.shape[0]))
-        n_samp = oks.shape[0]
+        grad, oks = _flatten_grad_and_oks(grad, oks)
+
+        n_samp = oks.shape[0] * n_nodes
 
         n_par = grad.shape[0]
 
-        if out is None:
-            out = jnp.zeros(n_par, dtype=jnp.complex128)
+        if self._x0 is None:
+            if self.has_complex_parameters:
+                self._x0 = jnp.zeros(n_par, dtype=jnp.complex128)
+            else:
+                self._x0 = jnp.zeros(n_par, dtype=jnp.float64)
 
         if self.has_complex_parameters:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
-                    out = self._jax_cg_solve(oks, grad, n_samp)
+                    out = _jax_cg_solve(
+                        self._x0,
+                        self._mat_vec,
+                        oks,
+                        grad,
+                        self._diag_shift,
+                        n_samp,
+                        self.sparse_tol,
+                        self.sparse_maxiter,
+                    )
                 self._x0 = out
         else:
             if self._use_iterative:
                 if self._lsq_solver == "cg":
-                    out = self._jax_cg_solve(oks, grad.real, n_samp)
-                self._x0 = jnp.real(out)
+                    out = _jax_cg_solve(
+                        self._x0,
+                        self._mat_vec,
+                        oks,
+                        grad.real,
+                        self._diag_shift,
+                        n_samp,
+                        self.sparse_tol,
+                        self.sparse_maxiter,
+                    )
+                self._x0 = out
 
-            out = out.real
-
-        out = jax_shape_for_update(out, self.machine.parameters)
-
-        # self._comm.bcast(out, root=0)
-        # self._comm.barrier()
-        return out
-
-    @partial(jax.jit, static_argnums=(0, 3))
-    def _jax_cg_solve(self, oks, grad, n_samp):
-        """
-        Solves the SR flow equation using the conjugate gradient method
-        """
-
-        n_par = grad.shape[0]
-        if self._x0 is None:
-            self._x0 = jnp.zeros(n_par, dtype=jnp.complex128)
-
-        def mat_vec(x):
-            y = jnp.matmul(oks, x) / n_samp
-            y = jnp.matmul(oks.conjugate().transpose(), y)
-            y = x * self._diag_shift + y
-
-            return y
-
-        out, _ = cg(
-            mat_vec, grad, x0=self._x0, tol=self.sparse_tol, maxiter=self.sparse_maxiter
-        )
+        out = jax_shape_for_update(out, self._machine.parameters)
 
         return out
-
-    @staticmethod
-    @jax.jit
-    def shape_for_sr(grads, jac):
-        r"""Reshapes grads and jax from tree like structures to arrays if jax_available
-
-        Args:
-            grads,jac: pytrees of jax arrays or numpy array
-
-        Returns:
-            A 1D array of gradients and a 2D array of the jacobian
-        """
-
-        grads = jnp.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(grads)[0]))
-        jac = jnp.concatenate(
-            tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
-        )
-
-        return grads, jac
 
     def __repr__(self):
         rep = "SR(solver="
@@ -187,8 +255,3 @@ class JaxSR:
     @property
     def has_complex_parameters(self):
         return self._has_complex_parameters
-
-    @has_complex_parameters.setter
-    def has_complex_parameters(self, is_real):
-        self._has_complex_parameters = is_real
-        self._init_solver()

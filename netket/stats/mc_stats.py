@@ -1,3 +1,5 @@
+import math
+
 from numba import jit
 import numpy as _np
 from . import mean as _mean
@@ -6,7 +8,11 @@ from . import total_size as _total_size
 
 
 def _format_decimal(value, std):
-    decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+    if not math.isnan(std):
+        decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+    else:
+        decimals = 8
+
     return (
         "{0:.{1}f}".format(value, decimals),
         "{0:.{1}f}".format(std, decimals + 1),
