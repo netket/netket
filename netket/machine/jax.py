@@ -83,10 +83,10 @@ class Jax(AbstractMachine):
                 r_flat, tree_fun = tree_flatten(out_r)
                 i_flat, _ = tree_flatten(out_i)
 
-                out_flat = [re + 1j * im for re, im in zip(r_flat, i_flat)]
-
                 if conjugate:
-                    out_flat = [x.conjugate() for x in out_flat]
+                    out_flat = [re - 1j * im for re, im in zip(r_flat, i_flat)]
+                else:
+                    out_flat = [re + 1j * im for re, im in zip(r_flat, i_flat)]
 
                 return tree_unflatten(tree_fun, out_flat)
 
