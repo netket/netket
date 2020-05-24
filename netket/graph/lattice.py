@@ -5,16 +5,83 @@ import numpy as _np
 import itertools
 import networkx as _nx
 
+def get_edges(atoms_positions, cutoff):
+    kdtree = cKDTree(atoms_positions)
+    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
+    id1, id2, values = find(triu(dist_matrix))
+    pairs = []
+    min_dists = {} # keys are nodes, values are min dists
+    for node in _np.unique(_np.concatenate((id1, id2))):
+        min_dist = _np.min(values[(id1 == node) | (id2 == node)])
+        min_dists[node] = min_dist
+    for node in _np.unique(id1):
+        min_dist = _np.min(values[id1 == node])
+        mask = (id1 == node) & (values == min_dist)
+        first = id1[mask]
+        second = id2[mask]
+        for pair in zip(first, second):
+            if min_dist == min_dists[pair[0]] and min_dist == min_dists[pair[1]]:
+                pairs.append(pair)
+    return pairs
+
+def create_points(basis_vectors, extent, atom_coords, pbc):
+    shell_vec = _np.zeros(extent.size, dtype=int)
+    shift_vec = _np.zeros(extent.size, dtype=int)
+    # note: by modifying these, the number of shells can be tuned.
+    shell_vec[pbc] = 2
+    shift_vec[pbc] = 1
+    ranges = tuple([list(range(ex)) for ex in extent + shell_vec])
+    atoms = []
+    cellANDlabel_to_site = {}
+    for s_cell in itertools.product(*ranges):
+        s_coord_cell = _np.asarray(s_cell) - shift_vec
+        if _np.any(s_coord_cell < 0) or _np.any(s_coord_cell > (extent - 1)):
+            inside = False
+        else:
+            inside = True
+        atom_count = len(atoms)
+        for i, atom_coord in enumerate(atom_coords):
+            s_coord_atom = s_coord_cell + atom_coord
+            r_coord_atom = _np.matmul(basis_vectors.T, s_coord_atom)
+            atoms.append({"Label": i, "cell": s_coord_cell, "r_coord": r_coord_atom, "inside": inside})
+            if tuple(s_coord_cell) not in cellANDlabel_to_site.keys():
+                cellANDlabel_to_site[tuple(s_coord_cell)] = {}
+            cellANDlabel_to_site[tuple(s_coord_cell)][i] = atom_count + i
+    return atoms, cellANDlabel_to_site
+            
+def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
+    atoms_positions = dicts_to_array(atoms, 'r_coord')
+    naive_edges = get_edges(atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max())
+    true_edges = []
+    for node1, node2 in naive_edges:
+        atom1 = atoms[node1]
+        atom2 = atoms[node2]
+        if atom1["inside"] and atom2["inside"]:
+            true_edges.append((node1, node2))
+        elif atom1["inside"] or atom2["inside"]:
+            cell1 = atom1["cell"] % extent
+            cell2 = atom2["cell"] % extent
+            node1 = cellANDlabel_to_site[tuple(cell1)][atom1["Label"]]
+            node2 = cellANDlabel_to_site[tuple(cell2)][atom2["Label"]]
+            edge = (node1, node2)
+            if edge not in true_edges and (node2, node1) not in true_edges:
+                true_edges.append(edge)
+    return true_edges
+
+def dicts_to_array(dicts, key):
+    result = []
+    for d in dicts:
+        result.append(d[key])
+    return _np.asarray(result)
 
 class Lattice(NetworkX):
-    """ An orthorhombic lattice built translating a unit cell and adding edges between nearest neighbours sites.
+    """ A lattice built translating a unit cell and adding edges between nearest neighbours sites.
         The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
         Each atom is located at an arbitrary position and is labelled by an integer number,
         meant to distinguish between the different atoms within the unit cell.
         Periodic boundary conditions can also be imposed along the desired directions.
         There are three different ways to refer to the lattice sites. A site can be labelled
         by a simple integer number (the site index) or by its coordinates (actual position in space)."""
-
     def __init__(self, basis_vectors, extent, pbc=True, atoms_coord=[]):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
@@ -36,22 +103,17 @@ class Lattice(NetworkX):
             12
 
         """
+
         self._basis_vectors = _np.asarray(basis_vectors)
         if self._basis_vectors.ndim != 2:
             raise ValueError("Every vector must have the same dimension.")
         if self._basis_vectors.shape[0] != self._basis_vectors.shape[1]:
             raise ValueError(
-                "basis_vectors must be an orthogonal basis for the N-dimensional vector space you chose"
+                "basis_vectors must be a basis for the N-dimensional vector space you chose"
             )
-        # Check orthogonality (because only orthorhombic cells are allowed atm)
-        if self._basis_vectors.shape[0] > 1:
-            product = _np.dot(self._basis_vectors, self._basis_vectors.T)
-            _np.fill_diagonal(product, 0)
-            if product.any():
-                raise ValueError("basis_vectors must be an orthogonal basis for the N-dimensional vector space you chose")
 
         if not atoms_coord:
-            atoms_coord = [_np.zeros(self._basis_vectors.shape[0]).tolist()]
+            atoms_coord = [_np.zeros(self._basis_vectors.shape[0])]
         atoms_coord = _np.asarray(atoms_coord)
         if atoms_coord.min() < 0 or atoms_coord.max() >= 1:
             # Maybe there is another way to state this. I want to avoid that there exists the possibility that two atoms from different cells are at the same position:
@@ -61,7 +123,7 @@ class Lattice(NetworkX):
         tuple_array = [tuple(row) for row in atoms_coord]
         uniques = _np.unique(tuple_array)
         if len(atoms_coord) != uniques.shape[0]:
-            atoms_coord = uniques
+            atoms_coord = _np.asarray(uniques)
             print(
                 "Warning: Some atom positions are not unique. Duplicates were dropped, and now atom positions are {0}".format(
                     atoms_coord
@@ -82,65 +144,43 @@ class Lattice(NetworkX):
         else:
             self._pbc = pbc
 
-        ranges = tuple([list(range(ex)) for ex in extent])
-        n_atoms = len(atoms_coord)
+        extent = _np.asarray(extent)
 
-        self._coord_to_site = []
-        self._site_to_coord = {}
-        self._atom_label = []
-
-        for r in itertools.product(*ranges):
-            cell_coord = _np.matmul(basis_vectors, r)
-
-            for atom in atoms_coord:
-                coord = _np.asarray(atom, dtype=_np.float32) + cell_coord
-                self._site_to_coord[len(self._coord_to_site)] = tuple(coord)
-                self._coord_to_site.append(tuple(coord))
-
-            self._atom_label += range(n_atoms)
-
-        self._extent = extent
-        edges = self.get_edges()
+        atoms, cellANDlabel_to_site = create_points(self._basis_vectors, extent, atoms_coord, pbc)
+        edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
         graph = _nx.MultiGraph(edges)
+        
+        # Rename atoms 
+        old_nodes = sorted(set([node for edge in edges for node in edge]))
+        self._atoms = [atoms[old_node] for old_node in old_nodes]
+        self._coord_to_site = {tuple(atom["r_coord"]): new_site for new_site, atom in enumerate(self._atoms)}
+        new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
+        graph = _nx.relabel_nodes(graph, new_nodes)
+
+        # Order node names
+        nodes = sorted(graph.nodes())
+        edges = list(graph.edges())
+        graph = _nx.MultiGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from(edges)
+
         super().__init__(graph)
 
     @property
     def basis_vectors(self):
         return self._basis_vectors
 
-    def get_edges(self):
-        atoms_position = _np.asarray(self._coord_to_site)
-        boxsize = _np.matmul(self._basis_vectors, self._extent)
-        for i, pbci in enumerate(self._pbc):
-            if not pbci:
-                boxsize[i] = False
-        kdtree = cKDTree(atoms_position, boxsize=boxsize)
-        dist_matrix = kdtree.sparse_distance_matrix(kdtree, self._basis_vectors.max())
-        id1, id2, values = find(
-            triu(dist_matrix)
-        )  # find non-zero entries of dist_matrix
-        pairs = []
-        for node in _np.unique(id1):
-            min_dist = _np.min(values[id1 == node])
-            first = id1[(id1 == node) & (values == min_dist)]
-            second = id2[(id1 == node) & (values == min_dist)]
-            pairs += list(zip(first, second))
-        return pairs
-
     def atom_label(self, site):
-        return self._atom_label[site]
+        return self._atoms[site]["Label"]
 
     def site_to_coord(self, site):
-        return self._site_to_coord[site]
+        return self._atoms[site]["r_coord"]
 
     def coord_to_site(self, coord):
-        return self._coord_to_site.index(tuple(coord))
+        return self._coord_to_site[tuple(coord)]
 
     def site_to_vector(self, site):
-        coord = self.site_to_coord(site)
-        cell_size = _np.matmul(self._basis_vectors, _np.ones(self._basis_vectors.shape[1]))
-        vector = [axis_coord//axis_L for (axis_coord, axis_L) in zip(coord, cell_size)]
-        return vector
+        return self._atoms[site]["cell"]
 
     def vector_to_coord(self, vector):
         return _np.matmul(self._basis_vectors, vector)
