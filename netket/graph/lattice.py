@@ -5,12 +5,13 @@ import numpy as _np
 import itertools
 import networkx as _nx
 
+
 def get_edges(atoms_positions, cutoff):
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
     pairs = []
-    min_dists = {} # keys are nodes, values are min dists
+    min_dists = {}  # keys are nodes, values are min dists
     for node in _np.unique(_np.concatenate((id1, id2))):
         min_dist = _np.min(values[(id1 == node) | (id2 == node)])
         min_dists[node] = min_dist
@@ -23,6 +24,7 @@ def get_edges(atoms_positions, cutoff):
             if min_dist == min_dists[pair[0]] and min_dist == min_dists[pair[1]]:
                 pairs.append(pair)
     return pairs
+
 
 def create_points(basis_vectors, extent, atom_coords, pbc):
     shell_vec = _np.zeros(extent.size, dtype=int)
@@ -43,15 +45,25 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
         for i, atom_coord in enumerate(atom_coords):
             s_coord_atom = s_coord_cell + atom_coord
             r_coord_atom = _np.matmul(basis_vectors.T, s_coord_atom)
-            atoms.append({"Label": i, "cell": s_coord_cell, "r_coord": r_coord_atom, "inside": inside})
+            atoms.append(
+                {
+                    "Label": i,
+                    "cell": s_coord_cell,
+                    "r_coord": r_coord_atom,
+                    "inside": inside,
+                }
+            )
             if tuple(s_coord_cell) not in cellANDlabel_to_site.keys():
                 cellANDlabel_to_site[tuple(s_coord_cell)] = {}
             cellANDlabel_to_site[tuple(s_coord_cell)][i] = atom_count + i
     return atoms, cellANDlabel_to_site
-            
+
+
 def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
-    atoms_positions = dicts_to_array(atoms, 'r_coord')
-    naive_edges = get_edges(atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max())
+    atoms_positions = dicts_to_array(atoms, "r_coord")
+    naive_edges = get_edges(
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
+    )
     true_edges = []
     for node1, node2 in naive_edges:
         atom1 = atoms[node1]
@@ -68,11 +80,13 @@ def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
                 true_edges.append(edge)
     return true_edges
 
+
 def dicts_to_array(dicts, key):
     result = []
     for d in dicts:
         result.append(d[key])
     return _np.asarray(result)
+
 
 class Lattice(NetworkX):
     """ A lattice built translating a unit cell and adding edges between nearest neighbours sites.
@@ -82,6 +96,7 @@ class Lattice(NetworkX):
         Periodic boundary conditions can also be imposed along the desired directions.
         There are three different ways to refer to the lattice sites. A site can be labelled
         by a simple integer number (the site index) or by its coordinates (actual position in space)."""
+
     def __init__(self, basis_vectors, extent, pbc=True, atoms_coord=[]):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
@@ -146,14 +161,19 @@ class Lattice(NetworkX):
 
         extent = _np.asarray(extent)
 
-        atoms, cellANDlabel_to_site = create_points(self._basis_vectors, extent, atoms_coord, pbc)
+        atoms, cellANDlabel_to_site = create_points(
+            self._basis_vectors, extent, atoms_coord, pbc
+        )
         edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
         graph = _nx.MultiGraph(edges)
-        
-        # Rename atoms 
+
+        # Rename atoms
         old_nodes = sorted(set([node for edge in edges for node in edge]))
         self._atoms = [atoms[old_node] for old_node in old_nodes]
-        self._coord_to_site = {tuple(atom["r_coord"]): new_site for new_site, atom in enumerate(self._atoms)}
+        self._coord_to_site = {
+            tuple(atom["r_coord"]): new_site
+            for new_site, atom in enumerate(self._atoms)
+        }
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
 
