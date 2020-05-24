@@ -5,7 +5,6 @@ MPI_comm = MPI.COMM_WORLD
 n_nodes = MPI_comm.Get_size()
 node_number = MPI_comm.Get_rank()
 
-
 try:
     import os
 
@@ -14,6 +13,14 @@ try:
     import jax
 
     jax_available = True
+
+    def jit_if_singleproc(f, *args, **kwargs):
+        if n_nodes == 1:
+            return jax.jit(f, *args, **kwargs)
+        else:
+            return f
+
+
 except ImportError:
     jax_available = False
 

@@ -50,10 +50,8 @@ class Jax(AbstractMachine):
 
         forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
 
-        # if R->R or C-> C
-        if (self._dtype is float and self._outdtype is float) or (
-            self._dtype is complex and self._outdtype is complex
-        ):
+        # C-> C
+        if self._dtype is complex and self._outdtype is complex:
 
             grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
             self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
@@ -70,6 +68,31 @@ class Jax(AbstractMachine):
 
             self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
 
+        # R->R
+        elif self._dtype is float and self._outdtype is float:
+
+            grad_fun = jax.jit(jax.grad(forward_scalar))
+            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+
+            def _vjp_fun(pars, v, vec, conjugate, forward_fun):
+                vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
+
+                out_r = f_jvp(vec.reshape(vals.shape).real)[0]
+                out_i = f_jvp(-vec.reshape(vals.shape).imag)[0]
+
+                r_flat, tree_fun = tree_flatten(out_r)
+                i_flat, _ = tree_flatten(out_i)
+
+                if conjugate:
+                    out_flat = [re - 1j * im for re, im in zip(r_flat, i_flat)]
+                else:
+                    out_flat = [re + 1j * im for re, im in zip(r_flat, i_flat)]
+
+                return tree_unflatten(tree_fun, out_flat)
+
+            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+
+        # R->C
         elif self._dtype is float and self._outdtype is complex:
 
             def _gradfun(pars, v):
