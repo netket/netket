@@ -64,7 +64,7 @@ if test_jax:
         dtype=complex,
     )
 
-    machines["Jax mps"] = nk.machine.JaxMpsPeriodic(hi, bond_dim=4, dtype=complex)
+    machines["Jax mps"] = nk.machine.MPSPeriodic(hi, bond_dim=4, dtype=complex)
 
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
 

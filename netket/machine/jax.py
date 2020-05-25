@@ -348,7 +348,7 @@ def JaxRbm(hilbert, alpha, dtype=complex):
 
 
 def MPSPeriodic(
-    hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex, outdtype=complex
+    hilbert, bond_dim, diag=False, symperiod=None, dtype=complex
 ):
     r"""
     Constructs a periodic Matrix Product State (MPS) for a quantum state of discrete
@@ -365,11 +365,11 @@ def MPSPeriodic(
             bond_dim (int): Virtual dimension of the MPS tensors.
             diag (bool): Whether or not to use diagonal matrices in the MPS tensors.
                 default=False
-            symperiod (int): Periodicity in the chain of MPS tensors. For positive
-                values, the chain of MPS tensors is constructed as a sequence of
-                identical unit cells consisting of symperiod tensors. For negative
-                values, the period is equal to the number of local physical variables.
-                default=-1
+            symperiod (int): Periodicity in the chain of MPS tensors. The chain of
+                MPS tensors is constructed as a sequence of identical unit cells
+                consisting of symperiod tensors. if None, symperiod equals the
+                number of physical degrees of freedom.
+                default=None
             dtype: complex or float, whether the variational parameters of the MPS
                 are real or complex. default=complex
             outdtype: complex or float, whether the scalar output of the MPS is
@@ -381,12 +381,11 @@ def MPSPeriodic(
     return Jax(
         hilbert,
         stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)),
-        dtype=dtype,
-        outdtype=outdtype,
+        dtype=dtype
     )
 
 
-def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex):
+def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
     # default standard deviation equals 1e-2
     normal_init = jax.nn.initializers.normal()
 
@@ -422,9 +421,9 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=-1, dtype=complex)
         )
 
     # determine shape of unit cell
-    if symperiod < 0:
+    if symperiod == None:
         symperiod = L
-    if L % symperiod == 0:
+    if L % symperiod == 0 and symperiod > 0:
         if diag:
             unit_cell_shape = (symperiod, phys_dim, bond_dim)
         else:

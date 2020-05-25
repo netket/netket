@@ -13,7 +13,7 @@ hi = nk.hilbert.Spin(graph=g, s=0.5)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
-ma = nk.machine.JaxMpsPeriodic(hi, bond_dim=4, diag=False, symperiod=-1, dtype=complex)
+ma = nk.machine.MPSPeriodic(hi, bond_dim=4, diag=False, symperiod=None, dtype=complex)
 ma.jax_init_parameters(seed=1232)
 
 # Jax Sampler
