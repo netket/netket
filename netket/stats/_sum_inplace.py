@@ -16,6 +16,10 @@ def sum_inplace(x):
     raise TypeError("Unknown type to perform dispatch upon: {}".format(type(x)))
 
 
+from netket.stats.mpi_stats import _MPI_comm, _n_nodes
+from netket.stats.mpi_stats import MPI as _MPI
+import numpy as _np
+
 #######
 # Scalar
 @sum_inplace.register(complex)
@@ -33,11 +37,6 @@ def sum_inplace_scalar(a):
 ##############
 # Numpy Array
 #
-from netket.stats.mpi_stats import _MPI_comm, _n_nodes
-from netket.stats.mpi_stats import MPI as _MPI
-import numpy as _np
-
-
 @sum_inplace.register(_np.ndarray)
 def sum_inplace_MPI(a):
     """
