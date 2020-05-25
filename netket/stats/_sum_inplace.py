@@ -1,4 +1,11 @@
 from functools import singledispatch
+import numpy as _np
+
+from netket.utils import mpi_available as _mpi_available, n_nodes as _n_nodes
+
+if _mpi_available:
+    from netket.utils import MPI_comm as _MPI_comm
+    from netket.utils import MPI as _MPI
 
 
 @singledispatch
@@ -16,10 +23,6 @@ def sum_inplace(x):
     raise TypeError("Unknown type to perform dispatch upon: {}".format(type(x)))
 
 
-from netket.stats.mpi_stats import _MPI_comm, _n_nodes
-from netket.stats.mpi_stats import MPI as _MPI
-import numpy as _np
-
 #######
 # Scalar
 @sum_inplace.register(complex)
@@ -30,7 +33,10 @@ import numpy as _np
 @sum_inplace.register(float)
 def sum_inplace_scalar(a):
     ar = _np.asarray(a)
-    _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
+
+    if _n_nodes > 1:
+        _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
+
     return ar
 
 
@@ -45,7 +51,9 @@ def sum_inplace_MPI(a):
     Args:
         a (numpy.ndarray): The input array, which will be overwritten in place.
     """
-    _MPI_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
+    if _n_nodes > 1:
+        _MPI_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
+
     return a
 
 

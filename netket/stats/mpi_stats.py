@@ -1,6 +1,14 @@
 import numpy as _np
-from mpi4py import MPI
 from ._sum_inplace import sum_inplace as _sum_inplace
+
+from netket.utils import (
+    mpi_available as _mpi_available,
+    n_nodes as _n_nodes,
+    MPI_comm as MPI_comm,
+)
+
+if _mpi_available:
+    from netket.utils import MPI
 
 
 def subtract_mean(x, axis=None):
@@ -16,10 +24,6 @@ def subtract_mean(x, axis=None):
     x -= x_mean
 
     return x
-
-
-_MPI_comm = MPI.COMM_WORLD
-_n_nodes = _MPI_comm.Get_size()
 
 
 def mean(a, axis=None):
@@ -45,7 +49,9 @@ def sum(a, axis=None, out=None):
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
     out = _np.asarray(_np.sum(a, axis=axis, out=out))
 
-    _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+    if _n_nodes > 1:
+        MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+
     return out
 
 
@@ -74,5 +80,7 @@ def total_size(a, axis=None):
     else:
         l_size = a.shape[axis]
 
-    l_size = _MPI_comm.allreduce(l_size, op=MPI.SUM)
+    if _n_nodes > 1:
+        l_size = MPI_comm.allreduce(l_size, op=MPI.SUM)
+
     return l_size
