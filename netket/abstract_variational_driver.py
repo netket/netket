@@ -217,6 +217,7 @@ class AbstractVariationalDriver(abc.ABC):
                 logger = out
         else:
             logger = None
+            show_progress = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
