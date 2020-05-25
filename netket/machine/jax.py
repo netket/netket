@@ -376,7 +376,7 @@ def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
     """
     return Jax(
         hilbert,
-        stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)),
+        MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype),
         dtype=dtype,
     )
 
@@ -441,9 +441,10 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
         iden_tensors = iden_tensors.reshape(symperiod, phys_dim, bond_dim, bond_dim)
 
     def init_fun(rng, input_shape):
-        random_tensors_real = normal_init(rng, unit_cell_shape)
+        rng_re, rng_im = jax.random.split(rng)
+        random_tensors_real = normal_init(rng_re, unit_cell_shape)
         if dtype == complex:
-            random_tensors_imag = normal_init(rng, unit_cell_shape)
+            random_tensors_imag = normal_init(rng_im, unit_cell_shape)
             random_tensors = random_tensors_real + 1j * random_tensors_imag
         else:
             random_tensors = random_tensors_real
@@ -452,7 +453,6 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
 
         return (-1, 1), (tensors)
 
-    @jax.jit
     def apply_fun(params, x, **kwargs):
         # expand diagonal to square matrices if diagonal mps
         if diag:
