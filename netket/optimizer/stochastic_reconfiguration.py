@@ -6,7 +6,10 @@ from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
 from netket.stats import sum_inplace as _sum_inplace, mean as _mean
 from scipy.sparse.linalg import cg, gmres, minres
-from mpi4py import MPI
+from netket.utils import (
+    MPI_comm as _MPI_comm,
+    n_nodes as _n_nodes,
+)
 
 
 class SR:
@@ -45,7 +48,7 @@ class SR:
         self._x0 = None
         self._init_solver()
 
-        self._comm = MPI.COMM_WORLD
+        self._comm = _MPI_comm
 
         if machine is not None:
             self.setup(machine)
@@ -213,8 +216,11 @@ class SR:
                 self._revert_preconditioning(out.real)
 
             out.imag.fill(0.0)
-        self._comm.bcast(out, root=0)
-        self._comm.barrier()
+
+        if _n_nodes > 1:
+            self._comm.bcast(out, root=0)
+            self._comm.barrier()
+
         return out
 
     def _apply_preconditioning(self, grad):

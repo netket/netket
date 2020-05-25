@@ -1,6 +1,10 @@
 import numpy as _np
 from numba import jit, objmode
-from mpi4py import MPI
+from netket.utils import (
+    n_nodes as _n_nodes,
+    node_number as _rank,
+    MPI_comm as _MPI_comm,
+)
 
 
 @jit
@@ -13,9 +17,8 @@ def seed(seed=None):
 
     """
     with objmode(derived_seed="int64"):
-        comm = MPI.COMM_WORLD
-        size = comm.Get_size()
-        rank = comm.Get_rank()
+        size = _n_nodes
+        rank = _rank
 
         if rank == 0:
             _np.random.seed(seed)
@@ -23,7 +26,8 @@ def seed(seed=None):
         else:
             derived_seed = None
 
-        derived_seed = comm.scatter(derived_seed, root=0)
+        if _n_nodes > 1:
+            derived_seed = _MPI_comm.scatter(derived_seed, root=0)
 
     _np.random.seed(derived_seed)
 
