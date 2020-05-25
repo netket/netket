@@ -136,7 +136,7 @@ class PyExactTimePropagation:
         self._rhs = _make_rhs(self._h, propagation_type)
 
         self._mynode = _rank
-        self._mpi_nodes = n_nodes
+        self._mpi_nodes = _n_nodes
 
         self.state = initial_state
         self._dt = dt
