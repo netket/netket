@@ -1,7 +1,5 @@
 import abc
 
-from mpi4py import MPI
-
 from netket._core import deprecated, warn_deprecation
 import netket as _nk
 import numpy as _np
@@ -9,6 +7,8 @@ import numpy as _np
 from netket.logging import JsonLog as _JsonLog
 
 from netket.vmc_common import tree_map
+
+from netket.utils import node_number as _rank, n_nodes as _n_nodes
 
 from tqdm import tqdm
 
@@ -33,8 +33,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, machine, optimizer, minimized_quantity_name=""):
-        self._mynode = MPI.COMM_WORLD.rank
-        self._mpi_nodes = MPI.COMM_WORLD.Get_size()
+        self._mynode = _rank
+        self._mpi_nodes = _n_nodes
         self._obs = {}  # to deprecate
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
@@ -217,6 +217,7 @@ class AbstractVariationalDriver(abc.ABC):
                 logger = out
         else:
             logger = None
+            show_progress = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress

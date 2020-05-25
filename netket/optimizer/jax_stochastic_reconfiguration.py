@@ -1,7 +1,6 @@
 from functools import partial
 from netket.stats import sum_inplace as _sum_inplace
 from netket.utils import n_nodes
-from mpi4py import MPI
 
 import jax
 import jax.numpy as jnp
@@ -10,7 +9,7 @@ from jax import jit
 from jax.scipy.sparse.linalg import cg
 from jax.tree_util import tree_flatten
 from netket.vmc_common import jax_shape_for_update
-from netket.utils import jit_if_singleproc
+from netket.utils import jit_if_singleproc, n_nodes
 
 
 @jit
@@ -104,6 +103,11 @@ class JaxSR:
         sparse_maxiter=None,
         machine=None,
     ):
+
+        if n_nodes > 1:
+            raise RuntimeError(
+                "Cannot use Jax-Stochastic Reconfiguration with multiple MPI processes"
+            )
 
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
