@@ -7,4 +7,7 @@ from .metropolis_hamiltonian import MetropolisHamiltonian, MetropolisHamiltonian
 from .custom_sampler import CustomSampler, CustomSamplerPt
 from .exact_sampler import ExactSampler
 
-from . import jax
+from ..utils import jax_available
+
+if jax_available:
+    from . import jax
