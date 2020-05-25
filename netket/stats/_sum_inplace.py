@@ -1,64 +1,44 @@
-# Note: Think of this as a function to be called as sum_inplace(x)
-# The fact that it's a metaclass is just an implementation detail to
-# allow extensible dispatching
-class sum_inplace:
+from functools import singledispatch
+
+
+@singledispatch
+def sum_inplace(x):
     """
-    Performs a distributed-sum reduction across several processes. This is
-    a wrapper dispatching to a specific method depending on the type of the
-    input.
-
-    It is semantically equivalent to MPI.Allreduce(MPI_IN_PLACE, x, MPI_SUM).
-
-    Methods for specific types can be defined with the @define_sum_inplace(atype=type)
-    decorator.
+    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Attempts to perform this sum inplace if possible, but for some types a copy 
+    might be returned.
 
     Args:
-        x : A N-dimensional array from numpy, jax's DeviceArray or other packages.
-
+        a: The input array, which will usually be overwritten in place.
     Returns:
-        x: The array itself
+        out: The reduced array.
     """
-
-    # Dictionary holding the Type <-> method dispatch table
-    funcs = {}
-
-    def __new__(mcls, arr):
-        t = type(arr)
-        return mcls.funcs[t](arr)
-
-
-def define_sum_inplace(atypes):
-    """
-    Defines a method implementing sum_inplace for a specific array type
-    atype.
-
-    To be used as a decorator.
-
-    Args:
-        atype: type, or list of types, to use for dispatch
-    Returns:
-        Decorator
-    """
-    if isinstance(atypes, type):
-        atypes = (atypes,)
-
-    def _define_sum_inplace(func):
-        for atype in atypes:
-            sum_inplace.funcs[atype] = func
-
-        return func
-
-    return _define_sum_inplace
+    raise TypeError("Unknown type to perform dispatch upon: {}".format(type(x)))
 
 
 #######
-# MPI
+# Scalar
+@sum_inplace.register(complex)
+@sum_inplace.register(_np.float64)
+@sum_inplace.register(_np.float32)
+@sum_inplace.register(_np.complex64)
+@sum_inplace.register(_np.complex128)
+@sum_inplace.register(float)
+def sum_inplace_scalar(a):
+    ar = _np.asarray(a)
+    _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
+    return ar
+
+
+##############
+# Numpy Array
+#
 from netket.stats.mpi_stats import _MPI_comm, _n_nodes
 from netket.stats.mpi_stats import MPI as _MPI
 import numpy as _np
 
 
-@define_sum_inplace(_np.ndarray)
+@sum_inplace.register(_np.ndarray)
 def sum_inplace_MPI(a):
     """
     Computes the elementwise sum of a numpy array over all MPI processes.
@@ -70,26 +50,16 @@ def sum_inplace_MPI(a):
     return a
 
 
-#######
-# Scalar
-@define_sum_inplace(
-    atypes=(float, complex, _np.float64, _np.float32, _np.complex64, _np.complex128)
-)
-def sum_inplace_scalar(a):
-    ar = _np.asarray(a)
-    _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
-    return ar
-
-
-#######
+##############
 # Jax
+#
 from netket.utils import jax_available
 
 if jax_available:
     import numpy as _np
     import jax
 
-    @define_sum_inplace(jax.interpreters.xla.DeviceArray)
+    @sum_inplace.register(jax.interpreters.xla.DeviceArray)
     def sum_inplace_jax(x):
         # if not isinstance(x, jax.interpreters.xla.DeviceArray):
         #    raise TypeError("Argument to sum_inplace_jax must be a DeviceArray, got {}"
@@ -120,16 +90,12 @@ if jax_available:
 
         return x
 
-    @define_sum_inplace(
-        atypes=(
-            jax.interpreters.partial_eval.JaxprTracer,
-            jax.interpreters.ad.JVPTracer,
-        )
-    )
+    @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
+    @sum_inplace.register(jax.interpreters.ad.JVPTracer)
     def sum_inplace_jax_jittracer(x):
         if _n_nodes == 1:
             return x
         else:
             raise RuntimError(
-                "Cannot jit sum_inplace when running with multiple MPI processes."
+                "Cannot jit through sum_inplace when running with multiple MPI processes."
             )
