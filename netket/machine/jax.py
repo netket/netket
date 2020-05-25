@@ -370,8 +370,6 @@ def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
                 default=None
             dtype: complex or float, whether the variational parameters of the MPS
                 are real or complex. default=complex
-            outdtype: complex or float, whether the scalar output of the MPS is
-                real or complec. default=complex
 
         returns:
             Jax machine of the Matrix Product state.
