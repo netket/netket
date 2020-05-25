@@ -139,10 +139,10 @@ class AbstractVariationalDriver(abc.ABC):
         for _ in range(0, n_steps, step):
             for i in range(0, step):
                 dp = self._forward_and_backward()
-                self._step_count += 1
                 if i == 0:
                     yield self.step_count
 
+                self._step_count += 1
                 self.update_parameters(dp)
 
     def advance(self, steps=1):
@@ -243,24 +243,28 @@ class AbstractVariationalDriver(abc.ABC):
         with tqdm(total=n_iter, disable=not show_progress) as pbar:
             old_step_value = self.step_value
             for step in self.iter(n_iter, step_size):
+                log_data = self.estimate(obs)
+
                 # if the cost-function is defined then report it in the progress bar
+                # and to the loggers
                 if self._loss_stats is not None:
                     pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
-
-                obs_data = self.estimate(obs)
-
-                if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats
+                    log_data[self._loss_name] = self._loss_stats
 
                 if len(loggers) > 0:
-                    self._log_additional_data(obs_data, step)
+                    # this function can be overriden by drivers to append anything
+                    # they want to the logged data
+                    self._log_additional_data(log_data, step)
 
                     for logger in loggers:
-                        logger(step, obs_data, self.machine)
+                        logger(step, log_data, self.machine)
 
+                # Update the progress bar
                 pbar.update(self.step_value - old_step_value)
                 old_step_value = self.step_value
 
+            #  Final update so that it shows up filled.
+            pbar.update(self.step_value - old_step_value)
         # flush at the end of the evolution so that final values are saved to
         # file
         for logger in loggers:
