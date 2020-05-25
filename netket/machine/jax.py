@@ -347,9 +347,7 @@ def JaxRbm(hilbert, alpha, dtype=complex):
     )
 
 
-def MPSPeriodic(
-    hilbert, bond_dim, diag=False, symperiod=None, dtype=complex
-):
+def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
     r"""
     Constructs a periodic Matrix Product State (MPS) for a quantum state of discrete
     degrees of freedom, wrapped as Jax machine.  The MPS is defined as
@@ -381,7 +379,7 @@ def MPSPeriodic(
     return Jax(
         hilbert,
         stax.serial(MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype)),
-        dtype=dtype
+        dtype=dtype,
     )
 
 
