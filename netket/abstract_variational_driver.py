@@ -212,11 +212,15 @@ class AbstractVariationalDriver(abc.ABC):
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
-                logger = _JsonLog(out, "w", save_params_every, write_every)
+                loggers = (_JsonLog(out, "w", save_params_every, write_every),)
+            elif isinstance(out, tuple) or isinstance(out, list):
+                loggers = out
+            elif out is not None:
+                loggers = (out,)
             else:
-                logger = out
+                loggers = tuple()
         else:
-            logger = None
+            loggers = None
             show_progress = False
 
         with tqdm(
@@ -232,13 +236,15 @@ class AbstractVariationalDriver(abc.ABC):
                 if self._loss_stats is not None:
                     obs_data[self._loss_name] = self._loss_stats
 
-                if logger is not None:
-                    logger(step, obs_data, self.machine)
+                if loggers is not None:
+                    for logger in loggers:
+                        logger(step, obs_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
-        if logger is not None:
-            logger.flush(self.machine)
+        if loggers is not None:
+            for logger in loggers:
+                logger(step, obs_data, self.machine)
 
     def estimate(self, observables):
         """
