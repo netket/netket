@@ -38,7 +38,7 @@ class AbstractVariationalDriver(abc.ABC):
         self._obs = {}  # to deprecate
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
-        self.step_count = 0
+        self._step_count = 0
 
         self._machine = machine
         self._optimizer = optimizer
@@ -89,7 +89,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete drivers should also call super().reset() to ensure that the step
         count is set to 0.
         """
-        self.step_count = 0
+        self._step_count = 0
         pass
 
     @abc.abstractmethod
@@ -105,6 +105,23 @@ class AbstractVariationalDriver(abc.ABC):
         Returns the machine that is optimized by this driver.
         """
         return self._machine
+
+    @property
+    def step_count(self):
+        """
+        Returns a monotonic integer labelling all the steps performed by this driver.
+        This can be used, for example, to identify the line in a log file.
+        """
+        return self._step_count
+
+    @property
+    def step_value(self):
+        """
+        Returns a monotonic value identifying the current step. This might be the 
+        step_count for a standard iterative optimizer, or the time for a time-evolution
+        integrator.
+        """
+        return self.step_count
 
     def iter(self, n_steps, step=1):
         """
@@ -122,6 +139,7 @@ class AbstractVariationalDriver(abc.ABC):
         for _ in range(0, n_steps, step):
             for i in range(0, step):
                 dp = self._forward_and_backward()
+                self._step_count += 1
                 if i == 0:
                     yield self.step_count
 
@@ -203,6 +221,7 @@ class AbstractVariationalDriver(abc.ABC):
             out = output_prefix
 
         if out is None:
+            out = tuple()
             print(
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
@@ -212,32 +231,39 @@ class AbstractVariationalDriver(abc.ABC):
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
-                logger = _JsonLog(out, "w", save_params_every, write_every)
+                loggers = (_JsonLog(out, "w", save_params_every, write_every),)
+            elif hasattr(out, "__iter__"):
+                loggers = out
             else:
-                logger = out
+                loggers = (out,)
         else:
-            logger = None
+            loggers = tuple()
             show_progress = False
 
-        with tqdm(
-            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
-        ) as itr:
-            for step in itr:
+        with tqdm(total=n_iter, disable=not show_progress) as pbar:
+            old_step_value = self.step_value
+            for step in self.iter(n_iter, step_size):
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
-                    itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
 
                 obs_data = self.estimate(obs)
 
                 if self._loss_stats is not None:
                     obs_data[self._loss_name] = self._loss_stats
 
-                if logger is not None:
-                    logger(step, obs_data, self.machine)
+                if len(loggers) > 0:
+                    self._log_additional_data(obs_data, step)
+
+                    for logger in loggers:
+                        logger(step, obs_data, self.machine)
+
+                pbar.update(self.step_value - old_step_value)
+                old_step_value = self.step_value
 
         # flush at the end of the evolution so that final values are saved to
         # file
-        if logger is not None:
+        for logger in loggers:
             logger.flush(self.machine)
 
     def estimate(self, observables):
@@ -262,7 +288,16 @@ class AbstractVariationalDriver(abc.ABC):
             :param dp: the gradient
         """
         self._machine.parameters = self._optimizer.update(dp, self._machine.parameters)
-        self.step_count += 1
+
+    def _log_additional_data(self, log_dict, step):
+        """
+        Adds additional data to the dictionary of logged data at every step.
+
+        Args:
+            :log_dict: the dictionary to be modified containing all the logged key-value pairs
+            :step: the step
+        """
+        pass
 
     @deprecated()
     def add_observable(self, obs, name):
