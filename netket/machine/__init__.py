@@ -6,7 +6,7 @@ from ..utils import jax_available, torch_available
 
 
 if jax_available:
-    from .jax import Jax, JaxRbm, JaxRbmSpinPhase
+    from .jax import Jax, JaxRbm, MPSPeriodic, JaxRbmSpinPhase
 
 
 if torch_available:
