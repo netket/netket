@@ -4,7 +4,7 @@ import netket.random
 
 
 class ExactSampler(AbstractSampler):
-    """
+    r"""
     This sampler generates i.i.d. samples from $$|\Psi(s)|^2$$.
     In order to perform exact sampling, $$|\Psi(s)|^2$$ is precomputed an all
     the possible values of the quantum numbers $$s$$. This sampler has thus an
@@ -14,7 +14,7 @@ class ExactSampler(AbstractSampler):
     """
 
     def __init__(self, machine, sample_size=16):
-        """
+        r"""
          Constructs a new ``ExactSampler`` given a machine.
 
          Args:
@@ -25,10 +25,9 @@ class ExactSampler(AbstractSampler):
 
              sample_size: The number of independent samples to be generated at each invocation of __next__.
         """
-
+        super().__init__(machine, sample_size)
         self.hilbert = machine.hilbert
         self._machine_pow = 2.0
-        super().__init__(machine, sample_size)
 
     def reset(self, init_random=False):
         self._prob = _np.absolute(self.machine.to_array()) ** self.machine_pow

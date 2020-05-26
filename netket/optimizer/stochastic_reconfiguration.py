@@ -4,9 +4,12 @@ from scipy.linalg import lstsq as _lstsq
 from scipy.linalg import cho_factor as _cho_factor
 from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
-from netket.stats import sum_inplace as _sum_inplace
+from netket.stats import sum_inplace as _sum_inplace, mean as _mean
 from scipy.sparse.linalg import cg, gmres, minres
-from mpi4py import MPI
+from netket.utils import (
+    MPI_comm as _MPI_comm,
+    n_nodes as _n_nodes,
+)
 
 
 class SR:
@@ -19,16 +22,16 @@ class SR:
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
-        is_holomorphic=None,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
+        machine=None,
     ):
 
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
-        self._is_holomorphic = is_holomorphic
+        self._has_complex_parameters = None
         self._svd_threshold = svd_threshold
         self._scale_invariant_pc = False
         self._S = None
@@ -45,7 +48,10 @@ class SR:
         self._x0 = None
         self._init_solver()
 
-        self._comm = MPI.COMM_WORLD
+        self._comm = _MPI_comm
+
+        if machine is not None:
+            self.setup(machine)
 
     def _init_solver(self):
         lsq_solver = self._lsq_solver
@@ -57,14 +63,14 @@ class SR:
 
         if self._use_iterative:
             if lsq_solver is None:
-                lsq_solver = "gmres" if self._is_holomorphic else "minres"
+                lsq_solver = "gmres" if self._has_complex_parameters else "minres"
 
             if lsq_solver == "gmres":
                 self._sparse_solver = partial(gmres, atol="legacy")
             elif lsq_solver == "cg":
                 self._sparse_solver = partial(cg, atol="legacy")
             elif lsq_solver == "minres":
-                if self._is_holomorphic:
+                if self._has_complex_parameters:
                     raise RuntimeError(
                         "minres can be used only for real-valued parameters."
                     )
@@ -90,6 +96,19 @@ class SR:
                 "The svd_threshold option is available only for non-sparse solvers."
             )
 
+    def setup(self, machine):
+        """
+        Sets up this Sr object to work with the selected machine.
+        This mainly sets internal flags `has_complex_parameters` and the
+        method used to flatten/unflatten the gradients.
+
+        Args:
+            machine: the machine
+
+        """
+        self._has_complex_parameters = machine.has_complex_parameters
+        self._init_solver()
+
     def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -101,15 +120,17 @@ class SR:
         gradient).
 
         Args:
-            oks: The matrix 𝕆 of centered log-derivatives,
-               𝕆_ij = O_i(v_j) - ⟨O_i⟩.
+            oks: The matrix of log-derivatives,
+           	O_i(v_j)
             grad: The vector of forces f.
             out: Output array for the update ẋ.
         """
 
-        if self.is_holomorphic is None:
+        oks -= _mean(oks, axis=0)
+
+        if self.has_complex_parameters is None:
             raise ValueError(
-                "is_holomorphic not set: this SR object is not properly initialized."
+                "has_complex_parameters not set: this SR object is not properly initialized."
             )
 
         n_samp = _sum_inplace(_np.atleast_1d(oks.shape[0]))
@@ -119,7 +140,7 @@ class SR:
         if out is None:
             out = _np.zeros(n_par, dtype=_np.complex128)
 
-        if self._is_holomorphic:
+        if self._has_complex_parameters:
             if self._use_iterative:
                 op = self._linear_operator(oks, n_samp)
 
@@ -195,8 +216,11 @@ class SR:
                 self._revert_preconditioning(out.real)
 
             out.imag.fill(0.0)
-        self._comm.bcast(out, root=0)
-        self._comm.barrier()
+
+        if _n_nodes > 1:
+            self._comm.bcast(out, root=0)
+            self._comm.barrier()
+
         return out
 
     def _apply_preconditioning(self, grad):
@@ -263,14 +287,14 @@ class SR:
             if self._svd_threshold is not None:
                 rep += ", threshold=" << self._svd_threshold
 
-        rep += ", is_holomorphic=" + str(self._is_holomorphic) + ")"
+        rep += ", has_complex_parameters=" + str(self._has_complex_parameters) + ")"
         return rep
 
     def info(self, depth=0):
         indent = " " * 4 * depth
         rep = indent
         rep += "Stochastic reconfiguration method for "
-        rep += "holomorphic" if self._is_holomorphic else "real-parameter"
+        rep += "holomorphic" if self._has_complex_parameters else "real-parameter"
         rep += " wavefunctions\n"
 
         rep += indent + "Solver: "
@@ -288,7 +312,7 @@ class SR:
         shift = self._diag_shift
         oks_conj = oks.conjugate()
 
-        if self._is_holomorphic:
+        if self._has_complex_parameters:
 
             def matvec(v):
                 v_tilde = self._v_tilde
@@ -314,10 +338,5 @@ class SR:
         return LinearOperator((n_par, n_par), matvec=matvec, rmatvec=matvec)
 
     @property
-    def is_holomorphic(self):
-        return self._is_holomorphic
-
-    @is_holomorphic.setter
-    def is_holomorphic(self, is_holo):
-        self._is_holomorphic = is_holo
-        self._init_solver()
+    def has_complex_parameters(self):
+        return self._has_complex_parameters

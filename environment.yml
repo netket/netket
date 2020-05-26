@@ -5,15 +5,11 @@ channels:
   - defaults
 
 dependencies:
-  - python=3.7
-  - clang
-  - cmake
-  - ninja
+  - python=3.8
   - pip
   - matplotlib
   - openmpi
   - mpi4py
-  - blas
   - mkl
   - numba
   - icc_rt

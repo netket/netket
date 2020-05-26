@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from pytest import approx
 import os
-from netket.hilbert import PySpin as Spin
+from netket.hilbert import Spin
 
 test_jax = True
 try:
@@ -22,6 +22,7 @@ def merge_dicts(x, y):
 
 
 machines = {}
+dm_machines = {}
 
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
@@ -63,6 +64,12 @@ if test_jax:
         dtype=complex,
     )
 
+    machines["Jax mps"] = nk.machine.MPSPeriodic(hi, bond_dim=4, dtype=complex)
+
+    machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
+
+    dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
+
 
 if test_torch:
     import torch
@@ -94,15 +101,9 @@ machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
     hilbert=hi, use_visible_bias=True, symmetry=True
 )
 
-dm_machines = {}
-# dm_machines["Phase NDM"] = nk.machine.NdmSpinPhase(
-#     hilbert=hi,
-#     alpha=2,
-#     beta=2,
-#     use_visible_bias=True,
-#     use_hidden_bias=True,
-#     use_ancilla_bias=True,
-# )
+dm_machines["Phase NDM"] = nk.machine.density_matrix.RbmSpin(
+    hilbert=hi, alpha=2, use_visible_bias=True, use_hidden_bias=True,
+)
 
 
 # machines["MPS Diagonal 1d spin"] = nk.machine.MPSPeriodicDiagonal(hi, bond_dim=3)
@@ -171,12 +172,6 @@ def central_diff_grad(func, x, eps, *args):
     return grad
 
 
-def check_holomorphic(func, x, eps, *args):
-    gr = central_diff_grad(func, x, eps, *args)
-    gi = central_diff_grad(func, x, eps * 1.0j, *args)
-    same_derivatives(gr, gi)
-
-
 def test_set_get_parameters():
     for name, machine in merge_dicts(machines, dm_machines).items():
         unflatten = machine.numpy_unflatten
@@ -188,10 +183,13 @@ def test_set_get_parameters():
         machine.init_random_parameters()
         randpars = flatten(machine.parameters)
 
-        if machine.is_holomorphic:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
+            assert not all(randpars.real == 0)
+            assert not all(randpars.imag == 0)
         else:
-            assert np.array_equal(flatten(machine.parameters.real), randpars.real)
+            assert np.array_equal(flatten(machine.parameters).real, randpars.real)
+            assert not all(randpars.real == 0)
 
         machine.parameters = unflatten(np.zeros(npar), machine.parameters)
         assert np.count_nonzero(np.abs(flatten(machine.parameters))) == 0
@@ -220,10 +218,10 @@ def test_save_load_parameters(tmpdir):
 
         os.remove(filename)
         os.rmdir(fn.dirname)
-        if machine.is_holomorphic:
+        if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
         else:
-            assert np.array_equal(flatten(machine.parameters.real), randpars.real)
+            assert np.array_equal(flatten(machine.parameters).real, randpars.real)
 
 
 def test_log_derivative():
@@ -239,12 +237,14 @@ def test_log_derivative():
         hi = machine.hilbert
         assert hi.size > 0
 
-        v = np.zeros(hi.size)
+        v = np.zeros(machine.input_size)
 
         flatten = machine.numpy_flatten
 
         for i in range(100):
             hi.random_vals(v)
+            if name in dm_machines:
+                hi.random_vals(v[hi.size : 2 * hi.size])
 
             machine.init_random_parameters(seed=i)
             randpars = flatten(machine.parameters)
@@ -262,8 +262,6 @@ def test_log_derivative():
             # print(np.linalg.norm(der_log - num_der_log))
             # Check if machine is correctly set to be holomorphic
             # The check is done only on smaller subset of parameters, for speed
-            if i % 10 == 0 and machine.is_holomorphic:
-                check_holomorphic(log_val_f, randpars, 1.0e-8, machine, v)
 
 
 def test_vector_jacobian():
@@ -274,10 +272,12 @@ def test_vector_jacobian():
 
         # random visibile state
         hi = machine.hilbert
+        if name in dm_machines:
+            hi = nk.hilbert.DoubledHilbert(hi)
         assert hi.size > 0
 
         batch_size = 100
-        v = np.zeros((batch_size, hi.size))
+        v = np.zeros((batch_size, machine.input_size))
 
         flatten = machine.numpy_flatten
 
@@ -301,61 +301,22 @@ def test_vector_jacobian():
         same_derivatives(vjp, num_der_log)
 
 
-def test_nvisible():
+def test_input_size():
     for name, machine in machines.items():
         print("Machine test: %s" % name)
         hi = machine.hilbert
 
-        assert machine.n_visible == hi.size
+        assert machine.input_size == hi.size
 
     for name, machine in dm_machines.items():
         print("Machine test: %s" % name)
-        hip = machine.hilbert_physical
         hi = machine.hilbert
 
-        assert machine.n_visible_physical * 2 == machine.n_visible
-        assert machine.n_visible_physical == hip.size
-        assert machine.n_visible == hi.size
-
-
-def test_dm_batched():
-    for name, machine in dm_machines.items():
-        print("Machine test: %s" % name)
-
-        npar = machine.n_par
-        randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
-        machine.parameters = randpars
-
-        hi = machine.hilbert
-
-        rg = nk.utils.RandomEngine(seed=1234)
-
-        N_batches = 100
-        states = np.zeros((N_batches, hi.size))
-
-        # loop over different random states
-        for i in range(100):
-
-            # generate a random state
-            rstate = np.zeros(hi.size)
-            hi.random_vals(rstate)
-            states[i, :] = rstate
-
-        log_val_batch = machine.log_val(states)
-        der_log_batch = machine.der_log(states)
-
-        for i in range(100):
-
-            val = machine.log_val(states[i, :])
-            der = machine.der_log(states[i, :])
-
-            assert np.max(np.abs(val - log_val_batch[i])) == approx(0.0)
-            same_derivatives(der, der_log_batch[i])
-            # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+        assert machine.input_size == 2 * hi.size
 
 
 def test_to_array():
-    for name, machine in machines.items():
+    for name, machine in merge_dicts(machines, dm_machines).items():
         print("Machine test: %s" % name)
 
         npar = machine.n_par
@@ -366,6 +327,8 @@ def test_to_array():
         machine.parameters = machine.numpy_unflatten(randpars, machine.parameters)
 
         hi = machine.hilbert
+        if name in dm_machines:
+            hi = nk.hilbert.DoubledHilbert(hi)
 
         all_psis = machine.to_array(normalize=False)
         # test shape
@@ -376,6 +339,10 @@ def test_to_array():
         logmax = log_vals.real.max()
 
         norm = (np.abs(np.exp(log_vals - logmax)) ** 2).sum()
+
+        # Tests broken for dm machines because of norm. should split
+        if name in dm_machines:
+            continue
 
         # test random values
         for i in range(100):
@@ -405,6 +372,3 @@ def test_to_array():
                 np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
                 - all_psis_normalized[number]
             ) == approx(0.0)
-
-
-test_log_derivative()

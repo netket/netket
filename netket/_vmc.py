@@ -61,7 +61,7 @@ class Vmc(AbstractVariationalDriver):
         self._sampler = sampler
         self._sr = sr
         if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.setup(sampler.machine)
 
         self._npar = self._machine.n_par
 
@@ -145,10 +145,8 @@ class Vmc(AbstractVariationalDriver):
             self._grads, self._jac = self._machine.vector_jacobian_prod(
                 samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
             )
-            _sum_inplace(self._grads)
 
-            # Center the log derivatives
-            self._jac -= _mean(self._jac, axis=0)
+            self._grads = tree_map(_sum_inplace, self._grads)
 
             self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
@@ -160,7 +158,12 @@ class Vmc(AbstractVariationalDriver):
 
             self._grads = tree_map(_sum_inplace, self._grads)
 
-            self._dp = self._grads
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if not self._machine.has_complex_parameters:
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
         return self._dp
 

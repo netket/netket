@@ -7,7 +7,7 @@ from numba import jit
 
 class Ising(AbstractOperator):
     def __init__(self, hilbert, h, J=1.0):
-        """
+        r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
         and (if specified) a coupling constant.
 
@@ -31,7 +31,7 @@ class Ising(AbstractOperator):
         self._hilbert = hilbert
         self._n_sites = hilbert.size
         self._section = hilbert.size + 1
-        self._edges = _np.asarray(hilbert.graph.edges)
+        self._edges = _np.asarray(hilbert.graph.edges())
         super().__init__()
 
     @property
@@ -166,12 +166,12 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
         20
     """
     if sign_rule is None:
-        sign_rule = hilbert.graph.is_bipartite
+        sign_rule = hilbert.graph.is_bipartite()
 
     sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
     exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
     if sign_rule:
-        if not hilbert.graph.is_bipartite:
+        if not hilbert.graph.is_bipartite():
             raise ValueError("sign_rule=True specified for a non-bipartite lattice")
         heis_term = sz_sz - exchange
     else:

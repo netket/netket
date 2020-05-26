@@ -21,7 +21,7 @@ def _get_differentiable_parameters(m):
 
 
 class Torch(AbstractMachine):
-    def __init__(self, module, hilbert):
+    def __init__(self, module, hilbert, dtype, outdtype=None):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
 
@@ -41,7 +41,7 @@ class Torch(AbstractMachine):
         self._parameters = list(_get_differentiable_parameters(self._module))
 
         # TODO check that module has input shape compatible with hilbert size
-        super().__init__(hilbert)
+        super().__init__(hilbert, dtype=dtype, outdtype=outdtype)
 
         
 
@@ -203,12 +203,6 @@ class Torch(AbstractMachine):
         write_to(out.imag)
 
         return out
-
-    @property
-    def is_holomorphic(self):
-        r"""PyTorch models are real-valued only, thus non holomorphic.
-        """
-        return False
 
     @property
     def state_dict(self):

@@ -74,7 +74,7 @@ class RbmSpin(AbstractMachine):
                               Default ``True``.
             use_hidden_bias: If ``True`` bias on the hidden units is taken.
                              Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
                                  otherwise a valid array of automorphisms can be passed.
             dtype: either complex or float, is the type used for the weights.
 
@@ -92,12 +92,13 @@ class RbmSpin(AbstractMachine):
             860
         """
 
+        super().__init__(hilbert, dtype=dtype)
+
         n = hilbert.size
 
         if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
 
-        self._dtype = dtype
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
         self._autom, self.n_hidden, alpha_symm = self._get_hidden(
@@ -136,8 +137,6 @@ class RbmSpin(AbstractMachine):
             self._set_bare_parameters(
                 self._a, self._b, self._w, self._as, self._bs, self._ws, self._autom
             )
-
-        super().__init__(hilbert)
 
     @property
     def n_par(self):
@@ -232,12 +231,6 @@ class RbmSpin(AbstractMachine):
         _np.einsum("ij,il->ijl", x, r, out=t)
 
         return out
-
-    @property
-    def is_holomorphic(self):
-        r"""Complex valued RBM is a holomorphic function.
-        """
-        return self._dtype is complex
 
     @property
     def state_dict(self):
@@ -369,7 +362,7 @@ class RbmSpin(AbstractMachine):
             return None, m, m
         else:
             if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
+                autom = _np.asarray(hilbert.graph.automorphisms())
             else:
                 try:
                     autom = _np.asarray(symmetry)
@@ -618,7 +611,7 @@ class RbmMultiVal(RbmSpin):
     def _make_extended_symmetry(symmetry, hilbert):
         if symmetry is not None:
             if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms)
+                autom = _np.asarray(hilbert.graph.automorphisms())
             else:
                 try:
                     autom = _np.asarray(symmetry)
@@ -715,7 +708,7 @@ class RbmSpinPhase(AbstractMachine):
             use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
                                  otherwise a valid array of automorphisms can be passed.
 
         Examples:
@@ -750,7 +743,7 @@ class RbmSpinPhase(AbstractMachine):
 
         self._n_par = self._rbm_a.n_par + self._rbm_p.n_par
 
-        super().__init__(hilbert)
+        super().__init__(hilbert, dtype=float, outdtype=complex)
 
     @property
     def n_par(self):
@@ -799,12 +792,6 @@ class RbmSpinPhase(AbstractMachine):
         out[:, n_par_a:] *= 1.0j
 
         return out
-
-    @property
-    def is_holomorphic(self):
-        r"""This machine is not holomorphic.
-        """
-        return False
 
     @property
     def state_dict(self):

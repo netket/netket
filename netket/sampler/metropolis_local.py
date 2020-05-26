@@ -16,7 +16,7 @@ class _local_kernel:
         self.size = size
         self.n_states = self.local_states.size
 
-    def apply(self, state, state_1, log_prob_corr):
+    def transition(self, state, state_1, log_prob_corr):
 
         for i in range(state.shape[0]):
             state_1[i] = state[i]
@@ -31,9 +31,16 @@ class _local_kernel:
 
         log_prob_corr.fill(0.0)
 
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            for si in range(state.shape[1]):
+                rs = _random.randint(0, self.n_states)
+                state[i, si] = self.local_states[rs]
+
 
 class MetropolisLocal(MetropolisHastings):
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
@@ -59,7 +66,7 @@ class MetropolisLocal(MetropolisHastings):
     """
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
 
@@ -96,7 +103,7 @@ class MetropolisLocal(MetropolisHastings):
         super().__init__(
             machine,
             _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+                _np.asarray(machine.hilbert.local_states), machine.input_size
             ),
             n_chains,
             sweep_size,
@@ -105,14 +112,14 @@ class MetropolisLocal(MetropolisHastings):
 
 
 class MetropolisLocalPt(MetropolisHastingsPt):
-    """
+    r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
     The number of replicas can be chosen by the user.
     """
 
     def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None):
-        """
+        r"""
         Args:
              machine: A machine :math:`\Psi(s)` used for the sampling.
                       The probability distribution being sampled
@@ -126,7 +133,7 @@ class MetropolisLocalPt(MetropolisHastingsPt):
         super().__init__(
             machine,
             _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.hilbert.size
+                _np.asarray(machine.hilbert.local_states), machine.input_size
             ),
             n_replicas,
             sweep_size,

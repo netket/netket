@@ -10,7 +10,7 @@ class _local_kernel:
         self.n_states = self.local_states.size
 
     @partial(jax.jit, static_argnums=(0))
-    def apply(self, key, state):
+    def transition(self, key, state):
 
         keys = jax.random.split(key, 2)
         si = jax.random.randint(keys[0], shape=(1,), minval=0, maxval=self.size)
@@ -20,9 +20,19 @@ class _local_kernel:
             state, si, self.local_states[rs + (self.local_states[rs] >= state[si])]
         )
 
+    @partial(jax.jit, static_argnums=(0))
+    def random_state(self, key, state):
+        keys = jax.random.split(key, 2)
+
+        rs = jax.random.randint(
+            keys[1], shape=(self.size,), minval=0, maxval=self.n_states
+        )
+
+        return keys[0], self.local_states[rs]
+
 
 class MetropolisLocal(MetropolisHastings):
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
@@ -48,7 +58,7 @@ class MetropolisLocal(MetropolisHastings):
     """
 
     def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
 
          Constructs a new :class:`MetropolisLocal` sampler given a machine.
 
@@ -81,7 +91,8 @@ class MetropolisLocal(MetropolisHastings):
              >>> print(sa.machine.hilbert.size)
              100
         """
-        kernel = _local_kernel(machine.hilbert.local_states, machine.hilbert.size)
+        kernel = _local_kernel(machine.hilbert.local_states, machine.input_size)
+
         super().__init__(
-            machine, kernel.apply, n_chains, sweep_size,
+            machine, kernel, n_chains, sweep_size,
         )

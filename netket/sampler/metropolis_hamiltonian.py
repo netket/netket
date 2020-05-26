@@ -14,8 +14,9 @@ class _hamiltonian_kernel:
         self._sections = _np.empty(1, dtype=_np.int32)
         self._hamconn = self._hamiltonian.get_conn_flattened
         self._n_conn = self._hamiltonian.n_conn
+        self._hilbert = hamiltonian.hilbert
 
-    def apply(self, state, state_1, log_prob_corr):
+    def transition(self, state, state_1, log_prob_corr):
 
         sections = self._sections
         sections = _np.empty(state.shape[0], dtype=_np.int32)
@@ -26,6 +27,11 @@ class _hamiltonian_kernel:
         self._n_conn(state_1, sections)
 
         log_prob_corr -= _np.log(sections)
+
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            self._hilbert.random_vals(out=state[i])
 
     @staticmethod
     @jit(nopython=True)
@@ -39,7 +45,7 @@ class _hamiltonian_kernel:
 
 
 class MetropolisHamiltonian(MetropolisHastings):
-    """
+    r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
 
@@ -58,7 +64,7 @@ class MetropolisHamiltonian(MetropolisHastings):
     def __init__(
         self, machine, hamiltonian, n_chains=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
            machine: A machine :math:`\Psi(s)` used for the sampling.
                     The probability distribution being sampled
@@ -94,7 +100,7 @@ class MetropolisHamiltonian(MetropolisHastings):
 
 
 class MetropolisHamiltonianPt(MetropolisHastingsPt):
-    """
+    r"""
      This sampler performs parallel-tempering
      moves in addition to the local moves implemented in `MetropolisLocal`.
      The number of replicas can be :math:`N_{\mathrm{rep}}` chosen by the user.
@@ -103,7 +109,7 @@ class MetropolisHamiltonianPt(MetropolisHastingsPt):
     def __init__(
         self, machine, hamiltonian, n_replicas=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
                       The probability distribution being sampled

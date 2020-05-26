@@ -6,27 +6,30 @@ from .metropolis_hastings import MetropolisHastings
 from .metropolis_hastings_pt import MetropolisHastingsPt
 
 from numba import jit, int64, float64
-from .._jitclass import jitclass
 
 
-@jitclass([("clusters", int64[:, :])])
 class _exchange_kernel:
-    def __init__(self, distances, d_max):
+    def __init__(self, hilbert, d_max):
         clusters = []
+        distances = _np.asarray(hilbert.graph.distances())
         size = distances.shape[0]
         for i in range(size):
             for j in range(i + 1, size):
                 if distances[i][j] <= d_max:
                     clusters.append((i, j))
 
-        self.clusters = _np.empty((len(clusters), 2), dtype=int64)
+        self.clusters = _np.empty((len(clusters), 2), dtype=_np.int64)
 
         for i, cluster in enumerate(clusters):
             self.clusters[i] = _np.asarray(cluster)
 
-    def apply(self, state, state_1, log_prob_corr):
+        self._hilbert = hilbert
 
-        clusters_size = self.clusters.shape[0]
+    @staticmethod
+    @jit(nopython=True)
+    def _transition(state, state_1, log_prob_corr, clusters):
+
+        clusters_size = clusters.shape[0]
 
         for k in range(state.shape[0]):
             state_1[k] = state[k]
@@ -35,40 +38,48 @@ class _exchange_kernel:
             cl = _random.randint(0, clusters_size)
 
             # sites to be exchanged
-            si = self.clusters[cl][0]
-            sj = self.clusters[cl][1]
+            si = clusters[cl][0]
+            sj = clusters[cl][1]
 
             state_1[k, si], state_1[k, sj] = state[k, sj], state[k, si]
 
         log_prob_corr[:] = 0.0
 
+    def transition(self, state, state_1, log_prob_corr):
+        return self._transition(state, state_1, log_prob_corr, self.clusters)
+
+    def random_state(self, state):
+
+        for i in range(state.shape[0]):
+            self._hilbert.random_vals(out=state[i])
+
 
 class MetropolisExchange(MetropolisHastings):
-    """
-    This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
-    and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
-    where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.
-    The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph
-    distance of :math:`d_{\mathrm{max}}`.
+    r"""
+        This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
+        and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
+        where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.
+        The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph
+        distance of :math:`d_{\mathrm{max}}`.
 
-    The transition probability associated to this sampler can
-    be decomposed into two steps:
+        The transition probability associated to this sampler can
+        be decomposed into two steps:
 
-    1. A pair of indices :math:`i,j = 1\dots N`, and such
-       that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
-       is chosen with uniform probability.
-    2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
+        1. A pair of indices :math:`i,j = 1\dots N`, and such
+           that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
+           is chosen with uniform probability.
+        2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
 
-    Notice that this sampling method generates random permutations of the quantum
-    numbers, thus global quantities such as the sum of the local quantum numbers
-    are conserved during the sampling.
-    This scheme should be used then only when sampling in a
-    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
-    otherwise the sampling would be strongly not ergodic.
+        Notice that this sampling method generates random permutations of the quantum
+        numbers, thus global quantities such as the sum of the local quantum numbers
+        are conserved during the sampling.
+        This scheme should be used then only when sampling in a
+        region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
+        otherwise the sampling would be strongly not ergodic.
     """
 
     def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None):
-        """
+        r"""
         Args:
               machine: A machine :math:`\Psi(s)` used for the sampling.
                        The probability distribution being sampled
@@ -102,7 +113,7 @@ class MetropolisExchange(MetropolisHastings):
         """
         super().__init__(
             machine,
-            _exchange_kernel(_np.asarray(machine.hilbert.graph.distances), d_max),
+            _exchange_kernel(machine.hilbert, d_max),
             n_chains,
             sweep_size,
             batch_size,
@@ -110,16 +121,16 @@ class MetropolisExchange(MetropolisHastings):
 
 
 class MetropolisExchangePt(MetropolisHastingsPt):
-    """
-    This sampler performs parallel-tempering
-    moves in addition to the local moves implemented in `MetropolisExchange`.
-    The number of replicas can be chosen by the user.
+    r"""
+        This sampler performs parallel-tempering
+        moves in addition to the local moves implemented in `MetropolisExchange`.
+        The number of replicas can be chosen by the user.
     """
 
     def __init__(
         self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None
     ):
-        """
+        r"""
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
                      The probability distribution being sampled
@@ -151,7 +162,7 @@ class MetropolisExchangePt(MetropolisHastingsPt):
         """
         super().__init__(
             machine,
-            _exchange_kernel(_np.asarray(machine.hilbert.graph.distances), d_max),
+            _exchange_kernel(machine.hilbert, d_max),
             n_chains,
             sweep_size,
             batch_size,

@@ -32,7 +32,7 @@ class Torch(AbstractOptimizer):
         if not issubclass(optim, _torch.optim.Optimizer):
             raise ValueError("Not a valid Torch optimizer.")
 
-        if machine.is_holomorphic:
+        if machine.dtype is complex:
             raise ValueError(
                 "Torch optimizers work only for machines with real parameters."
             )

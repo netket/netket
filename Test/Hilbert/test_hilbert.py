@@ -17,11 +17,7 @@ import netket as nk
 import networkx as nx
 import numpy as np
 import pytest
-from netket.hilbert import (
-    PySpin as Spin,
-    PyCustomHilbert as CustomHilbert,
-    PyBoson as Boson,
-)
+from netket.hilbert import *
 
 hilberts = {}
 
