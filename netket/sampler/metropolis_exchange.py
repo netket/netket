@@ -1,60 +1,8 @@
-import numpy as _np
-from netket import random as _random
-
-from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import MetropolisHastings
-from .metropolis_hastings_pt import MetropolisHastingsPt
-
-from numba import jit, int64, float64
+from . import MetropolisHastings, MetropolisHastingsPt
+from . import ExchangeKernel
 
 
-class _exchange_kernel:
-    def __init__(self, hilbert, d_max):
-        clusters = []
-        distances = _np.asarray(hilbert.graph.distances())
-        size = distances.shape[0]
-        for i in range(size):
-            for j in range(i + 1, size):
-                if distances[i][j] <= d_max:
-                    clusters.append((i, j))
-
-        self.clusters = _np.empty((len(clusters), 2), dtype=_np.int64)
-
-        for i, cluster in enumerate(clusters):
-            self.clusters[i] = _np.asarray(cluster)
-
-        self._hilbert = hilbert
-
-    @staticmethod
-    @jit(nopython=True)
-    def _transition(state, state_1, log_prob_corr, clusters):
-
-        clusters_size = clusters.shape[0]
-
-        for k in range(state.shape[0]):
-            state_1[k] = state[k]
-
-            # pick a random cluster
-            cl = _random.randint(0, clusters_size)
-
-            # sites to be exchanged
-            si = clusters[cl][0]
-            sj = clusters[cl][1]
-
-            state_1[k, si], state_1[k, sj] = state[k, sj], state[k, si]
-
-        log_prob_corr[:] = 0.0
-
-    def transition(self, state, state_1, log_prob_corr):
-        return self._transition(state, state_1, log_prob_corr, self.clusters)
-
-    def random_state(self, state):
-
-        for i in range(state.shape[0]):
-            self._hilbert.random_vals(out=state[i])
-
-
-class MetropolisExchange(MetropolisHastings):
+def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None):
     r"""
         This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
         and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -76,10 +24,7 @@ class MetropolisExchange(MetropolisHastings):
         This scheme should be used then only when sampling in a
         region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
         otherwise the sampling would be strongly not ergodic.
-    """
 
-    def __init__(self, machine, d_max=1, n_chains=16, sweep_size=None, batch_size=None):
-        r"""
         Args:
               machine: A machine :math:`\Psi(s)` used for the sampling.
                        The probability distribution being sampled
@@ -90,8 +35,6 @@ class MetropolisExchange(MetropolisHastings):
               n_chains: The number of Markov Chain to be run in parallel on a single process.
               sweep_size: The number of exchanges that compose a single sweep.
                           If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-              batch_size: The batch size to be used when calling log_val on the given Machine.
-                          If None, batch_size is equal to the number Markov chains (n_chains).
 
 
         Examples:
@@ -110,27 +53,18 @@ class MetropolisExchange(MetropolisHastings):
               >>> sa = nk.sampler.MetropolisExchange(machine=ma)
               >>> print(sa.machine.hilbert.size)
               100
-        """
-        super().__init__(
-            machine,
-            _exchange_kernel(machine.hilbert, d_max),
-            n_chains,
-            sweep_size,
-            batch_size,
-        )
+    """
+    transition_kernel = ExchangeKernel(machine, d_max)
+
+    return MetropolisHastings(machine, transition_kernel, n_chains, sweep_size,)
 
 
-class MetropolisExchangePt(MetropolisHastingsPt):
+def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None):
     r"""
         This sampler performs parallel-tempering
         moves in addition to the local moves implemented in `MetropolisExchange`.
         The number of replicas can be chosen by the user.
-    """
 
-    def __init__(
-        self, machine, d_max=1, n_replicas=16, sweep_size=None, batch_size=None
-    ):
-        r"""
         Args:
             machine: A machine :math:`\Psi(s)` used for the sampling.
                      The probability distribution being sampled
@@ -160,10 +94,6 @@ class MetropolisExchangePt(MetropolisHastingsPt):
             >>> print(sa.machine.hilbert.size)
             100
         """
-        super().__init__(
-            machine,
-            _exchange_kernel(machine.hilbert, d_max),
-            n_chains,
-            sweep_size,
-            batch_size,
-        )
+    transition_kernel = ExchangeKernel(machine, d_max)
+
+    return MetropolisHastingsPt(machine, transition_kernel, n_replicas, sweep_size,)
