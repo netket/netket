@@ -1,45 +1,8 @@
-import numpy as _np
-from netket import random as _random
-
-from .abstract_sampler import AbstractSampler
-from .metropolis_hastings import MetropolisHastings
-from .metropolis_hastings_pt import MetropolisHastingsPt
-
-from numba import jit, int64, float64
-from .._jitclass import jitclass
+from .metropolis_hastings import *
+from ._kernels import _LocalKernel
 
 
-@jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])
-class _local_kernel:
-    def __init__(self, local_states, size):
-        self.local_states = _np.sort(_np.asarray(local_states, dtype=_np.float64))
-        self.size = size
-        self.n_states = self.local_states.size
-
-    def transition(self, state, state_1, log_prob_corr):
-
-        for i in range(state.shape[0]):
-            state_1[i] = state[i]
-
-            si = _random.randint(0, self.size)
-
-            rs = _random.randint(0, self.n_states - 1)
-
-            state_1[i, si] = self.local_states[
-                rs + (self.local_states[rs] >= state[i, si])
-            ]
-
-        log_prob_corr.fill(0.0)
-
-    def random_state(self, state):
-
-        for i in range(state.shape[0]):
-            for si in range(state.shape[1]):
-                rs = _random.randint(0, self.n_states)
-                state[i, si] = self.local_states[rs]
-
-
-class MetropolisLocal(MetropolisHastings):
+def MetropolisLocal(machine, n_chains=16, sweep_size=None):
     r"""
     Sampler acting on one local degree of freedom.
 
@@ -63,79 +26,52 @@ class MetropolisLocal(MetropolisHastings):
     :math:`s_i = 0, 1, \dots n_{\mathrm{max}}`, :class:`MetropolisLocal`
     would pick a random local occupation number uniformly between :math:`0`
     and :math:`n_{\mathrm{max}}`.
+
+    Args:
+        machine: A machine :math:`\Psi(s)` used for the sampling.
+                 The probability distribution being sampled
+                 from is :math:`F(\Psi(s))`, where the function
+                 :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
+
+        n_chains:   The number of Markov Chain to be run in parallel on a single process.
+        sweep_size: The number of exchanges that compose a single sweep.
+                    If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+
+
+    Examples:
+        Sampling from a RBM machine in a 1D lattice of spin 1/2
+
+        >>> import netket as nk
+        >>>
+        >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+        >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
+        >>>
+        >>> # RBM Spin Machine
+        >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
+        >>>
+        >>> # Construct a MetropolisLocal Sampler
+        >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+        >>> print(sa.machine.hilbert.size)
+        100
     """
 
-    def __init__(self, machine, n_chains=16, sweep_size=None, batch_size=None):
-        r"""
-
-         Constructs a new :class:`MetropolisLocal` sampler given a machine.
-
-         Args:
-            machine: A machine :math:`\Psi(s)` used for the sampling.
-                     The probability distribution being sampled
-                     from is :math:`F(\Psi(s))`, where the function
-                     :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
-
-            n_chains:   The number of Markov Chain to be run in parallel on a single process.
-            sweep_size: The number of exchanges that compose a single sweep.
-                        If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-            batch_size: The batch size to be used when calling log_val on the given Machine.
-                        If None, batch_size is equal to the number Markov chains (n_chains).
+    return MetropolisHastings(machine, _LocalKernel(machine), n_chains, sweep_size)
 
 
-         Examples:
-             Sampling from a RBM machine in a 1D lattice of spin 1/2
-
-             >>> import netket as nk
-             >>>
-             >>> g=nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-             >>> hi=nk.hilbert.Spin(s=0.5,graph=g)
-             >>>
-             >>> # RBM Spin Machine
-             >>> ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
-             >>>
-             >>> # Construct a MetropolisLocal Sampler
-             >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-             >>> print(sa.machine.hilbert.size)
-             100
-        """
-
-        super().__init__(
-            machine,
-            _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.input_size
-            ),
-            n_chains,
-            sweep_size,
-            batch_size,
-        )
-
-
-class MetropolisLocalPt(MetropolisHastingsPt):
+def MetropolisLocalPt(machine, n_replicas=16, sweep_size=None):
     r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
     The number of replicas can be chosen by the user.
+
+    Args:
+         machine: A machine :math:`\Psi(s)` used for the sampling.
+                  The probability distribution being sampled
+                  from is :math:`F(\Psi(s))`, where the function
+                  :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
+         n_replicas: The number of replicas used for parallel tempering.
+         sweep_size: The number of exchanges that compose a single sweep.
+                     If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+
     """
-
-    def __init__(self, machine, n_replicas=16, sweep_size=None, batch_size=None):
-        r"""
-        Args:
-             machine: A machine :math:`\Psi(s)` used for the sampling.
-                      The probability distribution being sampled
-                      from is :math:`F(\Psi(s))`, where the function
-                      :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
-             n_replicas: The number of replicas used for parallel tempering.
-             sweep_size: The number of exchanges that compose a single sweep.
-                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-
-        """
-        super().__init__(
-            machine,
-            _local_kernel(
-                _np.asarray(machine.hilbert.local_states), machine.input_size
-            ),
-            n_replicas,
-            sweep_size,
-            batch_size,
-        )
+    return MetropolisHastingsPt(machine, _LocalKernel(machine), n_replicas, sweep_size)

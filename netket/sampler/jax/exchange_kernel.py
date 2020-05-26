@@ -2,7 +2,7 @@ import jax
 import numpy
 
 
-class ExchangeKernel:
+class _ExchangeKernel:
     def __init__(self, hilbert, d_max):
         clusters = []
         distances = jax.numpy.asarray(hilbert.graph.distances())

@@ -1,6 +1,3 @@
 from .metropolis_hastings import MetropolisHastings
-from .metropolis_local import MetropolisLocal
-from .metropolis_exchange import *
-
-
-from ...machine import Jax as JaxMachine
+from .local_kernel import _LocalKernel
+from .exchange_kernel import _ExchangeKernel

@@ -1,5 +1,5 @@
-from . import MetropolisHastings, MetropolisHastingsPt
-from . import ExchangeKernel
+from .metropolis_hastings import *
+from ._kernels import _ExchangeKernel
 
 
 def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None):
@@ -54,7 +54,7 @@ def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None):
               >>> print(sa.machine.hilbert.size)
               100
     """
-    transition_kernel = ExchangeKernel(machine, d_max)
+    transition_kernel = _ExchangeKernel(machine, d_max)
 
     return MetropolisHastings(machine, transition_kernel, n_chains, sweep_size,)
 
@@ -74,8 +74,6 @@ def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None):
             n_replicas: The number of replicas used for parallel tempering.
             sweep_size: The number of exchanges that compose a single sweep.
                         If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-            batch_size: The batch size to be used when calling log_val on the given Machine.
-                        If None, batch_size is equal to the number of replicas (n_replicas).
 
         Examples:
             Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -94,6 +92,6 @@ def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None):
             >>> print(sa.machine.hilbert.size)
             100
         """
-    transition_kernel = ExchangeKernel(machine, d_max)
+    transition_kernel = _ExchangeKernel(machine, d_max)
 
     return MetropolisHastingsPt(machine, transition_kernel, n_replicas, sweep_size,)

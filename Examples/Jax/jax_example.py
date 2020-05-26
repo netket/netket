@@ -2,7 +2,7 @@ import netket as nk
 import numpy as np
 import jax
 from jax.experimental.optimizers import sgd as JaxSgd
-import cProfile
+
 
 # 1D Lattice
 L = 20
@@ -18,7 +18,7 @@ ma = nk.machine.JaxRbm(hi, alpha, dtype=float)
 ma.init_random_parameters(seed=1232)
 
 # Jax Sampler
-sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
 # Using a Jax Optimizer
 j_op = JaxSgd(0.1)
@@ -30,7 +30,7 @@ sr = nk.optimizer.JaxSR(diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard=0
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard=None
 )
 
 # The first iteration is slower because of start-up jit times

@@ -3,7 +3,7 @@ from netket import random as _random
 from numba import jit, int64, float64
 
 
-class ExchangeKernel:
+class _ExchangeKernel:
     def __init__(self, hilbert, d_max):
         clusters = []
         distances = _np.asarray(hilbert.graph.distances())
