@@ -1,5 +1,4 @@
 from .abstract_graph import AbstractGraph
-
 import numpy as _np
 import networkx as _nx
 
