@@ -5,9 +5,6 @@ import math
 
 from netket.graph import *
 
-eps = 1e-9
-one = 1 - eps
-
 nxg = nx.star_graph(10)
 graphs = [
     Hypercube(length=10, n_dim=1, pbc=True),
@@ -23,12 +20,12 @@ graphs = [
     Lattice(
         basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        atoms_coord=[[0, 0], [one, 0]],
+        atoms_coord=[[0, 0], [1, 1]],
     ),
     Lattice(
         basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
         extent=[4, 4],
-        atoms_coord=[[0, 0], [one / 2.0, math.sqrt(3) / 2.0], [one, 0.0]],
+        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
     ),
     Lattice(
         basis_vectors=[
@@ -51,12 +48,12 @@ lattices = [
     Lattice(
         basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        atoms_coord=[[0, 0], [one, 0]],
+        atoms_coord=[[0, 0], [1, 1]],
     ),
     Lattice(
         basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
         extent=[4, 4],
-        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [one, 0.0]],
+        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
     ),
     Lattice(
         basis_vectors=[
