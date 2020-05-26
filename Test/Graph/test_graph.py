@@ -14,13 +14,13 @@ graphs = [
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[10, 10],
-        pbc=[0, 0],
+        pbc=[False, False],
         atoms_coord=[[0, 0]],
     ),
     Lattice(
         basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        atoms_coord=[[0, 0], [1, 0]],
+        atoms_coord=[[0, 0], [1, 1]],
     ),
     Lattice(
         basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
@@ -42,13 +42,13 @@ lattices = [
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[10, 10],
-        pbc=[0, 0],
+        pbc=[False, False],
         atoms_coord=[[0, 0]],
     ),
     Lattice(
         basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        atoms_coord=[[0, 0], [1, 0]],
+        atoms_coord=[[0, 0], [1, 1]],
     ),
     Lattice(
         basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
