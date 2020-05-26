@@ -130,10 +130,16 @@ class Lattice(NetworkX):
         if not atoms_coord:
             atoms_coord = [_np.zeros(self._basis_vectors.shape[0])]
         atoms_coord = _np.asarray(atoms_coord)
-        if atoms_coord.min() < 0 or atoms_coord.max() >= 1:
+        atoms_coord_fractional = _np.asarray(
+            [
+                _np.matmul(_np.linalg.inv(self._basis_vectors.T), atom_coord)
+                for atom_coord in atoms_coord
+            ]
+        )
+        if atoms_coord_fractional.min() < 0 or atoms_coord_fractional.max() >= 1:
             # Maybe there is another way to state this. I want to avoid that there exists the possibility that two atoms from different cells are at the same position:
             raise ValueError(
-                "atoms must reside inside their corresponding unit cell, which includes only the 0-faces."
+                "atoms must reside inside their corresponding unit cell, which includes only the 0-faces in fractional coordinates."
             )
         tuple_array = [tuple(row) for row in atoms_coord]
         uniques = _np.unique(tuple_array)
@@ -162,7 +168,7 @@ class Lattice(NetworkX):
         extent = _np.asarray(extent)
 
         atoms, cellANDlabel_to_site = create_points(
-            self._basis_vectors, extent, atoms_coord, pbc
+            self._basis_vectors, extent, atoms_coord_fractional, pbc
         )
         edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
         graph = _nx.MultiGraph(edges)
