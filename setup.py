@@ -15,6 +15,7 @@ setup(
         "netket.machine",
         "netket.machine.density_matrix",
         "netket.sampler",
+        "netket.sampler.numpy",
         "netket.sampler.jax",
         "netket.stats",
         "netket.operator",
