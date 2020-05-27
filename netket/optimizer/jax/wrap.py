@@ -1,8 +1,7 @@
-from .abstract_optimizer import AbstractOptimizer
-import jax
+from ..abstract_optimizer import AbstractOptimizer
 
 
-class Jax(AbstractOptimizer):
+class Wrap(AbstractOptimizer):
     r"""Wrapper for Jax optimizers.
     """
 

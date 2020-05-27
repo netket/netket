@@ -7,14 +7,13 @@ from .ams_grad import AmsGrad
 from .momentum import Momentum
 from .rms_prop import RmsProp
 from .sgd import Sgd
-
 from .stochastic_reconfiguration import SR
 
 from ..utils import jax_available, torch_available
 
 if jax_available:
-    from .jax import Jax
-    from .jax_stochastic_reconfiguration import JaxSR
+    from . import jax
+
 
 if torch_available:
     from .torch import Torch

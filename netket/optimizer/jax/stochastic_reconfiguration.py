@@ -88,20 +88,20 @@ def _flatten_grad_and_oks(grad, oks):
     return grad, oks
 
 
-class JaxSR:
+class SR:
     r"""
     Performs stochastic reconfiguration (SR) updates.
     """
 
     def __init__(
         self,
+        machine,
         lsq_solver=None,
         diag_shift=0.01,
         use_iterative=True,
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
-        machine=None,
     ):
 
         if n_nodes > 1:

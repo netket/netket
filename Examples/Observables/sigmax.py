@@ -40,7 +40,7 @@ gs = nk.Vmc(
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    sr=nk.optimizer.SR(diag_shift=0.1),
+    sr=nk.optimizer.SR(ma, diag_shift=0.1),
 )
 
 # Adding an observable

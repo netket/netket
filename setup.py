@@ -20,6 +20,8 @@ setup(
         "netket.stats",
         "netket.operator",
         "netket.optimizer",
+        "netket.optimizer.numpy",
+        "netket.optimizer.jax",
     ],
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
