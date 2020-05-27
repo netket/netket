@@ -23,13 +23,13 @@ def _setup_vmc():
 
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.ExactSampler(machine=ma, sample_size=16)
-    op = nk.optimizer.Sgd(learning_rate=0.05)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
     sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
 
-    sr = nk.optimizer.SR(use_iterative=False)
+    sr = nk.optimizer.SR(ma, use_iterative=False)
     driver = nk.Vmc(ha, sa, op, 1000, sr=sr)
 
     return ha, sx, ma, sa, driver
@@ -92,7 +92,7 @@ def test_vmc_functions():
 def test_vmc_use_cholesky_compatibility():
     ha, _, ma, sampler, _ = _setup_vmc()
 
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
     with raises(
         ValueError,
         match="Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`.",
