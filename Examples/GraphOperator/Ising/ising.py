@@ -42,7 +42,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-opt = nk.optimizer.AdaMax()
+opt = nk.optimizer.AdaMax(ma)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
