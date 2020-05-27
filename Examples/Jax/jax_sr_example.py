@@ -18,7 +18,7 @@ ma = nk.machine.JaxRbm(hi, alpha, dtype=complex)
 ma.init_random_parameters(seed=1232)
 
 # Jax Sampler
-sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
 # Using a Jax Optimizer
 j_op = JaxSgd(0.01)

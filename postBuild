@@ -1,3 +1,3 @@
 #!/bin/bash
 
-NETKET_CMAKE_FLAGS="-DNETKET_USE_LAPACK=OFF -DNETKET_USE_BLAS=OFF" python -m pip install -v -e . --user 
+python -m pip install -v -e . --user 

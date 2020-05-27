@@ -19,4 +19,4 @@ exclude = '''
 
 
 [build-system]
-requires = ["setuptools", "wheel", "cmake", "ninja"]
+requires = ["setuptools", "wheel"]
