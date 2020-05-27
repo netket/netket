@@ -1,14 +1,12 @@
 import jax
-from functools import partial
 
 
-class _LocalKernel:
+class _JaxLocalKernel:
     def __init__(self, local_states, size):
         self.local_states = jax.numpy.sort(jax.numpy.array(local_states))
         self.size = size
         self.n_states = self.local_states.size
 
-    @partial(jax.jit, static_argnums=(0))
     def transition(self, key, state):
 
         keys = jax.random.split(key, 2)
@@ -19,7 +17,6 @@ class _LocalKernel:
             state, si, self.local_states[rs + (self.local_states[rs] >= state[si])]
         )
 
-    @partial(jax.jit, static_argnums=(0))
     def random_state(self, key, state):
         keys = jax.random.split(key, 2)
 
