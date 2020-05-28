@@ -203,6 +203,7 @@ class AbstractVariationalDriver(abc.ABC):
             out = output_prefix
 
         if out is None:
+            out = tuple()
             print(
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
@@ -213,38 +214,33 @@ class AbstractVariationalDriver(abc.ABC):
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
                 loggers = (_JsonLog(out, "w", save_params_every, write_every),)
-            elif isinstance(out, tuple) or isinstance(out, list):
+            elif hasattr(out, "__iter__"):
                 loggers = out
-            elif out is not None:
-                loggers = (out,)
             else:
-                loggers = tuple()
+                loggers = (out,)
         else:
-            loggers = None
+            loggers = tuple()
             show_progress = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
+
+                log_data = self.estimate(obs)
+
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
                     itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    log_data[self._loss_name] = self._loss_stats
 
-                obs_data = self.estimate(obs)
-
-                if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats
-
-                if loggers is not None:
-                    for logger in loggers:
-                        logger(step, obs_data, self.machine)
+                for logger in loggers:
+                    logger(self.step_count, log_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
-        if loggers is not None:
-            for logger in loggers:
-                logger(step, obs_data, self.machine)
+        for logger in loggers:
+            logger.flush(self.machine)
 
     def estimate(self, observables):
         """
