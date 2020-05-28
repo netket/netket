@@ -8,18 +8,8 @@ from tensorboardX import SummaryWriter
 
 def tree_log(tree, root, data):
     """
-    Maps all the leafs in the tree, applying the function with the leave as first 
-    positional argument. 
-    Any additional argument after the first two is forwarded to the function call.
-
-    Args:
-        fun: the function to apply to all leafs
-        tree: the structure containing leafs. This can also be just a leaf
-        *args: additional positional arguments passed to fun
-        **kwargs: additional kw arguments passed to fun
-
-    Returns:
-        An equivalent tree, containing the result of the function call.
+    Maps all elements in tree, recursively calling tree_log with a new root string,
+    and when it reaches leaves pushes (string, leave) tuples to data.
     """
     if tree is None:
         return data
