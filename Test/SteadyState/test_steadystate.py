@@ -40,7 +40,11 @@ def _setup_ss(**kwargs):
     sa = nk.sampler.MetropolisLocal(machine=ma)
     sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal())
 
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
+
+    if "sr" in kwargs:
+        sr = nk.optimizer.SR(ma, **kwargs["sr"])
+        kwargs["sr"] = sr
 
     ss = nk.SteadyState(
         lindblad=lind, sampler=sa, optimizer=op, sampler_obs=sa_obs, **kwargs
@@ -74,13 +78,13 @@ def test_ss_advance():
 
 
 def test_ss_advance_sr():
-    sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=False)
+    sr = {"diag_shift": 0.01, "use_iterative": False}
 
     ma1, vmc1 = _setup_ss(n_samples=500, n_samples_obs=250, sr=sr)
     for i in range(10):
         vmc1.advance()
 
-    sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=False)
+    sr = {"diag_shift": 0.01, "use_iterative": False}
     ma2, vmc2 = _setup_ss(n_samples=500, n_samples_obs=250, sr=sr)
     for step in vmc2.iter(10):
         pass
@@ -89,12 +93,12 @@ def test_ss_advance_sr():
 
 
 def test_ss_advance_sr_iterative():
-    sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
+    sr = {"diag_shift": 0.01, "use_iterative": True}
     ma1, vmc1 = _setup_ss(n_samples=500, n_samples_obs=250, sr=sr)
     for i in range(10):
         vmc1.advance()
 
-    sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
+    sr = {"diag_shift": 0.01, "use_iterative": True}
     ma2, vmc2 = _setup_ss(n_samples=500, n_samples_obs=250, sr=sr)
     for step in vmc2.iter(10):
         pass
@@ -131,7 +135,7 @@ def test_ss_iterator():
 
 
 def test_ss_iterator_sr():
-    sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=False)
+    sr = {"diag_shift": 0.01, "use_iterative": False}
     ma, vmc = _setup_ss(n_samples=800, n_samples_obs=250, sr=sr)
     obs_op = _setup_obs()
 
