@@ -41,27 +41,53 @@ def tree_log(tree, root, data):
 
 class TBLog:
     """
-    Creates a Json Logger sink object, that can be passed with keyword argument `logger` to Monte
-    Carlo drivers in order to serialize the outpit data of the simulation.
+    Creates a tensorboard logger using tensorboardX's summarywriter.
+    Refer to its documentation for further details
 
+    https://tensorboardx.readthedocs.io/en/latest/tensorboard.html
+    
     Args:
-        output_prefix: the name of the output files before the extension
-        save_params_every: every how many iterations should machine parameters be flushed to file
-        write_every: every how many iterations should data be flushed to file
-        mode: Specify the behaviour in case the file already exists at this output_prefix. Options
-        are
-        - `[w]rite`: (default) overwrites file if it already exists;
-        - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
-        - `[x]` or `fail`: fails if file already exists;
+        logdir (string): Save directory location. Default is
+          runs/**CURRENT_DATETIME_HOSTNAME**, which changes after each run.
+          Use hierarchical folder structure to compare
+          between runs easily. e.g. pass in 'runs/exp1', 'runs/exp2', etc.
+          for each new experiment to compare across them.
+        comment (string): Comment logdir suffix appended to the default
+          ``logdir``. If ``logdir`` is assigned, this argument has no effect.
+        purge_step (int):
+          When logging crashes at step :math:`T+X` and restarts at step :math:`T`,
+          any events whose global_step larger or equal to :math:`T` will be
+          purged and hidden from TensorBoard.
+          Note that crashed and resumed experiments should have the same ``logdir``.
+        max_queue (int): Size of the queue for pending events and
+          summaries before one of the 'add' calls forces a flush to disk.
+          Default is ten items.
+        flush_secs (int): How often, in seconds, to flush the
+          pending events and summaries to disk. Default is every two minutes.
+        filename_suffix (string): Suffix added to all event filenames in
+          the logdir directory. More details on filename construction in
+          tensorboard.summary.writer.event_file_writer.EventFileWriter.
+        write_to_disk (boolean):
+          If pass `False`, TBLog will not write to disk.
+    Examples::
+        import netket as nk
+        # create a summary writer with automatically generated folder name.
+        writer = nk.logging.TBLog()
+        # folder location: runs/May04_22-14-54_s-MacBook-Pro.local/
+        # create a summary writer using the specified folder name.
+        writer = nk.logging.TBLog("my_experiment")
+        # folder location: my_experiment
+        # create a summary writer with comment appended.
+        writer = nk.logging.TBLog(comment="LR_0.1_BATCH_16")
+        # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
     def __init__(
-        self, *args, save_params_every=50, **kwargs,
+        self, *args, **kwargs,
     ):
 
         self._writer = SummaryWriter(*args, **kwargs)
 
-        self._save_params_every = save_params_every
         self._old_step = 0
 
     def __call__(self, step, item, machine):
