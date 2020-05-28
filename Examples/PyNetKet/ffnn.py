@@ -53,4 +53,4 @@ gs = nk.variational.Vmc(
     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, diag_shift=0.01
 )
 
-gs.run(output_prefix="ffnn_test", n_iter=300, save_params_every=10)
+gs.run(out="ffnn_test", n_iter=300, save_params_every=10)
