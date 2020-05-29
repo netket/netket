@@ -59,16 +59,10 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisExchange(machine=ma, n_chains=16, d_max=2)
 
 # Optimizer
-opt = nk.optimizer.Sgd(learning_rate=0.02)
+opt = nk.optimizer.Sgd(ma, learning_rate=0.02)
 
 # Stochastic reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.1)
-
-# Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
-
-# Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.01, use_iterative=True)
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Variational Monte Carlo
 gs = nk.Vmc(

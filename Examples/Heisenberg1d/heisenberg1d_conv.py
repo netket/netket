@@ -69,7 +69,7 @@ sa = nk.sampler.MetropolisExchange(machine=ffnn)
 
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.01)
+op = nk.optimizer.Sgd(ma, learning_rate=0.01)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(

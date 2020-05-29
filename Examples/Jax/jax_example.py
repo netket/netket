@@ -1,7 +1,5 @@
 import netket as nk
 import numpy as np
-import jax
-from jax.experimental.optimizers import sgd as JaxSgd
 
 
 # 1D Lattice
@@ -20,13 +18,9 @@ ma.init_random_parameters(seed=1232)
 # Jax Sampler
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
-# Using a Jax Optimizer
-j_op = JaxSgd(0.1)
-op = nk.optimizer.Jax(ma, j_op)
+# Using Sgd
+op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
-
-# Stochastic Reconfiguration
-sr = nk.optimizer.JaxSR(diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(

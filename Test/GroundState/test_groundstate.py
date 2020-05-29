@@ -20,7 +20,7 @@ def _setup_vmc(**kwargs):
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.MetropolisLocal(machine=ma)
 
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
     vmc = nk.variational.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
 

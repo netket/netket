@@ -46,6 +46,7 @@ def Vmc(
         )
     elif method == "Sr":
         sr = _SR(
+            sampler.machine,
             lsq_solver=sr_lsq_solver,
             diag_shift=diag_shift,
             use_iterative=use_iterative,
