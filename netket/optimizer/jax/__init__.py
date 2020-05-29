@@ -56,7 +56,7 @@ def _JaxSR(
     sparse_tol=None,
     sparse_maxiter=None,
 ):
-    return JaxSR(
+    return SR(
         machine,
         lsq_solver,
         diag_shift,
