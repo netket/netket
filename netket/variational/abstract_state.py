@@ -48,6 +48,17 @@ class AbstractVariationalState(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def quantum_geometric_tensor(self):
+        r"""Computes an estimate of the quantum geometric tensor G_ij.
+        This function returns a linear operator that can be used to apply G_ij to a given vector
+        or can be converted to a full matrix.
+
+        Returns:
+            scipy.sparse.linalg.LinearOperator: A linear operator representing the quantum geometric tensor. 
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def samples(self, n_samples):
         r"""Returns samples of this quantum state from the computational basis.
             In the case of a pure state, samples x=(x_1,..,x_N) are returned according to the
