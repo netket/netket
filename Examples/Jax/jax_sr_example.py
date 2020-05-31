@@ -18,15 +18,14 @@ ma = nk.machine.JaxRbm(hi, alpha, dtype=complex)
 ma.init_random_parameters(seed=1232)
 
 # Jax Sampler
-sa = nk.sampler.jax.MetropolisLocal(machine=ma, n_chains=8)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
-# Using a Jax Optimizer
-j_op = JaxSgd(0.01)
-op = nk.optimizer.Jax(ma, j_op)
+# Using Sgd
+op = nk.optimizer.Sgd(ma, 0.01)
 
 
 # Stochastic Reconfiguration
-sr = nk.optimizer.JaxSR(diag_shift=0.1)
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(

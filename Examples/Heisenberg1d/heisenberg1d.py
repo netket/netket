@@ -34,10 +34,10 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisExchange(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.05)
+op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
 # Stochastic Reconfifugration
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Variational Monte Carlo
 gs = nk.Vmc(

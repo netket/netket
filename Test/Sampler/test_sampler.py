@@ -11,7 +11,8 @@ samplers = {}
 nk.random.seed(1234567)
 np.random.seed(1234)
 
-test_jax = True
+from netket.utils import jax_available as test_jax
+
 
 # TESTS FOR SPIN HILBERT
 # Constructing a 1d lattice
@@ -119,13 +120,13 @@ samplers["Metropolis Density Matrix"] = nk.sampler.MetropolisLocal(ma, n_chains=
 if test_jax:
     ma = nk.machine.density_matrix.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(sigma=0.2)
-    samplers["Metropolis Density Matrix Jax"] = nk.sampler.jax.MetropolisLocal(
+    samplers["Metropolis Density Matrix Jax"] = nk.sampler.MetropolisLocal(
         ma, n_chains=16
     )
 
     ma = nk.machine.JaxRbm(hilbert=hi, alpha=1)
     ma.init_random_parameters(sigma=0.2)
-    samplers["Metropolis Rbm Jax"] = nk.sampler.jax.MetropolisLocal(ma, n_chains=16)
+    samplers["Metropolis Rbm Jax"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
 
 
 def test_states_in_hilbert():

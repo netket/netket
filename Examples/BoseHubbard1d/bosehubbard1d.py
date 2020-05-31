@@ -31,10 +31,10 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha, batch_size=16)
 
 # Stochastic gradient descent optimization
-op = nk.optimizer.Sgd(0.05)
+op = nk.optimizer.Sgd(ma, 0.05)
 
 # Variational Monte Carlo
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
 vmc = nk.Vmc(
     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=4000, n_discard=0, sr=sr
 )
