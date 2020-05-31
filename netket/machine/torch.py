@@ -21,19 +21,17 @@ def _get_differentiable_parameters(m):
 
 
 class Torch(AbstractMachine):
-    def __init__(self, module, hilbert, use_backpack=False):
+    def __init__(self, module, hilbert, dtype, outdtype=None, use_backpack=False):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
+        self._n_par = _get_number_parameters(self._module)
+        self._parameters = list(_get_differentiable_parameters(self._module))
         self._use_backpack = use_backpack
-
         if self._use_backpack:
             assert "backpack" in sys.modules, "BackPACK was not successfully imported"
             self._module = backpack.extend(self._module)
-        self._n_par = _get_number_parameters(self._module)
-        self._parameters = list(_get_differentiable_parameters(self._module))
-        self.n_visible = hilbert.size
         # TODO check that module has input shape compatible with hilbert size
-        super().__init__(hilbert)
+        super().__init__(hilbert, dtype=dtype, outdtype=outdtype)
 
     @property
     def parameters(self):
@@ -186,12 +184,6 @@ class Torch(AbstractMachine):
         write_to(out.imag)
 
         return out
-
-    @property
-    def is_holomorphic(self):
-        r"""PyTorch models are real-valued only, thus non holomorphic.
-        """
-        return False
 
     @property
     def state_dict(self):
