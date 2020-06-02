@@ -145,21 +145,20 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
-        output_prefix=None,  # TODO: deprecated
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
         stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output `logger`. If no logger is specified, creates a json file at `output_prefix`,
+        in the output `logger`. If no logger is specified, creates a json file at `out`,
         overwriting files with the same prefix.
 
         !! Compatibility v2.1
-            Before v2.1 the order of the first two arguments, `n_iter` and `output_prefix` was
+            Before v2.1 the order of the first two arguments, `n_iter` and `out` was
             reversed. The reversed ordering will still be supported until v3.0, but is deprecated.
 
         Args:
             :n_iter: the total number of iterations
-            :out: A logger object to be used to store simulation log and data.
+            :out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             :obs: An iterable containing all observables that should be computed
             :save_params_every: Every how many steps the parameters of the network should be
@@ -168,8 +167,6 @@ class AbstractVariationalDriver(abc.ABC):
             logger is provided)
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
-            :output_prefix: (Deprecated) The prefix at which json output should be stored (ignored if out
-              is provided).
         """
 
         # TODO Remove this deprecated code in v3.0
@@ -179,7 +176,7 @@ class AbstractVariationalDriver(abc.ABC):
         if type(n_iter) is str and type(out) is int:
             n_iter, out = out, n_iter
             warn_deprecation(
-                "The positional syntax run(output_prefix, n_iter, **args) is deprecated, use run(n_iter, output_prefix, **args) instead."
+                "The positional syntax run(out, n_iter, **args) is deprecated, use run(n_iter, out, **args) instead."
             )
 
         if obs is None:
@@ -189,20 +186,8 @@ class AbstractVariationalDriver(abc.ABC):
             else:
                 obs = {}
 
-        # output_prefix is deprecated. out should be used and takes over
-        # error out if both are passed
-        # TODO: remove in v3.0
-        if out is not None and output_prefix is not None:
-            raise ValueError(
-                "Invalid out and output_prefix arguments. Only one of the two can be passed. Note that output_prefix is deprecated and you should use out."
-            )
-        elif out is None and output_prefix is not None:
-            warn_deprecation(
-                "The output_prefix argument is deprecated. Use out instead."
-            )
-            out = output_prefix
-
         if out is None:
+            out = tuple()
             print(
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
@@ -212,32 +197,33 @@ class AbstractVariationalDriver(abc.ABC):
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
-                logger = _JsonLog(out, "w", save_params_every, write_every)
+                loggers = (_JsonLog(out, "w", save_params_every, write_every),)
+            elif hasattr(out, "__iter__"):
+                loggers = out
             else:
-                logger = out
+                loggers = (out,)
         else:
-            logger = None
+            loggers = tuple()
             show_progress = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
+
+                log_data = self.estimate(obs)
+
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
                     itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    log_data[self._loss_name] = self._loss_stats
 
-                obs_data = self.estimate(obs)
-
-                if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats
-
-                if logger is not None:
-                    logger(step, obs_data, self.machine)
+                for logger in loggers:
+                    logger(self.step_count, log_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
-        if logger is not None:
+        for logger in loggers:
             logger.flush(self.machine)
 
     def estimate(self, observables):
