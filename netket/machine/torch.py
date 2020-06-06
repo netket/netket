@@ -1,13 +1,11 @@
 from .abstract_machine import AbstractMachine
 import torch as _torch
 import numpy as _np
-import sys
 import warnings
+from netket.utils import backpack_available as _backpack_available
 
-try:
-    import backpack
-except ImportError:
-    pass
+if _backpack_available:
+    from netket.utils import backpack
 
 
 def _get_number_parameters(m):
@@ -28,7 +26,8 @@ class Torch(AbstractMachine):
         self._parameters = list(_get_differentiable_parameters(self._module))
         self._use_backpack = use_backpack
         if self._use_backpack:
-            assert "backpack" in sys.modules, "BackPACK was not successfully imported"
+            if not _backpack_available:
+                raise RuntimeError("BackPACK was not successfully imported")
             self._module = backpack.extend(self._module)
         # TODO check that module has input shape compatible with hilbert size
         super().__init__(hilbert, dtype=dtype, outdtype=outdtype)
@@ -95,6 +94,30 @@ class Torch(AbstractMachine):
 
         return out
 
+    def _der_log_backpack(self, x, out):
+        def jacobian():
+            return _torch.cat(
+                [
+                    p.grad_batch.flatten(start_dim=1)
+                    for p in self._module.parameters()
+                    if p.requires_grad
+                ],
+                dim=1,
+            ).numpy()
+
+        m_sum_real = self._module(x)[:, 0].sum(dim=0)
+        with backpack.backpack(backpack.extensions.BatchGrad()):
+            m_sum_real.backward()
+        out.real = jacobian()
+
+        m_sum_imag = self._module(x)[:, 1].sum(dim=0)
+        with backpack.backpack(backpack.extensions.BatchGrad()):
+            m_sum_imag.backward()
+        out.imag = jacobian()
+
+        self._module.zero_grad()
+        return out
+
     def der_log(self, x, out=None):
 
         if len(x.shape) == 1:
@@ -107,32 +130,9 @@ class Torch(AbstractMachine):
         x = _torch.tensor(x, dtype=_torch.float64)
 
         if self._use_backpack:
-
-            def write_to(dst):
-                dst = _torch.from_numpy(dst)
-                i = 0
-                for gb in (
-                    p.grad_batch.flatten(start_dim=1)
-                    for p in self._module.parameters()
-                    if p.requires_grad
-                ):
-                    dst[:, i : i + gb.shape[1]].copy_(gb)
-                    i += gb.shape[1]
-
-            m_sum_real = self._module(x)[:, 0].sum(dim=0)
-            with backpack.backpack(backpack.extensions.BatchGrad()):
-                m_sum_real.backward()
-            write_to(out.real)
-
-            m_sum_imag = self._module(x)[:, 1].sum(dim=0)
-            with backpack.backpack(backpack.extensions.BatchGrad()):
-                m_sum_imag.backward()
-            write_to(out.imag)
-
-            self._module.zero_grad()
+            return self._der_log_backpack(x, out)
         else:
             m = self._module(x)
-
             for i in range(x.size(0)):
                 dws_real = _torch.autograd.grad(
                     m[i, 0], self._parameters, retain_graph=True
@@ -143,47 +143,42 @@ class Torch(AbstractMachine):
                 out[i, ...].real = _torch.cat([dw.flatten() for dw in dws_real]).numpy()
                 out[i, ...].imag = _torch.cat([dw.flatten() for dw in dws_imag]).numpy()
             self._module.zero_grad()
-        return out.reshape(tuple(list(batch_shape) + list(out.shape[-1:])))
+            return out
 
-    def vector_jacobian_prod(self, x, vec, out=None):
-
+    def vector_jacobian_prod(self, x, vec, out=None, return_jacobian=False):
+        vec = vec.flatten()
         if out is None:
             out = _np.empty(self._n_par, dtype=_np.complex128)
+        if return_jacobian:
+            jac = self.der_log(x)
+            out[...] = _np.einsum("n,nk->k", vec, jac.conj())
+            return out, jac
+        else:
+            y = self._module(_torch.from_numpy(x))
+            self._module.zero_grad()
+            vecj = _torch.empty(x.shape[0], 2, dtype=_torch.float64)
 
-        def write_to(dst):
-            dst = _torch.from_numpy(dst)
-            i = 0
-            for g in (
-                p.grad.flatten() for p in self._module.parameters() if p.requires_grad
-            ):
-                dst[i : i + g.numel()].copy_(g)
-                i += g.numel()
+            def gradient():
+                return _torch.cat(
+                    [
+                        p.grad.flatten()
+                        for p in self._module.parameters()
+                        if p.requires_grad
+                    ]
+                ).numpy()
 
-        def zero_grad():
-            for g in (p.grad for p in self._module.parameters() if p.requires_grad):
-                if g is not None:
-                    g.zero_()
+            vecj[:, 0] = _torch.from_numpy(vec.real)
+            vecj[:, 1] = _torch.from_numpy(vec.imag)
+            y.backward(vecj, retain_graph=True)
+            out.real = gradient()
+            self._module.zero_grad()
 
-        vecj = _torch.empty(x.shape[0], 2, dtype=_torch.float64)
-
-        def get_vec(is_real):
-            if is_real:
-                vecj[:, 0] = _torch.from_numpy(vec.real)
-                vecj[:, 1] = _torch.from_numpy(vec.imag)
-            else:
-                vecj[:, 0] = _torch.from_numpy(vec.imag)
-                vecj[:, 1] = _torch.from_numpy(-vec.real)
-            return vecj
-
-        y = self._module(_torch.from_numpy(x))
-        zero_grad()
-        y.backward(get_vec(True), retain_graph=True)
-        write_to(out.real)
-        zero_grad()
-        y.backward(get_vec(False))
-        write_to(out.imag)
-
-        return out
+            vecj[:, 0] = _torch.from_numpy(vec.imag)
+            vecj[:, 1] = _torch.from_numpy(-vec.real)
+            y.backward(vecj)
+            out.imag = gradient()
+            self._module.zero_grad()
+            return out
 
     @property
     def state_dict(self):
