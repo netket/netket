@@ -31,8 +31,7 @@ class PauliStrings(AbstractOperator):
             raise ValueError("No Pauli operators passed.")
 
         if len(weights) != len(operators):
-            raise ValueError(
-                "weights should have the same length as operators.")
+            raise ValueError("weights should have the same length as operators.")
 
         if not _np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
@@ -104,7 +103,8 @@ class PauliStrings(AbstractOperator):
         # now group together operators with same final state
         n_operators = len(acting)
         _n_op_max = max(
-            list(map(lambda x: len(x), list(acting.values()))), default=n_operators)
+            list(map(lambda x: len(x), list(acting.values()))), default=n_operators
+        )
 
         # unpacking the dictionary into fixed-size arrays
         _sites = _np.empty((n_operators, _n_qubits), dtype=_np.intp)
@@ -112,8 +112,7 @@ class PauliStrings(AbstractOperator):
         _n_op = _np.empty(n_operators, dtype=_np.intp)
         _weights = _np.empty((n_operators, _n_op_max), dtype=_np.complex128)
         _nz_check = _np.empty((n_operators, _n_op_max), dtype=_np.intp)
-        _z_check = _np.empty(
-            (n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
+        _z_check = _np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
 
         for i, act in enumerate(acting.items()):
             sites = act[0]

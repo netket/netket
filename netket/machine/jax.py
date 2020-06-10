@@ -50,8 +50,7 @@ class Jax(AbstractMachine):
         # Computes the Jacobian matrix using forward ad
         self._forward_fn = jax.jit(self._forward_fn)
 
-        forward_scalar = jax.jit(
-            lambda pars, x: self._forward_fn(pars, x).reshape(()))
+        forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
 
         # C-> C
         if self._dtype is complex and self._outdtype is complex:
@@ -60,8 +59,7 @@ class Jax(AbstractMachine):
             self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
-                vals, f_jvp = jax.vjp(
-                    forward_fun, pars, v.reshape((-1, v.shape[-1])))
+                vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
 
                 out = f_jvp(vec.reshape(vals.shape).conjugate())[0]
 
@@ -79,8 +77,7 @@ class Jax(AbstractMachine):
             self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
-                vals, f_jvp = jax.vjp(
-                    forward_fun, pars, v.reshape((-1, v.shape[-1])))
+                vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
 
                 out_r = f_jvp(vec.reshape(vals.shape).real)[0]
                 out_i = f_jvp(-vec.reshape(vals.shape).imag)[0]
@@ -101,10 +98,8 @@ class Jax(AbstractMachine):
         elif self._dtype is float and self._outdtype is complex:
 
             def _gradfun(pars, v):
-                grad_r = jax.grad(
-                    lambda pars, v: forward_scalar(pars, v).real)(pars, v)
-                grad_j = jax.grad(
-                    lambda pars, v: forward_scalar(pars, v).imag)(pars, v)
+                grad_r = jax.grad(lambda pars, v: forward_scalar(pars, v).real)(pars, v)
+                grad_j = jax.grad(lambda pars, v: forward_scalar(pars, v).imag)(pars, v)
 
                 r_flat, r_fun = tree_flatten(grad_r)
                 j_flat, j_fun = tree_flatten(grad_j)
@@ -170,8 +165,7 @@ class Jax(AbstractMachine):
             seed = _randint(0, 2 ** 32 - 2)
 
         input_shape = (-1, self.input_size)
-        output_shape, params = self._init_fn(
-            jax.random.PRNGKey(seed), input_shape)
+        output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)
 
         self._params = self._cast(params)
 
@@ -194,8 +188,7 @@ class Jax(AbstractMachine):
 
             # TODO use tree_map instead
             value_flat, value_tree = tree_flatten(p)
-            values_c = list(map(lambda v: v.astype(
-                jax.numpy.complex128), value_flat))
+            values_c = list(map(lambda v: v.astype(jax.numpy.complex128), value_flat))
 
             return tree_unflatten(value_tree, values_c)
         else:
@@ -252,13 +245,14 @@ class Jax(AbstractMachine):
         else:
 
             if conjugate and self._dtype is complex:
-                def prodj(j): return jax.numpy.tensordot(
-                    vec.transpose(), j.conjugate(), axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose(), j.conjugate(), axes=1)
+
             else:
-                def prodj(j): return jax.numpy.tensordot(
-                    vec.transpose().conjugate(), j, axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose().conjugate(), j, axes=1)
 
             jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
@@ -317,8 +311,7 @@ class Jax(AbstractMachine):
         k = 0
         for s in shf:
             size = s.size
-            datalist.append(jax.numpy.asarray(
-                data[k: k + size]).reshape(s.shape))
+            datalist.append(jax.numpy.asarray(data[k : k + size]).reshape(s.shape))
             k += size
 
         return tree_unflatten(tree, datalist)
@@ -348,8 +341,7 @@ LogCoshLayer = stax.elementwise(logcosh)
 def JaxRbm(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size),
-                    LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
         dtype=dtype,
     )
 
@@ -399,8 +391,7 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
 
     # determine transformation from local states to indices
     local_states = jax.numpy.array(hilbert.local_states)
-    loc_vals_spacing = jax.numpy.roll(
-        local_states, -1)[0:-1] - local_states[0:-1]
+    loc_vals_spacing = jax.numpy.roll(local_states, -1)[0:-1] - local_states[0:-1]
     if jax.numpy.max(loc_vals_spacing) == jax.numpy.min(loc_vals_spacing):
         loc_vals_spacing = loc_vals_spacing[0]
     else:
@@ -439,16 +430,14 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
 
     # define diagonal tensors with correct unit cell shape
     if diag:
-        iden_tensors = jax.numpy.ones(
-            (symperiod, phys_dim, bond_dim), dtype=dtype)
+        iden_tensors = jax.numpy.ones((symperiod, phys_dim, bond_dim), dtype=dtype)
     else:
         iden_tensors = jax.numpy.repeat(
             jax.numpy.eye(bond_dim, dtype=dtype)[jax.numpy.newaxis, :, :],
             symperiod * phys_dim,
             axis=0,
         )
-        iden_tensors = iden_tensors.reshape(
-            symperiod, phys_dim, bond_dim, bond_dim)
+        iden_tensors = iden_tensors.reshape(symperiod, phys_dim, bond_dim, bond_dim)
 
     def init_fun(rng, input_shape):
         rng_re, rng_im = jax.random.split(rng)
@@ -485,8 +474,7 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
             return jax.vmap(select_tensor)(all_tensors, indices)
 
         # select right tensors using input for matrix multiplication
-        selected_tensors = jax.vmap(
-            select_all_tensors, (None, 0))(all_tensors, x)
+        selected_tensors = jax.vmap(select_all_tensors, (None, 0))(all_tensors, x)
 
         # create loop carry, in this case a unit matrix
         edges = jax.numpy.repeat(
@@ -535,10 +523,8 @@ def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
         stax.serial(
             stax.FanOut(2),
             stax.parallel(
-                stax.serial(stax.Dense(alpha * hilbert.size),
-                            LogCoshLayer, SumLayer()),
-                stax.serial(stax.Dense(alpha * hilbert.size),
-                            LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
             ),
             FanInSum2ModPhase,
         ),

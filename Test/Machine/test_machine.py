@@ -68,8 +68,7 @@ if test_jax:
 
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
 
-    dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(
-        hi, alpha=1, beta=1)
+    dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
 
 if test_torch:
@@ -89,8 +88,7 @@ if test_torch:
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
@@ -113,11 +111,9 @@ dm_machines["Phase NDM"] = nk.machine.density_matrix.RbmSpin(
 
 # BOSONS
 hi = nk.hilbert.Boson(graph=g, n_max=3)
-machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(
-    hilbert=hi, alpha=1)
+machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
-    hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
     hilbert=hi, n_hidden=2
 )
@@ -134,8 +130,7 @@ np.random.seed(12346)
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-5):
     assert der_log.shape == num_der_log.shape
-    assert np.max(np.real(der_log - num_der_log)
-                  ) == approx(0.0, rel=eps, abs=eps)
+    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
 
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
@@ -193,8 +188,7 @@ def test_set_get_parameters():
             assert not all(randpars.real == 0)
             assert not all(randpars.imag == 0)
         else:
-            assert np.array_equal(
-                flatten(machine.parameters).real, randpars.real)
+            assert np.array_equal(flatten(machine.parameters).real, randpars.real)
             assert not all(randpars.real == 0)
 
         machine.parameters = unflatten(np.zeros(npar), machine.parameters)
@@ -227,8 +221,7 @@ def test_save_load_parameters(tmpdir):
         if machine.has_complex_parameters:
             assert np.array_equal(flatten(machine.parameters), randpars)
         else:
-            assert np.array_equal(
-                flatten(machine.parameters).real, randpars.real)
+            assert np.array_equal(flatten(machine.parameters).real, randpars.real)
 
 
 def test_log_derivative():
@@ -251,7 +244,7 @@ def test_log_derivative():
         for i in range(100):
             hi.random_vals(v)
             if name in dm_machines:
-                hi.random_vals(v[hi.size: 2 * hi.size])
+                hi.random_vals(v[hi.size : 2 * hi.size])
 
             machine.init_random_parameters(seed=i)
             randpars = flatten(machine.parameters)
@@ -263,8 +256,7 @@ def test_log_derivative():
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(
-                log_val_f, randpars, 1.0e-9, machine, v)
+            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-9, machine, v)
 
             same_derivatives(der_log, num_der_log)
             # print(np.linalg.norm(der_log - num_der_log))
@@ -332,8 +324,7 @@ def test_to_array():
         randpars = 0.5 * (np.random.randn(npar) + 1.0j * np.random.randn(npar))
         if "Torch" in name:
             randpars = randpars.real
-        machine.parameters = machine.numpy_unflatten(
-            randpars, machine.parameters)
+        machine.parameters = machine.numpy_unflatten(randpars, machine.parameters)
 
         hi = machine.hilbert
         if name in dm_machines:
@@ -378,7 +369,6 @@ def test_to_array():
             number = hi.state_to_number(rstate)
 
             assert np.abs(
-                np.exp(machine.log_val(rstate.reshape(1, -1)) -
-                       logmax) / np.sqrt(norm)
+                np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
                 - all_psis_normalized[number]
             ) == approx(0.0)
