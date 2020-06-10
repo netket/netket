@@ -103,7 +103,8 @@ class PauliStrings(AbstractOperator):
 
         # now group together operators with same final state
         n_operators = len(acting)
-        _n_op_max = max(list(map(lambda x: len(x), list(acting.values()))))
+        _n_op_max = max(
+            list(map(lambda x: len(x), list(acting.values()))), default=n_operators)
 
         # unpacking the dictionary into fixed-size arrays
         _sites = _np.empty((n_operators, _n_qubits), dtype=_np.intp)
