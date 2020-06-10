@@ -31,7 +31,8 @@ class PauliStrings(AbstractOperator):
             raise ValueError("No Pauli operators passed.")
 
         if len(weights) != len(operators):
-            raise ValueError("weights should have the same length as operators.")
+            raise ValueError(
+                "weights should have the same length as operators.")
 
         if not _np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
@@ -102,7 +103,7 @@ class PauliStrings(AbstractOperator):
 
         # now group together operators with same final state
         n_operators = len(acting)
-        _n_op_max = 1 + len(operators) // n_operators
+        _n_op_max = max(list(map(lambda x: len(x), list(acting.values()))))
 
         # unpacking the dictionary into fixed-size arrays
         _sites = _np.empty((n_operators, _n_qubits), dtype=_np.intp)
@@ -110,7 +111,8 @@ class PauliStrings(AbstractOperator):
         _n_op = _np.empty(n_operators, dtype=_np.intp)
         _weights = _np.empty((n_operators, _n_op_max), dtype=_np.complex128)
         _nz_check = _np.empty((n_operators, _n_op_max), dtype=_np.intp)
-        _z_check = _np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
+        _z_check = _np.empty(
+            (n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
 
         for i, act in enumerate(acting.items()):
             sites = act[0]
@@ -198,9 +200,8 @@ class PauliStrings(AbstractOperator):
             x_prime = _np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
             mels = _np.empty((x.shape[0] * max_conn), dtype=_np.complex128)
 
-        tot_conn = 0
+        n_c = 0
         for b in range(x.shape[0]):
-            n_c = 0
             xb = x[b]
             for i in range(sites.shape[0]):
                 mel = 0.0
@@ -210,6 +211,7 @@ class PauliStrings(AbstractOperator):
                         n_z = _np.count_nonzero(xb[to_check] == 1)
                     else:
                         n_z = 0
+
                     mel += weights[i, j] * (-1.0) ** n_z
 
                 if abs(mel) > cutoff:
@@ -218,9 +220,7 @@ class PauliStrings(AbstractOperator):
                         x_prime[n_c, site] = 1 - x_prime[n_c, site]
                     mels[n_c] = mel
                     n_c += 1
-            tot_conn += n_c
-            sections[b] = tot_conn
-
+            sections[b] = n_c
         return _np.copy(x_prime), _np.copy(mels)
 
     def get_conn_flattened(self, x, sections):
