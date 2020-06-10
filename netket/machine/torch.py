@@ -19,7 +19,7 @@ def _get_differentiable_parameters(m):
 
 
 class Torch(AbstractMachine):
-    def __init__(self, module, hilbert, dtype, outdtype=None, use_backpack=False):
+    def __init__(self, module, hilbert, dtype=float, outdtype=None, use_backpack=False):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
@@ -119,15 +119,10 @@ class Torch(AbstractMachine):
         return out
 
     def der_log(self, x, out=None):
-
-        if len(x.shape) == 1:
-            x = x[_np.newaxis, :]
-        batch_shape = x.shape[:-1]
         x = x.reshape(-1, x.shape[-1])
-
         if out is None:
             out = _np.empty([x.shape[0], self._n_par], dtype=_np.complex128)
-        x = _torch.tensor(x, dtype=_torch.float64)
+        x = _torch.tensor(x, dtype=self._dtype)
 
         if self._use_backpack:
             return self._der_log_backpack(x, out)
@@ -145,16 +140,23 @@ class Torch(AbstractMachine):
             self._module.zero_grad()
             return out
 
-    def vector_jacobian_prod(self, x, vec, out=None, return_jacobian=False):
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
+        x = x.reshape(-1, x.shape[-1])
         vec = vec.flatten()
         if out is None:
             out = _np.empty(self._n_par, dtype=_np.complex128)
+
         if return_jacobian:
             jac = self.der_log(x)
             out[...] = _np.einsum("n,nk->k", vec, jac.conj())
+            if not conjugate:
+                out[...] = out.conj()
             return out, jac
         else:
-            y = self._module(_torch.from_numpy(x))
+            x = _torch.tensor(x, dtype=self._dtype)
+            y = self._module(x)
             self._module.zero_grad()
             vecj = _torch.empty(x.shape[0], 2, dtype=_torch.float64)
 
@@ -175,6 +177,8 @@ class Torch(AbstractMachine):
 
             vecj[:, 0] = _torch.from_numpy(vec.imag)
             vecj[:, 1] = _torch.from_numpy(-vec.real)
+            if not conjugate:
+                vecj *= -1.0
             y.backward(vecj)
             out.imag = gradient()
             self._module.zero_grad()
