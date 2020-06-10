@@ -54,7 +54,7 @@ move_op = nk.operator.LocalOperator(hilbert=hi, operators=ops, acting_on=acting_
 sa = nk.sampler.CustomSampler(machine=ma, move_operators=move_op)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.05)
+op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
@@ -66,4 +66,4 @@ gs = nk.variational.Vmc(
     method="Sr",
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(n_iter=300, out="test")

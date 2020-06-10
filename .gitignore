@@ -51,3 +51,8 @@ build/
 ###################
 .envrc
 .idea
+
+# Lyx temporary files #
+#######################
+*.lyx~
+*.lyx#

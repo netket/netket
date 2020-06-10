@@ -1,5 +1,4 @@
-from .._C_netket.stats import covariance_sv
-
+from ._sum_inplace import sum_inplace
 
 from .mpi_stats import *
 

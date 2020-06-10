@@ -32,7 +32,7 @@ ma.init_random_parameters(seed=1234, sigma=0.01)
 sa = nk.sampler.MetropolisLocalV2(machine=ma)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 # Stochastic reconfiguration
 gs = nk.variational.Vmc(
@@ -44,4 +44,4 @@ gs = nk.variational.Vmc(
     method="Sr",
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(n_iter=300, out="test")

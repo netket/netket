@@ -1,8 +1,22 @@
+import math
+
 from numba import jit
 import numpy as _np
 from . import mean as _mean
 from . import var as _var
 from . import total_size as _total_size
+
+
+def _format_decimal(value, std):
+    if not math.isnan(std):
+        decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+    else:
+        decimals = 8
+
+    return (
+        "{0:.{1}f}".format(value, decimals),
+        "{0:.{1}f}".format(std, decimals + 1),
+    )
 
 
 class Stats:
@@ -11,26 +25,27 @@ class Stats:
     _NaN = float("NaN")
 
     def __init__(
-        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R=_NaN,
+        self, mean=_NaN, error_of_mean=_NaN, variance=_NaN, tau_corr=_NaN, R_hat=_NaN,
     ):
-        self.mean = mean
-        self.error_of_mean = error_of_mean
-        self.variance = variance
-        self.tau_corr = tau_corr
-        self.R = R
+        self.mean = complex(mean) if _np.iscomplexobj(mean) else float(mean)
+        self.error_of_mean = float(error_of_mean)
+        self.variance = float(variance)
+        self.tau_corr = float(tau_corr)
+        self.R_hat = float(R_hat)
 
     def to_json(self):
         jsd = {}
         jsd["Mean"] = self.mean.real
         jsd["Variance"] = self.variance
         jsd["Sigma"] = self.error_of_mean
-        jsd["R"] = self.R
+        jsd["R_hat"] = self.R_hat
         jsd["TauCorr"] = self.tau_corr
         return jsd
 
     def __repr__(self):
-        return "{:.4e} ± {:.1e} [var={:.1e}, R={:.3f}]".format(
-            self.mean, self.error_of_mean, self.variance, self.R
+        mean, err = _format_decimal(self.mean, self.error_of_mean)
+        return "{} ± {} [var={:.1e}, R_hat={:.4f}]".format(
+            mean, err, self.variance, self.R_hat
         )
 
     def __getitem__(self, name):
@@ -40,8 +55,8 @@ class Stats:
             return self.variance
         elif name is "error_of_mean" or "Sigma":
             return self.error_of_mean
-        elif name is "R":
-            return self.R
+        elif name is "R_hat":
+            return self.R_hat
         elif name is "tau_corr" or "TauCorr":
             return self.tau_corr
 
@@ -62,7 +77,7 @@ def _block_variance(data, l):
     blocks = _get_blocks(data, l)
     ts = _total_size(blocks)
     if ts > 0:
-        return _var(blocks) / float(ts), ts
+        return _var(blocks), ts
     else:
         return _np.nan, 0
 
@@ -70,7 +85,7 @@ def _block_variance(data, l):
 def _batch_variance(data):
     b_means = _np.mean(data, axis=1)
     ts = _total_size(b_means)
-    return _var(b_means) / float(ts), ts
+    return _var(b_means), ts
 
 
 def statistics(data):
@@ -103,12 +118,12 @@ def statistics(data):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    stats.mean = _mean(data)
-    stats.variance = _var(data)
+    mean = _mean(data)
+    variance = _var(data)
 
     ts = _total_size(data)
 
-    bare_var = stats.variance / float(ts)
+    bare_var = variance
 
     batch_var, n_batches = _batch_variance(data)
 
@@ -117,23 +132,33 @@ def statistics(data):
 
     block_var, n_blocks = _block_variance(data, l_block)
 
-    tau_batch = (batch_var / bare_var - 1) * 0.5
-    tau_block = (block_var / bare_var - 1) * 0.5
+    tau_batch = ((ts / n_batches) * batch_var / bare_var - 1) * 0.5
+    tau_block = ((ts / n_blocks) * block_var / bare_var - 1) * 0.5
 
-    block_good = tau_block < 6 * l_block and n_blocks >= b_s
-    batch_good = tau_batch < 6 * data.shape[1] and n_batches >= b_s
+    block_good = n_blocks >= b_s and tau_block < 6 * l_block
+    batch_good = n_batches >= b_s and tau_batch < 6 * data.shape[1]
 
     if batch_good:
-        stats.error_of_mean = _np.sqrt(batch_var)
-        stats.tau_corr = max(0, tau_batch)
+        error_of_mean = _np.sqrt(batch_var / n_batches)
+        tau_corr = max(0, tau_batch)
     elif block_good:
-        stats.error_of_mean = _np.sqrt(block_var)
-        stats.tau_corr = max(0, tau_block)
+        error_of_mean = _np.sqrt(block_var / n_blocks)
+        tau_corr = max(0, tau_block)
     else:
-        stats.error_of_mean = _np.nan
-        stats.tau_corr = _np.nan
+        error_of_mean = _np.nan
+        tau_corr = _np.nan
 
     if n_batches > 1:
-        stats.R = _np.sqrt(1.0 + batch_var / stats.variance)
+        N = data.shape[-1]
 
-    return stats
+        # V_loc = _np.var(data, axis=-1, ddof=0)
+        # W_loc = _np.mean(V_loc)
+        # W = _mean(W_loc)
+        # # This approximation seems to hold well enough for larger n_samples
+        W = variance
+
+        R_hat = _np.sqrt((N - 1) / N + batch_var / W)
+    else:
+        R_hat = float("nan")
+
+    return Stats(mean, error_of_mean, variance, tau_corr, R_hat)

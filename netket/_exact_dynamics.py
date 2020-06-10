@@ -23,6 +23,11 @@ import netket as _nk
 from netket.logging import JsonLog as _JsonLog
 from netket.vmc_common import tree_map as _tree_map
 
+from netket.utils import (
+    n_nodes as _n_nodes,
+    node_number as _rank,
+)
+
 _NaN = float("NaN")
 
 
@@ -130,6 +135,9 @@ class PyExactTimePropagation:
             raise NotImplementedError("Time-dependent hHamiltonian not yet supported.")
         self._rhs = _make_rhs(self._h, propagation_type)
 
+        self._mynode = _rank
+        self._mpi_nodes = _n_nodes
+
         self.state = initial_state
         self._dt = dt
         self._t0 = t0
@@ -146,7 +154,7 @@ class PyExactTimePropagation:
             self.state,
             t_bound=_np.inf,
             max_step=dt,
-            **solver_kwargs
+            **solver_kwargs,
         )
 
     def _estimate_stats(self, obs):
@@ -259,7 +267,7 @@ class PyExactTimePropagation:
         logger = _JsonLog(output_prefix, save_params_every, write_every)
 
         # Don't log on non-root nodes
-        if _nk.MPI.rank() != 0:
+        if self._mpi_nodes != 0:
             logger = None
 
         with tqdm(

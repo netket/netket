@@ -6,9 +6,8 @@ from numba import jit
 
 
 class Ising(AbstractOperator):
-
     def __init__(self, hilbert, h, J=1.0):
-        """
+        r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
         and (if specified) a coupling constant.
 
@@ -32,7 +31,7 @@ class Ising(AbstractOperator):
         self._hilbert = hilbert
         self._n_sites = hilbert.size
         self._section = hilbert.size + 1
-        self._edges = _np.asarray(hilbert.graph.edges)
+        self._edges = _np.asarray(hilbert.graph.edges())
         super().__init__()
 
     @property
@@ -58,7 +57,7 @@ class Ising(AbstractOperator):
                 array: The number of connected states x' for each x[i].
 
         """
-        if(out is None):
+        if out is None:
             out = _np.empty(x.shape[0], dtype=_np.int32)
 
         out.fill(x.shape[1] + 1)
@@ -82,19 +81,9 @@ class Ising(AbstractOperator):
                 array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        mels = _np.empty(x.shape[0] + 1, dtype=_np.complex128)
-        x_prime = _np.tile(x, (x.shape[0] + 1, 1))
-
-        mels[0] = 0.
-        for e in self._edges:
-            mels[0] += self._J * (x[e[0]] * x[e[1]])
-
-        mels[1:].fill(-self._h)
-
-        for i in range(x.shape[0]):
-            x_prime[i + 1][i] *= -1.
-
-        return x_prime, mels
+        return self._flattened_kernel(
+            x.reshape((1, -1)), _np.ones(1), self._edges, self._h, self._J,
+        )
 
     @staticmethod
     @jit(nopython=True)
@@ -109,18 +98,18 @@ class Ising(AbstractOperator):
 
         for i in range(x.shape[0]):
 
-            mels[diag_ind] = 0.
+            mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
                 mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]
 
             odiag_ind = 1 + diag_ind
 
-            mels[odiag_ind:(odiag_ind + n_sites)].fill(-h)
+            mels[odiag_ind : (odiag_ind + n_sites)].fill(-h)
 
-            x_prime[diag_ind:(diag_ind + n_conn)] = x[i]
+            x_prime[diag_ind : (diag_ind + n_conn)] = _np.copy(x[i])
 
             for j in range(n_sites):
-                x_prime[j + odiag_ind][j] *= -1.
+                x_prime[j + odiag_ind][j] *= -1.0
 
             diag_ind += n_conn
 
@@ -177,16 +166,13 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
         20
     """
     if sign_rule is None:
-        sign_rule = hilbert.graph.is_bipartite
+        sign_rule = hilbert.graph.is_bipartite()
 
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0],
-                       [0, 0, -1, 0], [0, 0, 0, 1]])
-    exchange = _np.array(
-        [[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
     if sign_rule:
-        if not hilbert.graph.is_bipartite:
-            raise ValueError(
-                "sign_rule=True specified for a non-bipartite lattice")
+        if not hilbert.graph.is_bipartite():
+            raise ValueError("sign_rule=True specified for a non-bipartite lattice")
         heis_term = sz_sz - exchange
     else:
         heis_term = sz_sz + exchange

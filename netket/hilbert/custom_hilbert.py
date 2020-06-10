@@ -6,7 +6,7 @@ import numpy as _np
 from netket import random as _random
 
 
-class PyCustomHilbert(AbstractHilbert):
+class CustomHilbert(AbstractHilbert):
     r"""A custom hilbert space with discrete local quantum numbers."""
 
     def __init__(self, graph, local_states, constraints=None):
@@ -34,7 +34,7 @@ class PyCustomHilbert(AbstractHilbert):
         """
 
         self.graph = graph
-        self._size = graph.size
+        self._size = graph.n_nodes
 
         self._is_finite = local_states is not None
 

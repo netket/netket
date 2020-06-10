@@ -1,4 +1,3 @@
-from ._C_netket.dynamics import *
 from . import _core
 
 

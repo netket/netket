@@ -1,11 +1,9 @@
 import netket as nk
 import numpy as np
-import jax
-from jax.experimental import stax
-from jax.experimental.stax import Dense, Tanh
+
 
 # 1D Lattice
-L = 4
+L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
@@ -13,35 +11,23 @@ hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 ha = nk.operator.Ising(h=1.0, hilbert=hi)
 
+alpha = 1
+ma = nk.machine.JaxRbm(hi, alpha, dtype=float)
+ma.init_random_parameters(seed=1232)
 
-def initializer(rng, shape):
-    return np.random.normal(scale=0.1, size=shape)
+# Jax Sampler
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
+
+# Using Sgd
+op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 
-ma = nk.machine.Jax(
-    hi,
-    jax.experimental.stax.serial(
-        jax.experimental.stax.Dense(1 * L, initializer, initializer),
-        jax.experimental.stax.Tanh,
-        jax.experimental.stax.Dense(1, initializer, initializer)
-    ),
-    dtype=complex
+# Create the optimization driver
+gs = nk.Vmc(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard=None
 )
 
-sa = nk.sampler.MetropolisLocal(machine=ma)
+# The first iteration is slower because of start-up jit times
+gs.run(out="test", n_iter=2)
 
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.03)
-
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=100,
-    diag_shift=0.01,
-    method="Sr",
-    use_iterative=True
-)
-
-gs.run(output_prefix="test", n_iter=100, show_progress=True)
+gs.run(out="test", n_iter=300)

@@ -49,37 +49,40 @@ def GraphOperator(hilbert, site_ops=[], bond_ops=[], bond_ops_colors=[], graph=N
     if graph is None:
         graph = hilbert.graph
 
-    size = graph.size
+    size = graph.n_nodes
 
     # Create the local operator as the sum of all site and bond operators
 
     # Ensure that at least one of SiteOps and BondOps was initialized
-    if(len(bond_ops) == 0 and len(site_ops) == 0):
-        raise InvalidInputError(
-            "Must input at least site_ops or bond_ops.")
-
-    if (len(bond_ops_colors) == 0):
-        bond_ops_colors = len(bond_ops) * [0]
+    if len(bond_ops) == 0 and len(site_ops) == 0:
+        raise InvalidInputError("Must input at least site_ops or bond_ops.")
 
     this_operator = LocalOperator(hilbert)
 
     # Site operators
-    if (len(site_ops) > 0):
+    if len(site_ops) > 0:
         for i in range(size):
             for j, site_op in enumerate(site_ops):
                 this_operator += LocalOperator(hilbert, site_op, [i])
 
     # Bond operators
-    if len(bond_ops) != len(bond_ops_colors):
-        raise InvalidInputError("""The GraphHamiltonian definition is inconsistent.
-            The sizes of bond_ops and bond_ops_colors do not match.""")
+    if len(bond_ops_colors) > 0:
+        if len(bond_ops) != len(bond_ops_colors):
+            raise InvalidInputError(
+                """The GraphHamiltonian definition is inconsistent.
+                The sizes of bond_ops and bond_ops_colors do not match."""
+            )
 
-    if (len(bond_ops) > 0):
-        #  Use edge_colors to populate operators
-        for edge, color in graph.edges_and_colors:
-            for c, bond_color in enumerate(bond_ops_colors):
-                if bond_color == color:
-                    this_operator += LocalOperator(hilbert,
-                                                   bond_ops[c], edge)
+        if len(bond_ops) > 0:
+            #  Use edge_colors to populate operators
+            for edge, color in graph.edges(color=True):
+                for c, bond_color in enumerate(bond_ops_colors):
+                    if bond_color == color:
+                        this_operator += LocalOperator(hilbert, bond_ops[c], edge)
+    else:
+        assert len(bond_ops) == 1
+
+        for edge in graph.edges():
+            this_operator += LocalOperator(hilbert, bond_ops[0], edge)
 
     return this_operator

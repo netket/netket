@@ -69,6 +69,8 @@ class Qsr(AbstractVariationalDriver):
 
         self._sampler = sampler
         self._sr = sr
+        if sr is not None:
+            self._sr.setup(sampler.machine)
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)
@@ -105,7 +107,7 @@ class Qsr(AbstractVariationalDriver):
             )
         self._n_samples = n_samples
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+        self._n_samples_node = int(_np.ceil(n_samples_chain / self._mpi_nodes))
 
         self._samples = _np.ndarray(
             (self._n_samples_node, self._batch_size, self._hilbert.size)
@@ -130,7 +132,7 @@ class Qsr(AbstractVariationalDriver):
                 "Invalid number of samples: n_samples_data={}".format(n_samples)
             )
         self._n_samples_data = n_samples_data
-        self._n_samples_data_node = int(_np.ceil(n_samples_data / _nk.MPI.size()))
+        self._n_samples_data_node = int(_np.ceil(n_samples_data / self._mpi_nodes))
 
         self._data_grads = _np.empty(
             (self._n_samples_data_node, self._machine.n_par), dtype=_np.complex128

@@ -17,7 +17,6 @@ while True:
     energy = []
     sigma = []
     evar = []
-    
 
     data = json.load(open("ising_imag.log"))
     for iteration in data["Output"]:
@@ -26,7 +25,6 @@ while True:
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
         evar.append(iteration["Energy"]["Variance"])
-        
 
     nres = len(iters)
     cut = 100

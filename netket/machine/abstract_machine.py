@@ -5,9 +5,21 @@ import numpy as _np
 class AbstractMachine(abc.ABC):
     """Abstract class for NetKet machines"""
 
-    def __init__(self, hilbert):
+    def __init__(self, hilbert, dtype=complex, outdtype=None):
         super().__init__()
         self.hilbert = hilbert
+
+        if dtype is not float and dtype is not complex:
+            raise TypeError("dtype must be either float or complex")
+
+        if outdtype is None:
+            outdtype = dtype
+
+        elif outdtype is not float and outdtype is not complex:
+            raise TypeError("outdtype must be either float or complex or None")
+
+        self._outdtype = outdtype
+        self._dtype = dtype
 
     @abc.abstractmethod
     def log_val(self, x, out=None):
@@ -16,13 +28,12 @@ class AbstractMachine(abc.ABC):
 
         Args:
             x: A matrix of `float64` of shape `(*, self.n_visible)`.
-            out: Destination vector of `complex128`. The
-                 length of `out` should be `x.shape[0]`.
+            out: Destination vector of `complex128`. The length of `out` should be `x.shape[0]`.
 
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         pass
 
     def init_random_parameters(self, seed=None, sigma=0.01):
@@ -31,23 +42,51 @@ class AbstractMachine(abc.ABC):
             scale=sigma, size=self.n_par
         ) + 1.0j * rgen.normal(scale=sigma, size=self.n_par)
 
-    def vector_jacobian_prod(self, x, vec, out=None):
+    def vector_jacobian_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
         r"""Computes the scalar product between gradient of the logarithm of the wavefunction for a
         batch of visible configurations `x` and a vector `vec`. The result is stored into `out`.
 
         Args:
-             x: a matrix of `float64` of shape `(*, self.n_visible)`.
-             vec: a `complex128` vector used to compute the inner product with the jacobian.
-             out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+            x: a matrix or 3d tensor of `float64` of shape `(*, self.n_visible)` or `(*, *, self.n_visible)`.
+            vec: a `complex128` vector or matrix used to compute the inner product with the jacobian.
+            out: The result of the inner product, it is a vector of `complex128` and length `self.n_par`.
+            conjugate (bool): If true, this computes the conjugate of the vector jacobian product.
+            return_jacobian (bool): If true, the Jacobian is returned.
 
 
         Returns:
-             `out`
+            `out` or (out,jacobian) if return_jacobian is True
         """
-        return _np.dot(_np.asmatrix(self.der_log(x)).H, vec, out)
+        vec = vec.reshape(-1)
 
-    def jacobian_vector_prod(self, v, vec, out=None):
-        return NotImplementedError
+        if x.ndim == 3:
+
+            jacobian = _np.stack([self.der_log(xb) for xb in x])
+
+            if conjugate:
+                out = _np.tensordot(vec, jacobian.conjugate(), axes=1)
+            else:
+                out = _np.tensordot(vec.conjugate(), jacobian, axes=1)
+
+        elif x.ndim == 2:
+
+            jacobian = self.der_log(x)
+
+            if conjugate:
+                out = _np.dot(jacobian.transpose().conjugate(), vec, out)
+            else:
+                out = _np.dot(jacobian.transpose(), vec.conjugate(), out)
+
+        out = out.reshape(-1)
+
+        return (out, jacobian) if return_jacobian else out
+
+    def jacobian_vector_prod(
+        self, x, vec, out=None, conjugate=True, return_jacobian=False
+    ):
+        raise NotImplementedError
 
     def der_log(self, x, out=None):
         r"""Computes the gradient of the logarithm of the wavefunction for a
@@ -61,7 +100,7 @@ class AbstractMachine(abc.ABC):
         Returns:
             `out`
             """
-        return NotImplementedError
+        raise NotImplementedError
 
     def to_array(self, normalize=True, batch_size=512):
         r"""
@@ -92,7 +131,7 @@ class AbstractMachine(abc.ABC):
 
             return psi
         else:
-            return RuntimeError("The hilbert space is not indexable")
+            raise RuntimeError("The hilbert space is not indexable")
 
     def log_norm(self, order=2):
         r"""
@@ -117,13 +156,19 @@ class AbstractMachine(abc.ABC):
 
             return log_n + maxl * order
         else:
-            return RuntimeError("The hilbert space is not indexable")
+            raise RuntimeError("The hilbert space is not indexable")
 
     @property
-    @abc.abstractmethod
-    def is_holomorphic(self):
-        r"""Returns whether the wave function is holomorphic."""
-        return NotImplementedError
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def outdtype(self):
+        return self._outdtype
+
+    @property
+    def has_complex_parameters(self):
+        return self._dtype is complex
 
     @property
     def n_par(self):
@@ -134,7 +179,7 @@ class AbstractMachine(abc.ABC):
     @abc.abstractmethod
     def state_dict(self):
         r"""A dictionary containing the parameters of this machine"""
-        return NotImplementedError
+        raise NotImplementedError
 
     @property
     def parameters(self):
@@ -152,10 +197,42 @@ class AbstractMachine(abc.ABC):
             _np.copyto(x, p[i : i + x.size])
             i += x.size
 
+    def numpy_flatten(self, data):
+        r"""Returns a flattened numpy array representing the given data.
+            This is typically used to serialize parameters and gradients.
+            The default implementation attempts to return a simple reshaped view.
+
+        Args:
+            data: a contigous numpy-compatible array.
+
+        Returns:
+            numpy.ndarray: a one-dimensional array containing a view of the data
+        """
+        return _np.asarray(data).reshape(-1)
+
+    def numpy_unflatten(self, data, shape_like):
+        r"""Attempts a deserialization of the given numpy data.
+            This is typically used to deserialize parameters and gradients.
+
+        Args:
+            data: a 1d numpy array.
+            shape_like: this as in instance having the same type and shape of the desired conversion.
+
+        Returns:
+            A numpy array containing a view of data and compatible with the given shape.
+        """
+        return _np.asarray(data).reshape(shape_like.shape)
+
     def save(self, file):
         assert type(file) is str
         with open(file, "wb") as file_ob:
-            _np.save(file_ob, self.parameters, allow_pickle=False)
+            _np.save(file_ob, self.numpy_flatten(self.parameters), allow_pickle=False)
 
     def load(self, file):
-        self.parameters = _np.load(file, allow_pickle=False)
+        self.parameters = self.numpy_unflatten(
+            _np.load(file, allow_pickle=False), self.parameters
+        )
+
+    @property
+    def input_size(self):
+        return self.hilbert.size

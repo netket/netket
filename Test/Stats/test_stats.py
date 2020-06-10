@@ -40,7 +40,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     stats = statistics(eloc.T)
 
     # These tests only work for one MPI process
-    assert nk.MPI.size() == 1
+    assert nk.stats.MPI.COMM_WORLD.size == 1
 
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:
@@ -50,7 +50,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         # R estimate
         B_over_n = stats.error_of_mean ** 2
         W = stats.variance
-        assert stats.R == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
+        assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
 def test_stats_mean_std():
@@ -127,6 +127,8 @@ def _test_tau_corr(batch_size, sig_corr):
     assert tau_fit_m == pytest.approx(stats.tau_corr, rel=1, abs=3)
 
     eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
+
+    print(stats.error_of_mean, eom_fit)
     assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
 
 

@@ -1,20 +1,38 @@
+<div align="center">
+<img src="https://www.netket.org/_static/logo_simple.jpg" alt="logo" width="400"></img>
+</div>
 
-# <img src="http://www.netket.org/img/logo_simple.jpg" width="400"> <img src="http://www.netket.org/img/logo_simple.jpg" width="400">
+# __NetKet__
 
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/installer/conda.svg)](https://conda.anaconda.org/conda-forge)
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
 [![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
 [![Paper](https://img.shields.io/badge/paper-arXiv%3A1904.00031-B31B1B.svg)](https://arxiv.org/abs/1904.00031)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/v.2.0)
-
-
-# __NetKet__
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 It is a Python library built on C++ primitives.
 
+- **Homepage:** <https://netket.org>
+- **Citing:** <https://www.netket.org/citing>
+- **Documentation:** <https://netket.org/documentation>
+- **Tutorials:** <https://www.netket.org/tutorials>
+- **Examples:** <https://github.com/netket/netket/tree/master/Examples>
+- **Source code:** <https://github.com/netket/netket>
+
+## Installation and Usage
+You can install on osx or linux with either
+ - *pip*   : `pip install netket`
+ - *conda* : `conda install conda-forge::netket`
+
+Conda by default ships pre-built binaries for recent versions of python.
+The default blas library is openblas, but mkl can be enforced.
+
+To learn more, check out the website or the examples.
 
 ## Major Features
 
@@ -99,10 +117,6 @@ It is a Python library built on C++ primitives.
 * Interface
   * Python Library
   * JSON output  
-
-## Installation and Usage
-
-Please visit our [homepage](https://www.netket.org) for further information.
 
 ## License
 

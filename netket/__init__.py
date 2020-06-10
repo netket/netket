@@ -17,7 +17,6 @@ __all__ = [
     "exact",
     "graph",
     "hilbert",
-    "layer",
     "machine",
     "operator",
     "optimizer",
@@ -30,12 +29,11 @@ __all__ = [
 ]
 
 from . import (
-    _C_netket,
     dynamics,
     exact,
     graph,
     hilbert,
-    layer,
+    logging,
     machine,
     operator,
     optimizer,
@@ -49,9 +47,13 @@ from . import (
     _vmc,
     _steadystate,
 )
-from ._C_netket import MPI
 
 # Main applications
 from ._vmc import Vmc
 from ._qsr import Qsr
 from ._steadystate import SteadyState
+
+from .vmc_common import (
+    tree_map as _tree_map,
+    trees2_map as _trees2_map,
+)

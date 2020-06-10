@@ -10,7 +10,7 @@ import tempfile
 import re
 
 SEED = 214748364
-nk.utils.seed(SEED)
+nk.random.seed(SEED)
 
 
 def _setup_vmc():
@@ -23,13 +23,14 @@ def _setup_vmc():
 
     ha = nk.operator.Ising(hi, h=1.0)
     sa = nk.sampler.ExactSampler(machine=ma, sample_size=16)
-    op = nk.optimizer.Sgd(learning_rate=0.05)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
     sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
 
-    driver = nk.variational.Vmc(ha, sa, op, 1000)
+    sr = nk.optimizer.SR(ma, use_iterative=False)
+    driver = nk.Vmc(ha, sa, op, 1000, sr=sr)
 
     return ha, sx, ma, sa, driver
 
@@ -76,9 +77,9 @@ def test_vmc_functions():
         assert stats.mean.real == approx(exact_ex.real, abs=tol)
 
     local_values = nk.operator.local_values(ha, ma, samples)
-    grad = nk.stats.covariance_sv(local_values, der_logs)
-    assert grad.shape == (ma.n_par,)
-    assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
+    # grad = nk.stats.covariance_sv(local_values, der_logs)
+    # assert grad.shape == (ma.n_par,)
+    # assert np.mean(np.abs(grad) ** 2) == approx(0.0, abs=1e-8)
 
     _, grads = vmc.estimate_expectations(
         ha, sampler, n_samples, 10, compute_gradients=True
@@ -91,7 +92,7 @@ def test_vmc_functions():
 def test_vmc_use_cholesky_compatibility():
     ha, _, ma, sampler, _ = _setup_vmc()
 
-    op = nk.optimizer.Sgd(learning_rate=0.1)
+    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
     with raises(
         ValueError,
         match="Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`.",
@@ -120,3 +121,49 @@ def test_vmc_progress_bar():
         driver.run(prefix, 5, show_progress=None)
     pbar = f.getvalue()
     assert not len(pbar)
+
+
+def _energy(par, machine, H):
+    machine.parameters = np.copy(par)
+    psi = machine.to_array()
+    return np.real(psi.conj() @ H @ psi)
+
+
+def central_diff_grad(func, x, eps, *args):
+    grad = np.zeros(len(x), dtype=complex)
+    epsd = np.zeros(len(x), dtype=complex)
+    epsd[0] = eps
+    for i in range(len(x)):
+        assert not np.any(np.isnan(x + epsd))
+        grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
+        grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
+        grad[i] = 0.5 * grad_r + 0.5j * grad_i
+        assert not np.isnan(grad[i])
+        grad[i] /= eps
+        epsd = np.roll(epsd, 1)
+    return grad
+
+
+def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
+    assert np.max(np.real(der_log - num_der_log)) == approx(
+        0.0, rel=rel_eps, abs=abs_eps
+    )
+    # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
+    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
+        0.0, rel=rel_eps, abs=abs_eps
+    )
+
+
+def test_vmc_gradient():
+    ha, sx, ma, sampler, driver = _setup_vmc()
+    pars = np.copy(ma.parameters)
+    driver._sr = None
+    grad_exact = central_diff_grad(_energy, pars, 1.0e-5, ma, ha.to_sparse())
+
+    driver.n_samples = 1e6
+    driver.n_discard = 1e3
+    driver.machine.parameters = np.copy(pars)
+    grad_approx = driver._forward_and_backward()
+
+    err = 6 / np.sqrt(driver.n_samples)
+    same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)

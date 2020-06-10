@@ -1,12 +1,14 @@
 import abc
 
-from netket._core import deprecated
+from netket._core import deprecated, warn_deprecation
 import netket as _nk
 import numpy as _np
 
 from netket.logging import JsonLog as _JsonLog
 
 from netket.vmc_common import tree_map
+
+from netket.utils import node_number as _rank, n_nodes as _n_nodes
 
 from tqdm import tqdm
 
@@ -31,7 +33,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, machine, optimizer, minimized_quantity_name=""):
-        self._mynode = _nk.MPI.rank()
+        self._mynode = _rank
+        self._mpi_nodes = _n_nodes
         self._obs = {}  # to deprecate
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
@@ -135,24 +138,28 @@ class AbstractVariationalDriver(abc.ABC):
 
     def run(
         self,
-        output_prefix,
         n_iter,
+        out=None,
         obs=None,
-        save_params_every=50,
-        write_every=50,
-        step_size=1,
         show_progress=True,
+        save_params_every=50,  # for default logger
+        write_every=50,  # for default logger
+        step_size=1,  # for default logger
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
         stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output. The output is a json file at `output_prefix`, overwriting files with
-        the same prefix.
+        in the output `logger`. If no logger is specified, creates a json file at `out`,
+        overwriting files with the same prefix.
+
+        !! Compatibility v2.1
+            Before v2.1 the order of the first two arguments, `n_iter` and `out` was
+            reversed. The reversed ordering will still be supported until v3.0, but is deprecated.
 
         Args:
-            :output_prefix: The prefix at which json output should be stored (ignored if logger
-              is provided).
             :n_iter: the total number of iterations
+            :out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
+                If this argument is a string, it will be used as output prefix for the standard JSON logger.
             :obs: An iterable containing all observables that should be computed
             :save_params_every: Every how many steps the parameters of the network should be
             serialized to disk (ignored if logger is provided)
@@ -161,6 +168,17 @@ class AbstractVariationalDriver(abc.ABC):
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
         """
+
+        # TODO Remove this deprecated code in v3.0
+        # manage deprecated where argument names are not specified, and
+        # prefix is passed as the first positional argument and the number
+        # of iterations as a second argument.
+        if type(n_iter) is str and type(out) is int:
+            n_iter, out = out, n_iter
+            warn_deprecation(
+                "The positional syntax run(out, n_iter, **args) is deprecated, use run(n_iter, out, **args) instead."
+            )
+
         if obs is None:
             # TODO remove the first case after deprecation of self._obs in 3.0
             if len(self._obs) != 0:
@@ -168,31 +186,44 @@ class AbstractVariationalDriver(abc.ABC):
             else:
                 obs = {}
 
-        logger = _JsonLog(output_prefix, save_params_every, write_every)
+        if out is None:
+            out = tuple()
+            print(
+                "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
+                "Running the optimization but not saving the output."
+            )
 
-        # Don't log on non-root nodes
-        if self._mynode != 0:
-            logger = None
+        # Log only non-root nodes
+        if self._mynode == 0:
+            # if out is a path, create an overwriting Json Log for output
+            if isinstance(out, str):
+                loggers = (_JsonLog(out, "w", save_params_every, write_every),)
+            elif hasattr(out, "__iter__"):
+                loggers = out
+            else:
+                loggers = (out,)
+        else:
+            loggers = tuple()
+            show_progress = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
             for step in itr:
+
+                log_data = self.estimate(obs)
+
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
                     itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    log_data[self._loss_name] = self._loss_stats
 
-                obs_data = self.estimate(obs)
-
-                if self._loss_stats is not None:
-                    obs_data[self._loss_name] = self._loss_stats
-
-                if logger is not None:
-                    logger(step, obs_data, self.machine)
+                for logger in loggers:
+                    logger(self.step_count, log_data, self.machine)
 
         # flush at the end of the evolution so that final values are saved to
         # file
-        if logger is not None:
+        for logger in loggers:
             logger.flush(self.machine)
 
     def estimate(self, observables):

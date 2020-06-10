@@ -1,5 +1,5 @@
 import numpy as _np
-from numba import jitclass, types, typed, generated_jit
+from numba.experimental import jitclass
 from numba import int64, float64
 import numba
 

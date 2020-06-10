@@ -1,13 +1,15 @@
-import sys
-
-import numpy as _np
+import math
 
 import netket as _nk
-from netket._core import deprecated
-from .operator import local_values as _local_values
-from netket.stats import statistics as _statistics, mean as _mean
 
-from netket.vmc_common import info
+from .operator import local_values as _local_values
+from netket.stats import (
+    statistics as _statistics,
+    mean as _mean,
+    sum_inplace as _sum_inplace,
+)
+
+from netket.vmc_common import info, tree_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -59,16 +61,19 @@ class Vmc(AbstractVariationalDriver):
         self._sampler = sampler
         self._sr = sr
         if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+            self._sr.setup(sampler.machine)
 
         self._npar = self._machine.n_par
 
         self._batch_size = sampler.sample_shape[0]
 
+        # Check how many parallel nodes we are running on
+        self.n_nodes = _nk.utils.n_nodes
+
         self.n_samples = n_samples
         self.n_discard = n_discard
 
-        self._dp = _np.empty(self._npar, dtype=_np.complex128)
+        self._dp = None
 
     @property
     def n_samples(self):
@@ -80,21 +85,16 @@ class Vmc(AbstractVariationalDriver):
             raise ValueError(
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
-        self._n_samples = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
 
-        self._samples = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._ham.hilbert.size)
-        )
+        n_samples_chain = int(math.ceil((n_samples / self._batch_size)))
+        self._n_samples_node = int(math.ceil(n_samples_chain / self.n_nodes))
 
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size, self._npar), dtype=_np.complex128
-        )
+        self._n_samples = int(self._n_samples_node * self._batch_size * self.n_nodes)
 
-        self._grads = _np.empty(
-            (self._n_samples_node, self._machine.n_par), dtype=_np.complex128
-        )
+        self._samples = None
+
+        self._grads = None
+        self._jac = None
 
     @property
     def n_discard(self):
@@ -107,7 +107,7 @@ class Vmc(AbstractVariationalDriver):
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
-            n_discard
+            int(n_discard)
             if n_discard != None
             else self._n_samples_node * self._batch_size // 10
         )
@@ -123,8 +123,7 @@ class Vmc(AbstractVariationalDriver):
         self._sampler.reset()
 
         # Burnout phase
-        for _ in self._sampler.samples(self._n_discard):
-            pass
+        self._sampler.generate_samples(self._n_discard)
 
         # Generate samples and store them
         self._samples = self._sampler.generate_samples(
@@ -134,44 +133,37 @@ class Vmc(AbstractVariationalDriver):
         # Compute the local energy estimator and average Energy
         eloc, self._loss_stats = self._get_mc_stats(self._ham)
 
+        # Center the local energy
+        eloc -= _mean(eloc)
+
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+        eloc_r = eloc.reshape(-1, 1)
+
         # Perform update
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
-            # Computes the jacobian
-            _der_logs = self._der_logs
-            _der_log = self._machine.der_log
-
-            for i, sample in enumerate(self._samples):
-                _der_logs[i] = _der_log(sample)
-
-            # flatten MC chain dimensions:
-            _der_logs = _der_logs.reshape(-1, self._npar)
-
-            # Center the local energy
-            eloc -= _mean(eloc)
-
-            # Center the log derivatives
-            _der_logs -= _mean(_der_logs, axis=0)
-
-            # Compute the gradient
-            self._grads = _np.conjugate(_der_logs) * eloc.reshape(-1, 1)
-
-            grad = _mean(self._grads, axis=0)
-
-            self._sr.compute_update(_der_logs, grad, self._dp)
-
-            _der_logs = _der_logs.reshape(
-                self._n_samples_node, self._batch_size, self._npar
+            self._grads, self._jac = self._machine.vector_jacobian_prod(
+                samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
             )
+
+            self._grads = tree_map(_sum_inplace, self._grads)
+
+            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
+
         else:
             # Computing updates using the simple gradient
-            # Center the local energy
-            eloc -= _mean(eloc)
+            self._grads = self._machine.vector_jacobian_prod(
+                samples_r, eloc_r / self._n_samples, self._grads
+            )
 
-            for x, eloc_x, grad_x in zip(self._samples, eloc, self._grads):
-                self._machine.vector_jacobian_prod(x, eloc_x, grad_x)
+            self._grads = tree_map(_sum_inplace, self._grads)
 
-            self._dp = _mean(self._grads, axis=0) / float(self._batch_size)
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if not self._machine.has_complex_parameters:
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
         return self._dp
 
@@ -191,9 +183,12 @@ class Vmc(AbstractVariationalDriver):
         super().reset()
 
     def _get_mc_stats(self, op):
-        loc = _np.empty((self._samples.shape[0:2]), dtype=_np.complex128)
-        for i, sample in enumerate(self._samples):
-            _local_values(op, self._machine, sample, out=loc[i])
+
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+
+        loc = _local_values(op, self._machine, samples_r).reshape(
+            self._samples.shape[0:2]
+        )
 
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.

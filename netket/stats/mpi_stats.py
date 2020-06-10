@@ -1,8 +1,17 @@
 import numpy as _np
-from mpi4py import MPI
+from ._sum_inplace import sum_inplace as _sum_inplace
+
+from netket.utils import (
+    mpi_available as _mpi_available,
+    n_nodes as _n_nodes,
+    MPI_comm as MPI_comm,
+)
+
+if _mpi_available:
+    from netket.utils import MPI
 
 
-def subtract_mean(x, axis=None, dtype=None, mean_out=None):
+def subtract_mean(x, axis=None):
     """
     Subtracts the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
@@ -10,76 +19,57 @@ def subtract_mean(x, axis=None, dtype=None, mean_out=None):
     Args:
         axis: Axis or axes along which the means are computed. The default is to
               compute the mean of the flattened array.
-        dtype: Type to use in computing the mean
-        mean_out: pre-allocated array to store the mean
     """
-    x_mean = mean(x, axis=axis, dtype=dtype, out=mean_out)
-
+    x_mean = mean(x, axis=axis)
     x -= x_mean
 
     return x
 
 
-_MPI_comm = MPI.COMM_WORLD
-
-_n_nodes = _MPI_comm.Get_size()
-
-
-def mean(a, axis=None, dtype=None, out=None):
+def mean(a, axis=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
     Returns the average of the array elements. The average is taken over the flattened array by default,
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
+    # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
+    out = a.mean(axis=axis)
 
-    out = _np.mean(a, axis=axis, dtype=None, out=out)
+    out = _sum_inplace(out)
+    out /= _n_nodes
 
-    if _np.isscalar(out):
-        out = _MPI_comm.allreduce(out, op=MPI.SUM) / float(_n_nodes)
-        return out
-
-    old_shape = out.shape
-    out = out.reshape(-1)
-    _MPI_comm.Allreduce(MPI.IN_PLACE, out, op=MPI.SUM)
-    out /= float(_n_nodes)
-
-    return out.reshape(old_shape)
+    return out
 
 
-def sum_on_nodes(a, out=None):
+def sum(a, axis=None, out=None):
     """
-    Computes the sum of a numpy array over MPI processes.
+    Compute the arithmetic mean along the specified axis and over MPI processes.
     """
-    if out is None:
-        _MPI_comm.Allreduce(MPI.IN_PLACE, a.reshape(-1), op=MPI.SUM)
-        return a
-    else:
-        out = _np.copy(a)
-        _MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
-        return out
+    # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
+    out = _np.asarray(_np.sum(a, axis=axis, out=out))
+
+    if _n_nodes > 1:
+        MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
+
+    return out
 
 
-def var(a, axis=None, dtype=None, out=None):
+def var(a, axis=None, out=None, ddof=0):
     """
     Compute the variance mean along the specified axis and over MPI processes.
-
-
     """
+    m = mean(a, axis=axis)
 
-    m = mean(a, axis=axis, dtype=dtype, out=out)
-    if axis is None or axis == 0:
-        out = mean(_np.abs(a - m) ** 2.0, axis=axis, dtype=dtype, out=out)
-    elif axis == 1:
-        out = mean(
-            _np.abs(a - m[:, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
-        )
-    elif axis == 2:
-        out = mean(
-            _np.abs(a - m[:, :, _np.newaxis]) ** 2.0, axis=axis, dtype=dtype, out=out
-        )
+    if axis is None:
+        ssq = _np.abs(a - m) ** 2.0
     else:
-        raise RuntimeError("var implemented only for ndim<=3.")
+        ssq = _np.abs(a - _np.expand_dims(m, axis)) ** 2.0
+
+    out = sum(ssq, axis=axis, out=out)
+
+    n_all = total_size(a, axis=axis)
+    out /= n_all - ddof
 
     return out
 
@@ -90,5 +80,7 @@ def total_size(a, axis=None):
     else:
         l_size = a.shape[axis]
 
-    l_size = _MPI_comm.allreduce(l_size, op=MPI.SUM)
+    if _n_nodes > 1:
+        l_size = MPI_comm.allreduce(l_size, op=MPI.SUM)
+
     return l_size
