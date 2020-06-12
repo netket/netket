@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from jax.experimental.stax import Dense
+from jax.experimental import stax
 import jax
 from collections import OrderedDict
 from functools import reduce
@@ -243,13 +245,14 @@ class Jax(AbstractMachine):
         else:
 
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.numpy.tensordot(
-                    vec.transpose(), j.conjugate(), axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose(), j.conjugate(), axes=1)
+
             else:
-                prodj = lambda j: jax.numpy.tensordot(
-                    vec.transpose().conjugate(), j, axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose().conjugate(), j, axes=1)
 
             jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
@@ -312,10 +315,6 @@ class Jax(AbstractMachine):
             k += size
 
         return tree_unflatten(tree, datalist)
-
-
-from jax.experimental import stax
-from jax.experimental.stax import Dense
 
 
 def SumLayer():
