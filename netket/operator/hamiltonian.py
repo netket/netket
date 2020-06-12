@@ -117,7 +117,7 @@ class Ising(AbstractOperator):
 
         return x_prime, mels
 
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
             from a given quantum number x, it finds all other quantum numbers x' such
             that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -132,6 +132,7 @@ class Ising(AbstractOperator):
                 sections (array): An array of size (batch_size) useful to unflatten
                             the output of this function.
                             See numpy.split for the meaning of sections.
+                pad (bool): no effect here            
 
             Returns:
                 matrix: The connected states x', flattened together in a single matrix.

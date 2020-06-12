@@ -506,7 +506,7 @@ class LocalOperator(AbstractOperator):
             self._acting_size,
         )
 
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
             from a given quantum number x, it finds all other quantum numbers x' such
             that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -521,6 +521,7 @@ class LocalOperator(AbstractOperator):
                 sections (array): An array of size (batch_size) useful to unflatten
                             the output of this function.
                             See numpy.split for the meaning of sections.
+                pad (bool): Whether to use zero-valued matrix elements in order to return all equal sections.
 
             Returns:
                 matrix: The connected states x', flattened together in a single matrix.
@@ -540,6 +541,7 @@ class LocalOperator(AbstractOperator):
             self._x_prime,
             self._acting_on,
             self._acting_size,
+            pad,
         )
 
     @staticmethod
@@ -556,6 +558,7 @@ class LocalOperator(AbstractOperator):
         all_x_prime,
         acting_on,
         acting_size,
+        pad=False,
     ):
         batch_size = x.shape[0]
         n_sites = x.shape[1]
@@ -566,10 +569,11 @@ class LocalOperator(AbstractOperator):
         xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
 
         tot_conn = 0
+        max_conn = 0
 
         for b in range(batch_size):
             # diagonal element
-            tot_conn += 1
+            conn_b = 1
 
             # counting the off-diagonal elements
             for i in range(n_operators):
@@ -584,8 +588,16 @@ class LocalOperator(AbstractOperator):
                         * basis[k]
                     )
 
-                tot_conn += n_conns[i, xs_n[b, i]]
+                conn_b += n_conns[i, xs_n[b, i]]
+
+            tot_conn += conn_b
             sections[b] = tot_conn
+
+            if pad:
+                max_conn = max(conn_b, max_conn)
+
+        if pad:
+            tot_conn = batch_size * max_conn
 
         x_prime = _np.empty((tot_conn, n_sites))
         mels = _np.empty(tot_conn, dtype=_np.complex128)
@@ -616,6 +628,13 @@ class LocalOperator(AbstractOperator):
                                 i, xs_n[b, i], cc, k
                             ]
                     c += n_conn_i
+
+            if pad:
+                delta_conn = max_conn - (c - c_diag)
+                mels[c : c + delta_conn].fill(0.0j)
+                x_prime[c : c + delta_conn, :] = _np.copy(x_batch)
+                c += delta_conn
+                sections[b] = c
 
         return x_prime, mels
 
