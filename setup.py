@@ -31,7 +31,7 @@ setup(
         "scipy>=1.2.1",
         "mpi4py>=3.0.1",
         "tqdm>=4.42.1",
-        "numba>=0.48.0",
+        "numba>=0.49.0",
         "networkx>=2.4",
     ],
     python_requires=">=3.6",

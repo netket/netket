@@ -46,3 +46,11 @@ try:
     tensorboard_available = True
 except ImportError:
     tensorboard_available = False
+
+
+try:
+    import backpack
+
+    backpack_available = True
+except ImportError:
+    backpack_available = False
