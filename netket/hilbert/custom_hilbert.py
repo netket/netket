@@ -191,7 +191,7 @@ class CustomHilbert(AbstractHilbert):
     @staticmethod
     @jit(nopython=True)
     def _gen_to_bare_numbers(conditions):
-        return _np.argwhere(conditions).reshape(-1)
+        return _np.nonzero(conditions)[0]
 
     @staticmethod
     @jit(nopython=True)
