@@ -50,6 +50,7 @@ class JsonLog:
         file_exists = _exists_json(output_prefix)
 
         starting_json_content = {"Output": []}
+        starting_step = 0
 
         if file_exists and mode == "append":
             # if there is only the .wf file but not the json one, raise an error
@@ -59,6 +60,7 @@ class JsonLog:
                 )
 
             starting_json_content = _json.load(open(output_prefix + ".log"))
+            starting_step = starting_json_content["Output"]["Iteration"][-1]
 
         elif file_exists and mode == "fail":
             raise ValueError(
@@ -69,12 +71,19 @@ class JsonLog:
         self._prefix = output_prefix
         self._write_every = write_every
         self._save_params_every = save_params_every
-        self._old_step = 0
+        self._old_step = starting_step
+        self._step_shift = 0
         self._steps_notflushed_write = 0
         self._steps_notflushed_pars = 0
 
+    def previous_step(self):
+        return self._old_step + self._step_shift
+
     def __call__(self, step, item, machine):
-        item["Iteration"] = step
+        if step + self._step_shift <= self._old_step:
+            self._step_shift += self.previous_step() - step
+
+        item["Iteration"] = step + self._step_shift
 
         self._json_out["Output"].append(item)
 
