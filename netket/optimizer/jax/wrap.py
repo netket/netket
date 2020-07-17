@@ -5,7 +5,7 @@ class Wrap(AbstractOptimizer):
     r"""Wrapper for Jax optimizers.
     """
 
-    def __init__(self, machine, optimizer):
+    def __init__(self, machine, optimizer, repr_str=None):
         r"""
            Constructs a new ``Jax`` optimizer that can be used in NetKet drivers.
 
@@ -25,6 +25,8 @@ class Wrap(AbstractOptimizer):
 
         self._machine = machine
 
+        self._repr_str = repr_str
+
         self.reset()
 
     def update(self, grad, pars):
@@ -39,6 +41,18 @@ class Wrap(AbstractOptimizer):
         self._opt_state = self._init_fun(self._machine.parameters)
 
     def __repr__(self):
-        rep = "Wrapper for the following Jax optimizer :\n"
-        rep += str(self._j_opt)
-        return rep
+        repr_str = self._repr_str
+        if repr_str is None:
+            try:
+                module = self._update_fun.__module__
+                qname = self._update_fun.__qualname__
+                repr_str = module + "." + qname
+
+                if module.startswith("jax"):
+                    repr_str = repr_str.rsplit(".", 2)[0]
+            except:
+                repr_str = ""
+
+            rep = "Wrapper for the following Jax optimizer :\n  "
+            rep += str(repr_str)
+            return rep
