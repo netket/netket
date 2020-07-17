@@ -329,6 +329,9 @@ def SumLayer():
     return init_fun, apply_fun
 
 
+SumLayer = SumLayer()
+
+
 @jax.jit
 def logcosh(x):
     x = x * jax.numpy.sign(x.real)
@@ -341,7 +344,7 @@ LogCoshLayer = stax.elementwise(logcosh)
 def JaxRbm(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
         dtype=dtype,
     )
 
@@ -523,8 +526,8 @@ def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
         stax.serial(
             stax.FanOut(2),
             stax.parallel(
-                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
-                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
             ),
             FanInSum2ModPhase,
         ),
