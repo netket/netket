@@ -1,5 +1,7 @@
 import numpy as _np
 from .abstract_sampler import AbstractSampler
+from ..machine.density_matrix import AbstractDensityMatrix
+from ..hilbert import DoubledHilbert
 import netket.random
 
 
@@ -26,7 +28,10 @@ class ExactSampler(AbstractSampler):
             sample_size: The number of independent samples to be generated at each invocation of __next__.
         """
         super().__init__(machine, sample_size)
-        self.hilbert = machine.hilbert
+        if isinstance(machine, AbstractDensityMatrix):
+            self.hilbert = DoubledHilbert(machine.hilbert)
+        else:
+            self.hilbert = machine.hilbert
         self._machine_pow = 2.0
 
     def reset(self, init_random=False):
