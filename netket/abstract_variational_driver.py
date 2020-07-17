@@ -38,7 +38,7 @@ class AbstractVariationalDriver(abc.ABC):
         self._obs = {}  # to deprecate
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
-        self.step_count = 0
+        self._step_count = 0
 
         self._machine = machine
         self._optimizer = optimizer
@@ -121,15 +121,6 @@ class AbstractVariationalDriver(abc.ABC):
         This can be used, for example, to identify the line in a log file.
         """
         return self._step_count
-
-    @property
-    def step_value(self):
-        """
-        Returns a monotonic value identifying the current step. This might be the 
-        step_count for a standard iterative optimizer, or the time for a time-evolution
-        integrator.
-        """
-        return self.step_count
 
     def iter(self, n_steps, step=1):
         """
@@ -273,7 +264,7 @@ class AbstractVariationalDriver(abc.ABC):
             :param dp: the gradient
         """
         self._machine.parameters = self._optimizer.update(dp, self._machine.parameters)
-        self.step_count += 1
+        self._step_count += 1
 
     @deprecated()
     def add_observable(self, obs, name):
