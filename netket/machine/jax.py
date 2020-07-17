@@ -21,6 +21,8 @@ from functools import reduce
 from .abstract_machine import AbstractMachine
 
 import numpy as _np
+from jax import numpy as jnp
+from jax import random
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
@@ -331,6 +333,53 @@ class Jax(AbstractMachine):
             k += size
 
         return tree_unflatten(tree, datalist)
+
+
+from jax.experimental import stax
+from jax.experimental.stax import Dense
+from jax.nn.initializers import glorot_normal, normal
+
+
+def DenseReal(out_dim, use_bias=True, W_init=glorot_normal(), b_init=normal()):
+    """Layer constructor function for a dense (fully-connected) layer with complex output but real weight."""
+
+    def init_fun(rng, input_shape):
+        output_shape = input_shape[:-1] + (out_dim,)
+        k1, k2 = random.split(rng)
+        if use_bias:
+            Wr, Wi, br, bi = (
+                W_init(k1, (input_shape[-1], out_dim)),
+                W_init(k1, (input_shape[-1], out_dim)),
+                b_init(k2, (out_dim,)),
+                b_init(k2, (out_dim,)),
+            )
+            return output_shape, (Wr, Wi, br, bi)
+        else:
+            Wr, Wi = (
+                W_init(k1, (input_shape[-1], out_dim)),
+                W_init(k1, (input_shape[-1], out_dim)),
+            )
+            return output_shape, (Wr, Wi)
+
+    def apply_fun(params, inputs, **kwargs):
+        # distinguish between real and complex input because
+        # jax is not smart enough to use the good gemm on his own.
+        if jnp.iscomplexobj(inputs):
+            if use_bias:
+                Wr, Wi, br, bi = params
+                return jnp.dot(inputs, Wr + 1j * Wi) + br + 1j * bi
+            else:
+                Wr, Wi = params
+                return jnp.dot(inputs, Wr + 1j * Wi)
+        else:
+            if use_bias:
+                Wr, Wi, br, bi = params
+                return jnp.dot(inputs, Wr) + 1j * jnp.dot(inputs, Wi) + br + 1j * bi
+            else:
+                Wr, Wi = params
+                return jnp.dot(inputs, Wr) + 1j * jnp.dot(inputs, Wi)
+
+    return init_fun, apply_fun
 
 
 def SumLayer():
