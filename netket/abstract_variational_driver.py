@@ -106,6 +106,31 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self._machine
 
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, optimizer_new):
+        self._optimizer = optimizer_new
+
+    @property
+    def step_count(self):
+        """
+        Returns a monotonic integer labelling all the steps performed by this driver.
+        This can be used, for example, to identify the line in a log file.
+        """
+        return self._step_count
+
+    @property
+    def step_value(self):
+        """
+        Returns a monotonic value identifying the current step. This might be the 
+        step_count for a standard iterative optimizer, or the time for a time-evolution
+        integrator.
+        """
+        return self.step_count
+
     def iter(self, n_steps, step=1):
         """
         Returns a generator which advances the VMC optimization, yielding

@@ -68,9 +68,7 @@ class Qsr(AbstractVariationalDriver):
         super(Qsr, self).__init__(sampler.machine, optimizer)
 
         self._sampler = sampler
-        self._sr = sr
-        if sr is not None:
-            self._sr.setup(sampler.machine)
+        self.sr = sr
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)
@@ -94,6 +92,16 @@ class Qsr(AbstractVariationalDriver):
 
         assert self._bases.ndim == 1
         assert self._bases.size == self._n_training_samples
+
+    @property
+    def sr(self):
+        return self._sr
+
+    @sr.setter
+    def sr(self, sr):
+        self._sr = sr
+        if self._sr is not None:
+            self._sr.setup(self.machine)
 
     @property
     def n_samples(self):
