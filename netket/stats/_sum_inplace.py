@@ -68,9 +68,12 @@ if jax_available:
 
     @sum_inplace.register(jax.interpreters.xla.DeviceArray)
     def sum_inplace_jax(x):
-        # if not isinstance(x, jax.interpreters.xla.DeviceArray):
-        #    raise TypeError("Argument to sum_inplace_jax must be a DeviceArray, got {}"
-        #            .format(type(x)))
+        if not isinstance(x, jax.interpreters.xla.DeviceArray):
+            raise TypeError(
+                "Argument to sum_inplace_jax must be a DeviceArray, got {}".format(
+                    type(x)
+                )
+            )
 
         if _n_nodes == 1:
             return x

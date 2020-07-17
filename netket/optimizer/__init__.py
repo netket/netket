@@ -9,11 +9,10 @@ from .rms_prop import RmsProp
 from .sgd import Sgd
 from .stochastic_reconfiguration import SR
 
-from ..utils import jax_available, torch_available
+from ..utils import jax_available as _jax_available, torch_available as _torch_available
 
-if jax_available:
+if _jax_available:
     from . import jax
 
-
-if torch_available:
+if _torch_available:
     from .torch import Torch
