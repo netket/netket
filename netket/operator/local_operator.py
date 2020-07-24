@@ -283,7 +283,7 @@ class LocalOperator(AbstractOperator):
 
         # find overlapping support
         support_i = None
-        for (i, support) in enumerate(self._acting_on):
+        for (i, support) in enumerate(self._acting_on_list()):
             if _np.all(acting_on == support):
                 support_i = i
                 break
@@ -304,6 +304,7 @@ class LocalOperator(AbstractOperator):
                 self.mel_cutoff,
                 self._local_states,
             )
+
             return
 
         self._n_operators += 1
