@@ -49,15 +49,15 @@ class Stats:
         )
 
     def __getitem__(self, name):
-        if name is "mean" or "Mean":
+        if name in ("mean", "Mean"):
             return self.mean
-        elif name is "variance" or "Variance":
+        elif name in ("variance", "Variance"):
             return self.variance
-        elif name is "error_of_mean" or "Sigma":
+        elif name in ("error_of_mean", "Sigma"):
             return self.error_of_mean
-        elif name is "R_hat":
+        elif name in ("R_hat",):
             return self.R_hat
-        elif name is "tau_corr" or "TauCorr":
+        elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
 
 
