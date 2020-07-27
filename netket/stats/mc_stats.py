@@ -55,7 +55,7 @@ class Stats:
             return self.variance
         elif name in ("error_of_mean", "Sigma"):
             return self.error_of_mean
-        elif name in ("R_hat",):
+        elif name in ("R_hat", "R"):
             return self.R_hat
         elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
