@@ -31,6 +31,14 @@ try:
 except ImportError:
     jax_available = False
 
+if jax_available:
+    try:
+        import mpi4jax
+
+        mpi4jax_available = True
+    except ImportError:
+        mpi4jax_available = False
+
 
 try:
     import torch

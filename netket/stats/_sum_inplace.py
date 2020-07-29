@@ -60,52 +60,34 @@ def sum_inplace_MPI(a):
 ##############
 # Jax
 #
-from netket.utils import jax_available
+from netket.utils import jax_available, mpi4jax_available
 
 if jax_available:
     import numpy as _np
     import jax
 
-    @sum_inplace.register(jax.interpreters.xla.DeviceArray)
-    def sum_inplace_jax(x):
-        if not isinstance(x, jax.interpreters.xla.DeviceArray):
-            raise TypeError(
-                "Argument to sum_inplace_jax must be a DeviceArray, got {}".format(
-                    type(x)
+    if mpi4jax_available:
+        import mpi4jax
+
+        @sum_inplace.register(jax.interpreters.xla.DeviceArray)
+        @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
+        @sum_inplace.register(jax.interpreters.ad.JVPTracer)
+        def sum_inplace_jax(x):
+            if _n_nodes == 1:
+                return x
+            else:
+                return mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+
+    else:
+
+        @sum_inplace.register(jax.interpreters.xla.DeviceArray)
+        @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
+        @sum_inplace.register(jax.interpreters.ad.JVPTracer)
+        def sum_inplace_jax(x):
+            if _n_nodes == 1:
+                return x
+            else:
+                raise RuntimeError(
+                    "The package mpi4jax is required in order to use jax machines with SR and\
+                    more than one MPI process. To solve this issue, run `pip install mpi4jax` and restart netket."
                 )
-            )
-
-        if _n_nodes == 1:
-            return x
-
-        # This below only works on cpus...
-        # we should make this work for gpus too..
-        # TODO: unsafe_buffer_pointer is considered not yet definitive interface
-        ptr = x.block_until_ready().device_buffer.unsafe_buffer_pointer()
-
-        # The above is faster.
-        # This below should work more often, but might copy.
-        # Depending on future changes in jaxlib, we might have to switch to
-        # this below.
-        # see Google/jax #2123 and #1009
-        # _x = jax.xla._force(x.block_until_ready())
-        # ptr = _x.device_buffer.unsafe_buffer_pointer()
-
-        # using native numpy because jax's numpy does not have ctypeslib
-        data_pointer = _np.ctypeslib.ndpointer(x.dtype, shape=x.shape)
-
-        # wrap jax data into a standard numpy array which is handled by MPI
-        arr = data_pointer(ptr).contents
-        _MPI_comm.Allreduce(_MPI.IN_PLACE, arr.reshape(-1), op=_MPI.SUM)
-
-        return x
-
-    @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
-    @sum_inplace.register(jax.interpreters.ad.JVPTracer)
-    def sum_inplace_jax_jittracer(x):
-        if _n_nodes == 1:
-            return x
-        else:
-            raise RuntimError(
-                "Cannot jit through sum_inplace when running with multiple MPI processes."
-            )
