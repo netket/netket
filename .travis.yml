@@ -95,7 +95,7 @@ install:
   - python --version
   - python -m pip install -U pip
   - python -m pip --version
-  - python -m pip install numpy scipy networkx 'pytest==5.3' python-igraph jax jaxlib black
+  - python -m pip install numpy scipy networkx 'pytest==5.3' python-igraph jax jaxlib black mpi4jax
   - |
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
