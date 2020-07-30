@@ -14,4 +14,3 @@ from ._hamiltonian import Ising, Heisenberg
 from ._abstract_operator import AbstractOperator
 from ._bose_hubbard import BoseHubbard
 from ._pauli_strings import PauliStrings
-
