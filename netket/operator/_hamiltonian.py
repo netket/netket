@@ -1,5 +1,5 @@
-from .abstract_operator import AbstractOperator
-from .graph_operator import GraphOperator
+from ._abstract_operator import AbstractOperator
+from ._graph_operator import GraphOperator
 
 import numpy as _np
 from numba import jit

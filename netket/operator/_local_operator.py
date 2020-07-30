@@ -1,4 +1,4 @@
-from .abstract_operator import AbstractOperator
+from ._abstract_operator import AbstractOperator
 
 import numpy as _np
 from numba import jit
