@@ -1,4 +1,4 @@
-from .abstract_operator import AbstractOperator
+from ._abstract_operator import AbstractOperator
 from ..hilbert import Boson
 
 import math as _m
