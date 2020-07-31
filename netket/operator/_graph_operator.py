@@ -1,5 +1,5 @@
-from .abstract_operator import AbstractOperator
-from .local_operator import LocalOperator
+from ._abstract_operator import AbstractOperator
+from ._local_operator import LocalOperator
 
 import numpy as _np
 from numba import jit

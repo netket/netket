@@ -158,7 +158,7 @@ class PyExactTimePropagation:
         )
 
     def _estimate_stats(self, obs):
-        if isinstance(obs, _nk.operator.abstract_operator.AbstractOperator):
+        if isinstance(obs, _nk.operator.AbstractOperator):
             op = _make_op(obs, self._matrix_type)
         else:
             op = obs

@@ -3,7 +3,7 @@ import numpy as _np
 from numba import jit
 from functools import partial
 
-from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
+from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ..vmc_common import tree_map
 
 ########################################

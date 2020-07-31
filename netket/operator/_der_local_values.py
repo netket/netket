@@ -1,14 +1,14 @@
 import numpy as _np
 from numba import jit
 
-from .local_liouvillian import LocalLiouvillian as _LocalLiouvillian
+from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 
 from netket.utils import jax_available
 
 if jax_available:
     import jax as _jax
     from netket.machine import Jax as _Jax
-    from .der_local_values_jax import der_local_values_jax
+    from ._der_local_values_jax import der_local_values_jax
 else:
     _Jax = None
 
