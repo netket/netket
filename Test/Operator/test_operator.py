@@ -22,35 +22,24 @@ hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Graph Hamiltonian
-sigmax = [[0, 1], [1, 0]]
-mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
-edges = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
-    [3, 4],
-    [4, 5],
-    [5, 6],
-    [6, 7],
-    [7, 8],
-    [8, 9],
-    [9, 10],
-    [10, 11],
-    [11, 12],
-    [12, 13],
-    [13, 14],
-    [14, 15],
-    [15, 16],
-    [16, 17],
-    [17, 18],
-    [18, 19],
-    [19, 0],
-]
+N = 20
+sigmax = np.asarray([[0, 1], [1, 0]])
+mszsz = np.asarray([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+edges = [[i, i + 1] for i in range(N - 1)] + [[N - 1, 0]]
 
 g = nk.graph.Graph(edges=edges)
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
-ha = nk.operator.GraphOperator(hi, site_ops=[sigmax], bond_ops=[mszsz])
-operators["Graph Hamiltonian"] = ha
+operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
+    hi, site_ops=[sigmax], bond_ops=[mszsz]
+)
+
+# Graph Hamiltonian with colored edges
+edges_c = [(i, j, i % 2) for i, j in edges]
+g = nk.graph.Graph(edges=edges_c)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
+    hi, site_ops=[sigmax], bond_ops=[1.0 * mszsz, 2.0 * mszsz], bond_ops_colors=[0, 1]
+)
 
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
