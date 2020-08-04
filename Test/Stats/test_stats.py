@@ -136,3 +136,11 @@ def test_tau_corr():
     sig_corr = 0.5
     for bs in (1, 2, 32, 64):
         _test_tau_corr(bs, sig_corr)
+
+
+def test_irregular_floats():
+    from netket.stats import Stats
+
+    assert str(Stats(float("nan"), float("inf"))) == "nan ± inf [var=nan, R_hat=nan]"
+    assert str(Stats(1.0, float("nan"))) == "1.00000000 ± nan [var=nan, R_hat=nan]"
+    assert str(Stats(1.0, float("inf"))) == "1.00000000 ± inf [var=nan, R_hat=nan]"
