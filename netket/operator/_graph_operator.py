@@ -75,7 +75,8 @@ def GraphOperator(hilbert, site_ops=[], bond_ops=[], bond_ops_colors=[], graph=N
 
         if len(bond_ops) > 0:
             #  Use edge_colors to populate operators
-            for edge, color in graph.edges(color=True):
+            for (u, v, color) in graph.edges(color=True):
+                edge = u, v
                 for c, bond_color in enumerate(bond_ops_colors):
                     if bond_color == color:
                         this_operator += LocalOperator(hilbert, bond_ops[c], edge)
