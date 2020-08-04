@@ -8,7 +8,7 @@ from . import total_size as _total_size
 
 
 def _format_decimal(value, std):
-    if not math.isnan(std):
+    if math.isfinite(std):
         decimals = max(int(_np.ceil(-_np.log10(std))), 0)
     else:
         decimals = 8
