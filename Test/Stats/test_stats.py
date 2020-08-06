@@ -150,3 +150,5 @@ def test_decimal_format():
     assert str(Stats(1.0, float("inf"))) == "1.000e+00 ± inf [var=nan, R_hat=nan]"
     assert str(Stats(float("inf"), 0.0)) == "inf ± 0.000e+00 [var=nan, R_hat=nan]"
     assert str(Stats(1.0, 0.0)) == "1.000e+00 ± 0.000e+00 [var=nan, R_hat=nan]"
+
+    assert str(Stats(1.0, 0.12, 0.5)) == "1.00 ± 0.12 [var=0.50, R_hat=nan]"

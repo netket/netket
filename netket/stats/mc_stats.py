@@ -7,17 +7,19 @@ from . import var as _var
 from . import total_size as _total_size
 
 
-def _format_decimal(value, std):
+def _format_decimal(value, std, var):
     if math.isfinite(std) and std > 1e-7:
         decimals = max(int(_np.ceil(-_np.log10(std))), 0)
         return (
             "{0:.{1}f}".format(value, decimals + 1),
             "{0:.{1}f}".format(std, decimals + 1),
+            "{0:.{1}f}".format(var, decimals + 1),
         )
     else:
         return (
             "{0:.3e}".format(value),
             "{0:.3e}".format(std),
+            "{0:.3e}".format(var),
         )
 
 
@@ -45,10 +47,8 @@ class Stats:
         return jsd
 
     def __repr__(self):
-        mean, err = _format_decimal(self.mean, self.error_of_mean)
-        return "{} ± {} [var={:.1e}, R_hat={:.4f}]".format(
-            mean, err, self.variance, self.R_hat
-        )
+        mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
+        return "{} ± {} [var={}, R_hat={:.4f}]".format(mean, err, var, self.R_hat)
 
     def __getitem__(self, name):
         if name in ("mean", "Mean"):
