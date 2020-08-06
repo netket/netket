@@ -138,9 +138,18 @@ def test_tau_corr():
         _test_tau_corr(bs, sig_corr)
 
 
-def test_irregular_floats():
+def test_decimal_format():
     from netket.stats import Stats
 
-    assert str(Stats(float("nan"), float("inf"))) == "nan ± inf [var=nan, R_hat=nan]"
-    assert str(Stats(1.0, float("nan"))) == "1.00000000 ± nan [var=nan, R_hat=nan]"
-    assert str(Stats(1.0, float("inf"))) == "1.00000000 ± inf [var=nan, R_hat=nan]"
+    assert str(Stats(1.0, 1e-3)) == "1.0000 ± 0.0010 [σ²=nan]"
+    assert str(Stats(1.0, 1e-6)) == "1.0000000 ± 0.0000010 [σ²=nan]"
+    assert str(Stats(1.0, 1e-7)) == "1.000e+00 ± 1.000e-07 [σ²=nan]"
+
+    assert str(Stats(float("nan"), float("inf"))) == "nan ± inf [σ²=nan]"
+    assert str(Stats(1.0, float("nan"))) == "1.000e+00 ± nan [σ²=nan]"
+    assert str(Stats(1.0, float("inf"))) == "1.000e+00 ± inf [σ²=nan]"
+    assert str(Stats(float("inf"), 0.0)) == "inf ± 0.000e+00 [σ²=nan]"
+    assert str(Stats(1.0, 0.0)) == "1.000e+00 ± 0.000e+00 [σ²=nan]"
+
+    assert str(Stats(1.0, 0.12, 0.5)) == "1.00 ± 0.12 [σ²=0.50]"
+    assert str(Stats(1.0, 0.12, 0.5, R_hat=1.01)) == "1.00 ± 0.12 [σ²=0.50, R̂=1.0100]"
