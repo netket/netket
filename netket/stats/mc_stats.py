@@ -49,10 +49,10 @@ class Stats:
     def __repr__(self):
         mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
         if not math.isnan(self.R_hat):
-            ext = ", R_hat={:.4f}".format(self.R_hat)
+            ext = ", R̂={:.4f}".format(self.R_hat)
         else:
             ext = ""
-        return "{} ± {} [var={}{}]".format(mean, err, var, ext)
+        return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     def __getitem__(self, name):
         if name in ("mean", "Mean"):
