@@ -1,5 +1,7 @@
 from .custom_hilbert import CustomHilbert
 
+from fractions import Fraction
+
 import numpy as _np
 from netket import random as _random
 from numba import jit
@@ -120,3 +122,9 @@ class Spin(CustomHilbert):
             raise Exception(
                 "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
             )
+
+    def __repr__(self):
+        total_sz = (
+            ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
+        )
+        return "Spin(s={}{}; N={})".format(Fraction(self._s), total_sz, self._size)
