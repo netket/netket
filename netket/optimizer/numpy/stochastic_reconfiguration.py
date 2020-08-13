@@ -281,30 +281,13 @@ class SR:
         rep = "SR(solver="
 
         if self._use_iterative:
-            rep += "iterative"
+            rep += "iterative:CG"
         else:
             rep += self._lsq_solver + ", diag_shift=" + str(self._diag_shift)
             if self._svd_threshold is not None:
                 rep += ", threshold=" << self._svd_threshold
 
         rep += ", has_complex_parameters=" + str(self._has_complex_parameters) + ")"
-        return rep
-
-    def info(self, depth=0):
-        indent = " " * 4 * depth
-        rep = indent
-        rep += "Stochastic reconfiguration method for "
-        rep += "holomorphic" if self._has_complex_parameters else "real-parameter"
-        rep += " wavefunctions\n"
-
-        rep += indent + "Solver: "
-
-        if self._use_iterative:
-            rep += "iterative (Conjugate Gradient)"
-        else:
-            rep += self._lsq_solver
-        rep += "\n"
-
         return rep
 
     def _linear_operator(self, oks, n_samp):
