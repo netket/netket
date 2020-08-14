@@ -191,6 +191,11 @@ class Torch(AbstractMachine):
             [(k, v.detach().numpy()) for k, v in self._module.state_dict().items()]
         )
 
+    def __repr__(self):
+        head = super().__repr__()
+        module = "\n│  ".join([""] + repr(self._module).split("\n"))
+        return head + module + "\n└"
+
 
 class TorchLogCosh(_torch.nn.Module):
     """
