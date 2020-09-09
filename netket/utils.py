@@ -1,9 +1,16 @@
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
 
+    mpi_available = True
+    MPI_comm = MPI.COMM_WORLD
+    n_nodes = MPI_comm.Get_size()
+    node_number = MPI_comm.Get_rank()
 
-MPI_comm = MPI.COMM_WORLD
-n_nodes = MPI_comm.Get_size()
-node_number = MPI_comm.Get_rank()
+except ImportError:
+    mpi_available = False
+    MPI_comm = None
+    n_nodes = 1
+    node_number = 0
 
 try:
     import os
@@ -31,3 +38,19 @@ try:
     torch_available = True
 except ImportError:
     torch_available = False
+
+
+try:
+    import tensorboardX
+
+    tensorboard_available = True
+except ImportError:
+    tensorboard_available = False
+
+
+try:
+    import backpack
+
+    backpack_available = True
+except ImportError:
+    backpack_available = False

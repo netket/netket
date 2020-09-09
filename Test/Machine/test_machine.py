@@ -64,6 +64,8 @@ if test_jax:
         dtype=complex,
     )
 
+    machines["Jax mps"] = nk.machine.MPSPeriodic(hi, bond_dim=4, dtype=complex)
+
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
 
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
@@ -254,7 +256,7 @@ def test_log_derivative():
             if "Jastrow" in name:
                 assert np.max(np.imag(der_log)) == approx(0.0)
 
-            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-8, machine, v)
+            num_der_log = central_diff_grad(log_val_f, randpars, 1.0e-9, machine, v)
 
             same_derivatives(der_log, num_der_log)
             # print(np.linalg.norm(der_log - num_der_log))

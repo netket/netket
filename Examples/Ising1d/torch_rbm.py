@@ -42,7 +42,7 @@ ma.parameters = 0.1 * (np.random.randn(ma.n_par))
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=64)
 
 # Optimizer
-op = nk.optimizer.Sgd(0.1)
+op = nk.optimizer.Sgd(ma, 0.1)
 
 gs = nk.Vmc(
     hamiltonian=ha,
@@ -50,7 +50,7 @@ gs = nk.Vmc(
     optimizer=op,
     n_samples=1000,
     n_discard=2,
-    sr=nk.optimizer.SR(diag_shift=0.1),
+    sr=nk.optimizer.SR(ma, diag_shift=0.1),
 )
 
-gs.run(output_prefix="test", n_iter=300)
+gs.run(out="test", n_iter=300)

@@ -15,8 +15,6 @@
 import itertools as _itertools
 import json
 
-from mpi4py import MPI
-
 import numpy as _np
 import scipy.integrate as _scint
 from tqdm import tqdm
@@ -24,6 +22,11 @@ from tqdm import tqdm
 import netket as _nk
 from netket.logging import JsonLog as _JsonLog
 from netket.vmc_common import tree_map as _tree_map
+
+from netket.utils import (
+    n_nodes as _n_nodes,
+    node_number as _rank,
+)
 
 _NaN = float("NaN")
 
@@ -132,8 +135,8 @@ class PyExactTimePropagation:
             raise NotImplementedError("Time-dependent hHamiltonian not yet supported.")
         self._rhs = _make_rhs(self._h, propagation_type)
 
-        self._mynode = MPI.COMM_WORLD.rank
-        self._mpi_nodes = MPI.COMM_WORLD.Get_size()
+        self._mynode = _rank
+        self._mpi_nodes = _n_nodes
 
         self.state = initial_state
         self._dt = dt
@@ -155,7 +158,7 @@ class PyExactTimePropagation:
         )
 
     def _estimate_stats(self, obs):
-        if isinstance(obs, _nk.operator.abstract_operator.AbstractOperator):
+        if isinstance(obs, _nk.operator.AbstractOperator):
             op = _make_op(obs, self._matrix_type)
         else:
             op = obs

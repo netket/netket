@@ -14,9 +14,10 @@
 
 import jax
 import jax.numpy as jnp
+from jax import random
 
 from .abstract_density_matrix import AbstractDensityMatrix
-from ..jax import Jax as JaxPure
+from ..jax import Jax as JaxPure, logcosh
 from functools import partial
 
 
@@ -164,7 +165,7 @@ def NdmSpin(hilbert, alpha, beta, use_hidden_bias=True):
                 alpha * hilbert.size, beta * hilbert.size, use_hidden_bias
             ),
             LogCoshLayer,
-            SumLayer(),
+            SumLayer,
         ),
         dtype=float,
         outdtype=complex,
@@ -342,19 +343,19 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
     mod_pure = stax.serial(
         DensePureRowCol(alpha * hilbert.size, use_hidden_bias),
         stax.parallel(LogCoshLayer, LogCoshLayer),
-        stax.parallel(SumLayer(), SumLayer()),
+        stax.parallel(SumLayer, SumLayer),
         FanInSum2,
     )
 
     phs_pure = stax.serial(
         DensePureRowCol(alpha * hilbert.size, use_hidden_bias),
         stax.parallel(LogCoshLayer, LogCoshLayer),
-        stax.parallel(SumLayer(), SumLayer()),
+        stax.parallel(SumLayer, SumLayer),
         FanInSub2,
     )
 
     mixing = stax.serial(
-        DenseMixingReal(beta * hilbert.size, use_hidden_bias), LogCoshLayer, SumLayer(),
+        DenseMixingReal(beta * hilbert.size, use_hidden_bias), LogCoshLayer, SumLayer,
     )
 
     if use_visible_bias:
@@ -375,7 +376,7 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
 def JaxRbmSpin(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size * 2), LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size * 2), LogCoshLayer, SumLayer),
         dtype=dtype,
         outdtype=dtype,
     )

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from jax.experimental.stax import Dense
+from jax.experimental import stax
 import jax
 from collections import OrderedDict
 from functools import reduce
@@ -243,13 +245,14 @@ class Jax(AbstractMachine):
         else:
 
             if conjugate and self._dtype is complex:
-                prodj = lambda j: jax.numpy.tensordot(
-                    vec.transpose(), j.conjugate(), axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose(), j.conjugate(), axes=1)
+
             else:
-                prodj = lambda j: jax.numpy.tensordot(
-                    vec.transpose().conjugate(), j, axes=1
-                )
+
+                def prodj(j):
+                    return jax.numpy.tensordot(vec.transpose().conjugate(), j, axes=1)
 
             jacobian = self._perex_grads(self._params, x)
             out = tree_map(prodj, jacobian)
@@ -314,10 +317,6 @@ class Jax(AbstractMachine):
         return tree_unflatten(tree, datalist)
 
 
-from jax.experimental import stax
-from jax.experimental.stax import Dense
-
-
 def SumLayer():
     def init_fun(rng, input_shape):
         output_shape = (-1, 1)
@@ -328,6 +327,9 @@ def SumLayer():
         return inputs.sum(axis=-1)
 
     return init_fun, apply_fun
+
+
+SumLayer = SumLayer()
 
 
 @jax.jit
@@ -342,9 +344,163 @@ LogCoshLayer = stax.elementwise(logcosh)
 def JaxRbm(hilbert, alpha, dtype=complex):
     return Jax(
         hilbert,
-        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+        stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
         dtype=dtype,
     )
+
+
+def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
+    r"""
+    Constructs a periodic Matrix Product State (MPS) for a quantum state of discrete
+    degrees of freedom, wrapped as Jax machine.  The MPS is defined as
+
+    .. math:: \Psi(s_1,\dots s_N) = \Tr(A[s_1]\dots A[s_N]),
+
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
+    of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
+
+        Args:
+            hilbert: Hilbert space on which the state is defined. Should be a
+                subclass of `netket.hilbert.Hilbert`.
+            bond_dim (int): Virtual dimension of the MPS tensors.
+            diag (bool): Whether or not to use diagonal matrices in the MPS tensors.
+                default=False
+            symperiod (int): Periodicity in the chain of MPS tensors. The chain of
+                MPS tensors is constructed as a sequence of identical unit cells
+                consisting of symperiod tensors. if None, symperiod equals the
+                number of physical degrees of freedom.
+                default=None
+            dtype: complex or float, whether the variational parameters of the MPS
+                are real or complex. default=complex
+
+        returns:
+            Jax machine of the Matrix Product state.
+    """
+    return Jax(
+        hilbert,
+        MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype),
+        dtype=dtype,
+    )
+
+
+def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
+    # default standard deviation equals 1e-2
+    normal_init = jax.nn.initializers.normal()
+
+    L = hilbert.size
+    phys_dim = hilbert.local_size
+    diag = diag
+    dtype = dtype
+
+    # determine transformation from local states to indices
+    local_states = jax.numpy.array(hilbert.local_states)
+    loc_vals_spacing = jax.numpy.roll(local_states, -1)[0:-1] - local_states[0:-1]
+    if jax.numpy.max(loc_vals_spacing) == jax.numpy.min(loc_vals_spacing):
+        loc_vals_spacing = loc_vals_spacing[0]
+    else:
+        raise AssertionError(
+            "JaxMpsPeriodic can only be used with evenly spaced hilbert local values"
+        )
+    loc_vals_bias = jax.numpy.min(local_states)
+
+    # check whether graph is periodic chain
+    import networkx as _nx
+
+    edges = hilbert.graph.edges()
+    G = _nx.Graph()
+    G.add_edges_from(edges)
+
+    G_chain = _nx.Graph()
+    G_chain.add_edges_from([(i, (i + 1) % L) for i in range(L)])
+
+    if not _nx.algorithms.is_isomorphic(G, G_chain):
+        print(
+            "Warning: graph is not isomorphic to chain with periodic boundary conditions"
+        )
+
+    # determine shape of unit cell
+    if symperiod == None:
+        symperiod = L
+    if L % symperiod == 0 and symperiod > 0:
+        if diag:
+            unit_cell_shape = (symperiod, phys_dim, bond_dim)
+        else:
+            unit_cell_shape = (symperiod, phys_dim, bond_dim, bond_dim)
+    else:
+        raise AssertionError(
+            "The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS"
+        )
+
+    # define diagonal tensors with correct unit cell shape
+    if diag:
+        iden_tensors = jax.numpy.ones((symperiod, phys_dim, bond_dim), dtype=dtype)
+    else:
+        iden_tensors = jax.numpy.repeat(
+            jax.numpy.eye(bond_dim, dtype=dtype)[jax.numpy.newaxis, :, :],
+            symperiod * phys_dim,
+            axis=0,
+        )
+        iden_tensors = iden_tensors.reshape(symperiod, phys_dim, bond_dim, bond_dim)
+
+    def init_fun(rng, input_shape):
+        rng_re, rng_im = jax.random.split(rng)
+        random_tensors_real = normal_init(rng_re, unit_cell_shape)
+        if dtype == complex:
+            random_tensors_imag = normal_init(rng_im, unit_cell_shape)
+            random_tensors = random_tensors_real + 1j * random_tensors_imag
+        else:
+            random_tensors = random_tensors_real
+
+        tensors = random_tensors + iden_tensors
+
+        return (-1, 1), (tensors)
+
+    def apply_fun(params, x, **kwargs):
+        # expand diagonal to square matrices if diagonal mps
+        if diag:
+            params = jax.numpy.einsum(
+                "ijk,kl->ijkl", params, jax.numpy.eye(params.shape[-1])
+            )
+
+        # create all tensors in mps from unit cell
+        all_tensors = jax.numpy.tile(params, (L / symperiod, 1, 1, 1))
+
+        # transform input to indices
+        x = (x - loc_vals_bias) / loc_vals_spacing
+        if len(x.shape) == 1:  # batch size is one
+            x = jax.numpy.expand_dims(x, 0)
+
+        def select_tensor(tensor, index):
+            return tensor[index.astype(int)]
+
+        def select_all_tensors(all_tensors, indices):
+            return jax.vmap(select_tensor)(all_tensors, indices)
+
+        # select right tensors using input for matrix multiplication
+        selected_tensors = jax.vmap(select_all_tensors, (None, 0))(all_tensors, x)
+
+        # create loop carry, in this case a unit matrix
+        edges = jax.numpy.repeat(
+            jax.numpy.eye(bond_dim, dtype=selected_tensors.dtype)[
+                jax.numpy.newaxis, :, :
+            ],
+            selected_tensors.shape[0],
+            axis=0,
+        )
+
+        def trace_mps(tensors, edge):
+            def multiply_tensors(left_tensor, right_tensor):
+                return jax.numpy.einsum("ij,jk->ik", left_tensor, right_tensor), None
+
+            edge, _ = jax.lax.scan(multiply_tensors, edge, tensors)
+
+            return jax.numpy.trace(edge)
+
+        # trace the matrix multiplication
+        z = jax.vmap(trace_mps)(selected_tensors, edges)
+        return z
+
+    return init_fun, apply_fun
 
 
 def FanInSum2ModPhase():
@@ -370,8 +526,8 @@ def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
         stax.serial(
             stax.FanOut(2),
             stax.parallel(
-                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
-                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer()),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
+                stax.serial(stax.Dense(alpha * hilbert.size), LogCoshLayer, SumLayer),
             ),
             FanInSum2ModPhase,
         ),

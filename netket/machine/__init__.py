@@ -6,15 +6,11 @@ from ..utils import jax_available, torch_available
 
 
 if jax_available:
-    from .jax import Jax, JaxRbm, JaxRbmSpinPhase
-
+    from .jax import Jax, JaxRbm, MPSPeriodic, JaxRbmSpinPhase
+    from .jax import SumLayer, LogCoshLayer
 
 if torch_available:
     from .torch import Torch, TorchLogCosh, TorchView
-
-
-# def MPSPeriodicDiagonal(hilbert, bond_dim, symperiod=-1):
-#     return MPSPeriodic(hilbert, bond_dim, diag=True, symperiod=symperiod)
 
 
 from . import density_matrix

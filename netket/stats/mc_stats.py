@@ -7,16 +7,20 @@ from . import var as _var
 from . import total_size as _total_size
 
 
-def _format_decimal(value, std):
-    if not math.isnan(std):
+def _format_decimal(value, std, var):
+    if math.isfinite(std) and std > 1e-7:
         decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+        return (
+            "{0:.{1}f}".format(value, decimals + 1),
+            "{0:.{1}f}".format(std, decimals + 1),
+            "{0:.{1}f}".format(var, decimals + 1),
+        )
     else:
-        decimals = 8
-
-    return (
-        "{0:.{1}f}".format(value, decimals),
-        "{0:.{1}f}".format(std, decimals + 1),
-    )
+        return (
+            "{0:.3e}".format(value),
+            "{0:.3e}".format(std),
+            "{0:.3e}".format(var),
+        )
 
 
 class Stats:
@@ -43,21 +47,23 @@ class Stats:
         return jsd
 
     def __repr__(self):
-        mean, err = _format_decimal(self.mean, self.error_of_mean)
-        return "{} ± {} [var={:.1e}, R_hat={:.4f}]".format(
-            mean, err, self.variance, self.R_hat
-        )
+        mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
+        if not math.isnan(self.R_hat):
+            ext = ", R̂={:.4f}".format(self.R_hat)
+        else:
+            ext = ""
+        return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     def __getitem__(self, name):
-        if name is "mean" or "Mean":
+        if name in ("mean", "Mean"):
             return self.mean
-        elif name is "variance" or "Variance":
+        elif name in ("variance", "Variance"):
             return self.variance
-        elif name is "error_of_mean" or "Sigma":
+        elif name in ("error_of_mean", "Sigma"):
             return self.error_of_mean
-        elif name is "R_hat":
+        elif name in ("R_hat", "R"):
             return self.R_hat
-        elif name is "tau_corr" or "TauCorr":
+        elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
 
 
