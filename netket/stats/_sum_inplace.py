@@ -31,6 +31,7 @@ def sum_inplace(x):
 @sum_inplace.register(_np.complex64)
 @sum_inplace.register(_np.complex128)
 @sum_inplace.register(float)
+@sum_inplace.register(int)
 def sum_inplace_scalar(a):
     ar = _np.asarray(a)
 
