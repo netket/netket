@@ -16,20 +16,14 @@ def seed(seed=None):
                   seed (int, optional): Seed for the randon number generator.
 
     """
-    with objmode(derived_seed="int64"):
-        size = _n_nodes
-        rank = _rank
 
-        if rank == 0:
-            _np.random.seed(seed)
-            derived_seed = _np.random.randint(0, 1 << 32, size=size)
-        else:
-            derived_seed = None
+    if seed is None:
+        seed=_np.random.randint(0, 1 << 32)
 
-        if _n_nodes > 1:
-            derived_seed = _MPI_comm.scatter(derived_seed, root=0)
+    _np.random.seed(seed)   
+    derived_seed = _np.random.randint(0, 1 << 32, size=_n_nodes)
 
-    _np.random.seed(derived_seed)
+    _np.random.seed(derived_seed[_rank])
 
 
 @jit
