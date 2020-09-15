@@ -463,7 +463,7 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
             )
 
         # create all tensors in mps from unit cell
-        all_tensors = jax.numpy.tile(params, (L / symperiod, 1, 1, 1))
+        all_tensors = jax.numpy.tile(params, (L // symperiod, 1, 1, 1))
 
         # transform input to indices
         x = (x - loc_vals_bias) / loc_vals_spacing
