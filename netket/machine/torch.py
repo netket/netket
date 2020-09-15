@@ -77,8 +77,7 @@ class Torch(AbstractMachine):
 
     @property
     def n_par(self):
-        r"""Returns the total number of trainable parameters in the machine.
-        """
+        r"""Returns the total number of trainable parameters in the machine."""
         return self._n_par
 
     def log_val(self, x, out=None):

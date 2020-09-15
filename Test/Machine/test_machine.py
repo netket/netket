@@ -102,7 +102,10 @@ machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
 )
 
 dm_machines["Phase NDM"] = nk.machine.density_matrix.RbmSpin(
-    hilbert=hi, alpha=2, use_visible_bias=True, use_hidden_bias=True,
+    hilbert=hi,
+    alpha=2,
+    use_visible_bias=True,
+    use_hidden_bias=True,
 )
 
 

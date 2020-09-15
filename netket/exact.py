@@ -42,14 +42,12 @@ class EdResult(object):
 
     @property
     def eigenvalues(self):
-        r"""Eigenvalues of the Hamiltonian.
-        """
+        r"""Eigenvalues of the Hamiltonian."""
         return self._eigenvalues
 
     @property
     def eigenvectors(self):
-        r"""Eigenvectors of the Hamiltonian.
-        """
+        r"""Eigenvectors of the Hamiltonian."""
         return self._eigenvectors
 
     def mean(self, operator, which):

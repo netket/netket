@@ -19,7 +19,8 @@ def _local_value_kernel(pars, vp, mel, v, logpsi):
 
 #  Assumes that v is a single state (Vector) and vp is a batch (matrix). pars can be a pytree.
 _der_local_value_kernel = jax.jit(
-    jax.grad(_local_value_kernel, argnums=0, holomorphic=True), static_argnums=4,
+    jax.grad(_local_value_kernel, argnums=0, holomorphic=True),
+    static_argnums=4,
 )
 
 #  Assumes that v is a batch (matrix) and vp is a batch-batch (3-tensor).
@@ -195,6 +196,16 @@ def der_local_values_jax(
         log_vals = machine.log_val(v)
 
     if center_derivative is True:
-        return _der_local_values_impl(op, machine, v, log_vals,)
+        return _der_local_values_impl(
+            op,
+            machine,
+            v,
+            log_vals,
+        )
     else:
-        return _der_local_values_notcentered_impl(op, machine, v, log_vals,)
+        return _der_local_values_notcentered_impl(
+            op,
+            machine,
+            v,
+            log_vals,
+        )

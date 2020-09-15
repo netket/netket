@@ -9,11 +9,11 @@ from netket.utils import (
 
 @jit
 def seed(seed=None):
-    """ Seed the random number generator. Each MPI process is automatically assigned
-        a different, process-dependent, sub-seed.
+    """Seed the random number generator. Each MPI process is automatically assigned
+    a different, process-dependent, sub-seed.
 
-        Parameters:
-                  seed (int, optional): Seed for the randon number generator.
+    Parameters:
+              seed (int, optional): Seed for the randon number generator.
 
     """
 

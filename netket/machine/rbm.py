@@ -155,7 +155,7 @@ class RbmSpin(AbstractMachine):
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         x = x.astype(dtype=self._npdtype)
 
         return self._log_val_kernel(x, out, self._w, self._a, self._b, self._r)
@@ -191,7 +191,7 @@ class RbmSpin(AbstractMachine):
 
         Returns:
             `out`
-            """
+        """
         if self._autom is None:
             return self._bare_der_log(x, out)
         else:
@@ -463,18 +463,18 @@ class RbmSpinReal(RbmSpin):
 
 class RbmSpinSymm(RbmSpin):
     r"""
-        A fully connected Restricted Boltzmann Machine with lattice
-        symmetries. This type of RBM has spin 1/2 hidden units and is
-        defined by:
+    A fully connected Restricted Boltzmann Machine with lattice
+    symmetries. This type of RBM has spin 1/2 hidden units and is
+    defined by:
 
-        .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-        \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
+    .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+    \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
-        for arbitrary local quantum numbers :math:`s_i`. However, the weights
-        (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
-        symmetries of the lattice as specificed in hilbert.graph.automorphisms.
+    for arbitrary local quantum numbers :math:`s_i`. However, the weights
+    (:math:`W_{ij}`) and biases (:math:`a_i`, :math:`b_i`) respects the
+    symmetries of the lattice as specificed in hilbert.graph.automorphisms.
 
-        The values of the weights can be chosen to be complex or real-valued.
+    The values of the weights can be chosen to be complex or real-valued.
 
     """
 
@@ -487,30 +487,30 @@ class RbmSpinSymm(RbmSpin):
         dtype=complex,
     ):
         r"""
-            Constructs a new ``RbmSpinSymm`` machine with complex weights:
+        Constructs a new ``RbmSpinSymm`` machine with complex weights:
 
-            Args:
-               hilbert: Hilbert space object for the system.
-               alpha: Hidden unit density.
-               use_visible_bias: If ``True`` then there would be a
-                                bias on the visible units.
-                                Default ``True``.
-               use_hidden_bias: If ``True`` then there would be a
-                               bias on the visible units.
-                               Default ``True``.
+        Args:
+           hilbert: Hilbert space object for the system.
+           alpha: Hidden unit density.
+           use_visible_bias: If ``True`` then there would be a
+                            bias on the visible units.
+                            Default ``True``.
+           use_hidden_bias: If ``True`` then there would be a
+                           bias on the visible units.
+                           Default ``True``.
 
-            Examples:
-               A ``RbmSpinSymm`` machine with hidden unit density
-               alpha = 2 for a one-dimensional L=20 spin-half system:
+        Examples:
+           A ``RbmSpinSymm`` machine with hidden unit density
+           alpha = 2 for a one-dimensional L=20 spin-half system:
 
-               >>> from netket.machine import RbmSpinSymm
-               >>> from netket.hilbert import Spin
-               >>> from netket.graph import Hypercube
-               >>> g = Hypercube(length=20, n_dim=1)
-               >>> hi = Spin(s=0.5, total_sz=0, graph=g)
-               >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
-               >>> print(ma.n_par)
-               43
+           >>> from netket.machine import RbmSpinSymm
+           >>> from netket.hilbert import Spin
+           >>> from netket.graph import Hypercube
+           >>> g = Hypercube(length=20, n_dim=1)
+           >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+           >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
+           >>> print(ma.n_par)
+           43
         """
         super().__init__(
             hilbert,
@@ -524,10 +524,10 @@ class RbmSpinSymm(RbmSpin):
 
 class RbmMultiVal(RbmSpin):
     r"""
-        A fully connected Restricted Boltzmann Machine suitable for large local hilbert spaces.
-        Local quantum numbers are passed through a one hot encoding that maps them onto
-        an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
-        standard RbmSpin wave function.
+    A fully connected Restricted Boltzmann Machine suitable for large local hilbert spaces.
+    Local quantum numbers are passed through a one hot encoding that maps them onto
+    an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
+    standard RbmSpin wave function.
     """
 
     def __init__(
@@ -542,37 +542,37 @@ class RbmMultiVal(RbmSpin):
     ):
 
         r"""
-            Constructs a new ``RbmMultiVal`` machine:
+        Constructs a new ``RbmMultiVal`` machine:
 
-            Args:
-                hilbert: Hilbert space object for the system.
-                n_hidden: The number of hidden spin units. If n_hidden=None, the number
-                       of hidden units is deduced from the parameter alpha.
-                alpha: `alpha * hilbert.size` is the number of hidden spins.
-                       If alpha=None, the number of hidden units must
-                       be explicitely set in the argument n_hidden.
-                use_visible_bias: If ``True`` then there would be a
-                                bias on the visible units.
-                                Default ``True``.
-                use_hidden_bias: If ``True`` then there would be a
-                               bias on the visible units.
-                               Default ``True``.
-                symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
-                                     otherwise a valid array of automorphisms can be passed.
-                dtype: either complex or float, is the type used for the weights.
+        Args:
+            hilbert: Hilbert space object for the system.
+            n_hidden: The number of hidden spin units. If n_hidden=None, the number
+                   of hidden units is deduced from the parameter alpha.
+            alpha: `alpha * hilbert.size` is the number of hidden spins.
+                   If alpha=None, the number of hidden units must
+                   be explicitely set in the argument n_hidden.
+            use_visible_bias: If ``True`` then there would be a
+                            bias on the visible units.
+                            Default ``True``.
+            use_hidden_bias: If ``True`` then there would be a
+                           bias on the visible units.
+                           Default ``True``.
+            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
+                                 otherwise a valid array of automorphisms can be passed.
+            dtype: either complex or float, is the type used for the weights.
 
-            Examples:
-                A ``RbmMultiVal`` machine with hidden unit density
-                alpha = 1 for a one-dimensional bosonic system:
+        Examples:
+            A ``RbmMultiVal`` machine with hidden unit density
+            alpha = 1 for a one-dimensional bosonic system:
 
-                >>> from netket.machine import RbmMultiVal
-                >>> from netket.hilbert import Boson
-                >>> from netket.graph import Hypercube
-                >>> g = Hypercube(length=10, n_dim=1)
-                >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
-                >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
-                >>> print(ma.n_par)
-                1056
+            >>> from netket.machine import RbmMultiVal
+            >>> from netket.hilbert import Boson
+            >>> from netket.graph import Hypercube
+            >>> g = Hypercube(length=10, n_dim=1)
+            >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
+            >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
+            >>> print(ma.n_par)
+            1056
         """
         local_states = _np.asarray(hilbert.local_states, dtype=int)
 
@@ -644,7 +644,7 @@ class RbmMultiVal(RbmSpin):
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         return super().log_val(self._one_hot(x, self._local_states), out)
 
     def der_log(self, x, out=None):
@@ -658,7 +658,7 @@ class RbmMultiVal(RbmSpin):
 
         Returns:
             `out`
-            """
+        """
         return super().der_log(self._one_hot(x, self._local_states), out)
 
 
@@ -762,7 +762,7 @@ class RbmSpinPhase(AbstractMachine):
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         out = self._rbm_a.log_val(x, out)
         out += 1.0j * self._rbm_p.log_val(x)
 
@@ -779,7 +779,7 @@ class RbmSpinPhase(AbstractMachine):
 
         Returns:
             `out`
-            """
+        """
         n_par = self._n_par
         n_par_a = self._rbm_a.n_par
 

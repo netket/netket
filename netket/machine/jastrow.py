@@ -33,7 +33,11 @@ class Jastrow(AbstractMachine):
     """
 
     def __init__(
-        self, hilbert, use_visible_bias=False, symmetry=None, dtype=complex,
+        self,
+        hilbert,
+        use_visible_bias=False,
+        symmetry=None,
+        dtype=complex,
     ):
         r"""
         Constructs a new ``Jastrow`` machine:
@@ -122,7 +126,7 @@ class Jastrow(AbstractMachine):
         Returns:
             A complex number when `x` is a vector and vector when `x` is a
             matrix.
-            """
+        """
         x = x.astype(dtype=self._npdtype)
 
         return self._log_val_kernel(x, out, self._J, self._a, self._Smap)
@@ -155,7 +159,7 @@ class Jastrow(AbstractMachine):
 
         Returns:
             `out`
-            """
+        """
         x = x.astype(dtype=self._npdtype)
 
         return self._der_log_kernel(x, out, self._a, self._J, self._npar, self._Smap)
@@ -253,16 +257,16 @@ class Jastrow(AbstractMachine):
 
 class JastrowSymm(Jastrow):
     r"""
-        A Jastrow wavefunction Machine with lattice symmetries.This machine
-        defines the wavefunction as follows:
+    A Jastrow wavefunction Machine with lattice symmetries.This machine
+    defines the wavefunction as follows:
 
-        .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
+    .. math:: \Psi(s_1,\dots s_N) = e^{\sum_{ij} s_i W_{ij} s_j}
 
-        where :math:` W_{ij}` are the Jastrow parameters respects the
-        specified symmetries of the lattice.
+    where :math:` W_{ij}` are the Jastrow parameters respects the
+    specified symmetries of the lattice.
 
-        This is just a convenience synonim for netket.machine.Jastrow with argument
-        symmetry=True.
+    This is just a convenience synonim for netket.machine.Jastrow with argument
+    symmetry=True.
     """
 
     def __init__(self, hilbert, use_visible_bias=False, dtype=complex):

@@ -204,9 +204,13 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
+            out = self._forward_fn(self._params, x).reshape(
+                x.shape[0],
+            )
         else:
-            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
+            out[:] = self._forward_fn(self._params, x).reshape(
+                x.shape[0],
+            )
         return out
 
     @property

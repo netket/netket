@@ -120,7 +120,10 @@ def estimate_expectations(
         if compute_gradients:
             samples_r = samples.reshape((-1, samples.shape[-1]))
             eloc_r = (lvs - _mean(lvs)).reshape(-1, 1)
-            grad = sampler.machine.vector_jacobian_prod(samples_r, eloc_r / n_samples,)
+            grad = sampler.machine.vector_jacobian_prod(
+                samples_r,
+                eloc_r / n_samples,
+            )
             return stats, grad
         else:
             return stats

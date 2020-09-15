@@ -24,19 +24,19 @@ class AmsGrad(AbstractOptimizer):
 
     def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epscut=1.0e-7):
         r"""
-           Constructs a new ``AmsGrad`` optimizer.
+        Constructs a new ``AmsGrad`` optimizer.
 
-           Args:
-               learning_rate: The learning rate $\eta$.
-               beta1: First exponential decay rate.
-               beta2: Second exponential decay rate.
-               epscut: Small epsilon cutoff.
+        Args:
+            learning_rate: The learning rate $\eta$.
+            beta1: First exponential decay rate.
+            beta2: Second exponential decay rate.
+            epscut: Small epsilon cutoff.
 
-           Examples:
-               Simple AmsGrad optimizer.
+        Examples:
+            Simple AmsGrad optimizer.
 
-               >>> from netket.optimizer import AmsGrad
-               >>> op = AmsGrad()
+            >>> from netket.optimizer import AmsGrad
+            >>> op = AmsGrad()
         """
 
         if epscut <= 0:

@@ -23,17 +23,17 @@ class AdaGrad(AbstractOptimizer):
 
     def __init__(self, learning_rate=0.001, epscut=1.0e-7):
         r"""
-           Constructs a new ``AdaGrad`` optimizer.
+        Constructs a new ``AdaGrad`` optimizer.
 
-           Args:
-               learning_rate: Learning rate :math:`\eta`.
-               epscut: Small :math:`\epsilon` cutoff.
+        Args:
+            learning_rate: Learning rate :math:`\eta`.
+            epscut: Small :math:`\epsilon` cutoff.
 
-           Examples:
-               Simple AdaGrad optimizer.
+        Examples:
+            Simple AdaGrad optimizer.
 
-               >>> from netket.optimizer import AdaGrad
-               >>> op = AdaGrad()
+            >>> from netket.optimizer import AdaGrad
+            >>> op = AdaGrad()
         """
 
         self._eta = learning_rate

@@ -18,18 +18,18 @@ class Momentum(AbstractOptimizer):
 
     def __init__(self, learning_rate, beta=0.9, l2reg=0):
         r"""
-           Constructs a new ``Momentum`` optimizer.
+        Constructs a new ``Momentum`` optimizer.
 
-           Args:
-               learning_rate (float): The learning rate :math:`\eta`
-               beta (float): Momentum exponential decay rate, should be in [0,1].
-               l2reg (float): The amount of L2 regularization.
+        Args:
+            learning_rate (float): The learning rate :math:`\eta`
+            beta (float): Momentum exponential decay rate, should be in [0,1].
+            l2reg (float): The amount of L2 regularization.
 
-           Examples:
-               Momentum optimizer.
+        Examples:
+            Momentum optimizer.
 
-               >>> from netket.optimizer import Momentum
-               >>> op = Momentum(learning_rate=0.01)
+            >>> from netket.optimizer import Momentum
+            >>> op = Momentum(learning_rate=0.01)
         """
         self._learning_rate = learning_rate
         self._l2reg = l2reg

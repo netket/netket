@@ -73,7 +73,7 @@ def Hypercube(length, n_dim=1, pbc=True):
          >>> g=netket.graph.Hypercube(length=10,n_dim=3,pbc=True)
          >>> print(g.n_nodes)
          1000
-        """
+    """
     length_vector = [length] * n_dim
     return Grid(length_vector, pbc)
 
@@ -99,7 +99,7 @@ def Square(length, pbc=True):
         >>> g=netket.graph.Square(length=10,pbc=True)
         >>> print(g.n_nodes)
         100
-      """
+    """
     return Hypercube(length, n_dim=2, pbc=pbc)
 
 

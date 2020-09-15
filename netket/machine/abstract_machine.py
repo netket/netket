@@ -99,7 +99,7 @@ class AbstractMachine(abc.ABC):
 
         Returns:
             `out`
-            """
+        """
         raise NotImplementedError
 
     def to_array(self, normalize=True, batch_size=512):
