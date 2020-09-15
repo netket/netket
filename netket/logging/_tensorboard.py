@@ -45,7 +45,7 @@ class TBLog:
     Refer to its documentation for further details
 
     https://tensorboardx.readthedocs.io/en/latest/tensorboard.html
-    
+
     Args:
         logdir (string): Save directory location. Default is
           runs/**CURRENT_DATETIME_HOSTNAME**, which changes after each run.
@@ -83,7 +83,9 @@ class TBLog:
     """
 
     def __init__(
-        self, *args, **kwargs,
+        self,
+        *args,
+        **kwargs,
     ):
 
         self._writer = SummaryWriter(*args, **kwargs)

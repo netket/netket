@@ -12,7 +12,7 @@ if _mpi_available:
 def sum_inplace(x):
     """
     Computes the elementwie sum of an array or a scalar across all MPI processes.
-    Attempts to perform this sum inplace if possible, but for some types a copy 
+    Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
     Args:

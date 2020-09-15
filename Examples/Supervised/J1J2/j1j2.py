@@ -42,5 +42,8 @@ n_iter = 4000
 
 # Run with "Overlap_phi" loss. Also available currently is "MSE, Overlap_uni"
 spvsd.run(
-    n_iter=n_iter, loss_function="Overlap_phi", out="output", save_params_every=50,
+    n_iter=n_iter,
+    loss_function="Overlap_phi",
+    out="output",
+    save_params_every=50,
 )

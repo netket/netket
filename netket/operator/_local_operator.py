@@ -24,8 +24,8 @@ def _number_to_state(number, local_states, out):
 
 class LocalOperator(AbstractOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
-       acting locally on a limited set of k quantum numbers (i.e. k-local,
-       in the quantum information sense).
+    acting locally on a limited set of k quantum numbers (i.e. k-local,
+    in the quantum information sense).
     """
 
     def __init__(self, hilbert, operators=[], acting_on=[], constant=0):
@@ -88,8 +88,8 @@ class LocalOperator(AbstractOperator):
     @property
     def mel_cutoff(self):
         r"""float: The cutoff for matrix elements.
-                   Only matrix elements such that abs(O(i,i))>mel_cutoff
-                   are considered """
+        Only matrix elements such that abs(O(i,i))>mel_cutoff
+        are considered"""
         return self._mel_cutoff
 
     @mel_cutoff.setter
@@ -477,19 +477,19 @@ class LocalOperator(AbstractOperator):
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
-            from a given quantum number x, it finds all other quantum numbers x' such
-            that the matrix element :math:`O(x,x')` is different from zero. In general there
-            will be several different connected states x' satisfying this
-            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
-            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
-            Args:
-                x (array): An array of shape (hilbert.size) containing the quantum numbers x.
+        Args:
+            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
 
-            Returns:
-                matrix: The connected states x' of shape (N_connected,hilbert.size)
-                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+        Returns:
+            matrix: The connected states x' of shape (N_connected,hilbert.size)
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
 
@@ -509,24 +509,24 @@ class LocalOperator(AbstractOperator):
 
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
-            from a given quantum number x, it finds all other quantum numbers x' such
-            that the matrix element :math:`O(x,x')` is different from zero. In general there
-            will be several different connected states x' satisfying this
-            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
-            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                sections (array): An array of size (batch_size) useful to unflatten
-                            the output of this function.
-                            See numpy.split for the meaning of sections.
-                pad (bool): Whether to use zero-valued matrix elements in order to return all equal sections.
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            sections (array): An array of size (batch_size) useful to unflatten
+                        the output of this function.
+                        See numpy.split for the meaning of sections.
+            pad (bool): Whether to use zero-valued matrix elements in order to return all equal sections.
 
-            Returns:
-                matrix: The connected states x', flattened together in a single matrix.
-                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+        Returns:
+            matrix: The connected states x', flattened together in a single matrix.
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
 
@@ -641,25 +641,25 @@ class LocalOperator(AbstractOperator):
 
     def get_conn_filtered(self, x, sections, filters):
         r"""Finds the connected elements of the Operator using only a subset of operators. Starting
-            from a given quantum number x, it finds all other quantum numbers x' such
-            that the matrix element :math:`O(x,x')` is different from zero. In general there
-            will be several different connected states x' satisfying this
-            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
-            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                sections (array): An array of size (batch_size) useful to unflatten
-                            the output of this function.
-                            See numpy.split for the meaning of sections.
-                filters (array): Only operators op(filters[i]) are used to find the connected elements of
-                            x[i].
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            sections (array): An array of size (batch_size) useful to unflatten
+                        the output of this function.
+                        See numpy.split for the meaning of sections.
+            filters (array): Only operators op(filters[i]) are used to find the connected elements of
+                        x[i].
 
-            Returns:
-                matrix: The connected states x', flattened together in a single matrix.
-                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+        Returns:
+            matrix: The connected states x', flattened together in a single matrix.
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
 

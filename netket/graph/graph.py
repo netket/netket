@@ -90,22 +90,22 @@ class NetworkX(AbstractGraph):
 
 
 def Graph(nodes=[], edges=[]):
-    r""" A Custom Graph provided nodes or edges.
-        Constructs a Custom Graph given a list of nodes and edges.
-        Args:
-            nodes: A list of ints that index nodes of a graph
-            edges: A list of 2- or 3-tuples that denote an edge with an optional color
+    r"""A Custom Graph provided nodes or edges.
+    Constructs a Custom Graph given a list of nodes and edges.
+    Args:
+        nodes: A list of ints that index nodes of a graph
+        edges: A list of 2- or 3-tuples that denote an edge with an optional color
 
-        The Graph can be constructed specifying only the edges and the nodes will be deduced from the edges.
+    The Graph can be constructed specifying only the edges and the nodes will be deduced from the edges.
 
-        Examples:
-            A 10-site one-dimensional lattice with periodic boundary conditions can be
-            constructed specifying the edges as follows:
+    Examples:
+        A 10-site one-dimensional lattice with periodic boundary conditions can be
+        constructed specifying the edges as follows:
 
-            >>> import netket
-            >>> g=netket.graph.Graph(edges=[[i, (i + 1) % 10] for i in range(10)])
-            >>> print(g.n_nodes)
-            10
+        >>> import netket
+        >>> g=netket.graph.Graph(edges=[[i, (i + 1) % 10] for i in range(10)])
+        >>> print(g.n_nodes)
+        10
 
     """
     if not isinstance(nodes, list):
@@ -147,16 +147,16 @@ def Graph(nodes=[], edges=[]):
 
 def Edgeless(nodes):
     """A set graph (collection of unconnected vertices).
-        Args:
-            nodes: An integer number of nodes or a list of ints that index nodes of a graph
-        Example:
-            A 10-site one-dimensional lattice with periodic boundary conditions can be
-            constructed specifying the edges as follows:
+    Args:
+        nodes: An integer number of nodes or a list of ints that index nodes of a graph
+    Example:
+        A 10-site one-dimensional lattice with periodic boundary conditions can be
+        constructed specifying the edges as follows:
 
-            >>> import netket
-            >>> g=netket.graph.Edgeless([0,1,2,3])
-            >>> print(g.n_nodes)
-            4
+        >>> import netket
+        >>> g=netket.graph.Edgeless([0,1,2,3])
+        >>> print(g.n_nodes)
+        4
     """
     if not isinstance(nodes, list):
         if not isinstance(nodes, int):
@@ -169,8 +169,7 @@ def Edgeless(nodes):
 
 
 def DoubledGraph(graph):
-    """
-    """
+    """"""
 
     dedges = graph.edges()
     n_v = graph.n_vertices

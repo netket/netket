@@ -15,15 +15,15 @@ class ExactSampler(AbstractSampler):
 
     def __init__(self, machine, sample_size=16):
         r"""
-         Constructs a new ``ExactSampler`` given a machine.
+        Constructs a new ``ExactSampler`` given a machine.
 
-         Args:
-             machine: A machine $$\Psi(s)$$ used for the sampling.
-                      The probability distribution being sampled
-                      from is $$F(\Psi(s))$$, where the function
-                      $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
+        Args:
+            machine: A machine $$\Psi(s)$$ used for the sampling.
+                     The probability distribution being sampled
+                     from is $$F(\Psi(s))$$, where the function
+                     $$F(X)$$, is arbitrary, by default $$F(X)=|X|^2$$.
 
-             sample_size: The number of independent samples to be generated at each invocation of __next__.
+            sample_size: The number of independent samples to be generated at each invocation of __next__.
         """
         super().__init__(machine, sample_size)
         self.hilbert = machine.hilbert

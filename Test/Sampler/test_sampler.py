@@ -98,7 +98,10 @@ samplers["CustomSampler Spin 2 moves"] = sa
 
 # Diagonal density matrix sampling
 ma = nk.machine.density_matrix.RbmSpin(
-    hilbert=hi, alpha=1, use_visible_bias=True, use_hidden_bias=True,
+    hilbert=hi,
+    alpha=1,
+    use_visible_bias=True,
+    use_hidden_bias=True,
 )
 ma.init_random_parameters(sigma=0.2)
 dm = ma.diagonal()
@@ -111,7 +114,10 @@ samplers["Exact Diagonal Density Matrix"] = sa
 g = nk.graph.Hypercube(length=3, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, graph=g)
 ma = nk.machine.density_matrix.RbmSpin(
-    hilbert=hi, alpha=1, use_visible_bias=True, use_hidden_bias=True,
+    hilbert=hi,
+    alpha=1,
+    use_visible_bias=True,
+    use_hidden_bias=True,
 )
 
 ma.init_random_parameters(sigma=0.2)

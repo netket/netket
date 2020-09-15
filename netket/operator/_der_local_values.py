@@ -128,7 +128,11 @@ def der_local_values(
     """
     if isinstance(machine, _Jax):
         return der_local_values_jax(
-            op, machine, v, log_vals=log_vals, center_derivative=center_derivative,
+            op,
+            machine,
+            v,
+            log_vals=log_vals,
+            center_derivative=center_derivative,
         )
 
     if v.ndim != 2:
