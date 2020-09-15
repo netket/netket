@@ -95,7 +95,7 @@ class NetworkX(AbstractGraph):
 
 
 class Graph(NetworkX):
-    r""" A Custom Graph provided nodes or edges.
+    r"""A Custom Graph provided nodes or edges.
         Constructs a Custom Graph given a list of nodes and edges.
         Args:
             nodes: A list of ints that index nodes of a graph
