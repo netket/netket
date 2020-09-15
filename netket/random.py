@@ -18,9 +18,9 @@ def seed(seed=None):
     """
 
     if seed is None:
-        seed=_np.random.randint(0, 1 << 32)
+        seed = _np.random.randint(0, 1 << 32)
 
-    _np.random.seed(seed)   
+    _np.random.seed(seed)
     derived_seed = _np.random.randint(0, 1 << 32, size=_n_nodes)
 
     _np.random.seed(derived_seed[_rank])
