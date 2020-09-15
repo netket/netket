@@ -54,7 +54,13 @@ class LocalOperator(AbstractOperator):
         self._constant = constant
 
         self._hilbert = hilbert
-        self._local_states = _np.sort(hilbert.local_states)
+        self._local_states = _np.asarray(hilbert.local_states)
+
+        if _np.all(_np.diff(hilbert.local_states) < 0):
+            raise RuntimeError(
+                "LocalOperator requires local states in the hilbert object to be sorted."
+            )
+
         self._init_zero()
 
         self.mel_cutoff = 1.0e-6
