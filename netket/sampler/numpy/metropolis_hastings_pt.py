@@ -11,7 +11,11 @@ import math
 
 class MetropolisHastingsPt(AbstractSampler):
     def __init__(
-        self, machine, kernel, n_replicas=32, sweep_size=None,
+        self,
+        machine,
+        kernel,
+        n_replicas=32,
+        sweep_size=None,
     ):
         super().__init__(machine)
 

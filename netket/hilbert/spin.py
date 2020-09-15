@@ -25,7 +25,7 @@ class Spin(CustomHilbert):
            >>> hi = Spin(graph=g, s=0.5)
            >>> print(hi.size)
            100
-           """
+        """
 
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
@@ -72,7 +72,7 @@ class Spin(CustomHilbert):
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
-           """
+        """
 
         if out is None:
             out = _np.empty(self._size)

@@ -20,18 +20,18 @@ class AdaDelta(AbstractOptimizer):
 
     def __init__(self, rho=0.95, epscut=1.0e-7, l2reg=0):
         r"""
-            Constructs a new ``AdaDelta`` optimizer.
+        Constructs a new ``AdaDelta`` optimizer.
 
-            Args:
-               rho: Exponential decay rate, in [0,1].
-               epscut: Small :math:`\epsilon` cutoff.
-               l2reg (float): The amount of L2 regularization.
+        Args:
+           rho: Exponential decay rate, in [0,1].
+           epscut: Small :math:`\epsilon` cutoff.
+           l2reg (float): The amount of L2 regularization.
 
-            Examples:
-               Simple AdaDelta optimizer.
+        Examples:
+           Simple AdaDelta optimizer.
 
-               >>> from netket.optimizer import AdaDelta
-               >>> op = AdaDelta()
+           >>> from netket.optimizer import AdaDelta
+           >>> op = AdaDelta()
         """
 
         self._rho = rho

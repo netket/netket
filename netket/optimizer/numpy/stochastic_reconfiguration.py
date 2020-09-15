@@ -121,7 +121,7 @@ class SR:
 
         Args:
             oks: The matrix of log-derivatives,
-           	O_i(v_j)
+                O_i(v_j)
             grad: The vector of forces f.
             out: Output array for the update ẋ.
         """
@@ -260,8 +260,8 @@ class SR:
     @property
     def scale_invariant_regularization(self):
         r"""bool: Whether to use the scale-invariant regularization as described by
-                    Becca and Sorella (2017), pp. 143-144.
-                    https://doi.org/10.1017/9781316417041
+        Becca and Sorella (2017), pp. 143-144.
+        https://doi.org/10.1017/9781316417041
         """
         return self._scale_invariant_pc
 

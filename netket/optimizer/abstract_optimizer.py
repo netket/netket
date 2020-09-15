@@ -6,7 +6,7 @@ class AbstractOptimizer(abc.ABC):
     """Abstract class for NetKet optimizers"""
 
     def init(self, n_par, has_complex_parameters):
-        r""" Initializes the optimizer.
+        r"""Initializes the optimizer.
 
         Args:
             n_par (int): Number of parameters to be optimized.
@@ -17,7 +17,7 @@ class AbstractOptimizer(abc.ABC):
 
     @abc.abstractmethod
     def update(self, grad, pars):
-        r""" Update the parameters using gradient information.
+        r"""Update the parameters using gradient information.
 
         Args:
             grad (array): Gradient to be used for the update.

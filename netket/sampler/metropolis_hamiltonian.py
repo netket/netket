@@ -47,7 +47,10 @@ def MetropolisHamiltonian(machine, hamiltonian, n_chains=16, sweep_size=None):
        >>> sa = nk.sampler.MetropolisHamiltonian(machine=ma,hamiltonian=ha)
     """
     return MetropolisHastings(
-        machine, _HamiltonianKernel(machine, hamiltonian), n_chains, sweep_size,
+        machine,
+        _HamiltonianKernel(machine, hamiltonian),
+        n_chains,
+        sweep_size,
     )
 
 
@@ -70,5 +73,8 @@ def MetropolisHamiltonianPt(machine, hamiltonian, n_replicas=16, sweep_size=None
                     If None, batch_size is equal to the number of replicas (n_replicas).
     """
     return MetropolisHastingsPt(
-        machine, _HamiltonianKernel(machine, hamiltonian), n_replicas, sweep_size,
+        machine,
+        _HamiltonianKernel(machine, hamiltonian),
+        n_replicas,
+        sweep_size,
     )

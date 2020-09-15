@@ -2,23 +2,22 @@ from ..abstract_optimizer import AbstractOptimizer
 
 
 class Wrap(AbstractOptimizer):
-    r"""Wrapper for Jax optimizers.
-    """
+    r"""Wrapper for Jax optimizers."""
 
     def __init__(self, machine, optimizer, repr_str=None):
         r"""
-           Constructs a new ``Jax`` optimizer that can be used in NetKet drivers.
+        Constructs a new ``Jax`` optimizer that can be used in NetKet drivers.
 
-           Args:
-               machine (AbstractMachine): The machine to be optimized.
-               optimizer (jax.experimental.optimizers): A Jax optimizer.
+        Args:
+            machine (AbstractMachine): The machine to be optimized.
+            optimizer (jax.experimental.optimizers): A Jax optimizer.
 
-           Examples:
-               Simple SGD optimizer from Jax.
+        Examples:
+            Simple SGD optimizer from Jax.
 
-               >>> from netket.optimizer import Jax
-               >>> from jax.experimental.optimizers import sgd as Sgd
-               >>>
+            >>> from netket.optimizer import Jax
+            >>> from jax.experimental.optimizers import sgd as Sgd
+            >>>
 
         """
         self._init_fun, self._update_fun, self._params_fun = optimizer

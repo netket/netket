@@ -119,11 +119,31 @@ def DensePurificationComplex(
 
         xr, xc = jax.numpy.split(inputs, 2, axis=-1)
 
-        thetar = jax.numpy.dot(xr[:,], (Wr + 1.0j * Wi))
-        thetac = jax.numpy.dot(xc[:,], (Wr - 1.0j * Wi))
+        thetar = jax.numpy.dot(
+            xr[
+                :,
+            ],
+            (Wr + 1.0j * Wi),
+        )
+        thetac = jax.numpy.dot(
+            xc[
+                :,
+            ],
+            (Wr - 1.0j * Wi),
+        )
 
-        thetam = jax.numpy.dot(xr[:,], (Vr + 1.0j * Vi))
-        thetam += jax.numpy.dot(xc[:,], (Vr - 1.0j * Vi))
+        thetam = jax.numpy.dot(
+            xr[
+                :,
+            ],
+            (Vr + 1.0j * Vi),
+        )
+        thetam += jax.numpy.dot(
+            xc[
+                :,
+            ],
+            (Vr - 1.0j * Vi),
+        )
 
         if use_hidden_bias:
             thetar += br + 1.0j * bi
@@ -207,8 +227,18 @@ def DenseMixingReal(
 
         xr, xc = jax.numpy.split(inputs, 2, axis=-1)
 
-        theta = jax.numpy.dot(xr[:,], (0.5 * Ur + 0.5j * Ui))
-        theta += jax.numpy.dot(xc[:,], (0.5 * Ur - 0.5j * Ui))
+        theta = jax.numpy.dot(
+            xr[
+                :,
+            ],
+            (0.5 * Ur + 0.5j * Ui),
+        )
+        theta += jax.numpy.dot(
+            xc[
+                :,
+            ],
+            (0.5 * Ur - 0.5j * Ui),
+        )
 
         if use_hidden_bias:
             theta += dr
@@ -247,8 +277,18 @@ def DensePureRowCol(
 
         xr, xc = jax.numpy.split(inputs, 2, axis=-1)
 
-        thetar = jax.numpy.dot(xr[:,], W)
-        thetac = jax.numpy.dot(xc[:,], W)
+        thetar = jax.numpy.dot(
+            xr[
+                :,
+            ],
+            W,
+        )
+        thetac = jax.numpy.dot(
+            xc[
+                :,
+            ],
+            W,
+        )
 
         if use_hidden_bias:
             thetar += b
@@ -312,8 +352,18 @@ def BiasRealModPhase(b_init=normal()):
 
         xr, xc = jax.numpy.split(inputs, 2, axis=-1)
 
-        biasr = jax.numpy.dot((xr + xc)[:,], br)
-        biasj = jax.numpy.dot((xr - xc)[:,], bj)
+        biasr = jax.numpy.dot(
+            (xr + xc)[
+                :,
+            ],
+            br,
+        )
+        biasj = jax.numpy.dot(
+            (xr - xc)[
+                :,
+            ],
+            bj,
+        )
 
         return 0.5 * biasr + 0.5j * biasj
 
@@ -355,7 +405,9 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
     )
 
     mixing = stax.serial(
-        DenseMixingReal(beta * hilbert.size, use_hidden_bias), LogCoshLayer, SumLayer,
+        DenseMixingReal(beta * hilbert.size, use_hidden_bias),
+        LogCoshLayer,
+        SumLayer,
     )
 
     if use_visible_bias:
@@ -367,7 +419,9 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
         )
     else:
         net = stax.serial(
-            stax.FanOut(3), stax.parallel(mod_pure, phs_pure, mixing), stax.FanInSum,
+            stax.FanOut(3),
+            stax.parallel(mod_pure, phs_pure, mixing),
+            stax.FanInSum,
         )
 
     return Jax(hilbert, net, dtype=float, outdtype=complex)

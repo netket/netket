@@ -204,9 +204,13 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         if out is None:
-            out = self._forward_fn(self._params, x).reshape(x.shape[0],)
+            out = self._forward_fn(self._params, x).reshape(
+                x.shape[0],
+            )
         else:
-            out[:] = self._forward_fn(self._params, x).reshape(x.shape[0],)
+            out[:] = self._forward_fn(self._params, x).reshape(
+                x.shape[0],
+            )
         return out
 
     @property
@@ -463,7 +467,7 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
             )
 
         # create all tensors in mps from unit cell
-        all_tensors = jax.numpy.tile(params, (L / symperiod, 1, 1, 1))
+        all_tensors = jax.numpy.tile(params, (L // symperiod, 1, 1, 1))
 
         # transform input to indices
         x = (x - loc_vals_bias) / loc_vals_spacing
