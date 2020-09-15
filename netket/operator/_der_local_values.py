@@ -10,7 +10,11 @@ if jax_available:
     from netket.machine import Jax as _Jax
     from ._der_local_values_jax import der_local_values_jax
 else:
-    _Jax = None
+
+    class MockJaxMachine:
+        pass
+
+    _Jax = MockJaxMachine
 
 
 @jit(nopython=True)
