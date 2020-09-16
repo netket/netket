@@ -72,6 +72,7 @@ if jax_available:
 
         @sum_inplace.register(jax.interpreters.xla.DeviceArray)
         @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
+        @sum_inplace.register(jax.interpreters.partial_eval.DynamicJaxprTracer)
         @sum_inplace.register(jax.interpreters.ad.JVPTracer)
         def sum_inplace_jax(x):
             if _n_nodes == 1:
@@ -84,6 +85,7 @@ if jax_available:
 
         @sum_inplace.register(jax.interpreters.xla.DeviceArray)
         @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
+        @sum_inplace.register(jax.interpreters.partial_eval.DynamicJaxprTracer)
         @sum_inplace.register(jax.interpreters.ad.JVPTracer)
         def sum_inplace_jax(x):
             if _n_nodes == 1:
