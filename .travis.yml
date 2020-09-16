@@ -100,6 +100,7 @@ install:
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
     fi
+  - |
     if [ -n "$CONDA" ]; then
       python -m pip install mpi4jax
     fi
