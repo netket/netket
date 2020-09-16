@@ -109,7 +109,4 @@ script:
   - python -c 'import netket'
   - python -m pytest --durations=0 -n 2 --verbose ../Test/
   - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test_MPI
-  - python -m black --check ../netket/
-  - python -m black --check ../Test ../Test_MPI
-  - python -m black --check ../Examples ../Benchmarks
   # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/
