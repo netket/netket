@@ -31,6 +31,21 @@ try:
 except ImportError:
     jax_available = False
 
+if jax_available:
+    try:
+        import mpi4jax
+
+        # See mpi4jax documentation: if omnistaging is not enabled, there is a remote
+        # possibility of jax removing some operations and therefore deadlocking.
+        # Omnistaging has peculiar characteristics. Hoever, from limited benchmarking
+        # it usually improves performance.
+        jax.config.enable_omnistaging()
+
+        mpi4jax_available = True
+    except ImportError:
+        mpi4jax_available = False
+else:
+    mpi4jax_available = False
 
 try:
     import torch
