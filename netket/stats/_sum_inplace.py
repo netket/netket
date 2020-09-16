@@ -12,7 +12,7 @@ if _mpi_available:
 def sum_inplace(x):
     """
     Computes the elementwie sum of an array or a scalar across all MPI processes.
-    Attempts to perform this sum inplace if possible, but for some types a copy 
+    Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
     Args:
@@ -31,6 +31,7 @@ def sum_inplace(x):
 @sum_inplace.register(_np.complex64)
 @sum_inplace.register(_np.complex128)
 @sum_inplace.register(float)
+@sum_inplace.register(int)
 def sum_inplace_scalar(a):
     ar = _np.asarray(a)
 
@@ -76,7 +77,8 @@ if jax_available:
             if _n_nodes == 1:
                 return x
             else:
-                return mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+                res, _ = mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+                return res
 
     else:
 

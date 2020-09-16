@@ -77,8 +77,7 @@ class Torch(AbstractMachine):
 
     @property
     def n_par(self):
-        r"""Returns the total number of trainable parameters in the machine.
-        """
+        r"""Returns the total number of trainable parameters in the machine."""
         return self._n_par
 
     def log_val(self, x, out=None):
@@ -191,6 +190,11 @@ class Torch(AbstractMachine):
         return OrderedDict(
             [(k, v.detach().numpy()) for k, v in self._module.state_dict().items()]
         )
+
+    def __repr__(self):
+        head = super().__repr__()
+        module = "\n│  ".join([""] + repr(self._module).split("\n"))
+        return head + module + "\n└"
 
 
 class TorchLogCosh(_torch.nn.Module):

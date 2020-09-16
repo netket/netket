@@ -114,7 +114,7 @@ def test_vmc_progress_bar():
     pbar = f.getvalue().split("\r")[-1]
     assert re.match(r"100%\|#*\| (\d+)/\1", pbar)
     assert re.search(r"Energy=[-+]?[0-9]*\.?[0-9]*", pbar)
-    assert re.search(r"var=[-+]?[0-9]*\.?[0-9]*", pbar)
+    assert re.search(r"σ²=[-+]?[0-9]*\.?[0-9]*", pbar)
 
     f = StringIO()
     with redirect_stderr(f):

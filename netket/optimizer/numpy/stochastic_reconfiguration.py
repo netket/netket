@@ -121,7 +121,7 @@ class SR:
 
         Args:
             oks: The matrix of log-derivatives,
-           	O_i(v_j)
+                O_i(v_j)
             grad: The vector of forces f.
             out: Output array for the update ẋ.
         """
@@ -260,8 +260,8 @@ class SR:
     @property
     def scale_invariant_regularization(self):
         r"""bool: Whether to use the scale-invariant regularization as described by
-                    Becca and Sorella (2017), pp. 143-144.
-                    https://doi.org/10.1017/9781316417041
+        Becca and Sorella (2017), pp. 143-144.
+        https://doi.org/10.1017/9781316417041
         """
         return self._scale_invariant_pc
 
@@ -281,30 +281,13 @@ class SR:
         rep = "SR(solver="
 
         if self._use_iterative:
-            rep += "iterative"
+            rep += "iterative:CG"
         else:
             rep += self._lsq_solver + ", diag_shift=" + str(self._diag_shift)
             if self._svd_threshold is not None:
                 rep += ", threshold=" << self._svd_threshold
 
         rep += ", has_complex_parameters=" + str(self._has_complex_parameters) + ")"
-        return rep
-
-    def info(self, depth=0):
-        indent = " " * 4 * depth
-        rep = indent
-        rep += "Stochastic reconfiguration method for "
-        rep += "holomorphic" if self._has_complex_parameters else "real-parameter"
-        rep += " wavefunctions\n"
-
-        rep += indent + "Solver: "
-
-        if self._use_iterative:
-            rep += "iterative (Conjugate Gradient)"
-        else:
-            rep += self._lsq_solver
-        rep += "\n"
-
         return rep
 
     def _linear_operator(self, oks, n_samp):

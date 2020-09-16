@@ -20,18 +20,18 @@ class RmsProp(AbstractOptimizer):
 
     def __init__(self, learning_rate=0.001, beta=0.9, epscut=1.0e-7):
         r"""
-           Constructs a new ``RmsProp`` optimizer.
+        Constructs a new ``RmsProp`` optimizer.
 
-           Args:
-               learning_rate: The learning rate :math:`\eta`
-               beta: Exponential decay rate.
-               epscut: Small cutoff value.
+        Args:
+            learning_rate: The learning rate :math:`\eta`
+            beta: Exponential decay rate.
+            epscut: Small cutoff value.
 
-           Examples:
-               RmsProp optimizer.
+        Examples:
+            RmsProp optimizer.
 
-               >>> from netket.optimizer import RmsProp
-               >>> op = RmsProp(learning_rate=0.02)
+            >>> from netket.optimizer import RmsProp
+            >>> op = RmsProp(learning_rate=0.02)
         """
 
         if epscut <= 0:

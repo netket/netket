@@ -69,13 +69,13 @@ class Boson(CustomHilbert):
     @property
     def n_max(self):
         r"""int or None: The maximum number of bosons per site, or None
-                         if the number is unconstrained."""
+        if the number is unconstrained."""
         return self._n_max
 
     @property
     def n_bosons(self):
         r"""int or None: The total number of particles, or None
-                         if the number is unconstrained."""
+        if the number is unconstrained."""
         return self._n_bosons
 
     def random_state(self, out=None, rgen=None):
@@ -100,7 +100,7 @@ class Boson(CustomHilbert):
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
-           """
+        """
 
         if out is None:
             out = _np.empty(self.size)
@@ -136,3 +136,10 @@ class Boson(CustomHilbert):
     @jit(nopython=True)
     def _sum_constraint(x, n_bosons):
         return _np.sum(x, axis=1) == n_bosons
+
+    def __repr__(self):
+        nbosons = (
+            ", n_bosons={}".format(self._n_bosons) if self._n_bosons is not None else ""
+        )
+        nmax = self._n_max if self._n_max < _np.iinfo(_np.intp).max else "INT_MAX"
+        return "Boson(n_max={}{}; N={})".format(nmax, nbosons, self._size)

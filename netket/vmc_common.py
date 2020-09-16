@@ -7,8 +7,8 @@ def info(obj, depth=None):
 
 def tree_map(fun, tree, *args, **kwargs):
     """
-    Maps all the leafs in the tree, applying the function with the leave as first 
-    positional argument. 
+    Maps all the leafs in the tree, applying the function with the leave as first
+    positional argument.
     Any additional argument after the first two is forwarded to the function call.
 
     Args:
@@ -36,7 +36,7 @@ def tree_map(fun, tree, *args, **kwargs):
 
 def trees2_map(fun, tree1, tree2, *args, **kwargs):
     """
-    Maps all the leafs in the two trees, applying the function with the leafs of tree1 
+    Maps all the leafs in the two trees, applying the function with the leafs of tree1
     as first argument and the leafs of tree2 as second argument
     Any additional argument after the first two is forwarded to the function call.
 

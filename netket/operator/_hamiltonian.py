@@ -48,13 +48,13 @@ class Ising(AbstractOperator):
     def n_conn(x, out):
         r"""Return the number of states connected to x.
 
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                out (array): If None an output array is allocated.
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            out (array): If None an output array is allocated.
 
-            Returns:
-                array: The number of connected states x' for each x[i].
+        Returns:
+            array: The number of connected states x' for each x[i].
 
         """
         if out is None:
@@ -66,23 +66,27 @@ class Ising(AbstractOperator):
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
-            from a given quantum number x, it finds all other quantum numbers x' such
-            that the matrix element :math:`O(x,x')` is different from zero. In general there
-            will be several different connected states x' satisfying this
-            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
-            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
-            Args:
-                x (array): An array of shape (hilbert.size) containing the quantum numbers x.
+        Args:
+            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
 
-            Returns:
-                matrix: The connected states x' of shape (N_connected,hilbert.size)
-                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+        Returns:
+            matrix: The connected states x' of shape (N_connected,hilbert.size)
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
         return self._flattened_kernel(
-            x.reshape((1, -1)), _np.ones(1), self._edges, self._h, self._J,
+            x.reshape((1, -1)),
+            _np.ones(1),
+            self._edges,
+            self._h,
+            self._J,
         )
 
     @staticmethod
@@ -119,24 +123,24 @@ class Ising(AbstractOperator):
 
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
-            from a given quantum number x, it finds all other quantum numbers x' such
-            that the matrix element :math:`O(x,x')` is different from zero. In general there
-            will be several different connected states x' satisfying this
-            condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
 
-            This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
-            Args:
-                x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                            the batch of quantum numbers x.
-                sections (array): An array of size (batch_size) useful to unflatten
-                            the output of this function.
-                            See numpy.split for the meaning of sections.
-                pad (bool): no effect here            
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            sections (array): An array of size (batch_size) useful to unflatten
+                        the output of this function.
+                        See numpy.split for the meaning of sections.
+            pad (bool): no effect here
 
-            Returns:
-                matrix: The connected states x', flattened together in a single matrix.
-                array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+        Returns:
+            matrix: The connected states x', flattened together in a single matrix.
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
 

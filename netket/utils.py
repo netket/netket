@@ -38,7 +38,8 @@ if jax_available:
         mpi4jax_available = True
     except ImportError:
         mpi4jax_available = False
-
+else:
+    mpi4jax_available = False
 
 try:
     import torch

@@ -4,30 +4,29 @@ import torch as _torch
 
 
 class Torch(AbstractOptimizer):
-    r"""Wrapper for Torch optimizers.
-    """
+    r"""Wrapper for Torch optimizers."""
 
     def __init__(self, machine, optimizer, **opt_pars):
         r"""
-           Constructs a new ``Torch`` optimizer that can be used in NetKet drivers.
+        Constructs a new ``Torch`` optimizer that can be used in NetKet drivers.
 
-           Args:
-               machine (AbstractMachine): The machine to be optimized.
-               optimizer (torch.optim.Optimizer): A PyTorch optimizer.
-               opt_pars: named parameters to be passed to opt at construction
+        Args:
+            machine (AbstractMachine): The machine to be optimized.
+            optimizer (torch.optim.Optimizer): A PyTorch optimizer.
+            opt_pars: named parameters to be passed to opt at construction
 
-           Examples:
-               Simple SGD optimizer from PyTorch.
+        Examples:
+            Simple SGD optimizer from PyTorch.
 
-               >>> from netket.optimizer import Torch
-               >>> from torch.optim import SGD
-               >>>
-               >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-               >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-               >>> ha = nk.operator.Ising(h=1.0, hilbert=hi)
-               >>> ma = nk.machine.RbmReal(alpha=1, hilbert=hi)
-               >>> learning_rate = 0.01
-               >>> opt = Torch(ma, SGD, lr=learning_rate)
+            >>> from netket.optimizer import Torch
+            >>> from torch.optim import SGD
+            >>>
+            >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
+            >>> ha = nk.operator.Ising(h=1.0, hilbert=hi)
+            >>> ma = nk.machine.RbmReal(alpha=1, hilbert=hi)
+            >>> learning_rate = 0.01
+            >>> opt = Torch(ma, SGD, lr=learning_rate)
         """
         if not issubclass(optim, _torch.optim.Optimizer):
             raise ValueError("Not a valid Torch optimizer.")

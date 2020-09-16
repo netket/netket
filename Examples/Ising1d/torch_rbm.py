@@ -31,7 +31,8 @@ input_size = hi.size
 alpha = 1
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(input_size, alpha * input_size), LogCoshSum(),
+    torch.nn.Linear(input_size, alpha * input_size),
+    LogCoshSum(),
 )
 
 ma = nk.machine.Torch(model, hilbert=hi)

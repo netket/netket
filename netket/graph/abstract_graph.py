@@ -22,7 +22,7 @@ class AbstractGraph(abc.ABC):
     @abc.abstractmethod
     def distances(self):
         r"""list[list]: List containing the distances between the nodes.
-		The fact that some node may not be reachable from another is represented by -1"""
+        The fact that some node may not be reachable from another is represented by -1"""
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -49,5 +49,5 @@ class AbstractGraph(abc.ABC):
     @abc.abstractmethod
     def adjacency_list(self):
         r"""list[list]: List containing the adjacency list of the graph where each node
-		is represented by an integer in [0, n_sites)"""
+        is represented by an integer in [0, n_sites)"""
         raise NotImplementedError

@@ -72,7 +72,7 @@ class CustomHilbert(AbstractHilbert):
     @property
     def local_states(self):
         r"""list[float] or None: A list of discreet local quantum numbers.
-                     If the local states are infinitely many, None is returned."""
+        If the local states are infinitely many, None is returned."""
         return self._local_states
 
     @property
@@ -145,7 +145,7 @@ class CustomHilbert(AbstractHilbert):
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
-           """
+        """
 
         # Default version for discrete hilbert spaces without constraints
         # More specialized initializations can be defined in the derived classes
@@ -205,3 +205,13 @@ class CustomHilbert(AbstractHilbert):
                     "The required state does not satisfy the given constraints."
                 )
             return found
+
+    def __repr__(self):
+        constr = (
+            ", #contraints={}".format(len(self._constraints))
+            if self._do_constraints
+            else ""
+        )
+        return "CustomHilbert(local_size={}{}; N={})".format(
+            len(self.local_states), constr, self.size
+        )

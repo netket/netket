@@ -10,7 +10,11 @@ if jax_available:
     from netket.machine import Jax as _Jax
     from ._der_local_values_jax import der_local_values_jax
 else:
-    _Jax = None
+
+    class MockJaxMachine:
+        pass
+
+    _Jax = MockJaxMachine
 
 
 @jit(nopython=True)
@@ -128,7 +132,11 @@ def der_local_values(
     """
     if isinstance(machine, _Jax):
         return der_local_values_jax(
-            op, machine, v, log_vals=log_vals, center_derivative=center_derivative,
+            op,
+            machine,
+            v,
+            log_vals=log_vals,
+            center_derivative=center_derivative,
         )
 
     if v.ndim != 2:
