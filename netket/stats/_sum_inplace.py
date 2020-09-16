@@ -76,7 +76,8 @@ if jax_available:
             if _n_nodes == 1:
                 return x
             else:
-                return mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+                res, _ = mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+                return res
 
     else:
 
