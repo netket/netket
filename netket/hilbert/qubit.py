@@ -28,3 +28,6 @@ class Qubit(CustomHilbert):
         if graph is None:
             graph = Edgeless(size)
         super().__init__(graph, [0, 1])
+
+    def __repr__(self):
+        return "Qubit(N={})".format(self._size)

@@ -205,3 +205,13 @@ class CustomHilbert(AbstractHilbert):
                     "The required state does not satisfy the given constraints."
                 )
             return found
+
+    def __repr__(self):
+        constr = (
+            ", #contraints={}".format(len(self._constraints))
+            if self._do_constraints
+            else ""
+        )
+        return "CustomHilbert(local_size={}{}; N={})".format(
+            len(self.local_states), constr, self.size
+        )
