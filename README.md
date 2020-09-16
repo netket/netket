@@ -41,9 +41,9 @@ used for netket (pip or conda).
 
 Depending on the library you use to define your machines, distributed computing through MPI might
 or might not be supported. Please see below:
-  - *netket* : MPI is supported natively. No additional dependencies required.
-  - *jax*    : MPI is supported natively only if you don't use Stochastic Reconfiguration (SR). If you need SR, you must install `mpi4jax`. Please note that we advise to install `mpi4jax`  with the same tool (conda or pip) with which you installed netket.
-  - *pytorch* : MPI is supported natively only if you don't use Stochastic Reconfiguration (SR).
+  - **netket** : MPI is supported natively. No additional dependencies required.
+  - **jax**    : MPI is supported natively only if you don't use Stochastic Reconfiguration (SR). If you need SR, you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you installed netket.
+  - **pytorch** : MPI is supported natively only if you don't use Stochastic Reconfiguration (SR).
 
 ## Major Features
 
