@@ -14,4 +14,3 @@ dependencies:
   - mkl
   - numba
   - icc_rt
-  - mpi4jax
