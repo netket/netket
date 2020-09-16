@@ -3,6 +3,7 @@ name: netket_env
 channels:
   - numba
   - defaults
+  - conda-forge
 
 dependencies:
   - python=3.8
