@@ -101,7 +101,7 @@ install:
       python -m pip install torch
     fi
   - |
-    if [ -n "$CONDA" ]; then
+    if [ -z "$CONDA" ]; then
       python -m pip install mpi4jax
     fi
   - python -m pip install pytest-xdist
