@@ -1,6 +1,7 @@
 from ..abstract_sampler import AbstractSampler
-from ...stats import mean as _mean
 from netket import random as _random
+
+from netket.stats import sum_inplace as _sum_inplace
 
 import math
 import numpy as _np
@@ -127,4 +128,4 @@ class MetropolisHastings(AbstractSampler):
     @property
     def acceptance(self):
         """The measured acceptance probability."""
-        return _mean(self._accepted_samples) / _mean(self._total_samples)
+        return _sum_inplace(self._accepted_samples) / _sum_inplace(self._total_samples)

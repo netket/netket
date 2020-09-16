@@ -25,9 +25,12 @@ class Sgd(AbstractOptimizer):
         self._eta = self._learning_rate
 
     def __repr__(self):
-        rep = "Sgd optimizer with these parameters :"
-        rep += "\nLearning Rate = " + str(self._learning_rate)
-        rep += "\nCurrent learning Rate = " + str(self._eta)
-        rep += "\nL2 Regularization = " + str(self._l2reg)
-        rep += "\nDecay Factor = " + str(self._decay_factor)
-        return rep
+        if self._learning_rate != self._eta:
+            lr = "learning_rate[base]={}, learning_rate[current]={}".format(
+                self._learning_rate, self._eta
+            )
+        else:
+            lr = "learning_rate={}".format(self._learning_rate)
+        return ("Sgd({}, l2reg={}, decay_factor={})").format(
+            lr, self._l2reg, self._decay_factor
+        )

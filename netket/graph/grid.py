@@ -45,10 +45,16 @@ class Grid(NetworkX):
         if not isinstance(pbc, bool):
             raise TypeError("pbc must be a boolean")
 
+        self.length = length
+        self.pbc = pbc
+
         graph = _nx.generators.lattice.grid_graph(length, periodic=pbc)
         newnames = {old: new for new, old in enumerate(graph.nodes)}
         graph = _nx.relabel_nodes(graph, newnames)
         super().__init__(graph)
+
+    def __repr__(self):
+        return "Grid(length={}, pbc={})".format(self.length, self.pbc)
 
 
 def Hypercube(length, n_dim=1, pbc=True):
