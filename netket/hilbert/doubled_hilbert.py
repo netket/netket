@@ -118,3 +118,6 @@ class DoubledHilbert(AbstractHilbert):
         self.physical.random_state(out=out[n : 2 * n], rgen=rgen)
 
         return out
+
+    def __repr__(self):
+        return "DoubledHilbert({})".format(self.physical)

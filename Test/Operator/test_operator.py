@@ -46,7 +46,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, 1.0j], [-1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.CustomHilbert(local_states=[1, -1], graph=g)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 
 sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
 sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[2], [3], [4], [9]])

@@ -236,3 +236,11 @@ class AbstractMachine(abc.ABC):
     @property
     def input_size(self):
         return self.hilbert.size
+
+    def __repr__(self):
+        return "{}(input_size={}, n_par={}, complex_parameters={})".format(
+            type(self).__name__,
+            self.input_size,
+            self.n_par,
+            self.has_complex_parameters,
+        )
