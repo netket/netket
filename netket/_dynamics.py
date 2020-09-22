@@ -43,6 +43,8 @@ from netket.stats import (
 
 from functools import singledispatch
 
+from ._scipy_integrators import EulerSolver
+
 
 @singledispatch
 def _time_evo(self):
@@ -130,6 +132,7 @@ METHODS = METHODS = {
     "RADAU": scipy.integrate.Radau,
     "BDF": scipy.integrate.BDF,
     "LSODA": scipy.integrate.LSODA,
+    "EULER": EulerSolver,
 }
 
 
