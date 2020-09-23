@@ -35,10 +35,6 @@ class Wrap(AbstractOptimizer):
         self._step += 1
         pars = self._params_fun(self._opt_state)
 
-        # Force jax to execute all buffered operations, so that pending MPI operations on all
-        # ranks are executed. Otherwise it is possible that only rank0 executed
-        tree_map(lambda x: x.block_until_ready(), pars)
-
         return pars
 
     def reset(self):
