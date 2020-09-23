@@ -102,7 +102,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete drivers should also call super().reset() to ensure that the step
         count is set to 0.
         """
-        self.step_count = 0
+        self._step_count = 0
         pass
 
     @abc.abstractmethod
@@ -135,6 +135,14 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self._step_count
 
+    @property
+    def step_value(self):
+        """
+        Returns a monotonic value identifying the current step. This might be the
+        step_count for a standard iterative optimizer, or the time for a time-evolution
+        """
+        return self.step_count
+
     def iter(self, n_steps, step=1):
         """
         Returns a generator which advances the VMC optimization, yielding
@@ -154,6 +162,7 @@ class AbstractVariationalDriver(abc.ABC):
                 if i == 0:
                     yield self.step_count
 
+                self._step_count += 1
                 self.update_parameters(dp)
 
     def advance(self, steps=1):
@@ -225,20 +234,28 @@ class AbstractVariationalDriver(abc.ABC):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(
-            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
-        ) as itr:
-            for step in itr:
-
+        with tqdm(total=n_iter, disable=not show_progress) as pbar:
+            old_step_value = self.step_value
+            for step in self.iter(n_iter, step_size):
                 log_data = self.estimate(obs)
 
                 # if the cost-function is defined then report it in the progress bar
+                # and to the loggers
                 if self._loss_stats is not None:
-                    itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
                     log_data[self._loss_name] = self._loss_stats
 
-                for logger in loggers:
-                    logger(self.step_count, log_data, self.machine)
+                if len(loggers) > 0:
+                    # this function can be overriden by drivers to append anything
+                    # they want to the logged data
+                    self._log_additional_data(log_data, step)
+
+                    for logger in loggers:
+                        logger(self.step_count, log_data, self.machine)
+
+                # Update the progress bar
+                pbar.update(self.step_value - old_step_value)
+                old_step_value = self.step_value
 
                 for callback in callbacks:
                     if not callback(step, log_data, self):
@@ -246,6 +263,9 @@ class AbstractVariationalDriver(abc.ABC):
 
                 if callback_stop:
                     break
+
+            #  Final update so that it shows up filled.
+            pbar.update(self.step_value - old_step_value)
 
         # flush at the end of the evolution so that final values are saved to
         # file
@@ -274,4 +294,13 @@ class AbstractVariationalDriver(abc.ABC):
             :param dp: the gradient
         """
         self._machine.parameters = self._optimizer.update(dp, self._machine.parameters)
-        self._step_count += 1
+
+    def _log_additional_data(self, log_dict, step):
+        """
+        Adds additional data to the dictionary of logged data at every step.
+        Args:
+
+            :log_dict: the dictionary to be modified containing all the logged key-value pairs
+            :step: the step
+        """
+        pass
