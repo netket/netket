@@ -277,11 +277,11 @@ class Jax(AbstractMachine):
 
     @parameters.setter
     def parameters(self, p):
-        self._params = p
-        weights, _ = tree_flatten(self._params)
+        weights, _ = tree_flatten(p)
         npar = sum([w.size for w in weights])
-
         assert npar == self._npar
+        
+        self._params = p
 
     def numpy_flatten(self, data):
         r"""Returns a flattened numpy array representing the given data.
