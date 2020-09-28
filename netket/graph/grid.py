@@ -8,17 +8,18 @@ class Grid(NetworkX):
     r"""A Grid lattice of d dimensions, and possibly different sizes of each dimension.
     Periodic boundary conditions can also be imposed"""
 
-    def __init__(self, length, pbc=True):
+    def __init__(self, length, pbc=True, color_edges=False):
         """
         Constructs a new `Grid` given its length vector.
 
         Args:
             length: Side length of the Grid. It must be a list with integer components >= 1.
             pbc: If `True`, the grid will have periodic boundary conditions (PBC);
-            if `False`, the grid will have open boundary conditions (OBC).
-            This parameter can also be a list of booleans with same length as 
-            the parameter `length`, in which case each dimension will have
-            PBC/OBC depending on the corresponding entry of `pbc`.
+                if `False`, the grid will have open boundary conditions (OBC).
+                This parameter can also be a list of booleans with same length as
+                the parameter `length`, in which case each dimension will have
+                PBC/OBC depending on the corresponding entry of `pbc`.
+            color_edges: If `True`, the edges will be colored by their grid direction.
         Examples:
             A 5x10 lattice with periodic boundary conditions can be
             constructed as follows:
@@ -72,6 +73,16 @@ class Grid(NetworkX):
                     v1, v2 = sorted([e[0][i], e[1][i]])
                     if v1 == 0 and v2 == l - 1 and not is_per:
                         graph.remove_edge(*e)
+
+        if color_edges:
+            edges = {}
+            for e in graph.edges:
+                # color is the first (and only) dimension in which
+                # the edge coordinates differ
+                diff = _np.array(e[0]) - _np.array(e[1])
+                color = int(_np.argwhere(diff[::-1] != 0))
+                edges[e] = color
+            _nx.set_edge_attributes(graph, edges, name="color")
 
         newnames = {old: new for new, old in enumerate(graph.nodes)}
         graph = _nx.relabel_nodes(graph, newnames)

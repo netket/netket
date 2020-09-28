@@ -44,11 +44,11 @@ class NetworkX(AbstractGraph):
 
     def edges(self, color=False):
         if color is True:
-            return list(self.graph.edges(keys=True))
+            return list(self.graph.edges(data="color"))
         elif color is not False:
-            return [(u, v) for u, v, k in self.graph.edges if k == color]
-        else:
-            return list(self.graph.edges(keys=False))
+            return [(u, v) for u, v, k in self.graph.edges(data="color") if k == color]
+        else:  # color is False
+            return list(self.graph.edges())
 
     def distances(self):
         return _nx.floyd_warshall_numpy(self.graph).tolist()
@@ -149,6 +149,9 @@ class Graph(NetworkX):
         graph.add_nodes_from(node_names)
         if edges:
             graph.add_edges_from(edges_array)
+            if edges_array.shape[1] == 3:  # edges with color
+                colors = {tuple(e): e[-1] for e in edges}
+                _nx.set_edge_attributes(graph, colors, name="color")
         super().__init__(graph)
 
 
