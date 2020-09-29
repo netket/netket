@@ -83,6 +83,8 @@ class Grid(NetworkX):
                 color = int(_np.argwhere(diff[::-1] != 0))
                 edges[e] = color
             _nx.set_edge_attributes(graph, edges, name="color")
+        else:
+            _nx.set_edge_attributes(graph, 0, name="color")
 
         newnames = {old: new for new, old in enumerate(graph.nodes)}
         graph = _nx.relabel_nodes(graph, newnames)

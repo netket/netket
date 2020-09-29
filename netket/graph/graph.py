@@ -65,11 +65,8 @@ class NetworkX(AbstractGraph):
         #       be a duplicated edge with two different colors.
 
         # For the moment, if there are colors, the method returns a NotImplementedError:
-        if self.edges():
-            colors = _np.unique(_np.array(self.edges(color=True))[:, 2])
-        else:
-            colors = _np.array([])
-        if colors.size >= 2:
+        colors = set(c for _, _, c in self.edges(color=True))
+        if len(colors) >= 2:
             raise NotImplementedError(
                 "automorphisms is not yet implemented for colored edges"
             )
@@ -152,6 +149,8 @@ class Graph(NetworkX):
             if edges_array.shape[1] == 3:  # edges with color
                 colors = {tuple(e): e[-1] for e in edges}
                 _nx.set_edge_attributes(graph, colors, name="color")
+            else:  # only one color
+                _nx.set_edge_attributes(graph, 0, name="color")
         super().__init__(graph)
 
 
