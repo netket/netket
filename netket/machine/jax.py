@@ -280,7 +280,7 @@ class Jax(AbstractMachine):
         weights, _ = tree_flatten(p)
         npar = sum([w.size for w in weights])
         assert npar == self._npar
-        
+
         self._params = p
 
     def numpy_flatten(self, data):
