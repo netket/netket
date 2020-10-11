@@ -16,6 +16,19 @@ def local_energy_kernel(logpsi, pars, vp, mel, v):
 
 
 ########################################
+# Perform AD through the local values and then vmap.
+# Used to compute the gradient
+# \sum_i mel(i) * exp(vp(i)-v) * ( O_k(vp(i)) - O_k(v) )
+def _der_local_values_impl(op, machine, v, log_vals):
+    v_primes, mels = op.get_conn_padded(v._value)
+
+    val, grad = local_costs_and_grads_function(
+        local_energy_kernel, machine.jax_forward, pars, v_primes, mels, v
+    )
+    return grad
+
+
+########################################
 # Computes the non-centered gradient of local values
 # \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
 @partial(jax.jit, static_argnums=(0, 5))
@@ -69,14 +82,7 @@ def _local_values_and_grads_notcentered_kernel(
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v._value, sections, pad=True)
-
-    n_primes = sections[0]
-    n_visible = v.shape[1]
-
-    v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
-    mels_r = mels.reshape(-1, n_primes)
+    v_primes, mels = op.get_conn_padded(v._value)
 
     if machine._dtype is float and machine._outdtype is complex:
         real_to_complex = True
@@ -84,32 +90,7 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals):
         real_to_complex = False
 
     val, grad = _local_values_and_grads_notcentered_kernel(
-        machine.jax_forward, machine.parameters, v_primes_r, mels_r, v, real_to_complex
-    )
-    return grad
-
-
-########################################
-# Perform AD through the local values and then vmap.
-# Used to compute the gradient
-# \sum_i mel(i) * exp(vp(i)-v) * ( O_k(vp(i)) - O_k(v) )
-def _der_local_values_impl(op, machine, v, log_vals):
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(v._value, sections, pad=True)
-
-    n_primes = sections[0]
-    n_visible = v.shape[1]
-
-    v_primes_r = v_primes.reshape(-1, n_primes, n_visible)
-    mels_r = mels.reshape(-1, n_primes)
-
-    if machine._dtype is complex:
-        pars = machine._params
-    else:
-        pars = tree_map(lambda v: v.astype(jax.numpy.complex128), machine._params)
-
-    val, grad = local_costs_and_grads_function(
-        local_energy_kernel, machine.jax_forward, pars, v_primes_r, mels_r, v
+        machine.jax_forward, machine.parameters, v_primes, mels, v, real_to_complex
     )
     return grad
 
@@ -160,6 +141,16 @@ def der_local_values_jax(
         log_vals = machine.log_val(v)
 
     if center_derivative is True:
-        return _der_local_values_impl(op, machine, v, log_vals,)
+        return _der_local_values_impl(
+            op,
+            machine,
+            v,
+            log_vals,
+        )
     else:
-        return _der_local_values_notcentered_impl(op, machine, v, log_vals,)
+        return _der_local_values_notcentered_impl(
+            op,
+            machine,
+            v,
+            log_vals,
+        )
