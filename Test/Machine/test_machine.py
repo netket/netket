@@ -6,7 +6,7 @@ from pytest import approx
 import os
 from netket.hilbert import Spin
 
-test_jax = True
+test_jax = nk.utils.jax_available
 try:
     import torch
 
