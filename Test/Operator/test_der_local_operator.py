@@ -22,7 +22,7 @@ import pytest
 from pytest import approx
 import os
 
-test_jax = True
+test_jax = nk.utils.jax_available
 
 np.set_printoptions(linewidth=180)
 
