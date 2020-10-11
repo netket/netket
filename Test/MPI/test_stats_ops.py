@@ -37,6 +37,7 @@ def reference_stats(data):
     return mean_full, var_full, R_hat
 
 
+@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
 def test_mc_stats():
     # Test data of shape [MPI_size, n_chains, n_samples], same on all ranks
     data = np.random.rand(size, 10, 1000)
@@ -54,6 +55,7 @@ def test_mc_stats():
     assert stats.R_hat == approx(ref_R)
 
 
+@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
 def test_mean():
     data = np.random.rand(size, 10, 11, 12)
     data = comm.bcast(data)
@@ -84,6 +86,7 @@ def test_mean():
     assert out == approx(np.mean(1j * data.mean(0), axis=0))
 
 
+@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
 def test_sum():
     data = np.ones((size, 10, 11, 12))
     data = comm.bcast(data)
@@ -116,6 +119,7 @@ def test_sum():
     assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
 
 
+@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
 def test_var():
     data = np.random.rand(size, 10, 11, 12, 13)
     data = comm.bcast(data)

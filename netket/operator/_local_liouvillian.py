@@ -179,8 +179,11 @@ class LocalLiouvillian(AbstractOperator):
 
         # compose everything again
         if self._xprime.shape[0] < self._max_conn_size * batch_size:
-            self._xprime_f.resize(self._max_conn_size * batch_size, self.hilbert.size)
-            self._mels_f.resize(self._max_conn_size * batch_size)
+            # refcheck=False because otherwise this errors when testing
+            self._xprime_f.resize(
+                self._max_conn_size * batch_size, self.hilbert.size, refcheck=False
+            )
+            self._mels_f.resize(self._max_conn_size * batch_size, refcheck=False)
 
         if pad:
             pad = max_conns_Lrc + max_conns_r + max_conns_c
