@@ -56,3 +56,7 @@ build/
 #######################
 *.lyx~
 *.lyx#
+
+# Coverage files #
+##################
+.coverage.*
