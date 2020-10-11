@@ -19,10 +19,15 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Formats the code to with black
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pip install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -v black==20.8b1
+
       - name: Black Code Formatter
-        # You may pin to the exact commit or the version.
-        # uses: lgeiger/black-action@4379f39aa4b6a3bb1cceb46a7665b9c26647d82d
-        uses: lgeiger/black-action@v1.0.1
-        with: 
-          args:  . --check --verbose
+        run: black --check --diff --color .
