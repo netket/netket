@@ -36,7 +36,6 @@ class MetropolisHastings(AbstractSampler):
         machine_pow,
         rng_key,
     ):
-        @jax.jit
         def one_step(i, walker):
             key, state, log_prob = walker
 
@@ -54,13 +53,11 @@ class MetropolisHastings(AbstractSampler):
 
             return (keys[0], state, log_prob)
 
-        @jax.jit
         def one_sweep(walker, i):
             key, state, log_prob = walker
             walker = jax.lax.fori_loop(0, sweep_size, one_step, (key, state, log_prob))
             return walker, walker[1]
 
-        @jax.jit
         def single_chain_kernel(key, state):
             log_prob = machine_pow * logpdf(params, state).real
             walker, samples = jax.lax.scan(
