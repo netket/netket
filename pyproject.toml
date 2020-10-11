@@ -20,7 +20,7 @@ exclude = '''
 [tool.coverage.run]
 branch = true
 parallel = true
-command_line = "-m pytest --color=yes --durations=0 Test/Graph"
+command_line = "-m pytest --color=yes --durations=0 Test"
 source = ["netket"]
 
 [dev-dependencies]
