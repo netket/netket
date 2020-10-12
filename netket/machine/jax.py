@@ -169,8 +169,20 @@ class Jax(AbstractMachine):
 
         self._params = self._cast(params)
 
-        if output_shape != (-1, 1):
-            raise ValueError("A valid network must have 1 output.")
+        # TODO
+        # We should also test that the output_shape is
+        # (1,) or () for a vector input_shape (N,), which is what
+        # is provided by the sampler.
+        #  Either add this check of fix the samplers
+        if output_shape != (-1, 1) and output_shape != (-1,):
+            raise ValueError(
+                r"""
+                A valid network must have 1 output, but the network 
+                you attempted to build, provided input_shape={} gave
+                output_shape={}""".format(
+                    input_shape, output_shape
+                )
+            )
 
     def init_random_parameters(self, seed=None, sigma=0.01):
         rgen = _np.random.RandomState(seed)
