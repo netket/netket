@@ -31,3 +31,8 @@ pytest = ">= 5"
 
 [build-system]
 requires = ["setuptools", "wheel"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::UserWarning",
+]

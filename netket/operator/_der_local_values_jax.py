@@ -20,10 +20,10 @@ def local_energy_kernel(logpsi, pars, vp, mel, v):
 # Used to compute the gradient
 # \sum_i mel(i) * exp(vp(i)-v) * ( O_k(vp(i)) - O_k(v) )
 def _der_local_values_impl(op, machine, v, log_vals):
-    v_primes, mels = op.get_conn_padded(v._value)
+    v_primes, mels = op.get_conn_padded(_np.asarray(v))
 
     val, grad = local_costs_and_grads_function(
-        local_energy_kernel, machine.jax_forward, pars, v_primes, mels, v
+        local_energy_kernel, machine, v_primes, mels, v
     )
     return grad
 
@@ -82,7 +82,7 @@ def _local_values_and_grads_notcentered_kernel(
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
-    v_primes, mels = op.get_conn_padded(v._value)
+    v_primes, mels = op.get_conn_padded(_np.asarray(v))
 
     if machine._dtype is float and machine._outdtype is complex:
         real_to_complex = True
