@@ -18,7 +18,7 @@ import inspect
 
 
 def deprecated(reason=None):
-    """
+    r"""
     This is a decorator which can be used to mark functions as deprecated. It
     will result in a warning being emitted when the function is used.
     """
@@ -40,7 +40,7 @@ def deprecated(reason=None):
 
 
 def warn_deprecation(message):
-    """
+    r"""
     This is a function that sends a deprecation warning to the user about a
     function that will is now deprecated and will be removed in a future
     major release.

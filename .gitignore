@@ -51,6 +51,8 @@ build/
 ###################
 .envrc
 .idea
+*.sublime-project
+*.sublime-workspace
 
 # Lyx temporary files #
 #######################
