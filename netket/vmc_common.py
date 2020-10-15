@@ -25,7 +25,12 @@ def tree_map(fun, tree, *args, **kwargs):
     elif isinstance(tree, list):
         return [tree_map(fun, val, *args, **kwargs) for val in tree]
     elif isinstance(tree, tuple):
-        return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
+        if not hasattr(tree, "_fields"):
+            # If it is not a namedtuple, recreate it as a tuple.
+            return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
+        else:
+            # If it is a namedtuple, than keep that type information.
+            return type(tree)(*(tree_map(fun, val, *args, **kwargs) for val in tree))
     elif isinstance(tree, dict):
         return {
             key: tree_map(fun, value, *args, **kwargs) for key, value in tree.items()

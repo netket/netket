@@ -130,111 +130,133 @@ if test_jax:
     import jax.experimental
     import jax.experimental.stax
 
-
-def test_der_log_val_jax():
-    if not test_jax:
-        return
-
+    # machines
+    testsets = {}
     ma = nk.machine.density_matrix.NdmSpin(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(seed=1234, sigma=0.01)
+    testsets["NDMSpin + lindblad"] = (lind, ma)
 
-    # test single input
-    for i in range(0, lind.hilbert.n_states):
-        state = jax.numpy.array(np.atleast_2d(lind.hilbert.number_to_state(i)))
-        der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
-        )
-
-        log_val_s = ma.log_val(state)
-        der_log_s = ma.der_log(state)
-
-        statet, mel = lind.get_conn(state[0, :]._value)
-
-        log_val_p = ma.log_val(statet)
-        der_log_p = ma.der_log(statet)
-
-        log_val_diff = mel * np.exp(log_val_p - log_val_s)
-        log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
-
-        grad_all = nk._tree_map(
-            lambda x: (
-                log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1))) * x
-            ).sum(axis=0),
-            der_log_p,
-        )
-
-        nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(
-                x.flatten(), y.flatten(), decimal=3
-            ),
-            grad_all,
-            der_loc_vals,
-        )
-
-        # centered
-        # not necessary for liouvillian but worth checking
-        der_loc_vals = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=True
-        )
-        grad_all = nk._trees2_map(
-            lambda xp, x: (
-                log_val_diff.reshape((-1,) + tuple(1 for i in range(x.ndim - 1)))
-                * (xp - x)
-            ).sum(axis=0),
-            der_log_p,
-            der_log_s,
-        )
-
-        nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(
-                x.flatten(), y.flatten(), decimal=3
-            ),
-            grad_all,
-            der_loc_vals,
-        )
-
-
-def test_der_log_val_batched_jax():
-    if not test_jax:
-        return
-
-    ma = nk.machine.density_matrix.NdmSpin(hilbert=hi, alpha=1, beta=1)
+    ma = nk.machine.density_matrix.JaxRbmSpin(hilbert=hi, alpha=1, dtype=complex)
     ma.init_random_parameters(seed=1234, sigma=0.01)
+    testsets["RBMSpin + lindblad"] = (lind, ma)
 
-    # test single input
-    states = np.empty((5, hi.size * 2), dtype=np.float64)
-    for i in range(0, 5):
-        states[i, :] = lind.hilbert.number_to_state(i)
+    ma = nk.machine.JaxRbm(hilbert=hi, alpha=1, dtype=complex)
+    ma.init_random_parameters(seed=1234, sigma=0.01)
+    testsets["RBMSpin + lindblad"] = (ha, ma)
 
-    der_loc_notc_vals = nk.operator.der_local_values(
-        lind, ma, jax.numpy.array(states), center_derivative=False
-    )
+    def test_der_log_val_jax():
+        if not test_jax:
+            return
 
-    der_loc_vals = nk.operator.der_local_values(
-        lind, ma, jax.numpy.array(states), center_derivative=True
-    )
+        for name, (op, ma) in testsets.items():
+            print(name)
+            hi = op.hilbert
 
-    for i in range(0, states.shape[0]):
-        state = jax.numpy.array(np.atleast_2d(states[i, :]))
+            # test single input
+            for i in range(0, op.hilbert.n_states):
+                state = jax.numpy.array(np.atleast_2d(op.hilbert.number_to_state(i)))
+                der_loc_vals = nk.operator.der_local_values(
+                    op, ma, state, center_derivative=False
+                )
 
-        grad_all = nk.operator.der_local_values(
-            lind, ma, state, center_derivative=False
-        )
+                log_val_s = ma.log_val(state)
+                der_log_s = ma.der_log(state)
 
-        nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(
-                x.flatten(), y[i].flatten()
-            ),
-            grad_all,
-            der_loc_notc_vals,
-        )
+                statet, mel = op.get_conn(np.asarray(state[0, :]))
 
-        grad_all = nk.operator.der_local_values(lind, ma, state, center_derivative=True)
+                log_val_p = ma.log_val(statet)
+                der_log_p = ma.der_log(statet)
 
-        nk._trees2_map(
-            lambda x, y: np.testing.assert_array_almost_equal(
-                x.flatten(), y[i].flatten()
-            ),
-            grad_all,
-            der_loc_vals,
-        )
+                log_val_diff = mel * np.exp(log_val_p - log_val_s)
+                log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
+
+                grad_all = nk._tree_map(
+                    lambda x: (
+                        log_val_diff.reshape(
+                            (-1,) + tuple(1 for i in range(x.ndim - 1))
+                        )
+                        * x
+                    ).sum(axis=0),
+                    der_log_p,
+                )
+
+                nk._trees2_map(
+                    lambda x, y: np.testing.assert_array_almost_equal(
+                        x.flatten(), y.flatten(), decimal=3
+                    ),
+                    grad_all,
+                    der_loc_vals,
+                )
+
+                # centered
+                # not necessary for liouvillian but worth checking
+                der_loc_vals = nk.operator.der_local_values(
+                    op, ma, state, center_derivative=True
+                )
+                grad_all = nk._trees2_map(
+                    lambda xp, x: (
+                        log_val_diff.reshape(
+                            (-1,) + tuple(1 for i in range(x.ndim - 1))
+                        )
+                        * (xp - x)
+                    ).sum(axis=0),
+                    der_log_p,
+                    der_log_s,
+                )
+
+                nk._trees2_map(
+                    lambda x, y: np.testing.assert_array_almost_equal(
+                        x.flatten(), y.flatten(), decimal=3
+                    ),
+                    grad_all,
+                    der_loc_vals,
+                )
+
+    def test_der_log_val_batched_jax():
+        if not test_jax:
+            return
+
+        for name, (op, ma) in testsets.items():
+            print(name)
+            hi = op.hilbert
+
+            # test single input
+            states = np.empty((5, hi.size), dtype=np.float64)
+            states_i = np.random.randint(op.hilbert.n_states, size=5)
+            for i, st in enumerate(states_i):
+                states[i, :] = op.hilbert.number_to_state(st)
+
+            der_loc_notc_vals = nk.operator.der_local_values(
+                op, ma, jax.numpy.array(states), center_derivative=False
+            )
+
+            der_loc_vals = nk.operator.der_local_values(
+                op, ma, jax.numpy.array(states), center_derivative=True
+            )
+
+            for i in range(0, states.shape[0]):
+                state = jax.numpy.array(np.atleast_2d(states[i, :]))
+
+                grad_all = nk.operator.der_local_values(
+                    op, ma, state, center_derivative=False
+                )
+
+                nk._trees2_map(
+                    lambda x, y: np.testing.assert_array_almost_equal(
+                        x.flatten(), y[i].flatten()
+                    ),
+                    grad_all,
+                    der_loc_notc_vals,
+                )
+
+                grad_all = nk.operator.der_local_values(
+                    op, ma, state, center_derivative=True
+                )
+
+                nk._trees2_map(
+                    lambda x, y: np.testing.assert_array_almost_equal(
+                        x.flatten(), y[i].flatten()
+                    ),
+                    grad_all,
+                    der_loc_vals,
+                )

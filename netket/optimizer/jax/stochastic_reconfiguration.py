@@ -14,7 +14,7 @@ from netket.utils import n_nodes, mpi4jax_available
 
 @jit
 def _S_grad_mul(oks, v, n_samp):
-    """
+    r"""
     Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
     length n_parameters, and O is a matrix (n_samples, n_parameters)
     """
@@ -33,7 +33,7 @@ def _compose_result_real(v, y, diag_shift):
     return (v * diag_shift + y).real
 
 
-#  Note: n_samp must be the total number of samples across all MPI processes!
+# Note: n_samp must be the total number of samples across all MPI processes!
 # Note: _sum_inplace can only be jitted through if we are in single process.
 @jit
 def _matvec_cmplx(v, oks, n_samp, diag_shift):
@@ -51,7 +51,7 @@ def _matvec_real(v, oks, n_samp, diag_shift):
 def _jax_cg_solve(
     x0, mat_vec, oks, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
 ):
-    """
+    r"""
     Solves the SR flow equation using the conjugate gradient method
     """
 
@@ -152,7 +152,7 @@ class SR:
                 raise RuntimeError("Unknown sparse lsq_solver " + lsq_solver + ".")
 
     def setup(self, machine):
-        """
+        r"""
         Sets up this Sr object to work with the selected machine.
         This mainly sets internal flags `has_complex_parameters` and the
         method used to flatten/unflatten the gradients.
