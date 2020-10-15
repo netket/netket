@@ -92,7 +92,7 @@ def _local_cost_function(local_cost_fun, logpsi, pars, *args):
         out_axes=0,
     )
 
-    return local_cost_fun_vmap(local_cost_fun, logpsi, pars, *args)
+    return local_cost_fun_vmap(logpsi, pars, *args)
 
 
 def local_cost_function(local_cost_fun, machine, *args):
