@@ -161,6 +161,7 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
+        callback=lambda *x: True,
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
@@ -236,6 +237,9 @@ class AbstractVariationalDriver(abc.ABC):
 
                 for logger in loggers:
                     logger(self.step_count, log_data, self.machine)
+                    
+                if not callback(step, log_data, self):
+                    break
 
         # flush at the end of the evolution so that final values are saved to
         # file
