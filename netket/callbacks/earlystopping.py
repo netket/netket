@@ -18,7 +18,7 @@ class EarlyStopping:
         self.__min_delta = min_delta
         self.__patience = patience
         self.__baseline = baseline
-        self.__best_val = infty
+        self._best_val = infty
         self.__best_iter = 0
 
     def __call__(self, step, log_data, driver):
@@ -34,15 +34,15 @@ class EarlyStopping:
             A boolean. If True, training continues, else, it does not.
         """
         loss = log_data[driver._loss_name].mean.real
-        if loss <= self.__best_val:
-            self.__best_val = loss
+        if loss <= self._best_val:
+            self._best_val = loss
             self.__best_iter = step
         if self.__baseline is not None:
             if loss <= self.__baseline:
                 return False
         if (
-            step - self.__best_iter > self.__patience
-            and loss > self.__best_val - self.__min_delta
+            step - self.__best_iter >= self.__patience
+            and loss > self._best_val - self.__min_delta
         ):
             return False
         else:

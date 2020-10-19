@@ -3,7 +3,7 @@ import netket as nk
 SEED = 3141592
 
 
-def _run_vmc(**kwargs):
+def _run_vmc(initial_best_value=None, **kwargs):
     nk.random.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -18,12 +18,17 @@ def _run_vmc(**kwargs):
 
     vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
     es = nk.callbacks.EarlyStopping(**kwargs)
-    vmc.run(300, callback=es)
+    if initial_best_value is not None:
+        es._best_val = initial_best_value
+    vmc.run(20, callback=es)
+    return vmc.step_count
 
 
 def test_earlystopping_with_patience():
-    _run_vmc(patience=10)  # Runs for ~50 iterations only
+    patience = 10
+    step_value = _run_vmc(initial_best_value=-1e6, patience=patience)
+    assert step_value == patience
 
 
 def test_earlystopping_with_baseline():
-    _run_vmc(baseline=-10)  # Runs for ~2 iterations only
+    step_value = _run_vmc(baseline=-10)
