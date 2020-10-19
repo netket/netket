@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-from netket.callbacks import EarlyStopping
 
 # TODO Help, nk.callbacks.EarlyStopping raises AttributeError: module 'netket' has no attribute 'callbacks'
 
@@ -43,16 +42,11 @@ op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Early Stopping
-es = EarlyStopping(patience=10)
+es = nk.callbacks.EarlyStopping(patience=10)
 
 # Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    n_discard=2,
-    sr=sr,
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=2, sr=sr,
 )
 
 gs.run(out="test", n_iter=300, callback=es)
