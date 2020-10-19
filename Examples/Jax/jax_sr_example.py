@@ -1,8 +1,6 @@
 import netket as nk
-import numpy as np
 import jax
 from jax.experimental.optimizers import sgd as JaxSgd
-import cProfile
 
 # 1D Lattice
 L = 20
