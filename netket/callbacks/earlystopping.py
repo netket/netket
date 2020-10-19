@@ -43,7 +43,7 @@ class EarlyStopping:
                 return False
         if (
             step - self.__best_iter > self.__patience
-            and loss > self.__best_val + self.__min_delta
+            and loss > self.__best_val - self.__min_delta
         ):
             return False
         else:
