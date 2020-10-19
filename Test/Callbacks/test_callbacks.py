@@ -1,6 +1,4 @@
 import netket as nk
-import tempfile
-import shutil
 
 SEED = 3141592
 
