@@ -47,7 +47,12 @@ es = EarlyStopping(patience=10)
 
 # Variational Monte Carlo
 gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=2, sr=sr,
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    n_discard=2,
+    sr=sr,
 )
 
-gs.run(out="test", n_iter=300, callback=es.earlystopping)
+gs.run(out="test", n_iter=300, callback=es)
