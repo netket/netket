@@ -1,3 +1,6 @@
+from numpy import infty
+
+
 class EarlyStopping:
     """A simple callback to stop NetKet if there are no improvements in the training"""
 
@@ -15,13 +18,13 @@ class EarlyStopping:
         self.__min_delta = min_delta
         self.__patience = patience
         self.__baseline = baseline
-        self.__best_val = None
-        self.__best_iter = None
+        self.__best_val = infty
+        self.__best_iter = 0
 
-    def earlystopping(self, step, log_data, driver):
+    def __call__(self, step, log_data, driver):
         """
         A boolean function that determines whether or not to stop training.
-        
+
         Args:
             step: An integer corresponding to the step (iteration or epoch) in training.
             log_data: A dictionary containing log data for training.
@@ -31,13 +34,9 @@ class EarlyStopping:
             A boolean. If True, training continues, else, it does not.
         """
         loss = log_data[driver._loss_name].mean.real
-        if step == 0:
+        if loss <= self.__best_val:
             self.__best_val = loss
             self.__best_iter = step
-        else:
-            if loss <= self.__best_val:
-                self.__best_val = loss
-                self.__best_iter = step
         if self.__baseline is not None:
             if loss <= self.__baseline:
                 return False
