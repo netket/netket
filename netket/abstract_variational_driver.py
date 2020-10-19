@@ -237,7 +237,7 @@ class AbstractVariationalDriver(abc.ABC):
 
                 for logger in loggers:
                     logger(self.step_count, log_data, self.machine)
-                    
+
                 if not callback(step, log_data, self):
                     break
 
