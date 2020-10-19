@@ -32,6 +32,7 @@ __all__ = [
 from . import (
     dynamics,
     exact,
+    callbacks,
     graph,
     hilbert,
     logging,
