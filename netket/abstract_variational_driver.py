@@ -1,4 +1,5 @@
 import abc
+import numbers
 
 import netket as _nk
 import numpy as _np
@@ -178,6 +179,11 @@ class AbstractVariationalDriver(abc.ABC):
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
         """
+
+        if not isinstance(n_iter, numbers.Number):
+            raise ValueError(
+                "n_iter, the first positional argument to `run`, must be a number!"
+            )
 
         if obs is None:
             obs = {}
