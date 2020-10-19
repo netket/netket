@@ -33,7 +33,7 @@ def test_earlystopping_with_patience():
     shutil.rmtree(tempdir)
 
 
-def test_earlystopping_with_patience():
+def test_earlystopping_with_baseline():
     es = nk.callbacks.EarlyStopping(baseline=100)
     ma, vmc = _setup_vmc(n_samples=500)
     tempdir = tempfile.mkdtemp()
