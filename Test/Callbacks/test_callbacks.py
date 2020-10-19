@@ -5,7 +5,7 @@ import shutil
 SEED = 3141592
 
 
-def _setup_vmc(**kwargs):
+def _run_vmc(**kwargs):
     nk.random.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -18,26 +18,14 @@ def _setup_vmc(**kwargs):
 
     op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
-    vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, **kwargs)
-
-    return ma, vmc
+    vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
+    es = nk.callbacks.EarlyStopping(**kwargs)
+    vmc.run(300, callback=es)
 
 
 def test_earlystopping_with_patience():
-    es = nk.callbacks.EarlyStopping(patience=10)
-    ma, vmc = _setup_vmc(n_samples=500)
-    tempdir = tempfile.mkdtemp()
-    print("Writing test output files to: {}".format(tempdir))
-    prefix = tempdir + "/vmc_test"
-    vmc.run(prefix, 300, callback=es)
-    shutil.rmtree(tempdir)
+    _run_vmc(patience=10)  # Runs for ~50 iterations only
 
 
 def test_earlystopping_with_baseline():
-    es = nk.callbacks.EarlyStopping(baseline=100)
-    ma, vmc = _setup_vmc(n_samples=500)
-    tempdir = tempfile.mkdtemp()
-    print("Writing test output files to: {}".format(tempdir))
-    prefix = tempdir + "/vmc_test"
-    vmc.run(prefix, 300, callback=es)
-    shutil.rmtree(tempdir)
+    _run_vmc(baseline=-10)  # Runs for ~2 iterations only
