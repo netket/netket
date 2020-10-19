@@ -38,5 +38,6 @@ setup(
     python_requires=">=3.6",
     extras_require={
         "dev": ["pytest", "python-igraph", "pre-commit", "black==20.8b1"],
+        "jax": ["jax", "mpi4jax>=0.2.6"],
     },
 )

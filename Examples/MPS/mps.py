@@ -19,8 +19,8 @@ ma.jax_init_parameters(seed=1232)
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
 # Using native Jax Optimizers under the hood
-op = nk.optimizer.Adam(0.01)
-sr = nk.optimizer.SR(diag_shift=0.1)
+op = nk.optimizer.jax.Wrap(ma, Adam(0.01))
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)

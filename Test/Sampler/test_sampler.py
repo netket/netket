@@ -134,6 +134,25 @@ if test_jax:
     ma.init_random_parameters(sigma=0.2)
     samplers["Metropolis Rbm Jax"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
 
+    # Test a machine which only works with 2D output and not 1D
+    import jax
+    from jax.nn.initializers import glorot_normal
+
+    def Jastrow(W_init=glorot_normal()):
+        def init_fun(rng, input_shape):
+            N = input_shape[-1]
+            return input_shape[:-1], W_init(rng, (N, N))
+
+        def apply_fun(W, x, **kwargs):
+            return jax.vmap(
+                lambda W, x: jax.numpy.einsum("i,ij,j", x, W, x), in_axes=(None, 0)
+            )(W, x)
+
+        return init_fun, apply_fun
+
+    ma = nk.machine.Jax(hi, Jastrow(), dtype=float)
+    samplers["Metropolis Jastrow Jax"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
+
 
 def test_states_in_hilbert():
     for name, sa in samplers.items():

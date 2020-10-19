@@ -1,5 +1,7 @@
 from ..abstract_optimizer import AbstractOptimizer
 
+from netket.vmc_common import tree_map
+
 
 class Wrap(AbstractOptimizer):
     r"""Wrapper for Jax optimizers."""

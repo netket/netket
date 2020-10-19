@@ -44,11 +44,11 @@ class NetworkX(AbstractGraph):
 
     def edges(self, color=False):
         if color is True:
-            return list(self.graph.edges(keys=True))
+            return list(self.graph.edges(data="color"))
         elif color is not False:
-            return [(u, v) for u, v, k in self.graph.edges if k == color]
-        else:
-            return list(self.graph.edges(keys=False))
+            return [(u, v) for u, v, k in self.graph.edges(data="color") if k == color]
+        else:  # color is False
+            return list(self.graph.edges())
 
     def distances(self):
         return _nx.floyd_warshall_numpy(self.graph).tolist()
@@ -65,11 +65,8 @@ class NetworkX(AbstractGraph):
         #       be a duplicated edge with two different colors.
 
         # For the moment, if there are colors, the method returns a NotImplementedError:
-        if self.edges():
-            colors = _np.unique(_np.array(self.edges(color=True))[:, 2])
-        else:
-            colors = _np.array([])
-        if colors.size >= 2:
+        colors = set(c for _, _, c in self.edges(color=True))
+        if len(colors) >= 2:
             raise NotImplementedError(
                 "automorphisms is not yet implemented for colored edges"
             )
@@ -88,13 +85,18 @@ class NetworkX(AbstractGraph):
             self._automorphisms = _automorphisms
             return _automorphisms
 
+    def __repr__(self):
+        return "{}(n_nodes={})".format(
+            str(type(self)).split(".")[-1][:-2], self.n_nodes
+        )
 
-def Graph(nodes=[], edges=[]):
+
+class Graph(NetworkX):
     r"""A Custom Graph provided nodes or edges.
-    Constructs a Custom Graph given a list of nodes and edges.
-    Args:
-        nodes: A list of ints that index nodes of a graph
-        edges: A list of 2- or 3-tuples that denote an edge with an optional color
+        Constructs a Custom Graph given a list of nodes and edges.
+        Args:
+            nodes: A list of ints that index nodes of a graph
+            edges: A list of 2- or 3-tuples that denote an edge with an optional color
 
     The Graph can be constructed specifying only the edges and the nodes will be deduced from the edges.
 
@@ -108,44 +110,51 @@ def Graph(nodes=[], edges=[]):
         10
 
     """
-    if not isinstance(nodes, list):
-        raise TypeError("nodes must be a list")
 
-    if not isinstance(edges, list):
-        raise TypeError("edges must be a list")
+    def __init__(self, nodes=[], edges=[]):
+        if not isinstance(nodes, list):
+            raise TypeError("nodes must be a list")
 
-    if edges:
-        type_condition = [
-            isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
-        ]
-        if False in type_condition:
-            raise ValueError("edges must be a list of lists or tuples")
+        if not isinstance(edges, list):
+            raise TypeError("edges must be a list")
 
-        edges_array = _np.array(edges, dtype=_np.int32)
-        if edges_array.ndim != 2:
-            raise ValueError(
-                "edges must be a list of lists or tuples of the same length (2 or 3)"
-            )
+        if edges:
+            type_condition = [
+                isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
+            ]
+            if False in type_condition:
+                raise ValueError("edges must be a list of lists or tuples")
 
-        if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
-            raise ValueError(
-                "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
-            )
+            edges_array = _np.array(edges, dtype=_np.int32)
+            if edges_array.ndim != 2:
+                raise ValueError(
+                    "edges must be a list of lists or tuples of the same length (2 or 3)"
+                )
 
-    # Sort node names for ordering reasons:
-    if nodes:
-        node_names = sorted(nodes)
-    elif edges:
-        node_names = sorted(set((node for edge in edges_array for node in edge)))
+            if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
+                raise ValueError(
+                    "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
+                )
 
-    graph = _nx.MultiGraph()
-    graph.add_nodes_from(node_names)
-    if edges:
-        graph.add_edges_from(edges_array)
-    return NetworkX(graph)
+        # Sort node names for ordering reasons:
+        if nodes:
+            node_names = sorted(nodes)
+        elif edges:
+            node_names = sorted(set((node for edge in edges_array for node in edge)))
+
+        graph = _nx.MultiGraph()
+        graph.add_nodes_from(node_names)
+        if edges:
+            graph.add_edges_from(edges_array)
+            if edges_array.shape[1] == 3:  # edges with color
+                colors = {tuple(e): e[-1] for e in edges}
+                _nx.set_edge_attributes(graph, colors, name="color")
+            else:  # only one color
+                _nx.set_edge_attributes(graph, 0, name="color")
+        super().__init__(graph)
 
 
-def Edgeless(nodes):
+class Edgeless(NetworkX):
     """A set graph (collection of unconnected vertices).
     Args:
         nodes: An integer number of nodes or a list of ints that index nodes of a graph
@@ -158,14 +167,17 @@ def Edgeless(nodes):
         >>> print(g.n_nodes)
         4
     """
-    if not isinstance(nodes, list):
-        if not isinstance(nodes, int):
-            raise TypeError("nodes must be either an integer or a list")
-        nodes = range(nodes)
 
-    edgelessgraph = _nx.MultiGraph()
-    edgelessgraph.add_nodes_from(nodes)
-    return NetworkX(edgelessgraph)
+    def __init__(self, nodes):
+        if not isinstance(nodes, list):
+            if not isinstance(nodes, int):
+                raise TypeError("nodes must be either an integer or a list")
+            nodes = range(nodes)
+
+        edgelessgraph = _nx.MultiGraph()
+        edgelessgraph.add_nodes_from(nodes)
+
+        super().__init__(edgelessgraph)
 
 
 def DoubledGraph(graph):

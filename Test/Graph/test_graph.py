@@ -5,11 +5,15 @@ import math
 
 from netket.graph import *
 
+import pytest
+
 nxg = nx.star_graph(10)
 graphs = [
     Hypercube(length=10, n_dim=1, pbc=True),
     Hypercube(length=4, n_dim=2, pbc=True),
     Hypercube(length=5, n_dim=1, pbc=False),
+    Grid(length=[2, 2], pbc=False),
+    Grid(length=[4, 2], pbc=[True, False]),
     Graph(edges=list(nxg.edges())),
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
@@ -189,6 +193,32 @@ def test_adjacency_list():
 
         for i in range(dim):
             assert set(adl[i]) in neigh
+
+
+def test_grid_color_pbc():
+    g = Grid([4, 4], pbc=True, color_edges=True)
+    assert len(g.edges(color=0)) == 16
+    assert len(g.edges(color=1)) == 16
+    assert len(g.edges()) == 32
+
+    g = Grid([4, 2], pbc=True, color_edges=True)
+    assert len(g.edges(color=0)) == 8
+    assert len(g.edges(color=1)) == 4
+
+    g = Grid([4, 2], pbc=False, color_edges=True)
+    assert len(g.edges(color=0)) == 6
+    assert len(g.edges(color=1)) == 4
+
+    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
+        g = Grid([2, 4], pbc=[True, True])
+
+    g1 = Grid([7, 5], pbc=False)
+    g2 = Grid([7, 5], pbc=[False, False])
+    assert sorted(g1.edges()) == sorted(g2.edges())
+
+    g1 = Grid([7, 5], pbc=True)
+    g2 = Grid([7, 5], pbc=[True, True])
+    assert sorted(g1.edges()) == sorted(g2.edges())
 
 
 def test_automorphisms():

@@ -14,3 +14,14 @@ from ._hamiltonian import Ising, Heisenberg
 from ._abstract_operator import AbstractOperator
 from ._bose_hubbard import BoseHubbard
 from ._pauli_strings import PauliStrings
+
+from netket.utils import jax_available
+
+if jax_available:
+    from ._local_cost_functions import (
+        define_local_cost_function,
+        local_cost_function,
+        local_cost_and_grad_function,
+        local_costs_and_grads_function,
+    )
+    from ._der_local_values_jax import local_energy_kernel

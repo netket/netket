@@ -1,0 +1,33 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Check Formatting
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on: pull_request
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  check:
+    name: Check Formatting
+    
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pip install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -v black==20.8b1
+
+      - name: Black Code Formatter
+        run: black --check --diff --color .

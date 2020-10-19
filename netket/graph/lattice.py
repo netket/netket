@@ -166,6 +166,7 @@ class Lattice(NetworkX):
             self._pbc = pbc
 
         extent = _np.asarray(extent)
+        self.extent = extent
 
         atoms, cellANDlabel_to_site = create_points(
             self._basis_vectors, extent, atoms_coord_fractional, pbc
@@ -210,3 +211,8 @@ class Lattice(NetworkX):
 
     def vector_to_coord(self, vector):
         return _np.matmul(self._basis_vectors, vector)
+
+    def __repr__(self):
+        return "Lattice(n_nodes={})\n  extent={}\n  basis_vectors={}".format(
+            self.n_nodes, self.extent.tolist(), self.basis_vectors.tolist()
+        )

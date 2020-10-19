@@ -74,7 +74,7 @@ class _MockMachine:
 
 
 class PyExactTimePropagation:
-    """
+    r"""
     Solver for exact real and imaginary time evolution, wrapping `scipy.integrate`
     for direct use within NetKet.
     """
@@ -90,7 +90,7 @@ class PyExactTimePropagation:
         solver=None,
         solver_kwargs={},
     ):
-        """
+        r"""
         Create the exact time evolution driver.
 
            Args:
@@ -174,14 +174,14 @@ class PyExactTimePropagation:
 
     @property
     def t(self):
-        """
+        r"""
         Current simulation time.
         """
         return self._t
 
     @property
     def dt(self):
-        """
+        r"""
         Simulation time step.
         """
         return self._dt
@@ -191,7 +191,7 @@ class PyExactTimePropagation:
         return self._step
 
     def advance(self, n_steps):
-        """
+        r"""
         Advance the time propagation by `n_steps` simulation steps
         of duration `self.dt`.
 

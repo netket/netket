@@ -19,7 +19,7 @@ __all__ = ["PyRbm"]
 
 
 class PyRbm(netket.machine.CxxMachine):
-    """
+    r"""
     __Do not use me in production code!__
 
     A proof of concept implementation of a complex-valued RBM in pure Python.

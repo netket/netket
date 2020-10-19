@@ -17,6 +17,33 @@ class AbstractOperator(abc.ABC):
         r"""int: The total number number of local degrees of freedom."""
         return NotImplementedError
 
+    def get_conn_padded(self, x):
+        r"""Finds the connected elements of the Operator.
+        Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M
+        where B size of the batch and M size of the hilbert space, finds all states
+        y_i^1, ..., y_i^K connected to every x_i.
+        Returns a matrix of size B x Kmax x M where Kmax is the maximum number of
+        connections for every y_i.
+
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+
+        Returns:
+            matrix: The connected states x', in a 3D tensor.
+            array: A matrix containing the matrix elements :math:`O(x,x')` associated to each x' for every batch.
+        """
+        sections = _np.empty(x.shape[0], dtype=_np.int32)
+        x_primes, mels = self.get_conn_flattened(x, sections, pad=True)
+
+        n_primes = sections[0]
+        n_visible = x.shape[1]
+
+        x_primes_r = x_primes.reshape(-1, n_primes, n_visible)
+        mels_r = mels.reshape(-1, n_primes)
+
+        return x_primes_r, mels_r
+
     @abc.abstractmethod
     def get_conn_flattened(self, x, sections):
         r"""Finds the connected elements of the Operator. Starting

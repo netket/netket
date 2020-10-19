@@ -76,7 +76,7 @@ def CustomSamplerPt(
     n_replicas=16,
     sweep_size=None,
 ):
-    """
+    r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `CustomSampler`.
     The number of replicas can be chosen by the user.

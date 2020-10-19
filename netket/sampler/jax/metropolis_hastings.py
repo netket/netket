@@ -24,54 +24,62 @@ class MetropolisHastings(AbstractSampler):
         self.sweep_size = sweep_size
 
     @staticmethod
-    @partial(jax.jit, static_argnums=(0, 2, 3, 5))
+    @partial(jax.jit, static_argnums=(0, 1, 2))
     def _metropolis_kernel(
+        logpdf,
+        transition_kernel,
         n_samples,
         sweep_size,
-        n_chains,
-        transition_kernel,
         initial_state,
-        logpdf,
         params,
         machine_pow,
         rng_key,
     ):
-        @jax.jit
-        def one_step(i, walker):
+        # Array shapes are effectively static in jax-jitted code, so code will be
+        # recompiled every time this changes.
+        n_chains = initial_state.shape[0]
+
+        def chains_one_step(i, walker):
             key, state, log_prob = walker
 
-            keys = jax.random.split(key, 3)
+            # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
+            keys = jax.random.split(key, 2 + n_chains)
 
-            proposal = transition_kernel(keys[1], state)
-
+            proposal = jax.vmap(transition_kernel, in_axes=(0, 0), out_axes=0)(
+                keys[2:], state
+            )
             proposal_log_prob = machine_pow * logpdf(params, proposal).real
 
-            uniform = jax.random.uniform(keys[2])
+            uniform = jax.random.uniform(keys[1], shape=(n_chains,))
             do_accept = uniform < jax.numpy.exp(proposal_log_prob - log_prob)
 
-            state = jax.numpy.where(do_accept, proposal, state)
-            log_prob = jax.numpy.where(do_accept, proposal_log_prob, log_prob)
+            # do_accept must match ndim of proposal and state (which is 2)
+            state = jax.numpy.where(do_accept.reshape(-1, 1), proposal, state)
+
+            log_prob = jax.numpy.where(
+                do_accept.reshape(-1), proposal_log_prob, log_prob
+            )
 
             return (keys[0], state, log_prob)
 
-        @jax.jit
-        def one_sweep(walker, i):
+        # Loop over the sweeps
+        def chains_one_sweep(walker, i):
             key, state, log_prob = walker
-            walker = jax.lax.fori_loop(0, sweep_size, one_step, (key, state, log_prob))
+            walker = jax.lax.fori_loop(
+                0, sweep_size, chains_one_step, (key, state, log_prob)
+            )
             return walker, walker[1]
 
-        @jax.jit
-        def single_chain_kernel(key, state):
-            log_prob = machine_pow * logpdf(params, state).real
-            walker, samples = jax.lax.scan(
-                one_sweep, (key, state, log_prob), xs=None, length=n_samples
-            )
-            return samples
+        keys = jax.random.split(rng_key, 2)
+        initial_log_prob = machine_pow * logpdf(params, initial_state).real
 
-        run_mcmc = jax.vmap(single_chain_kernel, in_axes=(0, 0), out_axes=1)
-
-        keys = jax.random.split(rng_key, n_chains + 1)
-        samples = run_mcmc(keys[1:], initial_state)
+        # Loop over the samples
+        walker, samples = jax.lax.scan(
+            chains_one_sweep,
+            (keys[1], initial_state, initial_log_prob),
+            xs=None,
+            length=n_samples,
+        )
 
         return keys[0], samples
 
@@ -124,12 +132,11 @@ class MetropolisHastings(AbstractSampler):
         self.reset(init_random)
 
         self._rng_key, samples = self._metropolis_kernel(
+            self.machine.jax_forward,
+            self._transition_kernel,
             n_samples,
             self.sweep_size,
-            self.n_chains,
-            self._transition_kernel,
             self._state,
-            self.machine.jax_forward,
             self.machine.parameters,
             self.machine_pow,
             self._rng_key,
@@ -140,12 +147,11 @@ class MetropolisHastings(AbstractSampler):
 
     def __next__(self):
         self._rng_key, samples = self._metropolis_kernel(
+            self.machine.jax_forward,
+            self._transition_kernel,
             1,
             self.sweep_size,
-            self.n_chains,
-            self._transition_kernel,
             self._state,
-            self.machine.jax_forward,
             self.machine.parameters,
             self.machine_pow,
             self._rng_key,
