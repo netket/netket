@@ -21,14 +21,6 @@ from . import _core
 from ._exact_dynamics import PyExactTimePropagation
 
 
-class ExactTimePropagation:
-    def __init__(self, *args, **kwargs):
-        raise RuntimeError(
-            "ExactTimePropagation has been deprecated and removed. "
-            "Please consider PyExactTimePropagation instead."
-        )
-
-
 class EdResult(object):
     def __init__(self, eigenvalues, eigenvectors):
         # NOTE: These conversions are required because our old C++ code stored
@@ -115,15 +107,12 @@ def lanczos_ed(
     return EdResult(result, None)
 
 
-def full_ed(operator, first_n=1, compute_eigenvectors=False):
+def full_ed(operator, compute_eigenvectors=False):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
     Args:
         operator: Operator to diagnolize.
-        first_n: (Deprecated) Number of eigenvalues to compute.
-            This has no performance impact, as full_ed will compute all
-            eigenvalues anyway.
         compute_eigenvectors: Whether or not to return the
             eigenvectors of the operator.
 
@@ -137,7 +126,7 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
         ...     nk.graph.Hypercube(length=8, n_dim=1, pbc=True), s=0.5)
         >>> hamiltonian = nk.operator.Ising(h=1.0, hilbert=hilbert)
         >>> r = nk.exact.lanczos_ed(
-        ...     hamiltonian, first_n=3, compute_eigenvectors=True)
+        ...     hamiltonian, compute_eigenvectors=True)
         >>> len(r.eigenvalues)
         3
         ```
@@ -146,15 +135,12 @@ def full_ed(operator, first_n=1, compute_eigenvectors=False):
 
     dense_op = operator.to_dense()
 
-    if not (1 <= first_n < dense_op.shape[0]):
-        raise ValueError("first_n must be in range 1..dim(operator)")
-
     if compute_eigenvectors:
         w, v = eigh(dense_op)
-        return EdResult(w[:first_n], v[:, :first_n])
+        return EdResult(w, v)
     else:
         w = eigvalsh(dense_op)
-        return EdResult(w[:first_n], None)
+        return EdResult(w, None)
 
 
 def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
@@ -277,18 +263,3 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
         raise ValueError("method must be 'ed'")
 
     return rho
-
-
-@_core.deprecated(
-    "`ImagTimePropagation` is deprecated. Please use "
-    '`ExactTimePropagation(..., propagation_type="imaginary")` instead.'
-)
-def ImagTimePropagation(*args, **kwargs):
-    """
-    Returns `ExactTimePropagation(..., propagation_type="imaginary")` for
-    backwards compatibility.
-
-    Deprecated (NetKet 2.0): Use `ExactTimePropagation` directly.
-    """
-    kwargs["propagation_type"] = "imaginary"
-    return ExactTimePropagation(*args, **kwargs)
