@@ -29,7 +29,6 @@ setup(
     install_requires=[
         "numpy>=1.16",
         "scipy>=1.2.1",
-        "mpi4py>=3.0.1",
         "tqdm>=4.42.1",
         "numba>=0.49.0",
         "networkx>=2.4",
