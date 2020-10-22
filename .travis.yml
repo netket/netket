@@ -95,7 +95,7 @@ install:
   - python --version
   - python -m pip install -U pip
   - python -m pip --version
-  - python -m pip install jaxlib
+  - python -m pip install jaxlib flax
   - |
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
