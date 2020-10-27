@@ -54,4 +54,4 @@ gs = nk.Vmc(
     sr=sr,
 )
 
-gs.run(out="test", n_iter=300, callback=es)
+gs.run(out="test", n_iter=300, callbacks=[es])

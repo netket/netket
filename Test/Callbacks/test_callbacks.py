@@ -1,9 +1,10 @@
 import netket as nk
+import time
 
 SEED = 3141592
 
 
-def _run_vmc(initial_best_value=None, **kwargs):
+def _run_vmc(callbacks, n_iter=20):
     nk.random.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -17,18 +18,31 @@ def _run_vmc(initial_best_value=None, **kwargs):
     op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
     vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
-    es = nk.callbacks.EarlyStopping(**kwargs)
-    if initial_best_value is not None:
-        es._best_val = initial_best_value
-    vmc.run(20, callback=es)
-    return vmc.step_count
+    st = time.time()
+    vmc.run(n_iter, callbacks=callbacks)
+    runtime = time.time() - st
+    return vmc.step_count, runtime
 
 
 def test_earlystopping_with_patience():
     patience = 10
-    step_value = _run_vmc(initial_best_value=-1e6, patience=patience)
-    assert step_value == patience
+    es = nk.callbacks.EarlyStopping(patience=patience)
+    es._best_val = -1e6
+    step_value = _run_vmc([es])
+    assert step_value, runtime == patience
 
 
 def test_earlystopping_with_baseline():
-    step_value = _run_vmc(baseline=-10)
+    baseline = -10
+    es = nk.callbacks.EarlyStopping(baseline=baseline)
+    _step_value, runtime = _run_vmc([es])
+
+
+def test_timeout():
+    timeout = 5
+    tout = nk.callbacks.Timeout(timeout=timeout)
+    step_value, runtime = _run_vmc([tout], 300)
+
+    # There is a lag in the first iteration of about 3 seconds
+    # But the timeout works!
+    assert abs(timeout - runtime) < 3

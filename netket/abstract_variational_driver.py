@@ -161,8 +161,7 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
-        callback=lambda *x: True,
-        timeout=None
+        callbacks=[lambda *x: True],
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
@@ -185,9 +184,7 @@ class AbstractVariationalDriver(abc.ABC):
             logger is provided)
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
-            :callback: Callback function to stop training given a condition
-            :timeout: If different from None, it tells the driver to stop training after a given number
-                of seconds.
+            :callbacks: List of callback functions to stop training given a condition
         """
 
         # TODO Remove this deprecated code in v3.0
@@ -227,6 +224,7 @@ class AbstractVariationalDriver(abc.ABC):
             loggers = tuple()
             show_progress = False
 
+        callback_stop = False
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
@@ -242,12 +240,12 @@ class AbstractVariationalDriver(abc.ABC):
                 for logger in loggers:
                     logger(self.step_count, log_data, self.machine)
 
-                if not callback(step, log_data, self):
-                    break
-
-                if timeout is not None:
-                    if itr.last_print_t - itr.start_t > timeout:
+                for callback in callbacks:
+                    if not callback(step, log_data, self):
+                        callback_stop = True
                         break
+                if callback_stop:
+                    break
 
         # flush at the end of the evolution so that final values are saved to
         # file
