@@ -14,6 +14,18 @@ from tqdm import tqdm
 
 import warnings
 
+def _to_iterable(maybe_iterable):
+    """
+    _to_iterable(maybe_iterable)
+    
+    Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
+    """
+    elif hasattr(maybe_iterable, "__iter__"):
+        surely_iterable = maybe_iterable
+    else:
+        surely_iterable = (maybe_iterable,)
+    
+    return surely_iterable
 
 # Note: to implement a new Driver (see also _vmc.py for an example)
 # If you want to inherit the nice interface of AbstractMCDriver, you should
@@ -160,7 +172,7 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
-        callbacks=[lambda *x: True],
+        callback=lambda *x: True,
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
@@ -196,21 +208,21 @@ class AbstractVariationalDriver(abc.ABC):
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
             )
-
+            
         # Log only non-root nodes
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
                 loggers = (_JsonLog(out, "w", save_params_every, write_every),)
-            elif hasattr(out, "__iter__"):
-                loggers = out
             else:
-                loggers = (out,)
+                loggers = _to_iterable(out)
         else:
             loggers = tuple()
             show_progress = False
-
+        
+        callbacks = _to_iterable(callback)
         callback_stop = False
+        
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
@@ -229,7 +241,7 @@ class AbstractVariationalDriver(abc.ABC):
                 for callback in callbacks:
                     if not callback(step, log_data, self):
                         callback_stop = True
-                        break
+                        
                 if callback_stop:
                     break
 
