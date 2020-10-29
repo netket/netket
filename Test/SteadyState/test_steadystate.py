@@ -173,7 +173,7 @@ def test_ss_run():
     tempdir = tempfile.mkdtemp()
     print("Writing test output files to: {}".format(tempdir))
     prefix = tempdir + "/ss_test"
-    vmc.run(prefix, N_iters, obs=obs_op)
+    vmc.run(N_iters, prefix, obs=obs_op)
 
     with open(prefix + ".log") as logfile:
         log = json.load(logfile)

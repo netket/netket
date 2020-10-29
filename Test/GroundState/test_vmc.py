@@ -13,7 +13,7 @@ SEED = 214748364
 nk.random.seed(SEED)
 
 
-def _setup_vmc():
+def _setup_vmc(lsq_solver=None):
     L = 4
     g = nk.graph.Hypercube(length=L, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -29,7 +29,7 @@ def _setup_vmc():
     X = [[0, 1], [1, 0]]
     sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
 
-    sr = nk.optimizer.SR(ma, use_iterative=False)
+    sr = nk.optimizer.SR(ma, use_iterative=False, lsq_solver=lsq_solver)
     driver = nk.Vmc(ha, sa, op, 1000, sr=sr)
 
     return ha, sx, ma, sa, driver
@@ -89,28 +89,26 @@ def test_vmc_functions():
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
 
 
-def test_vmc_use_cholesky_compatibility():
-    ha, _, ma, sampler, _ = _setup_vmc()
-
-    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
+def test_raise_n_iter():
+    ha, sx, ma, sampler, driver = _setup_vmc()
     with raises(
         ValueError,
-        match="Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`.",
     ):
-        vmc = nk.variational.Vmc(
-            ha, sampler, op, 1000, use_cholesky=True, sr_lsq_solver="BDCSVD"
-        )
+        driver.run("prova", 12)
+
+
+def test_vmc_use_cholesky_compatibility():
+    ha, _, ma, sampler, _ = _setup_vmc(lsq_solver="Cholesky")
 
 
 def test_vmc_progress_bar():
     ha, sx, ma, sampler, driver = _setup_vmc()
-    driver.add_observable(sx, "sx")
     tempdir = tempfile.mkdtemp()
     prefix = tempdir + "/vmc_progressbar_test"
 
     f = StringIO()
     with redirect_stderr(f):
-        driver.run(prefix, 5)
+        driver.run(5, prefix)
     pbar = f.getvalue().split("\r")[-1]
     assert re.match(r"100%\|#*\| (\d+)/\1", pbar)
     assert re.search(r"Energy=[-+]?[0-9]*\.?[0-9]*", pbar)
@@ -118,7 +116,7 @@ def test_vmc_progress_bar():
 
     f = StringIO()
     with redirect_stderr(f):
-        driver.run(prefix, 5, show_progress=None)
+        driver.run(5, prefix, show_progress=None)
     pbar = f.getvalue()
     assert not len(pbar)
 
