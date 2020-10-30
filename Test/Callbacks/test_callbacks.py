@@ -19,7 +19,7 @@ def _run_vmc(callbacks, n_iter=20):
 
     vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
     st = time.time()
-    vmc.run(n_iter, callbacks=callbacks)
+    vmc.run(n_iter, callback=callbacks)
     runtime = time.time() - st
     return vmc.step_count, runtime
 

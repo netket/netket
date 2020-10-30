@@ -193,7 +193,7 @@ class AbstractVariationalDriver(abc.ABC):
             logger is provided)
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
-            :callbacks: List of callback functions to stop training given a condition
+            :callback: Callable or list of callable callback functions to stop training given a condition
         """
 
         if not isinstance(n_iter, numbers.Number):
