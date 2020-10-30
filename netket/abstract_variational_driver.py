@@ -14,18 +14,20 @@ from tqdm import tqdm
 
 import warnings
 
+
 def _to_iterable(maybe_iterable):
     """
     _to_iterable(maybe_iterable)
-    
+
     Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
     """
     if hasattr(maybe_iterable, "__iter__"):
         surely_iterable = maybe_iterable
     else:
         surely_iterable = (maybe_iterable,)
-    
+
     return surely_iterable
+
 
 # Note: to implement a new Driver (see also _vmc.py for an example)
 # If you want to inherit the nice interface of AbstractMCDriver, you should
@@ -208,7 +210,7 @@ class AbstractVariationalDriver(abc.ABC):
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
             )
-            
+
         # Log only non-root nodes
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
@@ -219,10 +221,10 @@ class AbstractVariationalDriver(abc.ABC):
         else:
             loggers = tuple()
             show_progress = False
-        
+
         callbacks = _to_iterable(callback)
         callback_stop = False
-        
+
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
@@ -241,7 +243,7 @@ class AbstractVariationalDriver(abc.ABC):
                 for callback in callbacks:
                     if not callback(step, log_data, self):
                         callback_stop = True
-                        
+
                 if callback_stop:
                     break
 
