@@ -16,6 +16,7 @@ __all__ = [
     "dynamics",
     "exact",
     "graph",
+    "callbacks",
     "hilbert",
     "machine",
     "operator",
@@ -31,6 +32,7 @@ __all__ = [
 from . import (
     dynamics,
     exact,
+    callbacks,
     graph,
     hilbert,
     logging,

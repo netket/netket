@@ -12,6 +12,7 @@ setup(
         "netket.graph",
         "netket.hilbert",
         "netket.logging",
+        "netket.callbacks",
         "netket.machine",
         "netket.machine.density_matrix",
         "netket.sampler",

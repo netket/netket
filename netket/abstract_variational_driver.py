@@ -15,6 +15,20 @@ from tqdm import tqdm
 import warnings
 
 
+def _to_iterable(maybe_iterable):
+    """
+    _to_iterable(maybe_iterable)
+
+    Ensure the result is iterable. If the input is not iterable, it is wrapped into a tuple.
+    """
+    if hasattr(maybe_iterable, "__iter__"):
+        surely_iterable = maybe_iterable
+    else:
+        surely_iterable = (maybe_iterable,)
+
+    return surely_iterable
+
+
 # Note: to implement a new Driver (see also _vmc.py for an example)
 # If you want to inherit the nice interface of AbstractMCDriver, you should
 # subclass it, defining the following methods:
@@ -160,6 +174,7 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
+        callback=lambda *x: True,
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
@@ -178,6 +193,7 @@ class AbstractVariationalDriver(abc.ABC):
             logger is provided)
             :step_size: Every how many steps should observables be logged to disk (default=1)
             :show_progress: If true displays a progress bar (default=True)
+            :callback: Callable or list of callable callback functions to stop training given a condition
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -200,13 +216,14 @@ class AbstractVariationalDriver(abc.ABC):
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
                 loggers = (_JsonLog(out, "w", save_params_every, write_every),)
-            elif hasattr(out, "__iter__"):
-                loggers = out
             else:
-                loggers = (out,)
+                loggers = _to_iterable(out)
         else:
             loggers = tuple()
             show_progress = False
+
+        callbacks = _to_iterable(callback)
+        callback_stop = False
 
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
@@ -222,6 +239,13 @@ class AbstractVariationalDriver(abc.ABC):
 
                 for logger in loggers:
                     logger(self.step_count, log_data, self.machine)
+
+                for callback in callbacks:
+                    if not callback(step, log_data, self):
+                        callback_stop = True
+
+                if callback_stop:
+                    break
 
         # flush at the end of the evolution so that final values are saved to
         # file
