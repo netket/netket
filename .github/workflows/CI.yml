@@ -46,7 +46,7 @@ jobs:
       - name: Pip install python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest coverage numpy mpi4py networkx python-igraph
+          python -m pip install numpy mpi4py
           if [ -f requirements.txt ]; then 
             pip install -r requirements.txt
           fi
@@ -55,7 +55,7 @@ jobs:
             echo "Installing jax & co"
             python -m pip install jax jaxlib mpi4jax 
           fi
-          pip install -e .
+          pip install -e ".[dev]"
 
       - name: MPI tests
         run: |
