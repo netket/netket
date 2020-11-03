@@ -4,7 +4,7 @@ import time
 SEED = 3141592
 
 
-def _run_vmc(callbacks, n_iter=20):
+def _vmc(n_iter=20):
     nk.random.seed(SEED)
     g = nk.graph.Hypercube(length=8, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, graph=g)
@@ -17,7 +17,8 @@ def _run_vmc(callbacks, n_iter=20):
 
     op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
-    vmc = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
+    return nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
+
     st = time.time()
     vmc.run(n_iter, callback=callbacks)
     runtime = time.time() - st
@@ -28,20 +29,33 @@ def test_earlystopping_with_patience():
     patience = 10
     es = nk.callbacks.EarlyStopping(patience=patience)
     es._best_val = -1e6
-    step_value = _run_vmc([es])
-    assert step_value, runtime == patience
+    vmc = _vmc()
+
+    vmc.run(20, callback=es)
+
+    assert vmc.step_count == patience
 
 
 def test_earlystopping_with_baseline():
     baseline = -10
     es = nk.callbacks.EarlyStopping(baseline=baseline)
-    _step_value, runtime = _run_vmc([es])
+    vmc = _vmc()
+
+    vmc.run(20, callback=es)
+    # We should actually assert something..
 
 
 def test_timeout():
     timeout = 5
     tout = nk.callbacks.Timeout(timeout=timeout)
-    step_value, runtime = _run_vmc([tout], 300)
+    vmc = _vmc()
+
+    # warmup the jit
+    vmc.run(1)
+
+    st = time.time()
+    vmc.run(20000, callback=tout)
+    runtime = time.time() - st
 
     # There is a lag in the first iteration of about 3 seconds
     # But the timeout works!
