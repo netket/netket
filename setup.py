@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-DEV_DEPENDENCIES = ["pytest>=5", "pytest-xdist", "coverage", "python-igraph", "pre-commit", "black==20.8b1"]
+DEV_DEPENDENCIES = ["pytest>=5", "pytest-xdist>=2", "coverage>=5", "python-igraph", "pre-commit", "black==20.8b1"]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1"]
 JAX_DEPENDENCIES = ["jax"]
 
