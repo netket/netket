@@ -194,3 +194,18 @@ def DoubledGraph(graph):
     dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
 
     return Graph(edges=dedges)
+
+
+def disjoint_union(graph_1, graph_2):
+    """
+    disjoint_union(graph_1, graph_2)
+
+    Args:
+        graph_1: a NetworkX graph
+        graph_2: a NetworkX graph
+
+    Returns:
+        The Disjoint union of the two graphs. See NetworkX documentation for more informations.
+    """
+    union_graph = _nx.disjoint_union(graph_1.graph, graph_2.graph)
+    return NetworkX(union_graph)
