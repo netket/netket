@@ -32,6 +32,10 @@ pytest = ">= 5"
 requires = ["setuptools", "wheel"]
 
 [tool.pytest.ini_options]
+addopts = "--color=yes --durations=0 --workers=auto"
 filterwarnings = [
     "ignore::UserWarning",
+]
+testpaths = [
+    "Test",
 ]
