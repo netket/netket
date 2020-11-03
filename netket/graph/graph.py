@@ -91,12 +91,12 @@ class NetworkX(AbstractGraph):
         )
 
 
-class Graph(NetworkX):
-    r"""A Custom Graph provided nodes or edges.
-        Constructs a Custom Graph given a list of nodes and edges.
-        Args:
-            nodes: A list of ints that index nodes of a graph
-            edges: A list of 2- or 3-tuples that denote an edge with an optional color
+def Graph(nodes=[], edges=[]):
+    r"""
+    Constructs a Graph given a list of nodes and edges.
+    Args:
+        nodes: A list of ints that index nodes of a graph
+        edges: A list of 2- or 3-tuples that denote an edge with an optional color
 
     The Graph can be constructed specifying only the edges and the nodes will be deduced from the edges.
 
@@ -110,52 +110,54 @@ class Graph(NetworkX):
         10
 
     """
+    if not isinstance(nodes, list):
+        raise TypeError("nodes must be a list")
 
-    def __init__(self, nodes=[], edges=[]):
-        if not isinstance(nodes, list):
-            raise TypeError("nodes must be a list")
+    if not isinstance(edges, list):
+        raise TypeError("edges must be a list")
 
-        if not isinstance(edges, list):
-            raise TypeError("edges must be a list")
+    if edges:
+        type_condition = [
+            isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
+        ]
+        if False in type_condition:
+            raise ValueError("edges must be a list of lists or tuples")
 
-        if edges:
-            type_condition = [
-                isinstance(edge, list) or isinstance(edge, tuple) for edge in edges
-            ]
-            if False in type_condition:
-                raise ValueError("edges must be a list of lists or tuples")
+        edges_array = _np.array(edges, dtype=_np.int32)
+        if edges_array.ndim != 2:
+            raise ValueError(
+                "edges must be a list of lists or tuples of the same length (2 or 3)"
+            )
 
-            edges_array = _np.array(edges, dtype=_np.int32)
-            if edges_array.ndim != 2:
-                raise ValueError(
-                    "edges must be a list of lists or tuples of the same length (2 or 3)"
-                )
-
-            if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
-                raise ValueError(
-                    "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
-                )
+        if not (edges_array.shape[1] == 2 or edges_array.shape[1] == 3):
+            raise ValueError(
+                "edges must be a list of lists or tuples of the same length (2 or 3), where the third column indicates the color"
+            )
 
         # Sort node names for ordering reasons:
-        if nodes:
-            node_names = sorted(nodes)
-        elif edges:
-            node_names = sorted(set((node for edge in edges_array for node in edge)))
+    if nodes:
+        node_names = sorted(nodes)
+    elif edges:
+        node_names = sorted(set((node for edge in edges_array for node in edge)))
 
-        graph = _nx.MultiGraph()
-        graph.add_nodes_from(node_names)
-        if edges:
-            graph.add_edges_from(edges_array)
-            if edges_array.shape[1] == 3:  # edges with color
-                colors = {tuple(e): e[-1] for e in edges}
-                _nx.set_edge_attributes(graph, colors, name="color")
-            else:  # only one color
-                _nx.set_edge_attributes(graph, 0, name="color")
-        super().__init__(graph)
+    graph = _nx.MultiGraph()
+    graph.add_nodes_from(node_names)
+    if edges:
+        graph.add_edges_from(edges_array)
+        if edges_array.shape[1] == 3:  # edges with color
+            colors = {tuple(e): e[-1] for e in edges}
+            _nx.set_edge_attributes(graph, colors, name="color")
+        else:  # only one color
+            _nx.set_edge_attributes(graph, 0, name="color")
+
+    return NetworkX(graph)
 
 
-class Edgeless(NetworkX):
-    """A set graph (collection of unconnected vertices).
+def Edgeless(nodes):
+    """
+    Edgeless(nodes)
+
+    Construct a set graph (collection of unconnected vertices).
     Args:
         nodes: An integer number of nodes or a list of ints that index nodes of a graph
     Example:
@@ -167,21 +169,24 @@ class Edgeless(NetworkX):
         >>> print(g.n_nodes)
         4
     """
+    if not isinstance(nodes, list):
+        if not isinstance(nodes, int):
+            raise TypeError("nodes must be either an integer or a list")
+        nodes = range(nodes)
 
-    def __init__(self, nodes):
-        if not isinstance(nodes, list):
-            if not isinstance(nodes, int):
-                raise TypeError("nodes must be either an integer or a list")
-            nodes = range(nodes)
+    edgelessgraph = _nx.MultiGraph()
+    edgelessgraph.add_nodes_from(nodes)
 
-        edgelessgraph = _nx.MultiGraph()
-        edgelessgraph.add_nodes_from(nodes)
-
-        super().__init__(edgelessgraph)
+    return NetworkX(edgelessgraph)
 
 
 def DoubledGraph(graph):
-    """"""
+    """
+    DoubledGraph(graph)
+
+    Constructs a DoubledGraph representing the doubled hilbert space of a density operator.
+    The resulting graph is composed of two disjoint sub-graphs identical to the input.
+    """
 
     dedges = graph.edges()
     n_v = graph.n_vertices
