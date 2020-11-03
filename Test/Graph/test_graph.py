@@ -241,3 +241,13 @@ def test_automorphisms():
 #     g = Hypercube(4, 1)
 #
 #     assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edge_colors)
+
+
+def test_union():
+    graph1 = lattices[0]
+
+    for graph in lattices:
+        ug = nk.graph.disjoint_union(graph, graph1)
+
+        assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
+        assert len(ug.edges()) == len(graph1.edges()) + len(graph.edges())
