@@ -91,6 +91,17 @@ def check_edges(length, n_dim, pbc):
     assert x_edges == y_edges
 
 
+def test_graph_wrong():
+    with pytest.raises(TypeError):
+        nk.graph.Graph(5)
+
+    with pytest.raises(TypeError):
+        nk.graph.Graph([1, 2, 3], True)
+
+    with pytest.raises(ValueError):
+        nk.graph.Graph([1, 2, 3], [1, 2, 3])
+
+
 def test_edges_are_correct():
     check_edges(1, 1, False)
     check_edges(1, 2, False)
@@ -241,3 +252,13 @@ def test_automorphisms():
 #     g = Hypercube(4, 1)
 #
 #     assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edge_colors)
+
+
+def test_union():
+    graph1 = lattices[0]
+
+    for graph in lattices:
+        ug = nk.graph.disjoint_union(graph, graph1)
+
+        assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
+        assert len(ug.edges()) == len(graph1.edges()) + len(graph.edges())
