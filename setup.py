@@ -29,9 +29,6 @@ setup(
         "dev": DEV_DEPENDENCIES,
         "mpi": MPI_DEPENDENCIES,
         "jax": JAX_DEPENDENCIES,
-        "all": DEV_DEPENDENCIES
-        + MPI_DEPENDENCIES
-        + JAX_DEPENDENCIES
-        + MPIJAX_DEPENDENCIES,
+        "all": MPI_DEPENDENCIES + JAX_DEPENDENCIES + MPIJAX_DEPENDENCIES,
     },
 )
