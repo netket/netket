@@ -5,18 +5,19 @@ import numpy as _np
 import netket as _nk
 from netket._core import deprecated
 from .operator import local_values as _local_values
-from .operator import _rotated_grad_kernel
-from ._C_netket.utils import random_engine, rand_uniform_int
+
+from netket.random import randint
 
 from netket.stats import (
     statistics as _statistics,
-    covariance_sv as _covariance_sv,
     subtract_mean as _subtract_mean,
     mean as _mean,
 )
 
 from netket.vmc_common import info
 from netket.abstract_variational_driver import AbstractVariationalDriver
+
+from numba import jit
 
 
 class Qsr(AbstractVariationalDriver):
@@ -67,9 +68,7 @@ class Qsr(AbstractVariationalDriver):
         super(Qsr, self).__init__(sampler.machine, optimizer)
 
         self._sampler = sampler
-        self._sr = sr
-        if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+        self.sr = sr
 
         self._rotations = rotations
         self._t_samples = _np.asarray(samples)
@@ -95,6 +94,16 @@ class Qsr(AbstractVariationalDriver):
         assert self._bases.size == self._n_training_samples
 
     @property
+    def sr(self):
+        return self._sr
+
+    @sr.setter
+    def sr(self, sr):
+        self._sr = sr
+        if self._sr is not None:
+            self._sr.setup(self.machine)
+
+    @property
     def n_samples(self):
         return self._n_samples
 
@@ -106,7 +115,7 @@ class Qsr(AbstractVariationalDriver):
             )
         self._n_samples = n_samples
         n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _nk.MPI.size()))
+        self._n_samples_node = int(_np.ceil(n_samples_chain / self._mpi_nodes))
 
         self._samples = _np.ndarray(
             (self._n_samples_node, self._batch_size, self._hilbert.size)
@@ -131,7 +140,7 @@ class Qsr(AbstractVariationalDriver):
                 "Invalid number of samples: n_samples_data={}".format(n_samples)
             )
         self._n_samples_data = n_samples_data
-        self._n_samples_data_node = int(_np.ceil(n_samples_data / _nk.MPI.size()))
+        self._n_samples_data_node = int(_np.ceil(n_samples_data / self._mpi_nodes))
 
         self._data_grads = _np.empty(
             (self._n_samples_data_node, self._machine.n_par), dtype=_np.complex128
@@ -175,19 +184,19 @@ class Qsr(AbstractVariationalDriver):
             self._samples[i] = sample
 
         # Randomly select a batch of training data
-        rand_ind = _np.empty(self._n_samples_data_node, dtype=_np.intc)
+        self._rand_ind = self._get_rand_ind(
+            self._n_samples_data_node, self._n_training_samples
+        )
 
-        rand_uniform_int(0, (self._n_training_samples - 1), rand_ind)
-
-        self._data_samples = self._t_samples[rand_ind]
-        self._data_bases = self._bases[rand_ind]
+        self._data_samples = self._t_samples[self._rand_ind]
+        self._data_bases = self._bases[self._rand_ind]
 
         # Perform update
         if self._sr:
             # When using the SR (Natural gradient) we need to have the full jacobian
             # Computes the jacobian
             for i, sample in enumerate(self._samples):
-                self._der_logs[i] = self._machine.der_log(sample)
+                self._der_logs[i] = self._machine.der_log(sample, out=self._der_logs[i])
 
             grad_neg = _mean(self._der_logs.reshape(-1, self._npar), axis=0).conjugate()
 
@@ -233,16 +242,27 @@ class Qsr(AbstractVariationalDriver):
 
         log_val_primes = self._machine.log_val(x_primes)
 
-        vec = _np.empty(mels.size, dtype=_np.complex128)
-
-        _rotated_grad_kernel(log_val_primes, mels, vec)
+        vec = self._rotated_grad_kernel(log_val_primes, mels)
 
         self._machine.vector_jacobian_prod(x_primes, vec, out)
 
-    # def _rotated_grad_kernel(self, log_val_primes, mels, vec):
-    #     #     max_log_val = log_val_primes.real.max()
-    #     #     vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
-    #     #     vec /= vec.sum()
+    @staticmethod
+    @jit
+    def _rotated_grad_kernel(log_val_primes, mels):
+        vec = _np.empty(mels.size, dtype=_np.complex128)
+        max_log_val = log_val_primes.real.max()
+        vec = (mels * _np.exp(log_val_primes - max_log_val)).conjugate()
+        vec /= vec.sum()
+        return vec
+
+    @staticmethod
+    @jit
+    def _get_rand_ind(n, n_max):
+        rand_ind = _np.empty(n, dtype=_np.intc)
+
+        for i in range(n):
+            rand_ind[i] = randint(0, n_max)
+        return rand_ind
 
     def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]
@@ -255,7 +275,9 @@ class Qsr(AbstractVariationalDriver):
         loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
         for i, sample in enumerate(self._samples):
             _local_values(op, self._machine, sample, out=loc[i])
-        return loc, _statistics(loc)
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(loc.T)
 
     def __repr__(self):
         return "Sqr(step_count={}, n_samples={}, n_discard={})".format(
@@ -274,7 +296,7 @@ class Qsr(AbstractVariationalDriver):
         return "\n  ".join([str(self)] + lines)
 
     def nll(self, rotations, samples, bases, log_norm=0):
-        """
+        r"""
         Negative log-likelihood, :math:`\langle log(|Psi_b(x)|^2) \rangle`,
         where the average is over the given samples, and :math:`b` denotes
         the given bases associated to the samples.

@@ -5,15 +5,9 @@ import numpy as _np
 class AbstractSampler(abc.ABC):
     """Abstract class for NetKet samplers"""
 
-    def __init__(self, machine, sample_size=None):
-        super().__init__()
+    def __init__(self, machine, sample_size=1):
+        self.sample_size = sample_size
         self.machine = machine
-
-        self.sample_size = sample_size if sample_size != None else 1
-
-        self.sample_shape = (sample_size, machine.hilbert.size)
-
-        self.reset(True)
 
     def __iter__(self):
         return self
@@ -29,6 +23,17 @@ class AbstractSampler(abc.ABC):
     @property
     def machine_pow(self):
         return 2.0
+
+    @property
+    def machine(self):
+        return self._machine
+
+    @machine.setter
+    def machine(self, machine):
+        self._machine = machine
+        self._input_size = machine.input_size
+
+        self.sample_shape = (self.sample_size, self._input_size)
 
     @machine_pow.setter
     def machine_pow(self, m_power):
@@ -47,9 +52,8 @@ class AbstractSampler(abc.ABC):
         self.reset(init_random)
 
         if samples is None:
-            samples = _np.zeros(
-                (n_samples, self.sample_shape[0], self.sample_shape[1]))
+            samples = _np.empty((n_samples, self.sample_shape[0], self.sample_shape[1]))
 
-        for k, sample in enumerate(self.samples(n_samples)):
-            samples[k] = sample
+        for i in range(n_samples):
+            samples[i] = self.__next__()
         return samples

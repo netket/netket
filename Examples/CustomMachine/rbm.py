@@ -19,7 +19,7 @@ __all__ = ["PyRbm"]
 
 
 class PyRbm(netket.machine.CxxMachine):
-    """
+    r"""
     __Do not use me in production code!__
 
     A proof of concept implementation of a complex-valued RBM in pure Python.
@@ -42,7 +42,7 @@ class PyRbm(netket.machine.CxxMachine):
             use_hidden_bias: specifies whether to use a bias for hidden spins.
         """
         # NOTE: The following call to __init__ is important!
-        super(PyRbm, self).__init__(hilbert)
+        super(PyRbm, self).__init__(hilbert, dtype=complex)
         n = hilbert.size
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
@@ -98,11 +98,6 @@ class PyRbm(netket.machine.CxxMachine):
         t = out[:, i : i + self._w.size]
         t.shape = (batch_size, self._w.shape[0], self._w.shape[1])
         _np.einsum("ij,il->ijl", r, x, out=t)
-
-    def _is_holomorphic(self):
-        r"""Complex valued RBM a holomorphic function.
-        """
-        return True
 
     def state_dict(self):
         from collections import OrderedDict

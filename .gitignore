@@ -10,6 +10,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+netket.egg-info/
 
 # Packages #
 ############
@@ -50,3 +51,14 @@ build/
 ###################
 .envrc
 .idea
+*.sublime-project
+*.sublime-workspace
+
+# Lyx temporary files #
+#######################
+*.lyx~
+*.lyx#
+
+# Coverage files #
+##################
+.coverage.*

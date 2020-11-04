@@ -1,18 +1,20 @@
-import numpy as _np
+import math
 
 import netket as _nk
-from ._C_netket import MPI as _MPI
-from .operator import local_values as _local_values
-from .operator import der_local_values as _der_local_values
+
+from .operator import (
+    local_values as _local_values,
+    der_local_values as _der_local_values,
+)
 from netket.stats import (
     statistics as _statistics,
-    covariance_sv as _covariance_sv,
     mean as _mean,
-    subtract_mean as _subtract_mean,
+    sum_inplace as _sum_inplace,
 )
 
-from netket.vmc_common import info
+from netket.vmc_common import info, tree_map, trees2_map
 from netket.abstract_variational_driver import AbstractVariationalDriver
+import operator
 
 
 class SteadyState(AbstractVariationalDriver):
@@ -61,48 +63,44 @@ class SteadyState(AbstractVariationalDriver):
         )  #'\u3008L\u2020L\u3009')
 
         self._lind = lindblad
-        self._machine_obs = sampler_obs.machine
         self._sampler = sampler
         self._sampler_obs = sampler_obs
-        self._sr = sr
-        if sr is not None:
-            self._sr.is_holomorphic = sampler.machine.is_holomorphic
+
+        self.sr = sr
 
         self._npar = self._machine.n_par
 
         self._batch_size = sampler.sample_shape[0]
-        self._batch_size_obs = sampler.sample_shape[0]
+
+        # Check how many parallel nodes we are running on
+        self.n_nodes = _nk.utils.n_nodes
 
         self.n_samples = n_samples
         self.n_discard = n_discard
-        self.n_samples_obs = n_samples_obs
-        self.n_discard_obs = n_discard_obs
 
         self._obs_samples_valid = False
-        self._samples = _np.ndarray(
-            (self._n_samples_node, self._batch_size, lindblad.hilbert.size)
-        )
-        self._samples_obs = _np.ndarray(
-            (
-                self._n_samples_obs_node,
-                self._batch_size_obs,
-                lindblad.hilbert.size_physical,
-            )
-        )
+        if sampler_obs is not None:
+            # Set the machine_pow of the sampler over the diagonal of the density matrix
+            # to be |\rho(x,x)|
+            sampler_obs.machine_pow = 1.0
+            self._batch_size_obs = sampler_obs.sample_shape[0]
+            self.n_samples_obs = n_samples_obs
+            self.n_discard_obs = n_discard_obs
 
-        self._der_logs = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
-        )
+        self._der_logs_ave = None
+        self._lloc = None
 
-        self._der_loc_vals = _np.ndarray(
-            (self._n_samples_node, self._batch_size,
-             self._npar), dtype=_np.complex128
-        )
+        self._dp = None
 
-        # Set the machine_pow of the sampler over the diagonal of the density matrix
-        # to be |\rho(x,x)|
-        sampler_obs.machine_pow = 1.0
+    @property
+    def sr(self):
+        return self._sr
+
+    @sr.setter
+    def sr(self, sr):
+        self._sr = sr
+        if self._sr is not None:
+            self._sr.setup(self.machine)
 
     @property
     def n_samples(self):
@@ -126,9 +124,17 @@ class SteadyState(AbstractVariationalDriver):
             raise ValueError(
                 "Invalid number of samples: n_samples={}".format(n_samples)
             )
-        self._n_samples = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._batch_size)))
-        self._n_samples_node = int(_np.ceil(n_samples_chain / _MPI.size()))
+        n_samples_chain = int(math.ceil((n_samples / self._batch_size)))
+        self._n_samples_node = int(math.ceil(n_samples_chain / self.n_nodes))
+
+        self._n_samples = int(self._n_samples_node * self._batch_size * self.n_nodes)
+
+        self._samples = None
+        self._grads = None
+        self._jac = None
+
+        self._der_logs = None
+        self._der_loc_vals = None
 
     @n_samples_obs.setter
     def n_samples_obs(self, n_samples):
@@ -137,11 +143,17 @@ class SteadyState(AbstractVariationalDriver):
 
         if n_samples <= 0:
             raise ValueError(
-                "Invalid number of samples: n_samples={}".format(n_samples)
+                "Invalid number of samples: n_samples_obs={}".format(n_samples)
             )
-        self._n_samples_obs = n_samples
-        n_samples_chain = int(_np.ceil((n_samples / self._batch_size_obs)))
-        self._n_samples_obs_node = int(_np.ceil(n_samples_chain / _MPI.size()))
+
+        n_samples_chain = int(math.ceil((n_samples / self._batch_size_obs)))
+        self._n_samples_node_obs = int(math.ceil(n_samples_chain / self.n_nodes))
+
+        self._n_samples_obs = int(
+            self._n_samples_node_obs * self._batch_size_obs * self.n_nodes
+        )
+
+        self._samples_obs = None
 
     @property
     def n_discard(self):
@@ -155,11 +167,10 @@ class SteadyState(AbstractVariationalDriver):
     def n_discard(self, n_discard):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
         self._n_discard = (
-            n_discard
+            int(n_discard)
             if n_discard != None
             else self._n_samples_node * self._batch_size // 10
         )
@@ -171,13 +182,14 @@ class SteadyState(AbstractVariationalDriver):
 
         if n_discard is not None and n_discard < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(
-                    n_discard)
+                "Invalid number of discarded samples: n_discard_obs={}".format(
+                    n_discard
+                )
             )
         self._n_discard_obs = (
-            n_discard
+            int(n_discard)
             if n_discard is not None
-            else self._n_samples_obs_node * self._batch_size_obs // 10
+            else self._n_samples_node_obs * self._batch_size_obs // 10
         )
 
     def _forward_and_backward(self):
@@ -192,55 +204,65 @@ class SteadyState(AbstractVariationalDriver):
         self._obs_samples_valid = False
 
         # Burnout phase
-        for _ in self._sampler.samples(self._n_discard):
-            pass
+        self._sampler.generate_samples(self._n_discard)
 
-        # Generate samples
-        for i, sample in enumerate(self._sampler.samples(self._n_samples_node)):
+        # Generate samples and store them
+        self._samples = self._sampler.generate_samples(
+            self._n_samples_node, samples=self._samples
+        )
 
-            # Store the current sample
-            self._samples[i] = sample
+        # Estimate C^[loc] (local energy) and LdagL
+        self._lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
 
-            # Compute Log derivatives
-            self._der_logs[i] = self._machine.der_log(sample)
+        # Flatten chain dimension
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
+        lloc_r = self._lloc.reshape(-1, 1)
 
-            self._der_loc_vals[i] = _der_local_values(
-                self._lind, self._machine, sample, center_derivative=False
+        # Compute Log derivatives
+        self._der_logs = self._machine.der_log(samples_r)
+        # Compute statistical average (also across nodes)
+        self._der_logs_ave = tree_map(_mean, self._der_logs, axis=0)
+
+        # Compute \nabla C^[Loc]
+        self._der_loc_vals = _der_local_values(
+            self._lind, self._machine, samples_r, center_derivative=False
+        )
+
+        # apply this function to every element of the gradient.
+        n_samples_node = lloc_r.shape[0]
+
+        def gradfun(der_loc_vals, der_logs_ave):
+            par_dims = der_loc_vals.ndim - 1
+
+            _lloc_r = lloc_r.reshape(
+                (n_samples_node,) + tuple(1 for i in range(par_dims))
             )
 
-        # flatten MC chain dimensions:
-        self._der_logs = self._der_logs.reshape(-1, self._npar)
+            grad = _mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
+                der_logs_ave.conjugate() * self._loss_stats.mean
+            )
+            return grad
 
-        # Estimate energy
-        lloc, self._loss_stats = self._get_mc_superop_stats(self._lind)
-
-        # Compute the (MPI-aware-)average of the derivatives
-        der_logs_ave = _mean(self._der_logs, axis=0)
-
-        # Center the log derivatives
-        self._der_logs -= der_logs_ave
-
-        # Compute the gradient
-        grad = _covariance_sv(lloc, self._der_loc_vals, center_s=False)
-        grad -= self._loss_stats.mean * der_logs_ave.conj()
+        self._grads = trees2_map(gradfun, self._der_loc_vals, self._der_logs_ave)
 
         # Perform update
         if self._sr:
-            dp = _np.empty(self._npar, dtype=_np.complex128)
-            # flatten MC chain dimensions:
-            derlogs = self._der_logs.reshape(-1, self._der_logs.shape[-1])
-            self._sr.compute_update(derlogs, grad, dp)
-            derlogs = self._der_logs.reshape(
-                self._n_samples_node, self._batch_size, self._npar
+            # Center the log derivatives
+            self._jac = trees2_map(
+                lambda x, y: x - y, self._der_logs, self._der_logs_ave
             )
+
+            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
+
         else:
-            dp = grad
+            #  if Real pars but complex gradient, take only real part
+            # not necessary for SR because sr already does it.
+            if not self._machine.has_complex_parameters:
+                self._dp = tree_map(lambda x: x.real, self._grads)
+            else:
+                self._dp = self._grads
 
-        self._der_logs = self._der_logs.reshape(
-            self._n_samples_node, self._batch_size, self._npar
-        )
-
-        return dp
+        return self._dp
 
     def sweep_diagonal(self):
         """
@@ -249,14 +271,12 @@ class SteadyState(AbstractVariationalDriver):
         self._sampler_obs.reset()
 
         # Burnout phase
-        for _ in self._sampler_obs.samples(self._n_discard_obs):
-            pass
+        self._sampler_obs.generate_samples(self._n_discard)
 
-        # Generate samples
-        for i, sample in enumerate(self._sampler_obs.samples(self._n_samples_obs_node)):
-
-            # Store the current sample
-            self._samples_obs[i] = sample
+        # Generate samples and store them
+        self._samples_obs = self._sampler_obs.generate_samples(
+            self._n_samples_node_obs, samples=self._samples_obs
+        )
 
         self._obs_samples_valid = True
 
@@ -268,18 +288,29 @@ class SteadyState(AbstractVariationalDriver):
         super().reset()
 
     def _get_mc_superop_stats(self, op):
-        loc = _np.empty(self._samples.shape[0:2], dtype=_np.complex128)
-        for i, sample in enumerate(self._samples):
-            _local_values(op, self._machine, sample, out=loc[i])
+        samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
 
-        return loc, _statistics(_np.square(_np.abs(loc), dtype="complex128"))
+        loc = _local_values(op, self._machine, samples_r).reshape(
+            self._samples.shape[0:2]
+        )
+
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(abs(loc.T) ** 2)
 
     def _get_mc_obs_stats(self, op):
         if not self._obs_samples_valid:
             self.sweep_diagonal()
 
-        loc = _local_values(op, self._machine, self._samples_obs)
-        return loc, _statistics(loc)
+        samples_r = self._samples_obs.reshape((-1, self._samples_obs.shape[-1]))
+
+        loc = _local_values(op, self._machine, samples_r).reshape(
+            self._samples_obs.shape[0:2]
+        )
+
+        # notice that loc.T is passed to statistics, since that function assumes
+        # that the first index is the batch index.
+        return loc, _statistics(loc.T)
 
     def __repr__(self):
         return "SteadyState(step_count={}, n_samples={}, n_discard={})".format(
@@ -292,7 +323,7 @@ class SteadyState(AbstractVariationalDriver):
             for name, obj in [
                 ("Liouvillian", self._lind),
                 ("Machine", self._machine),
-                ("Optimizer", self._optimizer_desc),
+                ("Optimizer", self._optimizer),
                 ("SR solver", self._sr),
             ]
         ]

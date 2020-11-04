@@ -1,8 +1,3 @@
-import sys
-
-import netket as _nk
-
-
 def info(obj, depth=None):
     if hasattr(obj, "info"):
         return obj.info(depth)
@@ -10,83 +5,107 @@ def info(obj, depth=None):
         return str(obj)
 
 
-def make_optimizer_fn(arg, ma):
+def tree_map(fun, tree, *args, **kwargs):
     """
-    Utility function to create the optimizer step function for VMC drivers.
+    Maps all the leafs in the tree, applying the function with the leave as first
+    positional argument.
+    Any additional argument after the first two is forwarded to the function call.
 
-    It currently supports three kinds of inputs:
+    Args:
+        fun: the function to apply to all leafs
+        tree: the structure containing leafs. This can also be just a leaf
+        *args: additional positional arguments passed to fun
+        **kwargs: additional kw arguments passed to fun
 
-    1. A NetKet optimizer, i.e., a subclass of `netket.optimizer.Optimizer`.
-
-    2. A 3-tuple (init, update, get) of optimizer functions as used by the JAX
-       optimizer submodule (jax.experimental.optimizers).
-
-       The update step p0 -> p1 with bare step dp is computed as
-            x0 = init(p0)
-            x1 = update(i, dp, x1)
-            p1 = get(x1)
-
-    3. A single function update with signature p1 = update(i, dp, p0) returning the
-       updated parameter value.
+    Returns:
+        An equivalent tree, containing the result of the function call.
     """
-    if isinstance(arg, tuple) and len(arg) == 3:
-        init, update, get = arg
-
-        def optimize_fn(i, grad, p):
-            x0 = init(p)
-            x1 = update(i, grad, x0)
-            return get(x1)
-
-        desc = "JAX-like optimizer"
-        return optimize_fn, desc
-
-    elif issubclass(type(arg), _nk.optimizer.Optimizer):
-
-        arg.init(ma.n_par, ma.is_holomorphic)
-
-        def optimize_fn(_, grad, p):
-            arg.update(grad, p)
-            return p
-
-        desc = info(arg)
-        return optimize_fn, desc
-
-    elif callable(arg):
-        import inspect
-
-        sig = inspect.signature(arg)
-        if not len(sig.parameters) == 3:
-            raise ValueError(
-                "Expected netket.optimizer.Optimizer subclass, JAX optimizer, "
-                + " or callable f(i, grad, p); got callable with signature {}".format(
-                    sig
-                )
-            )
-        desc = "{}{}".format(arg.__name__, sig)
-        return arg, desc
-    else:
-        raise ValueError(
-            "Expected netket.optimizer.Optimizer subclass, JAX optimizer, "
-            + " or callable f(i, grad, p); got {}".format(arg)
-        )
-
-
-def tree_map(fun, tree):
-
     if tree is None:
-        result = None
-
-    elif "_C_netket" in str(type(tree)):
-        result = fun(tree)
-
-    elif type(tree) == list:
-        result = []
-        for val in tree:
-            result.append(fun, tree_map(val))
-
+        return None
+    elif isinstance(tree, list):
+        return [tree_map(fun, val, *args, **kwargs) for val in tree]
+    elif isinstance(tree, tuple):
+        if not hasattr(tree, "_fields"):
+            # If it is not a namedtuple, recreate it as a tuple.
+            return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
+        else:
+            # If it is a namedtuple, than keep that type information.
+            return type(tree)(*(tree_map(fun, val, *args, **kwargs) for val in tree))
+    elif isinstance(tree, dict):
+        return {
+            key: tree_map(fun, value, *args, **kwargs) for key, value in tree.items()
+        }
     else:
-        result = {}
-        for key in tree:
-            result[key] = tree_map(fun, tree[key])
+        return fun(tree, *args, **kwargs)
 
-    return result
+
+def trees2_map(fun, tree1, tree2, *args, **kwargs):
+    """
+    Maps all the leafs in the two trees, applying the function with the leafs of tree1
+    as first argument and the leafs of tree2 as second argument
+    Any additional argument after the first two is forwarded to the function call.
+
+    This is usefull e.g. to sum the leafs of two trees
+
+    Args:
+        fun: the function to apply to all leafs
+        tree1: the structure containing leafs. This can also be just a leaf
+        tree2: the structure containing leafs. This can also be just a leaf
+        *args: additional positional arguments passed to fun
+        **kwargs: additional kw arguments passed to fun
+
+    Returns:
+        An equivalent tree, containing the result of the function call.
+    """
+    if tree1 is None:
+        return None
+    elif isinstance(tree1, list):
+        return [
+            trees2_map(fun, val1, val2, *args, **kwargs)
+            for val1, val2 in zip(tree1, tree2)
+        ]
+    elif isinstance(tree1, tuple):
+        return tuple(
+            trees2_map(fun, val1, val2, *args, **kwargs)
+            for val1, val2 in zip(tree1, tree2)
+        )
+    elif isinstance(tree1, dict):
+        return {
+            key: trees2_map(fun, val1, val2, *args, **kwargs)
+            for (key, val1), (key2, val2) in zip(tree1.items(), tree2.items())
+        }
+    else:
+        return fun(tree1, tree2, *args, **kwargs)
+
+
+from netket.utils import jax_available
+
+if jax_available:
+    import jax
+    from jax.tree_util import tree_flatten, tree_unflatten
+    import jax.numpy as jnp
+
+    @jax.jit
+    def jax_shape_for_update(update, shape_like):
+        r"""Reshapes grads from array to tree like structure if neccesary for update
+
+        Args:
+            grads: a 1d jax/numpy array
+            shape_like: this as in instance having the same type and shape of
+                        the desired conversion.
+
+        Returns:
+            A possibly non-flat structure of jax arrays containing a copy of data
+            compatible with the given shape if jax_available and a copy of update otherwise
+        """
+
+        shf, tree = tree_flatten(shape_like)
+
+        updatelist = []
+        k = 0
+        for s in shf:
+            size = s.size
+            updatelist.append(jnp.asarray(update[k : k + size]).reshape(s.shape))
+            k += size
+
+        return tree_unflatten(tree, updatelist)

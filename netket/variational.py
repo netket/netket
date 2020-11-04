@@ -1,66 +1,7 @@
 from ._vmc import Vmc as _Vmc
-from ._C_netket.optimizer import SR as _SR
+from .optimizer import SR as _SR
 import warnings
 from netket.vmc_common import tree_map
-
-
-def Vmc(
-    hamiltonian,
-    sampler,
-    optimizer,
-    n_samples,
-    discarded_samples=None,
-    discarded_samples_on_init=0,
-    target="energy",
-    method="Sr",
-    diag_shift=0.01,
-    use_iterative=False,
-    use_cholesky=None,
-    sr_lsq_solver="LLT",
-):
-
-    if use_cholesky and sr_lsq_solver != "LLT":
-        raise ValueError(
-            "Inconsistent options specified: `use_cholesky && sr_lsq_solver != 'LLT'`."
-        )
-
-    if discarded_samples_on_init != 0:
-        warnings.warn(
-            "discarded_samples_on_init does not have any effect and should not be used",
-            DeprecationWarning,
-        )
-
-    warnings.warn(
-        "netket.variational.Vmc will be deprecated in version 3, use netket.Vmc instead",
-        PendingDeprecationWarning,
-    )
-
-    if method == "Gd":
-        return _Vmc(
-            hamiltonian=hamiltonian,
-            sampler=sampler,
-            optimizer=optimizer,
-            n_samples=n_samples,
-            n_discard=discarded_samples,
-            sr=None,
-        )
-    elif method == "Sr":
-        sr = _SR(
-            lsq_solver=sr_lsq_solver,
-            diag_shift=diag_shift,
-            use_iterative=use_iterative,
-            is_holomorphic=sampler.machine.is_holomorphic,
-        )
-        return _Vmc(
-            hamiltonian=hamiltonian,
-            sampler=sampler,
-            optimizer=optimizer,
-            n_samples=n_samples,
-            n_discard=discarded_samples,
-            sr=sr,
-        )
-    else:
-        raise ValueError("Allowed method options are Gd and Sr")
 
 
 # Higher-level VMC functions:
@@ -95,7 +36,11 @@ def estimate_expectations(
     """
 
     from netket.operator import local_values as _local_values
-    from ._C_netket import stats as nst
+    from netket.stats import (
+        statistics as _statistics,
+        mean as _mean,
+        sum_inplace as _sum_inplace,
+    )
 
     psi = sampler.machine
 
@@ -105,17 +50,21 @@ def estimate_expectations(
     # Burnout phase
     sampler.generate_samples(n_discard)
     # Generate samples
-    samples = sampler.generate_samples(n_samples)
-
-    if compute_gradients:
-        der_logs = psi.der_log(samples)
+    samples = sampler.generate_samples(n_samples).reshape(
+        (-1, sampler.sample_shape[-1])
+    )
 
     def estimate(op):
         lvs = _local_values(op, psi, samples)
-        stats = nst.statistics(lvs)
+        stats = _statistics(lvs.T)
 
         if compute_gradients:
-            grad = nst.covariance_sv(lvs, der_logs)
+            samples_r = samples.reshape((-1, samples.shape[-1]))
+            eloc_r = (lvs - _mean(lvs)).reshape(-1, 1)
+            grad = sampler.machine.vector_jacobian_prod(
+                samples_r,
+                eloc_r / n_samples,
+            )
             return stats, grad
         else:
             return stats

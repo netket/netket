@@ -4,11 +4,8 @@ import json
 
 plt.ion()
 
-# N=20
-exact = -1.274549484318e00 * 20
-
-# N=80
-# exact=-1.273321360724e+00*80
+# N=14
+exact = -17.86280854
 
 while True:
     plt.clf()
@@ -20,19 +17,17 @@ while True:
     energy = []
     sigma = []
     evar = []
-    
 
-    data = json.load(open("test.log"))
+    data = json.load(open("ising_imag.log"))
     for iteration in data["Output"]:
         iters.append(iteration["Iteration"])
         times.append(iteration["Time"])
         energy.append(iteration["Energy"]["Mean"])
         sigma.append(iteration["Energy"]["Sigma"])
         evar.append(iteration["Energy"]["Variance"])
-        
 
     nres = len(iters)
-    cut = nres
+    cut = 100
     if nres > cut:
 
         fitx = iters[-cut:-1]

@@ -22,44 +22,31 @@ hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
 
 # Graph Hamiltonian
-sigmax = [[0, 1], [1, 0]]
-mszsz = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
-edges = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
-    [3, 4],
-    [4, 5],
-    [5, 6],
-    [6, 7],
-    [7, 8],
-    [8, 9],
-    [9, 10],
-    [10, 11],
-    [11, 12],
-    [12, 13],
-    [13, 14],
-    [14, 15],
-    [15, 16],
-    [16, 17],
-    [17, 18],
-    [18, 19],
-    [19, 0],
-]
+N = 20
+sigmax = np.asarray([[0, 1], [1, 0]])
+mszsz = np.asarray([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+edges = [[i, i + 1] for i in range(N - 1)] + [[N - 1, 0]]
 
-g = nk.graph.CustomGraph(edges=edges)
+g = nk.graph.Graph(edges=edges)
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
-ha = nk.operator.GraphOperator(
-    hi, siteops=[sigmax], bondops=[mszsz], bondops_colors=[0]
+operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
+    hi, site_ops=[sigmax], bond_ops=[mszsz]
 )
-operators["Graph Hamiltonian"] = ha
+
+# Graph Hamiltonian with colored edges
+edges_c = [(i, j, i % 2) for i, j in edges]
+g = nk.graph.Graph(edges=edges_c)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
+    hi, site_ops=[sigmax], bond_ops=[1.0 * mszsz, 2.0 * mszsz], bond_ops_colors=[0, 1]
+)
 
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
 sy = [[0, 1.0j], [-1.0j, 0]]
 sz = [[1, 0], [0, -1]]
-g = nk.graph.CustomGraph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.CustomHilbert(local_states=[1, -1], graph=g)
+g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 
 sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
 sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[2], [3], [4], [9]])
@@ -83,8 +70,6 @@ operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 
-rg = nk.utils.RandomEngine(seed=1234)
-
 
 def test_produce_elements_in_hilbert():
     for name, ha in operators.items():
@@ -97,7 +82,7 @@ def test_produce_elements_in_hilbert():
         local_states = hi.local_states
 
         for i in range(1000):
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
 
             rstatet, _ = ha.get_conn(rstate)
 
@@ -115,7 +100,7 @@ def test_operator_is_hermitean():
         local_states = hi.local_states
 
         for i in range(100):
-            hi.random_vals(rstate, rg)
+            hi.random_vals(rstate)
             rstatet, mels = ha.get_conn(rstate)
 
             for k, state in enumerate(rstatet):
@@ -176,6 +161,6 @@ def test_Heisenberg():
         g = nk.graph.Hypercube(7, 1)
         hi = nk.hilbert.Spin(g, 0.5)
 
-        assert not hi.graph.is_bipartite
+        assert not hi.graph.is_bipartite()
 
         ha = nk.operator.Heisenberg(hi, sign_rule=True)

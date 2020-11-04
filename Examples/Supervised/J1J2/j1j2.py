@@ -44,6 +44,6 @@ n_iter = 4000
 spvsd.run(
     n_iter=n_iter,
     loss_function="Overlap_phi",
-    output_prefix="output",
+    out="output",
     save_params_every=50,
 )

@@ -1,0 +1,37 @@
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.coverage.run]
+branch = true
+parallel = true
+command_line = "-m pytest --color=yes --durations=0 Test"
+source = ["netket"]
+
+[dev-dependencies]
+black = { version = "^18.3-alpha.0", python = "^3.6" }
+pre-commit = ">= 2.7"
+pytest = ">= 5"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::UserWarning",
+]

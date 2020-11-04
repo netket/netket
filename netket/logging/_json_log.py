@@ -1,9 +1,18 @@
 import json as _json
 from os import path as _path
+from netket.vmc_common import tree_map as _tree_map
 
 
 def _exists_json(prefix):
     return _path.exists(prefix + ".log") or _path.exists(prefix + ".wf")
+
+
+def _to_json(ob):
+    to_json = getattr(ob, "to_json", None)
+    if to_json is not None:
+        return ob.to_json()
+    else:
+        return ob
 
 
 class JsonLog:
@@ -33,11 +42,7 @@ class JsonLog:
         elif mode == "x":
             mode = "fail"
 
-        if not (
-            (mode == "write")
-            or (mode == "append")
-            or (mode == "fail")
-        ):
+        if not ((mode == "write") or (mode == "append") or (mode == "fail")):
             raise ValueError(
                 "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or `[x]`(fail)."
             )
@@ -65,25 +70,38 @@ class JsonLog:
         self._write_every = write_every
         self._save_params_every = save_params_every
         self._old_step = 0
+        self._steps_notflushed_write = 0
+        self._steps_notflushed_pars = 0
 
     def __call__(self, step, item, machine):
         item["Iteration"] = step
 
         self._json_out["Output"].append(item)
 
-        if step % self._write_every == 0 or step == self._old_step - 1:
+        if (
+            self._steps_notflushed_write % self._write_every == 0
+            or step == self._old_step - 1
+        ):
             self._flush_log()
-        if step % self._save_params_every == 0 or step == self._old_step - 1:
+        if (
+            self._steps_notflushed_pars % self._save_params_every == 0
+            or step == self._old_step - 1
+        ):
             self._flush_params(machine)
 
         self._old_step = step
+        self._steps_notflushed_write += 1
+        self._steps_notflushed_pars += 1
 
     def _flush_log(self):
         with open(self._prefix + ".log", "w") as outfile:
-            _json.dump(self._json_out, outfile)
+            log_data = _tree_map(_to_json, self._json_out)
+            _json.dump(log_data, outfile)
+            self._steps_notflushed_write = 0
 
     def _flush_params(self, machine):
         machine.save(self._prefix + ".wf")
+        self._steps_notflushed_pars = 0
 
     def flush(self, machine=None):
         """
