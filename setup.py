@@ -1,5 +1,10 @@
 from setuptools import setup, find_packages
 
+DEV_DEPENDENCIES = ["pytest>=5", "python-igraph", "pre-commit", "black==20.8b1"]
+MPI_DEPENDENCIES = ["mpi4py>=3.0.1"]
+JAX_DEPENDENCIES = ["jax"]
+
+MPIJAX_DEPENDENCIES = ["mpi4jax>=0.2.6"]
 
 setup(
     name="netket",
@@ -21,8 +26,12 @@ setup(
     ],
     python_requires=">=3.6",
     extras_require={
-        "dev": ["pytest", "python-igraph", "pre-commit", "black==20.8b1"],
-        "jax": ["jax"],
-        "mpi": ["mpi4py>=3.0.1"],
+        "dev": DEV_DEPENDENCIES,
+        "mpi": MPI_DEPENDENCIES,
+        "jax": JAX_DEPENDENCIES,
+        "all": DEV_DEPENDENCIES
+        + MPI_DEPENDENCIES
+        + JAX_DEPENDENCIES
+        + MPIJAX_DEPENDENCIES,
     },
 )
