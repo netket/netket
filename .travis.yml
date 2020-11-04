@@ -104,11 +104,10 @@ install:
     if [ -z "$CONDA" ]; then
       python -m pip install mpi4jax
     fi
+  - python -m pip install -v ".[dev,jax,mpi]"
   - python -m pytest --version
-  - python -m pip install -v ".[dev,jax]"
-  - mkdir workdir && cd workdir
 
 script:
   - python -c 'import netket'
-  - python -m pytest --durations=0 -n 2 --verbose ../Test/
-  - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test/MPI
+  - python -m pytest --verbose -n 2
+  - mpirun -np 2 python -m pytest -n 0 --verbose Test/MPI

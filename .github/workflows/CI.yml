@@ -46,7 +46,6 @@ jobs:
       - name: Pip install python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install numpy mpi4py
           if [ -f requirements.txt ]; then 
             pip install -r requirements.txt
           fi
@@ -55,11 +54,11 @@ jobs:
             echo "Installing jax & co"
             python -m pip install jax jaxlib mpi4jax 
           fi
-          pip install -e ".[dev]"
+          pip install -e ".[dev,mpi]"
 
       - name: MPI tests
         run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest --workers=1 Test/MPI
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test/MPI
 
       - name: Netket tests
         run : coverage run
