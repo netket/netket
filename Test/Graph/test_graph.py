@@ -91,6 +91,17 @@ def check_edges(length, n_dim, pbc):
     assert x_edges == y_edges
 
 
+def test_graph_wrong():
+    with pytest.raises(TypeError):
+        nk.graph.Graph(5)
+
+    with pytest.raises(TypeError):
+        nk.graph.Graph([1, 2, 3], True)
+
+    with pytest.raises(ValueError):
+        nk.graph.Graph([1, 2, 3], [1, 2, 3])
+
+
 def test_edges_are_correct():
     check_edges(1, 1, False)
     check_edges(1, 2, False)
