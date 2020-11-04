@@ -25,19 +25,37 @@ It is a Python library built on C++ primitives.
 - **Source code:** <https://github.com/netket/netket>
 
 ## Installation and Usage
-You can install on osx or linux with either
- - *pip*   : `pip install netket`
- - *conda* : `conda install conda-forge::netket`
+Netket supports MacOS and Linux. The reccomended way to install it in a non-conda python environment is: 
+```
+pip install netket[all]
+``` 
+The `[all]` after netket will install all extra dependencies of netket. 
+We reccomend to install netket with all it's extra dependencies, which are documented below. 
+However, if you do not have a working MPI compiler in your PATH this installation will most likely fail because
+it will attempt to install `mpi4py`, which enables MPI support in netket.
+If you are only starting to discover netket and won't be running extended simulations, you can forego MPI by 
+installing netket with the command
+```
+pip install netket # or pip install netket[jax] 
+```
 
+Netket is also available on conda-forge. To install netket in a conda-environment you can use:
+```
+conda install conda-forge::netket
+```
 Conda by default ships pre-built binaries for recent versions of python.
-The default blas library is openblas, but mkl can be enforced.
+The default blas library is openblas, but mkl can be enforced. 
+The conda library is linked to anaconda's `mpi4py`, therefore we do not reccomend to use this installation
+method on computer clusters with a custom MPI distribution.
 
-To learn more, check out the website or the examples.
+### Extra dependencies
+When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
+ - '[dev]': installs development-related dependencies such as black, pytest and testing dependencies
+ - '[mpi]': Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
+ - '[jax]': Installs `jax` to enable jax-based neural networks
+ - '[all]': Installs `mpi`, `jax` and `mpi4jax` which is required to use mpi with jax machines.
 
 Since version 3, in addition to the built-in machines, you can also use [Jax](https://github.com/google/jax) and [PyTorch](https://pytorch.org) to define your custom neural networks.
-Those are not hard dependencies of netket, therefore they must be installed separately.
-To avoid potential bugs, we suggest to install those libraries using the same tool that you
-used for netket (pip or conda).
 
 ### MPI Support
 Depending on the library you use to define your machines, distributed computing through MPI might
