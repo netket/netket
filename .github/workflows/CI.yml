@@ -43,12 +43,22 @@ jobs:
         run: |
           sh ./conf/travis-install-mpi.sh mpich
 
-      - name: Pip install python dependencies
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then 
-            pip install -r requirements.txt
-          fi
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-jax_${{ matrix.use_jax }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Pip install python dependencies
+        run: |
           echo "Jax variable is: ${{ matrix.use_jax }}"
           if [ ! ${{ matrix.use_jax }} == "NO" ]; then
             echo "Installing jax & co"
