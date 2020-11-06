@@ -17,7 +17,7 @@ def seed(seed=None):
 
     """
 
-    if seed is None:
+    if seed == None:
         seed = _np.random.randint(0, 1 << 32)
 
     _np.random.seed(seed)
