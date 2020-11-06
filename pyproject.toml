@@ -20,6 +20,7 @@ exclude = '''
 [tool.coverage.run]
 branch = true
 parallel = true
+concurrency = ["multiprocessing"]
 command_line = "-m pytest --color=yes --durations=0 Test"
 source = ["netket"]
 
@@ -34,7 +35,7 @@ coverage = ">= 5"
 requires = ["setuptools", "wheel"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --durations=0"
+addopts = "--color=yes --durations=0 -n auto"
 filterwarnings = [
     "ignore::UserWarning",
 ]
