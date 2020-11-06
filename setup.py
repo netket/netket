@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 DEV_DEPENDENCIES = [
-    "pytest>=5",
+    "pytest>=6",
     "pytest-xdist>=2",
     "coverage>=5",
     "python-igraph",
