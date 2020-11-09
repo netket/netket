@@ -104,7 +104,7 @@ install:
     if [ -z "$CONDA" ]; then
       python -m pip install mpi4jax
     fi
-  - python -m pip install -v ".[dev,jax,mpi]"
+  - python -m pip install ".[dev,jax,mpi]"
   - python -m pytest --version
 
 script:
