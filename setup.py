@@ -4,6 +4,7 @@ DEV_DEPENDENCIES = [
     "pytest>=6",
     "pytest-xdist>=2",
     "coverage>=5",
+    "pytest-cov>= 2.10.1",
     "python-igraph",
     "pre-commit",
     "black==20.8b1",

@@ -30,12 +30,13 @@ pre-commit = ">= 2.7"
 pytest = ">= 6"
 pytest-xdist = ">= 2"
 coverage = ">= 5"
+pytest-cov = ">= 2.10.1"
 
 [build-system]
 requires = ["setuptools", "wheel"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --durations=0 -n auto"
+addopts = "--color=yes --verbose --durations=0 -n auto"
 filterwarnings = [
     "ignore::UserWarning",
 ]

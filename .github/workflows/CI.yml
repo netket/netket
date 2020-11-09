@@ -68,14 +68,10 @@ jobs:
 
       - name: MPI tests
         run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test/MPI
+          mpirun -host localhost:2 -np 2 pytest --cov=netket -n 0 Test/MPI
 
       - name: Netket tests
-        run : coverage run
-
-      - name: Combine multiple coverage results
-        run: |
-          coverage combine
+        run : pytest --cov=netket --cov-append
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
