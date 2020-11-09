@@ -68,7 +68,7 @@ jobs:
 
       - name: MPI tests
         run: |
-          mpirun -host localhost:2 -np 2 pytest --cov=netket -n 0 Test/MPI
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test/MPI
 
       - name: Netket tests
         run : pytest --cov=netket --cov-append
