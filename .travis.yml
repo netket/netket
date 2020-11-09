@@ -95,7 +95,7 @@ install:
   - python --version
   - python -m pip install -U pip
   - python -m pip --version
-  - python -m pip install networkx 'pytest==5.3' python-igraph jax jaxlib black
+  - python -m pip install jaxlib
   - |
     if [ -n "$CONDA" || $TRAVIS_OS_NAME != "osx" ]; then
       python -m pip install torch
@@ -104,13 +104,10 @@ install:
     if [ -z "$CONDA" ]; then
       python -m pip install mpi4jax
     fi
-  - python -m pip install pytest-xdist
+  - python -m pip install ".[dev,jax,mpi]"
   - python -m pytest --version
-  - python -m pip install -v .
-  - mkdir workdir && cd workdir
 
 script:
   - python -c 'import netket'
-  - python -m pytest --durations=0 -n 2 --verbose ../Test/
-  - mpirun -np 2 python -m pytest --durations=0 --verbose ../Test/MPI
-  # - python -m pytest --durations=0 --verbose --doctest-glob='*.md' ../Docs/
+  - python -m pytest --verbose -n 2
+  - mpirun -np 2 python -m pytest -n 0 --verbose Test/MPI
