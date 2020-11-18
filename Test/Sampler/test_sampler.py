@@ -123,6 +123,9 @@ ma = nk.machine.density_matrix.RbmSpin(
 ma.init_random_parameters(sigma=0.2)
 samplers["Metropolis Density Matrix"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
 
+sa = nk.sampler.ExactSampler(machine=ma, sample_size=8)
+samplers["Exact Density Matrix"] = sa
+
 if test_jax:
     ma = nk.machine.density_matrix.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
     ma.init_random_parameters(sigma=0.2)
