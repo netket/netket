@@ -132,7 +132,7 @@ class MetropolisHastings(AbstractSampler):
         self.reset(init_random)
 
         self._rng_key, samples = self._metropolis_kernel(
-            self.machine.jax_forward,
+            self.machine.jax_forward_nj,
             self._transition_kernel,
             n_samples,
             self.sweep_size,
@@ -147,7 +147,7 @@ class MetropolisHastings(AbstractSampler):
 
     def __next__(self):
         self._rng_key, samples = self._metropolis_kernel(
-            self.machine.jax_forward,
+            self.machine.jax_forward_nj,
             self._transition_kernel,
             1,
             self.sweep_size,
