@@ -80,10 +80,9 @@ def test_mean():
     out = nk.stats.mean(1j * mydata, axis=0)
     assert out == approx(np.mean(1j * data.mean(0), axis=0))
 
-    # Test with complex dtype and out
-    out = np.empty((11, 12), dtype=np.complex128)
-    out = nk.stats.mean(1j * mydata, axis=0)
-    assert out == approx(np.mean(1j * data.mean(0), axis=0))
+    # Test with keepdims
+    out = nk.stats.mean(mydata, keepdims=True)
+    assert out == approx(np.mean(data.mean(0), keepdims=True))
 
 
 @pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
@@ -95,9 +94,15 @@ def test_sum():
     for axis in None, 0, 1, 2:
         ref_sum = np.sum(data.sum(axis=0), axis=axis)
         nk_sum = nk.stats.sum(mydata, axis=axis)
+        nk_sum_kd = nk.stats.sum(mydata, axis=axis, keepdims=True)
+        ref_sum_kd = np.sum(data.sum(axis=0), axis=axis, keepdims=True)
 
         assert nk_sum.shape == ref_sum.shape, "axis={}".format(axis)
         assert np.all(nk_sum == ref_sum), "axis={}".format(axis)
+        assert nk_sum_kd.shape == ref_sum_kd.shape, "axis={}, keepdims=True".format(
+            axis
+        )
+        assert np.all(nk_sum_kd == ref_sum_kd), "axis={}, keepdims=True".format(axis)
 
     # Test with out
     out = np.array(0.0)  # ndim=0 array
@@ -115,7 +120,8 @@ def test_sum():
 
     # Test with complex dtype and out
     out = np.empty((11, 12), dtype=np.complex128)
-    nk.stats.sum(1j * mydata, axis=0, out=out)
+    _out = nk.stats.sum(1j * mydata, axis=0, out=out)
+    assert out is _out
     assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
 
 
