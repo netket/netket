@@ -26,7 +26,7 @@ def subtract_mean(x, axis=None):
     return x
 
 
-def mean(a, axis=None):
+def mean(a, axis=None, keepdims=False):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
@@ -34,7 +34,7 @@ def mean(a, axis=None):
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
-    out = a.mean(axis=axis)
+    out = a.mean(axis=axis, keepdims=keepdims)
 
     out = _sum_inplace(out)
     out /= _n_nodes
@@ -42,12 +42,12 @@ def mean(a, axis=None):
     return out
 
 
-def sum(a, axis=None, out=None):
+def sum(a, axis=None, out=None, keepdims=False):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
     """
     # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
-    out = _np.asarray(_np.sum(a, axis=axis, out=out))
+    out = _np.asarray(_np.sum(a, axis=axis, out=out, keepdims=keepdims))
 
     if _n_nodes > 1:
         MPI_comm.Allreduce(MPI.IN_PLACE, out.reshape(-1), op=MPI.SUM)
