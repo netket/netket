@@ -33,6 +33,7 @@ class ExactSampler(AbstractSampler):
         else:
             self.hilbert = machine.hilbert
         self._machine_pow = 2.0
+        self.reset()
 
     def reset(self, init_random=False):
         self._prob = _np.absolute(self.machine.to_array()) ** self.machine_pow
