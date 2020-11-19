@@ -5,6 +5,8 @@ import numpy as _np
 from numba import jit
 from numba.typed import List
 
+from scipy.sparse.linalg import LinearOperator
+
 import numbers
 
 
@@ -299,3 +301,78 @@ class LocalLiouvillian(AbstractOperator):
             sections[i] = off
 
         return _np.copy(xs[0:off, :]), _np.copy(mels[0:off])
+
+    def to_linear_operator(
+        self, sparse: bool = True, append_trace: bool = False
+    ) -> LinearOperator:
+        r"""Returns a lazy scipy linear_operator representation of the Lindblad Super-Operator.
+
+        The returned operator behaves like the M**2 x M**2 matrix obtained with to_dense/sparse, and accepts
+        vectorised density matrices as input.
+
+        Args:
+            sparse: If True internally uses sparse matrices for the hamiltonian and jump operators,
+                dense otherwise (default=True)
+            append_trace: If True (default=False) the resulting operator has size M**2 + 1, and the last
+                element of the input vector is the trace of the input density matrix. This is useful when
+                implementing iterative methods.
+
+        Returns:
+            A linear operator taking as input vectorised density matrices and returning the product L*rho
+
+        """
+        M = self.hilbert.physical.n_states
+
+        iHnh = -1j * self.ham_nh
+        if sparse:
+            iHnh = iHnh.to_sparse()
+            J_ops = [j.to_sparse() for j in self.jump_ops]
+            J_ops_c = [j.conjugate().transpose().to_sparse() for j in self.jump_ops]
+        else:
+            iHnh = iHnh.to_dense()
+            J_ops = [j.to_dense() for j in self.jump_ops]
+            J_ops_c = [j.conjugate().transpose().to_dense() for j in self.jump_ops]
+
+        if not append_trace:
+            op_size = M ** 2
+
+            def matvec(rho_vec):
+                rho = rho_vec.reshape((M, M))
+
+                drho = _np.zeros((M, M), dtype=rho.dtype)
+
+                drho += rho @ iHnh + iHnh.conj().T @ rho
+                for J, J_c in zip(J_ops, J_ops_c):
+                    drho += (J @ rho) @ J_c
+
+                return drho.reshape(-1)
+
+        else:
+            # This function defines the product Liouvillian x densitymatrix, without
+            # constructing the full density matrix (passed as a vector M^2).
+
+            # An extra row is added at the bottom of the therefore M^2+1 long array,
+            # with the trace of the density matrix. This is needed to enforce the
+            # trace-1 condition.
+
+            # The logic behind the use of Hnh_dag_ and Hnh_ is derived from the
+            # convention adopted in local_liouvillian.cc, and inspired from reference
+            # arXiv:1504.05266
+            op_size = M ** 2 + 1
+
+            def matvec(rho_vec):
+                rho = rho_vec[:-1].reshape((M, M))
+
+                out = _np.zeros((M ** 2 + 1), dtype=rho.dtype)
+                drho = out[:-1].reshape((M, M))
+
+                drho += rho @ iHnh + iHnh.conj().T @ rho
+                for J, J_c in zip(J_ops, J_ops_c):
+                    drho += (J @ rho) @ J_c
+
+                out[-1] = rho.trace()
+                return out
+
+        L = LinearOperator((op_size, op_size), matvec=matvec, dtype=iHnh.dtype)
+
+        return L

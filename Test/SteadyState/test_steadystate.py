@@ -65,6 +65,17 @@ def _setup_obs():
     return obs
 
 
+def test_exact_ss():
+    _, ss = _setup_ss(n_samples=500, n_samples_obs=250)
+    lind = ss._lind
+
+    dm_ss = nk.exact.steady_state(lind, sparse=True, method="iterative", tol=1e-5)
+    Lop = lind.to_linear_operator()
+
+    assert np.all(Lop @ dm_ss.reshape(-1) == approx(0.0, rel=1e-5, abs=1e-5))
+    assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-5)
+
+
 def test_ss_advance():
     ma1, vmc1 = _setup_ss(n_samples=500, n_samples_obs=250)
     for i in range(10):

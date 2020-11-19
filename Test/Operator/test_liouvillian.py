@@ -79,6 +79,38 @@ def test_lindblad_zero_eigenvalue():
     assert w[0] <= 10e-10
 
 
+def test_linear_operator():
+    l_sparse = lind.to_dense()
+    l_op = lind.to_linear_operator()
+
+    dm = np.random.rand(hi.n_states, hi.n_states) + 1j * np.random.rand(
+        hi.n_states, hi.n_states
+    )
+    dm = (dm + dm.T.conj()).reshape(-1)
+
+    res_sparse = l_sparse @ dm
+    res_op = l_op @ dm
+
+    assert np.all(res_sparse - res_op == approx(0.0, rel=1e-6, abs=1e-6))
+
+    assert res_sparse.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-6, abs=1e-6
+    )
+    assert res_op.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-6, abs=1e-6
+    )
+
+    l_op = lind.to_linear_operator(append_trace=True)
+    dmptr = np.zeros(dm.size + 1, dtype=dm.dtype).reshape(-1)
+    dmptr[:-1] = dm
+    res_op2 = l_op @ dmptr
+
+    assert np.all(res_op2[:-1] - res_op == approx(0.0, rel=1e-8, abs=1e-8))
+    assert res_op2[-1] - dm.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-8, abs=1e-8
+    )
+
+
 # Construct the operators for Sx, Sy and Sz
 obs_sx = nk.operator.LocalOperator(hi)
 obs_sy = nk.operator.LocalOperator(hi)
