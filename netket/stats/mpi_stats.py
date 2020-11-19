@@ -33,7 +33,6 @@ def mean(a, axis=None, keepdims=False):
     Returns the average of the array elements. The average is taken over the flattened array by default,
     otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
     """
-    # asarray is necessary for the axis=None case to work, as the MPI call requires a NumPy array
     out = a.mean(axis=axis, keepdims=keepdims)
 
     out = _sum_inplace(out)
