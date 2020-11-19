@@ -15,7 +15,7 @@
 import itertools as _itertools
 import json
 
-from mpi4py import MPI
+import jax
 
 import numpy as _np
 import scipy.integrate as _scint
@@ -221,7 +221,7 @@ class TimeEvolution(AbstractVariationalDriver):
         while self.t < t_end and self._integrator.status == "running":
             _step_end = self.t + t_interval
             t0 = self.t
-            while self.t < _step_end and self._integrator.status == "running":
+            while self.t <= _step_end and self._integrator.status == "running":
                 self._loss_stats = self._driver._loss_stats
 
                 if self.t == t0:
@@ -314,3 +314,8 @@ class TimeEvolution(AbstractVariationalDriver):
 
     def info(self, depth=0):
         return "stuff"
+
+    @property
+    def _default_step_size(self):
+        # Essentially means
+        return 1e-20

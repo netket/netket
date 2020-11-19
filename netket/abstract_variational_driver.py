@@ -182,7 +182,7 @@ class AbstractVariationalDriver(abc.ABC):
         show_progress=True,
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
-        step_size=1,  # for default logger
+        step_size=None,  # for default logger
         callback=lambda *x: True,
     ):
         """
@@ -200,7 +200,7 @@ class AbstractVariationalDriver(abc.ABC):
             serialized to disk (ignored if logger is provided)
             :write_every: Every how many steps the json data should be flushed to disk (ignored if
             logger is provided)
-            :step_size: Every how many steps should observables be logged to disk (default=1)
+            :step_size: Every how many steps should observables be logged to disk (default=1 for vmc, dt for time evolution)
             :show_progress: If true displays a progress bar (default=True)
             :callback: Callable or list of callable callback functions to stop training given a condition
         """
@@ -219,6 +219,9 @@ class AbstractVariationalDriver(abc.ABC):
                 "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
                 "Running the optimization but not saving the output."
             )
+
+        if step_size is None:
+            step_size = self._default_step_size
 
         # Log only non-root nodes
         if self._mynode == 0:
@@ -304,3 +307,7 @@ class AbstractVariationalDriver(abc.ABC):
             :step: the step
         """
         pass
+
+    @property
+    def _default_step_size(self):
+        return 1
