@@ -154,7 +154,7 @@ def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
     """
     from numpy import sqrt, matrix
 
-    M = lindblad.hilbert.hilbert_physical.n_states
+    M = lindblad.hilbert.physical.n_states
 
     if method == "ed":
         if sparse is None:
