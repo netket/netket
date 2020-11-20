@@ -45,16 +45,16 @@ g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=1, graph=g)
 
 # AKLT model Hamiltonian as graph
-ha = nk.operator.GraphOperator(hilbert=hi, bondops=[P2_AKLT.tolist()])
+ha = nk.operator.GraphOperator(hilbert=hi, bond_ops=[P2_AKLT.tolist()])
 
 # Perform Lanczos Exact Diagonalization to get lowest three eigenvalues
-res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)
+w, v = nk.exact.lanczos_ed(ha, k=3, compute_eigenvectors=True)
 
 # Print eigenvalues
-print("eigenvalues:", res.eigenvalues)
+print("eigenvalues:", w)
 
 # Compute energy of ground state
-print("ground state energy:", res.mean(ha, 0))
+print("ground state energy:", np.vdot(v[:, 0], ha(v[:, 0])).real)
 
 # Compute energy of first excited state
-print("first excited energy:", res.mean(ha, 1))
+print("first excited energy:", np.vdot(v[:, 1], ha(v[:, 1])).real)
