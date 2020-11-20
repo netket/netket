@@ -151,8 +151,11 @@ def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
         callback: User-supplied function to call after each iteration. It is called as callback(xk),
                   where xk is the current solution vector
 
+    Returns:
+        The steady-state density matrix.
+
     """
-    from numpy import sqrt, matrix
+    from numpy import sqrt, array
 
     M = lindblad.hilbert.physical.n_states
 
@@ -163,9 +166,9 @@ def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
         if not sparse:
             from numpy.linalg import eigh
 
-            lind_mat = matrix(lindblad.to_dense())
+            lind_mat = lindblad.to_dense()
 
-            ldagl = lind_mat.H * lind_mat
+            ldagl = lind_mat.conj().T * lind_mat
             w, v = eigh(ldagl)
 
         else:
@@ -177,7 +180,7 @@ def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
             w, v = eigsh(ldagl, which="SM", k=2)
 
         print("Minimum eigenvalue is: ", w[0])
-        rho = matrix(v[:, 0].reshape((M, M)))
+        rho = array(v[:, 0].reshape((M, M)))
         rho = rho / rho.trace()
 
     elif method == "iterative":
