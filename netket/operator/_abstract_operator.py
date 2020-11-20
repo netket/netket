@@ -140,7 +140,7 @@ class AbstractOperator(abc.ABC):
         Returns:
             numpy.matrix: The dense matrix representation of the operator.
         """
-        return self.to_sparse().todense()
+        return self.to_sparse().todense().A
 
     def apply(self, v):
         return self.to_sparse().dot(v)
