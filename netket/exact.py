@@ -60,7 +60,7 @@ def lanczos_ed(
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
         >>> w = nk.exact.lanczos_ed(hamiltonian, k=3)
         >>> w
-        array([ -8.69093921, -10.05467898, -10.25166179])
+        array([-10.25166179, -10.05467898,  -8.69093921])
         ```
     """
     from scipy.sparse.linalg import eigsh
