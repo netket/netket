@@ -184,6 +184,15 @@ def test_ed():
     w = nk.exact.lanczos_ed(ha, k=first_n, compute_eigenvectors=False)
     assert w.shape == (first_n,)
 
+    # Test Lanczos ED with custom options
+    w_tol = nk.exact.lanczos_ed(
+        ha,
+        k=first_n,
+        scipy_args={"tol": 1e-9, "maxiter": 1000},
+    )
+    assert w_tol.shape == (first_n,)
+    assert w_tol == approx(w)
+
     # Test Full ED with eigenvectors
     w_full, v_full = nk.exact.full_ed(ha, compute_eigenvectors=True)
     assert w_full.shape == (hi.n_states,)
