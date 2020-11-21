@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, singledispatch
 from netket.stats import sum_inplace as _sum_inplace
 from netket.utils import n_nodes
 
@@ -8,10 +8,21 @@ import jax.numpy as jnp
 from jax import jit
 from jax.scipy.sparse.linalg import cg
 from jax.tree_util import tree_flatten
+from jax.flatten_util import ravel_pytree
 from netket.vmc_common import jax_shape_for_update
 from netket.utils import n_nodes, mpi4jax_available
 
+from ._sr_onthefly import delta_odagov
 
+
+# TODO optionally pass vjp_fun
+def _S_grad_mul_onthefly(forward_fn, params, samples, v, n_samp):
+    # forward_fn is vectorised in samples
+    # TODO where to do the n_samp division
+    return delta_odagov(samples, params, v, forward_fn, factor=n_samp)
+
+
+@singledispatch
 def _S_grad_mul(oks, v, n_samp):
     r"""
     Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
@@ -20,6 +31,14 @@ def _S_grad_mul(oks, v, n_samp):
     v_tilde = jnp.matmul(oks, v) / n_samp
     y = jnp.matmul(oks.conjugate().transpose(), v_tilde)
     return y
+
+# TODO avoid workaround
+# TODO where to jit
+# TODO optionally pass vjp_fun
+@_S_grad_mul.register
+def _S_grad_mul_onthefly_test(args: tuple, v, n_samp):
+    forward_fn, params, samples = args
+    return _S_grad_mul_onthefly(forward_fn, params, samples, v, n_samp)
 
 
 def _compose_result_cmplx(v, y, diag_shift):
@@ -55,6 +74,18 @@ def _jax_cg_solve(
     out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
 
     return out
+# cant use the other one cause wee need static_argnums for forward_fn
+@partial(jit, static_argnums=(1,2))
+def _jax_cg_solve_onthefly(
+    x0, mat_vec, forward_fn, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
+):
+    r"""
+    Solves the SR flow equation using the conjugate gradient method
+    """
+
+    _mat_vec = partial(mat_vec, oks=(forward_fn, params, samples), diag_shift=diag_shift, n_samp=n_samp)
+    out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
+    return out
 
 
 def _shape_for_sr(grads, jac):
@@ -71,7 +102,6 @@ def _shape_for_sr(grads, jac):
     jac = jnp.concatenate(
         tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
     )
-
     return grads, jac
 
 
@@ -162,6 +192,15 @@ class SR:
         else:
             self._mat_vec = _matvec_real
 
+        # captured here
+        # TODO move it to jax machine??
+        _, unravel_pytree  = ravel_pytree(self._machine.parameters)
+        def forward_fn_flat(params_flat, inputs, **kwargs):
+            par = unravel_pytree(params_flat)
+            return self._machine._forward_fn_nj(par, inputs, **kwargs)
+        self._forward_fn_flat = forward_fn_flat
+
+
     def compute_update(self, oks, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -181,7 +220,7 @@ class SR:
         if self.has_complex_parameters is None or self._machine is None:
             raise ValueError("This SR object is not properly initialized.")
 
-        grad, oks = _flatten_grad_and_oks(grad, oks)
+        grad, oks = _flatten_grad_and_oks(grad, oks)  # also subtracts the mean from ok
 
         n_samp = oks.shape[0] * n_nodes
 
@@ -225,6 +264,79 @@ class SR:
         out = jax_shape_for_update(out, self._machine.parameters)
 
         return out
+
+    def compute_update_onthefly(self, samples, grad, out=None):
+        r"""
+        Solves the SR flow equation for the parameter update ẋ.
+
+        The SR update is computed by solving the linear equation
+           Sẋ = f
+        where S is the covariance matrix of the partial derivatives
+        O_i(v_j) = ∂/∂x_i log Ψ(v_j) and f is a generalized force (the loss
+        gradient).
+
+        Args:
+            samples: An array of samples
+            grad: A pytree of the forces f
+            out: A pytree of the parameter updates that will be ignored
+        """
+
+        # TODO pass vjp_fun from gradient calculation
+        # which can be reused for delta_odagov
+
+        if self.has_complex_parameters is None or self._machine is None:
+            raise ValueError("This SR object is not properly initialized.")
+
+        grad_flat, unravel_pytree  = ravel_pytree(grad)
+        params_flat, _  = ravel_pytree(self._machine.parameters)
+        n_samp = samples.shape[0]
+        n_par = params_flat.shape[0]
+
+        if self._x0 is None:
+            if self.has_complex_parameters:
+                self._x0 = jnp.zeros(n_par, dtype=jnp.complex128)
+            else:
+                self._x0 = jnp.zeros(n_par, dtype=jnp.float64)
+
+
+        if self.has_complex_parameters:
+            if self._use_iterative:
+                if self._lsq_solver == "cg":
+                    out = _jax_cg_solve_onthefly(
+                        self._x0,
+                        self._mat_vec,
+                        self._forward_fn_flat,
+                        params_flat,
+                        samples,
+                        grad_flat,
+                        self._diag_shift,
+                        n_samp,
+                        self.sparse_tol,
+                        self.sparse_maxiter,
+                    )
+                self._x0 = out
+        else:
+            if self._use_iterative:
+                if self._lsq_solver == "cg":
+                    out = _jax_cg_solve_onthefly(
+                        self._x0,
+                        self._mat_vec,
+                        self._forward_fn_flat,
+                        params_flat,
+                        samples,
+                        grad_flat.real,
+                        self._diag_shift,
+                        n_samp,
+                        self.sparse_tol,
+                        self.sparse_maxiter,
+                    )
+                self._x0 = out
+
+        out = unravel_pytree(out)
+
+        return out
+
+
 
     def __repr__(self):
         rep = "SR(solver="

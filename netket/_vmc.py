@@ -19,7 +19,7 @@ class Vmc(AbstractVariationalDriver):
     """
 
     def __init__(
-        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None
+        self, hamiltonian, sampler, optimizer, n_samples, n_discard=None, sr=None, sronthefly=False
     ):
         """
         Initializes the driver class.
@@ -60,6 +60,7 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self.sr = sr
+        self._sr_onthefly = sronthefly
 
         self._npar = self._machine.n_par
 
@@ -149,14 +150,25 @@ class Vmc(AbstractVariationalDriver):
 
         # Perform update
         if self._sr:
-            # When using the SR (Natural gradient) we need to have the full jacobian
-            self._grads, self._jac = self._machine.vector_jacobian_prod(
-                samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
-            )
+            if self._sr_onthefly:
 
-            self._grads = tree_map(_sum_inplace, self._grads)
+                self._grads = self._machine.vector_jacobian_prod(
+                    samples_r, eloc_r / self._n_samples, self._grads
+                )
 
-            self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
+                self._grads = tree_map(_sum_inplace, self._grads)
+
+                self._dp = self._sr.compute_update_onthefly(samples_r, self._grads, self._dp)
+
+            else:
+                # When using the SR (Natural gradient) we need to have the full jacobian
+                self._grads, self._jac = self._machine.vector_jacobian_prod(
+                    samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
+                )
+
+                self._grads = tree_map(_sum_inplace, self._grads)
+
+                self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
         else:
             # Computing updates using the simple gradient
