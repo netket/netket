@@ -4,8 +4,8 @@ from .metropolis_hastings import MetropolisHastings as JaxMetropolisHastings
 
 
 @MetropolisHastings.register(JaxMachine)
-def _JaxMetropolisHastings(machine, kernel, n_chains=16, sweep_size=None):
-    return JaxMetropolisHastings(machine, kernel, n_chains, sweep_size)
+def _JaxMetropolisHastings(machine, kernel, n_chains=16, sweep_size=None, **kwargs):
+    return JaxMetropolisHastings(machine, kernel, n_chains, sweep_size, **kwargs)
 
 
 @MetropolisHastingsPt.register(JaxMachine)

@@ -2,7 +2,7 @@ from .metropolis_hastings import *
 from ._kernels import _LocalKernel
 
 
-def MetropolisLocal(machine, n_chains=16, sweep_size=None):
+def MetropolisLocal(machine, n_chains=16, sweep_size=None, **kwargs):
     r"""
     Sampler acting on one local degree of freedom.
 
@@ -55,7 +55,9 @@ def MetropolisLocal(machine, n_chains=16, sweep_size=None):
         100
     """
 
-    return MetropolisHastings(machine, _LocalKernel(machine), n_chains, sweep_size)
+    return MetropolisHastings(
+        machine, _LocalKernel(machine), n_chains, sweep_size, **kwargs
+    )
 
 
 def MetropolisLocalPt(machine, n_replicas=16, sweep_size=None):
