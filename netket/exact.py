@@ -18,117 +18,99 @@ import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
 from . import _core
+from .operator import AbstractOperator
 from ._exact_dynamics import PyExactTimePropagation
 
 
-class EdResult(object):
-    def __init__(self, eigenvalues, eigenvectors):
-        # NOTE: These conversions are required because our old C++ code stored
-        # eigenvalues and eigenvectors as Python lists :(
-        self._eigenvalues = eigenvalues.tolist()
-        self._eigenvectors = (
-            [np.asarray(eigenvectors[:, i]) for i in range(eigenvectors.shape[1])]
-            if eigenvectors is not None
-            else []
-        )
-
-    @property
-    def eigenvalues(self):
-        r"""Eigenvalues of the Hamiltonian."""
-        return self._eigenvalues
-
-    @property
-    def eigenvectors(self):
-        r"""Eigenvectors of the Hamiltonian."""
-        return self._eigenvectors
-
-    def mean(self, operator, which):
-        import numpy
-
-        x = self._eigenvectors[which]
-
-        return numpy.vdot(x, operator(x))
-
-
 def lanczos_ed(
-    operator,
-    matrix_free=False,
-    first_n=1,
-    max_iter=1000,
-    seed=None,
-    precision=1e-14,
-    compute_eigenvectors=False,
+    operator: AbstractOperator,
+    *,
+    k: int = 1,
+    compute_eigenvectors: bool = False,
+    matrix_free: bool = False,
+    scipy_args: dict = None,
 ):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
-    of a Hermitian operator using the Lanczos method.
+    of a Hermitian operator using `scipy.sparse.linalg.eigsh`.
 
     Args:
-        operator: The operator to diagnolize.
-        matrix_free: If true, matrix elements are computed on the fly.
-            Otherwise, the operator is first converted to a sparse matrix.
-        first_n: The number of eigenvalues to compute.
-        max_iter: The maximum number of iterations.
-        seed: **Ignored**. Accepted for backward compatibility only.
-        precision: The precision to which the eigenvalues will be
-            computed.
+        operator: NetKet operator to diagonalize.
+        k: The number of eigenvalues to compute.
         compute_eigenvectors: Whether or not to return the
             eigenvectors of the operator. With ARPACK, not requiring the
             eigenvectors has almost no performance benefits.
+        matrix_free: If true, matrix elements are computed on the fly.
+            Otherwise, the operator is first converted to a sparse matrix.
+        scipy_args: Additional keyword arguments passed to `scipy.sparse.linalg.eigvalsh`.
+            See the Scipy documentation for further information.
 
+    Returns:
+        Either `w` or the tuple `(w, v)` depending on whether
+            `compute_eigenvectors` is True.
+
+        w: Array containing the lowest `first_n` eigenvalues.
+        v: Array containing the eigenvectors as columns, such that
+            `v[:, i]` corresponds to `w[i]`.
 
     Examples:
-        Testing the number of eigenvalues saved when solving a simple
-        1D Ising problem.
-
+        Test for 1D Ising chain with 8 sites.
         ```python
         >>> import netket as nk
-        >>> hilbert = nk.hilbert.Spin(
-        ...     nk.graph.Hypercube(length=8, n_dim=1, pbc=True), s=0.5)
-        >>> hamiltonian = nk.operator.Ising(h=1.0, hilbert=hilbert)
-        >>> r = nk.exact.lanczos_ed(
-        ...     hamiltonian, first_n=3, compute_eigenvectors=True)
-        >>> r.eigenvalues
-        [-10.251661790966047, -10.054678984251746, -8.690939214837037]
+        >>> hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)
+        >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
+        >>> w = nk.exact.lanczos_ed(hamiltonian, k=3)
+        >>> w
+        array([-10.25166179, -10.05467898,  -8.69093921])
         ```
-
     """
     from scipy.sparse.linalg import eigsh
 
+    actual_scipy_args = {}
+    if scipy_args:
+        actual_scipy_args.update(scipy_args)
+    actual_scipy_args["which"] = "SA"
+    actual_scipy_args["k"] = k
+    actual_scipy_args["return_eigenvectors"] = compute_eigenvectors
+
     result = eigsh(
         operator.to_linear_operator() if matrix_free else operator.to_sparse(),
-        k=first_n,
-        which="SA",
-        maxiter=max_iter,
-        tol=precision,
-        return_eigenvectors=compute_eigenvectors,
+        **actual_scipy_args,
     )
-    if compute_eigenvectors:
-        return EdResult(*result)
-    return EdResult(result, None)
+    if not compute_eigenvectors:
+        # The sort order of eigenvalues returned by scipy changes based on
+        # `return_eigenvalues`. Therefore we invert the order here so that the
+        # smallest eigenvalue is still the first one.
+        return result[::-1]
+    else:
+        return result
 
 
-def full_ed(operator, compute_eigenvectors=False):
-    r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
+def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
+    r"""Computes all eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
     Args:
-        operator: Operator to diagnolize.
-        compute_eigenvectors: Whether or not to return the
-            eigenvectors of the operator.
+        operator: NetKet operator to diagonalize.
+        compute_eigenvectors: Whether or not to return the eigenvectors
+            of the operator.
+
+    Returns:
+        Either `w` or the tuple `(w, v)` depending on whether
+            `compute_eigenvectors` is True.
+
+        w: Array containing the lowest `first_n` eigenvalues.
+        v: Array containing the eigenvectors as columns, such that
+            `v[:, i]` corresponds to `w[i]`.
 
     Examples:
-        Testing the numer of eigenvalues saved when solving a simple
-        1D Ising problem.
-
         ```python
+        Test for 1D Ising chain with 8 sites.
         >>> import netket as nk
-        >>> hilbert = nk.hilbert.Spin(
-        ...     nk.graph.Hypercube(length=8, n_dim=1, pbc=True), s=0.5)
-        >>> hamiltonian = nk.operator.Ising(h=1.0, hilbert=hilbert)
-        >>> r = nk.exact.lanczos_ed(
-        ...     hamiltonian, compute_eigenvectors=True)
-        >>> len(r.eigenvalues)
-        3
+        >>> hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)
+        >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
+        >>> w = nk.exact.full_ed(hamiltonian)
+        >>> w.shape
+        (256,)
         ```
     """
     from numpy.linalg import eigh, eigvalsh
@@ -136,11 +118,9 @@ def full_ed(operator, compute_eigenvectors=False):
     dense_op = operator.to_dense()
 
     if compute_eigenvectors:
-        w, v = eigh(dense_op)
-        return EdResult(w, v)
+        return eigh(dense_op)
     else:
-        w = eigvalsh(dense_op)
-        return EdResult(w, None)
+        return eigvalsh(dense_op)
 
 
 def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):

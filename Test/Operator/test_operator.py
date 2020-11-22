@@ -143,7 +143,7 @@ def test_Heisenberg():
     hi = nk.hilbert.Spin(g, 0.5)
 
     def gs_energy(ham):
-        return nk.exact.lanczos_ed(ham).eigenvalues[0]
+        return nk.exact.lanczos_ed(ham)
 
     ha1 = nk.operator.Heisenberg(hi)
     ha2 = nk.operator.Heisenberg(hi, J=2.0)

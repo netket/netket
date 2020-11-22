@@ -138,9 +138,9 @@ class AbstractOperator(abc.ABC):
         This method requires an indexable Hilbert space.
 
         Returns:
-            numpy.matrix: The dense matrix representation of the operator.
+            numpy.ndarray: The dense matrix representation of the operator as a Numpy array.
         """
-        return self.to_sparse().todense()
+        return self.to_sparse().todense().A
 
     def apply(self, v):
         return self.to_sparse().dot(v)
