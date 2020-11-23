@@ -76,7 +76,7 @@ def test_exact_ss_ed():
     dm_ss = nk.exact.steady_state(lind, method="ed")
     Lop = lind.to_linear_operator()
 
-    assert np.all(Lop @ dm_ss.reshape(-1) == approx(0.0, rel=1e-5, abs=1e-5))
+    assert np.all(Lop @ dm_ss.reshape(-1) == approx(0.0, rel=1e-4, abs=1e-4))
     assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-5)
 
 
