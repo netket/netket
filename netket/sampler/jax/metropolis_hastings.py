@@ -22,7 +22,9 @@ class MetropolisHastings(AbstractSampler):
         self.sweep_size = sweep_size
 
         if machine.enable_jit:
-            self._metropolis_kernel = jax.jit(self._metropolis_kernel, static_argnums=(0, 1, 2))
+            self._metropolis_kernel = jax.jit(
+                self._metropolis_kernel, static_argnums=(0, 1, 2)
+            )
 
     @staticmethod
     def _metropolis_kernel(
