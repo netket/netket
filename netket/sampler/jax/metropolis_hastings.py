@@ -18,13 +18,13 @@ class MetropolisHastings(AbstractSampler):
             self._rng_key = jax.random.PRNGKey(_random.randint(low=0, high=(2 ** 32)))
 
         self.machine_pow = 2
-
         self.n_chains = n_chains
-
         self.sweep_size = sweep_size
 
+        if machine.enable_jit:
+            self._metropolis_kernel = jax.jit(self._metropolis_kernel, static_argnums=(0, 1, 2))
+
     @staticmethod
-    @partial(jax.jit, static_argnums=(0, 1, 2))
     def _metropolis_kernel(
         logpdf,
         transition_kernel,

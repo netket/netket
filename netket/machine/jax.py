@@ -53,6 +53,7 @@ class Jax(AbstractMachine):
         self._init_fn, self._forward_fn = module
         self._forward_fn_nj = self._forward_fn
 
+        self._enable_jit = enable_jit
         maybe_jit = jax.jit if enable_jit else (lambda x, *_, **__: x)
 
         # Computes the Jacobian matrix using forward ad
@@ -219,6 +220,10 @@ class Jax(AbstractMachine):
     def n_par(self):
         r"""The number of variational parameters in the machine."""
         return self._npar
+
+    @property
+    def enable_jit(self):
+        return self._enable_jit
 
     def log_val(self, x, out=None):
         if x.ndim != 2:
