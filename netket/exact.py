@@ -123,7 +123,7 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
         return eigvalsh(dense_op)
 
 
-def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
+def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
     hermitian L^\dagger L matrix, or by means of an iterative solver (bicgstabl)
@@ -180,7 +180,7 @@ def steady_state(lindblad, sparse=None, method="ed", rho0=None, **kwargs):
             w, v = eigsh(ldagl, which="SM", k=2)
 
         print("Minimum eigenvalue is: ", w[0])
-        rho = array(v[:, 0].reshape((M, M)))
+        rho = v[:, 0].reshape((M, M))
         rho = rho / rho.trace()
 
     elif method == "iterative":

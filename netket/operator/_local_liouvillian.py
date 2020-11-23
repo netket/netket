@@ -303,7 +303,7 @@ class LocalLiouvillian(AbstractOperator):
         return _np.copy(xs[0:off, :]), _np.copy(mels[0:off])
 
     def to_linear_operator(
-        self, sparse: bool = True, append_trace: bool = False
+        self, *, sparse: bool = True, append_trace: bool = False
     ) -> LinearOperator:
         r"""Returns a lazy scipy linear_operator representation of the Lindblad Super-Operator.
 
