@@ -157,18 +157,28 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     """
     from numpy import sqrt, array
 
+    if sparse is None:
+        sparse = True
+
     M = lindblad.hilbert.physical.n_states
 
     if method == "ed":
-        if sparse is None:
-            sparse = False
-
         if not sparse:
             from numpy.linalg import eigh
+            from warnings import warn
+
+            warn(
+                """For reasons unknown to me, using dense diagonalisation on this
+                matrix results in very low precision of the resulting steady-state
+                since the update to numpy 1.9.
+                We suggest using sparse=True, however, if you wish not to, you have
+                been warned. 
+                Your digits are your reponsability now."""
+            )
 
             lind_mat = lindblad.to_dense()
 
-            ldagl = lind_mat.conj().T * lind_mat
+            ldagl = lind_mat.H * lind_mat
             w, v = eigh(ldagl)
 
         else:
@@ -184,9 +194,6 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
         rho = rho / rho.trace()
 
     elif method == "iterative":
-        if sparse is None:
-            sparse = True
-
         # An extra row is added at the bottom of the therefore M^2+1 long array,
         # with the trace of the density matrix. This is needed to enforce the
         # trace-1 condition.

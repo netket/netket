@@ -73,11 +73,20 @@ def _setup_obs():
 def test_exact_ss_ed():
     _, lind = _setup_system()
 
-    dm_ss = nk.exact.steady_state(lind, method="ed")
-    Lop = lind.to_linear_operator()
+    dm_ss = nk.exact.steady_state(lind, method="ed", sparse=True)
+    Lop = lind.to_sparse()
 
-    assert np.all(Lop @ dm_ss.reshape(-1) == approx(0.0, rel=1e-4, abs=1e-4))
-    assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-5)
+    mat = np.abs(Lop @ dm_ss.reshape(-1))
+    print(mat)
+    assert np.all(mat == approx(0.0, rel=1e-4, abs=1e-4))
+    assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-8)
+
+    # dm_ss_d = nk.exact.steady_state(lind, method="ed", sparse=False)
+    # Lop = lind.to_sparse()
+
+    # mat = np.abs(dm_ss - dm_ss_d)
+    # print(mat)
+    # assert np.all(mat == approx(0.0, rel=1e-4, abs=1e-4))
 
 
 def test_exact_ss_iterative():
@@ -86,7 +95,9 @@ def test_exact_ss_iterative():
     dm_ss = nk.exact.steady_state(lind, sparse=True, method="iterative", tol=1e-5)
     Lop = lind.to_linear_operator()
 
-    assert np.all(Lop @ dm_ss.reshape(-1) == approx(0.0, rel=1e-5, abs=1e-5))
+    mat = np.abs(Lop @ dm_ss.reshape(-1))
+    print(mat)
+    assert np.all(mat == approx(0.0, rel=1e-5, abs=1e-5))
     assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-5)
 
 
