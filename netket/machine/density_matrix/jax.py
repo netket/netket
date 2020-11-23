@@ -22,7 +22,15 @@ from functools import partial
 
 
 class Jax(JaxPure, AbstractDensityMatrix):
-    def __init__(self, hilbert, module, dtype=complex, outdtype=complex):
+    def __init__(
+        self,
+        hilbert,
+        module,
+        *,
+        dtype=complex,
+        outdtype=complex,
+        enable_jit: bool = True,
+    ):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet density matrix.
@@ -34,9 +42,25 @@ class Jax(JaxPure, AbstractDensityMatrix):
                 `jax.experimental.stax` for more info.
             dtype: either complex or float, is the type used for the weights.
                 In both cases the module must have a single output.
+            enable_jit: Controls whether jax.jit is used to just-in-time compile the
+                module. Disabling jit can be useful for debugging purposes, as it allows
+                the module to perform operations that would not be possible in JITed functions.
+                (Default: True)
         """
-        AbstractDensityMatrix.__init__(self, hilbert, dtype, outdtype)
-        JaxPure.__init__(self, hilbert, module, dtype, outdtype)
+        AbstractDensityMatrix.__init__(
+            self,
+            hilbert,
+            dtype=dtype,
+            outdtype=outdtype,
+        )
+        JaxPure.__init__(
+            self,
+            hilbert,
+            module,
+            dtype=dtype,
+            outdtype=outdtype,
+            enable_jit=enable_jit,
+        )
 
         assert self.input_size == self.hilbert.size * 2
 

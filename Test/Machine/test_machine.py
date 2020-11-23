@@ -31,7 +31,6 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 # Hilbert space of spins from given graph
 hi = Spin(s=0.5, graph=g)
 
-
 if test_jax:
     import jax
     import jax.experimental
@@ -52,22 +51,20 @@ if test_jax:
     #     dtype=float,
     # )
 
-    machines["Jax Complex"] = nk.machine.Jax(
-        hi,
-        jax.experimental.stax.serial(
-            jax.experimental.stax.Dense(4, initializer, initializer),
-            jax.experimental.stax.Tanh,
-            jax.experimental.stax.Dense(2, initializer, initializer),
-            jax.experimental.stax.Tanh,
-            jax.experimental.stax.Dense(1, initializer, initializer),
-        ),
-        dtype=complex,
+    jax_net = jax.experimental.stax.serial(
+        jax.experimental.stax.Dense(4, initializer, initializer),
+        jax.experimental.stax.Tanh,
+        jax.experimental.stax.Dense(2, initializer, initializer),
+        jax.experimental.stax.Tanh,
+        jax.experimental.stax.Dense(1, initializer, initializer),
+    )
+    machines["Jax Complex"] = nk.machine.Jax(hi, jax_net, dtype=complex)
+    machines["Jax Complex (No JIT)"] = nk.machine.Jax(
+        hi, jax_net, dtype=complex, enable_jit=False
     )
 
     machines["Jax mps"] = nk.machine.MPSPeriodic(hi, bond_dim=4, dtype=complex)
-
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
-
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
 

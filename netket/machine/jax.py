@@ -28,7 +28,9 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
 class Jax(AbstractMachine):
-    def __init__(self, hilbert, module, dtype=complex, outdtype=None):
+    def __init__(
+        self, hilbert, module, *, dtype=complex, outdtype=None, enable_jit: bool = True
+    ):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -40,25 +42,30 @@ class Jax(AbstractMachine):
                 jax.experimental.stax` for more info.
             dtype: either complex or float, is the type used for the weights.
                 In both cases the network must have a single output.
+            enable_jit: Controls whether jax.jit is used to just-in-time compile the
+                module. Disabling jit can be useful for debugging purposes, as it allows
+                the module to perform operations that would not be possible in JITed functions.
+                (Default: True)
         """
         super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
 
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
-
         self._init_fn, self._forward_fn = module
-
         self._forward_fn_nj = self._forward_fn
 
-        # Computes the Jacobian matrix using forward ad
-        self._forward_fn = jax.jit(self._forward_fn)
+        maybe_jit = jax.jit if enable_jit else (lambda x, *_, **__: x)
 
-        forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
+        # Computes the Jacobian matrix using forward ad
+        self._forward_fn = maybe_jit(self._forward_fn)
+        forward_scalar = maybe_jit(
+            lambda pars, x: self._forward_fn(pars, x).reshape(())
+        )
 
         # C-> C
         if self._dtype is complex and self._outdtype is complex:
 
-            grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
-            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+            grad_fun = maybe_jit(jax.grad(forward_scalar, holomorphic=True))
+            self._perex_grads = maybe_jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
                 vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
@@ -70,13 +77,13 @@ class Jax(AbstractMachine):
 
                 return out
 
-            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+            self._vjp_fun = maybe_jit(_vjp_fun, static_argnums=(3, 4))
 
         # R->R
         elif self._dtype is float and self._outdtype is float:
 
-            grad_fun = jax.jit(jax.grad(forward_scalar))
-            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+            grad_fun = maybe_jit(jax.grad(forward_scalar))
+            self._perex_grads = maybe_jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
                 vals, f_jvp = jax.vjp(forward_fun, pars, v.reshape((-1, v.shape[-1])))
@@ -94,7 +101,7 @@ class Jax(AbstractMachine):
 
                 return tree_unflatten(tree_fun, out_flat)
 
-            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+            self._vjp_fun = maybe_jit(_vjp_fun, static_argnums=(3, 4))
 
         # R->C
         elif self._dtype is float and self._outdtype is complex:
@@ -109,8 +116,8 @@ class Jax(AbstractMachine):
                 grad_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 return tree_unflatten(r_fun, grad_flat)
 
-            grad_fun = jax.jit(_gradfun)
-            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+            grad_fun = maybe_jit(_gradfun)
+            self._perex_grads = maybe_jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
                 v = v.reshape((-1, v.shape[-1]))
@@ -143,7 +150,7 @@ class Jax(AbstractMachine):
 
                 return tree_unflatten(tree_fun, out_flat)
 
-            self._vjp_fun = jax.jit(_vjp_fun, static_argnums=(3, 4))
+            self._vjp_fun = maybe_jit(_vjp_fun, static_argnums=(3, 4))
 
         else:
             raise ValueError("We do not support C->R wavefunctions.")
