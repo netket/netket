@@ -123,7 +123,7 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
         return eigvalsh(dense_op)
 
 
-def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
+def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
     hermitian L^\dagger L matrix, or by means of an iterative solver (bicgstabl)
@@ -137,7 +137,7 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
 
     Args:
         lindblad: The lindbladian encoding the master equation.
-        sparse: Whever to use sparse matrices (default: False)
+        sparse: Whever to use sparse matrices (default: False for ed, True for iterative)
         method: 'ed' (exact diagonalization) or 'iterative' (iterative bicgstabl)
         rho0: starting density matrix for the iterative diagonalization (default: None)
         kwargs...: additional kwargs passed to bicgstabl
@@ -151,16 +151,32 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
         callback: User-supplied function to call after each iteration. It is called as callback(xk),
                   where xk is the current solution vector
 
-    """
-    from numpy import sqrt, matrix
+    Returns:
+        The steady-state density matrix.
 
-    M = lindblad.hilbert.hilbert_physical.n_states
+    """
+    from numpy import sqrt, array
+
+    if sparse is None:
+        sparse = True
+
+    M = lindblad.hilbert.physical.n_states
 
     if method == "ed":
         if not sparse:
             from numpy.linalg import eigh
+            from warnings import warn
 
-            lind_mat = matrix(lindblad.to_dense())
+            warn(
+                """For reasons unknown to me, using dense diagonalisation on this
+                matrix results in very low precision of the resulting steady-state
+                since the update to numpy 1.9.
+                We suggest using sparse=True, however, if you wish not to, you have
+                been warned. 
+                Your digits are your reponsability now."""
+            )
+
+            lind_mat = lindblad.to_dense()
 
             ldagl = lind_mat.H * lind_mat
             w, v = eigh(ldagl)
@@ -174,46 +190,17 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
             w, v = eigsh(ldagl, which="SM", k=2)
 
         print("Minimum eigenvalue is: ", w[0])
-        rho = matrix(v[:, 0].reshape((M, M)))
+        rho = v[:, 0].reshape((M, M))
         rho = rho / rho.trace()
 
     elif method == "iterative":
-
-        iHnh = -1j * lindblad.get_effective_hamiltonian()
-        if sparse:
-            iHnh = iHnh.to_sparse()
-            J_ops = [j.to_sparse() for j in lindblad.jump_ops]
-        else:
-            iHnh = iHnh.to_dense()
-            J_ops = [j.to_dense() for j in lindblad.jump_ops]
-
-        # This function defines the product Liouvillian x densitymatrix, without
-        # constructing the full density matrix (passed as a vector M^2).
-
         # An extra row is added at the bottom of the therefore M^2+1 long array,
         # with the trace of the density matrix. This is needed to enforce the
         # trace-1 condition.
-
-        # The logic behind the use of Hnh_dag_ and Hnh_ is derived from the
-        # convention adopted in local_liouvillian.cc, and inspired from reference
-        # arXiv:1504.05266
-        def matvec(rho_vec):
-            rho = rho_vec[:-1].reshape((M, M))
-
-            out = np.zeros((M ** 2 + 1), dtype="complex128")
-            drho = out[:-1].reshape((M, M))
-
-            drho += rho @ iHnh + iHnh.conj().T @ rho
-            for J in J_ops:
-                drho += (J @ rho) @ J.conj().T
-
-            out[-1] = rho.trace()
-            return out
-
-        L = LinearOperator((M ** 2 + 1, M ** 2 + 1), matvec=matvec)
+        L = lindblad.to_linear_operator(sparse=sparse, append_trace=True)
 
         # Initial density matrix ( + trace condition)
-        Lrho_start = np.zeros((M ** 2 + 1), dtype="complex128")
+        Lrho_start = np.zeros((M ** 2 + 1), dtype=L.dtype)
         if rho0 is None:
             Lrho_start[0] = 1.0
             Lrho_start[-1] = 1.0
@@ -222,24 +209,22 @@ def steady_state(lindblad, sparse=False, method="ed", rho0=None, **kwargs):
             Lrho_start[-1] = rho0.trace()
 
         # Target residual (everything 0 and trace 1)
-        Lrho_target = np.zeros((M ** 2 + 1), dtype="complex128")
+        Lrho_target = np.zeros((M ** 2 + 1), dtype=L.dtype)
         Lrho_target[-1] = 1.0
 
         # Iterative solver
         print("Starting iterative solver...")
         res, info = bicgstab(L, Lrho_target, x0=Lrho_start, **kwargs)
 
-        rho = res[1:].reshape((M, M))
+        rho = res[:-1].reshape((M, M))
         if info == 0:
-            print("Converged trace residual is ", res[-1])
+            print("Converged trace is ", rho.trace())
         elif info > 0:
-            print(
-                "Failed to converge after ", info, " ( traceresidual is ", res[-1], " )"
-            )
+            print("Failed to converge after ", info, " ( trace is ", rho.trace(), " )")
         elif info < 0:
             print("An error occured: ", info)
 
     else:
-        raise ValueError("method must be 'ed'")
+        raise ValueError("method must be 'ed' or 'iterative'")
 
     return rho
