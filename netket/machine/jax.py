@@ -52,7 +52,9 @@ class Jax(AbstractMachine):
         # Computes the Jacobian matrix using forward ad
         self._forward_fn = jax.jit(self._forward_fn)
 
-        forward_scalar = jax.jit(lambda pars, x: self._forward_fn(pars, x).reshape(()))
+        forward_scalar = jax.jit(
+            lambda pars, x: self._forward_fn_nj(pars, jnp.expand_dims(x, 0)).reshape(())
+        )
 
         # C-> C
         if self._dtype is complex and self._outdtype is complex:
