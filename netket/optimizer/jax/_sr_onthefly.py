@@ -34,7 +34,7 @@ def Obar(samples, theta, vlogwf, **kwargs):
 def odagov(samples, theta, v, vlogwf):
     vprime = O_jvp(samples, theta, v, vlogwf)
     res = O_vjp(samples, theta, vprime.conjugate(), vlogwf)
-    return res.conjugate()
+    return jax.tree_map(jax.lax.conj, res)  # return res.conjugate()
 
 
 # calculate O^\dagger \Delta O v
@@ -42,11 +42,13 @@ def odagov(samples, theta, v, vlogwf):
 # optional: pass jvp_fun to be reused
 # TODO vjp_fun and jit??
 # @partial(jax.jit, static_argnums=3)
-def delta_odagov(samples, theta, v, vlogwf, vjp_fun=None, factor=1.):
+def odagdeltaov(samples, theta, v, vlogwf, vjp_fun=None, factor=1.):
     # reuse vjp_fun from O_mean below for O_vjp
     O_mean, vjp_fun = Obar(samples, theta, vlogwf, return_vjp_fun=True, vjp_fun=vjp_fun)
-    vprime = O_jvp(samples, theta, v, vlogwf)
-    vprime = vprime - jax.lax.broadcast(jax.lax.dot(O_mean,v),vprime.shape) 
-    vprime = vprime/factor
+    vprime = O_jvp(samples, theta, v, vlogwf) # is an array of size n_samples
+    # TODO tree_dot would be nice
+    omeanv = jax.tree_util.tree_reduce(jax.lax.add, jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.lax.mul, O_mean, v)))  # omeanv = O_mean.dot(v); is a scalar
+    vprime = vprime - jax.lax.broadcast(omeanv, vprime.shape)  # vprime -= omeanv (elementwise)
+    vprime = jax.lax.mul(vprime, jax.lax.broadcast(jnp.array(factor, dtype=vprime.dtype), vprime.shape))  # vprime *= factor (elementwise)
     res = O_vjp(samples, theta, vprime.conjugate(), vlogwf, vjp_fun=vjp_fun)
-    return res.conjugate()
+    return jax.tree_map(jax.lax.conj, res)  # return res.conjugate()
