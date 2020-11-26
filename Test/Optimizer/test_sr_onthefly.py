@@ -29,9 +29,11 @@ def f_flat_scalar(params, x):
     return f_flat(params, jnp.expand_dims(x, 0))[0]
 
 ok = jax.vmap(jax.grad(f_flat_scalar, argnums=0, holomorphic=True), in_axes=(None, 0))(params_flat, samples).conjugate() # natural gradient
+okmean = ok.mean(axis=0)
+dok = ok - okmean
 
 def setzero_real_params(x):
-    real_ind = flatten(jax.tree_map(jax.numpy.isreal, params))
+    real_ind = flatten(jax.tree_map(jax.numpy.isrealobj, params))
     return jax.ops.index_add(x, real_ind, -1j*x[real_ind].imag)
 
 
@@ -53,7 +55,7 @@ def test_vjp():
 def test_obar():
     a = flatten(Obar(samples, params, f))
     b = Obar(samples, params_flat, f_flat)
-    e = ok.mean(axis=0)
+    e = okmean
     assert jnp.allclose(a, e)
     assert jnp.allclose(b, e)
 
@@ -74,8 +76,16 @@ def test_odagov():
 def test_odagdeltaov():
     a = flatten(odagdeltaov(samples, params, v, f))
     b = odagdeltaov(samples, params_flat, v_flat, f_flat)
-    # differnt calculation, but same result since additional terms are equal zero
-    dok = ok - ok.mean(axis=0)
+    # differnt calculation, but same result since additional terms are equal to zero
     e = setzero_real_params(dok.transpose().conjugate() @ (dok @ v_flat))
+    assert jnp.allclose(a, e)
+    assert jnp.allclose(b, e)
+
+def test_matvec():
+    n_samp = samples.shape[0]
+    diag_shift = 0.01
+    a = flatten(mat_vec(v, f, params, samples, diag_shift, n_samp))
+    b = mat_vec(v_flat, f_flat, params_flat, samples, diag_shift, n_samp)
+    e = setzero_real_params(dok.transpose().conjugate() @ (dok @ v_flat/n_samp) + diag_shift * v_flat)
     assert jnp.allclose(a, e)
     assert jnp.allclose(b, e)
