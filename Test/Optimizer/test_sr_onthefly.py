@@ -42,10 +42,64 @@ S = dok.conjugate().transpose() @ dok / n_samp
 
 real_ind = flatten(jax.tree_map(jax.numpy.isrealobj, params))
 def setzero_imag_part_of_real_params(x):
-    # workaround for imag not differentiable
+    # workaround for
+    # NotImplementedError: Transpose rule (for reverse-mode differentiation) for 'imag' not implemented
     return jax.ops.index_add(x, real_ind, -1j*(-1j*x[real_ind]).real)
 
 
+
+
+#flatten params to a vector of real params
+
+
+def toreal(x):
+    if jnp.iscomplexobj(x):
+        # workaround for
+        # NotImplementedError: Transpose rule (for reverse-mode differentiation) for 'imag' not implemented
+        return jnp.array([x.real, (-1j*x).real]) # need to use sth which jax thinks its a leaf
+    else:
+        return x
+
+def tree_toreal(x):
+    return jax.tree_map(toreal, x)
+
+def tree_toreal_flat(x):
+    return flatten(tree_toreal(x))
+
+params_real_flat = tree_toreal_flat(params)
+
+# invert the trafo using linear_transpose (AD)
+def reassemble_complex(x, fun=tree_toreal_flat, target=params):
+    # target: some tree with the shape and types we want
+    _lt = jax.linear_transpose(fun, target)
+    # jax gradient is actually the conjugated one, so we need to fix it:
+    return jax.tree_map(jax.lax.conj, _lt(x)[0])
+
+
+def f_real_flat(p, samples):
+    return f(reassemble_complex(p) , samples)
+
+grad_real_flat = tree_toreal_flat(grad)
+v_real_flat = tree_toreal_flat(v)
+
+def f_real_flat_scalar(params, x):
+    return f_real_flat(params, jnp.expand_dims(x, 0))[0]
+
+def _rea(x):
+    re, im = x
+    return re +1j*im
+
+
+@partial(jax.vmap, in_axes=(None,0))
+def grads_real(params, x):
+    r = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).real)(params_real_flat, x)
+    i = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).imag)(params_real_flat, x)
+    return _rea((r,i))
+
+ok_real = grads_real(params_real_flat, samples)
+okmean_real = ok_real.mean(axis=0)
+dok_real = ok_real - okmean_real
+S_real = dok_real.conjugate().transpose() @ dok_real / n_samp
 
 
 def test_f_flat():
@@ -108,5 +162,10 @@ def test_cg():
     def mv(v):
         return setzero_imag_part_of_real_params(S @ v + diag_shift * v)
     e = setzero_imag_part_of_real_params(cg(mv, grad_flat, x0=v_flat, tol=sparse_tol, maxiter=sparse_maxiter)[0])
+    def mv_real(v):
+        #_compose_result_real also takes real here
+        return (S_real @ v + diag_shift * v).real
+    e2 = flatten(reassemble_complex(cg(mv_real, grad_real_flat, x0=v_real_flat, tol=sparse_tol, maxiter=sparse_maxiter)[0]))
     assert jnp.allclose(a, e)
     assert jnp.allclose(b, e)
+    assert jnp.allclose(e, e2)
