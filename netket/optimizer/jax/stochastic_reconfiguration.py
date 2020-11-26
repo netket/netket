@@ -59,7 +59,7 @@ def _jax_cg_solve(
     return out
 
 
-@partial(jit, static_argnums=(1, 9))
+@partial(jit, static_argnums=1)
 def _jax_cg_solve_onthefly(x0, forward_fn, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter):
     # leaves in x0 and grad are required to be arrays and need to have the same structure
     # TODO !!! MPI
