@@ -4,6 +4,7 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 import jax
 import jax.numpy as jnp
+import jax.flatten_util
 import numpy as np
 from jax.scipy.sparse.linalg import cg
 from netket.optimizer.jax._sr_onthefly import *
