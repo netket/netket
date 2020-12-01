@@ -12,6 +12,7 @@ from netket.optimizer.jax.stochastic_reconfiguration import _jax_cg_solve_onthef
 
 # TODO more sophisitcated example?
 
+
 @partial(jax.vmap, in_axes=(None, 0))
 def f(params, x):
     return (
@@ -26,15 +27,19 @@ samples = jnp.array(np.random.random((5, 2)))
 n_samp = samples.shape[0]
 
 params = {
-    "a": jnp.array([1.0+1j, -4.0+1j]),
+    "a": jnp.array([1.0 + 1j, -4.0 + 1j]),
     "b": jnp.array(2.0),
     "c": jnp.array(-0.55 + 4.33j),
 }
 
-v = {"a": jnp.array([0.7+1j, -3.9+1j]), "b": jnp.array(0.3), "c": jnp.array(-0.74 + 3j)}
+v = {
+    "a": jnp.array([0.7 + 1j, -3.9 + 1j]),
+    "b": jnp.array(0.3),
+    "c": jnp.array(-0.74 + 3j),
+}
 
 grad = {
-    "a": jnp.array([0.01+1j, 1.99+1j]),
+    "a": jnp.array([0.01 + 1j, 1.99 + 1j]),
     "b": jnp.array(-0.231),
     "c": jnp.array(1.22 - 0.45j),
 }
@@ -147,16 +152,17 @@ S_real = (dok_real.conjugate().transpose() @ dok_real / n_samp).real
 
 
 def tree_allclose(t1, t2):
-    t = jax.tree_multimap(jnp.allclose, t1,t2)
+    t = jax.tree_multimap(jnp.allclose, t1, t2)
     return all(jax.tree_util.tree_flatten(t)[0])
+
 
 def tree_conj(t):
     return jax.tree_map(jax.lax.conj, t)
 
 
-
 # O_vjp and O_jvp are actually conjugated with respect to ok
 # however the final result after matvec is still correct
+
 
 def test_vjp():
     a = O_vjp(samples, params, vprime, f)
@@ -169,19 +175,23 @@ def test_obar():
     e = reassemble_complex(okmean_real.real)
     assert tree_allclose(tree_conj(a), e)
 
+
 def test_jvp():
     a = O_jvp(samples, params, v, f)
     e = ok_real @ v_real_flat
-    assert tree_allclose(a,e)
+    assert tree_allclose(a, e)
+
 
 def test_odagov():
     a = odagov(samples, params, v, f)
-    e = reassemble_complex((ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real)
+    e = reassemble_complex(
+        (ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real
+    )
     assert tree_allclose(a, e)
 
 
 def test_odagdeltaov():
-    a = odagdeltaov(samples, params, v, f, factor=1./n_samp)
+    a = odagdeltaov(samples, params, v, f, factor=1.0 / n_samp)
     e = reassemble_complex(S_real @ v_real_flat)
     assert tree_allclose(a, e)
 
@@ -192,23 +202,26 @@ def test_matvec():
     e = reassemble_complex(S_real @ v_real_flat + diag_shift * v_real_flat)
     assert tree_allclose(a, e)
 
+
 def test_cg():
     # also tests if matvec can be jitted and be differentiated with AD
     diag_shift = 0.001
     sparse_tol = 1.0e-5
     sparse_maxiter = None
-    a = _jax_cg_solve_onthefly(v, f, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter)
+    a = _jax_cg_solve_onthefly(
+        v, f, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
+    )
 
     def mv_real(v):
         return S_real @ v + diag_shift * v
 
     e = reassemble_complex(
-            cg(
-                mv_real,
-                grad_real_flat,
-                x0=v_real_flat,
-                tol=sparse_tol,
-                maxiter=sparse_maxiter,
-            )[0]
-        )
+        cg(
+            mv_real,
+            grad_real_flat,
+            x0=v_real_flat,
+            tol=sparse_tol,
+            maxiter=sparse_maxiter,
+        )[0]
+    )
     assert tree_allclose(a, e)
