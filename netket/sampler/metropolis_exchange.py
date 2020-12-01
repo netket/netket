@@ -2,7 +2,7 @@ from .metropolis_hastings import *
 from ._kernels import _ExchangeKernel
 
 
-def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None):
+def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None, **kwargs):
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -57,14 +57,11 @@ def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None):
     transition_kernel = _ExchangeKernel(machine, d_max)
 
     return MetropolisHastings(
-        machine,
-        transition_kernel,
-        n_chains,
-        sweep_size,
+        machine, transition_kernel, n_chains, sweep_size, **kwargs
     )
 
 
-def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None):
+def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None, **kwargs):
     r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisExchange`.
@@ -100,8 +97,5 @@ def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None):
     transition_kernel = _ExchangeKernel(machine, d_max)
 
     return MetropolisHastingsPt(
-        machine,
-        transition_kernel,
-        n_replicas,
-        sweep_size,
+        machine, transition_kernel, n_replicas, sweep_size, **kwargs
     )
