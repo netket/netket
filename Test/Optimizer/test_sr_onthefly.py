@@ -12,7 +12,6 @@ from netket.optimizer.jax.stochastic_reconfiguration import _jax_cg_solve_onthef
 
 # TODO more sophisitcated example?
 
-
 @partial(jax.vmap, in_axes=(None, 0))
 def f(params, x):
     return (
@@ -23,19 +22,19 @@ def f(params, x):
     )
 
 
-samples = jnp.array(np.random.random((10, 2)))
+samples = jnp.array(np.random.random((5, 2)))
 n_samp = samples.shape[0]
 
 params = {
-    "a": jnp.array([1.0, -4.0]),
+    "a": jnp.array([1.0+1j, -4.0+1j]),
     "b": jnp.array(2.0),
     "c": jnp.array(-0.55 + 4.33j),
 }
 
-v = {"a": jnp.array([0.7, -3.9]), "b": jnp.array(0.3), "c": jnp.array(-0.74 + 3j)}
+v = {"a": jnp.array([0.7+1j, -3.9+1j]), "b": jnp.array(0.3), "c": jnp.array(-0.74 + 3j)}
 
 grad = {
-    "a": jnp.array([0.01, 1.99]),
+    "a": jnp.array([0.01+1j, 1.99+1j]),
     "b": jnp.array(-0.231),
     "c": jnp.array(1.22 - 0.45j),
 }
@@ -144,102 +143,66 @@ def grads_real(params, x):
 ok_real = grads_real(params_real_flat, samples)
 okmean_real = ok_real.mean(axis=0)
 dok_real = ok_real - okmean_real
-S_real = dok_real.conjugate().transpose() @ dok_real / n_samp
+S_real = (dok_real.conjugate().transpose() @ dok_real / n_samp).real
 
 
-def test_f_flat():
-    a = f(params, samples)
-    b = f_flat(params_flat, samples)
-    assert jnp.allclose(a, b)
+def tree_allclose(t1, t2):
+    t = jax.tree_multimap(jnp.allclose, t1,t2)
+    return all(jax.tree_util.tree_flatten(t)[0])
 
+def tree_conj(t):
+    return jax.tree_map(jax.lax.conj, t)
+
+
+
+# O_vjp and O_jvp are actually conjugated with respect to ok
+# however the final result after matvec is still correct
 
 def test_vjp():
-    a = O_vjp(samples, params_flat, vprime, f_flat)
-    b = flatten(O_vjp(samples, params, vprime, f))
-    e = setzero_imag_part_of_real_params(vprime @ ok)
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
+    a = O_vjp(samples, params, vprime, f)
+    e = reassemble_complex((vprime @ ok_real).real)
+    assert tree_allclose(tree_conj(a), e)
 
 
 def test_obar():
-    a = flatten(Obar(samples, params, f))
-    b = Obar(samples, params_flat, f_flat)
-    e = okmean
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
-
+    a = Obar(samples, params, f)
+    e = reassemble_complex(okmean_real.real)
+    assert tree_allclose(tree_conj(a), e)
 
 def test_jvp():
     a = O_jvp(samples, params, v, f)
-    b = O_jvp(samples, params_flat, v_flat, f_flat)
-    e = ok @ v_flat
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
-
+    e = ok_real @ v_real_flat
+    assert tree_allclose(a,e)
 
 def test_odagov():
-    a = flatten(odagov(samples, params, v, f))
-    b = odagov(samples, params_flat, v_flat, f_flat)
-    e = setzero_imag_part_of_real_params(ok.transpose().conjugate() @ (ok @ v_flat))
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
+    a = odagov(samples, params, v, f)
+    e = reassemble_complex((ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real)
+    assert tree_allclose(a, e)
 
 
 def test_odagdeltaov():
-    a = flatten(odagdeltaov(samples, params, v, f))
-    b = odagdeltaov(samples, params_flat, v_flat, f_flat)
-    # differnt calculation, but same result since additional terms are equal to zero
-    e = setzero_imag_part_of_real_params(dok.transpose().conjugate() @ (dok @ v_flat))
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
+    a = odagdeltaov(samples, params, v, f, factor=1./n_samp)
+    e = reassemble_complex(S_real @ v_real_flat)
+    assert tree_allclose(a, e)
 
 
 def test_matvec():
     diag_shift = 0.01
-    a = flatten(mat_vec(v, f, params, samples, diag_shift, n_samp))
-    b = mat_vec(v_flat, f_flat, params_flat, samples, diag_shift, n_samp)
-    e = setzero_imag_part_of_real_params(
-        dok.transpose().conjugate() @ (dok @ v_flat / n_samp) + diag_shift * v_flat
-    )
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
-
+    a = mat_vec(v, f, params, samples, diag_shift, n_samp)
+    e = reassemble_complex(S_real @ v_real_flat + diag_shift * v_real_flat)
+    assert tree_allclose(a, e)
 
 def test_cg():
     # also tests if matvec can be jitted and be differentiated with AD
     diag_shift = 0.001
     sparse_tol = 1.0e-5
     sparse_maxiter = None
-    a = flatten(
-        _jax_cg_solve_onthefly(
-            v, f, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
-        )
-    )
-    b = _jax_cg_solve_onthefly(
-        v_flat,
-        f_flat,
-        params_flat,
-        samples,
-        grad_flat,
-        diag_shift,
-        n_samp,
-        sparse_tol,
-        sparse_maxiter,
-    )
-
-    def mv(v):
-        return setzero_imag_part_of_real_params(S @ v + diag_shift * v)
-
-    e = setzero_imag_part_of_real_params(
-        cg(mv, grad_flat, x0=v_flat, tol=sparse_tol, maxiter=sparse_maxiter)[0]
-    )
+    a = _jax_cg_solve_onthefly(v, f, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter)
 
     def mv_real(v):
-        # _compose_result_real also takes real here
-        return (S_real @ v + diag_shift * v).real
+        return S_real @ v + diag_shift * v
 
-    e2 = flatten(
-        reassemble_complex(
+    e = reassemble_complex(
             cg(
                 mv_real,
                 grad_real_flat,
@@ -248,7 +211,4 @@ def test_cg():
                 maxiter=sparse_maxiter,
             )[0]
         )
-    )
-    assert jnp.allclose(a, e)
-    assert jnp.allclose(b, e)
-    assert jnp.allclose(e, e2)
+    assert tree_allclose(a, e)
