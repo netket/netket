@@ -4,12 +4,14 @@ from .metropolis_hastings import MetropolisHastings as JaxMetropolisHastings
 
 
 @MetropolisHastings.register(JaxMachine)
-def _JaxMetropolisHastings(machine, kernel, n_chains=16, sweep_size=None, **kwargs):
-    return JaxMetropolisHastings(machine, kernel, n_chains, sweep_size, **kwargs)
+def _JaxMetropolisHastings(machine, kernel, n_chains=16, sweep_size=None, rng_key=None):
+    return JaxMetropolisHastings(machine, kernel, n_chains, sweep_size, rng_key)
 
 
 @MetropolisHastingsPt.register(JaxMachine)
-def _JaxMetropolisHastingsPt(machine, kernel, n_replicas=32, sweep_size=None, **kwargs):
+def _JaxMetropolisHastingsPt(
+    machine, kernel, n_replicas=32, sweep_size=None, rng_key=None
+):
     raise NotImplementedError("Parallel tempering samplers not yet implemented in Jax")
 
 
