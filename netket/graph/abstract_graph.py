@@ -33,8 +33,13 @@ class AbstractGraph(abc.ABC):
     @property
     @abc.abstractmethod
     def n_nodes(self):
-        r"""int: The number of vertices in the graph"""
+        r"""int: The number of nodes (or vertices) in the graph"""
         raise NotImplementedError
+
+    @property
+    def n_edges(self):
+        r"""int: The number of edges in the graph."""
+        return len(self.edges())
 
     @abc.abstractmethod
     def adjacency_list(self):

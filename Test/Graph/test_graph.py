@@ -210,7 +210,7 @@ def test_grid_color_pbc():
     g = Grid([4, 4], pbc=True, color_edges=True)
     assert len(g.edges(color=0)) == 16
     assert len(g.edges(color=1)) == 16
-    assert len(g.edges()) == 32
+    assert g.n_edges == 32
 
     g = Grid([4, 2], pbc=True, color_edges=True)
     assert len(g.edges(color=0)) == 8
@@ -261,4 +261,4 @@ def test_union():
         ug = nk.graph.disjoint_union(graph, graph1)
 
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
-        assert len(ug.edges()) == len(graph1.edges()) + len(graph.edges())
+        assert ug.n_edges == graph1.n_edges + graph.n_edges

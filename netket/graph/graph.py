@@ -60,6 +60,10 @@ class NetworkX(AbstractGraph):
     def n_nodes(self):
         return self.graph.number_of_nodes()
 
+    @property
+    def n_edges(self):
+        return self.graph.size()
+
     def automorphisms(self):
         # TODO: check how to compute these when we have a coloured graph where there could
         #       be a duplicated edge with two different colors.
