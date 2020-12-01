@@ -60,10 +60,27 @@ def _jax_cg_solve(
 
 
 @partial(jit, static_argnums=1)
-def _jax_cg_solve_onthefly(x0, forward_fn, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter):
+def _jax_cg_solve_onthefly(
+    x0,
+    forward_fn,
+    params,
+    samples,
+    grad,
+    diag_shift,
+    n_samp,
+    sparse_tol,
+    sparse_maxiter,
+):
     # leaves in x0 and grad are required to be arrays and need to have the same structure
-    # TODO !!! MPI
-    _mat_vec = partial(_mat_vec_onthefly, forward_fn=forward_fn, params=params, samples=samples, diag_shift=diag_shift, n_samp=n_samp)
+    # TODO MPI
+    _mat_vec = partial(
+        _mat_vec_onthefly,
+        forward_fn=forward_fn,
+        params=params,
+        samples=samples,
+        diag_shift=diag_shift,
+        n_samp=n_samp,
+    )
     out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
     return out
 
@@ -236,7 +253,6 @@ class SR:
 
         return out
 
-
     def compute_update_onthefly(self, samples, grad, out=None):
         r"""
         Solves the SR flow equation for the parameter update ẋ.
@@ -256,7 +272,6 @@ class SR:
         # TODO pass vjp_fun from gradient calculation which can be reused for delta_odagov
         # TODO describe somewhere that vjp and jvp just automagically work with pytrees so we dont have to flatten
         # TODO MPI
-
 
         n_samp = samples.shape[0]
 
@@ -279,7 +294,6 @@ class SR:
             self._x0 = out
 
         return out
-
 
     def __repr__(self):
         rep = "SR(solver="
