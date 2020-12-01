@@ -25,27 +25,40 @@ def f(params, x):
 
 samples = jnp.array(np.random.random((10, 2)))
 n_samp = samples.shape[0]
-params = jax.tree_map(jnp.array, {"a": [1.0, -4.0], "b": 2.0, "c": -0.55 + 4.33j})
-v = jax.tree_map(jnp.array, {"a": [0.7, -3.9], "b": 0.3, "c": -0.74 + 3j})
-grad = jax.tree_map(jnp.array, {"a": [0.01, 1.99], "b": -0.231, "c": 1.22 - 0.45j})
+
+params = {
+    "a": jnp.array([1.0, -4.0]),
+    "b": jnp.array(2.0),
+    "c": jnp.array(-0.55 + 4.33j),
+}
+
+v = {"a": jnp.array([0.7, -3.9]), "b": jnp.array(0.3), "c": jnp.array(-0.74 + 3j)}
+
+grad = {
+    "a": jnp.array([0.01, 1.99]),
+    "b": jnp.array(-0.231),
+    "c": jnp.array(1.22 - 0.45j),
+}
+
 vprime = jnp.array(
     np.random.random(samples.shape[0]) + 1j * np.random.random(samples.shape[0])
 )
 
-params_flat, conv = jax.flatten_util.ravel_pytree(
-    params
-)  # promotes types automatically
-v_flat, _ = jax.flatten_util.ravel_pytree(v)
-grad_flat, _ = jax.flatten_util.ravel_pytree(grad)
-
-
-def f_flat(params_flat, x):
-    return f(conv(params_flat), x)
+# promotes types automatically
+params_flat, conv = jax.flatten_util.ravel_pytree(params)
 
 
 def flatten(x):
     x_flat, _ = jax.flatten_util.ravel_pytree(x)
     return x_flat
+
+
+v_flat = flatten(v)
+grad_flat = flatten(grad)
+
+
+def f_flat(params_flat, x):
+    return f(conv(params_flat), x)
 
 
 def f_flat_scalar(params, x):
@@ -59,7 +72,11 @@ okmean = ok.mean(axis=0)
 dok = ok - okmean
 S = dok.conjugate().transpose() @ dok / n_samp
 
-real_ind = flatten(jax.tree_map(jax.numpy.isrealobj, params))
+# need to use isreal (and not isrealobj) here to get an array of all true or all false for each leaf when flattening
+# so that real_ind has size n_params, and not just n_leaves
+real_ind = flatten(jax.tree_map(jax.numpy.isreal, params))
+
+assert real_ind.shape == params_flat.shape
 
 
 def setzero_imag_part_of_real_params(x):
