@@ -2,7 +2,7 @@ from .metropolis_hastings import *
 from ._kernels import _HamiltonianKernel
 
 
-def MetropolisHamiltonian(machine, hamiltonian, n_chains=16, sweep_size=None):
+def MetropolisHamiltonian(machine, hamiltonian, n_chains=16, sweep_size=None, **kwargs):
     r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
@@ -51,10 +51,13 @@ def MetropolisHamiltonian(machine, hamiltonian, n_chains=16, sweep_size=None):
         _HamiltonianKernel(machine, hamiltonian),
         n_chains,
         sweep_size,
+        **kwargs,
     )
 
 
-def MetropolisHamiltonianPt(machine, hamiltonian, n_replicas=16, sweep_size=None):
+def MetropolisHamiltonianPt(
+    machine, hamiltonian, n_replicas=16, sweep_size=None, **kwargs
+):
     r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
@@ -77,4 +80,5 @@ def MetropolisHamiltonianPt(machine, hamiltonian, n_replicas=16, sweep_size=None
         _HamiltonianKernel(machine, hamiltonian),
         n_replicas,
         sweep_size,
+        **kwargs,
     )

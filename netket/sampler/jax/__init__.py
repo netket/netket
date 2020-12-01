@@ -9,7 +9,7 @@ def _JaxMetropolisHastings(machine, kernel, n_chains=16, sweep_size=None, **kwar
 
 
 @MetropolisHastingsPt.register(JaxMachine)
-def _JaxMetropolisHastingsPt(machine, kernel, n_replicas=32, sweep_size=None):
+def _JaxMetropolisHastingsPt(machine, kernel, n_replicas=32, sweep_size=None, **kwargs):
     raise NotImplementedError("Parallel tempering samplers not yet implemented in Jax")
 
 

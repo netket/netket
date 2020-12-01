@@ -60,7 +60,7 @@ def MetropolisLocal(machine, n_chains=16, sweep_size=None, **kwargs):
     )
 
 
-def MetropolisLocalPt(machine, n_replicas=16, sweep_size=None):
+def MetropolisLocalPt(machine, n_replicas=16, sweep_size=None, **kwargs):
     r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisLocal`.
@@ -76,4 +76,6 @@ def MetropolisLocalPt(machine, n_replicas=16, sweep_size=None):
                      If None, sweep_size is equal to the number of degrees of freedom (n_visible).
 
     """
-    return MetropolisHastingsPt(machine, _LocalKernel(machine), n_replicas, sweep_size)
+    return MetropolisHastingsPt(
+        machine, _LocalKernel(machine), n_replicas, sweep_size, **kwargs
+    )

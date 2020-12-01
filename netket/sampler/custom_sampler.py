@@ -3,7 +3,7 @@ from ._kernels import _CustomKernel
 
 
 def CustomSampler(
-    machine, move_operators, move_weights=None, n_chains=16, sweep_size=None
+    machine, move_operators, move_weights=None, n_chains=16, sweep_size=None, **kwargs
 ):
     r"""
      Custom Sampler, where transition operators are specified by the user.
@@ -66,15 +66,12 @@ def CustomSampler(
         _CustomKernel(machine, move_operators, move_weights),
         n_chains,
         sweep_size,
+        **kwargs,
     )
 
 
 def CustomSamplerPt(
-    machine,
-    move_operators,
-    move_weights=None,
-    n_replicas=16,
-    sweep_size=None,
+    machine, move_operators, move_weights=None, n_replicas=16, sweep_size=None, **kwargs
 ):
     r"""
     This sampler performs parallel-tempering
@@ -99,4 +96,5 @@ def CustomSamplerPt(
         _CustomKernel(machine, move_operators, move_weights),
         n_replicas,
         sweep_size,
+        **kwargs,
     )
