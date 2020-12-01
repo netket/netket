@@ -23,73 +23,33 @@ def f(params, x):
     )
 
 
-samples = jnp.array(np.random.random((5, 2)))
-n_samp = samples.shape[0]
+n_samp = 25
+samples = jnp.array(np.random.random((n_samp, 2)))
 
 params = {
-    "a": jnp.array([1.0 + 1j, -4.0 + 1j]),
+    "a": jnp.array([1.0 + 1.2j, -4.0 + -0.7j]),
     "b": jnp.array(2.0),
     "c": jnp.array(-0.55 + 4.33j),
 }
 
 v = {
-    "a": jnp.array([0.7 + 1j, -3.9 + 1j]),
+    "a": jnp.array([0.7 + 1.1j, -3.9 + 3.5j]),
     "b": jnp.array(0.3),
     "c": jnp.array(-0.74 + 3j),
 }
 
 grad = {
-    "a": jnp.array([0.01 + 1j, 1.99 + 1j]),
+    "a": jnp.array([0.01 + 23.0j, 1.99 + -7.2j]),
     "b": jnp.array(-0.231),
     "c": jnp.array(1.22 - 0.45j),
 }
 
-vprime = jnp.array(
-    np.random.random(samples.shape[0]) + 1j * np.random.random(samples.shape[0])
-)
-
-# promotes types automatically
-params_flat, conv = jax.flatten_util.ravel_pytree(params)
+vprime = jnp.array(np.random.random(n_samp) + 1j * np.random.random(n_samp))
 
 
 def flatten(x):
     x_flat, _ = jax.flatten_util.ravel_pytree(x)
     return x_flat
-
-
-v_flat = flatten(v)
-grad_flat = flatten(grad)
-
-
-def f_flat(params_flat, x):
-    return f(conv(params_flat), x)
-
-
-def f_flat_scalar(params, x):
-    return f_flat(params, jnp.expand_dims(x, 0))[0]
-
-
-ok = jax.vmap(jax.grad(f_flat_scalar, argnums=0, holomorphic=True), in_axes=(None, 0))(
-    params_flat, samples
-).conjugate()  # natural gradient
-okmean = ok.mean(axis=0)
-dok = ok - okmean
-S = dok.conjugate().transpose() @ dok / n_samp
-
-# need to use isreal (and not isrealobj) here to get an array of all true or all false for each leaf when flattening
-# so that real_ind has size n_params, and not just n_leaves
-real_ind = flatten(jax.tree_map(jax.numpy.isreal, params))
-
-assert real_ind.shape == params_flat.shape
-
-
-def setzero_imag_part_of_real_params(x):
-    # workaround for
-    # NotImplementedError: Transpose rule (for reverse-mode differentiation) for 'imag' not implemented
-    return jax.ops.index_add(x, real_ind, -1j * (-1j * x[real_ind]).real)
-
-
-# flatten params to a vector of real params
 
 
 def toreal(x):
@@ -111,39 +71,41 @@ def tree_toreal_flat(x):
     return flatten(tree_toreal(x))
 
 
-params_real_flat = tree_toreal_flat(params)
-
 # invert the trafo using linear_transpose (AD)
 def reassemble_complex(x, fun=tree_toreal_flat, target=params):
     # target: some tree with the shape and types we want
     _lt = jax.linear_transpose(fun, target)
     # jax gradient is actually the conjugated one, so we need to fix it:
-    return jax.tree_map(jax.lax.conj, _lt(x)[0])
+    res = jax.tree_map(jax.lax.conj, _lt(x)[0])
+    # also fix the dtypes:
+    return jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        res,
+        target,
+    )
 
 
 def f_real_flat(p, samples):
     return f(reassemble_complex(p), samples)
 
 
-grad_real_flat = tree_toreal_flat(grad)
-v_real_flat = tree_toreal_flat(v)
-
-
 def f_real_flat_scalar(params, x):
     return f_real_flat(params, jnp.expand_dims(x, 0))[0]
 
 
-def _rea(x):
-    re, im = x
-    return re + 1j * im
-
-
+# same as in nk.machine.Jax R->C
 @partial(jax.vmap, in_axes=(None, 0))
 def grads_real(params, x):
-    r = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).real)(params_real_flat, x)
-    i = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).imag)(params_real_flat, x)
-    return _rea((r, i))
+    r = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).real)(params, x)
+    i = jax.grad(lambda pars, v: f_real_flat_scalar(pars, v).imag)(params, x)
+    return jax.lax.complex(r, i)
 
+
+params_real_flat = tree_toreal_flat(params)
+grad_real_flat = tree_toreal_flat(grad)
+v_real_flat = tree_toreal_flat(v)
 
 ok_real = grads_real(params_real_flat, samples)
 okmean_real = ok_real.mean(axis=0)
@@ -160,8 +122,13 @@ def tree_conj(t):
     return jax.tree_map(jax.lax.conj, t)
 
 
-# O_vjp and O_jvp are actually conjugated with respect to ok
-# however the final result after matvec is still correct
+def test_reassemble_complex():
+    assert tree_allclose(params, reassemble_complex(tree_toreal_flat(params)))
+
+
+# O_vjp and O_jvp are actually conjugated compared to ok
+# (however the final result after matvec is still correct)
+# this way we can avoid two conjugations
 
 
 def test_vjp():
