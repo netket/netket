@@ -125,7 +125,7 @@ def tonx(graph):
         return nx.from_edgelist(edges)
 
     gx = nx.Graph()
-    for i in range(graph.n_sites):
+    for i in range(graph.n_nodes):
         gx.add_node(i)
     return gx
 
@@ -192,12 +192,12 @@ def test_adjacency_list():
         neigh = []
         g = nx.Graph()
 
-        for i in range(graph.n_sites):
+        for i in range(graph.n_nodes):
             g.add_node(i)
 
         for edge in graph.edges():
             g.add_edge(edge[0], edge[1])
-        for i in range(graph.n_sites):
+        for i in range(graph.n_nodes):
             neigh.append(set(g.neighbors(i)))
         dim = len(neigh)
         adl = graph.adjacency_list()

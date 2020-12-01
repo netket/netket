@@ -189,7 +189,7 @@ def DoubledGraph(graph):
     """
 
     dedges = graph.edges()
-    n_v = graph.n_vertices
+    n_v = graph.n_nodes
 
     dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
 

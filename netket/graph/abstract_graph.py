@@ -36,18 +36,8 @@ class AbstractGraph(abc.ABC):
         r"""int: The number of vertices in the graph"""
         raise NotImplementedError
 
-    @property
-    def n_sites(self):
-        r"""int: The number of vertices in the graph"""
-        return self.n_nodes
-
-    @property
-    def n_vertices(self):
-        r"""int: The number of vertices in the graph"""
-        return self.n_nodes
-
     @abc.abstractmethod
     def adjacency_list(self):
         r"""list[list]: List containing the adjacency list of the graph where each node
-        is represented by an integer in [0, n_sites)"""
+        is represented by an integer in [0, n_nodes)"""
         raise NotImplementedError
