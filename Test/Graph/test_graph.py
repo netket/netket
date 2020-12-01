@@ -133,6 +133,7 @@ def tonx(graph):
 def test_size_is_positive():
     for graph in graphs:
         assert graph.n_nodes > 0
+        assert graph.n_edges >= 0
 
 
 def test_is_connected():
