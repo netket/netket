@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
+from netket.stats import sum_inplace as _sum_inplace
 
 
 # onthefly SR
@@ -23,15 +24,14 @@ def O_vjp(x, theta, v, forward_fn, return_vjp_fun=False, vjp_fun=None):
 
 
 # calculate \langle O \rangle
-def Obar(samples, theta, forward_fn, **kwargs):
+def Obar(samples, theta, forward_fn, n_samp, **kwargs):
     # TODO better way to get dtype
     dtype = forward_fn(theta, samples[:1])[0].dtype
-    v = jnp.ones(samples.shape[0], dtype=dtype) / samples.shape[0]
+    v = jnp.ones(samples.shape[0], dtype=dtype) / n_samp
     return O_vjp(samples, theta, v, forward_fn, **kwargs)
 
 
 # calculate O^\dagger O v
-# @partial(jax.jit, static_argnums=3)
 def odagov(samples, theta, v, forward_fn):
     vprime = O_jvp(samples, theta, v, forward_fn)
     res = O_vjp(samples, theta, vprime.conjugate(), forward_fn)
@@ -41,14 +41,14 @@ def odagov(samples, theta, v, forward_fn):
 # calculate O^\dagger \Delta O v
 # where \Delta O = O-\langle O \rangle
 # optional: pass jvp_fun to be reused
-# TODO vjp_fun and jit??
-# @partial(jax.jit, static_argnums=3)
-def odagdeltaov(samples, theta, v, forward_fn, vjp_fun=None, factor=1.0):
+def odagdeltaov(samples, theta, v, forward_fn, n_samp, vjp_fun=None):
     # reuse vjp_fun from O_mean below for O_vjp
     O_mean, vjp_fun = Obar(
-        samples, theta, forward_fn, return_vjp_fun=True, vjp_fun=vjp_fun
+        samples, theta, forward_fn, n_samp, return_vjp_fun=True, vjp_fun=vjp_fun
     )
-    vprime = O_jvp(samples, theta, v, forward_fn)  # is an array of size n_samples
+    vprime = O_jvp(
+        samples, theta, v, forward_fn
+    )  # is an array of size n_samples; each MPI rank has its own slice
     # TODO tree_dot would be nice
     # here we use jax.numpy.add to automatically promote nonhomogeneous parameters to the larger type
 
@@ -57,11 +57,14 @@ def odagdeltaov(samples, theta, v, forward_fn, vjp_fun=None, factor=1.0):
         jax.numpy.add,
         jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.lax.mul, O_mean, v)),
     )
+    omeanv = _sum_inplace(omeanv)  # MPI Allreduce w/ MPI_SUM
+
     # vprime -= omeanv (elementwise)
     vprime = vprime - jax.lax.broadcast(omeanv, vprime.shape)
-    # vprime *= factor (elementwise)
+    # vprime /= n_samp (elementwise)
     vprime = jax.lax.mul(
-        vprime, jax.lax.broadcast(jnp.array(factor, dtype=vprime.dtype), vprime.shape)
+        vprime,
+        jax.lax.broadcast(jnp.array(1.0 / n_samp, dtype=vprime.dtype), vprime.shape),
     )
 
     res = O_vjp(samples, theta, vprime.conjugate(), forward_fn, vjp_fun=vjp_fun)
@@ -75,13 +78,16 @@ def odagdeltaov(samples, theta, v, forward_fn, vjp_fun=None, factor=1.0):
         res,
         v,
     )
+    res = jax.tree_map(_sum_inplace, res)  # MPI Allreduce w/ MPI_SUM
     return res
 
 
 def mat_vec(v, forward_fn, params, samples, diag_shift, n_samp):
     # all the leaves of v need to be arrays, since we need to broadcast
-    # TODO where to do the 1/n_samp ?
-    res = odagdeltaov(samples, params, v, forward_fn, factor=1.0 / n_samp)
+    # when using MPI:
+    #      each rank has its own slice of samples
+    #      n_samp is the sum of the number of samples of all mpi ranks
+    res = odagdeltaov(samples, params, v, forward_fn, n_samp)
     # add diagonal shift:
     shiftv = jax.tree_map(
         lambda x: jax.lax.mul(

@@ -138,7 +138,7 @@ def test_vjp():
 
 
 def test_obar():
-    a = Obar(samples, params, f)
+    a = Obar(samples, params, f, samples.shape[0])
     e = reassemble_complex(okmean_real.real)
     assert tree_allclose(tree_conj(a), e)
 
@@ -158,7 +158,7 @@ def test_odagov():
 
 
 def test_odagdeltaov():
-    a = odagdeltaov(samples, params, v, f, factor=1.0 / n_samp)
+    a = odagdeltaov(samples, params, v, f, n_samp)
     e = reassemble_complex(S_real @ v_real_flat)
     assert tree_allclose(a, e)
 

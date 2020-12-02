@@ -33,7 +33,6 @@ def _compose_result_real(v, y, diag_shift):
 
 
 # Note: n_samp must be the total number of samples across all MPI processes!
-# Note: _sum_inplace can only be jitted through if we are in single process.
 def _matvec_cmplx(v, oks, n_samp, diag_shift):
     y = _S_grad_mul(oks, v, n_samp)
     return _compose_result_cmplx(v, _sum_inplace(y), diag_shift)
@@ -72,7 +71,6 @@ def _jax_cg_solve_onthefly(
     sparse_maxiter,
 ):
     # leaves in x0 and grad are required to be arrays and need to have the same structure
-    # TODO MPI
     _mat_vec = partial(
         _mat_vec_onthefly,
         forward_fn=forward_fn,
@@ -86,7 +84,7 @@ def _jax_cg_solve_onthefly(
 
 
 def _shape_for_sr(grads, jac):
-    r"""Reshapes grads and jax from tree like structures to arrays if jax_available
+    r"""Reshapes grads and jac from tree like structures to arrays if jax_available
 
     Args:
         grads,jac: pytrees of jax arrays or numpy array
@@ -102,11 +100,12 @@ def _shape_for_sr(grads, jac):
     return grads, jac
 
 
+_flatten_grad_and_oks = jax.jit(_shape_for_sr)
+
+
 @jit
-def _flatten_grad_and_oks(grad, oks):
-    grad, oks = _shape_for_sr(grad, oks)
-    oks -= jnp.mean(oks, axis=0)
-    return grad, oks
+def _subtract_mean_from_oks(oks, n_samp):
+    return oks - _sum_inplace(jnp.sum(oks, axis=0) / n_samp)
 
 
 class SR:
@@ -208,9 +207,11 @@ class SR:
         if self.has_complex_parameters is None or self._machine is None:
             raise ValueError("This SR object is not properly initialized.")
 
-        grad, oks = _flatten_grad_and_oks(grad, oks)  # also subtracts the mean from ok
+        # if using MPI the number of samples on each rank has to be the same
 
+        grad, oks = _flatten_grad_and_oks(grad, oks)  # also subtracts the mean from ok
         n_samp = oks.shape[0] * n_nodes
+        oks = _subtract_mean_from_oks(oks, n_samp)
 
         n_par = grad.shape[0]
 
@@ -269,11 +270,7 @@ class SR:
             out: A pytree of the parameter updates that will be ignored
         """
 
-        # TODO pass vjp_fun from gradient calculation which can be reused for delta_odagov
-        # TODO describe somewhere that vjp and jvp just automagically work with pytrees so we dont have to flatten
-        # TODO MPI
-
-        n_samp = samples.shape[0]
+        n_samp = samples.shape[0] * n_nodes
 
         if self._x0 is None:
             self._x0 = jax.tree_map(jnp.zeros_like, grad)  # x0 = jnp.zeros_like(grad)
