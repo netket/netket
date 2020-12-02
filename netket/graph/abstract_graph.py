@@ -16,12 +16,12 @@ class AbstractGraph(abc.ABC):
 
     @abc.abstractmethod
     def edges(self):
-        r"""list: List containing the edges of the graph"""
+        r"""Iterator over the edges of the graph"""
         raise NotImplementedError
 
     @abc.abstractmethod
     def nodes(self):
-        r"""list: List containing the nodes of the graph"""
+        r"""Iterator over the nodes of the graph"""
         raise NotImplementedError
 
     @abc.abstractmethod

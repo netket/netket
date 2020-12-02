@@ -43,15 +43,15 @@ class NetworkX(AbstractGraph):
         return _nx.is_connected(self.graph)
 
     def nodes(self):
-        return list(self.graph.nodes())
+        return self.graph.nodes()
 
     def edges(self, color=False):
         if color is True:
-            return list(self.graph.edges(data="color"))
+            return self.graph.edges(data="color")
         elif color is not False:
-            return [(u, v) for u, v, k in self.graph.edges(data="color") if k == color]
+            return ((u, v) for u, v, k in self.graph.edges(data="color") if k == color)
         else:  # color is False
-            return list(self.graph.edges())
+            return self.graph.edges()
 
     def distances(self):
         return _nx.floyd_warshall_numpy(self.graph).tolist()
@@ -195,7 +195,7 @@ def DoubledGraph(graph):
     The resulting graph is composed of two disjoint sub-graphs identical to the input.
     """
 
-    dedges = graph.edges()
+    dedges = list(graph.edges())
     n_v = graph.n_nodes
 
     dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]

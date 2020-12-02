@@ -114,9 +114,10 @@ def test_edges_are_correct():
 
 
 def test_nodes():
+    count = lambda it: sum(1 for _ in it)
     for graph in graphs:
         nodes = graph.nodes()
-        assert len(nodes) == graph.n_nodes
+        assert count(nodes) == graph.n_nodes
 
 
 def tonx(graph):
@@ -214,18 +215,21 @@ def test_adjacency_list():
 
 
 def test_grid_color_pbc():
+    # compute length from iterator
+    count = lambda it: sum(1 for _ in it)
+
     g = Grid([4, 4], pbc=True, color_edges=True)
-    assert len(g.edges(color=0)) == 16
-    assert len(g.edges(color=1)) == 16
+    assert count(g.edges(color=0)) == 16
+    assert count(g.edges(color=1)) == 16
     assert g.n_edges == 32
 
     g = Grid([4, 2], pbc=True, color_edges=True)
-    assert len(g.edges(color=0)) == 8
-    assert len(g.edges(color=1)) == 4
+    assert count(g.edges(color=0)) == 8
+    assert count(g.edges(color=1)) == 4
 
     g = Grid([4, 2], pbc=False, color_edges=True)
-    assert len(g.edges(color=0)) == 6
-    assert len(g.edges(color=1)) == 4
+    assert count(g.edges(color=0)) == 6
+    assert count(g.edges(color=1)) == 4
 
     with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
         g = Grid([2, 4], pbc=[True, True])
