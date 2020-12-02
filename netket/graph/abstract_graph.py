@@ -20,6 +20,11 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def nodes(self):
+        r"""list: List containing the nodes of the graph"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def distances(self):
         r"""list[list]: List containing the distances between the nodes.
         The fact that some node may not be reachable from another is represented by -1"""

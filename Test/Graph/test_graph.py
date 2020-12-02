@@ -113,6 +113,12 @@ def test_edges_are_correct():
         check_edges(3, 7, pbc)
 
 
+def test_nodes():
+    for graph in graphs:
+        nodes = graph.nodes()
+        assert len(nodes) == graph.n_nodes
+
+
 def tonx(graph):
     adl = graph.adjacency_list()
     i = 0

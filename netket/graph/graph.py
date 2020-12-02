@@ -42,6 +42,9 @@ class NetworkX(AbstractGraph):
     def is_connected(self):
         return _nx.is_connected(self.graph)
 
+    def nodes(self):
+        return list(self.graph.nodes())
+
     def edges(self, color=False):
         if color is True:
             return list(self.graph.edges(data="color"))
