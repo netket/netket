@@ -231,7 +231,6 @@ class Jax(AbstractMachine):
     def jax_forward(self):
         return self._forward_fn
 
-
     def der_log(self, x, out=None):
         if x.ndim != 2:
             raise RuntimeError("Invalid input shape, expected a 2d array")
