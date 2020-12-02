@@ -31,7 +31,7 @@ class Ising(AbstractOperator):
         self._hilbert = hilbert
         self._n_sites = hilbert.size
         self._section = hilbert.size + 1
-        self._edges = _np.asarray(hilbert.graph.edges())
+        self._edges = _np.asarray(list(hilbert.graph.edges()))
         super().__init__()
 
     @property
@@ -101,7 +101,6 @@ class Ising(AbstractOperator):
         diag_ind = 0
 
         for i in range(x.shape[0]):
-
             mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
                 mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]

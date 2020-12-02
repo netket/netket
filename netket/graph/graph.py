@@ -42,13 +42,16 @@ class NetworkX(AbstractGraph):
     def is_connected(self):
         return _nx.is_connected(self.graph)
 
+    def nodes(self):
+        return self.graph.nodes()
+
     def edges(self, color=False):
         if color is True:
-            return list(self.graph.edges(data="color"))
+            return self.graph.edges(data="color")
         elif color is not False:
-            return [(u, v) for u, v, k in self.graph.edges(data="color") if k == color]
+            return ((u, v) for u, v, k in self.graph.edges(data="color") if k == color)
         else:  # color is False
-            return list(self.graph.edges())
+            return self.graph.edges()
 
     def distances(self):
         return _nx.floyd_warshall_numpy(self.graph).tolist()
@@ -59,6 +62,10 @@ class NetworkX(AbstractGraph):
     @property
     def n_nodes(self):
         return self.graph.number_of_nodes()
+
+    @property
+    def n_edges(self):
+        return self.graph.size()
 
     def automorphisms(self):
         # TODO: check how to compute these when we have a coloured graph where there could
@@ -161,13 +168,12 @@ def Edgeless(nodes):
     Args:
         nodes: An integer number of nodes or a list of ints that index nodes of a graph
     Example:
-        A 10-site one-dimensional lattice with periodic boundary conditions can be
-        constructed specifying the edges as follows:
-
         >>> import netket
         >>> g=netket.graph.Edgeless([0,1,2,3])
         >>> print(g.n_nodes)
         4
+        >>> print(g.n_edges)
+        0
     """
     if not isinstance(nodes, list):
         if not isinstance(nodes, int):
@@ -188,8 +194,8 @@ def DoubledGraph(graph):
     The resulting graph is composed of two disjoint sub-graphs identical to the input.
     """
 
-    dedges = graph.edges()
-    n_v = graph.n_vertices
+    dedges = list(graph.edges())
+    n_v = graph.n_nodes
 
     dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
 

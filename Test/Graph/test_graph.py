@@ -113,6 +113,13 @@ def test_edges_are_correct():
         check_edges(3, 7, pbc)
 
 
+def test_nodes():
+    count = lambda it: sum(1 for _ in it)
+    for graph in graphs:
+        nodes = graph.nodes()
+        assert count(nodes) == graph.n_nodes
+
+
 def tonx(graph):
     adl = graph.adjacency_list()
     i = 0
@@ -125,7 +132,7 @@ def tonx(graph):
         return nx.from_edgelist(edges)
 
     gx = nx.Graph()
-    for i in range(graph.n_sites):
+    for i in range(graph.n_nodes):
         gx.add_node(i)
     return gx
 
@@ -133,6 +140,7 @@ def tonx(graph):
 def test_size_is_positive():
     for graph in graphs:
         assert graph.n_nodes > 0
+        assert graph.n_edges >= 0
 
 
 def test_is_connected():
@@ -192,12 +200,12 @@ def test_adjacency_list():
         neigh = []
         g = nx.Graph()
 
-        for i in range(graph.n_sites):
+        for i in range(graph.n_nodes):
             g.add_node(i)
 
         for edge in graph.edges():
             g.add_edge(edge[0], edge[1])
-        for i in range(graph.n_sites):
+        for i in range(graph.n_nodes):
             neigh.append(set(g.neighbors(i)))
         dim = len(neigh)
         adl = graph.adjacency_list()
@@ -207,18 +215,21 @@ def test_adjacency_list():
 
 
 def test_grid_color_pbc():
+    # compute length from iterator
+    count = lambda it: sum(1 for _ in it)
+
     g = Grid([4, 4], pbc=True, color_edges=True)
-    assert len(g.edges(color=0)) == 16
-    assert len(g.edges(color=1)) == 16
-    assert len(g.edges()) == 32
+    assert count(g.edges(color=0)) == 16
+    assert count(g.edges(color=1)) == 16
+    assert g.n_edges == 32
 
     g = Grid([4, 2], pbc=True, color_edges=True)
-    assert len(g.edges(color=0)) == 8
-    assert len(g.edges(color=1)) == 4
+    assert count(g.edges(color=0)) == 8
+    assert count(g.edges(color=1)) == 4
 
     g = Grid([4, 2], pbc=False, color_edges=True)
-    assert len(g.edges(color=0)) == 6
-    assert len(g.edges(color=1)) == 4
+    assert count(g.edges(color=0)) == 6
+    assert count(g.edges(color=1)) == 4
 
     with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
         g = Grid([2, 4], pbc=[True, True])
@@ -261,4 +272,4 @@ def test_union():
         ug = nk.graph.disjoint_union(graph, graph1)
 
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
-        assert len(ug.edges()) == len(graph1.edges()) + len(graph.edges())
+        assert ug.n_edges == graph1.n_edges + graph.n_edges

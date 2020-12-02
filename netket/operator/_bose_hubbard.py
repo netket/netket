@@ -44,7 +44,7 @@ class BoseHubbard(AbstractOperator):
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = _np.asarray(hilbert.graph.edges())
+        self._edges = _np.asarray(list(hilbert.graph.edges()))
         self._max_conn = 1 + self._edges.shape[0] * 2
         self._max_mels = _np.empty(self._max_conn, dtype=_np.complex128)
         self._max_xprime = _np.empty((self._max_conn, self._n_sites))
