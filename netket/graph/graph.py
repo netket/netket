@@ -168,13 +168,12 @@ def Edgeless(nodes):
     Args:
         nodes: An integer number of nodes or a list of ints that index nodes of a graph
     Example:
-        A 10-site one-dimensional lattice with periodic boundary conditions can be
-        constructed specifying the edges as follows:
-
         >>> import netket
         >>> g=netket.graph.Edgeless([0,1,2,3])
         >>> print(g.n_nodes)
         4
+        >>> print(g.n_edges)
+        0
     """
     if not isinstance(nodes, list):
         if not isinstance(nodes, int):

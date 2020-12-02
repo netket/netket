@@ -8,7 +8,7 @@ class Grid(NetworkX):
     r"""A Grid lattice of d dimensions, and possibly different sizes of each dimension.
     Periodic boundary conditions can also be imposed"""
 
-    def __init__(self, length, pbc=True, color_edges=False):
+    def __init__(self, length, *, pbc=True, color_edges=False):
         """
         Constructs a new `Grid` given its length vector.
 
@@ -95,42 +95,40 @@ class Grid(NetworkX):
         return "Grid(length={}, pbc={})".format(self.length, self.pbc)
 
 
-def Hypercube(length, n_dim=1, pbc=True):
+def Hypercube(length, n_dim=1, *, pbc=True):
     r"""A hypercube lattice of side L in d dimensions.
     Periodic boundary conditions can also be imposed.
 
     Constructs a new ``Hypercube`` given its side length and dimension.
 
     Args:
-        length: Side length of the hypercube.
-             It must always be >=1
-         n_dim: Dimension of the hypercube. It must be at least 1.
+        length: Side length of the hypercube; must always be >=1
+         n_dim: Dimension of the hypercube; must be at least 1.
          pbc: If ``True`` then the constructed hypercube
              will have periodic boundary conditions, otherwise
              open boundary conditions are imposed.
 
     Examples:
-         A 10x10x10 hypercubic lattice with periodic boundary conditions can be
+         A 10x10x10 cubic lattice with periodic boundary conditions can be
          constructed as follows:
 
          >>> import netket
-         >>> g=netket.graph.Hypercube(length=10,n_dim=3,pbc=True)
+         >>> g = netket.graph.Hypercube(10, n_dim=3, pbc=True)
          >>> print(g.n_nodes)
          1000
     """
     length_vector = [length] * n_dim
-    return Grid(length_vector, pbc)
+    return Grid(length_vector, pbc=pbc)
 
 
-def Square(length, pbc=True):
+def Square(length, *, pbc=True):
     r"""A square lattice of side L.
     Periodic boundary conditions can also be imposed
 
     Constructs a new ``Square`` given its side length.
 
     Args:
-        length: Side length of the square.
-            It must always be >=1
+        length: Side length of the square; must always be >=1
         pbc: If ``True`` then the constructed hypercube
             will have periodic boundary conditions, otherwise
             open boundary conditions are imposed.
@@ -140,32 +138,31 @@ def Square(length, pbc=True):
         constructed as follows:
 
         >>> import netket
-        >>> g=netket.graph.Square(length=10,pbc=True)
+        >>> g=netket.graph.Square(10, pbc=True)
         >>> print(g.n_nodes)
         100
     """
     return Hypercube(length, n_dim=2, pbc=pbc)
 
 
-def Chain(length, pbc=True):
+def Chain(length, *, pbc=True):
     r"""A chain of L sites.
     Periodic boundary conditions can also be imposed
 
     Constructs a new ``Chain`` given its length.
 
     Args:
-      length: Length of the chain.
-             It must always be >=1
-         pbc: If ``True`` then the constructed hypercube
+      length: Length of the chain. It must always be >=1
+         pbc: If ``True`` then the constructed chain
              will have periodic boundary conditions, otherwise
              open boundary conditions are imposed.
 
     Examples:
-         A 10 site lattice with periodic boundary conditions can be
+         A 10 site chain with periodic boundary conditions can be
          constructed as follows:
 
          >>> import netket
-         >>> g=netket.graph.Square(length=10,pbc=True)
+         >>> g = netket.graph.Chain(10, pbc=True)
          >>> print(g.n_nodes)
          10
     """
