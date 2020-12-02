@@ -231,9 +231,6 @@ class Jax(AbstractMachine):
     def jax_forward(self):
         return self._forward_fn
 
-    @property
-    def jax_forward_nj(self):
-        return self._forward_fn_nj
 
     def der_log(self, x, out=None):
         if x.ndim != 2:
