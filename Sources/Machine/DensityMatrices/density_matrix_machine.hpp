@@ -18,6 +18,7 @@
 
 #include "abstract_density_matrix.hpp"
 #include "diagonal_density_matrix.hpp"
+#include "density_matrix_row.hpp"
 #include "ndm_spin_phase.hpp"
 
 #endif  // NETKET_DENSITY_MATRIX_MACHINE_HPP

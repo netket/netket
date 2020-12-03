@@ -18,6 +18,7 @@
 #include "Utils/messages.hpp"
 
 #include "abstract_density_matrix.hpp"
+#include "density_matrix_row.hpp"
 #include "diagonal_density_matrix.hpp"
 #include "ndm_spin_phase.hpp"
 
@@ -90,7 +91,43 @@ void AddDiagonalDensityMatrix(py::module &subm) {
 
                Args:
                     dm: the density matrix.
-)EOF");
+)EOF")
+      .def_property_readonly(
+          "parent", &DiagonalDensityMatrix::GetFullDensityMatrix,
+          R"EOF(abstract_density_matrix: Returns the parent density
+                matrix of this Row (of the parent density matrix).)EOF");
+}
+
+void AddDensityMatrixRow(py::module &subm) {
+  py::class_<DensityMatrixRow, AbstractMachine>(subm, "DensityMatrixRow", R"EOF(
+  A Machine sampling the Row `v` of a density matrix.)EOF")
+      .def(py::init<AbstractDensityMatrix &>(), py::keep_alive<1, 2>(),
+           py::arg("dm"), R"EOF(
+
+               Constructs a new ``DensityMatrixRow`` machine sampling the
+               row `v` of the provided density matrix.
+
+               Args:
+                    dm: the density matrix.
+                    v: the configuration of the selected row.
+)EOF")
+      .def_property(
+          "row", &DensityMatrixRow::GetRow,
+          [](DensityMatrixRow &self, py::array_t<double> xr) {
+            if (xr.ndim() == 1) {
+              auto v_row = xr.cast<Eigen::Ref<const VectorXd>>();
+              return self.SetRow(v_row);
+            } else {
+              throw InvalidInputError{
+                  "Invalid input dimensions: the row configuration "
+                  "should be a vector."};
+            }
+          },
+          R"EOF(double vector: The state identifying the row x of this machine psi(x') = <x|rho|x'>.)EOF")
+      .def_property_readonly(
+          "parent", &DensityMatrixRow::GetFullDensityMatrix,
+          R"EOF(abstract_density_matrix: Returns the parent density
+                matrix of this Row (of the parent density matrix).)EOF");
 }
 
 void AddAbstractDensityMatrix(py::module &subm) {
@@ -179,6 +216,23 @@ void AddAbstractDensityMatrix(py::module &subm) {
            },
            R"EOF(
              Returns the wrapped machine sampling the diagonal of this density matrix.
+             )EOF")
+      .def(
+          "row",
+          [](AbstractDensityMatrix &self,
+             py::array_t<double> xr) -> DensityMatrixRow {
+            if (xr.ndim() == 1) {
+              auto v_row = xr.cast<Eigen::Ref<const VectorXd>>();
+              return DensityMatrixRow(self, v_row);
+            } else {
+              throw InvalidInputError{
+                  "Invalid input dimensions: the row configuration should be a "
+                  "vector."};
+            }
+          },
+          py::arg("row"),
+          R"EOF(
+             Returns the wrapped machine sampling the row 'v' of this density matrix.
              )EOF")
       .def("log_val",
            [](AbstractDensityMatrix &self, py::array_t<double> xr,
@@ -307,6 +361,7 @@ void AddDensityMatrixModule(py::module subm) {
   AddAbstractDensityMatrix(subm);
   AddNdmSpinPhase(subm);
   AddDiagonalDensityMatrix(subm);
+  AddDensityMatrixRow(subm);
 }
 
 }  // namespace netket

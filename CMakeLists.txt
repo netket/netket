@@ -304,6 +304,7 @@ set(NETKET_SOURCES
     Sources/Utils/py_utils.cc
     Sources/Utils/random_utils.cc
     Sources/Machine/DensityMatrices/diagonal_density_matrix.cc
+    Sources/Machine/DensityMatrices/density_matrix_row.cc
     Sources/Machine/DensityMatrices/ndm_spin_phase.cc
     Sources/Machine/DensityMatrices/py_abstract_density_matrix.cc
     Sources/Machine/DensityMatrices/py_abstract_density_matrix.hpp
