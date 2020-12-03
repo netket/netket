@@ -54,10 +54,8 @@ def flatten(x):
 
 def toreal(x):
     if jnp.iscomplexobj(x):
-        # workaround for
-        # NotImplementedError: Transpose rule (for reverse-mode differentiation) for 'imag' not implemented
         return jnp.array(
-            [x.real, (-1j * x).real]
+            [x.real, x.imag]
         )  # need to use sth which jax thinks its a leaf
     else:
         return x
