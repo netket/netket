@@ -147,8 +147,7 @@ class CustomHilbert(AbstractHilbert):
            >>> import netket as nk
            >>> import numpy as np
            >>> hi = nk.hilbert.Boson(n_max=3, N=4)
-           >>> rstate = np.zeros(hi.size)
-           >>> hi.random_vals(rstate)
+           >>> rstate = hi.random_state()
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
@@ -168,7 +167,7 @@ class CustomHilbert(AbstractHilbert):
                 out[i] = self.local_states[rs]
 
             return out
-
+        
         return NotImplementedError
 
     def _get_hilbert_index(self):

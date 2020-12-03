@@ -120,18 +120,6 @@ class AbstractHilbert(abc.ABC):
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
 
-    def random_vals(self, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
-            Prefer random_state instad.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
-        """
-        return self.random_state(out, rgen)
-
     @abc.abstractmethod
     def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.

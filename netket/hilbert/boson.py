@@ -99,9 +99,8 @@ class Boson(CustomHilbert):
            >>> import netket as nk
            >>> import numpy as np
            >>> hi = nk.hilbert.Boson(n_max=3, N=5)
-           >>> rstate = np.zeros(hi.size)
            >>> rg = nk.utils.RandomEngine(seed=1234)
-           >>> hi.random_vals(rstate, rg)
+           >>> rstate = hi.random_state(rgen=rg)
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
