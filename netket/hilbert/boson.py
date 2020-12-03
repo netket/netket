@@ -83,7 +83,7 @@ class Boson(CustomHilbert):
         if the number is unconstrained."""
         return self._n_bosons
 
-    def random_state(self, out=None, rgen=None):
+    def random_state(self, *, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:

@@ -121,7 +121,7 @@ class AbstractHilbert(abc.ABC):
             yield self.number_to_state(i).reshape(-1)
 
     @abc.abstractmethod
-    def random_state(self, out=None, rgen=None):
+    def random_state(self, *, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:

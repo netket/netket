@@ -131,7 +131,7 @@ class CustomHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, out=None, rgen=None):
+    def random_state(self, *, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:

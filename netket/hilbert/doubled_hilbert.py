@@ -100,7 +100,7 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, out=None, rgen=None):
+    def random_state(self, *, out=None, rgen=None):
         if out is None:
             out = _np.empty(self._size)
 

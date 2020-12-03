@@ -102,18 +102,18 @@ def test_random_states():
         print("name", name)
         if hi.is_discrete:
             rstate = np.zeros(hi.size)
-
             local_states = hi.local_states
-
             for i in range(100):
-                hi.random_state(rstate)
+                hi.random_state(out=rstate)
                 for state in rstate:
                     assert state in local_states
+
+            with pytest.raises(TypeError):
+                hi.random_state(rstate) # out is keyword-only
 
 
 def test_hilbert_index():
     """"""
-
     for name, hi in hilberts.items():
         assert hi.size > 0
         assert hi.local_size > 0

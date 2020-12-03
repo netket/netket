@@ -53,7 +53,7 @@ class Spin(CustomHilbert):
 
         super().__init__(local_states, N, constraints)
 
-    def random_state(self, out=None, rgen=None):
+    def random_state(self, *, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -69,8 +69,7 @@ class Spin(CustomHilbert):
            >>> import netket as nk
            >>> import numpy as np
            >>> hi = nk.hilbert.Spin(N=4)
-           >>> rstate = np.zeros(hi.size)
-           >>> hi.random_state(rstate)
+           >>> rstate = hi.random_state()
            >>> local_states = hi.local_states
            >>> print(rstate[0] in local_states)
            True
