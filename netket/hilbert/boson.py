@@ -83,7 +83,22 @@ class Boson(CustomHilbert):
         if the number is unconstrained."""
         return self._n_bosons
 
-    def random_state(self, *, out=None, rgen=None):
+    def _random_state_with_constraint(self, out, rgen, n_max):
+        sites = list(range(self.size))
+
+        out.fill(0.0)
+        ss = self.size
+
+        for i in range(self.n_bosons):
+            s = rgen.randint(0, ss)
+
+            out[sites[s]] += 1
+
+            if out[sites[s]] == n_max:
+                sites.pop(s)
+                ss -= 1
+
+    def random_state(self, *, batch=None, out=None, rgen=None, n_max=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -91,6 +106,9 @@ class Boson(CustomHilbert):
                  It should be of the appropriate shape and dtype.
             rgen: The random number generator. If None, the global
                   NetKet random number generator is used.
+            n_max: Maximum local occupation for the generated random state. If not specified, the
+                maximum occupation of the space is used (which may be INT_MAX, if it was not specified
+                on construction).
 
         Examples:
            Test that a new random state is a possible state for the hilbert
@@ -105,34 +123,23 @@ class Boson(CustomHilbert):
            >>> print(rstate[0] in local_states)
            True
         """
+        shape = (batch, self._size) if batch is not None else (self._size,)
+        n_max = min(self.n_max, n_max) if n_max is not None else self.n_max
 
         if out is None:
-            out = _np.empty(self.size)
+            out = _np.empty(shape=shape)
 
         if rgen is None:
             rgen = _random
 
         if self.n_bosons is None:
-            for i in range(self.size):
-                rs = rgen.randint(0, self.local_size)
-                if self.is_finite:
-                    out[i] = self.local_states[rs]
-                else:
-                    out[i] = rs
+            out[:] = rgen.randint(0, n_max, size=shape)
         else:
-            sites = list(range(self.size))
-
-            out.fill(0.0)
-            ss = self.size
-
-            for i in range(self.n_bosons):
-                s = rgen.randint(0, ss)
-
-                out[sites[s]] += 1
-
-                if out[sites[s]] == self.n_max:
-                    sites.pop(s)
-                    ss -= 1
+            if batch:
+                for b in range(batch):
+                    self._random_state_with_constraint(out[b], rgen, n_max)
+            else:
+                self._random_state_with_constraint(out, rgen, n_max)
 
         return out
 

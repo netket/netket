@@ -109,7 +109,7 @@ def test_random_states():
                     assert state in local_states
 
             with pytest.raises(TypeError):
-                hi.random_state(rstate) # out is keyword-only
+                hi.random_state(rstate)  # out is keyword-only
 
 
 def test_hilbert_index():

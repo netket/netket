@@ -121,14 +121,17 @@ class AbstractHilbert(abc.ABC):
             yield self.number_to_state(i).reshape(-1)
 
     @abc.abstractmethod
-    def random_state(self, *, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
+    def random_state(self, *, batch=None, out=None, rgen=None):
+        r"""Generates either a single or a batch of uniformly distributed random states.
 
         Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
+            batch: If provided, this method generates a batch of `batch` random states.
+                Otherwise, a single state is generated and a ndim=1 array is returned.
+            out: If provided, the random quantum numbers will be inserted into this array,
+                 which should be of the appropriate shape [either `(self.size(),)` or
+                 `(batch, self.size())`] and dtype.
+            rgen: The random number generator. If None, the global NetKet random
+                number generator is used.
         """
         raise NotImplementedError
 

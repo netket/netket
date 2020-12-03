@@ -131,7 +131,7 @@ class CustomHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, *, out=None, rgen=None):
+    def random_state(self, *, batch=None, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
 
         Args:
@@ -155,19 +155,18 @@ class CustomHilbert(AbstractHilbert):
 
         # Default version for discrete hilbert spaces without constraints
         # More specialized initializations can be defined in the derived classes
+        shape = (batch, self._size) if batch is not None else (self._size,)
         if self.is_discrete and self.is_finite and not self._do_constraints:
             if out is None:
-                out = _np.empty(self._size)
+                out = _np.empty(shape=shape)
 
             if rgen is None:
                 rgen = _random
 
-            for i in range(self._size):
-                rs = rgen.randint(0, self._local_size)
-                out[i] = self.local_states[rs]
+            out[:] = rgen.choice(self.local_states, size=shape)
 
             return out
-        
+
         return NotImplementedError
 
     def _get_hilbert_index(self):
