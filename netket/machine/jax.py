@@ -52,14 +52,13 @@ class Jax(AbstractMachine):
         # Computes the Jacobian matrix using forward ad
         self._forward_fn = jax.jit(self._forward_fn)
 
-        forward_scalar = jax.jit(
-            lambda pars, x: self._forward_fn_nj(pars, jnp.expand_dims(x, 0)).reshape(())
-        )
+        def forward_scalar(pars, x):
+            return self._forward_fn_nj(pars, jnp.expand_dims(x, 0)).reshape(())
 
         # C-> C
         if self._dtype is complex and self._outdtype is complex:
 
-            grad_fun = jax.jit(jax.grad(forward_scalar, holomorphic=True))
+            grad_fun = jax.grad(forward_scalar, holomorphic=True)
             self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
@@ -77,7 +76,7 @@ class Jax(AbstractMachine):
         # R->R
         elif self._dtype is float and self._outdtype is float:
 
-            grad_fun = jax.jit(jax.grad(forward_scalar))
+            grad_fun = jax.grad(forward_scalar)
             self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
@@ -111,8 +110,7 @@ class Jax(AbstractMachine):
                 grad_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
                 return tree_unflatten(r_fun, grad_flat)
 
-            grad_fun = jax.jit(_gradfun)
-            self._perex_grads = jax.jit(jax.vmap(grad_fun, in_axes=(None, 0)))
+            self._perex_grads = jax.jit(jax.vmap(_gradfun, in_axes=(None, 0)))
 
             def _vjp_fun(pars, v, vec, conjugate, forward_fun):
                 v = v.reshape((-1, v.shape[-1]))
@@ -181,7 +179,7 @@ class Jax(AbstractMachine):
         if output_shape != (-1, 1) and output_shape != (-1,):
             raise ValueError(
                 r"""
-                A valid network must have 1 output, but the network 
+                A valid network must have 1 output, but the network
                 you attempted to build, provided input_shape={} gave
                 output_shape={}""".format(
                     input_shape, output_shape
@@ -260,7 +258,7 @@ class Jax(AbstractMachine):
              `out` only or (out,jacobian) if return_jacobian is True
         """
         if not return_jacobian:
-            return self._vjp_fun(self._params, x, vec, conjugate, self._forward_fn)
+            return self._vjp_fun(self._params, x, vec, conjugate, self._forward_fn_nj)
 
         else:
 
@@ -389,7 +387,6 @@ def SumLayer():
         output_shape = (-1, 1)
         return output_shape, ()
 
-    @jax.jit
     def apply_fun(params, inputs, **kwargs):
         return inputs.sum(axis=-1)
 
@@ -399,7 +396,6 @@ def SumLayer():
 SumLayer = SumLayer()
 
 
-@jax.jit
 def logcosh(x):
     x = x * jax.numpy.sign(x.real)
     return x + jax.numpy.log(1.0 + jax.numpy.exp(-2.0 * x)) - jax.numpy.log(2.0)

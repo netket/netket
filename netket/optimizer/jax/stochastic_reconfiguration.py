@@ -12,7 +12,6 @@ from netket.vmc_common import jax_shape_for_update
 from netket.utils import n_nodes, mpi4jax_available
 
 
-@jit
 def _S_grad_mul(oks, v, n_samp):
     r"""
     Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
@@ -23,25 +22,21 @@ def _S_grad_mul(oks, v, n_samp):
     return y
 
 
-@jit
 def _compose_result_cmplx(v, y, diag_shift):
     return v * diag_shift + y
 
 
-@jit
 def _compose_result_real(v, y, diag_shift):
     return (v * diag_shift + y).real
 
 
 # Note: n_samp must be the total number of samples across all MPI processes!
 # Note: _sum_inplace can only be jitted through if we are in single process.
-@jit
 def _matvec_cmplx(v, oks, n_samp, diag_shift):
     y = _S_grad_mul(oks, v, n_samp)
     return _compose_result_cmplx(v, _sum_inplace(y), diag_shift)
 
 
-@jit
 def _matvec_real(v, oks, n_samp, diag_shift):
     y = _S_grad_mul(oks, v, n_samp)
     return _compose_result_real(v, _sum_inplace(y), diag_shift)
@@ -62,7 +57,6 @@ def _jax_cg_solve(
     return out
 
 
-@jit
 def _shape_for_sr(grads, jac):
     r"""Reshapes grads and jax from tree like structures to arrays if jax_available
 
