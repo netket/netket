@@ -143,7 +143,7 @@ class AbstractOperator(abc.ABC):
         return self.to_sparse().todense().A
 
     def apply(self, v):
-        return self.to_sparse().dot(v)
+        return self.to_linear_operator().dot(v)
 
     def __call__(self, v):
         return self.apply(v)
