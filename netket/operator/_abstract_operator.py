@@ -15,7 +15,7 @@ class AbstractOperator(abc.ABC):
     @abc.abstractmethod
     def size(self):
         r"""int: The total number number of local degrees of freedom."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def get_conn_padded(self, x):
         r"""Finds the connected elements of the Operator.
@@ -65,7 +65,7 @@ class AbstractOperator(abc.ABC):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     def n_conn(self, x, out=None):
         r"""Return the number of states connected to x.
@@ -101,7 +101,7 @@ class AbstractOperator(abc.ABC):
     @abc.abstractmethod
     def hilbert(self):
         r"""AbstractHilbert: The hilbert space associated to this operator."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def to_sparse(self):
         r"""Returns the sparse matrix representation of the operator. Note that,

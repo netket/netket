@@ -136,7 +136,7 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, numbers.Number):
             self._constant += other
 
-        return NotImplementedError
+        raise NotImplementedError()
 
     def __isub__(self, other):
         return self.__iadd__(-1 * other)
@@ -161,7 +161,7 @@ class LocalOperator(AbstractOperator):
                 constant=self._constant + other,
             )
 
-        return NotImplementedError
+        raise NotImplementedError()
 
     def __sub__(self, other):
         return self.__add__(-1 * other)
