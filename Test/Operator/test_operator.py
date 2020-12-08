@@ -48,20 +48,17 @@ sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 
-sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [5]])
-sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[2], [3], [4], [9]])
-szsz_hat = nk.operator.LocalOperator(hi, sz, [0]) * nk.operator.LocalOperator(
-    hi, sz, [1]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [4]) * nk.operator.LocalOperator(
-    hi, sz, [5]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [6]) * nk.operator.LocalOperator(
-    hi, sz, [8]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
-    hi, sz, [0]
-)
+
+def _loc(*args):
+    return nk.operator.LocalOperator(hi, *args)
+
+
+sx_hat = _loc([sx] * 3, [[0], [1], [5]])
+sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
+szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
+szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
+szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
 
 operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
@@ -126,7 +123,7 @@ def test_no_segfault():
 
     hi = None
 
-    lo = lo * lo
+    lo = lo @ lo
 
     assert True
 

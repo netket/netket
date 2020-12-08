@@ -24,20 +24,17 @@ sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
 
-sx_hat = nk.operator.LocalOperator(hi, [sx] * 3, [[0], [1], [4]])
-sy_hat = nk.operator.LocalOperator(hi, [sy] * 4, [[1], [2], [3], [4]])
-szsz_hat = nk.operator.LocalOperator(hi, sz, [0]) * nk.operator.LocalOperator(
-    hi, sz, [1]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [4]) * nk.operator.LocalOperator(
-    hi, sz, [5]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [6]) * nk.operator.LocalOperator(
-    hi, sz, [8]
-)
-szsz_hat += nk.operator.LocalOperator(hi, sz, [7]) * nk.operator.LocalOperator(
-    hi, sz, [0]
-)
+
+def _loc(*args):
+    return nk.operator.LocalOperator(hi, *args)
+
+
+sx_hat = _loc([sx] * 3, [[0], [1], [5]])
+sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
+szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
+szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
+szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
 
 herm_operators["sx (real op)"] = sx_hat
 herm_operators["sy"] = sy_hat
@@ -145,7 +142,7 @@ def test_local_operator_add():
     ha = LocalOperator(hi)
     ha2 = LocalOperator(hi)
     for i in range(0, 3):
-        ha += 0.3 * nk.operator.spin.sigmaz(hi, i) * nk.operator.spin.sigmax(hi, i + 1)
+        ha += 0.3 * nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmax(hi, i + 1)
         ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
         ha2 += 0.5 * nk.operator.spin.sigmay(hi, i)
 
@@ -203,5 +200,23 @@ def test_simple_operators():
         ad = bcreate(hi, i)
         n = bnumber(hi, i)
 
-        assert np.allclose(n.to_dense(), (ad * a).to_dense())
+        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
         assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+
+
+def test_mul_matmul():
+    hi = nk.hilbert.Spin(nk.graph.Edgeless(2), s=1 / 2)
+    sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
+    sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
+
+    sx0sy1_hat = sx0_hat @ sy1_hat
+    assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
+
+    assert np.allclose((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
+    assert np.allclose((sx0sy1_hat * 2.0).to_dense(), 2.0 * sx0sy1_hat.to_dense())
+
+    with pytest.raises(TypeError):
+        doesnotwork = sx0_hat * sy1_hat
+
+    with pytest.raises(NotImplementedError):
+        doesnotwork = sx0_hat @ 2.0

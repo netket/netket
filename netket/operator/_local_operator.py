@@ -167,84 +167,104 @@ class LocalOperator(AbstractOperator):
         return self.__add__(-1 * other)
 
     def __imul__(self, other):
-        if isinstance(other, numbers.Number):
-            self._constant *= other
-            self._diag_mels *= other
-            self._mels *= other
+        """
+        Multply the operator by a number.
+        """
+        if not isinstance(other, numbers.Number):
+            raise TypeError(
+                f"LocalOperator can only be multiplied with numbers. "
+                "(For the operator product, please use the `@` operator, see PEP 465.)"
+            )
+        self._constant *= other
+        self._diag_mels *= other
+        self._mels *= other
 
-            for op in self._operators:
-                op *= other
+        for op in self._operators:
+            op *= other
 
-            return self
+        return self
 
-        elif isinstance(other, LocalOperator):
-            tot_operators = []
-            tot_act = []
-            for i in range(other._n_operators):
-                act_i = other._acting_on[i, : other._acting_size[i]].tolist()
-                ops, act = self._multiply_operator(other._operators[i], act_i)
-                tot_operators += ops
-                tot_act += act
-
-            prod = LocalOperator(self._hilbert, tot_operators, tot_act)
-            self_constant = self._constant
-            if _np.abs(other._constant) > self.mel_cutoff:
-                self._constant = 0.0
-                self *= other._constant
-                self += prod
-            else:
-                self = prod
-
-            if _np.abs(self_constant) > self.mel_cutoff:
-                self += other * self_constant
-
-            return self
-
-        return NotImplementedError
-
-    def __mul__(self, other):
-        if isinstance(other, numbers.Number):
-
-            new_ops = [_np.copy(op * other) for op in self._operators]
-
-            return LocalOperator(
-                hilbert=self._hilbert,
-                operators=new_ops,
-                acting_on=self._acting_on_list(),
-                constant=self._constant * other,
+    def __imatmul__(self, other):
+        if not isinstance(other, LocalOperator):
+            raise NotImplementedError(
+                "Operator product is only implemented for LocalOperator."
             )
 
-        if isinstance(other, LocalOperator):
-            tot_operators = []
-            tot_act = []
-            for i in range(other._n_operators):
-                act_i = other._acting_on[i, : other._acting_size[i]].tolist()
-                ops, act = self._multiply_operator(other._operators[i], act_i)
-                tot_operators += ops
-                tot_act += act
+        tot_operators = []
+        tot_act = []
+        for i in range(other._n_operators):
+            act_i = other._acting_on[i, : other._acting_size[i]].tolist()
+            ops, act = self._multiply_operator(other._operators[i], act_i)
+            tot_operators += ops
+            tot_act += act
 
-            prod = LocalOperator(self._hilbert, tot_operators, tot_act)
+        prod = LocalOperator(self._hilbert, tot_operators, tot_act)
+        self_constant = self._constant
+        if _np.abs(other._constant) > self.mel_cutoff:
+            self._constant = 0.0
+            self *= other._constant
+            self += prod
+        else:
+            self = prod
 
-            if _np.abs(other._constant) > self.mel_cutoff:
-                result = LocalOperator(
-                    hilbert=self._hilbert,
-                    operators=self._operators_list(),
-                    acting_on=self._acting_on_list(),
-                    constant=0,
-                )
-                result *= other._constant
-                result += prod
-            else:
-                result = prod
+        if _np.abs(self_constant) > self.mel_cutoff:
+            self += other * self_constant
 
-            if _np.abs(self._constant) > self.mel_cutoff:
-                result += other * self.constant
+        return self
 
-            return result
+    def __mul__(self, other):
+        if not isinstance(other, numbers.Number):
+            raise TypeError(
+                f"LocalOperator can only be multiplied with numbers. "
+                "(For the operator product, please use the `@` operator, see PEP 465.)"
+            )
 
-        return NotImplementedError
+        new_ops = [_np.copy(op * other) for op in self._operators]
+
+        return LocalOperator(
+            hilbert=self._hilbert,
+            operators=new_ops,
+            acting_on=self._acting_on_list(),
+            constant=self._constant * other,
+        )
+
+    def __matmul__(self, other):
+        if not isinstance(other, LocalOperator):
+            raise NotImplementedError(
+                "Operator product is only implemented for LocalOperator."
+            )
+
+        tot_operators = []
+        tot_act = []
+        for i in range(other._n_operators):
+            act_i = other._acting_on[i, : other._acting_size[i]].tolist()
+            ops, act = self._multiply_operator(other._operators[i], act_i)
+            tot_operators += ops
+            tot_act += act
+
+        prod = LocalOperator(self._hilbert, tot_operators, tot_act)
+
+        if _np.abs(other._constant) > self.mel_cutoff:
+            result = LocalOperator(
+                hilbert=self._hilbert,
+                operators=self._operators_list(),
+                acting_on=self._acting_on_list(),
+                constant=0,
+            )
+            result *= other._constant
+            result += prod
+        else:
+            result = prod
+
+        if _np.abs(self._constant) > self.mel_cutoff:
+            result += other * self.constant
+
+        return result
 
     def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __rmatmul__(self, other):
         return self.__mul__(other)
 
     def __radd__(self, other):
