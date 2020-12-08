@@ -1,4 +1,5 @@
 from .custom_hilbert import CustomHilbert
+from netket.graph import AbstractGraph, Edgeless, disjoint_union
 
 from fractions import Fraction
 
@@ -10,12 +11,12 @@ from numba import jit
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(self, graph, s, total_sz=None):
+    def __init__(self, s, graph=None, total_sz=None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
-           graph: Graph representation of sites.
            s: Spin at each site. Must be integer or half-integer.
+           graph: Graph representation of sites. Can also be the number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular value.
 
         Examples:
@@ -28,6 +29,16 @@ class Spin(CustomHilbert):
            >>> print(hi.size)
            100
         """
+        if graph is None:
+            graph = Edgeless(1)
+        elif isinstance(graph, int):
+            graph = Edgeless(graph)
+        elif not isinstance(graph, AbstractGraph):
+            raise ValueError(
+                "Invalid graph argument: expected None,int or a Graph, but {} is a {}".format(
+                    graph, type(graph)
+                )
+            )
 
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
@@ -123,8 +134,16 @@ class Spin(CustomHilbert):
                 "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
             )
 
+    def __pow__(self, n):
+        if self._total_sz is None:
+            total_sz = None
+        else:
+            total_sz * n
+
+        return Spin(self._s, self.graph ** n, total_sz=total_sz)
+
     def __repr__(self):
         total_sz = (
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
-        return "Spin(s={}{}; N={})".format(Fraction(self._s), total_sz, self._size)
+        return "Spin(s={}{}, graph={})".format(Fraction(self._s), total_sz, self._size)
