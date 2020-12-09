@@ -211,9 +211,15 @@ def test_mul_matmul():
 
     sx0sy1_hat = sx0_hat @ sy1_hat
     assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
+    sx0sy1_hat = sx0_hat * sy1_hat
+    assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
     op = nk.operator.LocalOperator(hi, sx, [0])
     op @= nk.operator.LocalOperator(hi, sy, [1])
+    assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
+
+    op = nk.operator.LocalOperator(hi, sx, [0])
+    op *= nk.operator.LocalOperator(hi, sy, [1])
     assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
 
     assert np.allclose((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
@@ -222,15 +228,8 @@ def test_mul_matmul():
     op *= 2.0
     assert np.allclose(op.to_dense(), 2.0 * sx0sy1_hat.to_dense())
 
-    with pytest.raises(TypeError):
-        doesnotwork = sx0_hat * sy1_hat
-    with pytest.raises(TypeError):
-        op = nk.operator.LocalOperator(hi, sx, [0])
-        op *= nk.operator.LocalOperator(hi, sy, [1])
-
     with pytest.raises(NotImplementedError):
         doesnotwork = sx0_hat @ 2.0
-
     with pytest.raises(NotImplementedError):
         op = nk.operator.LocalOperator(hi, sx, [0])
         op @= 2.0

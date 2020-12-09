@@ -167,10 +167,9 @@ class LocalOperator(AbstractOperator):
         return self.__add__(-1 * other)
 
     def __imul__(self, other):
-        """
-        Multply the operator by a number.
-        """
-        if not isinstance(other, numbers.Number):
+        if isinstance(other, AbstractOperator):
+            return self.__imatmul__(other)
+        elif not isinstance(other, numbers.Number):
             raise TypeError(
                 f"LocalOperator can only be multiplied with numbers. "
                 "(For the operator product, please use the `@` operator, see PEP 465.)"
@@ -213,7 +212,9 @@ class LocalOperator(AbstractOperator):
         return self
 
     def __mul__(self, other):
-        if not isinstance(other, numbers.Number):
+        if isinstance(other, AbstractOperator):
+            return self.__matmul__(other)
+        elif not isinstance(other, numbers.Number):
             raise TypeError(
                 f"LocalOperator can only be multiplied with numbers. "
                 "(For the operator product, please use the `@` operator, see PEP 465.)"
