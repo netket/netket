@@ -18,7 +18,7 @@ import netket as nk
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=1/2, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian
 ha = nk.operator.Ising(h=1.0, hilbert=hi, graph=g)

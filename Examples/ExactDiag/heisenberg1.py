@@ -19,7 +19,7 @@ from scipy.sparse.linalg import eigsh
 g = nk.graph.Hypercube(length=16, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=1/2, N=g.n_nodes)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Heisenberg spin hamiltonian
 ha = nk.operator.Heisenberg(hilbert=hi)
