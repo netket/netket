@@ -153,4 +153,4 @@ class Boson(CustomHilbert):
             ", n_bosons={}".format(self._n_bosons) if self._n_bosons is not None else ""
         )
         nmax = self._n_max if self._n_max < _np.iinfo(_np.intp).max else "INT_MAX"
-        return "Boson(n_max={}{}; N={})".format(nmax, nbosons, self._size)
+        return "Boson(n_max={}{}, N={})".format(nmax, nbosons, self._size)

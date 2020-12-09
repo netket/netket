@@ -226,6 +226,6 @@ class CustomHilbert(AbstractHilbert):
             if self._has_constraint
             else ""
         )
-        return "CustomHilbert(local_size={}{}; N={})".format(
+        return "CustomHilbert(N={}; local_size={}{})".format(
             len(self.local_states), constr, self.size
         )

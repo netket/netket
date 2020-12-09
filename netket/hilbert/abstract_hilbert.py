@@ -15,31 +15,31 @@ class AbstractHilbert(abc.ABC):
     @abc.abstractmethod
     def size(self):
         r"""int: The total number number of spins."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def is_discrete(self):
         r"""bool: Whether the hilbert space is discrete."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def is_finite(self):
         r"""bool: Whether the local hilbert space is finite."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def local_size(self):
         r"""int: Size of the local degrees of freedom that make the total hilbert space."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def local_states(self):
         r"""list[float]: A list of discreet local quantum numbers."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def numbers_to_states(self, numbers, out=None):
         r"""Returns the quantum numbers corresponding to the n-th basis state
@@ -50,7 +50,7 @@ class AbstractHilbert(abc.ABC):
             out: Array of quantum numbers corresponding to numbers.
                  If None, memory is allocated.
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     def number_to_state(self, number):
         r"""Returns the quantum number corresponding to the n-th basis state
@@ -84,7 +84,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.darray: Array of integers corresponding to out.
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     def state_to_number(self, state):
         r"""Returns the basis state number corresponding to given quantum states.
@@ -108,7 +108,7 @@ class AbstractHilbert(abc.ABC):
     def n_states(self):
         r"""int: The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def states(self):
         r"""Returns an iterator over all valid configurations of the Hilbert space.
