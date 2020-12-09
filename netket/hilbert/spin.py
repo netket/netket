@@ -6,11 +6,13 @@ import numpy as _np
 from netket import random as _random
 from numba import jit
 
+from typing import Optional, List
+
 
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(self, s, N=1, total_sz=None):
+    def __init__(self, s: float, N: int = 1, total_sz: Optional[float] = None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
@@ -125,7 +127,7 @@ class Spin(CustomHilbert):
         if self._total_sz is None:
             total_sz = None
         else:
-            total_sz * n
+            total_sz = total_sz * n
 
         return Spin(self._s, self.size * n, total_sz=total_sz)
 

@@ -46,8 +46,7 @@ class Jastrow(AbstractMachine):
         Args:
             hilbert: Hilbert space object for the system.
             use_visible_bias (bool): Whether to use the visible bias a_i.
-            symmetry (optional): Can be a graph or a custom matrix of automorphisms can
-                                 also be passed instead.
+            automorphisms (optional): Can be a graph or a custom matrix of automorphisms.
             dtype: either complex or float, it is the type used for the weights and biases.
 
         Examples:

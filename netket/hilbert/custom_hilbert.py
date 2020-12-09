@@ -5,11 +5,18 @@ from numba import jit
 import numpy as _np
 from netket import random as _random
 
+from typing import Optional, List
+
 
 class CustomHilbert(AbstractHilbert):
     r"""A custom hilbert space with discrete local quantum numbers."""
 
-    def __init__(self, local_states, N=1, constraints=None):
+    def __init__(
+        self,
+        local_states: Optional[List[float]],
+        N: int = 1,
+        constraints: Optional = None,
+    ):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
         a number of sites, or modes, within this hilbert space.

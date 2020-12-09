@@ -4,21 +4,28 @@ import numpy as _np
 from netket import random as _random
 from numba import jit
 
+from typing import List, Tuple, Optional
+
 
 class Boson(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local bosonic states."""
 
-    def __init__(self, n_max=None, N=1, n_bosons=None):
+    def __init__(
+        self,
+        n_max: Optional[int] = None,
+        N: int = 1,
+        n_bosons: Optional[int] = None,
+    ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
         and total number of bosons.
 
         Args:
-           n_max: Maximum occupation for a site (inclusive). If None, the local occupation
-                  number is unbounded.
-           N: Number of bosonic sites.
-           n_bosons: (optional) Constraint for the number of bosons. If None, no constraint
-                  is imposed.
+          n_max: Maximum occupation for a site (inclusive). If None, the local occupation
+            number is unbounded.
+          N: number of bosonic modes (default = 1)
+          n_bosons: Constraint for the number of bosons. If None, no constraint
+            is imposed.
 
         Examples:
            Simple boson hilbert space.
