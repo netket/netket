@@ -1,5 +1,6 @@
 from .metropolis_hastings import *
 from ._kernels import _ExchangeKernel
+import numpy as _np
 
 
 def _compute_clusters(graph, d_max):
@@ -16,7 +17,7 @@ def _compute_clusters(graph, d_max):
     for i, cluster in enumerate(clusters):
         res_clusters[i] = _np.asarray(cluster)
 
-    return rese_clusters
+    return res_clusters
 
 
 def MetropolisExchange(
