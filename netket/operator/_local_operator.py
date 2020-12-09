@@ -259,9 +259,6 @@ class LocalOperator(AbstractOperator):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    def __rmatmul__(self, other):
-        return self.__mul__(other)
-
     def __radd__(self, other):
         return self.__radd__(other)
 
