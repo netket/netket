@@ -20,7 +20,7 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 # with total Sz equal to 0
-hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes, total_sz=0)
+hi = nk.hilbert.Spin(s=1/2, N=g.n_nodes, total_sz=0)
 
 # Heisenberg hamiltonian
 ha = nk.operator.Heisenberg(hilbert=hi)

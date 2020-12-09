@@ -22,7 +22,7 @@ gnx = nx.star_graph(10)
 g = nk.graph.CustomGraph(list(gnx.edges))
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes.n_nodes)
+hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes)
 
 # Ising spin hamiltonian
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
