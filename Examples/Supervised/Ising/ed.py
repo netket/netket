@@ -21,7 +21,7 @@ def load_ed_data(L):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
     # Hilbert space of spins on the graph
-    hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes)
+    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     # Ising spin hamiltonian
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
