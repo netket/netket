@@ -233,3 +233,26 @@ def test_mul_matmul():
     with pytest.raises(NotImplementedError):
         op = nk.operator.LocalOperator(hi, sx, [0])
         op @= 2.0
+
+
+def test_truediv():
+    hi = nk.hilbert.Spin(nk.graph.Edgeless(2), s=1 / 2)
+
+    sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
+    sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
+    sx0sy1_hat = sx0_hat @ sy1_hat
+
+    assert np.allclose((sx0sy1_hat / 2.0).to_dense(), sx0sy1_hat.to_dense() / 2.0)
+    assert np.allclose((sx0sy1_hat / 2.0).to_dense(), 0.5 * sx0sy1_hat.to_dense())
+
+    assert np.allclose((sx0sy1_hat / 2).to_dense(), sx0sy1_hat.to_dense() / 2)
+    assert np.allclose((sx0sy1_hat / 2).to_dense(), 0.5 * sx0sy1_hat.to_dense())
+
+    with pytest.raises(TypeError):
+        doesnotwork = sx0_hat / sy1_hat
+    with pytest.raises(TypeError):
+        doesnotwork = 1.0 / sx0_hat
+
+    sx0sy1 = sx0sy1_hat.to_dense()
+    sx0sy1_hat /= 3.0
+    assert np.allclose(sx0sy1_hat.to_dense(), sx0sy1 / 3.0)
