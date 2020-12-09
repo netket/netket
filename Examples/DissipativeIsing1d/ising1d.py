@@ -25,7 +25,7 @@ Vp = 2.0
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 
 # Defining the Ising hamiltonian (with sign problem here)

@@ -44,7 +44,7 @@ def load_ed_data(L, J2=0.4):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
     # Spin based Hilbert Space
-    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
     # Custom Hamiltonian operator
     ha = nk.operator.LocalOperator(hi)

@@ -21,7 +21,7 @@ g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=12)
 
 # Bose Hubbard Hamiltonian
-ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g.n_nodes)
+ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
 
 # Jastrow Machine with Symmetry
 ma = nk.machine.JastrowSymm(hilbert=hi, automorphisms=g)
