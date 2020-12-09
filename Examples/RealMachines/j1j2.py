@@ -44,7 +44,7 @@ for i in range(L):
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Spin based Hilbert Space
-hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g.n_nodes)
+hi = nk.hilbert.Spin(s=1/2, total_sz=0.0, N=g.n_nodes)
 
 # Custom Hamiltonian operator
 op = nk.operator.LocalOperator(hi)
