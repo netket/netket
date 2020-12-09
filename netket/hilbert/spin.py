@@ -68,7 +68,7 @@ class Spin(CustomHilbert):
 
            >>> import netket as nk
            >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, N=4)
+           >>> hi = nk.hilbert.Spin(N=4)
            >>> rstate = np.zeros(hi.size)
            >>> hi.random_state(rstate)
            >>> local_states = hi.local_states
