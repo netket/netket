@@ -21,7 +21,7 @@ g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
 hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=8)
 
 # Bose Hubbard Hamiltonian
-ha = nk.operator.BoseHubbard(hilbert=hi, graph=g.n_nodes, U=4.0)
+ha = nk.operator.BoseHubbard(hilbert=hi, graph=g, U=4.0)
 
 # RBM Machine with one-hot encoding, real parameters, and symmetries
 ma = nk.machine.RbmMultiVal(hilbert=hi, alpha=1, dtype=float, automorphisms=g)

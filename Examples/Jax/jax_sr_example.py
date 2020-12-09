@@ -11,7 +11,7 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5) ** L
 
-ha = nk.operator.Ising(hilbert=hi, graph=g.n_nodes, h=1.0)
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 alpha = 1
 ma = nk.machine.JaxRbm(hi, alpha, dtype=complex)

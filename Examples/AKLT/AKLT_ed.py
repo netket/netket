@@ -46,7 +46,7 @@ g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=1, N=L)
 
 # AKLT model Hamiltonian as graph
-ha = nk.operator.GraphOperator(hilbert=hi, graph=g.n_nodes, bond_ops=[P2_AKLT.tolist()])
+ha = nk.operator.GraphOperator(hilbert=hi, graph=g, bond_ops=[P2_AKLT.tolist()])
 
 # Perform Lanczos Exact Diagonalization to get lowest three eigenvalues
 w, v = nk.exact.lanczos_ed(ha, k=3, compute_eigenvectors=True)

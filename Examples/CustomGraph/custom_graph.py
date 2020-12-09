@@ -25,7 +25,7 @@ g = nk.graph.CustomGraph(list(gnx.edges))
 hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes.n_nodes)
 
 # Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g.n_nodes, h=1.0)
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
