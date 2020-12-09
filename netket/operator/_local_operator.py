@@ -256,6 +256,11 @@ class LocalOperator(AbstractOperator):
 
         return result
 
+    def __truediv__(self, other):
+        if not isinstance(other, numbers.Number):
+            raise TypeError("Only divison by a scalar number is supported.")
+        return self.__mul__(1.0 / other)
+
     def __rmul__(self, other):
         return self.__mul__(other)
 
