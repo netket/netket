@@ -19,13 +19,13 @@ g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 # with total Sz equal to 0
-hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes, total_sz=0)
 
 # Heisenberg hamiltonian
 ha = nk.operator.Heisenberg(hilbert=hi)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.JastrowSymm(hilbert=hi, dtype=float)
+ma = nk.machine.JastrowSymm(hilbert=hi, automorphisms=g, dtype=float)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Exchange Sampling

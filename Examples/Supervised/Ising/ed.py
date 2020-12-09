@@ -21,10 +21,10 @@ def load_ed_data(L):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
     # Hilbert space of spins on the graph
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5, graph=g.n_nodes)
 
     # Ising spin hamiltonian
-    ha = nk.operator.Ising(h=1.0, hilbert=hi)
+    ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
     # Perform Lanczos Exact Diagonalization to get lowest three eigenvalues
     res = nk.exact.lanczos_ed(ha, first_n=3, compute_eigenvectors=True)

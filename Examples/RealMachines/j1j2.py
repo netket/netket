@@ -44,7 +44,7 @@ for i in range(L):
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Spin based Hilbert Space
-hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
+hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g.n_nodes)
 
 # Custom Hamiltonian operator
 op = nk.operator.LocalOperator(hi)
@@ -56,7 +56,7 @@ ma = nk.machine.RbmSpinPhase(hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.1)
 
 # Sampler
-sa = nk.sampler.MetropolisExchange(machine=ma, graph=g)
+sa = nk.sampler.MetropolisExchange(machine=ma, graph=g.n_nodes)
 
 # Optimizer
 opt = nk.optimizer.Sgd(learning_rate=0.01)
