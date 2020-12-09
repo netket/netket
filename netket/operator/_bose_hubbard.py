@@ -12,7 +12,7 @@ class BoseHubbard(AbstractOperator):
     on-site interactions and nearest-neighboring density-density interactions.
     """
 
-    def __init__(self, hilbert, U, V=0, J=1, mu=0):
+    def __init__(self, hilbert, graph, U, V=0, J=1, mu=0):
         r"""
         Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
         interaction strength. The chemical potential and the density-density interaction strenght
@@ -35,6 +35,11 @@ class BoseHubbard(AbstractOperator):
            >>> print(op.hilbert.size)
            9
         """
+
+        assert (
+            graph.n_nodes == hilbert.size
+        ), "The size of the graph must match the hilbert space."
+
         self._U = U
         self._V = V
         self._J = J
@@ -44,7 +49,7 @@ class BoseHubbard(AbstractOperator):
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = _np.asarray(list(hilbert.graph.edges()))
+        self._edges = _np.asarray(list(graph.edges()))
         self._max_conn = 1 + self._edges.shape[0] * 2
         self._max_mels = _np.empty(self._max_conn, dtype=_np.complex128)
         self._max_xprime = _np.empty((self._max_conn, self._n_sites))

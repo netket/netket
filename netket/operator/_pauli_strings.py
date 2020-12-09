@@ -1,6 +1,5 @@
 from ._abstract_operator import AbstractOperator
 from ..hilbert import Qubit
-from ..graph import Edgeless
 
 import numpy as _np
 from numba import jit
@@ -51,9 +50,8 @@ class PauliStrings(AbstractOperator):
                 the Pauli operators X,Y,Z, or the identity I"""
             )
 
-        graph = Edgeless(_n_qubits)
         self._n_qubits = _n_qubits
-        self._hilbert = Qubit(graph)
+        self._hilbert = Qubit(_n_qubits)
 
         n_operators = len(operators)
 
