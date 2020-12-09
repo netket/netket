@@ -232,7 +232,7 @@ def test_mul_matmul():
 
 
 def test_truediv():
-    hi = nk.hilbert.Spin(nk.graph.Edgeless(2), s=1 / 2)
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
 
     sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
     sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
