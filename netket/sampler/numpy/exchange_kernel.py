@@ -4,20 +4,8 @@ from numba import jit, int64, float64
 
 
 class _ExchangeKernel:
-    def __init__(self, hilbert, d_max):
-        clusters = []
-        distances = _np.asarray(hilbert.graph.distances())
-        size = distances.shape[0]
-        for i in range(size):
-            for j in range(i + 1, size):
-                if distances[i][j] <= d_max:
-                    clusters.append((i, j))
-
-        self.clusters = _np.empty((len(clusters), 2), dtype=_np.int64)
-
-        for i, cluster in enumerate(clusters):
-            self.clusters[i] = _np.asarray(cluster)
-
+    def __init__(self, hilbert, clusters):
+        self.clusters = clusters
         self._hilbert = hilbert
 
     @staticmethod
