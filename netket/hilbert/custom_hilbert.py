@@ -215,8 +215,8 @@ class CustomHilbert(AbstractHilbert):
 
     def __pow__(self, n):
         if self._constraints is not None:
-            raise ValueError(
-                """Cannot exponentiate a CustomHilbret with a constraint. 
+            raise NotImplementedError(
+                """Cannot exponentiate a CustomHilbert with constraints. 
                 Construct it from scratch instead."""
             )
 
