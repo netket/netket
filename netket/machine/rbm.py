@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .abstract_machine import AbstractMachine
+from netket.graph import AbstractGraph
 import numpy as _np
 
 from numba import (
@@ -57,7 +58,7 @@ class RbmSpin(AbstractMachine):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
-        symmetry=None,
+        automorphisms=None,
         dtype=complex,
     ):
         r"""
@@ -74,8 +75,7 @@ class RbmSpin(AbstractMachine):
                               Default ``True``.
             use_hidden_bias: If ``True`` bias on the hidden units is taken.
                              Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
-                                 otherwise a valid array of automorphisms can be passed.
+            automorphisms (optional): a list of automorphisms to use as symmetries.
             dtype: either complex or float, is the type used for the weights.
 
         Examples:
@@ -84,9 +84,7 @@ class RbmSpin(AbstractMachine):
 
             >>> from netket.machine import RbmSpin
             >>> from netket.hilbert import Spin
-            >>> from netket.graph import Hypercube
-            >>> g = Hypercube(length=20, n_dim=1)
-            >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+            >>> hi = Spin(s=0.5, total_sz=0, N=20)
             >>> ma = RbmSpin(hilbert=hi,alpha=2)
             >>> print(ma.n_par)
             860
@@ -102,7 +100,7 @@ class RbmSpin(AbstractMachine):
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
         self._autom, self.n_hidden, alpha_symm = self._get_hidden(
-            symmetry, hilbert, n_hidden, alpha
+            automorphisms, hilbert, n_hidden, alpha
         )
 
         m = self.n_hidden
@@ -118,7 +116,7 @@ class RbmSpin(AbstractMachine):
             + (self._b.size if self._b is not None else 0)
         )
 
-        if symmetry is None or symmetry is False:
+        if automorphisms is None or automorphisms is False:
             self._ws = self._w.view()
             self._as = self._a.view() if use_visible_bias else None
             self._bs = self._b.view() if use_hidden_bias else None
@@ -341,8 +339,8 @@ class RbmSpin(AbstractMachine):
         return der_mat_symm.T, n_par
 
     @staticmethod
-    def _get_hidden(symmetry, hilbert, n_hidden, alpha):
-        if (symmetry is None) or (symmetry is False):
+    def _get_hidden(automorphisms, hilbert, n_hidden, alpha):
+        if (automorphisms is None) or (automorphisms is False):
             if alpha is None:
                 m = n_hidden
                 if n_hidden < 0:
@@ -361,11 +359,11 @@ class RbmSpin(AbstractMachine):
 
             return None, m, m
         else:
-            if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms())
+            if isinstance(automorphisms, AbstractGraph):
+                autom = _np.asarray(automorphisms.automorphisms())
             else:
                 try:
-                    autom = _np.asarray(symmetry)
+                    autom = _np.asarray(automorphisms)
                     assert hilbert.size == autom.shape[1]
                 except:
                     raise RuntimeError("Cannot find a valid automorphism array.")
@@ -378,7 +376,7 @@ class RbmSpin(AbstractMachine):
             alphasym = int(alpha * autom.shape[1] / autom.shape[0])
             if alphasym == 0 and alpha > 0:
                 print(
-                    "Warning, the given value of alpha is too small, given the size of the symmetry."
+                    "Warning, the given value of alpha is too small, given the size of the automorphisms."
                 )
             m = int(alphasym * autom.shape[0])
 
@@ -418,7 +416,7 @@ class RbmSpinReal(RbmSpin):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
-        symmetry=None,
+        automorphisms=None,
     ):
         r"""
         Constructs a new ``RbmSpinReal`` machine:
@@ -433,8 +431,8 @@ class RbmSpinReal(RbmSpin):
             use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
-                                 otherwise a valid array of automorphisms can be passed.
+            automorphisms (optional): A list of automorphisms to be taken as symmetries of the
+                           rbm. They can be obtained by calling graph.automorphism()
 
         Examples:
            A ``RbmSpinReal`` machine with hidden unit density
@@ -443,9 +441,8 @@ class RbmSpinReal(RbmSpin):
 
            >>> from netket.machine import RbmSpinReal
            >>> from netket.hilbert import Spin
-           >>> from netket.graph import Hypercube
            >>> g = Hypercube(length=20, n_dim=1)
-           >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+           >>> hi = Spin(s=0.5, total_sz=0, N=4)
            >>> ma = RbmSpinReal(hilbert=hi,alpha=2)
            >>> print(ma.n_par)
            860
@@ -456,7 +453,7 @@ class RbmSpinReal(RbmSpin):
             alpha=alpha,
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
-            symmetry=symmetry,
+            automorphisms=automorphisms,
             dtype=float,
         )
 
@@ -481,6 +478,7 @@ class RbmSpinSymm(RbmSpin):
     def __init__(
         self,
         hilbert,
+        automorphisms,
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
@@ -505,9 +503,7 @@ class RbmSpinSymm(RbmSpin):
 
            >>> from netket.machine import RbmSpinSymm
            >>> from netket.hilbert import Spin
-           >>> from netket.graph import Hypercube
-           >>> g = Hypercube(length=20, n_dim=1)
-           >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+           >>> hi = Spin(s=0.5, total_sz=0, N=20)
            >>> ma = RbmSpinSymm(hilbert=hi, alpha=2)
            >>> print(ma.n_par)
            43
@@ -517,7 +513,7 @@ class RbmSpinSymm(RbmSpin):
             alpha=alpha,
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
-            symmetry=True,
+            automorphisms=automorphisms,
             dtype=dtype,
         )
 
@@ -537,7 +533,7 @@ class RbmMultiVal(RbmSpin):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
-        symmetry=None,
+        automorphisms=None,
         dtype=complex,
     ):
 
@@ -557,8 +553,8 @@ class RbmMultiVal(RbmSpin):
             use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms are taken,
-                                 otherwise a valid array of automorphisms can be passed.
+            automorphisms (optional): A list of automorphisms to be taken as symmetries of the
+                           rbm. They can be obtained by calling graph.automorphism()
             dtype: either complex or float, is the type used for the weights.
 
         Examples:
@@ -567,9 +563,7 @@ class RbmMultiVal(RbmSpin):
 
             >>> from netket.machine import RbmMultiVal
             >>> from netket.hilbert import Boson
-            >>> from netket.graph import Hypercube
-            >>> g = Hypercube(length=10, n_dim=1)
-            >>> hi = Boson(graph=g, n_max=3, n_bosons=8)
+            >>> hi = Boson(n_max=3, n_bosons=8, N=10)
             >>> ma = RbmMultiVal(hilbert=hi, alpha=1, dtype=float, use_visible_bias=False)
             >>> print(ma.n_par)
             1056
@@ -580,7 +574,7 @@ class RbmMultiVal(RbmSpin):
         l_hilbert = _np.zeros(local_states.size * hilbert.size)
 
         # creating the symmetries for the extended space
-        symmetry = self._make_extended_symmetry(symmetry, hilbert)
+        autom = self._make_extended_symmetry(automorphisms, hilbert)
 
         super().__init__(
             l_hilbert,
@@ -588,7 +582,7 @@ class RbmMultiVal(RbmSpin):
             alpha,
             use_visible_bias,
             use_hidden_bias,
-            symmetry,
+            autom,
             dtype,
         )
 
@@ -608,13 +602,13 @@ class RbmMultiVal(RbmSpin):
         return res.reshape((vec.shape[0], -1))
 
     @staticmethod
-    def _make_extended_symmetry(symmetry, hilbert):
-        if symmetry is not None:
-            if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms())
+    def _make_extended_symmetry(automorphisms, hilbert):
+        if automorphisms is not None:
+            if isinstance(automorphisms, AbstractGraph):
+                autom = _np.asarray(automorphisms.automorphisms())
             else:
                 try:
-                    autom = _np.asarray(symmetry)
+                    autom = _np.asarray(automorphisms)
                     assert hilbert.size == autom.shape[1]
                 except:
                     raise RuntimeError("Cannot find a valid automorphism array.")
@@ -686,7 +680,7 @@ class RbmSpinPhase(AbstractMachine):
         n_hidden_p=None,
         use_visible_bias=True,
         use_hidden_bias=True,
-        symmetry=None,
+        automorphisms=None,
     ):
         r"""
         Constructs a new ``RbmSpinPhase`` machine:
@@ -708,8 +702,7 @@ class RbmSpinPhase(AbstractMachine):
             use_hidden_bias: If ``True`` then there would be a
                            bias on the visible units.
                            Default ``True``.
-            symmetry (optional): If ``True`` hilbert.graph.automorphisms() are taken,
-                                 otherwise a valid array of automorphisms can be passed.
+            automorphisms (optional): List of automorphisms to enforcee symmetries in the Boltzmann Machine.
 
         Examples:
 
@@ -728,7 +721,7 @@ class RbmSpinPhase(AbstractMachine):
             alpha=alpha_a,
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
-            symmetry=symmetry,
+            automorphisms=automorphisms,
             dtype=float,
         )
         self._rbm_p = RbmSpin(
@@ -737,7 +730,7 @@ class RbmSpinPhase(AbstractMachine):
             alpha=alpha_p,
             use_visible_bias=use_visible_bias,
             use_hidden_bias=use_hidden_bias,
-            symmetry=symmetry,
+            automorphisms=automorphisms,
             dtype=float,
         )
 

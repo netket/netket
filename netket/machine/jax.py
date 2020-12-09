@@ -412,7 +412,7 @@ def JaxRbm(hilbert, alpha, dtype=complex):
     )
 
 
-def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
+def MPSPeriodic(hilbert, graph, bond_dim, diag=False, symperiod=None, dtype=complex):
     r"""
     Constructs a periodic Matrix Product State (MPS) for a quantum state of discrete
     degrees of freedom, wrapped as Jax machine.  The MPS is defined as
@@ -441,12 +441,14 @@ def MPSPeriodic(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
     """
     return Jax(
         hilbert,
-        MpsPeriodicLayer(hilbert, bond_dim, diag, symperiod, dtype),
+        MpsPeriodicLayer(hilbert, graph, bond_dim, diag, symperiod, dtype),
         dtype=dtype,
     )
 
 
-def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=complex):
+def MpsPeriodicLayer(
+    hilbert, graph, bond_dim, diag=False, symperiod=None, dtype=complex
+):
     # default standard deviation equals 1e-2
     normal_init = jax.nn.initializers.normal()
 
@@ -469,7 +471,7 @@ def MpsPeriodicLayer(hilbert, bond_dim, diag=False, symperiod=None, dtype=comple
     # check whether graph is periodic chain
     import networkx as _nx
 
-    edges = hilbert.graph.edges()
+    edges = graph.edges()
     G = _nx.Graph()
     G.add_edges_from(edges)
 
