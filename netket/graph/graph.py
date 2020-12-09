@@ -97,19 +97,6 @@ class NetworkX(AbstractGraph):
             str(type(self)).split(".")[-1][:-2], self.n_nodes
         )
 
-    def __pow__(self, exponent):
-        if not isinstance(exponent, int):
-            raise ValueError(
-                "Exponent {} not valid: only integers are supported".format(exponent)
-            )
-
-        base = self
-        g = self
-        for i in range(1, exponent):
-            g = disjoint_union(g, base)
-
-        return g
-
 
 def Graph(nodes=[], edges=[]):
     r"""
