@@ -170,10 +170,7 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, AbstractOperator):
             return self.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
-            raise TypeError(
-                f"LocalOperator can only be multiplied with numbers. "
-                "(For the operator product, please use the `@` operator, see PEP 465.)"
-            )
+            raise TypeError("`other` must be another NetKet operator or a scalar.")
         self._constant *= other
         self._diag_mels *= other
         self._mels *= other
@@ -215,10 +212,7 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, AbstractOperator):
             return self.__matmul__(other)
         elif not isinstance(other, numbers.Number):
-            raise TypeError(
-                f"LocalOperator can only be multiplied with numbers. "
-                "(For the operator product, please use the `@` operator, see PEP 465.)"
-            )
+            raise TypeError("`other` must be another NetKet operator or a scalar.")
 
         new_ops = [_np.copy(op * other) for op in self._operators]
 
