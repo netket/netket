@@ -249,9 +249,11 @@ def test_log_derivative():
         flatten = machine.numpy_flatten
 
         for i in range(100):
-            hi.random_state(out=v)
             if name in dm_machines:
-                hi.random_state(out=v[hi.size : 2 * hi.size])
+                hi.random_state(out=v[: hi.size])
+                hi.random_state(out=v[hi.size :])
+            else:
+                hi.random_state(out=v)
 
             machine.init_random_parameters(seed=i)
             randpars = flatten(machine.parameters)
