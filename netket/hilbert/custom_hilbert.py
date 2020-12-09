@@ -5,7 +5,8 @@ from numba import jit
 import numpy as _np
 from netket import random as _random
 
-from typing import Optional, List
+from typing import Optional, List, Callable
+from numbers import Real
 
 
 class CustomHilbert(AbstractHilbert):
@@ -13,9 +14,9 @@ class CustomHilbert(AbstractHilbert):
 
     def __init__(
         self,
-        local_states: Optional[List[float]],
+        local_states: Optional[List[Real]],
         N: int = 1,
-        constraints: Optional = None,
+        constraint_fn: Optional[Callable] = None,
     ):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
@@ -25,7 +26,7 @@ class CustomHilbert(AbstractHilbert):
             local_states (list or None): Eigenvalues of the states. If the allowed states are an
                          infinite number, None should be passed as an argument.
             N: Number of modes in this hilbert space (default 1).
-            constraints: A function specifying constraints on the quantum numbers.
+            constraint_fn: A function specifying constraints on the quantum numbers.
                         Given a batch of quantum numbers it should return a vector
                         of bools specifying whether those states are valid or not.
 
@@ -54,8 +55,8 @@ class CustomHilbert(AbstractHilbert):
             self._local_states = None
             self._local_size = _np.iinfo(_np.intp).max
 
-        self._constraints = constraints
-        self._do_constraints = self._constraints is not None
+        self._has_constraint = constraint_fn is not None
+        self._constraint_fn = constraint_fn
 
         self._hilbert_index = None
 
@@ -89,7 +90,7 @@ class CustomHilbert(AbstractHilbert):
 
         hind = self._get_hilbert_index()
 
-        if self._constraints is None:
+        if not self._has_constraint:
             return hind.n_states
         else:
             return self._bare_numbers.shape[0]
@@ -124,7 +125,7 @@ class CustomHilbert(AbstractHilbert):
         hind = self._get_hilbert_index()
 
         out = self._to_constrained_numbers_kernel(
-            self._do_constraints,
+            self._has_constraint,
             self._bare_numbers,
             hind.states_to_numbers(states, out),
         )
@@ -152,22 +153,21 @@ class CustomHilbert(AbstractHilbert):
            >>> print(rstate[0] in local_states)
            True
         """
+        if not self.is_discrete or not self.is_finite or self._has_constraint:
+            raise NotImplementedError()
 
-        # Default version for discrete hilbert spaces without constraints
-        # More specialized initializations can be defined in the derived classes
+        # Default version for discrete hilbert spaces without constraints.
+        # More specialized initializations can be defined in the derived classes.
         shape = (batch, self._size) if batch is not None else (self._size,)
-        if self.is_discrete and self.is_finite and not self._do_constraints:
-            if out is None:
-                out = _np.empty(shape=shape)
 
-            if rgen is None:
-                rgen = _random
+        if out is None:
+            out = _np.empty(shape=shape)
+        if rgen is None:
+            rgen = _random
 
-            out[:] = rgen.choice(self.local_states, size=shape)
+        out[:] = rgen.choice(self.local_states, size=shape)
 
-            return out
-
-        return NotImplementedError
+        return out
 
     def _get_hilbert_index(self):
         if self._hilbert_index is None:
@@ -178,9 +178,9 @@ class CustomHilbert(AbstractHilbert):
                 _np.asarray(self.local_states, dtype=_np.float64), self.size
             )
 
-            if self._do_constraints:
+            if self._has_constraint:
                 self._bare_numbers = self._gen_to_bare_numbers(
-                    self._constraints(self._hilbert_index.all_states())
+                    self._constraint_fn(self._hilbert_index.all_states())
                 )
             else:
                 self._bare_numbers = _np.empty(0, dtype=_np.intp)
@@ -188,7 +188,7 @@ class CustomHilbert(AbstractHilbert):
         return self._hilbert_index
 
     def _to_bare_numbers(self, numbers):
-        if self._constraints is None:
+        if self._constraint_fn is None:
             return numbers
         else:
             return self._bare_numbers[numbers]
@@ -200,8 +200,8 @@ class CustomHilbert(AbstractHilbert):
 
     @staticmethod
     @jit(nopython=True)
-    def _to_constrained_numbers_kernel(do_constraints, bare_numbers, numbers):
-        if not do_constraints:
+    def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
+        if not has_constraint:
             return numbers
         else:
             found = _np.searchsorted(bare_numbers, numbers)
@@ -212,7 +212,7 @@ class CustomHilbert(AbstractHilbert):
             return found
 
     def __pow__(self, n):
-        if self._constraints is not None:
+        if self._has_constraint:
             raise NotImplementedError(
                 """Cannot exponentiate a CustomHilbert with constraints. 
                 Construct it from scratch instead."""
@@ -222,8 +222,8 @@ class CustomHilbert(AbstractHilbert):
 
     def __repr__(self):
         constr = (
-            ", #contraints={}".format(len(self._constraints))
-            if self._do_constraints
+            ", has_constraint={}".format(self._has_constraint)
+            if self._has_constraint
             else ""
         )
         return "CustomHilbert(local_size={}{}; N={})".format(
