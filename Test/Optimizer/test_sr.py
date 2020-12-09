@@ -10,11 +10,8 @@ def test_sr_no_segfault():
     """
     Tests the resolution of bug #317.
     """
-    # 1D Lattice
-    g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-
     # Hilbert space of spins on the graph
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5) ** 20
     machine = nk.machine.RbmSpin(alpha=1, hilbert=hi)
     sr = SR(machine)
     assert sr.last_covariance_matrix is None
@@ -28,10 +25,7 @@ def test_svd_threshold():
         ValueError,
         match="The svd_threshold option is available only for non-sparse solvers.",
     ):
-        # 1D Lattice
-        g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-
         # Hilbert space of spins on the graph
-        hi = nk.hilbert.Spin(s=0.5, graph=g)
+        hi = nk.hilbert.Spin(s=0.5) ** 20
         machine = nk.machine.RbmSpin(alpha=1, hilbert=hi)
         SR(machine, use_iterative=True, svd_threshold=1e-3)

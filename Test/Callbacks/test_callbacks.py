@@ -2,17 +2,17 @@ import netket as nk
 import time
 
 SEED = 3141592
+L = 8
 
 
 def _vmc(n_iter=20):
     nk.random.seed(SEED)
-    g = nk.graph.Hypercube(length=8, n_dim=1)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5) ** L
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
     ma.init_random_parameters(sigma=0.01, seed=SEED)
 
-    ha = nk.operator.Ising(hi, h=1.0)
+    ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(machine=ma)
 
     op = nk.optimizer.Sgd(ma, learning_rate=0.1)

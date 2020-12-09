@@ -16,8 +16,7 @@ sigmam = [[0, 0], [1, 0]]
 
 
 def _setup_system():
-    g = nk.graph.Hypercube(length=L, n_dim=1)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5) ** L
 
     ha = nk.operator.LocalOperator(hi)
     j_ops = []
@@ -59,8 +58,7 @@ def _setup_ss(**kwargs):
 
 
 def _setup_obs():
-    g = nk.graph.Hypercube(length=L, n_dim=1)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5) ** L
 
     obs_sx = nk.operator.LocalOperator(hi)
     for i in range(L):

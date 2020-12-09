@@ -13,9 +13,9 @@ TIME = 20.0
 
 
 def _setup_model():
-    g = nk.graph.Hypercube(8, 1)
-    hi = nk.hilbert.Spin(g, 0.5)
-    ham = nk.operator.Heisenberg(hi)
+    L = 8
+    hi = nk.hilbert.Spin(0.5) ** L
+    ham = nk.operator.Heisenberg(hi, nk.graph.Hypercube(L, 1))
 
     psi0 = np.random.rand(hi.n_states) + 1j * np.random.rand(hi.n_states)
     psi0 /= norm(psi0)

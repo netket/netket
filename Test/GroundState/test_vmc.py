@@ -16,12 +16,12 @@ nk.random.seed(SEED)
 def _setup_vmc(lsq_solver=None):
     L = 4
     g = nk.graph.Hypercube(length=L, n_dim=1)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
     ma.init_random_parameters(sigma=0.01)
 
-    ha = nk.operator.Ising(hi, h=1.0)
+    ha = nk.operator.Ising(hi, graph=g, h=1.0)
     sa = nk.sampler.ExactSampler(machine=ma, sample_size=16)
     op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
