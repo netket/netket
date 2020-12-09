@@ -1,5 +1,4 @@
 from .custom_hilbert import CustomHilbert
-from netket.graph import AbstractGraph, Edgeless, disjoint_union
 
 from fractions import Fraction
 
@@ -11,35 +10,23 @@ from numba import jit
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(self, s, graph=None, total_sz=None):
+    def __init__(self, s, N=1, total_sz=None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
            s: Spin at each site. Must be integer or half-integer.
-           graph: Graph representation of sites. Can also be the number of sites (default=1)
+           N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular value.
 
         Examples:
            Simple spin hilbert space.
 
-           >>> from netket.graph import Hypercube
            >>> from netket.hilbert import Spin
            >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = Spin(graph=g, s=0.5)
+           >>> hi = Spin(s=0.5, N=4)
            >>> print(hi.size)
-           100
+           4
         """
-        if graph is None:
-            graph = Edgeless(1)
-        elif isinstance(graph, int):
-            graph = Edgeless(graph)
-        elif not isinstance(graph, AbstractGraph):
-            raise ValueError(
-                "Invalid graph argument: expected None,int or a Graph, but {} is a {}".format(
-                    graph, type(graph)
-                )
-            )
-
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
 
@@ -49,7 +36,7 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        self._check_total_sz(total_sz, graph.n_nodes)
+        self._check_total_sz(total_sz, N)
         if total_sz is not None:
 
             def constraints(x):
@@ -62,7 +49,7 @@ class Spin(CustomHilbert):
         self._s = s
         self._local_size = local_size
 
-        super().__init__(graph, local_states, constraints)
+        super().__init__(local_states, N, constraints)
 
     def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
@@ -79,7 +66,7 @@ class Spin(CustomHilbert):
 
            >>> import netket as nk
            >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+           >>> hi = nk.hilbert.Boson(n_max=3, N=4)
            >>> rstate = np.zeros(hi.size)
            >>> hi.random_state(rstate)
            >>> local_states = hi.local_states
@@ -140,10 +127,10 @@ class Spin(CustomHilbert):
         else:
             total_sz * n
 
-        return Spin(self._s, self.graph ** n, total_sz=total_sz)
+        return Spin(self._s, self.size * n, total_sz=total_sz)
 
     def __repr__(self):
         total_sz = (
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
-        return "Spin(s={}{}, graph={})".format(Fraction(self._s), total_sz, self._size)
+        return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)

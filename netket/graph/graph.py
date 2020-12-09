@@ -100,7 +100,7 @@ class NetworkX(AbstractGraph):
     def __pow__(self, exponent):
         if not isinstance(exponent, int):
             raise ValueError(
-                "Exponeent {} not valid: only integers are supported".format(exponent)
+                "Exponent {} not valid: only integers are supported".format(exponent)
             )
 
         base = self

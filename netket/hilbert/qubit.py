@@ -1,11 +1,10 @@
 from .custom_hilbert import CustomHilbert
-from netket.graph import Edgeless
 
 
 class Qubit(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local qubit states."""
 
-    def __init__(self, graph=None, size=None):
+    def __init__(self, N=1):
         r"""Initializes a qubit hilbert space.
 
         Args:
@@ -24,10 +23,7 @@ class Qubit(CustomHilbert):
             >>> print(hi.size)
             100
         """
-
-        if graph is None:
-            graph = Edgeless(size)
-        super().__init__(graph, [0, 1])
+        super().__init__([0, 1], N)
 
     def __repr__(self):
         return "Qubit(N={})".format(self._size)

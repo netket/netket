@@ -8,27 +8,25 @@ from numba import jit
 class Boson(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local bosonic states."""
 
-    def __init__(self, graph, n_max=None, n_bosons=None):
+    def __init__(self, n_max=None, N=1, n_bosons=None):
         r"""
-        Constructs a new ``Boson`` given a graph,  maximum occupation number,
+        Constructs a new ``Boson`` given a maximum occupation number, number of sites
         and total number of bosons.
 
         Args:
-           graph: Graph representation of sites.
            n_max: Maximum occupation for a site (inclusive). If None, the local occupation
                   number is unbounded.
-           n_bosons: Constraint for the number of bosons. If None, no constraint
+           N: Number of bosonic sites.
+           n_bosons: (optional) Constraint for the number of bosons. If None, no constraint
                   is imposed.
 
         Examples:
            Simple boson hilbert space.
 
-           >>> from netket.graph import Hypercube
            >>> from netket.hilbert import Boson
-           >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = Boson(graph=g, n_max=5, n_bosons=11)
+           >>> hi = Boson(n_max=5, n_bosons=11, N=3)
            >>> print(hi.size)
-           100
+           3
         """
 
         self._n_max = n_max
@@ -41,7 +39,7 @@ class Boson(CustomHilbert):
             if self._n_max is None:
                 self._n_max = n_bosons
             else:
-                if self._n_max * graph.n_nodes < n_bosons:
+                if self._n_max * N < n_bosons:
                     raise Exception(
                         """The required total number of bosons is not compatible
                         with the given n_max."""
@@ -64,7 +62,7 @@ class Boson(CustomHilbert):
 
         self._hilbert_index = None
 
-        super().__init__(graph, local_states, constraints)
+        super().__init__(local_states, N, constraints)
 
     @property
     def n_max(self):
@@ -93,7 +91,7 @@ class Boson(CustomHilbert):
 
            >>> import netket as nk
            >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+           >>> hi = nk.hilbert.Boson(n_max=3, N=5)
            >>> rstate = np.zeros(hi.size)
            >>> rg = nk.utils.RandomEngine(seed=1234)
            >>> hi.random_vals(rstate, rg)
