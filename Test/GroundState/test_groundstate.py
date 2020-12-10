@@ -12,14 +12,14 @@ SEED = 3141592
 def _setup_vmc(
     n_samples=200, diag_shift=0, use_iterative=False, lsq_solver=None, **kwargs
 ):
+    L = 8
     nk.random.seed(SEED)
-    g = nk.graph.Hypercube(length=8, n_dim=1)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
+    hi = nk.hilbert.Spin(s=0.5) ** L
 
     ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
     ma.init_random_parameters(sigma=0.01, seed=SEED)
 
-    ha = nk.operator.Ising(hi, h=1.0)
+    ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(machine=ma)
 
     op = nk.optimizer.Sgd(ma, learning_rate=0.1)
@@ -144,9 +144,10 @@ def test_vmc_run():
 
 
 def test_imag_time_propagation():
-    g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
-    hi = nk.hilbert.Spin(s=0.5, graph=g)
-    ha = nk.operator.Ising(h=0.0, hilbert=hi)
+    L = 8
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=0.5, N=L)
+    ha = nk.operator.Ising(graph=g, h=0.0, hilbert=hi)
 
     psi0 = np.random.rand(hi.n_states)
     driver = nk.exact.PyExactTimePropagation(
@@ -165,8 +166,8 @@ def test_imag_time_propagation():
 def test_ed():
     first_n = 3
     g = nk.graph.Chain(8)
-    hi = nk.hilbert.Spin(s=1 / 2, graph=g)
-    ha = nk.operator.Ising(h=1.0, hilbert=hi)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Ising(graph=g, h=1.0, hilbert=hi)
 
     def expval(op, v):
         return np.vdot(v, op(v))
@@ -211,11 +212,11 @@ def test_ed():
 
 def test_ed_restricted():
     g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
-    hi1 = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
-    hi2 = nk.hilbert.Spin(s=0.5, graph=g)
+    hi1 = nk.hilbert.Spin(s=0.5, N=g.n_nodes, total_sz=0)
+    hi2 = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ham1 = nk.operator.Heisenberg(hi1)
-    ham2 = nk.operator.Heisenberg(hi2)
+    ham1 = nk.operator.Heisenberg(hi1, graph=g)
+    ham2 = nk.operator.Heisenberg(hi2, graph=g)
 
     assert ham1.to_linear_operator().shape == (70, 70)
     assert ham2.to_linear_operator().shape == (256, 256)

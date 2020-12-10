@@ -8,18 +8,18 @@ operators = {}
 
 # Ising 1D
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hi = nk.hilbert.Spin(s=0.5, graph=g)
-operators["Ising 1D"] = nk.operator.Ising(h=1.321, hilbert=hi)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+operators["Ising 1D"] = nk.operator.Ising(hi, g, h=1.321)
 
 # Heisenberg 1D
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
-operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi)
+hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
+operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
-hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
-operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+hi = nk.hilbert.Boson(n_max=3, n_bosons=6, N=g.n_nodes)
+operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
 
 # Graph Hamiltonian
 N = 20
@@ -28,17 +28,21 @@ mszsz = np.asarray([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 edges = [[i, i + 1] for i in range(N - 1)] + [[N - 1, 0]]
 
 g = nk.graph.Graph(edges=edges)
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
-    hi, site_ops=[sigmax], bond_ops=[mszsz]
+    hi, g, site_ops=[sigmax], bond_ops=[mszsz]
 )
 
 # Graph Hamiltonian with colored edges
 edges_c = [(i, j, i % 2) for i, j in edges]
 g = nk.graph.Graph(edges=edges_c)
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
-    hi, site_ops=[sigmax], bond_ops=[1.0 * mszsz, 2.0 * mszsz], bond_ops_colors=[0, 1]
+    hi,
+    g,
+    site_ops=[sigmax],
+    bond_ops=[1.0 * mszsz, 2.0 * mszsz],
+    bond_ops_colors=[0, 1],
 )
 
 # Custom Hamiltonian
@@ -46,7 +50,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, 1.0j], [-1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
 
 def _loc(*args):
@@ -116,7 +120,7 @@ def test_operator_is_hermitean():
 
 def test_no_segfault():
     g = nk.graph.Hypercube(8, 1)
-    hi = nk.hilbert.Spin(g, 0.5)
+    hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
 
     lo = nk.operator.LocalOperator(hi, [[1, 0], [0, 1]], [0])
     lo = lo.transpose()
@@ -137,18 +141,18 @@ def test_deduced_hilbert_pauli():
 
 def test_Heisenberg():
     g = nk.graph.Hypercube(8, 1)
-    hi = nk.hilbert.Spin(g, 0.5)
+    hi = nk.hilbert.Spin(0.5) ** 8
 
     def gs_energy(ham):
         return nk.exact.lanczos_ed(ham)
 
-    ha1 = nk.operator.Heisenberg(hi)
-    ha2 = nk.operator.Heisenberg(hi, J=2.0)
+    ha1 = nk.operator.Heisenberg(hi, graph=g)
+    ha2 = nk.operator.Heisenberg(hi, graph=g, J=2.0)
 
     assert 2 * gs_energy(ha1) == pytest.approx(gs_energy(ha2))
 
-    ha1 = nk.operator.Heisenberg(hi, sign_rule=True)
-    ha2 = nk.operator.Heisenberg(hi, sign_rule=False)
+    ha1 = nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
+    ha2 = nk.operator.Heisenberg(hi, graph=g, sign_rule=False)
 
     assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
 
@@ -156,8 +160,8 @@ def test_Heisenberg():
         ValueError, match=r"sign_rule=True specified for a non-bipartite lattice"
     ):
         g = nk.graph.Hypercube(7, 1)
-        hi = nk.hilbert.Spin(g, 0.5)
+        hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
 
-        assert not hi.graph.is_bipartite()
+        assert not g.is_bipartite()
 
-        ha = nk.operator.Heisenberg(hi, sign_rule=True)
+        ha = nk.operator.Heisenberg(hi, graph=g, sign_rule=True)

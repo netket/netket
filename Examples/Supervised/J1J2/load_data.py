@@ -24,7 +24,7 @@ def load(path_to_samples, path_to_targets):
     # Create the hilbert space
     # TODO remove Hypercube here and put customgraph
     g = gr.Hypercube(length=len(tsamples[0]), n_dim=1)
-    hi = hs.Qubit(graph=g)
+    hi = hs.Qubit(N=g.n_nodes)
 
     training_samples = []
     training_targets = []

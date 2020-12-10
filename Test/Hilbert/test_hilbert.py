@@ -22,70 +22,54 @@ from netket.hilbert import *
 hilberts = {}
 
 # Spin 1/2
-hilberts["Spin 1/2"] = Spin(s=0.5, graph=nk.graph.Hypercube(length=20, n_dim=1))
+hilberts["Spin 1/2"] = Spin(s=0.5, N=20)
 
 # Spin 1/2 with total Sz
-hilberts["Spin 1/2 with total Sz"] = Spin(
-    s=0.5, total_sz=1.0, graph=nk.graph.Hypercube(length=20, n_dim=1)
-)
+hilberts["Spin 1/2 with total Sz"] = Spin(s=0.5, total_sz=1.0, N=20)
 
 # Spin 3
-hilberts["Spin 3"] = Spin(s=3, graph=nk.graph.Hypercube(length=25, n_dim=1))
+hilberts["Spin 3"] = Spin(s=3, N=25)
 
 # Boson
-hilberts["Boson"] = Boson(n_max=5, graph=nk.graph.Hypercube(length=41, n_dim=1))
+hilberts["Boson"] = Boson(n_max=5, N=41)
 
 # Boson with total number
-hilberts["Bosons with total number"] = Boson(
-    n_max=3, n_bosons=110, graph=nk.graph.Hypercube(length=120, n_dim=1)
-)
+hilberts["Bosons with total number"] = Boson(n_max=3, n_bosons=110, N=120)
 
 # Qubit
-hilberts["Qubit"] = nk.hilbert.Qubit(graph=nk.graph.Hypercube(length=100, n_dim=1))
+hilberts["Qubit"] = nk.hilbert.Qubit(100)
 
 # Custom Hilbert
-hilberts["Custom Hilbert"] = CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=70, n_dim=1)
-)
+hilberts["Custom Hilbert"] = CustomHilbert(local_states=[-1232, 132, 0], N=70)
 
 # Heisenberg 1d
-g1 = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, graph=g1)
+hilberts["Heisenberg 1d"] = Spin(s=0.5, total_sz=0.0, N=20)
 
 # Bose Hubbard
-g3 = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-hilberts["Bose Hubbard"] = Boson(n_max=4, n_bosons=20, graph=g3)
+hilberts["Bose Hubbard"] = Boson(n_max=4, n_bosons=20, N=20)
 
 #
 # Small hilbert space tests
 #
 
 # Spin 1/2
-hilberts["Spin 1/2 Small"] = Spin(s=0.5, graph=nk.graph.Hypercube(length=10, n_dim=1))
+hilberts["Spin 1/2 Small"] = Spin(s=0.5, N=10)
 
 # Spin 3
-hilberts["Spin 1/2 with total Sz Small"] = Spin(
-    s=3, total_sz=1.0, graph=nk.graph.Hypercube(length=4, n_dim=1)
-)
+hilberts["Spin 1/2 with total Sz Small"] = Spin(s=3, total_sz=1.0, N=4)
 
 # Boson
-hilberts["Boson Small"] = Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+hilberts["Boson Small"] = Boson(n_max=3, N=5)
 
 # Qubit
-hilberts["Qubit Small"] = nk.hilbert.Qubit(
-    graph=nk.graph.Hypercube(length=1, n_dim=1, pbc=False)
-)
+hilberts["Qubit Small"] = nk.hilbert.Qubit(N=1)
 
 # Custom Hilbert
-hilberts["Custom Hilbert Small"] = CustomHilbert(
-    local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
-)
+hilberts["Custom Hilbert Small"] = CustomHilbert(local_states=[-1232, 132, 0], N=5)
 
 # Custom Hilbert
 hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(
-    CustomHilbert(
-        local_states=[-1232, 132, 0], graph=nk.graph.Hypercube(length=5, n_dim=1)
-    )
+    CustomHilbert(local_states=[-1232, 132, 0], N=5)
 )
 
 
@@ -159,9 +143,8 @@ def test_hilbert_index():
                 hi.n_states
 
         # Check that a large hilbert space raises error when constructing matrices
-        op = nk.operator.Heisenberg(
-            hilbert=Spin(s=0.5, graph=nk.graph.Hypercube(length=100, n_dim=1))
-        )
+        g = nk.graph.Hypercube(length=100, n_dim=1)
+        op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
 
         with pytest.raises(RuntimeError):
             m1 = op.to_dense()
@@ -170,8 +153,7 @@ def test_hilbert_index():
 
 
 def test_state_iteration():
-    g = nk.graph.Hypercube(10, 1)
-    hilbert = Spin(g, s=0.5)
+    hilbert = Spin(s=0.5, N=10)
 
     reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
 

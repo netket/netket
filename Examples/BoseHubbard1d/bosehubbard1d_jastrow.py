@@ -18,13 +18,13 @@ import netket as nk
 g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
-hi = nk.hilbert.Boson(graph=g, n_max=3, n_bosons=12)
+hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=12)
 
 # Bose Hubbard Hamiltonian
-ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
 
 # Jastrow Machine with Symmetry
-ma = nk.machine.JastrowSymm(hilbert=hi)
+ma = nk.machine.JastrowSymm(hilbert=hi, automorphisms=g)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler

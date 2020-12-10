@@ -3,20 +3,8 @@ import numpy
 
 
 class _JaxExchangeKernel:
-    def __init__(self, hilbert, d_max):
-        clusters = []
-        distances = jax.numpy.asarray(hilbert.graph.distances())
-        size = distances.shape[0]
-        for i in range(size):
-            for j in range(i + 1, size):
-                if distances[i][j] <= d_max:
-                    clusters.append((i, j))
-
-        self.clusters = numpy.empty((len(clusters), 2), dtype=numpy.int64)
-
-        for i, cluster in enumerate(clusters):
-            self.clusters[i] = numpy.asarray(cluster)
-        self.clusters = jax.numpy.asarray(self.clusters)
+    def __init__(self, hilbert, clusters):
+        self.clusters = jax.numpy.asarray(clusters)
 
         self.clusters_size = self.clusters.shape[0]
 

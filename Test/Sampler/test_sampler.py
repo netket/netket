@@ -19,12 +19,18 @@ from netket.utils import jax_available as test_jax
 g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(sigma=0.2)
 
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=16)
 samplers["MetropolisLocal RbmSpin"] = sa
+
+hib = nk.hilbert.Boson(n_max=1, N=g.n_nodes, n_bosons=1)
+mab = nk.machine.RbmSpin(hilbert=hib, alpha=1)
+mab.init_random_parameters(sigma=0.2)
+sa = nk.sampler.MetropolisExchange(machine=mab, n_chains=16, graph=g)
+samplers["MetropolisExchange RbmSpin(boson)"] = sa
 
 sa = nk.sampler.ExactSampler(machine=ma, sample_size=8)
 samplers["Exact RbmSpin"] = sa
@@ -32,7 +38,7 @@ samplers["Exact RbmSpin"] = sa
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=4)
 samplers["MetropolisLocalPt RbmSpin"] = sa
 
-ha = nk.operator.Ising(hilbert=hi, h=1.0)
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 samplers["MetropolisHamiltonian RbmSpin"] = sa
 
@@ -42,12 +48,12 @@ maz.init_random_parameters(sigma=0)
 sa = nk.sampler.MetropolisLocal(machine=maz, sweep_size=hi.size + 1, n_chains=2)
 samplers["MetropolisLocal RbmSpin ZeroPars"] = sa
 
-mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
+mas = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1, automorphisms=g)
 mas.init_random_parameters(sigma=0.2)
 sa = nk.sampler.MetropolisHamiltonianPt(machine=mas, hamiltonian=ha, n_replicas=4)
 samplers["MetropolisHamiltonianPt RbmSpinSymm"] = sa
 
-hi = nk.hilbert.Boson(graph=g, n_max=3)
+hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(sigma=0.1)
 sa = nk.sampler.MetropolisLocal(machine=ma)
@@ -56,15 +62,15 @@ samplers["MetropolisLocal Boson"] = sa
 sa = nk.sampler.MetropolisLocalPt(machine=ma, n_replicas=2)
 samplers["MetropolisLocalPt Boson"] = sa
 
-hi = nk.hilbert.Boson(graph=g, n_max=3)
+hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3)
 ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 ma.init_random_parameters(sigma=0.1)
 sa = nk.sampler.ExactSampler(machine=ma)
 samplers["Exact Boson"] = sa
 
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 g = nk.graph.Hypercube(length=3, n_dim=1)
-ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1)
+ma = nk.machine.RbmSpinSymm(hilbert=hi, alpha=1, automorphisms=g)
 ma.init_random_parameters(sigma=0.2)
 l = hi.size
 X = [[0, 1], [1, 0]]
@@ -112,7 +118,7 @@ sa = nk.sampler.ExactSampler(machine=dm)
 samplers["Exact Diagonal Density Matrix"] = sa
 
 g = nk.graph.Hypercube(length=3, n_dim=1)
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 ma = nk.machine.density_matrix.RbmSpin(
     hilbert=hi,
     alpha=1,
@@ -136,6 +142,12 @@ if test_jax:
     ma = nk.machine.JaxRbm(hilbert=hi, alpha=1)
     ma.init_random_parameters(sigma=0.2)
     samplers["Metropolis Rbm Jax"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
+
+    hib = nk.hilbert.Boson(n_max=1, N=g.n_nodes, n_bosons=1)
+    mab = nk.machine.JaxRbm(hilbert=hib, alpha=1)
+    mab.init_random_parameters(sigma=0.2)
+    sa = nk.sampler.MetropolisExchange(machine=mab, n_chains=16, graph=g)
+    samplers["MetropolisExchange RbmSpin(boson) Jax"] = sa
 
     # Test a machine which only works with 2D output and not 1D
     import jax

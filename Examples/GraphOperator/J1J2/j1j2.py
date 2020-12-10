@@ -50,7 +50,7 @@ edge_colors = [[u, v, G[u][v]["color"]] for u, v in G.edges]
 g = nk.graph.CustomGraph(edge_colors)
 
 # Spin based Hilbert Space
-hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
+hi = nk.hilbert.Spin(s=1 / 2, total_sz=0.0, N=g.n_nodes)
 
 # Custom Hamiltonian operator
 op = nk.operator.GraphOperator(hi, bondops=bond_operator, bondops_colors=bond_color)

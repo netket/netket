@@ -11,9 +11,9 @@ from numba import jit
 
 def _setup():
     g = nk.graph.Hypercube(3, 2)
-    hi = nk.hilbert.Spin(g, 0.5)
+    hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
 
-    ham = nk.operator.Heisenberg(hi)
+    ham = nk.operator.Heisenberg(hi, graph=g)
 
     ma = nk.machine.RbmSpin(hi, alpha=2)
     ma.init_random_parameters()

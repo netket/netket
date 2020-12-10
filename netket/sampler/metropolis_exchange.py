@@ -1,8 +1,28 @@
 from .metropolis_hastings import *
 from ._kernels import _ExchangeKernel
+import numpy as _np
 
 
-def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None, **kwargs):
+def _compute_clusters(graph, d_max):
+    clusters = []
+    distances = _np.asarray(graph.distances())
+    size = distances.shape[0]
+    for i in range(size):
+        for j in range(i + 1, size):
+            if distances[i][j] <= d_max:
+                clusters.append((i, j))
+
+    res_clusters = _np.empty((len(clusters), 2), dtype=_np.int64)
+
+    for i, cluster in enumerate(clusters):
+        res_clusters[i] = _np.asarray(cluster)
+
+    return res_clusters
+
+
+def MetropolisExchange(
+    machine, clusters=None, graph=None, d_max=1, n_chains=16, sweep_size=None, **kwargs
+):
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -54,14 +74,33 @@ def MetropolisExchange(machine, d_max=1, n_chains=16, sweep_size=None, **kwargs)
           >>> print(sa.machine.hilbert.size)
           100
     """
-    transition_kernel = _ExchangeKernel(machine, d_max)
+    if clusters is None and graph is not None:
+        assert (
+            graph.n_nodes == machine.hilbert.size
+        ), "The size of the graph must match the hilbert space of the machine."
+        clusters = _compute_clusters(graph, d_max)
+    elif not (clusters is not None and graph is None):
+        raise ValueError(
+            """You must either provide the list of exchange-clusters or a netket graph, from
+                          which clusters will be computed using the maximum distance d_max. """
+        )
+
+    transition_kernel = _ExchangeKernel(machine, clusters)
 
     return MetropolisHastings(
         machine, transition_kernel, n_chains, sweep_size, **kwargs
     )
 
 
-def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None, **kwargs):
+def MetropolisExchangePt(
+    machine,
+    clusters=None,
+    graph=None,
+    d_max=1,
+    n_replicas=16,
+    sweep_size=None,
+    **kwargs,
+):
     r"""
     This sampler performs parallel-tempering
     moves in addition to the local moves implemented in `MetropolisExchange`.
@@ -94,7 +133,19 @@ def MetropolisExchangePt(machine, d_max=1, n_replicas=16, sweep_size=None, **kwa
         >>> print(sa.machine.hilbert.size)
         100
     """
-    transition_kernel = _ExchangeKernel(machine, d_max)
+    if clusters is None and graph is not None:
+        assert (
+            graph.n_nodes == machine.hilbert.size
+        ), "The size of the graph must match the hilbert space of the machine."
+
+        clusters = _compute_clusters(graph, d_max)
+    elif not (clusters is not None and graph is None):
+        raise ValueError(
+            """You must either provide the list of exchange-clusters or a netket graph, from
+                          which clusters will be computed using the maximum distance d_max. """
+        )
+
+    transition_kernel = _ExchangeKernel(machine, clusters)
 
     return MetropolisHastingsPt(
         machine, transition_kernel, n_replicas, sweep_size, **kwargs

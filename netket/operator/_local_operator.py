@@ -42,11 +42,9 @@ class LocalOperator(AbstractOperator):
         Examples:
            Constructs a ``LocalOperator`` without any operators.
 
-           >>> from netket.graph import CustomGraph
            >>> from netket.hilbert import CustomHilbert
            >>> from netket.operator import LocalOperator
-           >>> g = CustomGraph(edges=[[i, i + 1] for i in range(20)])
-           >>> hi = CustomHilbert(local_states=[1, -1], graph=g)
+           >>> hi = CustomHilbert(local_states=[1, -1])**20
            >>> empty_hat = LocalOperator(hi)
            >>> print(len(empty_hat.acting_on))
            0

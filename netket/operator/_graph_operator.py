@@ -5,7 +5,7 @@ import numpy as _np
 from numba import jit
 
 
-def GraphOperator(hilbert, site_ops=[], bond_ops=[], bond_ops_colors=[], graph=None):
+def GraphOperator(hilbert, graph, site_ops=[], bond_ops=[], bond_ops_colors=[]):
     r"""
     A graph-based quantum operator. In its simplest terms, this is the sum of
     local operators living on the edge of an arbitrary graph.
@@ -17,6 +17,7 @@ def GraphOperator(hilbert, site_ops=[], bond_ops=[], bond_ops_colors=[], graph=N
 
     Args:
      hilbert: Hilbert space the operator acts on.
+     graph: The graph upon which the hamiltonian is defined
      graph: The graph whose vertices and edges are considered to construct the
             operator. If None, the graph is deduced from the hilbert object.
      site_ops: A list of operators in matrix form that act
@@ -46,8 +47,9 @@ def GraphOperator(hilbert, site_ops=[], bond_ops=[], bond_ops_colors=[], graph=N
      20
     """
 
-    if graph is None:
-        graph = hilbert.graph
+    assert (
+        graph.n_nodes == hilbert.size
+    ), "The size of the graph must match the hilbert space"
 
     size = graph.n_nodes
 

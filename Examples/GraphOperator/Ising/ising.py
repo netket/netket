@@ -29,7 +29,7 @@ bond_operator = [mszsz]
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Custom Hilbert Space
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Graph Operator
 op = nk.operator.GraphOperator(hi, siteops=site_operator, bondops=bond_operator)

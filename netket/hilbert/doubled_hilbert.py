@@ -1,5 +1,4 @@
 from .abstract_hilbert import AbstractHilbert
-from ..graph import DoubledGraph as _DoubledGraph
 
 import numpy as _np
 from netket import random as _random
@@ -19,20 +18,13 @@ class DoubledHilbert(AbstractHilbert):
         Examples:
             Simple superoperatorial hilbert space for few spins.
 
-           >>> from netket.graph import Hypercube
            >>> from netket.hilbert import Spin, DoubledHilbert
            >>> g = Hypercube(length=5,n_dim=2,pbc=True)
-           >>> hi = Spin(graph=g, s=0.5)
+           >>> hi = Spin(N=3, s=0.5)
            >>> hi2 = DoubledHilbert(hi)
            >>> print(hi2.size)
            50
         """
-        if hasattr(hilb, "graph"):
-            doubled_graph = _DoubledGraph(hilb.graph)
-        else:
-            doubled_graph = None
-
-        self.graph = doubled_graph
         self.physical = hilb
         self._size = 2 * hilb.size
 

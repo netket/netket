@@ -1,6 +1,8 @@
 import abc
 import numpy as _np
 
+from typing import List, Tuple, Optional, Generator
+
 
 """int: Maximum number of states that can be indexed"""
 max_states = _np.iinfo(_np.int32).max

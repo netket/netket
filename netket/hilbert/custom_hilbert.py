@@ -5,36 +5,43 @@ from numba import jit
 import numpy as _np
 from netket import random as _random
 
+from typing import Optional, List
+
 
 class CustomHilbert(AbstractHilbert):
     r"""A custom hilbert space with discrete local quantum numbers."""
 
-    def __init__(self, graph, local_states, constraints=None):
+    def __init__(
+        self,
+        local_states: Optional[List[float]],
+        N: int = 1,
+        constraints: Optional = None,
+    ):
         r"""
-        Constructs a new ``CustomHilbert`` given a graph and a list of
-        eigenvalues of the states.
+        Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
+        a number of sites, or modes, within this hilbert space.
 
         Args:
-           graph: Graph representation of sites.
-           local_states (list or None): Eigenvalues of the states. If the allowed states are an
+            local_states (list or None): Eigenvalues of the states. If the allowed states are an
                          infinite number, None should be passed as an argument.
-           constraints: A function specifying constraints on the quantum numbers.
+            N: Number of modes in this hilbert space (default 1).
+            constraints: A function specifying constraints on the quantum numbers.
                         Given a batch of quantum numbers it should return a vector
                         of bools specifying whether those states are valid or not.
 
         Examples:
            Simple custom hilbert space.
 
-           >>> from netket.graph import Hypercube
            >>> from netket.hilbert import CustomHilbert
            >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = CustomHilbert(graph=g, local_states=[-1232, 132, 0])
+           >>> hi = CustomHilbert(local_states=[-1232, 132, 0], N=100)
            >>> print(hi.size)
            100
         """
 
-        self.graph = graph
-        self._size = graph.n_nodes
+        assert isinstance(N, int)
+
+        self._size = N
 
         self._is_finite = local_states is not None
 
@@ -139,7 +146,7 @@ class CustomHilbert(AbstractHilbert):
 
            >>> import netket as nk
            >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+           >>> hi = nk.hilbert.Boson(n_max=3, N=4)
            >>> rstate = np.zeros(hi.size)
            >>> hi.random_vals(rstate)
            >>> local_states = hi.local_states
@@ -205,6 +212,15 @@ class CustomHilbert(AbstractHilbert):
                     "The required state does not satisfy the given constraints."
                 )
             return found
+
+    def __pow__(self, n):
+        if self._constraints is not None:
+            raise NotImplementedError(
+                """Cannot exponentiate a CustomHilbert with constraints. 
+                Construct it from scratch instead."""
+            )
+
+        return CustomHilbert(self._local_states, self.size * n)
 
     def __repr__(self):
         constr = (

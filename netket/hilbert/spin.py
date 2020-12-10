@@ -6,29 +6,29 @@ import numpy as _np
 from netket import random as _random
 from numba import jit
 
+from typing import Optional, List
+
 
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(self, graph, s, total_sz=None):
+    def __init__(self, s: float, N: int = 1, total_sz: Optional[float] = None):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
-           graph: Graph representation of sites.
            s: Spin at each site. Must be integer or half-integer.
+           N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular value.
 
         Examples:
            Simple spin hilbert space.
 
-           >>> from netket.graph import Hypercube
            >>> from netket.hilbert import Spin
            >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = Spin(graph=g, s=0.5)
+           >>> hi = Spin(s=0.5, N=4)
            >>> print(hi.size)
-           100
+           4
         """
-
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
 
@@ -38,7 +38,7 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        self._check_total_sz(total_sz, graph.n_nodes)
+        self._check_total_sz(total_sz, N)
         if total_sz is not None:
 
             def constraints(x):
@@ -51,7 +51,7 @@ class Spin(CustomHilbert):
         self._s = s
         self._local_size = local_size
 
-        super().__init__(graph, local_states, constraints)
+        super().__init__(local_states, N, constraints)
 
     def random_state(self, out=None, rgen=None):
         r"""Member function generating uniformely distributed local random states.
@@ -68,7 +68,7 @@ class Spin(CustomHilbert):
 
            >>> import netket as nk
            >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, graph=nk.graph.Hypercube(length=5, n_dim=1))
+           >>> hi = nk.hilbert.Spin(N=4)
            >>> rstate = np.zeros(hi.size)
            >>> hi.random_state(rstate)
            >>> local_states = hi.local_states
@@ -123,8 +123,16 @@ class Spin(CustomHilbert):
                 "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
             )
 
+    def __pow__(self, n):
+        if self._total_sz is None:
+            total_sz = None
+        else:
+            total_sz = total_sz * n
+
+        return Spin(self._s, self.size * n, total_sz=total_sz)
+
     def __repr__(self):
         total_sz = (
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
-        return "Spin(s={}{}; N={})".format(Fraction(self._s), total_sz, self._size)
+        return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)

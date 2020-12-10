@@ -6,7 +6,7 @@ from numba import jit
 
 
 class Ising(AbstractOperator):
-    def __init__(self, hilbert, h, J=1.0):
+    def __init__(self, hilbert, graph, h, J=1.0):
         r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
         and (if specified) a coupling constant.
@@ -26,12 +26,16 @@ class Ising(AbstractOperator):
             >>> print(op.hilbert.size)
             20
         """
+        assert (
+            graph.n_nodes == hilbert.size
+        ), "The size of the graph must match the hilbert space"
+
         self._h = h
         self._J = J
         self._hilbert = hilbert
         self._n_sites = hilbert.size
         self._section = hilbert.size + 1
-        self._edges = _np.asarray(list(hilbert.graph.edges()))
+        self._edges = _np.asarray(list(graph.edges()))
         super().__init__()
 
     @property
@@ -146,12 +150,13 @@ class Ising(AbstractOperator):
         return self._flattened_kernel(x, sections, self._edges, self._h, self._J)
 
 
-def Heisenberg(hilbert, J=1, sign_rule=None):
+def Heisenberg(hilbert, graph, J=1, sign_rule=None):
     """
     Constructs a new ``Heisenberg`` given a hilbert space.
 
     Args:
         hilbert: Hilbert space the operator acts on.
+        grah: The graph upon which this hamiltonian is defined.
         J: The strength of the coupling. Default is 1.
         sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
                    lattice, this corresponds to a basis change flipping the Sz direction
@@ -170,14 +175,14 @@ def Heisenberg(hilbert, J=1, sign_rule=None):
         20
     """
     if sign_rule is None:
-        sign_rule = hilbert.graph.is_bipartite()
+        sign_rule = graph.is_bipartite()
 
     sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
     exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
     if sign_rule:
-        if not hilbert.graph.is_bipartite():
+        if not graph.is_bipartite():
             raise ValueError("sign_rule=True specified for a non-bipartite lattice")
         heis_term = sz_sz - exchange
     else:
         heis_term = sz_sz + exchange
-    return GraphOperator(hilbert, bond_ops=[J * heis_term])
+    return GraphOperator(hilbert, graph, bond_ops=[J * heis_term])

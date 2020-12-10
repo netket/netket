@@ -11,8 +11,8 @@ def _LocalKernel(machine):
 
 
 @singledispatch
-def _ExchangeKernel(machine, d_max):
-    return numpy._ExchangeKernel(machine.hilbert, d_max)
+def _ExchangeKernel(machine, clusters):
+    return numpy._ExchangeKernel(machine.hilbert, clusters)
 
 
 @singledispatch

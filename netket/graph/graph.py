@@ -197,9 +197,11 @@ def DoubledGraph(graph):
     dedges = list(graph.edges())
     n_v = graph.n_nodes
 
+    dnodes = [i for i in range(n_v)] + [i + n_v for i in range(n_v)]
+
     dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
 
-    return Graph(edges=dedges)
+    return Graph(nodes=dnodes, edges=dedges)
 
 
 def disjoint_union(graph_1, graph_2):

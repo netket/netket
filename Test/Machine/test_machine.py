@@ -29,7 +29,7 @@ dm_machines = {}
 g = nk.graph.Hypercube(length=4, n_dim=1)
 
 # Hilbert space of spins from given graph
-hi = Spin(s=0.5, graph=g)
+hi = Spin(s=0.5, N=g.n_nodes)
 
 
 if test_jax:
@@ -64,7 +64,7 @@ if test_jax:
         dtype=complex,
     )
 
-    machines["Jax mps"] = nk.machine.MPSPeriodic(hi, bond_dim=4, dtype=complex)
+    machines["Jax mps"] = nk.machine.MPSPeriodic(hi, graph=g, bond_dim=4, dtype=complex)
 
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
 
@@ -88,7 +88,9 @@ if test_torch:
 
 machines["RbmSpin 1d Hypercube spin"] = nk.machine.RbmSpin(hilbert=hi, alpha=2)
 
-machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube spin"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2, automorphisms=g
+)
 
 machines["Real RBM"] = nk.machine.RbmSpinReal(hilbert=hi, alpha=2)
 
@@ -96,9 +98,9 @@ machines["Phase RBM"] = nk.machine.RbmSpinPhase(hilbert=hi, alpha=2)
 
 machines["Jastrow 1d Hypercube spin"] = nk.machine.Jastrow(hilbert=hi)
 
-hi = Spin(s=0.5, graph=g, total_sz=0)
+hi = Spin(s=0.5, N=g.n_nodes, total_sz=0)
 machines["Jastrow 1d Hypercube spin symm bias"] = nk.machine.Jastrow(
-    hilbert=hi, use_visible_bias=True, symmetry=True
+    hilbert=hi, use_visible_bias=True, automorphisms=g
 )
 
 dm_machines["Phase NDM"] = nk.machine.density_matrix.RbmSpin(
@@ -113,17 +115,19 @@ dm_machines["Phase NDM"] = nk.machine.density_matrix.RbmSpin(
 # machines["MPS 1d spin"] = nk.machine.MPSPeriodic(hi, bond_dim=3)
 
 # BOSONS
-hi = nk.hilbert.Boson(graph=g, n_max=3)
+hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3)
 machines["RbmSpin 1d Hypercube boson"] = nk.machine.RbmSpin(hilbert=hi, alpha=1)
 
-machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(hilbert=hi, alpha=2)
+machines["RbmSpinSymm 1d Hypercube boson"] = nk.machine.RbmSpinSymm(
+    hilbert=hi, alpha=2, automorphisms=g
+)
 machines["RbmMultiVal 1d Hypercube boson"] = nk.machine.RbmMultiVal(
     hilbert=hi, n_hidden=2
 )
 machines["Jastrow 1d Hypercube boson"] = nk.machine.Jastrow(hilbert=hi)
 
 machines["JastrowSymm 1d Hypercube boson real"] = nk.machine.JastrowSymm(
-    hilbert=hi, dtype=float
+    hilbert=hi, dtype=float, automorphisms=g
 )
 # machines["MPS 1d boson"] = nk.machine.MPSPeriodic(hi, bond_dim=4)
 

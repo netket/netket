@@ -44,7 +44,7 @@ for i in range(L):
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Spin based Hilbert Space
-hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, graph=g)
+hi = nk.hilbert.Spin(s=0.5, total_sz=0.0, N=g.n_nodes)
 
 # Custom Hamiltonian operator
 ha = nk.operator.LocalOperator(hi)
@@ -52,7 +52,7 @@ for mat, site in zip(mats, sites):
     ha += nk.operator.LocalOperator(hi, mat, site)
 
 # Restricted Boltzmann Machine
-ma = nk.machine.RbmSpin(hi, alpha=1, symmetry=True)
+ma = nk.machine.RbmSpin(hi, alpha=1, automorphisms=g)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Exchange Sampler randomly exchange up to next-to-nearest neighbours

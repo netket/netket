@@ -29,11 +29,11 @@ np.set_printoptions(linewidth=180)
 
 # 1D Lattice
 L = 3
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
+# g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
-hi_c = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5) ** L
+hi_c = nk.hilbert.Spin(s=0.5) ** L
 
 # Defining the Ising hamiltonian (with sign problem here)
 # Using local operators

@@ -8,11 +8,13 @@ L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(graph=g, s=0.5)
+hi = nk.hilbert.Spin(s=1 / 2) ** L
 
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
-ma = nk.machine.MPSPeriodic(hi, bond_dim=4, diag=False, symperiod=None, dtype=complex)
+ma = nk.machine.MPSPeriodic(
+    hi, g, bond_dim=4, diag=False, symperiod=None, dtype=complex
+)
 ma.jax_init_parameters(seed=1232)
 
 # Jax Sampler

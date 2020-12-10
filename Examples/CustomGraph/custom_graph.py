@@ -22,10 +22,10 @@ gnx = nx.star_graph(10)
 g = nk.graph.CustomGraph(list(gnx.edges))
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
 # Ising spin hamiltonian
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)

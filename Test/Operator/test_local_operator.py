@@ -22,7 +22,7 @@ sz = [[1, 0], [0, -1]]
 sm = [[0, 0], [1, 0]]
 sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
 
 def _loc(*args):
@@ -153,8 +153,7 @@ def test_local_operator_add():
 
 def test_simple_operators():
     L = 4
-    g = nk.graph.Hypercube(L, 1)
-    hi = nk.hilbert.Spin(g, 0.5)
+    hi = nk.hilbert.Spin(0.5) ** L
 
     sx = [[0, 1], [1, 0]]
     sy = [[0, -1.0j], [1.0j, 0]]
@@ -167,7 +166,6 @@ def test_simple_operators():
         sx_hat = nk.operator.LocalOperator(hi, sx, [i])
         sy_hat = nk.operator.LocalOperator(hi, sy, [i])
         sz_hat = nk.operator.LocalOperator(hi, sz, [i])
-
         assert (sigmax(hi, i).to_dense() == sx_hat.to_dense()).all()
         assert (sigmay(hi, i).to_dense() == sy_hat.to_dense()).all()
         assert (sigmaz(hi, i).to_dense() == sz_hat.to_dense()).all()
@@ -176,26 +174,24 @@ def test_simple_operators():
     for i in range(L):
         sm_hat = nk.operator.LocalOperator(hi, sm, [i])
         sp_hat = nk.operator.LocalOperator(hi, sp, [i])
-
         assert (sigmam(hi, i).to_dense() == sm_hat.to_dense()).all()
         assert (sigmap(hi, i).to_dense() == sp_hat.to_dense()).all()
 
     print("Testing Sigma_+/- composition...")
 
-    hi = nk.hilbert.Spin(g, 0.5)
+    hi = nk.hilbert.Spin(0.5, N=L)
     for i in range(L):
         sx = sigmax(hi, i)
         sy = sigmay(hi, i)
-
         sigmam_hat = 0.5 * (sx + (-1j) * sy)
         sigmap_hat = 0.5 * (sx + (1j) * sy)
-
         assert (sigmam(hi, i).to_dense() == sigmam_hat.to_dense()).all()
         assert (sigmap(hi, i).to_dense() == sigmap_hat.to_dense()).all()
 
     print("Testing create/destroy composition...")
-    hi = nk.hilbert.Boson(g, 3)
+    hi = nk.hilbert.Boson(3, N=L)
     for i in range(L):
+        print("i=", i)
         a = bdestroy(hi, i)
         ad = bcreate(hi, i)
         n = bnumber(hi, i)
@@ -205,7 +201,7 @@ def test_simple_operators():
 
 
 def test_mul_matmul():
-    hi = nk.hilbert.Spin(nk.graph.Edgeless(2), s=1 / 2)
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
     sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
     sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
 
@@ -236,7 +232,7 @@ def test_mul_matmul():
 
 
 def test_truediv():
-    hi = nk.hilbert.Spin(nk.graph.Edgeless(2), s=1 / 2)
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
 
     sx0_hat = nk.operator.LocalOperator(hi, sx, [0])
     sy1_hat = nk.operator.LocalOperator(hi, sy, [1])

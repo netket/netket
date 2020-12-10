@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .abstract_machine import AbstractMachine
+from netket.graph import AbstractGraph
 import numpy as _np
 from numba import jit
 
@@ -36,7 +37,7 @@ class Jastrow(AbstractMachine):
         self,
         hilbert,
         use_visible_bias=False,
-        symmetry=None,
+        automorphisms=None,
         dtype=complex,
     ):
         r"""
@@ -45,8 +46,7 @@ class Jastrow(AbstractMachine):
         Args:
             hilbert: Hilbert space object for the system.
             use_visible_bias (bool): Whether to use the visible bias a_i.
-            symmetry (optional): if True, the automorphisms in hilbert.graph.automorphisms are used.
-                                 A custom matrix of automorphisms can also be passed instead.
+            automorphisms (optional): Can be a graph or a custom matrix of automorphisms.
             dtype: either complex or float, it is the type used for the weights and biases.
 
         Examples:
@@ -55,9 +55,7 @@ class Jastrow(AbstractMachine):
 
             >>> from netket.machine import Jastrow
             >>> from netket.hilbert import Spin
-            >>> from netket.graph import Hypercube
-            >>> g = Hypercube(length=20, n_dim=1)
-            >>> hi = Spin(s=0.5, total_sz=0, graph=g)
+            >>> hi = Spin(s=0.5, total_sz=0, N=20)
             >>> ma = Jastrow(hilbert=hi)
             >>> print(ma.n_par)
             190
@@ -76,7 +74,7 @@ class Jastrow(AbstractMachine):
                 "Cannot construct a Jastrow factor with less than two visible units."
             )
 
-        if symmetry is None:
+        if automorphisms is None:
             n_sym = int((n * (n - 1)) // 2)
             self._Smap = _np.zeros((n, n), dtype=_np.intp)
 
@@ -88,11 +86,11 @@ class Jastrow(AbstractMachine):
                     k += 1
 
         else:
-            if symmetry is True:
-                autom = _np.asarray(hilbert.graph.automorphisms())
+            if isinstance(automorphisms, AbstractGraph):
+                autom = _np.asarray(automorphisms.automorphisms())
             else:
                 try:
-                    autom = _np.asarray(symmetry)
+                    autom = _np.asarray(automorphisms)
                     assert n == autom.shape[1]
                 except:
                     raise RuntimeError("Cannot find a valid automorphism array.")
@@ -269,10 +267,10 @@ class JastrowSymm(Jastrow):
     symmetry=True.
     """
 
-    def __init__(self, hilbert, use_visible_bias=False, dtype=complex):
+    def __init__(self, hilbert, automorphisms, use_visible_bias=False, dtype=complex):
         return super().__init__(
             hilbert=hilbert,
             use_visible_bias=use_visible_bias,
-            symmetry=True,
+            automorphisms=automorphisms,
             dtype=dtype,
         )

@@ -27,8 +27,8 @@ def _Jax_LocalKernel(machine):
 
 
 @_ExchangeKernel.register(JaxMachine)
-def _Jax_ExchangeKernel(machine, d_max):
-    return _JaxExchangeKernel(machine.hilbert, d_max)
+def _Jax_ExchangeKernel(machine, clusters):
+    return _JaxExchangeKernel(machine.hilbert, clusters)
 
 
 @_HamiltonianKernel.register(JaxMachine)

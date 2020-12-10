@@ -11,16 +11,19 @@ class RbmSpin(AbstractDensityMatrix):
         alpha=None,
         use_visible_bias=True,
         use_hidden_bias=True,
-        symmetry=None,
+        automorphisms=None,
         dtype=complex,
     ):
         super().__init__(hilbert, dtype=dtype, outdtype=complex)
 
-        if symmetry is True:
-            autom = hilbert.graph.automorphisms
+        if automorphisms is not None:
+            if isinstance(automorphisms, netket.graph.AbstractGraph):
+                automorphisms = automorphisms.automorphisms()
             import itertools
 
-            symmetry = [prod[0] + prod[1] for prod in itertools.product(autom, autom)]
+            automorphisms = [
+                prod[0] + prod[1] for prod in itertools.product(autom, autom)
+            ]
 
         input_like = _np.zeros(hilbert.size * 2)
         self._prbm = PureRbmSpin(
@@ -29,7 +32,7 @@ class RbmSpin(AbstractDensityMatrix):
             alpha,
             use_visible_bias,
             use_hidden_bias,
-            symmetry,
+            automorphisms,
             dtype,
         )
         self._plog_val = self._prbm.log_val

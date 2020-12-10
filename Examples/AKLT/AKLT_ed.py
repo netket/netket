@@ -39,13 +39,14 @@ heisenberg = 0.5 * (np.kron(Sup, Sdn) + np.kron(Sdn, Sup)) + np.kron(Sz, Sz)
 P2_AKLT = 0.5 * heisenberg + np.dot(heisenberg, heisenberg) / 6.0 + np.identity(9) / 3.0
 
 # 1D Lattice
-g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
+L = 10
+g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spin-1s on the graph
-hi = nk.hilbert.Spin(s=1, graph=g)
+hi = nk.hilbert.Spin(s=1, N=L)
 
 # AKLT model Hamiltonian as graph
-ha = nk.operator.GraphOperator(hilbert=hi, bond_ops=[P2_AKLT.tolist()])
+ha = nk.operator.GraphOperator(hilbert=hi, graph=g, bond_ops=[P2_AKLT.tolist()])
 
 # Perform Lanczos Exact Diagonalization to get lowest three eigenvalues
 w, v = nk.exact.lanczos_ed(ha, k=3, compute_eigenvectors=True)
