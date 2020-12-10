@@ -3,6 +3,8 @@ import numpy as _np
 
 from typing import List, Tuple, Optional, Generator
 
+from .._core import deprecated
+
 
 """int: Maximum number of states that can be indexed"""
 max_states = _np.iinfo(_np.int32).max
@@ -119,6 +121,13 @@ class AbstractHilbert(abc.ABC):
         """
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
+
+    @deprecated("use random_state instead")
+    def random_vals(self, *args, **kwargs):
+        """
+        Deprecated alias for random_state. Prefer using random_state directly.
+        """
+        return self.random_state(*args, **kwargs)
 
     @abc.abstractmethod
     def random_state(self, *, batch=None, out=None, rgen=None):

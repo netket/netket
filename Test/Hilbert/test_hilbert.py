@@ -161,7 +161,7 @@ def test_state_iteration():
         assert np.allclose(state, ref)
 
 
-def test_graph_deprecation():
+def test_deprecations():
     g = nk.graph.Edgeless(3)
 
     with pytest.warns(FutureWarning):
@@ -170,3 +170,7 @@ def test_graph_deprecation():
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
             hilbert = Spin(s=0.5, graph=g, N=3)
+
+    hi = Spin(0.5, N=2)
+    with pytest.warns(FutureWarning):
+        hi.random_vals()
