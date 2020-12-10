@@ -16,7 +16,6 @@ from jax.experimental.stax import Dense
 from jax.experimental import stax
 import jax
 from collections import OrderedDict
-from functools import reduce
 
 from .abstract_machine import AbstractMachine
 
