@@ -12,28 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from jax.experimental.stax import Dense
-from jax.experimental import stax
 import jax
-from collections import OrderedDict
-from functools import reduce, partial
-
-from .abstract_machine import AbstractMachine
+from functools import partial
 
 import numpy as _np
 from jax import numpy as jnp
-from jax import random
-from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 
 def forward_scalar(pars, forward_fn, x):
+    """
+    Performs the forward pass of a neural network on a single state (vector) input.
+    """
     return forward_fn(pars, jnp.expand_dims(x, 0)).reshape(())
 
 
 forward_apply = jax.jit(
     lambda pars, forward_fn, x: forward_fn(pars, x), static_argnums=1
 )
+
+# _grad_CC, _RR and _RC are the batched gradient functions for machines going
+# from R -> C, R->R and R->C. Ditto for vjp
+# Thee reason why R->C is more complicated is that it splits the calculation
+# into the real and complex part in order to be more efficient.
 
 _grad_CC = jax.vmap(jax.grad(forward_scalar, holomorphic=True), in_axes=(None, None, 0))
 _grad_RR = jax.vmap(jax.grad(forward_scalar), in_axes=(None, None, 0))
