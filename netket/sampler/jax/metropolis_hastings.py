@@ -15,7 +15,9 @@ class MetropolisHastings(AbstractSampler):
 
         self._rng_key = rng_key
         if rng_key is None:
-            self._rng_key = jax.random.PRNGKey(_random.randint(low=0, high=(2 ** 32)))
+            self._rng_key = jax.random.PRNGKey(
+                _random.randint(low=0, high=2 ** 32, size=()).item()
+            )
 
         self.machine_pow = 2
 

@@ -96,7 +96,7 @@ class Boson(CustomHilbert):
         ss = self.size
 
         for i in range(self.n_bosons):
-            s = rgen.randint(0, ss)
+            s = rgen.randint(0, ss, size=())
 
             out[sites[s]] += 1
 

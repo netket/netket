@@ -35,7 +35,7 @@ class _HamiltonianKernel:
     def _choose(states, sections, out, w):
         low_range = 0
         for i, s in enumerate(sections):
-            n_rand = _random.randint(low_range, s)
+            n_rand = _random.randint(low_range, s, size=())
             out[i] = states[n_rand]
             w[i] = math.log(s - low_range)
             low_range = s

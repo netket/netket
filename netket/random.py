@@ -46,7 +46,8 @@ def uniform(low=0.0, high=1.0):
     return _np.random.uniform(low, high)
 
 
-def randint(low, high, size=None):
+@jit
+def randint(low, high, size):
     """
     Generate random integers from low (inclusive) to high (exclusive).
 
@@ -59,7 +60,10 @@ def randint(low, high, size=None):
         int: A random integer uniformely distributed in [low,high).
 
     """
-    return _np.random.randint(low, high, size=size)
+    # Ugly workaround for numba not being able to jit compile randint with size arg.
+    # size is also a required argument for numba reasons.
+    x = _np.random.rand(*size)
+    return _np.asarray(_np.floor(x * (high - low)) + low, dtype=_np.int64)
 
 
 def choice(a, size=None, replace=True, p=None):

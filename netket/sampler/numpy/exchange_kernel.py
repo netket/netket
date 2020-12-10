@@ -18,7 +18,7 @@ class _ExchangeKernel:
             state_1[k] = state[k]
 
             # pick a random cluster
-            cl = _random.randint(0, clusters_size)
+            cl = _random.randint(0, clusters_size, size=())
 
             # sites to be exchanged
             si = clusters[cl][0]

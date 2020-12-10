@@ -164,7 +164,7 @@ class Jax(AbstractMachine):
         imaginary part.
         """
         if seed is None:
-            seed = _randint(0, 2 ** 32 - 2)
+            seed = _randint(0, 2 ** 32 - 2, size=())
 
         input_shape = (-1, self.input_size)
         output_shape, params = self._init_fn(jax.random.PRNGKey(seed), input_shape)

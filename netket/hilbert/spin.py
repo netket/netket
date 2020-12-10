@@ -69,7 +69,7 @@ class Spin(CustomHilbert):
         ss = self.size
 
         for i in range(round(self._s * self.size) + self._total_sz):
-            s = rgen.randint(0, ss)
+            s = rgen.randint(0, ss, size=())
 
             out[sites[s]] += 2
 
