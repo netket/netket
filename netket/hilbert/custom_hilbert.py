@@ -1,9 +1,11 @@
 from .abstract_hilbert import AbstractHilbert
 from .hilbert_index import HilbertIndex
+from ._deprecations import graph_to_N_depwarn
 
 from numba import jit
 import numpy as _np
 from netket import random as _random
+from netket.graph import AbstractGraph
 
 from typing import Optional, List
 
@@ -16,6 +18,7 @@ class CustomHilbert(AbstractHilbert):
         local_states: Optional[List[float]],
         N: int = 1,
         constraints: Optional = None,
+        graph: Optional[AbstractGraph] = None,
     ):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
@@ -38,6 +41,7 @@ class CustomHilbert(AbstractHilbert):
            >>> print(hi.size)
            100
         """
+        N = graph_to_N_depwarn(N=N, graph=graph)
 
         assert isinstance(N, int)
 

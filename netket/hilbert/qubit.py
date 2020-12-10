@@ -1,17 +1,19 @@
 from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
+
+from netket.graph import AbstractGraph
+from typing import Optional
 
 
 class Qubit(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local qubit states."""
 
-    def __init__(self, N: int = 1):
+    def __init__(self, N: int = 1, graph: Optional[AbstractGraph] = None):
         r"""Initializes a qubit hilbert space.
 
         Args:
-        graph: Graph representation of qubits. If None, size
-              is used to fix the total number of qubits.
-        size: Number of qubits. If None, a graph must be speficied.
-
+        N: Number of qubits.
+        graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
             Simple spin hilbert space.
@@ -23,6 +25,8 @@ class Qubit(CustomHilbert):
             >>> print(hi.size)
             100
         """
+        N = graph_to_N_depwarn(N=N, graph=graph)
+
         super().__init__([0, 1], N)
 
     def __pow__(self, n):

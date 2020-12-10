@@ -1,9 +1,11 @@
 from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
 
 from fractions import Fraction
 
 import numpy as _np
 from netket import random as _random
+from netket.graph import AbstractGraph
 from numba import jit
 
 from typing import Optional, List
@@ -12,7 +14,13 @@ from typing import Optional, List
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
-    def __init__(self, s: float, N: int = 1, total_sz: Optional[float] = None):
+    def __init__(
+        self,
+        s: float,
+        N: int = 1,
+        total_sz: Optional[float] = None,
+        graph: Optional[AbstractGraph] = None,
+    ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
         Args:
@@ -29,6 +37,8 @@ class Spin(CustomHilbert):
            >>> print(hi.size)
            4
         """
+        N = graph_to_N_depwarn(N=N, graph=graph)
+
         local_size = round(2 * s + 1)
         local_states = _np.empty(local_size)
 
