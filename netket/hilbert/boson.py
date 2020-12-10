@@ -1,4 +1,7 @@
 from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
+
+from netket.graph import AbstractGraph
 
 import numpy as _np
 from netket import random as _random
@@ -15,6 +18,7 @@ class Boson(CustomHilbert):
         n_max: Optional[int] = None,
         N: int = 1,
         n_bosons: Optional[int] = None,
+        graph: Optional[AbstractGraph] = None,
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -26,6 +30,7 @@ class Boson(CustomHilbert):
           N: number of bosonic modes (default = 1)
           n_bosons: Constraint for the number of bosons. If None, no constraint
             is imposed.
+          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes is extracted.
 
         Examples:
            Simple boson hilbert space.
@@ -35,6 +40,7 @@ class Boson(CustomHilbert):
            >>> print(hi.size)
            3
         """
+        N = graph_to_N_depwarn(N=N, graph=graph)
 
         self._n_max = n_max
 
