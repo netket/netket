@@ -136,33 +136,15 @@ class CustomHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, *, batch=None, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
-
-        Examples:
-           Test that a new random state is a possible state for the hilbert
-           space.
-
-           >>> import netket as nk
-           >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, N=4)
-           >>> rstate = hi.random_state()
-           >>> local_states = hi.local_states
-           >>> print(rstate[0] in local_states)
-           True
-        """
+    def random_state(self, size=None, *, out=None, rgen=None):
         if not self.is_discrete or not self.is_finite or self._has_constraint:
             raise NotImplementedError()
 
         # Default version for discrete hilbert spaces without constraints.
         # More specialized initializations can be defined in the derived classes.
-        shape = (batch, self._size) if batch is not None else (self._size,)
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
             out = _np.empty(shape=shape)

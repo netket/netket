@@ -130,19 +130,26 @@ class AbstractHilbert(abc.ABC):
         return self.random_state(*args, **kwargs)
 
     @abc.abstractmethod
-    def random_state(self, *, batch=None, out=None, rgen=None):
+    def random_state(self, size=None, *, out=None, rgen=None):
         r"""Generates either a single or a batch of uniformly distributed random states.
 
         Args:
-            batch: If provided, this method generates a batch of `batch` random states.
-                Otherwise, a single state is generated and a ndim=1 array is returned.
+            size: If provided, returns a batch of configurations of the form (size, #) if size
+                is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
+                By default, a single random configuration with shape (#,) is returned.
             out: If provided, the random quantum numbers will be inserted into this array,
-                 which should be of the appropriate shape [either `(self.size(),)` or
-                 `(batch, self.size())`] and dtype.
+                 which should be of the appropriate shape (see `size`) and data type.
             rgen: The random number generator. If None, the global NetKet random
                 number generator is used.
+
+        Example:
+            >>> hi = netket.hilbert.Qubit(N=2)
+            >>> hi.random_state()
+            array([0., 1.])
+            >>> hi.random_state(size=2)
+            array([[0., 0.], [1., 0.]])
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.

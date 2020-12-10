@@ -77,28 +77,10 @@ class Spin(CustomHilbert):
                 sites.pop(s)
                 ss -= 1
 
-    def random_state(self, *, batch=None, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
-
-        Examples:
-           Test that a new random state is a possible state for the hilbert
-           space.
-
-           >>> import netket as nk
-           >>> import numpy as np
-           >>> hi = nk.hilbert.Spin(N=4)
-           >>> rstate = hi.random_state()
-           >>> local_states = hi.local_states
-           >>> print(rstate[0] in local_states)
-           True
-        """
-        shape = (batch, self._size) if batch is not None else (self._size,)
+    def random_state(self, size=None, *, out=None, rgen=None):
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
             out = _np.empty(shape=shape)
@@ -110,9 +92,10 @@ class Spin(CustomHilbert):
             out[:] = rgen.choice(self.local_states, size=shape)
         else:
             # TODO: this can most likely be done more efficiently
-            if batch:
-                for b in range(batch):
-                    self._random_state_with_constraint(out[b], rgen)
+            if size is not None:
+                out_r = out.reshape(-1, self._size)
+                for b in range(out_r.shape[0]):
+                    self._random_state_with_constraint(out_r[b], rgen)
             else:
                 self._random_state_with_constraint(out, rgen)
 

@@ -104,33 +104,10 @@ class Boson(CustomHilbert):
                 sites.pop(s)
                 ss -= 1
 
-    def random_state(self, *, batch=None, out=None, rgen=None, n_max=None):
-        r"""Member function generating uniformely distributed local random states.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
-            n_max: Maximum local occupation for the generated random state. If not specified, the
-                maximum occupation of the space is used (which may be INT_MAX, if it was not specified
-                on construction).
-
-        Examples:
-           Test that a new random state is a possible state for the hilbert
-           space.
-
-           >>> import netket as nk
-           >>> import numpy as np
-           >>> hi = nk.hilbert.Boson(n_max=3, N=5)
-           >>> rg = nk.utils.RandomEngine(seed=1234)
-           >>> rstate = hi.random_state(rgen=rg)
-           >>> local_states = hi.local_states
-           >>> print(rstate[0] in local_states)
-           True
-        """
-        shape = (batch, self._size) if batch is not None else (self._size,)
-        n_max = min(self.n_max, n_max) if n_max is not None else self.n_max
+    def random_state(self, size=None, *, out=None, rgen=None):
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
             out = _np.empty(shape=shape)
@@ -139,13 +116,14 @@ class Boson(CustomHilbert):
             rgen = _random
 
         if self.n_bosons is None:
-            out[:] = rgen.randint(0, n_max, size=shape)
+            out[:] = rgen.randint(0, self.n_max, size=shape)
         else:
-            if batch:
-                for b in range(batch):
-                    self._random_state_with_constraint(out[b], rgen, n_max)
+            if size is not None:
+                out_r = out.reshape(-1, self._size)
+                for b in range(out_r.shape[0]):
+                    self._random_state_with_constraint(out_r[b], rgen, self.n_max)
             else:
-                self._random_state_with_constraint(out, rgen, n_max)
+                self._random_state_with_constraint(out, rgen, self.n_max)
 
         return out
 

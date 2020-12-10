@@ -108,8 +108,11 @@ def test_random_states():
                 for state in rstate:
                     assert state in local_states
 
-            with pytest.raises(TypeError):
-                hi.random_state(rstate)  # out is keyword-only
+            assert hi.random_state().shape == (hi.size,)
+            assert hi.random_state(10).shape == (10, hi.size)
+            assert hi.random_state(size=10).shape == (10, hi.size)
+            assert hi.random_state(size=(10,)).shape == (10, hi.size)
+            assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
 
 
 def test_hilbert_index():

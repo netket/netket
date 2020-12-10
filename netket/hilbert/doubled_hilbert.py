@@ -100,14 +100,18 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, *, out=None, rgen=None):
+    def random_state(self, size=None, *, out=None, rgen=None):
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self.size) if size is not None else (self.size,)
+
         if out is None:
-            out = _np.empty(self._size)
+            out = _np.empty(shape=shape)
 
         n = self.size_physical
 
-        self.physical.random_state(out=out[0:n], rgen=rgen)
-        self.physical.random_state(out=out[n : 2 * n], rgen=rgen)
+        self.physical.random_state(out=out[..., :n], size=size, rgen=rgen)
+        self.physical.random_state(out=out[..., n:], size=size, rgen=rgen)
 
         return out
 
