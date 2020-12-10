@@ -3,6 +3,8 @@ import numpy as _np
 
 from typing import List, Tuple, Optional, Generator
 
+import jax
+from functools import partial
 
 """int: Maximum number of states that can be indexed"""
 max_states = _np.iinfo(_np.int32).max
@@ -168,3 +170,61 @@ class AbstractHilbert(abc.ABC):
         log_max = _np.log(max_states)
 
         return self.size * _np.log(self.local_size) <= log_max
+
+    @partial(jax.jit, static_argnums=(0, 2, 3))
+    def jax_random_state(self, key, size=None, dtype=jax.numpy.float64):
+        """
+        Generates a state or batch of random states (according to argument
+        size) with specified dtype.
+        """
+        if size is None:
+            return self.__jax_random_state__(key, dtype)
+        else:
+            return self.__jax_random_state_batch__(key, size, dtype)
+
+    @abc.abstractmethod
+    # Implementations must implement __jax_random_state__, and, if possible
+    # __jax_random_state_batch__ for speed. If __jax_random_state_batch__ is
+    # not implemented than a default vmap over the scalar version is used.
+    def __jax_random_state__(self, key, dtype):
+        raise NotImplementedError()
+
+    # Default fallback. Reimplement for efficiency.
+    # maybejit?
+    def __jax_random_state_batch__(self, key, size, dtype):
+        keys = jax.random.split(key, size)
+        return jax.vmap(self.__jax_random_state__, in_axes=(0, None), out_axes=0)(
+            key, dtype
+        )
+
+    @partial(jax.jit, static_argnums=(0,))
+    def jax_flip_state(self, key, state, indices):
+        r"""
+        Given a state `σ` and an index `i`, randomly flips `σ[i]` so that
+        `σ_new[i] ≢ σ[i]`.
+
+        Also accepts batched inputs, where state is a batch and indices is a
+        vector of ints.
+
+        Returns:
+            new_state: a state or batch of states, with one site flipped
+            old_vals: a scalar (or vector) of the old values at the flipped sites
+        """
+        if state.ndim == 1:
+            return self.__jax_flip_state__(key, state, indices)
+        else:
+            return self.__jax_flip_state_batch__(key, state, indices)
+
+    @abc.abstractmethod
+    # Implementations must implement __jax_flip_state__, and, if possible
+    # __jax_flip_state_batch__ for speed. If __jax_flip_state_batch__ is
+    # not implemented than a default vmap over the scalar version is used.
+    def __jax_flip_state__(self, key, state, indices):
+        raise NotImplementedError()
+
+    # Default fallback. Reimplement for efficiency.
+    def __jax_flip_state_batch__(self, key, states, indices):
+        keys = jax.random.split(key, size)
+        return jax.vmap(self.__jax_flip_state__, in_axes=(0, 0, 0), out_axes=(0, 0))(
+            key, states, indices
+        )

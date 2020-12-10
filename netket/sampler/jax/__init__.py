@@ -23,7 +23,7 @@ from .exchange_kernel import _JaxExchangeKernel
 
 @_LocalKernel.register(JaxMachine)
 def _Jax_LocalKernel(machine):
-    return _JaxLocalKernel(machine.hilbert.local_states, machine.input_size)
+    return _JaxLocalKernel(machine.hilbert)
 
 
 @_ExchangeKernel.register(JaxMachine)

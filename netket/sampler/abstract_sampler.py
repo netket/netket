@@ -8,6 +8,7 @@ class AbstractSampler(abc.ABC):
     def __init__(self, machine, sample_size=1):
         self.sample_size = sample_size
         self.machine = machine
+        self.hilbert = machine.hilbert
 
     def __iter__(self):
         return self

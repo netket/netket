@@ -8,6 +8,8 @@ from numba import jit
 
 from typing import Optional, List
 
+import jax
+
 
 class Spin(CustomHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
@@ -136,3 +138,69 @@ class Spin(CustomHilbert):
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
         return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)
+
+    def __jax_random_state__(self, key, dtype):
+        return self.__jax_random_state_batch__(key, dtype)[0, :]
+
+    def __jax_random_state_batch__(self, key, size, dtype):
+        if self._total_sz is None:
+            return _jax_randstate_fast_(key, (size, self.size), dtype, self._s)
+        else:
+            return _jax_randstate_fast_constrained_(
+                key, (size, self.size), dtype, self._s, self._total_sz
+            )
+
+    def __jax_flip_state__(self, key, state, index):
+        if self._s == 0.5:
+            return _jax_flipat_N2_(key, state, index)
+        else:
+            return _jax_flipat_generic_(key, state, index, self._s)
+
+
+import jax
+from functools import partial
+
+
+@partial(jax.jit, static_argnums=(1, 2, 3))
+def _jax_randstate_fast_(key, shape, dtype, s):
+
+    n_states = int(2 * s + 1)
+
+    rs = jax.random.randint(key, shape=shape, minval=0, maxval=n_states)
+
+    return jax.numpy.array(rs * 2.0 - (n_states - 1), dtype=dtype)
+
+
+@partial(jax.jit, static_argnums=(1, 2, 3, 4))
+def _jax_randstate_fast_constrained_(key, shape, dtype, s, total_sz):
+    batches = shape[0]
+    N = shape[1]
+
+    n_states = int(2 * s + 1)
+    assert N == 2, "Fast contrained sapling is only supported for spin 1/2"
+    m = total_sz * 2
+    nup = (N + m) // 2
+    ndown = (N - m) // 2
+
+    x = jax.numpy.array(
+        np.concatenate((np.ones((batches, nup)), -np.ones((batches, ndown)))),
+        dtype=dtype,
+    )
+
+    return jax.random.shuffle(key, x, axis=1)
+
+
+def _jax_flipat_generic_(key, x, i, s):
+    dtype = x.dtype
+    n_states = int(2 * s + 1)
+
+    xi_old = x[i]
+    r = jax.random.uniform(key)
+    xi_new = jax.numpy.floor(r * (n_states - 1)) * 2 - (n_states - 1)
+    xi_new = xi_new + 2 * (xi_new >= xi_old)
+
+    return jax.ops.index_update(x, i, xi_new), xi_old
+
+
+def _jax_flipat_N2_(key, x, i):
+    return jax.ops.index_update(x, i, -x[i]), x[i]

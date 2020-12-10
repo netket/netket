@@ -10,7 +10,7 @@ class MetropolisHastings(AbstractSampler):
 
         super().__init__(machine, n_chains)
 
-        self._random_state_kernel = jax.jit(kernel.random_state)
+        self._kernel = kernel
         self._transition_kernel = jax.jit(kernel.transition)
 
         self._rng_key = rng_key
@@ -43,11 +43,10 @@ class MetropolisHastings(AbstractSampler):
             key, state, log_prob = walker
 
             # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
-            keys = jax.random.split(key, 2 + n_chains)
+            keys = jax.random.split(key, 3)
 
-            proposal = jax.vmap(transition_kernel, in_axes=(0, 0), out_axes=0)(
-                keys[2:], state
-            )
+            proposal = transition_kernel(keys[2], state)
+
             proposal_log_prob = machine_pow * logpdf(params, proposal).real
 
             uniform = jax.random.uniform(keys[1], shape=(n_chains,))
@@ -63,12 +62,14 @@ class MetropolisHastings(AbstractSampler):
             return (keys[0], state, log_prob)
 
         # Loop over the sweeps
-        def chains_one_sweep(walker, i):
+        def _chains_one_sweep(walker, i):
             key, state, log_prob = walker
             walker = jax.lax.fori_loop(
                 0, sweep_size, chains_one_step, (key, state, log_prob)
             )
             return walker, walker[1]
+
+        chains_one_sweep = _chains_one_sweep  # jax.jit(_chains_one_sweep)
 
         keys = jax.random.split(rng_key, 2)
         initial_log_prob = machine_pow * logpdf(params, initial_state).real
@@ -115,9 +116,10 @@ class MetropolisHastings(AbstractSampler):
 
     def reset(self, init_random=False):
         if init_random:
+            self._rng_key, key = jax.random.split(self._rng_key)
 
-            self._rng_key, self._state = jax.lax.scan(
-                self._random_state_kernel, self._rng_key, xs=None, length=self._n_chains
+            self._state = self.hilbert.jax_random_state(
+                key, self._n_chains, jax.numpy.float64
             )
 
             assert self._state.shape == self.sample_shape
