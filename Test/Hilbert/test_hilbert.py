@@ -159,3 +159,14 @@ def test_state_iteration():
 
     for state, ref in zip(hilbert.states(), reference):
         assert np.allclose(state, ref)
+
+
+def test_graph_deprecation():
+    g = nk.graph.Edgeless(3)
+
+    with pytest.warns(FutureWarning):
+        hilbert = Spin(s=0.5, graph=g)
+
+    with pytest.warns(FutureWarning):
+        with pytest.raises(ValueError):
+            hilbert = Spin(s=0.5, graph=g, N=3)
