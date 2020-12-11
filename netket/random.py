@@ -47,7 +47,7 @@ def uniform(low=0.0, high=1.0):
 
 
 @jit
-def randint(low, high, size):
+def randint(low, high, size=()):
     """
     Generate random integers from low (inclusive) to high (exclusive).
 
