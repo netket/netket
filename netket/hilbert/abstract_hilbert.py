@@ -3,6 +3,8 @@ import numpy as _np
 
 from typing import List, Tuple, Optional, Generator
 
+from .._core import deprecated
+
 
 """int: Maximum number of states that can be indexed"""
 max_states = _np.iinfo(_np.int32).max
@@ -15,31 +17,31 @@ class AbstractHilbert(abc.ABC):
     @abc.abstractmethod
     def size(self):
         r"""int: The total number number of spins."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def is_discrete(self):
         r"""bool: Whether the hilbert space is discrete."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def is_finite(self):
         r"""bool: Whether the local hilbert space is finite."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def local_size(self):
         r"""int: Size of the local degrees of freedom that make the total hilbert space."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def local_states(self):
         r"""list[float]: A list of discreet local quantum numbers."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def numbers_to_states(self, numbers, out=None):
         r"""Returns the quantum numbers corresponding to the n-th basis state
@@ -50,7 +52,7 @@ class AbstractHilbert(abc.ABC):
             out: Array of quantum numbers corresponding to numbers.
                  If None, memory is allocated.
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     def number_to_state(self, number):
         r"""Returns the quantum number corresponding to the n-th basis state
@@ -84,7 +86,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.darray: Array of integers corresponding to out.
         """
-        return NotImplementedError
+        raise NotImplementedError()
 
     def state_to_number(self, state):
         r"""Returns the basis state number corresponding to given quantum states.
@@ -108,7 +110,7 @@ class AbstractHilbert(abc.ABC):
     def n_states(self):
         r"""int: The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
-        return NotImplementedError
+        raise NotImplementedError()
 
     def states(self):
         r"""Returns an iterator over all valid configurations of the Hilbert space.
@@ -120,29 +122,34 @@ class AbstractHilbert(abc.ABC):
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
 
-    def random_vals(self, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
-            Prefer random_state instad.
-
-        Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
+    @deprecated("use random_state instead")
+    def random_vals(self, *args, **kwargs):
         """
-        return self.random_state(out, rgen)
+        Deprecated alias for random_state. Prefer using random_state directly.
+        """
+        return self.random_state(*args, **kwargs)
 
     @abc.abstractmethod
-    def random_state(self, out=None, rgen=None):
-        r"""Member function generating uniformely distributed local random states.
+    def random_state(self, size=None, *, out=None, rgen=None):
+        r"""Generates either a single or a batch of uniformly distributed random states.
 
         Args:
-            out: If provided, the random quantum numbers will be inserted into this array.
-                 It should be of the appropriate shape and dtype.
-            rgen: The random number generator. If None, the global
-                  NetKet random number generator is used.
+            size: If provided, returns a batch of configurations of the form (size, #) if size
+                is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
+                By default, a single random configuration with shape (#,) is returned.
+            out: If provided, the random quantum numbers will be inserted into this array,
+                 which should be of the appropriate shape (see `size`) and data type.
+            rgen: The random number generator. If None, the global NetKet random
+                number generator is used.
+
+        Example:
+            >>> hi = netket.hilbert.Qubit(N=2)
+            >>> hi.random_state()
+            array([0., 1.])
+            >>> hi.random_state(size=2)
+            array([[0., 0.], [1., 0.]])
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.

@@ -83,7 +83,7 @@ def test_produce_elements_in_hilbert():
         local_states = hi.local_states
 
         for i in range(1000):
-            hi.random_vals(rstate)
+            hi.random_state(out=rstate)
 
             rstatet, _ = ha.get_conn(rstate)
 
@@ -101,7 +101,7 @@ def test_operator_is_hermitean():
         local_states = hi.local_states
 
         for i in range(100):
-            hi.random_vals(rstate)
+            hi.random_state(out=rstate)
             rstatet, mels = ha.get_conn(rstate)
 
             for k, state in enumerate(rstatet):

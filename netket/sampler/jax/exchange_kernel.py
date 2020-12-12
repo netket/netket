@@ -23,4 +23,4 @@ class _JaxExchangeKernel:
         return jax.ops.index_update(state_1, sj, state[si])
 
     def random_state(self, key, state):
-        return key, jax.numpy.asarray(self._hilbert.random_vals())
+        return key, jax.numpy.asarray(self._hilbert.random_state())

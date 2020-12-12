@@ -16,9 +16,8 @@ class _LocalKernel:
         for i in range(state.shape[0]):
             state_1[i] = state[i]
 
-            si = _random.randint(0, self.size)
-
-            rs = _random.randint(0, self.n_states - 1)
+            si = _random.randint(0, self.size, size=())
+            rs = _random.randint(0, self.n_states - 1, size=())
 
             state_1[i, si] = self.local_states[
                 rs + (self.local_states[rs] >= state[i, si])
@@ -30,5 +29,5 @@ class _LocalKernel:
 
         for i in range(state.shape[0]):
             for si in range(state.shape[1]):
-                rs = _random.randint(0, self.n_states)
+                rs = _random.randint(0, self.n_states, size=())
                 state[i, si] = self.local_states[rs]

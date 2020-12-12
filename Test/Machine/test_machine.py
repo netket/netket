@@ -249,9 +249,11 @@ def test_log_derivative():
         flatten = machine.numpy_flatten
 
         for i in range(100):
-            hi.random_vals(v)
             if name in dm_machines:
-                hi.random_vals(v[hi.size : 2 * hi.size])
+                hi.random_state(out=v[: hi.size])
+                hi.random_state(out=v[hi.size :])
+            else:
+                hi.random_state(out=v)
 
             machine.init_random_parameters(seed=i)
             randpars = flatten(machine.parameters)
@@ -289,7 +291,7 @@ def test_vector_jacobian():
         flatten = machine.numpy_flatten
 
         for i in range(batch_size):
-            hi.random_vals(v[i])
+            hi.random_state(out=v[i])
 
         machine.init_random_parameters(seed=1234, sigma=0.1)
         randpars = flatten(machine.parameters)
@@ -355,7 +357,7 @@ def test_to_array():
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
-            hi.random_vals(rstate)
+            hi.random_state(out=rstate)
 
             number = hi.state_to_number(rstate)
 
@@ -371,7 +373,7 @@ def test_to_array():
         for i in range(100):
             rstate = np.zeros(hi.size)
             local_states = hi.local_states
-            hi.random_vals(rstate)
+            hi.random_state(out=rstate)
 
             number = hi.state_to_number(rstate)
 

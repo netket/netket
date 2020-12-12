@@ -204,7 +204,7 @@ def test_correct_sampling():
 
         n_samples = max(40 * n_states, 10000)
 
-        ord = randint(1, 3)
+        ord = randint(1, 3, size=()).item()
         assert ord == 1 or ord == 2
 
         sa.machine_pow = ord

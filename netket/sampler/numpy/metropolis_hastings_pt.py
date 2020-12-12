@@ -178,7 +178,7 @@ class MetropolisHastingsPt(AbstractSampler):
         log_values, machine_pow, beta, proposed_beta, prob, beta_stats, accepted_samples
     ):
         # Choose a random swap order (odd/even swap)
-        swap_order = _random.randint(0, 2)
+        swap_order = _random.randint(0, 2, size=()).item()
 
         n_replicas = beta.shape[0]
 

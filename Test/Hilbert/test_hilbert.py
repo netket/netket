@@ -102,18 +102,21 @@ def test_random_states():
         print("name", name)
         if hi.is_discrete:
             rstate = np.zeros(hi.size)
-
             local_states = hi.local_states
-
             for i in range(100):
-                hi.random_state(rstate)
+                hi.random_state(out=rstate)
                 for state in rstate:
                     assert state in local_states
+
+            assert hi.random_state().shape == (hi.size,)
+            assert hi.random_state(10).shape == (10, hi.size)
+            assert hi.random_state(size=10).shape == (10, hi.size)
+            assert hi.random_state(size=(10,)).shape == (10, hi.size)
+            assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
 
 
 def test_hilbert_index():
     """"""
-
     for name, hi in hilberts.items():
         assert hi.size > 0
         assert hi.local_size > 0
@@ -161,7 +164,7 @@ def test_state_iteration():
         assert np.allclose(state, ref)
 
 
-def test_graph_deprecation():
+def test_deprecations():
     g = nk.graph.Edgeless(3)
 
     with pytest.warns(FutureWarning):
@@ -170,3 +173,7 @@ def test_graph_deprecation():
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
             hilbert = Spin(s=0.5, graph=g, N=3)
+
+    hi = Spin(0.5, N=2)
+    with pytest.warns(FutureWarning):
+        hi.random_vals()

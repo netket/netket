@@ -28,14 +28,14 @@ class _HamiltonianKernel:
     def random_state(self, state):
 
         for i in range(state.shape[0]):
-            self._hilbert.random_vals(out=state[i])
+            self._hilbert.random_state(out=state[i])
 
     @staticmethod
     @jit(nopython=True)
     def _choose(states, sections, out, w):
         low_range = 0
         for i, s in enumerate(sections):
-            n_rand = _random.randint(low_range, s)
+            n_rand = _random.randint(low_range, s, size=())
             out[i] = states[n_rand]
             w[i] = math.log(s - low_range)
             low_range = s

@@ -86,4 +86,4 @@ class _CustomKernel:
     def random_state(self, state):
 
         for i in range(state.shape[0]):
-            self._hilbert.random_vals(out=state[i])
+            self._hilbert.random_state(out=state[i])

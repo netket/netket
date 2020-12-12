@@ -258,11 +258,7 @@ class Qsr(AbstractVariationalDriver):
     @staticmethod
     @jit
     def _get_rand_ind(n, n_max):
-        rand_ind = _np.empty(n, dtype=_np.intc)
-
-        for i in range(n):
-            rand_ind[i] = randint(0, n_max)
-        return rand_ind
+        return _np.asarray(randint(0, n_max, size=(n,)), dtype=_np.intc)
 
     def _estimate_stats(self, obs):
         return self._get_mc_stats(obs)[1]
