@@ -136,7 +136,7 @@ def test_vjp():
 
 
 def test_obar():
-    a = Obar(samples, params, f, samples.shape[0])
+    a = Obar(samples, params, f)
     e = reassemble_complex(okmean_real.real)
     assert tree_allclose(tree_conj(a), e)
 
@@ -156,14 +156,14 @@ def test_odagov():
 
 
 def test_odagdeltaov():
-    a = odagdeltaov(samples, params, v, f, n_samp)
+    a = odagdeltaov(samples, params, v, f)
     e = reassemble_complex(S_real @ v_real_flat)
     assert tree_allclose(a, e)
 
 
 def test_matvec():
     diag_shift = 0.01
-    a = mat_vec(v, f, params, samples, diag_shift, n_samp)
+    a = mat_vec(v, f, params, samples, diag_shift)
     e = reassemble_complex(S_real @ v_real_flat + diag_shift * v_real_flat)
     assert tree_allclose(a, e)
 
@@ -174,7 +174,7 @@ def test_cg():
     sparse_tol = 1.0e-5
     sparse_maxiter = None
     a = _jax_cg_solve_onthefly(
-        v, f, params, samples, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
+        v, f, params, samples, grad, diag_shift, sparse_tol, sparse_maxiter
     )
 
     def mv_real(v):
