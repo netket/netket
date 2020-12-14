@@ -263,7 +263,7 @@ class LocalOperator(AbstractOperator):
         return self.__mul__(other)
 
     def __radd__(self, other):
-        return self.__radd__(other)
+        return self.__add__(other)
 
     def _init_zero(self):
         self._operators = []
