@@ -28,7 +28,9 @@ def O_vjp(x, theta, v, forward_fn, return_vjp_fun=False, vjp_fun=None):
 def Obar(samples, theta, forward_fn, **kwargs):
     # TODO better way to get dtype
     dtype = forward_fn(theta, samples[:1])[0].dtype
-    v = jax.lax.broadcast( jnp.array(1./(samples.shape[0]*n_nodes), dtype=dtype) , (samples.shape[0],))
+    v = jax.lax.broadcast(
+        jnp.array(1.0 / (samples.shape[0] * n_nodes), dtype=dtype), (samples.shape[0],)
+    )
     return O_vjp(samples, theta, v, forward_fn, **kwargs)
 
 
@@ -65,7 +67,10 @@ def odagdeltaov(samples, theta, v, forward_fn, vjp_fun=None):
     # vprime /= n_samp (elementwise)
     vprime = jax.lax.mul(
         vprime,
-        jax.lax.broadcast(jnp.array(1.0 / (samples.shape[0]*n_nodes), dtype=vprime.dtype), vprime.shape),
+        jax.lax.broadcast(
+            jnp.array(1.0 / (samples.shape[0] * n_nodes), dtype=vprime.dtype),
+            vprime.shape,
+        ),
     )
 
     res = O_vjp(samples, theta, vprime.conjugate(), forward_fn, vjp_fun=vjp_fun)

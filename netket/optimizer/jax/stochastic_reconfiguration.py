@@ -42,9 +42,7 @@ def _matvec_real(v, oks, diag_shift):
 
 
 @partial(jit, static_argnums=1)
-def _jax_cg_solve(
-    x0, mat_vec, oks, grad, diag_shift, sparse_tol, sparse_maxiter
-):
+def _jax_cg_solve(x0, mat_vec, oks, grad, diag_shift, sparse_tol, sparse_maxiter):
     r"""
     Solves the SR flow equation using the conjugate gradient method
     """
@@ -101,7 +99,7 @@ _flatten_grad_and_oks = jax.jit(_shape_for_sr)
 
 @jit
 def _subtract_mean_from_oks(oks):
-    return oks - _sum_inplace(jnp.sum(oks, axis=0) / (oks.shape[0]*n_nodes))
+    return oks - _sum_inplace(jnp.sum(oks, axis=0) / (oks.shape[0] * n_nodes))
 
 
 class SR:
