@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 from netket.stats import sum_inplace as _sum_inplace
+from netket.utils import n_nodes
 
 
 # onthefly SR
@@ -24,10 +25,10 @@ def O_vjp(x, theta, v, forward_fn, return_vjp_fun=False, vjp_fun=None):
 
 
 # calculate \langle O \rangle
-def Obar(samples, theta, forward_fn, n_samp, **kwargs):
+def Obar(samples, theta, forward_fn, **kwargs):
     # TODO better way to get dtype
     dtype = forward_fn(theta, samples[:1])[0].dtype
-    v = jnp.ones(samples.shape[0], dtype=dtype) / n_samp
+    v = jax.lax.broadcast( jnp.array(1./(samples.shape[0]*n_nodes), dtype=dtype) , (samples.shape[0],))
     return O_vjp(samples, theta, v, forward_fn, **kwargs)
 
 
@@ -41,10 +42,10 @@ def odagov(samples, theta, v, forward_fn):
 # calculate O^\dagger \Delta O v
 # where \Delta O = O-\langle O \rangle
 # optional: pass jvp_fun to be reused
-def odagdeltaov(samples, theta, v, forward_fn, n_samp, vjp_fun=None):
+def odagdeltaov(samples, theta, v, forward_fn, vjp_fun=None):
     # reuse vjp_fun from O_mean below for O_vjp
     O_mean, vjp_fun = Obar(
-        samples, theta, forward_fn, n_samp, return_vjp_fun=True, vjp_fun=vjp_fun
+        samples, theta, forward_fn, return_vjp_fun=True, vjp_fun=vjp_fun
     )
     vprime = O_jvp(
         samples, theta, v, forward_fn
@@ -64,7 +65,7 @@ def odagdeltaov(samples, theta, v, forward_fn, n_samp, vjp_fun=None):
     # vprime /= n_samp (elementwise)
     vprime = jax.lax.mul(
         vprime,
-        jax.lax.broadcast(jnp.array(1.0 / n_samp, dtype=vprime.dtype), vprime.shape),
+        jax.lax.broadcast(jnp.array(1.0 / (samples.shape[0]*n_nodes), dtype=vprime.dtype), vprime.shape),
     )
 
     res = O_vjp(samples, theta, vprime.conjugate(), forward_fn, vjp_fun=vjp_fun)
@@ -82,12 +83,11 @@ def odagdeltaov(samples, theta, v, forward_fn, n_samp, vjp_fun=None):
     return res
 
 
-def mat_vec(v, forward_fn, params, samples, diag_shift, n_samp):
-    # all the leaves of v need to be arrays, since we need to broadcast
+def mat_vec(v, forward_fn, params, samples, diag_shift):
+    # all the leaves of v need to be arrays
     # when using MPI:
     #      each rank has its own slice of samples
-    #      n_samp is the sum of the number of samples of all mpi ranks
-    res = odagdeltaov(samples, params, v, forward_fn, n_samp)
+    res = odagdeltaov(samples, params, v, forward_fn)
     # add diagonal shift:
     shiftv = jax.tree_map(
         lambda x: jax.lax.mul(

@@ -1,6 +1,5 @@
 from functools import partial
 from netket.stats import sum_inplace as _sum_inplace
-from netket.utils import n_nodes
 
 import jax
 import jax.numpy as jnp
@@ -14,14 +13,14 @@ from netket.utils import n_nodes, mpi4jax_available
 from ._sr_onthefly import mat_vec as _mat_vec_onthefly
 
 
-def _S_grad_mul(oks, v, n_samp):
+def _S_grad_mul(oks, v):
     r"""
     Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
     length n_parameters, and O is a matrix (n_samples, n_parameters)
     """
-    v_tilde = jnp.matmul(oks, v) / n_samp
+    v_tilde = jnp.matmul(oks, v) / (oks.shape[0] * n_nodes)
     y = jnp.matmul(oks.conjugate().transpose(), v_tilde)
-    return y
+    return _sum_inplace(y)
 
 
 def _compose_result_cmplx(v, y, diag_shift):
@@ -32,26 +31,25 @@ def _compose_result_real(v, y, diag_shift):
     return (v * diag_shift + y).real
 
 
-# Note: n_samp must be the total number of samples across all MPI processes!
-def _matvec_cmplx(v, oks, n_samp, diag_shift):
-    y = _S_grad_mul(oks, v, n_samp)
-    return _compose_result_cmplx(v, _sum_inplace(y), diag_shift)
+def _matvec_cmplx(v, oks, diag_shift):
+    y = _S_grad_mul(oks, v)
+    return _compose_result_cmplx(v, y, diag_shift)
 
 
-def _matvec_real(v, oks, n_samp, diag_shift):
-    y = _S_grad_mul(oks, v, n_samp)
-    return _compose_result_real(v, _sum_inplace(y), diag_shift)
+def _matvec_real(v, oks, diag_shift):
+    y = _S_grad_mul(oks, v)
+    return _compose_result_real(v, y, diag_shift)
 
 
 @partial(jit, static_argnums=1)
 def _jax_cg_solve(
-    x0, mat_vec, oks, grad, diag_shift, n_samp, sparse_tol, sparse_maxiter
+    x0, mat_vec, oks, grad, diag_shift, sparse_tol, sparse_maxiter
 ):
     r"""
     Solves the SR flow equation using the conjugate gradient method
     """
 
-    _mat_vec = partial(mat_vec, oks=oks, diag_shift=diag_shift, n_samp=n_samp)
+    _mat_vec = partial(mat_vec, oks=oks, diag_shift=diag_shift)
 
     out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
 
@@ -66,7 +64,6 @@ def _jax_cg_solve_onthefly(
     samples,
     grad,
     diag_shift,
-    n_samp,
     sparse_tol,
     sparse_maxiter,
 ):
@@ -77,7 +74,6 @@ def _jax_cg_solve_onthefly(
         params=params,
         samples=samples,
         diag_shift=diag_shift,
-        n_samp=n_samp,
     )
     out, _ = cg(_mat_vec, grad, x0=x0, tol=sparse_tol, maxiter=sparse_maxiter)
     return out
@@ -104,8 +100,8 @@ _flatten_grad_and_oks = jax.jit(_shape_for_sr)
 
 
 @jit
-def _subtract_mean_from_oks(oks, n_samp):
-    return oks - _sum_inplace(jnp.sum(oks, axis=0) / n_samp)
+def _subtract_mean_from_oks(oks):
+    return oks - _sum_inplace(jnp.sum(oks, axis=0) / (oks.shape[0]*n_nodes))
 
 
 class SR:
@@ -209,9 +205,8 @@ class SR:
 
         # if using MPI the number of samples on each rank has to be the same
 
-        grad, oks = _flatten_grad_and_oks(grad, oks)  # also subtracts the mean from ok
-        n_samp = oks.shape[0] * n_nodes
-        oks = _subtract_mean_from_oks(oks, n_samp)
+        grad, oks = _flatten_grad_and_oks(grad, oks)
+        oks = _subtract_mean_from_oks(oks)
 
         n_par = grad.shape[0]
 
@@ -230,7 +225,6 @@ class SR:
                         oks,
                         grad,
                         self._diag_shift,
-                        n_samp,
                         self.sparse_tol,
                         self.sparse_maxiter,
                     )
@@ -244,7 +238,6 @@ class SR:
                         oks,
                         grad.real,
                         self._diag_shift,
-                        n_samp,
                         self.sparse_tol,
                         self.sparse_maxiter,
                     )
@@ -270,8 +263,6 @@ class SR:
             out: A pytree of the parameter updates that will be ignored
         """
 
-        n_samp = samples.shape[0] * n_nodes
-
         if self._x0 is None:
             self._x0 = jax.tree_map(jnp.zeros_like, grad)  # x0 = jnp.zeros_like(grad)
 
@@ -284,7 +275,6 @@ class SR:
                     samples,
                     grad,
                     self._diag_shift,
-                    n_samp,
                     self.sparse_tol,
                     self.sparse_maxiter,
                 )
