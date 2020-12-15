@@ -149,6 +149,9 @@ class Ising(AbstractOperator):
 
         return self._flattened_kernel(x, sections, self._edges, self._h, self._J)
 
+    def __repr__(self):
+        return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
+
 
 def Heisenberg(hilbert, graph, J=1, sign_rule=None):
     """

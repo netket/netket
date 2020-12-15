@@ -777,3 +777,10 @@ class LocalOperator(AbstractOperator):
                 c += n_conn_i
 
         return x_prime, mels
+
+    def __repr__(self):
+        ao = self._acting_on
+        acting_str = f"acting_on={ao.tolist()}"
+        if len(acting_str) > 55:
+            acting_str = f"#acting_on={ao.shape[0]}"
+        return f"{type(self).__name__}(dim={self.hilbert.size}, local_dim={ao.shape[1]}, {acting_str})"
