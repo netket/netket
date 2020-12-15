@@ -1,7 +1,9 @@
 import pytest
-from jax.config import config
+import netket as nk
 
-config.update("jax_enable_x64", True)
+if not nk.utils.jax_available:
+    pytest.skip("skipping jax-only SR-onthefly tests", allow_module_level=True)
+
 import jax
 import jax.numpy as jnp
 import jax.flatten_util
