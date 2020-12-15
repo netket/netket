@@ -261,6 +261,14 @@ class SR:
             out: A pytree of the parameter updates that will be ignored
         """
 
+        grad = jax.tree_multimap(
+            lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+                target.dtype
+            ),
+            grad,
+            self._machine.parameters,
+        )
+
         if self._x0 is None:
             self._x0 = jax.tree_map(jnp.zeros_like, grad)  # x0 = jnp.zeros_like(grad)
 
