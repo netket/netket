@@ -252,3 +252,14 @@ def test_truediv():
     sx0sy1 = sx0sy1_hat.to_dense()
     sx0sy1_hat /= 3.0
     assert np.allclose(sx0sy1_hat.to_dense(), sx0sy1 / 3.0)
+
+
+def test_copy():
+    for name, op in herm_operators.items():
+        print(name)
+        op_copy = op.copy()
+        assert op_copy is not op
+        for o1, o2 in zip(op._operators, op_copy._operators):
+            assert o1 is not o2
+            assert np.all(o1 == o2)
+        same_matrices(op, op_copy)

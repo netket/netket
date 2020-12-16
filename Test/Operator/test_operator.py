@@ -170,3 +170,4 @@ def test_Heisenberg():
 def test_repr():
     for op in operators.values():
         assert type(op).__name__ in repr(op)
+

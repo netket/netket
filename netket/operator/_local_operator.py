@@ -473,6 +473,15 @@ class LocalOperator(AbstractOperator):
 
         return operators, acting_on
 
+    def copy(self):
+        """Returns a copy of the operator."""
+        return LocalOperator(
+            hilbert=self._hilbert,
+            operators=[_np.copy(op) for op in self._operators],
+            acting_on=self._acting_on_list(),
+            constant=self._constant,
+        )
+
     def transpose(self):
         r"""LocalOperator: Returns the tranpose of this operator."""
 
