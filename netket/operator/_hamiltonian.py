@@ -153,39 +153,55 @@ class Ising(AbstractOperator):
         return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
 
 
-def Heisenberg(hilbert, graph, J=1, sign_rule=None):
-    """
-    Constructs a new ``Heisenberg`` given a hilbert space.
+class Heisenberg(GraphOperator):
+    def __init__(self, hilbert, graph, J=1, sign_rule=None):
+        """
+        Constructs a new ``Heisenberg`` given a hilbert space.
 
-    Args:
-        hilbert: Hilbert space the operator acts on.
-        grah: The graph upon which this hamiltonian is defined.
-        J: The strength of the coupling. Default is 1.
-        sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
-                   lattice, this corresponds to a basis change flipping the Sz direction
-                   at every odd site of the lattice. For non-bipartite lattices, the
-                   sign rule cannot be applied. Defaults to True if the lattice is
-                   bipartite, False otherwise.
+        Args:
+            hilbert: Hilbert space the operator acts on.
+            grah: The graph upon which this hamiltonian is defined.
+            J: The strength of the coupling. Default is 1.
+            sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
+                       lattice, this corresponds to a basis change flipping the Sz direction
+                       at every odd site of the lattice. For non-bipartite lattices, the
+                       sign rule cannot be applied. Defaults to True if the lattice is
+                       bipartite, False otherwise.
 
-    Examples:
-     Constructs a ``Heisenberg`` operator for a 1D system.
+        Examples:
+         Constructs a ``Heisenberg`` operator for a 1D system.
 
-        >>> import netket as nk
-        >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-        >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
-        >>> op = nk.operator.Heisenberg(hilbert=hi)
-        >>> print(op.hilbert.size)
-        20
-    """
-    if sign_rule is None:
-        sign_rule = graph.is_bipartite()
+            >>> import netket as nk
+            >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+            >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
+            >>> op = nk.operator.Heisenberg(hilbert=hi)
+            >>> print(op.hilbert.size)
+            20
+        """
+        if sign_rule is None:
+            sign_rule = graph.is_bipartite()
 
-    sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
-    if sign_rule:
-        if not graph.is_bipartite():
-            raise ValueError("sign_rule=True specified for a non-bipartite lattice")
-        heis_term = sz_sz - exchange
-    else:
-        heis_term = sz_sz + exchange
-    return GraphOperator(hilbert, graph, bond_ops=[J * heis_term])
+        self._J = J
+        self._sign_rule = sign_rule
+
+        sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+        if sign_rule:
+            if not graph.is_bipartite():
+                raise ValueError("sign_rule=True specified for a non-bipartite lattice")
+            heis_term = sz_sz - exchange
+        else:
+            heis_term = sz_sz + exchange
+
+        super().__init__(hilbert, graph, bond_ops=[J * heis_term])
+
+    @property
+    def J(self):
+        return self._J
+
+    @property
+    def uses_sign_rule(self):
+        return self._sign_rule
+
+    def __repr__(self):
+        return f"Heisenberg(J={self._J}, sign_rule={self._sign_rule}; dim={self.hilbert.size})"
