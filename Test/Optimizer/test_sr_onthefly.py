@@ -46,7 +46,7 @@ grad = {
     "c": jnp.array(1.22 - 0.45j),
 }
 
-vprime = jnp.array(np.random.random(n_samp) + 1j * np.random.random(n_samp))
+v_tilde = jnp.array(np.random.random(n_samp) + 1j * np.random.random(n_samp))
 
 
 def flatten(x):
@@ -56,9 +56,7 @@ def flatten(x):
 
 def toreal(x):
     if jnp.iscomplexobj(x):
-        return jnp.array(
-            [x.real, x.imag]
-        )  # need to use sth which jax thinks its a leaf
+        return jnp.array([x.real, x.imag])
     else:
         return x
 
@@ -71,20 +69,14 @@ def tree_toreal_flat(x):
     return flatten(tree_toreal(x))
 
 
-# invert the trafo using linear_transpose (AD)
+# invert the transformation tree_toreal_flat using linear_transpose (AD)
 def reassemble_complex(x, fun=tree_toreal_flat, target=params):
-    # target: some tree with the shape and types we want
-    _lt = jax.linear_transpose(fun, target)
-    # jax gradient is actually the conjugated one, so we need to fix it:
-    res = jax.tree_map(jax.lax.conj, _lt(x)[0])
-    # also fix the dtypes:
-    return jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        res,
-        target,
-    )
+    # target: a tree with the expected shape and types of the result
+    (res,) = jax.linear_transpose(fun, target)(x)
+    # TODO ...
+    res = tree_conj(res)
+    # fix the dtypes:
+    return tree_cast(res, target)
 
 
 def f_real_flat(p, samples):
@@ -118,56 +110,68 @@ def tree_allclose(t1, t2):
     return all(jax.tree_util.tree_flatten(t)[0])
 
 
-def tree_conj(t):
-    return jax.tree_map(jax.lax.conj, t)
-
-
 def test_reassemble_complex():
     assert tree_allclose(params, reassemble_complex(tree_toreal_flat(params)))
 
 
-# O_vjp and O_jvp are actually conjugated compared to ok
-# (however the final result after matvec is still correct)
-# this way we can avoid two conjugations
-
-
 def test_vjp():
-    a = O_vjp(samples, params, vprime, f)
-    e = reassemble_complex((vprime @ ok_real).real)
-    assert tree_allclose(tree_conj(a), e)
+    actual = O_vjp(samples, params, v_tilde, f)
+    # TODO ...
+    expected = tree_conj(reassemble_complex((v_tilde @ ok_real).real))
+    assert tree_allclose(actual, expected)
 
 
-def test_obar():
-    a = Obar(samples, params, f)
-    e = reassemble_complex(okmean_real.real)
-    assert tree_allclose(tree_conj(a), e)
+def test_mean():
+    actual = O_mean(samples, params, f)
+    # TODO ...
+    expected = tree_conj(reassemble_complex(okmean_real.real))
+    assert tree_allclose(actual, expected)
+
+
+def test_Odagger_w():
+    actual = Odagger_w(samples, params, v_tilde, f)
+    expected = reassemble_complex((ok_real.conjugate().transpose() @ v_tilde).real)
+    assert tree_allclose(actual, expected)
 
 
 def test_jvp():
-    a = O_jvp(samples, params, v, f)
-    e = ok_real @ v_real_flat
-    assert tree_allclose(a, e)
+    actual = O_jvp(samples, params, v, f)
+    expected = ok_real @ v_real_flat
+    assert tree_allclose(actual, expected)
 
 
-def test_odagov():
-    a = odagov(samples, params, v, f)
-    e = reassemble_complex(
-        (ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real
+def test_Odagger_O_v():
+    actual = Odagger_O_v(samples, params, v, f)
+    expected = reassemble_complex(
+        (ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real / n_samp
     )
-    assert tree_allclose(a, e)
+    assert tree_allclose(actual, expected)
 
 
-def test_odagdeltaov():
-    a = odagdeltaov(samples, params, v, f)
-    e = reassemble_complex(S_real @ v_real_flat)
-    assert tree_allclose(a, e)
+def test_Odagger_DeltaO_v():
+    actual = Odagger_DeltaO_v(samples, params, v, f)
+    expected = reassemble_complex(S_real @ v_real_flat)
+    assert tree_allclose(actual, expected)
 
 
 def test_matvec():
     diag_shift = 0.01
-    a = mat_vec(v, f, params, samples, diag_shift)
-    e = reassemble_complex(S_real @ v_real_flat + diag_shift * v_real_flat)
-    assert tree_allclose(a, e)
+    actual = mat_vec(v, f, params, samples, diag_shift)
+    expected = reassemble_complex(S_real @ v_real_flat + diag_shift * v_real_flat)
+    assert tree_allclose(actual, expected)
+
+
+def test_matvec_linear_transpose():
+    w = v
+    (actual,) = jax.linear_transpose(
+        lambda v_: mat_vec(v_, f, params, samples, 0.0), v
+    )(w)
+    # use that S is hermitian:
+    # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
+    # S^T w = S* w = (S w*)*
+    expected = tree_conj(mat_vec(tree_conj(w), f, params, samples, 0.0))
+    # e, = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_)), v)(v)
+    assert tree_allclose(actual, expected)
 
 
 def test_cg():
@@ -175,14 +179,14 @@ def test_cg():
     diag_shift = 0.001
     sparse_tol = 1.0e-5
     sparse_maxiter = None
-    a = _jax_cg_solve_onthefly(
+    actual = _jax_cg_solve_onthefly(
         v, f, params, samples, grad, diag_shift, sparse_tol, sparse_maxiter
     )
 
     def mv_real(v):
         return S_real @ v + diag_shift * v
 
-    e = reassemble_complex(
+    expected = reassemble_complex(
         cg(
             mv_real,
             grad_real_flat,
@@ -191,4 +195,4 @@ def test_cg():
             maxiter=sparse_maxiter,
         )[0]
     )
-    assert tree_allclose(a, e)
+    assert tree_allclose(actual, expected)

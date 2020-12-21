@@ -10,7 +10,7 @@ from jax.tree_util import tree_flatten
 from netket.vmc_common import jax_shape_for_update
 from netket.utils import n_nodes, mpi4jax_available
 
-from ._sr_onthefly import mat_vec as _mat_vec_onthefly
+from ._sr_onthefly import mat_vec as _mat_vec_onthefly, tree_cast as _tree_cast
 
 
 def _S_grad_mul(oks, v):
@@ -18,6 +18,8 @@ def _S_grad_mul(oks, v):
     Computes y = 1/N * ( O^\dagger * O * v ) where v is a vector of
     length n_parameters, and O is a matrix (n_samples, n_parameters)
     """
+    # TODO apply the transpose of sum_inplace (allreduce) to v here
+    # in order to get correct transposition with MPI
     v_tilde = jnp.matmul(oks, v) / (oks.shape[0] * n_nodes)
     y = jnp.matmul(oks.conjugate().transpose(), v_tilde)
     return _sum_inplace(y)
@@ -65,7 +67,6 @@ def _jax_cg_solve_onthefly(
     sparse_tol,
     sparse_maxiter,
 ):
-    # leaves in x0 and grad are required to be arrays and need to have the same structure
     _mat_vec = partial(
         _mat_vec_onthefly,
         forward_fn=forward_fn,
@@ -77,7 +78,8 @@ def _jax_cg_solve_onthefly(
     return out
 
 
-def _shape_for_sr(grads, jac):
+@jit
+def _flatten_grad_and_oks(grads, jac):
     r"""Reshapes grads and jac from tree like structures to arrays if jax_available
 
     Args:
@@ -92,9 +94,6 @@ def _shape_for_sr(grads, jac):
         tuple(fd.reshape(len(fd), -1) for fd in tree_flatten(jac)[0]), -1
     )
     return grads, jac
-
-
-_flatten_grad_and_oks = jax.jit(_shape_for_sr)
 
 
 @jit
@@ -261,13 +260,8 @@ class SR:
             out: A pytree of the parameter updates that will be ignored
         """
 
-        grad = jax.tree_multimap(
-            lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-                target.dtype
-            ),
-            grad,
-            self._machine.parameters,
-        )
+        # cast the leaves of grad to the same dtypes as the parameters
+        grad = _tree_cast(grad, self._machine.parameters)
 
         if self._x0 is None:
             self._x0 = jax.tree_map(jnp.zeros_like, grad)  # x0 = jnp.zeros_like(grad)
