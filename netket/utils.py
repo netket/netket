@@ -47,6 +47,11 @@ if jax_available:
 else:
     mpi4jax_available = False
 
+if mpi4jax_available and not mpi4jax.__version__ >= "0.2.7":
+    raise ImportError(
+        "Netket is only compatible with mpi4jax >= 0.2.7. Please update it (`pip install -U mpi4jax`)."
+    )
+
 try:
     import torch
 
