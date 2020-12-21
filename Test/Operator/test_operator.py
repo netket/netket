@@ -165,3 +165,8 @@ def test_Heisenberg():
         assert not g.is_bipartite()
 
         ha = nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
+
+
+def test_repr():
+    for op in operators.values():
+        assert type(op).__name__ in repr(op)

@@ -184,6 +184,12 @@ class Vmc(AbstractVariationalDriver):
         return self._loss_stats
 
     def _estimate_stats(self, obs):
+        if self._samples is None:
+            raise RuntimeError(
+                "Vmc driver needs to perform a step before .estimate() can be "
+                "called. To get VMC estimates outside of optimization, use "
+                "netket.variational.estimate_expectations instead."
+            )
         return self._get_mc_stats(obs)[1]
 
     def reset(self):

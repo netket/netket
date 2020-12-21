@@ -35,6 +35,14 @@ def _setup_vmc(lsq_solver=None):
     return ha, sx, ma, sa, driver
 
 
+def test_before_first_step():
+    ha, *_, driver = _setup_vmc()
+    with raises(RuntimeError):
+        doesnotwork = driver.estimate(ha)
+    driver.advance(1)
+    driver.estimate(ha)
+
+
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
     driver.advance(500)
