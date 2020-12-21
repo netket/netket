@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion as _LooseVersion
+
 try:
     from mpi4py import MPI
 
@@ -47,10 +49,15 @@ if jax_available:
 else:
     mpi4jax_available = False
 
-if mpi4jax_available and not mpi4jax.__version__ >= "0.2.7":
-    raise ImportError(
-        "Netket is only compatible with mpi4jax >= 0.2.7. Please update it (`pip install -U mpi4jax`)."
-    )
+
+if mpi4jax_available:
+    _min_mpi4jax_version = "0.2.7"
+    if not _LooseVersion(mpi4jax.__version__) >= _LooseVersion(_min_mpi4jax_version):
+        raise ImportError(
+            "Netket is only compatible with mpi4jax >= {}. Please update it (`pip install -U mpi4jax`).".format(
+                _min_mpi4jax_version
+            )
+        )
 
 try:
     import torch
