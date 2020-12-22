@@ -115,7 +115,7 @@ class SR:
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
-        onthefly=True
+        onthefly=True,
     ):
 
         if n_nodes > 1 and not mpi4jax_available:

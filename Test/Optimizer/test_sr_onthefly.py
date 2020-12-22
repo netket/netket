@@ -12,8 +12,6 @@ from jax.scipy.sparse.linalg import cg
 from netket.optimizer.jax._sr_onthefly import *
 from netket.optimizer.jax.stochastic_reconfiguration import _jax_cg_solve_onthefly
 
-# TODO more sophisitcated example?
-
 
 @partial(jax.vmap, in_axes=(None, 0))
 def f(params, x):
@@ -73,7 +71,6 @@ def tree_toreal_flat(x):
 def reassemble_complex(x, fun=tree_toreal_flat, target=params):
     # target: a tree with the expected shape and types of the result
     (res,) = jax.linear_transpose(fun, target)(x)
-    # TODO ...
     res = tree_conj(res)
     # fix the dtypes:
     return tree_cast(res, target)
@@ -116,20 +113,18 @@ def test_reassemble_complex():
 
 def test_vjp():
     actual = O_vjp(samples, params, v_tilde, f)
-    # TODO ...
     expected = tree_conj(reassemble_complex((v_tilde @ ok_real).real))
     assert tree_allclose(actual, expected)
 
 
 def test_mean():
     actual = O_mean(samples, params, f)
-    # TODO ...
     expected = tree_conj(reassemble_complex(okmean_real.real))
     assert tree_allclose(actual, expected)
 
 
-def test_Odagger_w():
-    actual = Odagger_w(samples, params, v_tilde, f)
+def test_OH_w():
+    actual = OH_w(samples, params, v_tilde, f)
     expected = reassemble_complex((ok_real.conjugate().transpose() @ v_tilde).real)
     assert tree_allclose(actual, expected)
 
@@ -170,7 +165,7 @@ def test_matvec_linear_transpose():
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
     expected = tree_conj(mat_vec(tree_conj(w), f, params, samples, 0.0))
-    # e, = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_)), v)(v)
+    # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_)), v)(v)
     assert tree_allclose(actual, expected)
 
 
