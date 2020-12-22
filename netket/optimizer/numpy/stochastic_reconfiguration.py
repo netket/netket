@@ -323,3 +323,7 @@ class SR:
     @property
     def has_complex_parameters(self):
         return self._has_complex_parameters
+
+    @property
+    def onthefly(self):
+        return False

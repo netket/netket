@@ -115,6 +115,7 @@ class SR:
         svd_threshold=None,
         sparse_tol=None,
         sparse_maxiter=None,
+        onthefly=True
     ):
 
         if n_nodes > 1 and not mpi4jax_available:
@@ -125,6 +126,7 @@ class SR:
                 """
             )
 
+        self._onthefly = onthefly
         self._lsq_solver = lsq_solver
         self._diag_shift = diag_shift
         self._use_iterative = use_iterative
@@ -312,3 +314,7 @@ class SR:
     @property
     def has_complex_parameters(self):
         return self._has_complex_parameters
+
+    @property
+    def onthefly(self):
+        return self._onthefly

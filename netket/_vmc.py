@@ -26,7 +26,6 @@ class Vmc(AbstractVariationalDriver):
         n_samples,
         n_discard=None,
         sr=None,
-        sronthefly=False,
     ):
         """
         Initializes the driver class.
@@ -67,7 +66,6 @@ class Vmc(AbstractVariationalDriver):
         self._ham = hamiltonian
         self._sampler = sampler
         self.sr = sr
-        self._sr_onthefly = sronthefly
 
         self._npar = self._machine.n_par
 
@@ -157,7 +155,7 @@ class Vmc(AbstractVariationalDriver):
 
         # Perform update
         if self._sr:
-            if self._sr_onthefly:
+            if self._sr.onthefly:
 
                 self._grads = self._machine.vector_jacobian_prod(
                     samples_r, eloc_r / self._n_samples, self._grads
