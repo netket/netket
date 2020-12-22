@@ -14,6 +14,9 @@
 
 import netket as nk
 import numpy as np
+from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
+import jax
+from netket._dynamics import TimeEvolution
 
 rg = nk.random.seed(seed=1234)
 
@@ -25,16 +28,7 @@ Vp = 2.0
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
-
-
-# Defining the Ising hamiltonian (with sign problem here)
-# Using local operators
-sx = [[0, 1], [1, 0]]
-sy = [[0, -1j], [1j, 0]]
-sz = [[1, 0], [0, -1]]
-
-sigmam = [[0, 0], [1, 0]]
+hi = nk.hilbert.Spin(s=0.5, graph=g)
 
 # The hamiltonian
 ha = nk.operator.LocalOperator(hi)
@@ -48,15 +42,12 @@ obs_sy = nk.operator.LocalOperator(hi)
 obs_sz = nk.operator.LocalOperator(hi)
 
 for i in range(L):
-    ha += (gp / 2.0) * nk.operator.LocalOperator(hi, sx, [i])
-    ha += (Vp / 4.0) * nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
-
-    # sigma_{-} dissipation on every site
-    j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
-
-    obs_sx += nk.operator.LocalOperator(hi, sx, [i])
-    obs_sy += nk.operator.LocalOperator(hi, sy, [i])
-    obs_sz += nk.operator.LocalOperator(hi, sz, [i])
+    ha += (gp / 2.0) * sigmax(hi, i)
+    ha += (Vp / 4.0) * sigmaz(hi, i) * sigmaz(hi, (i + 1) % L)
+    j_ops.append(sigmam(hi, i))
+    obs_sx += sigmax(hi, i)
+    obs_sy += sigmay(hi, i)
+    obs_sz += sigmaz(hi, i)
 
 
 #  Create the liouvillian
@@ -67,15 +58,18 @@ ma = nk.machine.density_matrix.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
 ma.init_random_parameters(seed=1234, sigma=0.001)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(machine=ma)
-# Sampler for the diagonal of the density matrix, to compute observables
-sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal())
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=8)
+sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal(), n_chains=8)
 
-# Optimizer
-op = nk.optimizer.Sgd(ma, 0.01)
-sr = nk.optimizer.SR(ma, diag_shift=0.01, use_iterative=True)
+sr = nk.optimizer.SR(
+    ma, diag_shift=0.001, use_iterative=True, sparse_tol=1e-6, sparse_maxiter=1000
+)
 
-ss = nk.SteadyState(lind, sa, op, 2000, sampler_obs=sa_obs, n_samples_obs=500)
+tevo = TimeEvolution(
+    lind, sa, sr=sr, n_samples=2000, sampler_obs=sa_obs, n_samples_obs=500
+)
+tevo.solver("rk45", (0.0, 2.0), dt=0.01, adaptive=False)
+
 obs = {"Sx": obs_sx, "Sy": obs_sy, "Sz": obs_sz}
 
-ss.run(n_iter=200, out="test", obs=obs)
+tevo.run(2.0, out="test", obs=obs, step_size=1e-10)
