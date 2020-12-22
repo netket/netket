@@ -55,6 +55,7 @@ def _JaxSR(
     svd_threshold=None,
     sparse_tol=None,
     sparse_maxiter=None,
+    onthefly=True,
 ):
     return SR(
         machine,
@@ -64,4 +65,5 @@ def _JaxSR(
         svd_threshold,
         sparse_tol,
         sparse_maxiter,
+        onthefly,
     )
