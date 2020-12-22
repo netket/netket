@@ -36,7 +36,11 @@ def warn_extraneous(extraneous):
 class EulerSolver(OdeSolver):
     """Base class for explicit Runge-Kutta methods."""
 
-    B = np.array([1,])
+    B = np.array(
+        [
+            1,
+        ]
+    )
     order = NotImplemented
     error_estimator_order = NotImplemented
     n_stages = 1
