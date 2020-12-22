@@ -78,7 +78,11 @@ if jax_available:
             if _n_nodes == 1:
                 return x
             else:
-                res, _ = mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm)
+                # Note: We must supply a token because we can't transpose `create_token`.
+                # The token can't depend on x for the same reason
+                # This token depends on a constant and will be eliminated by DCE
+                token = jax.lax.create_token(0)
+                res, _ = mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm, token=token)
                 return res
 
     else:

@@ -12,7 +12,7 @@ DEV_DEPENDENCIES = [
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1"]
 JAX_DEPENDENCIES = ["jax"]
 
-MPIJAX_DEPENDENCIES = ["mpi4jax>=0.2.6"]
+MPIJAX_DEPENDENCIES = ["mpi4jax>=0.2.7"]
 
 setup(
     name="netket",
