@@ -45,15 +45,10 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 # Optimizer
 op = nk.optimizer.AdaDelta(ma)
 
-# Stochastic reconfiguration
-gs = nk.variational.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=300,
-    diag_shift=0.1,
-    use_iterative=True,
-    method="Sr",
-)
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(ma, diag_shift=0.1)
+
+# Create the optimization driver
+gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
 
 gs.run(out="test", n_iter=3000)
