@@ -63,13 +63,30 @@ def _time_evo_vmc(self):
     samples_r = self._samples.reshape((-1, self._samples.shape[-1]))
     eloc_r = eloc.reshape(-1, 1)
 
-    self._grads, self._jac = self._machine.vector_jacobian_prod(
-        samples_r, eloc_r / self._n_samples, self._grads, return_jacobian=True
-    )
-    self._grads = tree_map(_sum_inplace, self._grads)
-    self._grads = tree_map(lambda x: -1.0j * x, self._grads)
+    if self._sr.onthefly:
 
-    self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
+        self._grads = self._machine.vector_jacobian_prod(
+            samples_r, eloc_r / self._n_samples, self._grads
+        )
+
+        self._grads = tree_map(_sum_inplace, self._grads)
+        self._grads = tree_map(lambda x: -1.0j * x, self._grads)
+
+        self._dp = self._sr.compute_update_onthefly(samples_r, self._grads, self._dp)
+
+    else:
+        # When using the SR (Natural gradient) we need to have the full jacobian
+        self._grads, self._jac = self._machine.vector_jacobian_prod(
+            samples_r,
+            eloc_r / self._n_samples,
+            self._grads,
+            return_jacobian=True,
+        )
+
+        self._grads = tree_map(_sum_inplace, self._grads)
+        self._grads = tree_map(lambda x: -1.0j * x, self._grads)
+
+        self._dp = self._sr.compute_update(self._jac, self._grads, self._dp)
 
     return self._dp
 
