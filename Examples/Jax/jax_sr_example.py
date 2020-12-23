@@ -9,7 +9,7 @@ L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=1 / 2) ** L
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, total_sz=0)
 
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
@@ -21,7 +21,7 @@ ma.init_random_parameters(seed=1232)
 sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=2)
 
 # Using Sgd
-op = nk.optimizer.Sgd(ma, 0.01)
+op = nk.optimizer.Sgd(ma, 0.05)
 
 
 # Stochastic Reconfiguration
@@ -29,7 +29,7 @@ sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Create the optimization driver
 gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=0
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr, n_discard=2
 )
 
 # The first iteration is slower because of start-up jit times

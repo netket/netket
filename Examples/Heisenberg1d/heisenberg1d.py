@@ -22,16 +22,16 @@ g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, total_sz=0)
 
 # Heisenberg hamiltonian
-ha = nk.operator.Heisenberg(hilbert=hi)
+ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # Symmetric RBM Spin Machine
-ma = nk.machine.RbmSpin(alpha=1, hilbert=hi, automorphisms=g)
+ma = nk.machine.RbmSpin(alpha=2, hilbert=hi, automorphisms=g.automorphisms())
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Exchange Sampling
 # Notice that this sampler exchanges two neighboring sites
 # thus preservers the total magnetization
-sa = nk.sampler.MetropolisExchange(machine=ma)
+sa = nk.sampler.MetropolisExchange(machine=ma, graph=g)
 
 # Optimizer
 op = nk.optimizer.Sgd(ma, learning_rate=0.05)
@@ -44,4 +44,5 @@ gs = nk.Vmc(
     hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, n_discard=2, sr=sr
 )
 
+gs.run(out="test", n_iter=2)
 gs.run(out="test", n_iter=300)

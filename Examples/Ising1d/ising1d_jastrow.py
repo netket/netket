@@ -34,13 +34,12 @@ sa = nk.sampler.MetropolisLocal(machine=ma)
 op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
+gs = nk.Vmc(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    diag_shift=0.1,
-    method="Sr",
+    sr=nk.optimizer.SR(ma, diag_shift=0.1),
 )
 
 gs.run(n_iter=300, out="test")
