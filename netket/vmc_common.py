@@ -9,7 +9,12 @@ def info(obj, depth=None):
 
 
 if jax_available:
-    from jax import tree_map
+    from jax import tree_map as _tree_map
+
+    def tree_map(fun, tree, *args, **kwargs):
+        return _tree_map(lambda x: fun(x, *args, **kwargs), tree)
+
+
 else:
 
     def tree_map(fun, tree, *args, **kwargs):
