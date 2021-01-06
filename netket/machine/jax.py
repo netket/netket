@@ -60,6 +60,20 @@ if utils.flax_available:
 
     add_package_wrapper(is_flax_module, wrap_flax_module)
 
+    def is_flax_linen_module(module):
+        return isinstance(module, type) and issubclass(module, flax.linen.Module)
+
+    def wrap_flax_linen_module(module):
+        def flax_init(rng, shape):
+            shape = (1,) + shape[1:]
+            dummy_input = jax.numpy.zeros(shape, dtype=jax.numpy.float64)
+            params = module().init(rng, dummy_input)
+            return (-1, 1), params
+
+        return flax_init, module().apply
+
+    add_package_wrapper(is_flax_linen_module, wrap_flax_linen_module)
+
 # Maybe wrap the module of some package.
 def maybe_wrap_module(module):
     for (condition_fun, wrap_fun) in jax_package_wrappers:
@@ -85,9 +99,7 @@ class Jax(AbstractMachine):
         """
         super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
 
-        self._npdtype = _np.complex128 if dtype is complex else _np.float64
-
-        self._init_fn, self._forward_fn = maybe_wrap_module(module)
+        self._init_fn, self._forward_fn_nj = maybe_wrap_module(module)
 
         self._forward_fn = lambda pars, x: forward_apply(pars, self._forward_fn_nj, x)
 

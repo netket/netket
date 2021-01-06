@@ -1,6 +1,9 @@
 import netket as nk
 import flax
+from flax import linen as nn
 import jax
+from jax import numpy as jnp
+import numpy as np
 
 
 # 1D Lattice
@@ -8,19 +11,26 @@ L = 20
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
+hi = nk.hilbert.Spin(s=0.5) ** L
 
-ha = nk.operator.Ising(h=1.0, hilbert=hi)
+ha = nk.operator.Ising(h=1.0, hilbert=hi, graph=g)
 
 alpha = 1
 
+x = jax.numpy.array(np.random.rand(2, L))
+xb = jax.numpy.array(np.random.rand(12, L))
+key = jax.random.PRNGKey(0)
 
-class flaxrbm(flax.nn.Module):
-    def apply(self, x):
-        x = flax.nn.Dense(x, features=alpha)
-        x = flax.nn.log_sigmoid(x)
+
+class flaxrbm(nn.Module):
+    @nn.compact
+    def __call__(self, x):
+        x = nn.Dense(features=5, dtype=jax.numpy.complex128)(x)
+        x = jnp.log(jnp.cosh(x))
         return jax.numpy.sum(x, axis=-1)
 
+
+w = flaxrbm().init(key, x)
 
 ma = nk.machine.Jax(hi, flaxrbm, dtype=complex)
 ma.init_random_parameters(seed=1232)
@@ -40,4 +50,4 @@ gs = nk.Vmc(
 # The first iteration is slower because of start-up jit times
 gs.run(out="test", n_iter=2)
 
-# gs.run(out="test", n_iter=300)
+gs.run(out="test", n_iter=300)
