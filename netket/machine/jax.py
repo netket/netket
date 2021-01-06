@@ -25,7 +25,7 @@ from jax import random
 from netket.random import randint as _randint
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
-from ._jax_utils import forward_apply, grad_CC, grad_RC, grad_RR, vjp_CC, vjp_RC, vjp_RR
+from ._jax_utils import forward_apply, grad, vjp
 
 
 class Jax(AbstractMachine):
@@ -50,20 +50,8 @@ class Jax(AbstractMachine):
 
         self._forward_fn = lambda pars, x: forward_apply(pars, self._forward_fn_nj, x)
 
-        # C-> C
-        if self._dtype is complex and self._outdtype is complex:
-            self._perex_grads = grad_CC
-            self._vjp_fun = vjp_CC
-        # R->R
-        elif self._dtype is float and self._outdtype is float:
-            self._perex_grads = grad_RR
-            self._vjp_fun = vjp_RR
-        # R->C
-        elif self._dtype is float and self._outdtype is complex:
-            self._perex_grads = grad_RC
-            self._vjp_fun = vjp_RC
-        else:
-            raise ValueError("We do not support C->R wavefunctions.")
+        self._vjp_fun = vjp
+        self._perex_grads = grad
 
         self.jax_init_parameters()
 
