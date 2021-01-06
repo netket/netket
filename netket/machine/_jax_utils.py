@@ -31,6 +31,16 @@ forward_apply = jax.jit(
     lambda pars, forward_fn, x: forward_fn(pars, x), static_argnums=1
 )
 
+##
+def tree_leaf_iscomplex(pars):
+    #  Returns true if x is complex
+    def _has_complex_dtype(x):
+        jnp.issubdtype(x.dtype, jnp.complexfloating)
+
+    #  True if at least one parameter is complex
+    return any(jax.tree_leaves(jax.tree_map(_has_complex_dtype, pars)))
+
+
 # _grad_CC, _RR and _RC are the batched gradient functions for machines going
 # from R -> C, R->R and R->C. Ditto for vjp
 # Thee reason why R->C is more complicated is that it splits the calculation
@@ -56,15 +66,38 @@ def _grad_RC(pars, forward_fn, v):
     return tree_unflatten(r_fun, grad_flat)
 
 
+def _grad(pars, forward_fn, v):
+    # output dtype
+    out_dtype = forward_scalar(pars, forward_fn, v[0, :]).dtype
+
+    if tree_leaf_iscomplex(pars):
+        # C->
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):
+            # C -> C
+            return _grad_CC(pars, forward_fn, v)
+        elif jnp.issubdtype(out_dtype, jnp.floating):
+            # C -> R
+            raise RuntimeError("C->R function detected, but not supported.")
+    else:
+        # R->
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):
+            # R -> C
+            return _grad_RC(pars, forward_fn, v)
+        elif jnp.issubdtype(out_dtype, jnp.floating):
+            # R -> R
+            return _grad_RR(pars, forward_fn, v)
+
+
 grad_CC = jax.jit(_grad_CC, static_argnums=1)
 grad_RR = jax.jit(_grad_RR, static_argnums=1)
 grad_RC = jax.jit(_grad_RC, static_argnums=1)
+grad = jax.jit(_grad, static_argnums=1)
 
 
 def _vjp_CC(pars, forward_fn, v, vec, conjugate):
-    vals, f_jvp = jax.vjp(forward_fn, pars, v.reshape((-1, v.shape[-1])))
+    vals, f_vjp = jax.vjp(forward_fn, pars, v.reshape((-1, v.shape[-1])))
 
-    out = f_jvp(vec.reshape(vals.shape).conjugate())[0]
+    out = f_vjp(vec.reshape(vals.shape).conjugate())[0]
 
     if conjugate:
         out = tree_map(jnp.conjugate, out)
@@ -117,6 +150,34 @@ def _vjp_RC(pars, forward_fn, v, vec, conjugate):
     return tree_unflatten(tree_fun, out_flat)
 
 
+#  This function dispatches to the right
+def _vjp(pars, forward_fn, v, vec, conjugate):
+
+    # output dtype
+    out_dtype = forward_scalar(pars, forward_fn, v[0, :]).dtype
+
+    # convert the sensitivity to right dtype
+    vec = jnp.asarray(vec, dtype=out_dtype)
+
+    if tree_leaf_iscomplex(pars):
+        # C->
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):
+            # C -> C
+            return _vjp_CC(pars, forward_fn, v, vec, conjugate)
+        elif jnp.issubdtype(out_dtype, jnp.floating):
+            # C -> R
+            raise RuntimeError("C->R function detected, but not supported.")
+    else:
+        # R->
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):
+            # R -> C
+            return _vjp_RC(pars, forward_fn, v, vec, conjugate)
+        elif jnp.issubdtype(out_dtype, jnp.floating):
+            # R -> R
+            return _vjp_RR(pars, forward_fn, v, vec, conjugate)
+
+
 vjp_CC = jax.jit(_vjp_CC, static_argnums=(1, 4))
 vjp_RR = jax.jit(_vjp_RR, static_argnums=(1, 4))
 vjp_RC = jax.jit(_vjp_RC, static_argnums=(1, 4))
+vjp = jax.jit(_vjp, static_argnums=(1, 4))
