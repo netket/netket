@@ -35,7 +35,7 @@ forward_apply = jax.jit(
 def tree_leaf_iscomplex(pars):
     #  Returns true if x is complex
     def _has_complex_dtype(x):
-        jnp.issubdtype(x.dtype, jnp.complexfloating)
+        return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
     #  True if at least one parameter is complex
     return any(jax.tree_leaves(jax.tree_map(_has_complex_dtype, pars)))

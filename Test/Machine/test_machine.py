@@ -71,8 +71,8 @@ if test_jax:
 
     class flaxrbm(flax.nn.Module):
         def apply(self, x):
-            x = flax.nn.Dense(x, features=2)
-            x = flax.nn.log_sigmoid(x)
+            x = flax.nn.Dense(x, features=2, dtype=jax.numpy.complex128)
+            x = jax.numpy.log(jax.numpy.cosh(x))
             return jax.numpy.sum(x, axis=-1)
 
     machines["Flax RBM"] = nk.machine.Jax(hi, flaxrbm, dtype=complex)
