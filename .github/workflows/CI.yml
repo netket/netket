@@ -17,12 +17,15 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.8
             use_jax: "YES"
+            MPI: "mpich" 
           - os: ubuntu-latest
             python-version: 3.8
             use_jax: "NO"
+            MPI: "mpich" 
           - os: macos-latest
             python-version: 3.8
             use_jax: "YES"
+            MPI: "openempi" 
 
         #python-version: [3.6, 3.7, 3.8]
         #os: [ubuntu-latest, macos-latest]
@@ -41,7 +44,7 @@ jobs:
 
       - name: Install MPI
         run: |
-          sh ./conf/travis-install-mpi.sh mpich
+          sh ./conf/travis-install-mpi.sh ${{ matrix.MPI }}
 
       - name: Get pip cache dir
         id: pip-cache
