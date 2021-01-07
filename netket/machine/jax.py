@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jax
 from jax.experimental.stax import Dense
 from jax.experimental import stax
-import jax
+
 from collections import OrderedDict
 
 from .abstract_machine import AbstractMachine
@@ -23,9 +24,34 @@ import numpy as _np
 from jax import numpy as jnp
 from jax import random
 from netket.random import randint as _randint
+from netket import utils
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_leaves
 
 from ._jax_utils import forward_apply, tree_size, grad as nk_grad, vjp as nk_vjp
+
+# An extensible list of wrapping package modules like flax, haiku and others
+jax_package_wrappers = []
+
+
+def add_package_wrapper(condition_fun, wrapper_fun):
+    """
+    add_package_wrapper(condition_fun, wrapper_fun)
+
+    Add support for a jax-based package.
+    `condition_fun(module)` must return true if `module` is a module of this package,
+    and `wrapper_fun(module)` must return the tuple of init and apply functions for
+    this module.
+    """
+    jax_package_wrappers.append((condition_fun, wrapper_fun))
+
+
+# Maybe wrap the module of some package.
+def maybe_wrap_module(module):
+    for (condition_fun, wrap_fun) in jax_package_wrappers:
+        if condition_fun(module):
+            return wrap_fun(module)
+
+    return module
 
 
 class Jax(AbstractMachine):
@@ -44,9 +70,7 @@ class Jax(AbstractMachine):
         """
         super().__init__(hilbert=hilbert, dtype=dtype)
 
-        self._npdtype = _np.complex128 if dtype is complex else _np.float64
-
-        self._init_fn, self._forward_fn_nj = module
+        self._init_fn, self._forward_fn_nj = maybe_wrap_module(module)
 
         self._forward_fn = lambda pars, x: forward_apply(pars, self._forward_fn_nj, x)
 

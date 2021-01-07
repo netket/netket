@@ -62,7 +62,7 @@ jobs:
           echo "Jax variable is: ${{ matrix.use_jax }}"
           if [ ! ${{ matrix.use_jax }} == "NO" ]; then
             echo "Installing jax & co"
-            python -m pip install jax jaxlib mpi4jax 
+            python -m pip install jax jaxlib mpi4jax flax
           fi
           pip install -e ".[dev,mpi]"
 

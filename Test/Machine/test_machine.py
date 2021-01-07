@@ -36,6 +36,7 @@ if test_jax:
     import jax
     import jax.experimental
     import jax.experimental.stax
+    import flax
 
     def initializer(rng, shape):
         return np.random.normal(scale=0.05, size=shape)
@@ -67,6 +68,14 @@ if test_jax:
     machines["Jax mps"] = nk.machine.MPSPeriodic(hi, graph=g, bond_dim=4, dtype=complex)
 
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
+
+    class flaxrbm(flax.linen.Module):
+        def apply(self, x):
+            x = flax.nn.Dense(x, features=2, dtype=jax.numpy.complex128)
+            x = jax.numpy.log(jax.numpy.cosh(x))
+            return jax.numpy.sum(x, axis=-1)
+
+    machines["Flax RBM"] = nk.machine.Flax(hi, flaxrbm())
 
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
