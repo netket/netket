@@ -23,9 +23,9 @@ import numpy as _np
 from jax import numpy as jnp
 from jax import random
 from netket.random import randint as _randint
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_leaves
 
-from ._jax_utils import forward_apply, grad, vjp
+from ._jax_utils import forward_apply, tree_size, grad as nk_grad, vjp as nk_vjp
 
 
 class Jax(AbstractMachine):
@@ -50,15 +50,9 @@ class Jax(AbstractMachine):
 
         self._forward_fn = lambda pars, x: forward_apply(pars, self._forward_fn_nj, x)
 
-        self._vjp_fun = vjp
-        self._perex_grads = grad
-
         self.jax_init_parameters()
 
-        # Computes total number of parameters
-        weights, _ = tree_flatten(self._params)
-        self._npar = sum([w.size for w in weights])
-        self.init_random_parameters()
+        self._npar = tree_size(self._params)
 
     def jax_init_parameters(self, seed=None):
         """
@@ -141,7 +135,7 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         # Jax has bugs for R->C functions...
-        out = self._perex_grads(self._params, self._forward_fn_nj, x)
+        out = nk_grad(self._params, self._forward_fn_nj, x)
 
         return out
 
@@ -163,7 +157,7 @@ class Jax(AbstractMachine):
              `out` only or (out,jacobian) if return_jacobian is True
         """
         if not return_jacobian:
-            return self._vjp_fun(self._params, self._forward_fn_nj, x, vec, conjugate)
+            return nk_vjp(self._params, self._forward_fn_nj, x, vec, conjugate)
 
         else:
 
@@ -177,7 +171,7 @@ class Jax(AbstractMachine):
                 def prodj(j):
                     return jax.numpy.tensordot(vec.transpose().conjugate(), j, axes=1)
 
-            jacobian = self._perex_grads(self._params, self._forward_fn_nj, x)
+            jacobian = nk_grad(self._params, self._forward_fn_nj, x)
             out = tree_map(prodj, jacobian)
 
             return out, jacobian
@@ -196,10 +190,7 @@ class Jax(AbstractMachine):
 
     @parameters.setter
     def parameters(self, p):
-        weights, _ = tree_flatten(p)
-        npar = sum([w.size for w in weights])
-        assert npar == self._npar
-
+        assert tree_size(p) == self._npar
         self._params = p
 
     def numpy_flatten(self, data):
@@ -213,7 +204,7 @@ class Jax(AbstractMachine):
              numpy.ndarray: a one-dimensional array containing a copy of data
         """
 
-        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
+        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_leaves(data)))
 
     def numpy_unflatten(self, data, shape_like):
         r"""Attempts a deserialization of the given numpy data.

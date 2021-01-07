@@ -17,7 +17,13 @@ from functools import partial
 
 import numpy as _np
 from jax import numpy as jnp
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_multimap
+from jax.tree_util import (
+    tree_flatten,
+    tree_unflatten,
+    tree_map,
+    tree_multimap,
+    tree_leaves,
+)
 
 
 def forward_scalar(pars, forward_fn, x):
@@ -32,6 +38,15 @@ forward_apply = jax.jit(
 )
 
 ##
+@jax.jit
+def tree_size(tree):
+    """
+    Returns the sum of the size of all leaves in the tree.
+    It's equivalent to the number of scalars in the pytree.
+    """
+    return sum(tree_leaves(tree_map(lambda x: x.size, tree)))
+
+
 def tree_leaf_iscomplex(pars):
     """
     Returns true if at least one leaf in the tree has complex dtype.
