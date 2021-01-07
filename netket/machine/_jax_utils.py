@@ -17,7 +17,7 @@ from functools import partial
 
 import numpy as _np
 from jax import numpy as jnp
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_multimap
 
 
 def forward_scalar(pars, forward_fn, x):
@@ -31,16 +31,35 @@ forward_apply = jax.jit(
     lambda pars, forward_fn, x: forward_fn(pars, x), static_argnums=1
 )
 
+##
+def tree_leaf_iscomplex(pars):
+    #  Returns true if x is complex
+    def _has_complex_dtype(x):
+        return jnp.issubdtype(x.dtype, jnp.complexfloating)
+
+    #  True if at least one parameter is complex
+    return any(jax.tree_leaves(jax.tree_map(_has_complex_dtype, pars)))
+
+
+def outdtype(forward_fn, pars, v):
+    if v.ndim > 1:
+        v = v.reshape(-1, v.shape[-1])[0, :]
+    return forward_scalar(pars, forward_fn, v).dtype
+
+
+def outdtype_iscomplex(forward_fn, pars, v):
+    return jnp.issubdtype(outdtype(forward_fn, pars, v), jnp.complexfloating)
+
+
 # _grad_CC, _RR and _RC are the batched gradient functions for machines going
 # from R -> C, R->R and R->C. Ditto for vjp
 # Thee reason why R->C is more complicated is that it splits the calculation
 # into the real and complex part in order to be more efficient.
 
-_grad_CC = jax.vmap(jax.grad(forward_scalar, holomorphic=True), in_axes=(None, None, 0))
-_grad_RR = jax.vmap(jax.grad(forward_scalar), in_axes=(None, None, 0))
+_grad_CC = jax.grad(forward_scalar, holomorphic=True)
+_grad_RR = jax.grad(forward_scalar)
 
 
-@partial(jax.vmap, in_axes=(None, None, 0))
 def _grad_RC(pars, forward_fn, v):
     grad_r = jax.grad(
         lambda pars, forward_fn, v: forward_scalar(pars, forward_fn, v).real
@@ -56,15 +75,26 @@ def _grad_RC(pars, forward_fn, v):
     return tree_unflatten(r_fun, grad_flat)
 
 
-grad_CC = jax.jit(_grad_CC, static_argnums=1)
-grad_RR = jax.jit(_grad_RR, static_argnums=1)
-grad_RC = jax.jit(_grad_RC, static_argnums=1)
+def _grad(pars, forward_fn, v):
+    if tree_leaf_iscomplex(pars):
+        if outdtype_iscomplex(forward_fn, pars, v):  # C -> C
+            return _grad_CC(pars, forward_fn, v)
+        else:
+            raise RuntimeError("C->R function detected, but not supported.")
+    else:
+        if outdtype_iscomplex(forward_fn, pars, v):  # R -> C
+            return _grad_RC(pars, forward_fn, v)
+        else:
+            return _grad_RR(pars, forward_fn, v)
+
+
+grad = jax.jit(jax.vmap(_grad, in_axes=(None, None, 0)), static_argnums=1)
 
 
 def _vjp_CC(pars, forward_fn, v, vec, conjugate):
-    vals, f_jvp = jax.vjp(forward_fn, pars, v.reshape((-1, v.shape[-1])))
+    vals, f_vjp = jax.vjp(forward_fn, pars, v.reshape((-1, v.shape[-1])))
 
-    out = f_jvp(vec.reshape(vals.shape).conjugate())[0]
+    out = f_vjp(vec.reshape(vals.shape).conjugate())[0]
 
     if conjugate:
         out = tree_map(jnp.conjugate, out)
@@ -78,15 +108,12 @@ def _vjp_RR(pars, forward_fn, v, vec, conjugate):
     out_r = f_jvp(vec.reshape(vals.shape).real)[0]
     out_i = f_jvp(-vec.reshape(vals.shape).imag)[0]
 
-    r_flat, tree_fun = tree_flatten(out_r)
-    i_flat, _ = tree_flatten(out_i)
-
     if conjugate:
-        out_flat = [re - 1j * im for re, im in zip(r_flat, i_flat)]
+        out = tree_multimap(lambda re, im: re - 1j * im, out_r, out_i)
     else:
-        out_flat = [re + 1j * im for re, im in zip(r_flat, i_flat)]
+        out = tree_multimap(lambda re, im: re + 1j * im, out_r, out_i)
 
-    return tree_unflatten(tree_fun, out_flat)
+    return out
 
 
 def _vjp_RC(pars, forward_fn, v, vec, conjugate):
@@ -103,20 +130,39 @@ def _vjp_RC(pars, forward_fn, v, vec, conjugate):
     vr_jj = f_jvp_j(vec_r)[0]
     vj_jj = f_jvp_j(vec_j)[0]
 
-    rjr_flat, tree_fun = tree_flatten(vr_jr)
-    jjr_flat, _ = tree_flatten(vj_jr)
-    rjj_flat, _ = tree_flatten(vr_jj)
-    jjj_flat, _ = tree_flatten(vj_jj)
+    r = tree_multimap(
+        lambda re, im: re - 1j * im,
+        vr_jr,
+        vj_jr,
+    )
+    i = tree_multimap(lambda re, im: re - 1j * im, vr_jj, vj_jj)
+    out = tree_multimap(lambda re, im: re + 1j * im, r, i)
 
-    r_flat = [rr - 1j * jr for rr, jr in zip(rjr_flat, jjr_flat)]
-    j_flat = [rr - 1j * jr for rr, jr in zip(rjj_flat, jjj_flat)]
-    out_flat = [re + 1j * im for re, im in zip(r_flat, j_flat)]
     if conjugate:
-        out_flat = [x.conjugate() for x in out_flat]
+        out = tree_map(jnp.conjugate, out)
 
-    return tree_unflatten(tree_fun, out_flat)
+    return out
 
 
-vjp_CC = jax.jit(_vjp_CC, static_argnums=(1, 4))
-vjp_RR = jax.jit(_vjp_RR, static_argnums=(1, 4))
-vjp_RC = jax.jit(_vjp_RC, static_argnums=(1, 4))
+#  This function dispatches to the right
+def _vjp(pars, forward_fn, v, vec, conjugate):
+
+    # output dtype
+    out_dtype = forward_scalar(pars, forward_fn, v[0, :]).dtype
+
+    # convert the sensitivity to right dtype
+    vec = jnp.asarray(vec, dtype=out_dtype)
+
+    if tree_leaf_iscomplex(pars):
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):  # C -> C
+            return _vjp_CC(pars, forward_fn, v, vec, conjugate)
+        elif jnp.issubdtype(out_dtype, jnp.floating):  # C -> R
+            raise RuntimeError("C->R function detected, but not supported.")
+    else:
+        if jnp.issubdtype(out_dtype, jnp.complexfloating):  # R -> C
+            return _vjp_RC(pars, forward_fn, v, vec, conjugate)
+        elif jnp.issubdtype(out_dtype, jnp.floating):  # R -> R
+            return _vjp_RR(pars, forward_fn, v, vec, conjugate)
+
+
+vjp = jax.jit(_vjp, static_argnums=(1, 4))
