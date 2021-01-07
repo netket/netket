@@ -2,6 +2,9 @@ import jax
 import numpy as _np
 from functools import partial
 
+from netket.machine._jax_utils import outdtype, outdtype_iscomplex, tree_leaf_iscomplex
+from jax import numpy as jnp
+
 from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ._local_cost_functions import (
     define_local_cost_function,
@@ -31,18 +34,21 @@ def _der_local_values_impl(op, machine, v, log_vals):
 ########################################
 # Computes the non-centered gradient of local values
 # \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
-@partial(jax.jit, static_argnums=(0, 5))
-def _local_value_and_grad_notcentered_kernel(
-    logpsi, pars, vp, mel, v, real_to_complex=False
-):
+@partial(jax.jit, static_argnums=0)
+def _local_value_and_grad_notcentered_kernel(logpsi, pars, vp, mel, v):
+
+    odtype = outdtype(logpsi, pars, v)
     # can use if with jit because that argument is exposed statically to the jit!
-    if real_to_complex:
+    # if real_to_complex:
+    if not tree_leaf_iscomplex(pars) and jnp.issubdtype(odtype, jnp.complexfloating):
         logpsi_vp_r, f_vjp_r = jax.vjp(lambda w: (logpsi(w, vp).real), pars)
         logpsi_vp_j, f_vjp_j = jax.vjp(lambda w: (logpsi(w, vp).imag), pars)
 
         logpsi_vp = logpsi_vp_r + 1.0j * logpsi_vp_j
 
         vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+        vec = jnp.asarray(vec, dtype=odtype)
+
         vec_r = vec.real
         vec_j = vec.imag
 
@@ -62,6 +68,7 @@ def _local_value_and_grad_notcentered_kernel(
         logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
 
         vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+        vec = jnp.asarray(vec, dtype=odtype)
 
         loc_val = vec.sum()
         grad_c = f_vjp(vec)[0]
@@ -69,28 +76,21 @@ def _local_value_and_grad_notcentered_kernel(
     return loc_val, grad_c
 
 
-@partial(jax.jit, static_argnums=(0, 5))
-def _local_values_and_grads_notcentered_kernel(
-    logpsi, pars, vp, mel, v, real_to_complex=False
-):
+@partial(jax.jit, static_argnums=0)
+def _local_values_and_grads_notcentered_kernel(logpsi, pars, vp, mel, v):
     f_vmap = jax.vmap(
         _local_value_and_grad_notcentered_kernel,
-        in_axes=(None, None, 0, 0, 0, None),
+        in_axes=(None, None, 0, 0, 0),
         out_axes=(0, 0),
     )
-    return f_vmap(logpsi, pars, vp, mel, v, real_to_complex)
+    return f_vmap(logpsi, pars, vp, mel, v)
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
     v_primes, mels = op.get_conn_padded(_np.asarray(v))
 
-    if machine._dtype is float and machine._outdtype is complex:
-        real_to_complex = True
-    else:
-        real_to_complex = False
-
     val, grad = _local_values_and_grads_notcentered_kernel(
-        machine.jax_forward, machine.parameters, v_primes, mels, v, real_to_complex
+        machine.jax_forward, machine.parameters, v_primes, mels, v
     )
     return grad
 

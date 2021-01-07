@@ -7,8 +7,8 @@ import numpy as _np
 class AbstractDensityMatrix(AbstractMachine):
     """Abstract class for NetKet density matrices"""
 
-    def __init__(self, hilbert, dtype, outdtype=complex):
-        super().__init__(hilbert, dtype, outdtype)
+    def __init__(self, hilbert, dtype):
+        super().__init__(hilbert, dtype)
 
     @abc.abstractmethod
     def log_val(self, xr, xc=None, out=None):

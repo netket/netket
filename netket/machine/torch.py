@@ -19,7 +19,7 @@ def _get_differentiable_parameters(m):
 
 
 class Torch(AbstractMachine):
-    def __init__(self, module, hilbert, dtype=float, outdtype=None, use_backpack=False):
+    def __init__(self, module, hilbert, dtype=float, use_backpack=False):
         self._module = _torch.jit.load(module) if isinstance(module, str) else module
         self._module.double()
         self._n_par = _get_number_parameters(self._module)
@@ -30,7 +30,7 @@ class Torch(AbstractMachine):
                 raise RuntimeError("BackPACK was not successfully imported")
             self._module = backpack.extend(self._module)
         # TODO check that module has input shape compatible with hilbert size
-        super().__init__(hilbert, dtype=dtype, outdtype=outdtype)
+        super().__init__(hilbert, dtype=dtype)
 
     @property
     def parameters(self):

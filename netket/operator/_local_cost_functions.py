@@ -2,6 +2,8 @@ import jax
 import numpy as _np
 from functools import partial
 
+from netket.machine._jax_utils import outdtype
+
 from inspect import signature
 
 # The following dicts store some 'properties' of cost functions. The keys are jitted
@@ -118,9 +120,7 @@ def local_cost_function(local_cost_fun, machine, *args):
 # Starting from the 4th argument, it's the same arguments as the cost function itself
 # dtype: dtype of pars
 # outdtype: dtype of logpsi(pars, *args)
-def __local_cost_and_grad_function(
-    local_cost_fun, dtype, outdtype, logpsi, pars, *args
-):
+def __local_cost_and_grad_function(local_cost_fun, dtype, logpsi, pars, *args):
     costfun_outdtype = _outdtype[local_cost_fun]
     lcfun_u = _unjitted_fun[local_cost_fun]
 
@@ -180,23 +180,18 @@ def local_cost_and_grad_function(local_cost_fun, machine, *args):
     )
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
-def _local_costs_and_grads_function(
-    local_cost_fun, dtype, outdtype, logpsi, pars, *args
-):
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def _local_costs_and_grads_function(local_cost_fun, dtype, logpsi, pars, *args):
     local_costs_and_grads_fun = jax.vmap(
         __local_cost_and_grad_function,
         in_axes=(
-            None,
             None,
             None,
         )
         + _batch_axes[local_cost_fun],
         out_axes=(0, 0),
     )
-    return local_costs_and_grads_fun(
-        local_cost_fun, dtype, outdtype, logpsi, pars, *args
-    )
+    return local_costs_and_grads_fun(local_cost_fun, dtype, logpsi, pars, *args)
 
 
 def local_costs_and_grads_function(local_cost_fun, machine, *args):
@@ -219,7 +214,6 @@ def local_costs_and_grads_function(local_cost_fun, machine, *args):
     return _local_costs_and_grads_function(
         local_cost_fun,
         machine._dtype,
-        machine._outdtype,
         machine.jax_forward,
         machine.parameters,
         *args,

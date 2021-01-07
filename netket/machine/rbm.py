@@ -736,7 +736,7 @@ class RbmSpinPhase(AbstractMachine):
 
         self._n_par = self._rbm_a.n_par + self._rbm_p.n_par
 
-        super().__init__(hilbert, dtype=float, outdtype=complex)
+        super().__init__(hilbert, dtype=float)
 
     @property
     def n_par(self):

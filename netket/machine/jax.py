@@ -29,7 +29,7 @@ from ._jax_utils import forward_apply, grad, vjp
 
 
 class Jax(AbstractMachine):
-    def __init__(self, hilbert, module, dtype=complex, outdtype=None):
+    def __init__(self, hilbert, module, dtype=complex):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -42,7 +42,7 @@ class Jax(AbstractMachine):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the network must have a single output.
         """
-        super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
+        super().__init__(hilbert=hilbert, dtype=dtype)
 
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
@@ -502,5 +502,4 @@ def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
             FanInSum2ModPhase,
         ),
         dtype=dtype,
-        outdtype=complex,
     )
