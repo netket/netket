@@ -33,21 +33,30 @@ forward_apply = jax.jit(
 
 ##
 def tree_leaf_iscomplex(pars):
-    #  Returns true if x is complex
+    """
+    Returns true if at least one leaf in the tree has complex dtype.
+    """
+
     def _has_complex_dtype(x):
+        #  Returns true if x is complex
         return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
-    #  True if at least one parameter is complex
     return any(jax.tree_leaves(jax.tree_map(_has_complex_dtype, pars)))
 
 
 def outdtype(forward_fn, pars, v):
+    """
+    Returns the dtype of forward_fn(pars, v)
+    """
     if v.ndim > 1:
         v = v.reshape(-1, v.shape[-1])[0, :]
     return forward_scalar(pars, forward_fn, v).dtype
 
 
 def outdtype_iscomplex(forward_fn, pars, v):
+    """
+    Returns true if forward_fn(pars, v) is complex
+    """
     return jnp.issubdtype(outdtype(forward_fn, pars, v), jnp.complexfloating)
 
 
