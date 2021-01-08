@@ -14,7 +14,7 @@ class RbmSpin(AbstractDensityMatrix):
         automorphisms=None,
         dtype=complex,
     ):
-        super().__init__(hilbert, dtype=dtype, outdtype=complex)
+        super().__init__(hilbert, dtype=dtype)
 
         if automorphisms is not None:
             if isinstance(automorphisms, netket.graph.AbstractGraph):

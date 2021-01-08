@@ -5,20 +5,13 @@ import numpy as _np
 class AbstractMachine(abc.ABC):
     """Abstract class for NetKet machines"""
 
-    def __init__(self, hilbert, dtype=complex, outdtype=None):
+    def __init__(self, hilbert, dtype=complex):
         super().__init__()
         self.hilbert = hilbert
 
         if dtype is not float and dtype is not complex:
             raise TypeError("dtype must be either float or complex")
 
-        if outdtype is None:
-            outdtype = dtype
-
-        elif outdtype is not float and outdtype is not complex:
-            raise TypeError("outdtype must be either float or complex or None")
-
-        self._outdtype = outdtype
         self._dtype = dtype
 
     @abc.abstractmethod
@@ -161,10 +154,6 @@ class AbstractMachine(abc.ABC):
     @property
     def dtype(self):
         return self._dtype
-
-    @property
-    def outdtype(self):
-        return self._outdtype
 
     @property
     def has_complex_parameters(self):

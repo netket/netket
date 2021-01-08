@@ -166,6 +166,7 @@ if test_jax:
         return init_fun, apply_fun
 
     ma = nk.machine.Jax(hi, Jastrow(), dtype=float)
+    ma.init_random_parameters(sigma=0.2)
     samplers["Metropolis Jastrow Jax"] = nk.sampler.MetropolisLocal(ma, n_chains=16)
 
 

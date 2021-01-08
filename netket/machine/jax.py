@@ -23,13 +23,13 @@ import numpy as _np
 from jax import numpy as jnp
 from jax import random
 from netket.random import randint as _randint
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_leaves
 
-from ._jax_utils import forward_apply, grad_CC, grad_RC, grad_RR, vjp_CC, vjp_RC, vjp_RR
+from ._jax_utils import forward_apply, tree_size, grad as nk_grad, vjp as nk_vjp
 
 
 class Jax(AbstractMachine):
-    def __init__(self, hilbert, module, dtype=complex, outdtype=None):
+    def __init__(self, hilbert, module, dtype=complex):
         """
         Wraps a stax network (which is a tuple of `init_fn` and `predict_fn`)
         so that it can be used as a NetKet machine.
@@ -42,7 +42,7 @@ class Jax(AbstractMachine):
             dtype: either complex or float, is the type used for the weights.
                 In both cases the network must have a single output.
         """
-        super().__init__(hilbert=hilbert, dtype=dtype, outdtype=outdtype)
+        super().__init__(hilbert=hilbert, dtype=dtype)
 
         self._npdtype = _np.complex128 if dtype is complex else _np.float64
 
@@ -50,27 +50,9 @@ class Jax(AbstractMachine):
 
         self._forward_fn = lambda pars, x: forward_apply(pars, self._forward_fn_nj, x)
 
-        # C-> C
-        if self._dtype is complex and self._outdtype is complex:
-            self._perex_grads = grad_CC
-            self._vjp_fun = vjp_CC
-        # R->R
-        elif self._dtype is float and self._outdtype is float:
-            self._perex_grads = grad_RR
-            self._vjp_fun = vjp_RR
-        # R->C
-        elif self._dtype is float and self._outdtype is complex:
-            self._perex_grads = grad_RC
-            self._vjp_fun = vjp_RC
-        else:
-            raise ValueError("We do not support C->R wavefunctions.")
-
         self.jax_init_parameters()
 
-        # Computes total number of parameters
-        weights, _ = tree_flatten(self._params)
-        self._npar = sum([w.size for w in weights])
-        self.init_random_parameters()
+        self._npar = tree_size(self._params)
 
     def jax_init_parameters(self, seed=None):
         """
@@ -153,7 +135,7 @@ class Jax(AbstractMachine):
             raise RuntimeError("Invalid input shape, expected a 2d array")
 
         # Jax has bugs for R->C functions...
-        out = self._perex_grads(self._params, self._forward_fn_nj, x)
+        out = nk_grad(self._params, self._forward_fn_nj, x)
 
         return out
 
@@ -175,7 +157,7 @@ class Jax(AbstractMachine):
              `out` only or (out,jacobian) if return_jacobian is True
         """
         if not return_jacobian:
-            return self._vjp_fun(self._params, self._forward_fn_nj, x, vec, conjugate)
+            return nk_vjp(self._params, self._forward_fn_nj, x, vec, conjugate)
 
         else:
 
@@ -189,7 +171,7 @@ class Jax(AbstractMachine):
                 def prodj(j):
                     return jax.numpy.tensordot(vec.transpose().conjugate(), j, axes=1)
 
-            jacobian = self._perex_grads(self._params, self._forward_fn_nj, x)
+            jacobian = nk_grad(self._params, self._forward_fn_nj, x)
             out = tree_map(prodj, jacobian)
 
             return out, jacobian
@@ -208,10 +190,7 @@ class Jax(AbstractMachine):
 
     @parameters.setter
     def parameters(self, p):
-        weights, _ = tree_flatten(p)
-        npar = sum([w.size for w in weights])
-        assert npar == self._npar
-
+        assert tree_size(p) == self._npar
         self._params = p
 
     def numpy_flatten(self, data):
@@ -225,7 +204,7 @@ class Jax(AbstractMachine):
              numpy.ndarray: a one-dimensional array containing a copy of data
         """
 
-        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_flatten(data)[0]))
+        return _np.concatenate(tuple(fd.reshape(-1) for fd in tree_leaves(data)))
 
     def numpy_unflatten(self, data, shape_like):
         r"""Attempts a deserialization of the given numpy data.
@@ -514,5 +493,4 @@ def JaxRbmSpinPhase(hilbert, alpha, dtype=float):
             FanInSum2ModPhase,
         ),
         dtype=dtype,
-        outdtype=complex,
     )

@@ -1,3 +1,6 @@
+from .utils import jax_available
+
+
 def info(obj, depth=None):
     if hasattr(obj, "info"):
         return obj.info(depth)
@@ -5,77 +8,98 @@ def info(obj, depth=None):
         return str(obj)
 
 
-def tree_map(fun, tree, *args, **kwargs):
-    """
-    Maps all the leafs in the tree, applying the function with the leave as first
-    positional argument.
-    Any additional argument after the first two is forwarded to the function call.
+if jax_available:
+    from jax import tree_map as _tree_map
 
-    Args:
-        fun: the function to apply to all leafs
-        tree: the structure containing leafs. This can also be just a leaf
-        *args: additional positional arguments passed to fun
-        **kwargs: additional kw arguments passed to fun
+    def tree_map(fun, tree, *args, **kwargs):
+        return _tree_map(lambda x: fun(x, *args, **kwargs), tree)
 
-    Returns:
-        An equivalent tree, containing the result of the function call.
-    """
-    if tree is None:
-        return None
-    elif isinstance(tree, list):
-        return [tree_map(fun, val, *args, **kwargs) for val in tree]
-    elif isinstance(tree, tuple):
-        if not hasattr(tree, "_fields"):
-            # If it is not a namedtuple, recreate it as a tuple.
-            return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
+
+else:
+
+    def tree_map(fun, tree, *args, **kwargs):
+        """
+        Maps all the leafs in the tree, applying the function with the leave as first
+        positional argument.
+        Any additional argument after the first two is forwarded to the function call.
+
+        Args:
+            fun: the function to apply to all leafs
+            tree: the structure containing leafs. This can also be just a leaf
+            *args: additional positional arguments passed to fun
+            **kwargs: additional kw arguments passed to fun
+
+        Returns:
+            An equivalent tree, containing the result of the function call.
+        """
+        if tree is None:
+            return None
+        elif isinstance(tree, list):
+            return [tree_map(fun, val, *args, **kwargs) for val in tree]
+        elif isinstance(tree, tuple):
+            if not hasattr(tree, "_fields"):
+                # If it is not a namedtuple, recreate it as a tuple.
+                return tuple(tree_map(fun, val, *args, **kwargs) for val in tree)
+            else:
+                # If it is a namedtuple, than keep that type information.
+                return type(tree)(
+                    *(tree_map(fun, val, *args, **kwargs) for val in tree)
+                )
+        elif isinstance(tree, dict):
+            return {
+                key: tree_map(fun, value, *args, **kwargs)
+                for key, value in tree.items()
+            }
         else:
-            # If it is a namedtuple, than keep that type information.
-            return type(tree)(*(tree_map(fun, val, *args, **kwargs) for val in tree))
-    elif isinstance(tree, dict):
-        return {
-            key: tree_map(fun, value, *args, **kwargs) for key, value in tree.items()
-        }
-    else:
-        return fun(tree, *args, **kwargs)
+            return fun(tree, *args, **kwargs)
 
 
-def trees2_map(fun, tree1, tree2, *args, **kwargs):
-    """
-    Maps all the leafs in the two trees, applying the function with the leafs of tree1
-    as first argument and the leafs of tree2 as second argument
-    Any additional argument after the first two is forwarded to the function call.
+if jax_available:
+    from jax import tree_multimap
 
-    This is usefull e.g. to sum the leafs of two trees
+    def trees2_map(fun, tree1, tree2, *args, **kwargs):
+        return tree_multimap(lambda x, y: fun(x, y, *args, **kwargs), tree1, tree2)
 
-    Args:
-        fun: the function to apply to all leafs
-        tree1: the structure containing leafs. This can also be just a leaf
-        tree2: the structure containing leafs. This can also be just a leaf
-        *args: additional positional arguments passed to fun
-        **kwargs: additional kw arguments passed to fun
 
-    Returns:
-        An equivalent tree, containing the result of the function call.
-    """
-    if tree1 is None:
-        return None
-    elif isinstance(tree1, list):
-        return [
-            trees2_map(fun, val1, val2, *args, **kwargs)
-            for val1, val2 in zip(tree1, tree2)
-        ]
-    elif isinstance(tree1, tuple):
-        return tuple(
-            trees2_map(fun, val1, val2, *args, **kwargs)
-            for val1, val2 in zip(tree1, tree2)
-        )
-    elif isinstance(tree1, dict):
-        return {
-            key: trees2_map(fun, val1, val2, *args, **kwargs)
-            for (key, val1), (key2, val2) in zip(tree1.items(), tree2.items())
-        }
-    else:
-        return fun(tree1, tree2, *args, **kwargs)
+else:
+
+    def trees2_map(fun, tree1, tree2, *args, **kwargs):
+        """
+        Maps all the leafs in the two trees, applying the function with the leafs of tree1
+        as first argument and the leafs of tree2 as second argument
+        Any additional argument after the first two is forwarded to the function call.
+
+        This is usefull e.g. to sum the leafs of two trees
+
+        Args:
+            fun: the function to apply to all leafs
+            tree1: the structure containing leafs. This can also be just a leaf
+            tree2: the structure containing leafs. This can also be just a leaf
+            *args: additional positional arguments passed to fun
+            **kwargs: additional kw arguments passed to fun
+
+        Returns:
+            An equivalent tree, containing the result of the function call.
+        """
+        if tree1 is None:
+            return None
+        elif isinstance(tree1, list):
+            return [
+                trees2_map(fun, val1, val2, *args, **kwargs)
+                for val1, val2 in zip(tree1, tree2)
+            ]
+        elif isinstance(tree1, tuple):
+            return tuple(
+                trees2_map(fun, val1, val2, *args, **kwargs)
+                for val1, val2 in zip(tree1, tree2)
+            )
+        elif isinstance(tree1, dict):
+            return {
+                key: trees2_map(fun, val1, val2, *args, **kwargs)
+                for (key, val1), (key2, val2) in zip(tree1.items(), tree2.items())
+            }
+        else:
+            return fun(tree1, tree2, *args, **kwargs)
 
 
 from netket.utils import jax_available

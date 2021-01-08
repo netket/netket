@@ -8,7 +8,6 @@ class Diagonal(AbstractMachine):
         super().__init__(
             density_matrix.hilbert,
             dtype=density_matrix.dtype,
-            outdtype=density_matrix.outdtype,
         )
 
     def log_val(self, x, out=None):
