@@ -6,7 +6,7 @@ from netket.stats import sum_inplace as _sum_inplace
 import math
 import numpy as _np
 from numba import jit, int64, float64
-from ..._jitclass import jitclass
+from numba.experimental import jitclass
 
 
 class MetropolisHastings(AbstractSampler):

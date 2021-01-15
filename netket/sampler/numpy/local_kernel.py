@@ -1,7 +1,7 @@
 import numpy as _np
 from netket import random as _random
 from numba import jit, int64, float64
-from ..._jitclass import jitclass
+from numba.experimental import jitclass
 
 
 @jitclass([("local_states", float64[:]), ("size", int64), ("n_states", int64)])

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 __all__ = [
-    "dynamics",
     "exact",
     "graph",
     "callbacks",
@@ -30,7 +29,6 @@ __all__ = [
 ]
 
 from . import (
-    dynamics,
     exact,
     callbacks,
     graph,
