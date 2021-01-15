@@ -3,7 +3,7 @@ from ._deprecations import graph_to_N_depwarn
 
 from fractions import Fraction
 
-import numpy as _np
+import numpy as np
 from netket import random as _random
 from netket.graph import AbstractGraph
 from numba import jit
@@ -40,7 +40,7 @@ class Spin(CustomHilbert):
         N = graph_to_N_depwarn(N=N, graph=graph)
 
         local_size = round(2 * s + 1)
-        local_states = _np.empty(local_size)
+        local_states = np.empty(local_size)
 
         assert int(2 * s + 1) == local_size
 
@@ -83,7 +83,7 @@ class Spin(CustomHilbert):
         shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
-            out = _np.empty(shape=shape)
+            out = np.empty(shape=shape)
 
         if rgen is None:
             rgen = _random
@@ -104,14 +104,14 @@ class Spin(CustomHilbert):
     @staticmethod
     @jit(nopython=True)
     def _sum_constraint(x, total_sz):
-        return _np.sum(x, axis=1) == round(2 * total_sz)
+        return np.sum(x, axis=1) == round(2 * total_sz)
 
     def _check_total_sz(self, total_sz, size):
         if total_sz is None:
             return
 
         m = round(2 * total_sz)
-        if _np.abs(m) > size:
+        if np.abs(m) > size:
             raise Exception(
                 "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
             )

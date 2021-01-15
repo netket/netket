@@ -10,14 +10,14 @@ from numba import jit
 from typing import List, Tuple, Optional
 
 
-class Boson(CustomHilbert):
-    r"""Hilbert space obtained as tensor product of local bosonic states."""
+class Fock(CustomHilbert):
+    r"""Hilbert space obtained as tensor product of local fock basis."""
 
     def __init__(
         self,
         n_max: Optional[int] = None,
         N: int = 1,
-        n_bosons: Optional[int] = None,
+        n_particles: Optional[int] = None,
         graph: Optional[AbstractGraph] = None,
     ):
         r"""
@@ -28,7 +28,7 @@ class Boson(CustomHilbert):
           n_max: Maximum occupation for a site (inclusive). If None, the local occupation
             number is unbounded.
           N: number of bosonic modes (default = 1)
-          n_bosons: Constraint for the number of bosons. If None, no constraint
+          n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
           graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes is extracted.
 
@@ -36,7 +36,7 @@ class Boson(CustomHilbert):
            Simple boson hilbert space.
 
            >>> from netket.hilbert import Boson
-           >>> hi = Boson(n_max=5, n_bosons=11, N=3)
+           >>> hi = Boson(n_max=5, n_particles=11, N=3)
            >>> print(hi.size)
            3
         """
@@ -44,26 +44,26 @@ class Boson(CustomHilbert):
 
         self._n_max = n_max
 
-        if n_bosons is not None:
-            n_bosons = int(n_bosons)
-            self._n_bosons = n_bosons
-            assert n_bosons > 0
+        if n_particles is not None:
+            n_particles = int(n_particles)
+            self._n_particles = n_particles
+            assert n_particles > 0
 
             if self._n_max is None:
-                self._n_max = n_bosons
+                self._n_max = n_particles
             else:
-                if self._n_max * N < n_bosons:
+                if self._n_max * N < n_particles:
                     raise Exception(
                         """The required total number of bosons is not compatible
                         with the given n_max."""
                     )
 
             def constraints(x):
-                return self._sum_constraint(x, n_bosons)
+                return self._sum_constraint(x, n_particles)
 
         else:
             constraints = None
-            self._n_bosons = None
+            self._n_particles = None
 
         if self._n_max is not None:
             assert self._n_max > 0
@@ -84,10 +84,10 @@ class Boson(CustomHilbert):
         return self._n_max
 
     @property
-    def n_bosons(self):
+    def n_particles(self):
         r"""int or None: The total number of particles, or None
         if the number is unconstrained."""
-        return self._n_bosons
+        return self._n_particles
 
     def _random_state_with_constraint(self, out, rgen, n_max):
         sites = list(range(self.size))
@@ -95,7 +95,7 @@ class Boson(CustomHilbert):
         out.fill(0.0)
         ss = self.size
 
-        for i in range(self.n_bosons):
+        for i in range(self.n_particles):
             s = rgen.randint(0, ss, size=())
 
             out[sites[s]] += 1
@@ -115,7 +115,7 @@ class Boson(CustomHilbert):
         if rgen is None:
             rgen = _random
 
-        if self.n_bosons is None:
+        if self.n_particles is None:
             out[:] = rgen.randint(0, self.n_max, size=shape)
         else:
             if size is not None:
@@ -129,12 +129,36 @@ class Boson(CustomHilbert):
 
     @staticmethod
     @jit(nopython=True)
-    def _sum_constraint(x, n_bosons):
-        return _np.sum(x, axis=1) == n_bosons
+    def _sum_constraint(x, n_particles):
+        return _np.sum(x, axis=1) == n_particles
 
     def __repr__(self):
-        nbosons = (
-            ", n_bosons={}".format(self._n_bosons) if self._n_bosons is not None else ""
+        n_particles = (
+            ", n_particles={}".format(self._n_particles)
+            if self._n_particles is not None
+            else ""
         )
         nmax = self._n_max if self._n_max < _np.iinfo(_np.intp).max else "INT_MAX"
-        return "Boson(n_max={}{}, N={})".format(nmax, nbosons, self._size)
+        return "Boson(n_max={}{}, N={})".format(nmax, n_particles, self._size)
+
+
+from netket.utils import deprecated
+
+
+@deprecated(
+    """
+Boson has been replaced by Fock. Please use fock, which has
+the same semantics except for n_bosons which was replaced by
+n_particles.
+
+You should update your code because it will break in a future
+version.
+"""
+)
+def Boson(
+    n_max: Optional[int] = None,
+    N: int = 1,
+    n_bosons: Optional[int] = None,
+    graph: Optional[AbstractGraph] = None,
+):
+    return Fock(n_max, N, n_bosons, graph)
