@@ -15,9 +15,9 @@ from ._abstract_operator import AbstractOperator
 from ._bose_hubbard import BoseHubbard
 from ._pauli_strings import PauliStrings
 
-from netket.utils import jax_available
+from netket.utils import jax_available as _jax_available
 
-if jax_available:
+if _jax_available:
     from ._local_cost_functions import (
         define_local_cost_function,
         local_cost_function,

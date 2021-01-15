@@ -5,3 +5,8 @@ from .spin import Spin
 from .boson import Boson
 from .qubit import Qubit
 from .hilbert_index import HilbertIndex
+
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)

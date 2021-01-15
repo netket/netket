@@ -19,3 +19,16 @@ def _hide_submodules(module_name, *, remove_self=True):
 
     if remove_self and hasattr(module, "_hide_submodules"):
         delattr(module, "_hide_submodules")
+
+
+def rename(new_name):
+    """
+    Decorator to renames a class
+    """
+
+    def decorator(clz):
+        clz.__name__ = new_name
+        clz.__qualname__ = new_name
+        return clz
+
+    return decorator
