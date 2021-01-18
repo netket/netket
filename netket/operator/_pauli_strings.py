@@ -194,9 +194,9 @@ class PauliStrings(AbstractOperator):
         cutoff,
         max_conn,
     ):
-        if x_prime.shape[0] < x.shape[0] * max_conn:
-            x_prime = _np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
-            mels = _np.empty((x.shape[0] * max_conn), dtype=_np.complex128)
+
+        x_prime = _np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
+        mels = _np.empty((x.shape[0] * max_conn), dtype=_np.complex128)
 
         n_c = 0
         for b in range(x.shape[0]):
@@ -219,7 +219,7 @@ class PauliStrings(AbstractOperator):
                     mels[n_c] = mel
                     n_c += 1
             sections[b] = n_c
-        return _np.copy(x_prime), _np.copy(mels)
+        return x_prime[:n_c], mels[:n_c]
 
     def get_conn_flattened(self, x, sections):
         r"""Finds the connected elements of the Operator. Starting
