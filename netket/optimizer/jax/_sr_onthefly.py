@@ -90,7 +90,7 @@ def O_mean(samples, params, forward_fn, **kwargs):
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
     """
-    dtype = forward_fn(params, samples[:1])[0].dtype
+    dtype = jax.eval_shape(forward_fn, params, samples).dtype
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
     return O_vjp(samples, params, v, forward_fn, **kwargs)
 
