@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def random_seed() -> int:
+def random_seed():
     """
     generates a random seed
     """

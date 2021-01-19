@@ -23,9 +23,12 @@ __all__ = [
     "stats",
     "utils",
     "variational",
+    "nn",
 ]
 
 from . import legacy
+
+from . import jax
 
 from . import (
     exact,
@@ -36,6 +39,7 @@ from . import (
     operator,
     optimizer,
     sampler,
+    nn,
     stats,
     utils,
     _vmc,
