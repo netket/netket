@@ -7,6 +7,8 @@ from .utils import (
     dtype_real,
     maybe_promote_to_complex,
     HashablePartial,
+    mpi_split,
+    PRNGKey,
 )
 
 from .vjp import vjp

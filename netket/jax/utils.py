@@ -1,5 +1,6 @@
 import jax
 from functools import partial
+from typing import Optional, Tuple, Any, Union
 
 import numpy as np
 from jax import numpy as jnp
@@ -14,6 +15,8 @@ from jax.tree_util import (
 from jax.util import as_hashable_function
 
 from jax.dtypes import dtype_real
+
+from netket.utils import MPI, n_nodes, rank, random_seed
 
 
 def eval_shape(fun, *args, has_aux=False, **kwargs):
@@ -117,3 +120,47 @@ class HashablePartial(partial):
 #    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
 #    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
 # )
+
+
+def PRNGKey(
+    seed: Optional[Union[int, jnp.ndarray]] = None, root: bool = 0
+) -> jnp.ndarray:
+    """
+    Initialises a PRNGKey using an optional starting seed.
+    The same seed will be distributed to all processes.
+    """
+    if seed is None:
+        key = jax.random.PRNGKey(random_seed())
+    elif isinstance(seed, int):
+        key = jax.random.PRNGKey(seed)
+    else:
+        key = seed
+
+    if n_nodes > 1:
+        key = jnp.asarray(MPI.Bcast(np.asarray(key), root=root))
+
+    return key
+
+
+def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> jnp.ndarray:
+    """
+    Split a key across MPI nodes in the communicator.
+    Only the input key on the root process matters.
+
+    Arguments:
+        key: The key to split. Only considered the one on the root process.
+        root: (default=0) The root rank from which to take the input key.
+        comm: (default=MPI.COMM_WORLD) The MPI communicator.
+
+    Returns:
+        A PRNGKey depending on rank number and key.
+    """
+
+    # Maybe add error/warning if in_key is not the same
+    # on all MPI nodes?
+    keys = jax.random.split(key, n_nodes)
+
+    if n_nodes > 1:
+        keys = jnp.asarray(MPI.Bcast(np.asarray(keys), root=root))
+
+    return keys[rank]
