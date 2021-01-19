@@ -12,36 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from jax.config import config
-
-config.update("jax_enable_x64", True)
-
-from jax import numpy as jnp
-import netket as nk
+from netket import legacy as nk
+from scipy.sparse.linalg import eigsh
 
 # 1D Lattice
-L = 20
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=16, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
-# Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+# Heisenberg spin hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi)
 
-# RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=jnp.float64)
+# Convert hamiltonian to a sparse matrix
+# Here we further take only the real part since the Heisenberg Hamiltonian is real
+sp_ha = ha.to_sparse().real
 
-# Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+# Use scipy sparse diagonalization
+vals, vecs = eigsh(sp_ha, k=2, which="SA")
+print("eigenvalues with scipy sparse:", vals)
 
-# Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.01)
+# Explicitely compute energy of ground state
+# Doing full dot product
+psi = vecs[:, 0]
+print("\ng.s. energy:", psi @ sp_ha @ psi)
 
-# Variational monte carlo driver
-gs = nk.Vmc(ha, op, ma, sa, n_samples=1000, n_discard=100)
-
-# Run the optimization for 300 iterations
-gs.run(n_iter=1, out=None)
-
-gs.run(n_iter=300, out=None)
+# Compute energy of first excited state
+psi = vecs[:, 1]
+print("\nfirst excited energy:", psi @ sp_ha @ psi)

@@ -12,16 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from jax.config import config
-
-config.update("jax_enable_x64", True)
-
-from jax import numpy as jnp
-import netket as nk
+from netket import legacy as nk
 
 # 1D Lattice
-L = 20
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
@@ -29,19 +23,23 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 # Ising spin hamiltonian
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
-# RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=jnp.float64)
+# Jastrow Machine
+ma = nk.machine.Jastrow(hilbert=hi)
+ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+sa = nk.sampler.MetropolisLocal(machine=ma)
 
 # Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.01)
+op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
-# Variational monte carlo driver
-gs = nk.Vmc(ha, op, ma, sa, n_samples=1000, n_discard=100)
+# Stochastic reconfiguration
+gs = nk.Vmc(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=1000,
+    sr=nk.optimizer.SR(ma, diag_shift=0.1),
+)
 
-# Run the optimization for 300 iterations
-gs.run(n_iter=1, out=None)
-
-gs.run(n_iter=300, out=None)
+gs.run(n_iter=300, out="test")

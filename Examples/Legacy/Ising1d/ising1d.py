@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from jax.config import config
-
-config.update("jax_enable_x64", True)
-
-from jax import numpy as jnp
-import netket as nk
+from netket import legacy as nk
 
 # 1D Lattice
 L = 20
@@ -30,18 +25,22 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=jnp.float64)
+ma = nk.nn.models.RBM(alpha=1)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+sa = nk.sampler.MetropolisLocal(hi, n_chains=32)
 
 # Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.01)
+op = nk.optim.GradientDescent(learning_rate=0.1)
 
-# Variational monte carlo driver
-gs = nk.Vmc(ha, op, ma, sa, n_samples=1000, n_discard=100)
+# Create the optimization driver
+vs = nk.variational_states.ClassicalVariationalState(
+    ma, sa, n_samples=1000, n_discard=100
+)
+
+gs = nk.Vmc(ha, op, variational_state=vs)
 
 # Run the optimization for 300 iterations
-gs.run(n_iter=1, out=None)
+gs.run(n_iter=2, out=None)
 
 gs.run(n_iter=300, out=None)
