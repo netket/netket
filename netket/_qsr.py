@@ -3,7 +3,7 @@ import sys
 import numpy as _np
 
 import netket as _nk
-from netket._core import deprecated
+from netket.utils import deprecated
 from .operator import local_values as _local_values
 
 from netket.random import randint

@@ -2,7 +2,8 @@ from .abstract_machine import AbstractMachine
 
 from .rbm import RbmSpin, RbmSpinReal, RbmSpinSymm, RbmMultiVal, RbmSpinPhase
 from .jastrow import Jastrow, JastrowSymm
-from ..utils import jax_available, torch_available, flax_available
+
+from netket.utils import jax_available, torch_available, flax_available
 
 
 if jax_available:

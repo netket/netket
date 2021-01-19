@@ -3,7 +3,7 @@ import numpy as _np
 
 from typing import List, Tuple, Optional, Generator
 
-from .._core import deprecated
+from netket.utils import deprecated
 
 
 """int: Maximum number of states that can be indexed"""

@@ -17,7 +17,6 @@ import itertools as _itertools
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
-from . import _core
 from .operator import AbstractOperator
 from ._exact_dynamics import PyExactTimePropagation
 
