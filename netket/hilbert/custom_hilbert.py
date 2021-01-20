@@ -2,12 +2,32 @@ from .abstract_hilbert import AbstractHilbert
 from .hilbert_index import HilbertIndex
 from ._deprecations import graph_to_N_depwarn
 
+import jax
+from jax import numpy as jnp
 from numba import jit
-import numpy as _np
+import numpy as np
 from netket.graph import AbstractGraph
 
 from typing import Optional, List, Callable
 from numbers import Real
+
+
+@jit(nopython=True)
+def _gen_to_bare_numbers(conditions):
+    return np.nonzero(conditions)[0]
+
+
+@jit(nopython=True)
+def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
+    if not has_constraint:
+        return numbers
+    else:
+        found = np.searchsorted(bare_numbers, numbers)
+        if np.max(found) >= bare_numbers.shape[0]:
+            raise RuntimeError(
+                "The required state does not satisfy the given constraints."
+            )
+        return found
 
 
 class CustomHilbert(AbstractHilbert):
@@ -50,13 +70,13 @@ class CustomHilbert(AbstractHilbert):
         self._is_finite = local_states is not None
 
         if self._is_finite:
-            self._local_states = _np.asarray(local_states)
+            self._local_states = np.asarray(local_states)
             assert self._local_states.ndim == 1
             self._local_size = self._local_states.shape[0]
             self._local_states = self._local_states.tolist()
         else:
             self._local_states = None
-            self._local_size = _np.iinfo(_np.intp).max
+            self._local_size = np.iinfo(np.intp).max
 
         self._has_constraint = constraint_fn is not None
         self._constraint_fn = constraint_fn
@@ -127,7 +147,7 @@ class CustomHilbert(AbstractHilbert):
         """
         hind = self._get_hilbert_index()
 
-        out = self._to_constrained_numbers_kernel(
+        out = _to_constrained_numbers_kernel(
             self._has_constraint,
             self._bare_numbers,
             hind.states_to_numbers(states, out),
@@ -135,24 +155,20 @@ class CustomHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, size=None, *, out=None, rgen=None):
-        if not self.is_discrete or not self.is_finite or self._has_constraint:
+    def _random_state_batch_impl(hilb, key, batches, dtype):
+        if not hilb.is_discrete or not hilb.is_finite or hilb._has_constraint:
             raise NotImplementedError()
 
         # Default version for discrete hilbert spaces without constraints.
         # More specialized initializations can be defined in the derived classes.
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
 
-        if out is None:
-            out = _np.empty(shape=shape)
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        out[:] = rgen.choice(self.local_states, size=shape)
-
-        return out
+        σ = jax.random.choice(
+            key,
+            jnp.asarray(hilb.local_states, dtype=dtype),
+            shape=(batches, hilb.size),
+            replace=True,
+        )
+        return jnp.asarray(σ, dtype=dtype)
 
     def _get_hilbert_index(self):
         if self._hilbert_index is None:
@@ -160,15 +176,15 @@ class CustomHilbert(AbstractHilbert):
                 raise RuntimeError("The hilbert space is too large to be indexed.")
 
             self._hilbert_index = HilbertIndex(
-                _np.asarray(self.local_states, dtype=_np.float64), self.size
+                np.asarray(self.local_states, dtype=np.float64), self.size
             )
 
             if self._has_constraint:
-                self._bare_numbers = self._gen_to_bare_numbers(
+                self._bare_numbers = _gen_to_bare_numbers(
                     self._constraint_fn(self._hilbert_index.all_states())
                 )
             else:
-                self._bare_numbers = _np.empty(0, dtype=_np.intp)
+                self._bare_numbers = np.empty(0, dtype=np.intp)
 
         return self._hilbert_index
 
@@ -177,24 +193,6 @@ class CustomHilbert(AbstractHilbert):
             return numbers
         else:
             return self._bare_numbers[numbers]
-
-    @staticmethod
-    @jit(nopython=True)
-    def _gen_to_bare_numbers(conditions):
-        return _np.nonzero(conditions)[0]
-
-    @staticmethod
-    @jit(nopython=True)
-    def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
-        if not has_constraint:
-            return numbers
-        else:
-            found = _np.searchsorted(bare_numbers, numbers)
-            if _np.max(found) >= bare_numbers.shape[0]:
-                raise RuntimeError(
-                    "The required state does not satisfy the given constraints."
-                )
-            return found
 
     def __pow__(self, n):
         if self._has_constraint:

@@ -1,13 +1,16 @@
 import abc
-import numpy as _np
+from functools import partial
 
 from typing import List, Tuple, Optional, Generator
+
+import jax
+import numpy as np
 
 from netket.utils import deprecated
 
 
 """int: Maximum number of states that can be indexed"""
-max_states = _np.iinfo(_np.int32).max
+max_states = np.iinfo(np.int32).max
 
 
 class AbstractHilbert(abc.ABC):
@@ -68,8 +71,8 @@ class AbstractHilbert(abc.ABC):
             int or numpy.array: A single number or an array (batched version) of
                                 quantum numbers corresponding to the state.
         """
-        if _np.isscalar(number):
-            return self.numbers_to_states(_np.atleast_1d(number))[0, :]
+        if np.isscalar(number):
+            return self.numbers_to_states(np.atleast_1d(number))[0, :]
         else:
             return self.numbers_to_states(number)
 
@@ -100,7 +103,7 @@ class AbstractHilbert(abc.ABC):
             int: The index of the given input state.
         """
         if state.ndim == 1:
-            return self.states_to_numbers(_np.atleast_2d(state))[0]
+            return self.states_to_numbers(np.atleast_2d(state))[0]
         elif state.ndim == 2:
             return self.states_to_numbers(state)
         else:
@@ -122,15 +125,7 @@ class AbstractHilbert(abc.ABC):
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
 
-    @deprecated("use random_state instead")
-    def random_vals(self, *args, **kwargs):
-        """
-        Deprecated alias for random_state. Prefer using random_state directly.
-        """
-        return self.random_state(*args, **kwargs)
-
-    @abc.abstractmethod
-    def random_state(self, size=None, *, out=None, rgen=None):
+    def random_state(self, key, size=None, dtype=np.float32):
         r"""Generates either a single or a batch of uniformly distributed random states.
 
         Args:
@@ -149,7 +144,10 @@ class AbstractHilbert(abc.ABC):
             >>> hi.random_state(size=2)
             array([[0., 0.], [1., 0.]])
         """
-        raise NotImplementedError()
+        if size is None:
+            return self._random_state_scalar(key, dtype)
+        else:
+            return self._random_state_batch(key, size, dtype)
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.
@@ -161,7 +159,7 @@ class AbstractHilbert(abc.ABC):
                         an error is returned.
             out: Optionally pre-allocated output.
         """
-        numbers = _np.arange(0, self.n_states, dtype=_np.int64)
+        numbers = np.arange(0, self.n_states, dtype=np.int64)
         return self.numbers_to_states(numbers, out)
 
     @property
@@ -172,6 +170,55 @@ class AbstractHilbert(abc.ABC):
         if not self.is_finite:
             return False
 
-        log_max = _np.log(max_states)
+        log_max = np.log(max_states)
 
-        return self.size * _np.log(self.local_size) <= log_max
+        return self.size * np.log(self.local_size) <= log_max
+
+    @partial(jax.jit, static_argnums=(0, 2))
+    def _random_state_scalar(hilb, key, dtype):
+        """
+        Generates a single random state-vector given an hilbert space and a rng key.
+        """
+        # Attempt to use the scalar method
+        res = hilb._random_state_scalar_impl(key, dtype)
+        if res is NotImplemented:
+            # If the scalar method is not implemented, use the batch method and take the first batch
+            res = hilb._random_state_batch_impl(key, 1, dtype).reshape(-1)
+            if res is NotImplemented:
+                raise NotImplementedError(
+                    """_jax_random_state_scalar(hilb, key, dtype) is not defined for hilb of type {} or a supertype.
+                    For better performance you should define _jax_random_state_batch.""".format(
+                        type(hilb)
+                    )
+                )
+
+        return res
+
+    @partial(jax.jit, static_argnums=(0, 2, 3))
+    def _random_state_batch(hilb, key, size, dtype):
+        """
+        Generates a batch of random state-vectors given an hilbert space and a rng key.
+        """
+        # Attempt to use the batch method
+        res = hilb._random_state_batch_impl(key, size, dtype)
+        if res is NotImplemented:
+            # If it fails, vmap over the scalar method
+            keys = jax.random.split(key, size)
+            res = jax.vmap(
+                hilb._random_state_scalar_impl, in_axes=(None, 0, None), out_axes=0
+            )(hilb, key, dtype)
+        return res
+
+    def _random_state_scalar_impl(hilb, key, dtype):
+        # Implementation for jax_random_state_scalar, dispatching on the
+        # type of hilbert.
+        # Could probably put it in the class itself (which @singledispatch automatically
+        # because of oop)?
+        return NotImplemented
+
+    def _random_state_batch_impl(hilb, key, size, dtype):
+        # Implementation for jax_random_state_batch, dispatching on the
+        # type of hilbert.
+        # Could probably put it in the class itself (which @singledispatch automatically
+        # because of oop)?
+        return NotImplemented

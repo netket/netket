@@ -1,6 +1,8 @@
 from .abstract_hilbert import AbstractHilbert
 
-import numpy as _np
+import jax
+from jax import numpy as jnp
+import numpy as np
 
 
 class DoubledHilbert(AbstractHilbert):
@@ -59,7 +61,7 @@ class DoubledHilbert(AbstractHilbert):
 
     def numbers_to_states(self, numbers, out=None):
         if out is None:
-            out = _np.empty((numbers.shape[0], self._size))
+            out = np.empty((numbers.shape[0], self._size))
 
         # !!! WARNING
         # This code assumes that states are stored in a MSB
@@ -74,7 +76,7 @@ class DoubledHilbert(AbstractHilbert):
 
         n = self.physical.size
         dim = self.physical.n_states
-        left, right = _np.divmod(numbers, dim)
+        left, right = np.divmod(numbers, dim)
 
         self.physical.numbers_to_states(left, out=out[:, 0:n])
         self.physical.numbers_to_states(right, out=out[:, n : 2 * n])
@@ -83,7 +85,7 @@ class DoubledHilbert(AbstractHilbert):
 
     def states_to_numbers(self, states, out=None):
         if out is None:
-            out = _np.empty(states.shape[0], _np.int64)
+            out = np.empty(states.shape[0], np.int64)
 
         # !!! WARNING
         # See note above in numbers_to_states
@@ -99,20 +101,15 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def random_state(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self.size) if size is not None else (self.size,)
+    def _random_state_batch_impl(hilb, key, batches, dtype):
+        shape = (batches, hilb.size)
 
-        if out is None:
-            out = _np.empty(shape=shape)
+        key1, key2 = jax.random.split(key)
 
-        n = self.size_physical
+        v1 = hilb.physical._random_state_batch(key1, batches, dtype)
+        v2 = hilb.physical._random_state_batch(key2, batches, dtype)
 
-        self.physical.random_state(out=out[..., :n], size=size, rgen=rgen)
-        self.physical.random_state(out=out[..., n:], size=size, rgen=rgen)
-
-        return out
+        return jnp.concatenate([v1, v2], axis=1)
 
     def __repr__(self):
         return "DoubledHilbert({})".format(self.physical)

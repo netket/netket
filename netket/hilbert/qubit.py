@@ -1,8 +1,12 @@
-from .custom_hilbert import CustomHilbert
-from ._deprecations import graph_to_N_depwarn
+from typing import Optional
+
+import jax
+from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
-from typing import Optional
+
+from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
 
 
 class Qubit(CustomHilbert):
@@ -28,6 +32,10 @@ class Qubit(CustomHilbert):
         N = graph_to_N_depwarn(N=N, graph=graph)
 
         super().__init__([0, 1], N)
+
+    def _random_state_batch_impl(hilb, key, batches, dtype):
+        rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
+        return jnp.asarray(rs, dtype=dtype)
 
     def __pow__(self, n):
         return Qubit(self.size * n)

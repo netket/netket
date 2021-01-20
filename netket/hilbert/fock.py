@@ -1,12 +1,19 @@
-from .custom_hilbert import CustomHilbert
-from ._deprecations import graph_to_N_depwarn
+from typing import List, Tuple, Optional
+
+import jax
+from jax import numpy as jnp
+import numpy as np
+from numba import jit
 
 from netket.graph import AbstractGraph
 
-import numpy as _np
-from numba import jit
+from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
 
-from typing import List, Tuple, Optional
+
+@jit(nopython=True)
+def _sum_constraint(x, n_particles):
+    return np.sum(x, axis=1) == n_particles
 
 
 class Fock(CustomHilbert):
@@ -58,7 +65,7 @@ class Fock(CustomHilbert):
                     )
 
             def constraints(x):
-                return self._sum_constraint(x, n_particles)
+                return _sum_constraint(x, n_particles)
 
         else:
             constraints = None
@@ -66,9 +73,9 @@ class Fock(CustomHilbert):
 
         if self._n_max is not None:
             assert self._n_max > 0
-            local_states = _np.arange(self._n_max + 1)
+            local_states = np.arange(self._n_max + 1)
         else:
-            max_ind = _np.iinfo(_np.intp).max
+            max_ind = np.iinfo(np.intp).max
             self._n_max = max_ind
             local_states = None
 
@@ -88,48 +95,26 @@ class Fock(CustomHilbert):
         if the number is unconstrained."""
         return self._n_particles
 
-    def _random_state_with_constraint(self, out, rgen, n_max):
-        sites = list(range(self.size))
+    def _random_state_batch_impl(hilb, key, batches, dtype):
+        shape = (batches, hilb.size)
 
-        out.fill(0.0)
-        ss = self.size
+        # If unconstrained space, use fast sampling
+        if hilb.n_particles is None:
+            rs = jax.random.randint(key, shape=shape, minval=0, maxval=hilb.n_max)
+            return jnp.asarray(rs, dtype=dtype)
 
-        for i in range(self.n_particles):
-            s = rgen.randint(0, ss, size=())
-
-            out[sites[s]] += 1
-
-            if out[sites[s]] == n_max:
-                sites.pop(s)
-                ss -= 1
-
-    def random_state(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = _np.empty(shape=shape)
-
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        if self.n_particles is None:
-            out[:] = rgen.randint(0, self.n_max, size=shape)
         else:
-            if size is not None:
-                out_r = out.reshape(-1, self._size)
-                for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint(out_r[b], rgen, self.n_max)
-            else:
-                self._random_state_with_constraint(out, rgen, self.n_max)
+            from jax.experimental import host_callback as hcb
 
-        return out
+            cb = lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype)
 
-    @staticmethod
-    @jit(nopython=True)
-    def _sum_constraint(x, n_particles):
-        return _np.sum(x, axis=1) == n_particles
+            state = hcb.call(
+                cb,
+                key,
+                result_shape=jax.ShapeDtypeStruct(shape, dtype),
+            )
+
+            return state
 
     def __repr__(self):
         n_particles = (
@@ -137,8 +122,28 @@ class Fock(CustomHilbert):
             if self._n_particles is not None
             else ""
         )
-        nmax = self._n_max if self._n_max < _np.iinfo(_np.intp).max else "INT_MAX"
-        return "Boson(n_max={}{}, N={})".format(nmax, n_particles, self._size)
+        nmax = self._n_max if self._n_max < np.iinfo(np.intp).max else "INT_MAX"
+        return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
+
+
+def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
+    out = np.zeros((n_batches, hilb.size), dtype=dtype)
+    rgen = np.random.default_rng(rngkey)
+
+    for b in range(n_batches):
+        sites = list(range(hilb.size))
+        ss = hilb.size
+
+        for i in range(hilb.n_particles):
+            s = rgen.integers(0, ss, size=())
+
+            out[b, sites[s]] += 1
+
+            if out[b, sites[s]] == hilb.n_max:
+                sites.pop(s)
+                ss -= 1
+
+    return out
 
 
 from netket.utils import deprecated

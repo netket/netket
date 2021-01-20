@@ -1,13 +1,36 @@
-from .custom_hilbert import CustomHilbert
-from ._deprecations import graph_to_N_depwarn
-
 from fractions import Fraction
+from typing import Optional, List
 
+import jax
+from jax import numpy as jnp
 import numpy as np
 from netket.graph import AbstractGraph
 from numba import jit
 
-from typing import Optional, List
+
+from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
+
+
+def _check_total_sz(total_sz, size):
+    if total_sz is None:
+        return
+
+    m = round(2 * total_sz)
+    if np.abs(m) > size:
+        raise Exception(
+            "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
+        )
+
+    if (size + m) % 2 != 0:
+        raise Exception(
+            "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
+        )
+
+
+@jit(nopython=True)
+def _sum_constraint(x, total_sz):
+    return np.sum(x, axis=1) == round(2 * total_sz)
 
 
 class Spin(CustomHilbert):
@@ -47,11 +70,11 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        self._check_total_sz(total_sz, N)
+        _check_total_sz(total_sz, N)
         if total_sz is not None:
 
             def constraints(x):
-                return self._sum_constraint(x, total_sz)
+                return _sum_constraint(x, total_sz)
 
         else:
             constraints = None
@@ -62,63 +85,63 @@ class Spin(CustomHilbert):
 
         super().__init__(local_states, N, constraints)
 
-    def _random_state_with_constraint(self, out, rgen):
-        sites = list(range(self.size))
-        out.fill(-round(2 * self._s))
-        ss = self.size
+    def _random_state_batch_impl(hilb, key, batches, dtype):
+        S = hilb._s
+        shape = (batches, hilb.size)
 
-        for i in range(round(self._s * self.size) + self._total_sz):
-            s = rgen.randint(0, ss, size=())
+        # If unconstrained space, use fast sampling
+        if hilb._total_sz is None:
+            n_states = int(2 * S + 1)
+            rs = jax.random.randint(key, shape=shape, minval=0, maxval=n_states)
 
-            out[sites[s]] += 2
-
-            if out[sites[s]] > round(2 * self._s - 1):
-                sites.pop(s)
-                ss -= 1
-
-    def random_state(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        if self._total_sz is None:
-            out[:] = rgen.choice(self.local_states, size=shape)
+            two = jnp.asarray(2, dtype=dtype)
+            return jnp.asarray(rs * two - (n_states - 1), dtype=dtype)
         else:
-            # TODO: this can most likely be done more efficiently
-            if size is not None:
-                out_r = out.reshape(-1, self._size)
-                for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint(out_r[b], rgen)
+            N = hilb.size
+            n_states = int(2 * S) + 1
+            # if constrained and S == 1/2, use a trick to sample quickly
+            if n_states == 2:
+                m = hilb._total_sz * 2
+                nup = (N + m) // 2
+                ndown = (N - m) // 2
+
+                x = jnp.concatenate(
+                    (
+                        jnp.ones((batches, nup), dtype=dtype),
+                        -jnp.ones(
+                            (
+                                batches,
+                                ndown,
+                            ),
+                            dtype=dtype,
+                        ),
+                    ),
+                    axis=1,
+                )
+
+                # deprecated: return jax.random.shuffle(key, x, axis=1)
+                return jax.vmap(jax.random.permutation)(
+                    jax.random.split(key, x.shape[0]), x
+                )
+
+            # if constrained and S != 1/2, then use a slow fallback algorithm
+            # TODO: find better, faster way to smaple constrained arbitrary spaces.
             else:
-                self._random_state_with_constraint(out, rgen)
+                from jax.experimental import host_callback as hcb
+
+                cb = lambda rng: _random_states_with_constraint(
+                    hilb, rng, batches, dtype
+                )
+
+                state = hcb.call(
+                    cb,
+                    key,
+                    result_shape=jax.ShapeDtypeStruct(shape, dtype),
+                )
+
+                return state
 
         return out
-
-    @staticmethod
-    @jit(nopython=True)
-    def _sum_constraint(x, total_sz):
-        return np.sum(x, axis=1) == round(2 * total_sz)
-
-    def _check_total_sz(self, total_sz, size):
-        if total_sz is None:
-            return
-
-        m = round(2 * total_sz)
-        if np.abs(m) > size:
-            raise Exception(
-                "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
-            )
-
-        if (size + m) % 2 != 0:
-            raise Exception(
-                "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
-            )
 
     def __pow__(self, n):
         if self._total_sz is None:
@@ -133,3 +156,24 @@ class Spin(CustomHilbert):
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
         return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)
+
+
+# TODO: could numba-jit this
+def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
+    out = np.full((n_batches, hilb.size), -round(2 * hilb._s), dtype=dtype)
+    rgen = np.random.default_rng(rngkey)
+
+    for b in range(n_batches):
+        sites = list(range(hilb.size))
+        ss = hilb.size
+
+        for i in range(round(hilb._s * hilb.size) + hilb._total_sz):
+            s = rgen.integers(0, ss, size=())
+
+            out[b, sites[s]] += 2
+
+            if out[b, sites[s]] > round(2 * hilb._s - 1):
+                sites.pop(s)
+                ss -= 1
+
+    return out

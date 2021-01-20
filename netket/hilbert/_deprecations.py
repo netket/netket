@@ -1,4 +1,5 @@
 from netket.utils import warn_deprecation
+import numpy as np
 
 # To be removed in v3.1
 def graph_to_N_depwarn(N, graph):
