@@ -40,8 +40,6 @@ from flax.linen import Embed
 
 from flax.linen import compact
 
-from . import models
-
 
 def to_array(hilbert, machine, params, normalize=True):
     import numpy as _np

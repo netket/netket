@@ -28,8 +28,6 @@ __all__ = [
 
 from . import legacy
 
-from . import jax
-
 from . import (
     exact,
     callbacks,
@@ -38,7 +36,9 @@ from . import (
     logging,
     operator,
     optim,
+    models,
     sampler,
+    jax,
     nn,
     stats,
     utils,
