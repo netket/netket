@@ -23,5 +23,7 @@ if _jax_available:
         local_cost_function,
         local_cost_and_grad_function,
         local_costs_and_grads_function,
+        local_value_cost,
+        local_value_op_op_cost,
     )
     from ._der_local_values_jax import local_energy_kernel

@@ -9,13 +9,13 @@ from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ._local_cost_functions import (
     define_local_cost_function,
     local_costs_and_grads_function,
+    local_value_cost,
+    local_value_op_op_cost,
 )
+
 from ..vmc_common import tree_map
 
-#  Assumes that v is a single state (Vector) and vp is a batch (matrix). pars can be a pytree.
-@partial(define_local_cost_function, static_argnums=0, batch_axes=(None, None, 0, 0, 0))
-def local_energy_kernel(logpsi, pars, vp, mel, v):
-    return jax.numpy.sum(mel * jax.numpy.exp(logpsi(pars, vp) - logpsi(pars, v)))
+local_energy_kernel = local_value_cost
 
 
 ########################################

@@ -1,10 +1,13 @@
 import jax
 import numpy as _np
+import jax.numpy as jnp
 from functools import partial
 
 from netket.machine._jax_utils import outdtype
+from netket.machine import Jax
 
 from inspect import signature
+
 
 # The following dicts store some 'properties' of cost functions. The keys are jitted
 # cost functions. Access should be performed in jit blocks in order to be 0-cost.
@@ -112,9 +115,13 @@ def local_cost_function(local_cost_fun, machine, *args):
     Returns:
         the value of log_psi with parameters `pars` for the batches *args
     """
-    return _local_cost_function(
-        local_cost_fun, machine.jax_forward, machine.parameters, *args
-    )
+    # Legaccy support
+    if isinstance(machine, Jax):
+        return _local_cost_function(
+            local_cost_fun, machine.jax_forward, machine.parameters, *args
+        )
+    else:
+        return _local_cost_function(local_cost_fun, machine, *args)
 
 
 # Starting from the 4th argument, it's the same arguments as the cost function itself
@@ -218,3 +225,16 @@ def local_costs_and_grads_function(local_cost_fun, machine, *args):
         machine.parameters,
         *args,
     )
+
+
+@partial(define_local_cost_function, static_argnums=0, batch_axes=(None, None, 0, 0, 0))
+def local_value_cost(logpsi, pars, vp, mel, v):
+    return jnp.sum(mel * jnp.exp(logpsi(pars, vp) - logpsi(pars, v)))
+
+
+@partial(define_local_cost_function, static_argnums=0, batch_axes=(None, None, 0, 0, 0))
+def local_value_op_op_cost(logpsi, pars, σp, mel, σ):
+
+    σ_σp = jax.vmap(lambda σ, σp: jnp.hstack((σ, σp)), batch_axes=(None, 0))(σ, σp)
+    σ_σ = jnp.hstack(σ, σ)
+    return jax.numpy.sum(mel * jax.numpy.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
