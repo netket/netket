@@ -9,23 +9,9 @@ from jax import numpy as jnp
 from netket.hilbert import DoubledHilbert
 
 from .base import (
-    random_state_batch,
     flip_state_scalar,
-    random_state_batch_impl,
     flip_state_scalar_impl,
 )
-
-
-@random_state_batch_impl.register
-def random_state_batch_doubled_impl(hilb: DoubledHilbert, key, batches, dtype):
-    shape = (batches, hilb.size)
-
-    key1, key2 = jax.random.split(key)
-
-    v1 = random_state_batch(hilb.physical, key1, batches, dtype)
-    v2 = random_state_batch(hilb.physical, key2, batches, dtype)
-
-    return jnp.concatenate([v1, v2], axis=1)
 
 
 ## flips

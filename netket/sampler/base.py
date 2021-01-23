@@ -61,10 +61,6 @@ class Sampler(abc.ABC):
         if not isinstance(self.n_chains, int):
             raise TypeError("n_chains must be an integer")
 
-        if isinstance(self.seed, int):
-            seed = jax.random.PRNGKey(self.seed)
-            object.__setattr__(self, "seed", seed)
-
     def init_state(
         sampler,
         machine: Union[Callable, nn.Module],
@@ -111,6 +107,25 @@ class Sampler(abc.ABC):
 
     def sample(sampler, *args, **kwargs) -> Tuple[jnp.ndarray, SamplerState]:
         return sample(sampler, *args, **kwargs)
+
+    @partial(jax.jit, static_argnums=(1, 4))
+    def _sample_chain(
+        sampler,
+        machine: Union[Callable, nn.Module],
+        parameters: PyTree,
+        state: SamplerState,
+        chain_length: int,
+    ) -> Tuple[jnp.ndarray, SamplerState]:
+        _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
+
+        state, samples = jax.lax.scan(
+            _sample_next,
+            state,
+            xs=None,
+            length=chain_length,
+        )
+
+        return samples, state
 
     @abc.abstractmethod
     def _init_state(sampler, machine, params, seed) -> SamplerState:
@@ -260,24 +275,19 @@ def sample(
     """
     state = sampler.reset(machine, parameters, state)
 
-    return _sample(sampler, machine, parameters, state, chain_length)
+    return sampler._sample_chain(machine, parameters, state, chain_length)
 
 
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample(
-    sampler,
+def samples(
+    sampler: Sampler,
     machine: Union[Callable, nn.Module],
     parameters: PyTree,
-    state: SamplerState,
-    chain_length: int,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
+    *,
+    state: Optional[SamplerState] = None,
+    chain_length: int = 1,
+):
+    state = sampler.reset(machine, parameters, state)
 
-    state, samples = jax.lax.scan(
-        _sample_next,
-        state,
-        xs=None,
-        length=chain_length,
-    )
-
-    return samples, state
+    for i in range(chain_length):
+        samples, state = sampler._sample_chain(machine, parameters, state, 1)
+        yield samples[0, :, :]

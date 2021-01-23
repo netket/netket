@@ -8,21 +8,7 @@ from jax import numpy as jnp
 
 from netket.hilbert import CustomHilbert
 
-from .base import random_state_batch_impl, flip_state_batch_impl
-
-
-@random_state_batch_impl.register
-def random_state_batch_impl_spin(hilb: CustomHilbert, key, batches, dtype):
-    if not hilb.is_discrete or not hilb.is_finite or hilb._has_constraint:
-        raise NotImplementedError()
-
-    # Default version for discrete hilbert spaces without constraints.
-    # More specialized initializations can be defined in the derived classes.
-
-    shape = (batches, hilb._size)
-
-    σ = jax.random.choice(key, self.local_states, shape=shape, replace=True)
-    return jnp.asarray(σ, dtype=dtype)
+from .base import flip_state_batch_impl
 
 
 ## flips

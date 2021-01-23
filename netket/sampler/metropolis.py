@@ -1,16 +1,17 @@
+from typing import Any, Optional, Callable
+
 import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
 from flax import struct
 
-from typing import Any, Optional
-
-from netket.nn import to_array
 from netket.hilbert import AbstractHilbert
-from .hilbert import random_state
 
 from .base import sampler, Sampler, SamplerState
+
+PyTree = Any
+PRNGKey = jnp.ndarray
 
 
 @struct.dataclass
@@ -27,21 +28,74 @@ class MetropolisRule:
         - transition(rule, sampler, machine, parameters, state, key, σ), which returns a
         new configuration given the configuration σ and rng key key.
         - random_state(rule, sampler, machine, parameters, state, key), which returns a
-        new random configuration.
+        new random configuration. By default this uses standard hilbert random_state.
     """
 
-    def init_state(rule, sampler, machine, params, key):
+    def init_state(
+        rule,
+        sampler: Sampler,
+        machine: Callable,
+        params: PyTree,
+        key: PRNGKey,
+    ) -> Optional[Any]:
+        """
+        Initialises the optional internal state of the Metropolis Sampler Transition
+        Rule. The provided key is unique and does not need to be splitted
+        It should return an immutable datastructure.
+
+        Arguments:
+            sampler: The Metropolis sampler
+            machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
+            key: A Jax PRNGKey rng state.
+
+        Returns:
+            An Optional State.
+        """
         return None
 
-    def reset(rule, sampler, machine, parameters, state):
-        return None
+    def reset(
+        rule,
+        sampler: Sampler,
+        machine: Callable,
+        params: PyTree,
+        sampler_state: SamplerState,
+    ) -> Optional[Any]:
+        """
+        Resets the internal state of the Metropolis Sampler Transition Rule.
 
-    def transition(rule, sampler, machine, parameters, state, key, σ):
+        Arguments:
+            sampler: The Metropolis sampler
+            machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
+            key: A Jax PRNGKey rng state.
+            sampler_state: The current state of the sampler. Should not modify it.
+
+        Returns:
+            An Optional State. Must return the same type of `sampler_state.rule_state`.
+        """
+        return sampler_state.rule_state
+
+    def transition(
+        rule,
+        sampler: Sampler,
+        machine: Callable,
+        parameters: PyTree,
+        state: SamplerState,
+        key: PRNGKey,
+        σ: jnp.ndarray,
+    ) -> jnp.ndarray:
+
         raise NotImplementedError("error")
 
-    def random_state(rule, sampler, machine, parameters, state, key):
-        return random_state(
-            sampler.hilbert, key, size=sampler.n_chains, dtype=sampler.dtype
+    def random_state(
+        rule,
+        sampler: Sampler,
+        machine: Callable,
+        parameters: PyTree,
+        state: SamplerState,
+        key: PRNGKey,
+    ):
+        return sampler.hilbert.random_state(
+            key, size=sampler.n_chains, dtype=sampler.dtype
         )
 
 
@@ -91,6 +145,7 @@ class MetropolisSampler_(Sampler):
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
 
     def __post_init__(self):
+        super().__post_init__()
         # Validate the inputs
         if not isinstance(self.rule, MetropolisRule):
             raise TypeError("rule must be a MetropolisRule.")
@@ -159,7 +214,7 @@ class MetropolisSampler_(Sampler):
                 rng=new_rng,
                 σ=s.σ,
                 n_accepted=s.accepted,
-                n_samples=sampler.n_sweeps * sampler.n_chains,
+                n_samples=state.n_samples + sampler.n_sweeps * sampler.n_chains,
             )
 
         return new_state, new_state.σ

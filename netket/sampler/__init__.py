@@ -1,4 +1,12 @@
-from .base import Sampler, SamplerState, sampler_state, reset, sample_next, sample
+from .base import (
+    Sampler,
+    SamplerState,
+    sampler_state,
+    reset,
+    sample_next,
+    sample,
+    samples,
+)
 
 from .exact import ExactSampler
 from .metropolis import (

@@ -18,7 +18,7 @@ but that is not always possible.
 
 Each one of those functions has 
 """
-from .base import random_state, flip_state
+from .base import flip_state
 
 from . import custom
 from . import qubit
