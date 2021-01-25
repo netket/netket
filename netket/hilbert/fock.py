@@ -100,7 +100,7 @@ class Fock(CustomHilbert):
 
         # If unconstrained space, use fast sampling
         if hilb.n_particles is None:
-            rs = jax.random.randint(key, shape=shape, minval=0, maxval=hilb.n_max)
+            rs = jax.random.randint(key, shape=shape, minval=0, maxval=hilb.n_max+1)
             return jnp.asarray(rs, dtype=dtype)
 
         else:
