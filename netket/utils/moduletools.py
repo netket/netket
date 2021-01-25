@@ -12,7 +12,7 @@ def _hide_submodules(module_name, *, remove_self=True):
     for file in os.listdir(module_path):
         if file.endswith(".py") and not file == "__init__.py":
             mod_name = file[:-3]
-            if hasattr(module, mod_name):
+            if hasattr(module, mod_name) and mod_name[0] != "_":
                 new_name = "_" + mod_name
                 setattr(module, new_name, getattr(module, mod_name))
                 delattr(module, mod_name)
