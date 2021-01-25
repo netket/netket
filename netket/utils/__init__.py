@@ -6,6 +6,8 @@ from .seed import random_seed
 from .deprecation import warn_deprecation, deprecated, wraps_legacy
 from .moduletools import _hide_submodules, rename
 
+from .model_frameworks import maybe_wrap_module
+
 jax_available = True
 flax_available = True
 mpi4jax_available = mpi_available
