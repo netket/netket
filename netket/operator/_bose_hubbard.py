@@ -65,6 +65,10 @@ class BoseHubbard(AbstractOperator):
     def size(self):
         return self._hilbert.size
 
+    @property
+    def is_hermitian(self):
+        return True
+
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such

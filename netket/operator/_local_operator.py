@@ -22,6 +22,10 @@ def _number_to_state(number, local_states, out):
     return out
 
 
+def is_hermitian(a, rtol=1e-05, atol=1e-08):
+    return _np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
+
+
 class LocalOperator(AbstractOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
     acting locally on a limited set of k quantum numbers (i.e. k-local,
@@ -88,6 +92,10 @@ class LocalOperator(AbstractOperator):
     @property
     def size(self):
         return self._size
+
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
 
     @property
     def mel_cutoff(self):
@@ -281,6 +289,7 @@ class LocalOperator(AbstractOperator):
         self._n_conns = _np.empty((0, 0), dtype=_np.intp)
 
         self._basis = _np.zeros(0, dtype=_np.int64)
+        self._is_hermitian = True
 
     def _acting_on_list(self):
         acting_on = []
@@ -325,6 +334,12 @@ class LocalOperator(AbstractOperator):
                 self.mel_cutoff,
                 self._local_states,
             )
+
+            isherm = True
+            for op in self._operators:
+                isherm = isherm and is_hermitian(op)
+
+            self._is_hermitian = isherm
 
             return
 
@@ -429,6 +444,12 @@ class LocalOperator(AbstractOperator):
             self.mel_cutoff,
             self._local_states,
         )
+
+        isherm = True
+        for op in self._operators:
+            isherm = isherm and is_hermitian(op)
+
+        self._is_hermitian = isherm
 
     @staticmethod
     @jit(nopython=True)

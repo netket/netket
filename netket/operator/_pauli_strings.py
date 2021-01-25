@@ -1,5 +1,5 @@
 from ._abstract_operator import AbstractOperator
-from ..hilbert import Qubit
+from netket.hilbert import Qubit
 
 import numpy as _np
 from numba import jit

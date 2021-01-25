@@ -33,6 +33,10 @@ class LocalLiouvillian(AbstractOperator):
         return self._size
 
     @property
+    def is_hermitian(self):
+        return False
+
+    @property
     def ham(self):
         return self._H
 

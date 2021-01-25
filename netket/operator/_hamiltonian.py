@@ -47,6 +47,10 @@ class Ising(AbstractOperator):
     def size(self):
         return self._n_sites
 
+    @property
+    def is_hermitian(self):
+        return True
+
     @staticmethod
     @jit(nopython=True)
     def n_conn(x, out):
@@ -198,6 +202,10 @@ class Heisenberg(GraphOperator):
     @property
     def J(self):
         return self._J
+
+    @property
+    def is_hermitian(self):
+        return True
 
     @property
     def uses_sign_rule(self):

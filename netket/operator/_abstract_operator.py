@@ -103,6 +103,10 @@ class AbstractOperator(abc.ABC):
         r"""AbstractHilbert: The hilbert space associated to this operator."""
         raise NotImplementedError()
 
+    @property
+    def is_hermitian(self):
+        return False
+
     def to_sparse(self):
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
