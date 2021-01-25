@@ -13,12 +13,12 @@ from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,
     MetropolisExchange,
-    MetropolisHamiltonian,
+    #    MetropolisHamiltonian,
 )
 
 from .metropolis_numpy import (
     MetropolisSamplerNumpy,
-    MetropolisHamiltonianNumpy,
+    MetropolisHamiltonianNumpy as MetropolisHamiltonian,
 )
 
 from . import rules

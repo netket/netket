@@ -273,7 +273,8 @@ def sample(
         state: current state of the sampler. If None, then initialises it.
         chain_length: (default=1), the length of the chains.
     """
-    state = sampler.reset(machine, parameters, state)
+    if state is None:
+        state = sampler.reset(machine, parameters, state)
 
     return sampler._sample_chain(machine, parameters, state, chain_length)
 
@@ -286,7 +287,8 @@ def samples(
     state: Optional[SamplerState] = None,
     chain_length: int = 1,
 ):
-    state = sampler.reset(machine, parameters, state)
+    if state is None:
+        state = sampler.reset(machine, parameters, state)
 
     for i in range(chain_length):
         samples, state = sampler._sample_chain(machine, parameters, state, 1)
