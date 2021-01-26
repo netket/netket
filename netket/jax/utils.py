@@ -122,7 +122,7 @@ class HashablePartial(partial):
 
 
 def PRNGKey(
-    seed: Optional[Union[int, jnp.ndarray]] = None, root: bool = 0
+    seed: Optional[Union[int, jnp.ndarray]] = None, root: bool = 0, comm=MPI.COMM_WORLD
 ) -> jnp.ndarray:
     """
     Initialises a PRNGKey using an optional starting seed.
@@ -136,7 +136,9 @@ def PRNGKey(
         key = seed
 
     if n_nodes > 1:
-        key = jnp.asarray(MPI.Bcast(np.asarray(key), root=root))
+        import mpi4jax
+
+        key = mpi4jax.Bcast(key, root=root)
 
     return key
 
@@ -160,6 +162,8 @@ def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> jnp.ndarray:
     keys = jax.random.split(key, n_nodes)
 
     if n_nodes > 1:
-        keys = jnp.asarray(MPI.Bcast(np.asarray(keys), root=root))
+        import mpi4jax
+
+        keys = mpi4jax.Bcast(keys, root=root)
 
     return keys[rank]
