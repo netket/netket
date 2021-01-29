@@ -144,10 +144,9 @@ class AbstractHilbert(abc.ABC):
             >>> hi.random_state(size=2)
             array([[0., 0.], [1., 0.]])
         """
-        if size is None:
-            return self._random_state_scalar(key, dtype)
-        else:
-            return self._random_state_batch(key, size, dtype)
+        from netket.hilbert import random
+
+        return random.random_state(self, key, size, dtype=dtype)
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.

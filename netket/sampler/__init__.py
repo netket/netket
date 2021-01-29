@@ -22,7 +22,6 @@ from .metropolis_numpy import (
 )
 
 from . import rules
-from . import hilbert
 
 # Shorthand
 Metropolis = MetropolisSampler

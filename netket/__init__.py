@@ -29,10 +29,10 @@ __all__ = [
 from . import legacy
 
 from . import (
+    hilbert,
     exact,
     callbacks,
     graph,
-    hilbert,
     logging,
     operator,
     optim,

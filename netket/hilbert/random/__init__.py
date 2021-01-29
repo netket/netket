@@ -16,12 +16,16 @@ If only the scalar is defined, then jax.vmap is used to map over the batch
 axis. Of course, it is usually more performant to define the batched code, 
 but that is not always possible.
 
-Each one of those functions has 
 """
-from .base import flip_state
+
+from .base import random_state, flip_state
 
 from . import custom
 from . import qubit
 from . import spin
 from . import fock
 from . import doubled
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)

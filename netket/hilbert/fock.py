@@ -95,27 +95,6 @@ class Fock(CustomHilbert):
         if the number is unconstrained."""
         return self._n_particles
 
-    def _random_state_batch_impl(hilb, key, batches, dtype):
-        shape = (batches, hilb.size)
-
-        # If unconstrained space, use fast sampling
-        if hilb.n_particles is None:
-            rs = jax.random.randint(key, shape=shape, minval=0, maxval=hilb.n_max+1)
-            return jnp.asarray(rs, dtype=dtype)
-
-        else:
-            from jax.experimental import host_callback as hcb
-
-            cb = lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype)
-
-            state = hcb.call(
-                cb,
-                key,
-                result_shape=jax.ShapeDtypeStruct(shape, dtype),
-            )
-
-            return state
-
     def __repr__(self):
         n_particles = (
             ", n_particles={}".format(self._n_particles)
@@ -124,26 +103,6 @@ class Fock(CustomHilbert):
         )
         nmax = self._n_max if self._n_max < np.iinfo(np.intp).max else "INT_MAX"
         return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
-
-
-def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
-    out = np.zeros((n_batches, hilb.size), dtype=dtype)
-    rgen = np.random.default_rng(rngkey)
-
-    for b in range(n_batches):
-        sites = list(range(hilb.size))
-        ss = hilb.size
-
-        for i in range(hilb.n_particles):
-            s = rgen.integers(0, ss, size=())
-
-            out[b, sites[s]] += 1
-
-            if out[b, sites[s]] == hilb.n_max:
-                sites.pop(s)
-                ss -= 1
-
-    return out
 
 
 from netket.utils import deprecated

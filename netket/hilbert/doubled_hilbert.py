@@ -101,15 +101,5 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def _random_state_batch_impl(hilb, key, batches, dtype):
-        shape = (batches, hilb.size)
-
-        key1, key2 = jax.random.split(key)
-
-        v1 = hilb.physical._random_state_batch(key1, batches, dtype)
-        v2 = hilb.physical._random_state_batch(key2, batches, dtype)
-
-        return jnp.concatenate([v1, v2], axis=1)
-
     def __repr__(self):
         return "DoubledHilbert({})".format(self.physical)

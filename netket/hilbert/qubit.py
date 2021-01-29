@@ -33,10 +33,6 @@ class Qubit(CustomHilbert):
 
         super().__init__([0, 1], N)
 
-    def _random_state_batch_impl(hilb, key, batches, dtype):
-        rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
-        return jnp.asarray(rs, dtype=dtype)
-
     def __pow__(self, n):
         return Qubit(self.size * n)
 

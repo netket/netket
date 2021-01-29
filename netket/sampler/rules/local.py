@@ -5,7 +5,7 @@ import numpy as np
 from jax import numpy as jnp
 from flax import struct
 
-from netket.sampler.hilbert import flip_state
+from netket.hilbert.random import flip_state
 
 from ..metropolis import MetropolisRule
 

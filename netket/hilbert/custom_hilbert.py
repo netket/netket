@@ -155,21 +155,6 @@ class CustomHilbert(AbstractHilbert):
 
         return out
 
-    def _random_state_batch_impl(hilb, key, batches, dtype):
-        if not hilb.is_discrete or not hilb.is_finite or hilb._has_constraint:
-            raise NotImplementedError()
-
-        # Default version for discrete hilbert spaces without constraints.
-        # More specialized initializations can be defined in the derived classes.
-
-        σ = jax.random.choice(
-            key,
-            jnp.asarray(hilb.local_states, dtype=dtype),
-            shape=(batches, hilb.size),
-            replace=True,
-        )
-        return jnp.asarray(σ, dtype=dtype)
-
     def _get_hilbert_index(self):
         if self._hilbert_index is None:
             if not self.is_indexable:
