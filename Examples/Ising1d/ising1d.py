@@ -1,4 +1,4 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2021 The NetKet Authors - All rights reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,13 @@ ma = nk.models.RBM(alpha=1)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+# sa = nk.sampler.MetropolisHamiltonianNumpy(hi, hamiltonian=ha, n_chains=32)
+
+vs = nk.variational_states.ClassicalVariationalState(
+    sa, ma, n_samples=1000, n_discard=100
+)
+# sa.sample_next(ma, vs.variables, vs.sampler_state)
+# sa.reset(ma, vs.variables)
 
 # Optimizer
 op = nk.optim.GradientDescent(learning_rate=0.01)
