@@ -177,7 +177,3 @@ def test_deprecations():
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
             hilbert = Spin(s=0.5, graph=g, N=3)
-
-    hi = Spin(0.5, N=2)
-    with pytest.warns(FutureWarning):
-        hi.random_vals()
