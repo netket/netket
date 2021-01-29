@@ -39,7 +39,7 @@ sr = nk.optim.SR(diag_shift=0.01)
 
 # Variational state
 vs = nk.variational_states.ClassicalVariationalState(
-    ma, sa, n_samples=1000, n_discard=100
+    sa, ma, n_samples=1000, n_discard=100
 )
 
 # Variational monte carlo driver
