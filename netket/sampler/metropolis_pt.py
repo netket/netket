@@ -1,3 +1,17 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#    http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Any, Optional, Callable
 
 from functools import partial
@@ -174,6 +188,15 @@ class MetropolisPtSampler(MetropolisSampler):
         sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState
     ):
         new_rng, rng = jax.random.split(state.rng)
+        # def cbr(data):
+        #    new_rng, rng = data
+        #    print("sample_next newrng:\n", new_rng,  "\nand rng:\n", rng)
+        #    return new_rng
+        # new_rng = hcb.call(
+        #   cbr,
+        #   (new_rng, rng),
+        #   result_shape=jax.ShapeDtypeStruct(new_rng.shape, new_rng.dtype),
+        # )
 
         with loops.Scope() as s:
             s.key = rng
@@ -191,6 +214,17 @@ class MetropolisPtSampler(MetropolisSampler):
                 # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
                 s.key, key1, key2, key3, key4 = jax.random.split(s.key, 5)
 
+                # def cbi(data):
+                #    i, beta = data
+                #    print("sweep #", i, " for beta=\n", beta)
+                #    return beta
+                # beta = hcb.call(
+                #   cbi,
+                #   (i, s.beta),
+                #   result_shape=jax.ShapeDtypeStruct(s.beta.shape, s.beta.dtype),
+                # )
+                beta = s.beta
+
                 σp, log_prob_correction = sampler.rule.transition(
                     sampler, machine, parameters, state, key1, s.σ
                 )
@@ -199,12 +233,12 @@ class MetropolisPtSampler(MetropolisSampler):
                 uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
                 if log_prob_correction is not None:
                     do_accept = uniform < jnp.exp(
-                        s.beta.reshape((-1,))
+                        beta.reshape((-1,))
                         * (proposal_log_prob - s.log_prob + log_prob_correction)
                     )
                 else:
                     do_accept = uniform < jnp.exp(
-                        s.beta.reshape((-1,)) * (proposal_log_prob - s.log_prob)
+                        beta.reshape((-1,)) * (proposal_log_prob - s.log_prob)
                     )
 
                 # do_accept must match ndim of proposal and state (which is 2)
@@ -254,7 +288,7 @@ class MetropolisPtSampler(MetropolisSampler):
                     )
                     return proposed_beta
 
-                proposed_beta = swap_rows(s.beta, idxs, inn)
+                proposed_beta = swap_rows(beta, idxs, inn)
 
                 @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
                 def compute_proposed_prob(prob, idxs, inn):
@@ -265,6 +299,8 @@ class MetropolisPtSampler(MetropolisSampler):
                 log_prob = (proposed_beta - state.beta) * s.log_prob.reshape(
                     (sampler.n_chains, sampler.n_replicas)
                 )
+
+                prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
                 prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
@@ -288,23 +324,33 @@ class MetropolisPtSampler(MetropolisSampler):
                 # jax.experimental.host_callback.id_print(state.beta)
                 # jax.experimental.host_callback.id_print(proposed_beta)
 
-                new_beta = jax.numpy.where(do_swap, proposed_beta, s.beta)
+                new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
 
                 def cb(data):
-                    _bt, _pbt, new_beta, so, do_swap, prob = data
+                    _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
+                    print("--------.---------.---------.--------")
                     print("     cur beta:\n", _bt)
                     print("proposed beta:\n", _pbt)
                     print("     new beta:\n", new_beta)
                     print("swaporder :", so)
-                    print("do_swap :", do_swap)
-                    print("prob_rescaled;", prob)
+                    print("do_swap :\n", do_swap)
+                    print("log_prob;\n", log_prob)
+                    print("prob_rescaled;\n", prob)
                     return new_beta
 
-                # new_beta = hcb.call(
-                #    cb,
-                #    (s.beta, proposed_beta, new_beta, swap_order, do_swap, prob_rescaled),
-                #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
-                # )
+                new_beta = hcb.call(
+                    cb,
+                    (
+                        beta,
+                        proposed_beta,
+                        new_beta,
+                        swap_order,
+                        do_swap,
+                        log_prob,
+                        prob_rescaled,
+                    ),
+                    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
+                )
                 s.beta = new_beta
 
                 swap_order = swap_order.reshape(-1)
