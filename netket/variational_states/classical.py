@@ -16,7 +16,7 @@ import netket
 from netket import jax as nkjax
 from netket import utils
 from netket.hilbert import AbstractHilbert
-from netket.sampler import Sampler, SamplerState
+from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import flax as flax_utils
 from netket.optim import SR
@@ -232,7 +232,7 @@ class ClassicalVariationalState(VariationalState):
             )
 
         # don't discard if exactsampler
-        if isinstance(self.sampler, netket.sampler._exact.ExactSampler_):
+        if isinstance(self.sampler, ExactSampler):
             if n_discard is not None and n_discard > 0:
                 warnings.warn(
                     "Exact Sampler does not need to discard samples. Setting n_discard to 0."
