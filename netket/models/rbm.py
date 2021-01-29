@@ -19,7 +19,7 @@ Array = Any
 
 
 class RBM(nn.Module):
-    dtype: Any = np.float32
+    dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     use_bias: bool = True
@@ -37,7 +37,7 @@ class RBM(nn.Module):
 
 
 class RBMModPhase(nn.Module):
-    dtype: Any = np.float32
+    dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     use_bias: bool = True
