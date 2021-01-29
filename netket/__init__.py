@@ -37,7 +37,7 @@ from . import (
     hilbert,
     logging,
     operator,
-    optimizer,
+    optim,
     sampler,
     nn,
     stats,
@@ -54,3 +54,6 @@ from .vmc_common import (
     tree_map as _tree_map,
     trees2_map as _trees2_map,
 )
+
+# deprecations
+optimizer = optim
