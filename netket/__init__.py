@@ -57,3 +57,5 @@ from .vmc_common import (
 
 # deprecations
 optimizer = optim
+
+from .version import __version__
