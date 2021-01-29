@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
+from typing import Callable, Tuple, Any, Union
+
 from functools import partial
 
-import numpy as _np
+import jax
+
+import numpy as np
+
 from jax import numpy as jnp
 from jax.tree_util import (
     tree_flatten,
@@ -25,7 +29,6 @@ from jax.tree_util import (
     tree_leaves,
 )
 
-from typing import Callable, Tuple, Any, Union
 
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape
 

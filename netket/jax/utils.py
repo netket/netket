@@ -1,10 +1,10 @@
-import jax
 from functools import partial
 from typing import Optional, Tuple, Any, Union
 
 import numpy as np
-from jax import numpy as jnp
 
+import jax
+from jax import numpy as jnp
 from jax.tree_util import (
     tree_flatten,
     tree_unflatten,
@@ -13,7 +13,6 @@ from jax.tree_util import (
     tree_leaves,
 )
 from jax.util import as_hashable_function
-
 from jax.dtypes import dtype_real
 
 from netket.utils import MPI, n_nodes, rank, random_seed

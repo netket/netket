@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-from functools import partial, wraps
+from typing import Callable, Tuple, Any, Union, Sequence
 
-import numpy as _np
+from functools import partial, wraps
+import operator
+
+import numpy as np
+
+import jax
 from jax import numpy as jnp
+from jax.util import safe_map
 from jax.tree_util import (
     tree_flatten,
     tree_unflatten,
@@ -25,14 +30,7 @@ from jax.tree_util import (
     tree_leaves,
 )
 
-from typing import Callable, Tuple, Any, Union, Sequence
-
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape
-
-import operator
-from typing import Any, Tuple, Union
-
-from jax.util import safe_map
 
 map = safe_map
 
@@ -147,7 +145,10 @@ def value_and_grad(
     def value_and_grad_f(*args, **kwargs):
         out_shape = eval_shape(fun, *args, has_aux=has_aux, **kwargs)
 
-        if tree_leaf_iscomplex(args):
+        _args_iterable = (argnums,) if isinstance(argnums, int) else argnums
+
+        # only check if derivable arguments are complex
+        if tree_leaf_iscomplex([args[i] for i in _args_iterable]):
             if is_complex(out_shape):  # C -> C
                 return jax.value_and_grad(
                     fun,
@@ -173,25 +174,28 @@ def value_and_grad(
                             return val.imag, aux
 
                         out_r, grad_r, aux = jax.value_and_grad(
-                            fun, argnums=argnums, has_aux=True, allow_int=allow_int
-                        )
+                            real_fun, argnums=argnums, has_aux=True, allow_int=allow_int
+                        )(*args, **kwargs)
                         out_j, grad_j, _ = jax.value_and_grad(
                             imag_fun, argnums=argnums, has_aux=True, allow_int=allow_int
-                        )
+                        )(*args, **kwargs)
 
                     else:
                         real_fun = lambda *args, **kwargs: fun(*args, **kwargs).real
                         imag_fun = lambda *args, **kwargs: fun(*args, **kwargs).imag
 
                         out_r, grad_r = jax.value_and_grad(
-                            fun, argnums=argnums, has_aux=False, allow_int=allow_int
-                        )
+                            real_fun,
+                            argnums=argnums,
+                            has_aux=False,
+                            allow_int=allow_int,
+                        )(*args, **kwargs)
                         out_j, grad_j = jax.value_and_grad(
                             imag_fun,
                             argnums=argnums,
                             has_aux=False,
                             allow_int=allow_int,
-                        )
+                        )(*args, **kwargs)
 
                     out = out_r + 1j * out_j
                     grad = jax.tree_multimap(
@@ -203,18 +207,10 @@ def value_and_grad(
                     else:
                         return out, grad
 
-                return jax.value_and_grad(
-                    fun,
-                    argnums=argnums,
-                    has_aux=has_aux,
-                    allow_int=allow_int,
-                    holomorphic=True,
-                )(*args, **kwargs)
+                return grad_rc(*args, **kwargs)
             else:  # R -> R
                 return jax.value_and_grad(
                     fun, argnums=argnums, has_aux=has_aux, allow_int=allow_int
                 )(*args, **kwargs)
-
-        return
 
     return value_and_grad_f

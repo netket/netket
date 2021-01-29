@@ -11,5 +11,9 @@ from .utils import (
     PRNGKey,
 )
 
-from .vjp import vjp
-from .grad import grad, value_and_grad
+from ._vjp import vjp
+from ._grad import grad, value_and_grad
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)
