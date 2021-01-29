@@ -3,8 +3,8 @@ import numpy as _np
 import jax.numpy as jnp
 from functools import partial
 
-from netket.machine._jax_utils import outdtype
-from netket.machine import Jax
+from netket.legacy.machine._jax_utils import outdtype
+from netket.legacy.machine import Jax
 
 from inspect import signature
 

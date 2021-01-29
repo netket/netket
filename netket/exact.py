@@ -18,7 +18,6 @@ import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
 from .operator import AbstractOperator
-from ._exact_dynamics import PyExactTimePropagation
 
 
 def lanczos_ed(

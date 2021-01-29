@@ -17,16 +17,15 @@ __all__ = [
     "graph",
     "callbacks",
     "hilbert",
-    "machine",
     "operator",
     "optimizer",
-    "random",
     "sampler",
     "stats",
-    # "supervised",
     "utils",
     "variational",
 ]
+
+from . import legacy
 
 from . import (
     exact,
@@ -34,24 +33,18 @@ from . import (
     graph,
     hilbert,
     logging,
-    machine,
     operator,
     optimizer,
-    random,
     sampler,
     stats,
-    # supervised,
     utils,
-    variational,
-    _exact_dynamics,
     _vmc,
-    _steadystate,
 )
 
 # Main applications
 from ._vmc import Vmc
-from ._qsr import Qsr
-from ._steadystate import SteadyState
+
+# from ._qsr import Qsr
 
 from .vmc_common import (
     tree_map as _tree_map,

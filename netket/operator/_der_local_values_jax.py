@@ -2,7 +2,11 @@ import jax
 import numpy as _np
 from functools import partial
 
-from netket.machine._jax_utils import outdtype, outdtype_iscomplex, tree_leaf_iscomplex
+from netket.legacy.machine._jax_utils import (
+    outdtype,
+    outdtype_iscomplex,
+    tree_leaf_iscomplex,
+)
 from jax import numpy as jnp
 
 from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian

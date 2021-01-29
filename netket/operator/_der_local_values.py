@@ -7,7 +7,7 @@ from netket.utils import jax_available
 
 if jax_available:
     import jax as _jax
-    from netket.machine import Jax as _Jax
+    from netket.legacy.machine import Jax as _Jax
     from ._der_local_values_jax import der_local_values_jax
 else:
 

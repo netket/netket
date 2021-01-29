@@ -2,7 +2,7 @@ import numpy as _np
 from numba import jit
 
 from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
-from netket.machine.density_matrix.abstract_density_matrix import (
+from netket.legacy.machine.density_matrix.abstract_density_matrix import (
     AbstractDensityMatrix as DensityMatrix,
 )
 
