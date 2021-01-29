@@ -9,7 +9,7 @@ from typing import Any
 from netket.nn import to_array
 from netket.hilbert import AbstractHilbert
 
-from .base import sampler, Sampler, SamplerState
+from .base import Sampler, SamplerState
 
 
 @struct.dataclass
@@ -18,8 +18,8 @@ class ExactSamplerState(SamplerState):
     rng: Any
 
 
-@sampler("ExactSampler")
-class ExactSampler_(Sampler):
+@struct.dataclass
+class ExactSampler(Sampler):
     def _init_state(sampler, machine, params, key):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=key)
@@ -70,18 +70,6 @@ class ExactSampler_(Sampler):
 from netket.legacy.sampler import ExactSampler as LegacyExactSampler
 from netket.legacy.machine import AbstractMachine
 from netket.utils import wraps_legacy
-
-
-@wraps_legacy(LegacyExactSampler, "machine", AbstractMachine)
-def ExactSampler(hilbert, machine_power: int = 2, sample_size: int = 8):
-    """
-    Constructs an exact sampler
-    """
-    return ExactSampler_(
-        hilbert=hilbert,
-        machine_pow=machine_power,
-        n_chains=sample_size,
-    )
 
 
 def host_numbers_to_states(hilbert, numbers):

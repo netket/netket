@@ -44,22 +44,30 @@ class Sampler(abc.ABC):
 
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """Hilbert space to be sampled."""
-    ##: the fields below are present, but are created 'on the fly'
-    # n_chains : int = struct.field(pytree_node = False, default = 8)
+    n_chains: int = struct.field(pytree_node=False, default=16)
     """Number of batches along the chain"""
-    # machine_pow : int = struct.field(default = 2)
+    machine_pow: int = struct.field(default=2)
     """Exponent of the pdf sampled"""
+    dtype: type = struct.field(pytree_node=False, default=np.float32)
+    """Dtype of the states returned."""
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.hilbert, AbstractHilbert):
-            raise TypeError(
+            raise ValueError(
                 "hilbert must be a subtype of netket.hilbert.AbstractHilbert, "
                 + "instead, type {} is not.".format(type(self.hilbert))
             )
 
-        if not isinstance(self.n_chains, int):
-            raise TypeError("n_chains must be an integer")
+        if not isinstance(self.n_chains, int) and self.n_chains >= 0:
+            raise ValueError("n_chains must be a positivee integer")
+
+        # if not isinstance(self.machine_pow, int) and self.machine_pow>= 0:
+        #    raise ValueError("machine_pow must be a positivee integer")
+
+    @property
+    def n_batches(self):
+        return self.n_chains
 
     def init_state(
         sampler,
@@ -138,60 +146,6 @@ class Sampler(abc.ABC):
     @abc.abstractmethod
     def _sample_next(sampler, machine, parameters, state=None):
         raise NotImplementedError("sample_next Not Implemented")
-
-
-def sampler(clz_name):
-    """
-    Decorator to be used when defining samplers.
-    Mainly responsible to define the three 'default' fields
-     - n_chains
-     - machine_pow.
-     - dtype
-
-    The reason for this method is that with python's dataclasses it is not possible to
-    put fields with default values in a base class later inherited. So we use this trick
-    and define them on the top class.
-    """
-
-    # Note: to define a field in a class we need two entries:
-    #  - __dict__[__annotations__][fieldname] = fieldtype ,  which is only the type annotation
-    #  - __dict__[fieldname] = default_value, which is modified through setattr.
-
-    def sampler_decorator(clz):
-        clz.__name__ = clz_name
-        clz.__qualname__ = clz_name
-        ann = clz.__dict__.get("__annotations__", {})
-
-        # Error if those fields are already defined
-        for name, type in ann.items():
-            if (
-                name == "hilbert"
-                or name == "n_chains"
-                or name == "machine_pow"
-                or name == "dtype"
-            ):
-                raise TypeError(
-                    "cannot define a type with field hilbert, n_chains, machine_pow or dtype as those"
-                    + "are defined in the base Sampler class."
-                )
-
-        # n_chains : int = struct.field(pytree_node = False, default = 8)
-        ann["n_chains"] = int
-        setattr(clz, "n_chains", struct.field(pytree_node=False, default=8))
-
-        # machine_pow : int = 2
-        ann["machine_pow"] = int
-        setattr(clz, "machine_pow", 2)
-
-        ann["dtype"] = Any
-        setattr(clz, "dtype", struct.field(pytree_node=False, default=np.float32))
-
-        # Store the modified annotations
-        setattr(clz, "__annotations__", ann)
-
-        return struct.dataclass(clz)
-
-    return sampler_decorator
 
 
 def sampler_state(

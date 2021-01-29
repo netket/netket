@@ -18,14 +18,26 @@ from .metropolis import (
 
 from .metropolis_numpy import (
     MetropolisSamplerNumpy,
-    MetropolisHamiltonianNumpy as MetropolisHamiltonian,
+    MetropolisHamiltonianNumpy,
+    MetropolisCustomNumpy,
+)
+
+from .metropolis_pt import (
+    MetropolisPtSampler,
+    MetropolisLocalPt,
+    MetropolisExchangePt,
 )
 
 from . import rules
 
 # Shorthand
 Metropolis = MetropolisSampler
+MetropolisPt = MetropolisPtSampler
 MetropolisNumpy = MetropolisSamplerNumpy
+
+# Replacements for effficiency
+MetropolisHamiltonian = MetropolisHamiltonianNumpy
+MetropolisCustom = MetropolisCustomNumpy
 
 from netket.utils import _hide_submodules
 

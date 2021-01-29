@@ -11,8 +11,7 @@ import jax
 
 from netket.hilbert import AbstractHilbert
 
-from .base import sampler
-from .metropolis import MetropolisSampler_
+from .metropolis import MetropolisSampler
 
 PyTree = Any
 PRNGKeyType = jnp.ndarray
@@ -49,22 +48,21 @@ def apply_model(machine, pars, weights):
     return machine(pars, weights)
 
 
-@sampler("MetropolisSampler")
-class MetropolisSamplerNumpy_(MetropolisSampler_):
+class MetropolisSamplerNumpy(MetropolisSampler):
     def _init_state(sampler, machine, params, key):
         rgen = np.random.default_rng(np.asarray(key))
 
-        σ = np.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = np.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
 
         ma_out = jax.eval_shape(machine, params, σ)
 
         state = MetropolisNumpySamplerState(
             σ=σ,
             σ1=np.copy(σ),
-            log_values=np.zeros(sampler.n_chains, dtype=ma_out.dtype),
-            log_values_1=np.zeros(sampler.n_chains, dtype=ma_out.dtype),
+            log_values=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
+            log_values_1=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
-                sampler.n_chains, dtype=jax.dtypes.dtype_real(ma_out.dtype)
+                sampler.n_batches, dtype=jax.dtypes.dtype_real(ma_out.dtype)
             ),
             rng=rgen,
             rule_state=sampler.rule.init_state(sampler, machine, params, rgen),
@@ -153,7 +151,7 @@ def acceptance_kernel(
 
     for i in range(σ.shape[0]):
         prob = np.exp(
-            machine_pow * (log_values_1[i] - log_values[i] + log_prob_corr[i]).real
+            machine_pow * (log_values_1[i] - log_values[i]).real + log_prob_corr[i]
         )
         assert not math.isnan(prob)
 
@@ -165,23 +163,30 @@ def acceptance_kernel(
     return accepted
 
 
-def MetropolisSamplerNumpy(
-    hilbert: AbstractHilbert,
-    rule,
-    n_sweeps: Optional[int] = None,
-    **kwargs,
-):
-    if n_sweeps is None:
-        n_sweeps = hilbert.size
+# def MetropolisSamplerNumpy(
+#     hilbert: AbstractHilbert,
+#     rule,
+#     n_sweeps: Optional[int] = None,
+#     **kwargs,
+# ):
+#     if n_sweeps is None:
+#         n_sweeps = hilbert.size
 
-    return MetropolisSamplerNumpy_(
-        hilbert=hilbert, rule=rule, n_sweeps=n_sweeps, **kwargs
-    )
+#     return MetropolisSamplerNumpy_(
+#         hilbert=hilbert, rule=rule, n_sweeps=n_sweeps, **kwargs
+#     )
 
 
-from .rules import HamiltonianRuleNumpy
+from .rules import HamiltonianRuleNumpy, CustomRuleNumpy
 
 
 def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **kwargs):
     rule = HamiltonianRuleNumpy(hamiltonian)
+    return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
+
+
+def MetropolisCustomNumpy(
+    hilbert: AbstractHilbert, move_operators, move_weights=None, *args, **kwargs
+):
+    rule = CustomRuleNumpy(move_operators, move_weights)
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)

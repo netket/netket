@@ -8,7 +8,7 @@ from flax import struct
 
 from netket.hilbert import AbstractHilbert
 
-from .base import sampler, Sampler, SamplerState
+from .base import Sampler, SamplerState
 
 PyTree = Any
 PRNGKey = jnp.ndarray
@@ -95,7 +95,7 @@ class MetropolisRule:
         key: PRNGKey,
     ):
         return sampler.hilbert.random_state(
-            key, size=sampler.n_chains, dtype=sampler.dtype
+            key, size=sampler.n_batches, dtype=sampler.dtype
         )
 
 
@@ -130,8 +130,8 @@ class MetropolisSamplerState(SamplerState):
         return text
 
 
-@sampler("MetropolisSampler")
-class MetropolisSampler_(Sampler):
+@struct.dataclass
+class MetropolisSampler(Sampler):
     """
     Metropolis-Hastings sampler.
     This sampler samples an Hilbert space, producing samples off a specific dtype.
@@ -139,10 +139,54 @@ class MetropolisSampler_(Sampler):
     specified.
     """
 
-    rule: MetropolisRule
+    rule: MetropolisRule = None
     """The metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=0)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
+
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        rule: MetropolisRule,
+        *,
+        n_sweeps: Optional[int] = None,
+        **kwargs,
+    ):
+        """
+        ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
+        a transition rule to perform moves in the Markov Chain.
+        The transition kernel is used to generate
+        a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
+        The move is accepted with probability
+
+        .. math::
+        A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
+
+        where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
+        user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
+        and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
+
+
+        Args:
+            hilbert: The hilbert space to sample
+            rule: A `MetropolisRule` to generate random transitions from a given state as
+                    well as uniform random states.
+            n_sweeps: The number of exchanges that compose a single sweep.
+                    If None, sweep_size is equal to the number of degrees of freedom being sampled
+                    (the size of the input vector s to the machine).
+            n_chains: The number of Markov Chain to be run in parallel on a single process.
+            n_chains: The number of batches of the states to sample (default = 8)
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the statees sampled (default = np.float32).
+
+        """
+        if n_sweeps is None:
+            n_sweeps = hilbert.size
+
+        object.__setattr__(self, "rule", rule)
+        object.__setattr__(self, "n_sweeps", n_sweeps)
+
+        super().__init__(hilbert, **kwargs)
 
     def __post_init__(self):
         super().__post_init__()
@@ -221,46 +265,6 @@ class MetropolisSampler_(Sampler):
 
     # def __repr__(sampler):
     #    return "MetropolisSampler(...)"
-
-
-def MetropolisSampler(
-    hilbert: AbstractHilbert,
-    rule: MetropolisRule,
-    n_sweeps: Optional[int] = None,
-    **kwargs,
-):
-    """
-    ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
-    a transition rule to perform moves in the Markov Chain.
-    The transition kernel is used to generate
-    a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
-    The move is accepted with probability
-
-    .. math::
-    A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
-
-    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
-    user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-    and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
-
-
-    Args:
-        hilbert: The hilbert space to sample
-        rule: A `MetropolisRule` to generate random transitions from a given state as
-                well as uniform random states.
-        n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
-                If None, sweep_size is equal to the number of degrees of freedom being sampled
-                (the size of the input vector s to the machine).
-        n_chains: The number of batches of the states to sample (default = 8)
-        machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-        dtype: The dtype of the statees sampled (default = np.float32).
-
-    """
-    if n_sweeps is None:
-        n_sweeps = hilbert.size
-
-    return MetropolisSampler_(hilbert=hilbert, rule=rule, n_sweeps=n_sweeps, **kwargs)
 
 
 from netket.utils import wraps_legacy
