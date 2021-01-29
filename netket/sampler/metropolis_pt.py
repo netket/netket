@@ -255,27 +255,18 @@ class MetropolisPtSampler(MetropolisSampler):
                     return proposed_beta
 
                 proposed_beta = swap_rows(s.beta, idxs, inn)
-                proposed_logprob = swap_rows(
-                    s.log_prob.reshape((sampler.n_chains, sampler.n_replicas)),
-                    idxs,
-                    inn,
-                )
 
                 @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
                 def compute_proposed_prob(prob, idxs, inn):
-                    prob_rescaled = prob[idxs]  # * prob[inn]
+                    prob_rescaled = prob[idxs] + prob[inn]
                     return prob_rescaled
 
                 # compute the probability of the swaps
-                log_prob = jnp.exp(
-                    (proposed_beta - state.beta)
-                    * (
-                        proposed_logprob
-                        - s.log_prob.reshape((sampler.n_chains, sampler.n_replicas))
-                    )
+                log_prob = (proposed_beta - state.beta) * s.log_prob.reshape(
+                    (sampler.n_chains, sampler.n_replicas)
                 )
 
-                prob_rescaled = compute_proposed_prob(prob, idxs, inn)
+                prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
 
                 uniform = jax.random.uniform(
                     key4, shape=(sampler.n_chains, sampler.n_replicas // 2)
