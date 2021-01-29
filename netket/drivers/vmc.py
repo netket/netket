@@ -1,18 +1,20 @@
 import math
 
-import netket as _nk
+import jax
+from jax.tree_util import tree_map
 
-from .operator import local_values as _local_values
+
+from netket.operator import local_values as _local_values
 from netket.stats import (
     statistics as _statistics,
     mean as _mean,
     sum_inplace as _sum_inplace,
 )
 
-from netket.vmc_common import info, tree_map
-from netket.abstract_variational_driver import AbstractVariationalDriver
-
 from netket.variational_states import ClassicalVariationalState
+
+from .vmc_common import info, tree_map
+from .abstract_variational_driver import AbstractVariationalDriver
 
 
 class Vmc(AbstractVariationalDriver):

@@ -46,14 +46,9 @@ from . import (
 )
 
 # Main applications
-from ._vmc import Vmc
+from .drivers import Vmc
 
-# from ._qsr import Qsr
-
-from .vmc_common import (
-    tree_map as _tree_map,
-    trees2_map as _trees2_map,
-)
+# from .drivers import Qsr
 
 # deprecations
 optimizer = optim
