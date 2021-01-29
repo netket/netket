@@ -17,8 +17,6 @@ from ._local_cost_functions import (
     local_value_op_op_cost,
 )
 
-from ..vmc_common import tree_map
-
 local_energy_kernel = local_value_cost
 
 

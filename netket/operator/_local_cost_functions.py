@@ -3,6 +3,7 @@ import numpy as _np
 import jax.numpy as jnp
 from functools import partial
 
+from netket import jax as nkjax
 from netket.legacy.machine._jax_utils import outdtype
 from netket.legacy.machine import Jax
 
@@ -23,7 +24,9 @@ _outdtype = {}
 
 
 def define_local_cost_function(
-    fun, static_argnums=0, batch_axes=None, outdtype=complex
+    fun,
+    static_argnums=0,
+    batch_axes=None,
 ):
     """
     @define_local_cost_function(fun, static_argnums=0, batch_axes=automatic,
@@ -68,7 +71,6 @@ def define_local_cost_function(
 
     _batch_axes[jitted_fun] = batch_axes
     _unjitted_fun[jitted_fun] = fun
-    _outdtype[jitted_fun] = outdtype
 
     return jitted_fun
 
@@ -100,7 +102,7 @@ def _local_cost_function(local_cost_fun, logpsi, pars, *args):
     return local_cost_fun_vmap(logpsi, pars, *args)
 
 
-def local_cost_function(local_cost_fun, machine, *args):
+def local_cost_function(local_cost_fun, model, pars, *args):
     """
     local_cost_function(local_cost_fun, machine, *args)
 
@@ -115,58 +117,25 @@ def local_cost_function(local_cost_fun, machine, *args):
     Returns:
         the value of log_psi with parameters `pars` for the batches *args
     """
-    # Legaccy support
-    if isinstance(machine, Jax):
-        return _local_cost_function(
-            local_cost_fun, machine.jax_forward, machine.parameters, *args
-        )
-    else:
-        return _local_cost_function(local_cost_fun, machine, *args)
+    return _local_cost_function(local_cost_fun, model, pars, *args)
 
 
 # Starting from the 4th argument, it's the same arguments as the cost function itself
 # dtype: dtype of pars
 # outdtype: dtype of logpsi(pars, *args)
-def __local_cost_and_grad_function(local_cost_fun, dtype, logpsi, pars, *args):
-    costfun_outdtype = _outdtype[local_cost_fun]
+def __local_cost_and_grad_function(local_cost_fun, logpsi, pars, *args):
     lcfun_u = _unjitted_fun[local_cost_fun]
 
-    if dtype is complex:
-        der_local_cost_fun = jax.value_and_grad(lcfun_u, argnums=1, holomorphic=True)
-
-        return der_local_cost_fun(logpsi, pars, *args)
-    else:
-        if costfun_outdtype is complex:
-            _costfun_re = lambda w: lcfun_u(logpsi, w, *args).real
-            _costfun_im = lambda w: lcfun_u(logpsi, w, *args).imag
-
-            # Pullbacks
-            cost_val_re, cost_vjp_re = jax.vjp(_costfun_re, pars)
-            cost_val_im, cost_vjp_im = jax.vjp(_costfun_im, pars)
-
-            cost_val = cost_val_re + 1.0j * cost_val_im
-
-            primal = jax.numpy.ones(cost_val.shape)
-
-            # Apply pullbacks to primals
-            cost_grad_re, tree_fun = jax.tree_flatten(cost_vjp_re(primal)[0])
-            cost_grad_im, _ = jax.tree_flatten(cost_vjp_im(primal)[0])
-
-            out_flat = [re + 1.0j * im for re, im in zip(cost_grad_re, cost_grad_im)]
-
-            grad_c = jax.tree_unflatten(tree_fun, out_flat)
-            return (cost_val, grad_c)
-        else:
-            der_local_cost_fun = jax.value_and_grad(lcfun_u, argnums=1)
-            return der_local_cost_fun(logpsi, pars, *args)
+    der_local_cost_fun = nkjax.value_and_grad(lcfun_u, argnums=1)
+    return der_local_cost_fun(logpsi, pars, *args)
 
 
 _local_cost_and_grad_function = jax.jit(
-    __local_cost_and_grad_function, static_argnums=(0, 1, 2, 3)
+    __local_cost_and_grad_function, static_argnums=(0, 1)
 )
 
 
-def local_cost_and_grad_function(local_cost_fun, machine, *args):
+def local_cost_and_grad_function(local_cost_fun, machine, parameters, *args):
     """
     local_cost_and_grad_function(local_cost_fun, machine, *args)
 
@@ -182,26 +151,20 @@ def local_cost_and_grad_function(local_cost_fun, machine, *args):
         the value of the local_cost_fun(machine, *args)
         the gradient of of `local_cost_fun(machine, *args)`
     """
-    return _local_cost_and_grad_function(
-        local_cost_fun, machine.jax_forward, machine.parameters, *args
-    )
+    return _local_cost_and_grad_function(local_cost_fun, machine, parameters, *args)
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
-def _local_costs_and_grads_function(local_cost_fun, dtype, logpsi, pars, *args):
+@partial(jax.jit, static_argnums=(0, 1))
+def _local_costs_and_grads_function(local_cost_fun, logpsi, pars, *args):
     local_costs_and_grads_fun = jax.vmap(
         __local_cost_and_grad_function,
-        in_axes=(
-            None,
-            None,
-        )
-        + _batch_axes[local_cost_fun],
+        in_axes=(None,) + _batch_axes[local_cost_fun],
         out_axes=(0, 0),
     )
-    return local_costs_and_grads_fun(local_cost_fun, dtype, logpsi, pars, *args)
+    return local_costs_and_grads_fun(local_cost_fun, logpsi, pars, *args)
 
 
-def local_costs_and_grads_function(local_cost_fun, machine, *args):
+def local_costs_and_grads_function(local_cost_fun, machine, parameters, *args):
     """
     local_costs_and_grads_function(local_cost_fun, machine, *args)
 
@@ -220,9 +183,8 @@ def local_costs_and_grads_function(local_cost_fun, machine, *args):
     """
     return _local_costs_and_grads_function(
         local_cost_fun,
-        machine._dtype,
-        machine.jax_forward,
-        machine.parameters,
+        machine,
+        parameters,
         *args,
     )
 
@@ -235,6 +197,6 @@ def local_value_cost(logpsi, pars, vp, mel, v):
 @partial(define_local_cost_function, static_argnums=0, batch_axes=(None, None, 0, 0, 0))
 def local_value_op_op_cost(logpsi, pars, σp, mel, σ):
 
-    σ_σp = jax.vmap(lambda σ, σp: jnp.hstack((σ, σp)), batch_axes=(None, 0))(σ, σp)
-    σ_σ = jnp.hstack(σ, σ)
-    return jax.numpy.sum(mel * jax.numpy.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
+    σ_σp = jax.vmap(lambda σ, σp: jnp.hstack((σ, σp)), in_axes=(None, 0))(σ, σp)
+    σ_σ = jnp.hstack((σ, σ))
+    return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
