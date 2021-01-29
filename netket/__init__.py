@@ -42,7 +42,7 @@ from . import (
     nn,
     stats,
     utils,
-    _vmc,
+    variational_states,
 )
 
 # Main applications
