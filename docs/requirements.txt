@@ -1,0 +1,4 @@
+sphynx
+sphinx_bootstrap_theme
+nbsphinx
+recommonmark

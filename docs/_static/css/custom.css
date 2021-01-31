@@ -1,0 +1,45 @@
+.bs-sidenav {
+	position: fixed;
+	max-height: 80%;
+	border-radius: 15px;
+	overflow-x: scroll;
+	overflow-y: scroll;
+	padding: 10 px;
+}
+
+.bs-sidenav li.current ul {
+  display: block;
+}
+.bs-sidenav li ul {
+  margin-bottom: 0;
+  display: none;
+}
+
+/*.current.nav.nav-list {
+	padding-left: 5px;
+}*/
+
+.reference.internal.nav-header::before {
+  content: "-"; /*"";*/
+  font-family: "FontAwesome";
+  display: inline-block;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  text-decoration: inherit;
+  position: relative;
+  left: -5px;
+  /*visibility: hidden;*/
+}
+
+.current.reference.internal.nav-header::before {
+  content: "+"; 
+  visibility: visible;
+}
+
+
+.sidenav-header {
+	text-align: center;
+	font-weight: bold;
+	border-bottom: 2px solid #000;
+}
