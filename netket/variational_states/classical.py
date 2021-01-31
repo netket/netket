@@ -145,7 +145,7 @@ class ClassicalVariationalState(VariationalState):
                 self._init_fun = init_fun
             elif variables is None:
                 raise ValueError(
-                    "If you don't provide parameters, you must pass a valid init_fun."
+                    "If you don't provide variables, you must pass a valid init_fun."
                 )
         else:
             raise ValueError(

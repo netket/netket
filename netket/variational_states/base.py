@@ -4,6 +4,7 @@ from functools import partial
 from typing import Any, Optional, Tuple
 
 import flax
+from flax.core.frozen_dict import FrozenDict
 
 from netket.operator import AbstractOperator, LocalLiouvillian
 from netket.hilbert import AbstractHilbert, DoubledHilbert
@@ -60,6 +61,9 @@ class VariationalState(abc.ABC):
 
     @variables.setter
     def variables(self, vars) -> PyTree:
+        if not isinstance(vars, FrozenDict):
+            vars = flax.core.freeze(vars)
+
         self.model_state, self.parameters = vars.pop("params")
 
     def reset(self):
