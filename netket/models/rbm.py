@@ -20,10 +20,11 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 
-from netket import nn as nknn
-
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
+
+from netket import nn as nknn
+from netket.nn.initializers import lecun_normal, variance_scaling, zeros
 
 
 PRNGKey = Any
@@ -37,9 +38,18 @@ class RBM(nn.Module):
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     use_bias: bool = True
+    use_visible: bool = True
+
+    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
 
     @nn.compact
     def __call__(self, x):
+        if self.use_visible:
+            v_bias = self.param(
+                "visible_bias", self.visible_bias_init, (x.shape[-1]), self.dtype
+            )
+            out_bias = jnp.dot(x, v_bias)
+
         x = nknn.Dense(
             name="Dense",
             features=self.alpha * x.shape[-1],
@@ -47,7 +57,7 @@ class RBM(nn.Module):
             use_bias=self.use_bias,
         )(x)
         x = self.activation(x)
-        return jnp.sum(x, axis=-1)
+        return jnp.sum(x, axis=-1) + out_bias
 
 
 class RBMModPhase(nn.Module):
