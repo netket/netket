@@ -16,20 +16,14 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: 3.8
-            use_jax: "YES"
-          - os: ubuntu-latest
-            python-version: 3.8
-            use_jax: "NO"
           - os: macos-latest
             python-version: 3.8
-            use_jax: "YES"
 
         #python-version: [3.6, 3.7, 3.8]
         #os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
-      USE_JAX: ${{ matrix.use_jax }}
 
     steps:
       - uses: actions/checkout@v2
@@ -53,17 +47,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-jax_${{ matrix.use_jax }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Pip install python dependencies
         run: |
-          echo "Jax variable is: ${{ matrix.use_jax }}"
-          if [ ! ${{ matrix.use_jax }} == "NO" ]; then
-            echo "Installing jax & co"
-            python -m pip install jax jaxlib mpi4jax flax
-          fi
+          pip install jaxlib
           pip install -e ".[dev,mpi]"
 
       - name: MPI tests
