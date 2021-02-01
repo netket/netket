@@ -108,7 +108,7 @@ html_theme_options = {
         ("Documentation", "docs/getting_started"),
         ("Tutorials", "tutorials/tutorials"),
         ("Citing NetKet", "website/citing"),
-        ("About", "about"),
+        ("About", "website/about"),
         (
             '<i class="fab fa-github" aria-hidden="true"></i>',
             "https://github.com/netket/netket",
