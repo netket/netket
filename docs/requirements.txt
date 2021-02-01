@@ -7,3 +7,4 @@ sphinxcontrib-jsmath>=1.0.1
 sphinxcontrib-napoleon>=0.7
 recommonmark>=0.7 
 nbsphinx>=0.8
+-e .
