@@ -41,6 +41,11 @@ except ImportError:
     node_number = 0
     rank = 0
 
+    class FakeMPI:
+        COMM_WORLD = None
+
+    MPI = FakeMPI()
+
 if mpi_available:
     _min_mpi4jax_version = "0.2.7"
     if not _LooseVersion(mpi4jax.__version__) >= _LooseVersion(_min_mpi4jax_version):
