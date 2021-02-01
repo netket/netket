@@ -13,13 +13,10 @@
 # limitations under the License.
 
 # enable x64 on jax
-try:
-    from jax.config import config
+from jax.config import config
 
-    config.update("jax_enable_x64", True)
-    del config
-except:
-    pass
+config.update("jax_enable_x64", True)
+del config
 
 __all__ = [
     "exact",
