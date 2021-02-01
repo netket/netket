@@ -1,5 +1,10 @@
-sphynx
-sphinx_bootstrap_theme
-nbsphinx
-recommonmark
-sphinx-autodoc-napoleon-typehints
+Sphinx>=3.4.3
+sphinx-autodoc-typehints>=1.11.1
+sphinx-bootstrap-theme>=0.7.1
+sphinx-markdown-parser>=0.2.4
+sphinxcontrib-fulltoc>=1.2.0
+sphinxcontrib-jsmath>=1.0.1
+sphinxcontrib-napoleon>=0.7
+recommonmark>=0.7 
+nbsphinx>=0.8
+sphinx_bootstrap_theme>=0.7
