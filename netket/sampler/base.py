@@ -42,26 +42,30 @@ class SamplerState:
     pass
 
 
+def autodoc(clz):
+    pass
+
+
 @struct.dataclass
 class Sampler(abc.ABC):
     """
-    Base class for all samplers, containing the fields that all of them should posses.
+    Abstract base class for all samplers.
+
+    It contains the fields that all of them should posses, defining the common
+    API.
     Note that fields marked with pytree_node=False are treated as static arguments
     when jitting.
-
-    hilbert: The hilbert space to sample
-    seed: The Initial state of the RNG.
-    n_chains: The number of batches of the states to sample
-    machine_pow: The power to which the machine should be exponentiated to generate the pdf.
-    dtype: The dtype of the statees sampled
     """
 
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """Hilbert space to be sampled."""
+
     n_chains: int = struct.field(pytree_node=False, default=16)
     """Number of batches along the chain"""
+
     machine_pow: int = struct.field(default=2)
     """Exponent of the pdf sampled"""
+
     dtype: type = struct.field(pytree_node=False, default=np.float32)
     """Dtype of the states returned."""
 
@@ -80,7 +84,12 @@ class Sampler(abc.ABC):
         #    raise ValueError("machine_pow must be a positivee integer")
 
     @property
-    def n_batches(self):
+    def n_batches(self) -> int:
+        """
+        The batch size of the configuration $\sigma$ used by this sampler.
+
+        In general, it is equivalent to :ref:`n_chains`.
+        """
         return self.n_chains
 
     def init_state(

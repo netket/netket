@@ -133,14 +133,15 @@ class MetropolisSamplerState(SamplerState):
     """Number of accepted transitions along the chains since the last reset."""
 
     def __repr__(self):
-        acceptance_rate = self.n_accepted / self.n_samples * 100
-        text = (
-            "MetropolisSamplerState("
-            + "# accepted = {}/{} ({}%), ".format(
+        if self.n_samples > 0:
+            acceptance_rate = self.n_accepted / self.n_samples * 100
+            acc_string = "# accepted = {}/{} ({}%), ".format(
                 self.n_accepted, self.n_samples, acceptance_rate
             )
-            + "rng state={}".format(self.rng)
-        )
+        else:
+            acc_string = ""
+
+        text = "MetropolisSamplerState(" + acc_string + "rng state={}".format(self.rng)
         return text
 
 

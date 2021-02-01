@@ -34,6 +34,16 @@ class ExactSamplerState(SamplerState):
 
 @struct.dataclass
 class ExactSampler(Sampler):
+    """
+    This sampler generates i.i.d. samples from $|\Psi(s)|^2$.
+
+    In order to perform exact sampling, $|\Psi(s)|^2$ is precomputed an all
+    the possible values of the quantum numbers $$s$$. This sampler has thus an
+    exponential cost with the number of degrees of freedom, and cannot be used
+    for large systems, where Metropolis-based sampling are instead a viable
+    option.
+    """
+
     def _init_state(sampler, machine, params, key):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=key)
