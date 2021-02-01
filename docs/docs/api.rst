@@ -17,6 +17,8 @@ Graph
    :toctree: _generated/graph
    :nosignatures:
 
+   netket.graph.AbstractGraph
+   netket.graph.NetworkX
    netket.graph.Edgeless
    netket.graph.Hypercube
    netket.graph.Lattice
@@ -90,10 +92,11 @@ Samplers
    :toctree: _generated/samplers
    :nosignatures:
 
+   netket.sampler.Sampler
    netket.sampler.ExactSampler
-   netket.sampler.Metropolis
+   netket.sampler.MetropolisSampler
    netket.sampler.MetropolisNumpy
-   netket.sampler.MetropolisPt
+   netket.sampler.MetropolisPtSampler
 
    netket.sampler.MetropolisLocal
    netket.sampler.MetropolisExchange
@@ -161,6 +164,17 @@ Activation functions
     swish
     logcosh
 
+
+Variational State Interface
+---------------------------
+
+.. autosummary::
+   :toctree: _generated/variational
+   :nosignatures:
+
+   netket.variational.VariationalState
+   netket.variational.VMCState
+   netket.variational.VMCMixedState
 
 
 Optim
