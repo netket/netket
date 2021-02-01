@@ -23,14 +23,16 @@ jobs:
       run: |
         pip install -e ".[dev]"
 
-    - name: Install Pandoc
+    - name: Install docs dependencies and Pandoc
       run: |
         sudo apt-get -y install pandoc
+        pip install -r docs/requirements.txt
 
-    - uses: ammaraskar/sphinx-action@master
-      with:
-        docs-folder: "docs/"
-
+    - name: Make docs
+      run: |
+        cd docs 
+        make html
+     
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v1
       with:
