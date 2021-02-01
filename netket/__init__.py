@@ -48,7 +48,7 @@ from . import (
     nn,
     stats,
     utils,
-    variational_states,
+    variational,
 )
 
 # Main applications
@@ -58,5 +58,8 @@ from .drivers import Vmc
 
 # deprecations
 optimizer = optim
+
+# to deprecate
+variational_states = variational
 
 from .version import __version__
