@@ -1,10 +1,10 @@
 .bs-sidenav {
-	position: fixed;
-	max-height: 80%;
-	border-radius: 15px;
-	overflow-x: scroll;
-	overflow-y: scroll;
-	padding: 10 px;
+  position: fixed;
+  max-height: 80%;
+  border-radius: 15px;
+  overflow-x: scroll;
+  overflow-y: scroll;
+  padding: 10 px;
 }
 
 .bs-sidenav li.current ul {
@@ -15,12 +15,15 @@
   display: none;
 }
 
+/*.affix-top {
+  width: 263px;
+}*/
 /*.current.nav.nav-list {
-	padding-left: 5px;
+  padding-left: 5px;
 }*/
 
-.reference.internal.nav-header::before {
-  content: "-"; /*"";*/
+/*.reference.internal.nav-header::before {
+  content: "";
   font-family: "FontAwesome";
   display: inline-block;
   font-style: normal;
@@ -29,17 +32,72 @@
   text-decoration: inherit;
   position: relative;
   left: -5px;
-  /*visibility: hidden;*/
 }
 
 .current.reference.internal.nav-header::before {
-  content: "+"; 
+  content: ""; 
   visibility: visible;
 }
 
+.toctree-l1 > .nav-header:hover {
+  color:red;
+}*/
 
 .sidenav-header {
-	text-align: center;
-	font-weight: bold;
-	border-bottom: 2px solid #000;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 2px solid #000;
+}
+
+.footer-wip {
+  background: #61707c;
+  border-radius: 30px;
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  right: 30px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-wip-content {
+  color: white;
+}
+
+.py.function {
+  border-style: groove;
+}
+
+.py.class,
+.py.function,
+.py.method {
+  border: 1px solid #dbdbdb;
+  box-shadow: 2px 2px 3px rgba(10, 10, 10, 0.1);
+  margin-bottom: 1em;
+}
+
+.py.class > dt,
+.py.function > dt,
+.py.method > dt {
+  background-color: whitesmoke;
+  border-bottom: 1px solid #dbdbdb;
+  padding: 0.75rem;
+  /*font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif; */
+}
+
+.sig-name.descname {
+  color: #2e63b8;
+}
+
+.py.class > dd,
+.py.function > dd,
+.py.method > dd {
+  padding: 1rem 1.25rem;
+}
+
+td {
+  overflow-wrap: break-word;
+  hyphens: none;
 }

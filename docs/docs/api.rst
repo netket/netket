@@ -20,6 +20,8 @@ Graph
    netket.graph.Edgeless
    netket.graph.Hypercube
    netket.graph.Lattice
+   netket.graph.Chain
+   netket.graph.Grid
 
 .. _hilbert-api:
 
@@ -54,7 +56,7 @@ Operators
 
 
 Pre-defined operators
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: _generated/hilbert
@@ -100,12 +102,74 @@ Samplers
    netket.sampler.MetropolisExchangePt
 
 
+Pre-built models
+----------------
+
+.. autosummary::
+   :toctree: _generated/models
+   :nosignatures:
+
+   netket.models.RBM
+   netket.models.RBMModPhase
+   netket.models.MPSPeriodic
+
+
+Model tools
+----------------
+
+This sub-module wraps and re-exports `flax.nn <https://flax.readthedocs.io/en/latest/flax.linen.html>`_.
+Read more about the design goal of this module in their `README <https://github.com/google/flax/blob/master/flax/linen/README.md>`_
+
+.. autosummary::
+   :toctree: _generated/nn
+   :nosignatures:
+
+   netket.nn.Module
+
+Linear Modules
+~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _generated/nn
+   :nosignatures:
+
+   netket.nn.Dense
+   netket.nn.DenseGeneral
+   netket.nn.Conv
+   netket.nn.Embed
+
+
+Activation functions
+~~~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: netket.nn
+
+.. autosummary::
+  :toctree: _generated/nn
+
+    celu
+    elu
+    gelu
+    glu
+    log_sigmoid
+    log_softmax
+    relu
+    sigmoid
+    soft_sign
+    softmax
+    softplus
+    swish
+    logcosh
+
+
 
 Optim
 ---------
 
+.. currentmodule:: netket
 
 This module provides the following functionalities
+
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:

@@ -1,5 +1,4 @@
 import sphinx_bootstrap_theme
-import sphinx_fontawesome
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +22,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
-    "sphinx_fontawesome",
+    "sphinx_autodoc_typehints",
     "nbsphinx",
     "recommonmark",
 ]
@@ -72,9 +71,16 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 html_static_path = ["_static"]
 
 # html_js_files = ["https://kit.fontawesome.com/7c145f31db.js"]
-html_css_files = ["jumbo-style.css", "css/all.min.css", "css/custom.css"]
+html_css_files = [
+    "jumbo-style.css",
+    "css/all.min.css",
+    "css/custom.css",
+    "css/rtd_theme.css",
+]
 
-# html_js_files = ['js/rtd_theme.js',]
+html_js_files = [
+    "js/rtd_theme.js",
+]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 # intersphinx_mapping = {'https://docs.python.org/': None}
@@ -98,10 +104,10 @@ html_theme_options = {
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
     "navbar_links": [
-        ("Get Started", "get_started"),
+        ("Get Started", "website/get_started"),
         ("Documentation", "docs/getting_started"),
-        ("Tutorials", "tutorials"),
-        ("Citing NetKet", "citing"),
+        ("Tutorials", "tutorials/tutorials"),
+        ("Citing NetKet", "website/citing"),
         ("About", "about"),
         (
             '<i class="fab fa-github" aria-hidden="true"></i>',
@@ -130,7 +136,7 @@ html_theme_options = {
     # will break.
     #
     # Values: "true" (default) or "false"
-    "globaltoc_includehidden": "true",
+    "globaltoc_includehidden": "false",
     # HTML navbar class (Default: "navbar") to attach to <div> element.
     # For black navbar, do "navbar navbar-inverse"
     "navbar_class": "navbar",

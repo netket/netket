@@ -17,7 +17,7 @@
 .. title:: NetKet
 
 .. raw:: html
-   :file: welcome_page.html
+   :file: website/welcome_page.html
 
 
 .. toctree::
@@ -27,5 +27,5 @@
    docs/getting_started
    docs/graphs
    docs/api
-   citing
    docs/requirements
+   website/citing

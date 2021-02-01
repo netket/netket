@@ -2,3 +2,4 @@ sphynx
 sphinx_bootstrap_theme
 nbsphinx
 recommonmark
+sphinx-autodoc-napoleon-typehints
