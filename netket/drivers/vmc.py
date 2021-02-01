@@ -11,7 +11,7 @@ from netket.stats import (
     sum_inplace as _sum_inplace,
 )
 
-from netket.variational_states import ClassicalVariationalState
+from netket.variational import MCState
 
 from .vmc_common import info, tree_map
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -52,7 +52,7 @@ class Vmc(AbstractVariationalDriver):
 
         """
         if variational_state is None:
-            variational_state = ClassicalVariationalState(*args, **kwargs)
+            variational_state = MCState(*args, **kwargs)
 
         super(Vmc, self).__init__(
             variational_state, optimizer, minimized_quantity_name="Energy"
