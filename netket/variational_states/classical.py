@@ -322,6 +322,7 @@ class ClassicalVariationalState(VariationalState):
         *,
         mutable=None,
         is_hermitian=None,
+        centered=True,
     ) -> Tuple[Stats, PyTree]:
         # should check if it is hermitian
         # if hermitian...
@@ -352,7 +353,7 @@ class ClassicalVariationalState(VariationalState):
         )
         Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
-        if is_hermitian:
+        if is_hermitian and centered:
             out = grad_expect_hermitian(
                 self._apply_fun,
                 self.parameters,
@@ -363,16 +364,28 @@ class ClassicalVariationalState(VariationalState):
                 self.n_samples,
             )
         else:
-            out = grad_expect_non_hermitian(
-                self._apply_fun,
-                self.parameters,
-                self.model_state,
-                σ,
-                mutable,
-                self.n_samples,
-                σp,
-                mels,
-            )
+            if centered:
+                out = grad_expect_non_hermitian(
+                    self._apply_fun,
+                    self.parameters,
+                    self.model_state,
+                    σ,
+                    mutable,
+                    self.n_samples,
+                    σp,
+                    mels,
+                )
+            else:
+                out = grad_expect_non_hermitian_non_centered(
+                    self._apply_fun,
+                    self.parameters,
+                    self.model_state,
+                    σ,
+                    mutable,
+                    self.n_samples,
+                    σp,
+                    mels,
+                )
 
         if mutable is False:
             Ō_grad, _ = out
@@ -489,3 +502,46 @@ def grad_expect_non_hermitian(
         Ō, new_model_state = Ō
 
     return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), new_model_state
+
+
+@partial(jax.jit, static_argnums=(0, 4))
+def grad_expect_non_hermitian_non_centered(
+    model_apply_fun,
+    parameters,
+    model_state,
+    σ,
+    mutable,
+    n_samples,
+    σp,
+    mels,
+) -> PyTree:
+    if jnp.ndim(σ) != 2:
+        σ_shape = σ.shape
+        σ = σ.reshape((-1, σ_shape[-1]))
+
+    has_aux = mutable is not False
+    if not has_aux:
+        out_axes = (0, 0)
+    else:
+        out_axes = (0, 0, 0)
+
+    if not has_aux:
+        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
+    else:
+        # TODO: output the mutable state
+        logpsi = lambda w, σ: model_apply_fun(
+            {"params": w, **model_state}, σ, mutable=mutable
+        )[0]
+
+    from netket.operator._der_local_values import (
+        _local_value_and_grad_notcentered_kernel,
+    )
+
+    # TODO Properely support has_aux
+    Ō, Ō_grad = jax.vmap(
+        _local_value_and_grad_notcentered_kernel(logpsi, pars, σp, mel, σ),
+        in_axes=(None, 0, 0, 0),
+        out_axes=(0, 0),
+    )
+
+    return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), model_state
