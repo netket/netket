@@ -23,6 +23,10 @@ jobs:
       run: |
         pip install -e ".[dev]"
 
+    - name: Install Pandoc
+      run: |
+        sudo apt-get -y install pandoc
+
     - uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
