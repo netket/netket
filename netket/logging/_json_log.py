@@ -7,7 +7,7 @@ from jax.tree_util import tree_map
 
 
 def _exists_json(prefix):
-    return _path.exists(prefix + ".log") or _path.exists(prefix + ".wf")
+    return _path.exists(prefix + ".log") or _path.exists(prefix + ".mpack")
 
 
 def _to_json(ob):
@@ -55,7 +55,7 @@ class JsonLog:
         starting_json_content = {"Output": []}
 
         if file_exists and mode == "append":
-            # if there is only the .wf file but not the json one, raise an error
+            # if there is only the .mpacck file but not the json one, raise an error
             if not _path.exists(output_prefix + ".log"):
                 raise ValueError(
                     "History file does not exists, but wavefunction file does. Please change `output_prefix or set mode=`write`."
@@ -102,9 +102,9 @@ class JsonLog:
             _json.dump(log_data, outfile)
             self._steps_notflushed_write = 0
 
-    def _flush_params(self, machine):
+    def _flush_params(self, variational_state):
         binary_data = serialization.to_bytes(variational_state.variables)
-        with open(self._prefix + ".mpack", "w") as outfile:
+        with open(self._prefix + ".mpack", "wb") as outfile:
             outfile.write(binary_data)
 
         self._steps_notflushed_pars = 0
