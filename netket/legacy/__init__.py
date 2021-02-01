@@ -3,7 +3,7 @@ from netket import (
     callbacks,
     graph,
     # hilbert,
-    logging,
+    # logging,
     operator,
     #    optim,
     #    random,
@@ -16,7 +16,17 @@ from netket import (
     #    _steadystate,
 )
 
-from . import hilbert, machine, sampler, optimizer, random, _vmc, _qsr, _steadystate
+from . import (
+    hilbert,
+    machine,
+    sampler,
+    optimizer,
+    random,
+    _vmc,
+    _qsr,
+    _steadystate,
+    logging,
+)
 
 from ._vmc import Vmc
 from ._qsr import Qsr
