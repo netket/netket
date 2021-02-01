@@ -237,7 +237,7 @@ class AbstractVariationalDriver(abc.ABC):
                     log_data[self._loss_name] = self._loss_stats
 
                 for logger in loggers:
-                    logger(self.step_count, log_data, self.machine)
+                    logger(self.step_count, log_data, self.state)
 
                 for callback in callbacks:
                     if not callback(step, log_data, self):
@@ -249,7 +249,7 @@ class AbstractVariationalDriver(abc.ABC):
         # flush at the end of the evolution so that final values are saved to
         # file
         for logger in loggers:
-            logger.flush(self.machine)
+            logger.flush(self.state)
 
     def estimate(self, observables):
         """
