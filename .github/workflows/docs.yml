@@ -48,6 +48,7 @@ jobs:
         mkdir -p gh-pages/${{ steps.vars.outputs.branch }}
         cp -r docs/_build/html/* gh-pages/${{ steps.vars.outputs.branch }}/
         cd gh-pages/${{ steps.vars.outputs.branch }}
+        touch ../.nojekyll
         touch .nojekyll
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
