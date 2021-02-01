@@ -1,6 +1,8 @@
 import json as _json
 from os import path as _path
 
+from flax import serialization
+
 from jax.tree_util import tree_map
 
 
@@ -101,10 +103,13 @@ class JsonLog:
             self._steps_notflushed_write = 0
 
     def _flush_params(self, machine):
-        machine.save(self._prefix + ".wf")
+        binary_data = serialization.to_bytes(variational_state.variables)
+        with open(self._prefix + ".mpack", "w") as outfile:
+            outfile.write(binary_data)
+
         self._steps_notflushed_pars = 0
 
-    def flush(self, machine=None):
+    def flush(self, variational_state):
         """
         Writes to file the content of this logger.
 
@@ -112,5 +117,5 @@ class JsonLog:
         """
         self._flush_log()
 
-        if machine is not None:
-            self._flush_params(machine)
+        if variational_state is not None:
+            self._flush_params(variational_state)
