@@ -9,14 +9,15 @@ DEV_DEPENDENCIES = [
     "pre-commit",
     "black==20.8b1",
 ]
-MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.7"]
+MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.9"]
 BASE_DEPENDENCIES = [
     "numpy>=1.16",
     "scipy>=1.5.2",
     "tqdm>=4.42.1",
     "numba>=0.49.0",
     "networkx>=2.4",
-    "jax>=0.2.7",
+    "jax>=0.2.9",
+    "flax>=0.3.0",
 ]
 
 setup(
