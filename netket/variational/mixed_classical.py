@@ -43,7 +43,7 @@ from netket.operator import (
 )
 
 from .base import VariationalState, VariationalMixedState
-from .classical import ClassicalVariationalState
+from .classical import MCState
 
 PyTree = Any
 PRNGKey = jnp.ndarray
@@ -61,7 +61,7 @@ def apply_diagonal(bare_afun, w, x, *args, **kwargs):
     return bare_afun(w, x, *args, **kwargs)
 
 
-class ClassicalVariationalMixedState(VariationalMixedState, ClassicalVariationalState):
+class MCMixedState(VariationalMixedState, MCState):
     def __init__(
         self,
         sampler,
@@ -106,7 +106,7 @@ class ClassicalVariationalMixedState(VariationalMixedState, ClassicalVariational
             if kw in kwargs:
                 kwargs.pop(kw)
 
-        self.diagonal = ClassicalVariationalState(
+        self.diagonal = MCState(
             sampler_diag,
             apply_fun=diagonal_apply_fun,
             n_samples=n_samples_diag,
@@ -156,15 +156,15 @@ class ClassicalVariationalMixedState(VariationalMixedState, ClassicalVariational
     def n_discard_diag(self, n_discard: Optional[int]):
         self.diagonal.n_discard_diag = n_discard
 
-    @ClassicalVariationalState.parameters.setter
+    @MCState.parameters.setter
     def parameters(self, pars: PyTree):
-        ClassicalVariationalState.parameters.fset(self, pars)
+        MCState.parameters.fset(self, pars)
         if self.diagonal is not None:
             self.diagonal.parameters = pars
 
-    @ClassicalVariationalState.model_state.setter
+    @MCState.model_state.setter
     def model_state(self, state: PyTree):
-        ClassicalVariationalState.model_state.fset(self, state)
+        MCState.model_state.fset(self, state)
         if self.diagonal is not None:
             self.diagonal.model_state = state
 
@@ -195,5 +195,5 @@ class ClassicalVariationalMixedState(VariationalMixedState, ClassicalVariational
         # that the first index is the batch index.
         return statistics(O_loc.T)
 
-    def expect_and_grad_operator(self, Ô: AbstractOperator) -> Stats:
+    def expect_and_grad_operator(self, Ô: AbstractOperator, center=True) -> Stats:
         raise NotImplementedError

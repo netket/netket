@@ -16,9 +16,15 @@ PyTree = Any
 class VariationalState(abc.ABC):
     """Abstract class for variational states representing either pure states
     or mixed quantum states.
+
     A variational state is a quantum state depending on a set of
     parameters, and that supports operations such
-    as computing quantum expectation values and their gradients."""
+    as computing quantum expectation values and their gradients.
+
+    A Variational stat can be serialized using flax's msgpack machinery.
+    See `their docs <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_.
+
+    """
 
     _hilbert: AbstractHilbert
     """The hilbert space on which this state is defined."""
@@ -34,13 +40,14 @@ class VariationalState(abc.ABC):
 
     @property
     def hilbert(self) -> AbstractHilbert:
-        r"""netket.hilbert.AbstractHilbert: The descriptor of the Hilbert space
+        r"""The descriptor of the Hilbert space
         on which this variational state is defined.
         """
         return self._hilbert
 
     @property
     def parameters(self) -> PyTree:
+        r"""The pytree of the parameters of the model."""
         return self._parameters
 
     @parameters.setter
@@ -48,7 +55,8 @@ class VariationalState(abc.ABC):
         self._parameters = pars
 
     @property
-    def model_state(self) -> PyTree:
+    def model_state(self) -> Optional[PyTree]:
+        r"""The optional pytree with the mutable state of the model."""
         return self._model_state
 
     @model_state.setter
@@ -57,6 +65,9 @@ class VariationalState(abc.ABC):
 
     @property
     def variables(self) -> PyTree:
+        r"""The PyTreee containing the paramters and state of the model,
+        used when evaluating it.
+        """
         return flax.core.freeze({"params": self.parameters, **self.model_state})
 
     @variables.setter
@@ -72,44 +83,54 @@ class VariationalState(abc.ABC):
     @abc.abstractmethod
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
-            In the case of a pure state Psi, this is <O>= <Psi|O|Psi>/<Psi|Psi>
-            otherwise for a mixed state Rho, this is <O> = Tr rho O / Tr rho.
+            In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
+            otherwise for a mixed state $\rho$, this is $<O> = \Tr[\rho \hat{O}/\Tr[\rho]$.
+
         Args:
             Ô (netket.operator.AbstractOperator): the operator O.
+
         Returns:
-            netket.stats.Stats: An estimation of the quantum expectation value <O>.
+            An estimation of the quantum expectation value <O>.
         """
         raise NotImplementedError
 
     def grad(self, Ô) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
+
         Args:
             op (netket.operator.AbstractOperator): the operator O.
+
         Returns:
             array: An estimation of the average gradient of the quantum expectation value <O>.
         """
         return self.expect_and_grad(Ô)[1]
 
-    # @abc.abstractmethod
     def expect_and_grad(
-        self, Ô: AbstractOperator, mutable=None
+        self,
+        Ô: AbstractOperator,
+        mutable=None,
+        centered=True,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+
         Args:
             Ô (netket.operator.AbstractOperator): the operator O
+
         Returns:
-            netket.stats.Stats: An estimation of the quantum expectation value <O>.
-            array: An estimation of the average gradient of the quantum expectation value <O>.
+            An estimation of the quantum expectation value <O>.
+            An estimation of the average gradient of the quantum expectation value <O>.
         """
         raise NotImplementedError
 
     # @abc.abstractmethod
     def quantum_geometric_tensor(self, sr):
         r"""Computes an estimate of the quantum geometric tensor G_ij.
+
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.
+
         Returns:
-            scipy.sparse.linalg.LinearOperator: A linear operator representing the quantum geometric tensor.
+           A linear operator representing the quantum geometric tensor.
         """
         raise NotImplementedError
 
@@ -136,12 +157,17 @@ class VariationalMixedState(VariationalState):
             super().grad_operator(Ô)
 
     def expect_and_grad(
-        self, Ô: AbstractOperator, mutable=None
+        self,
+        Ô: AbstractOperator,
+        mutable=None,
+        centered=True,
     ) -> Tuple[Stats, PyTree]:
         if isinstance(Ô, LocalLiouvillian):
-            super().grad(Ô)
+            return super().grad(Ô, mutable=mutable, centered=center)
         elif isinstance(Ô, AbstractOperator):
-            super().expect_and_grad_operator(Ô)
+            return super().expect_and_grad_operator(
+                Ô, mutable=mutable, centered=center
+            )
 
     @abc.abstractmethod
     def expect_operator(self, Ô: AbstractOperator) -> Stats:

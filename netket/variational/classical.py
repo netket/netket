@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Optional, Callable, Iterable, Union, Tuple, List
+from typing import Any, Optional, Callable, Iterable, Union, Tuple, List, Dict
 
 import numpy as np
 
@@ -46,6 +46,7 @@ from .base import VariationalState
 
 PyTree = Any
 PRNGKey = jnp.ndarray
+SEED = Union[int, PRNGKey]
 InitFunType = Callable[
     [nn.Module, Iterable[int], PRNGKey, np.dtype], Tuple[Optional[PyTree], PyTree]
 ]
@@ -64,9 +65,10 @@ def compute_chain_length(n_chains, n_samples):
     return chain_length
 
 
-class ClassicalVariationalState(VariationalState):
-    """Variational State for a Neural Quantum State.
-    It contains a
+class MCState(VariationalState):
+    """Variational State for a Variational Neural Quantum State.
+
+    The state is sampled according to the provided sampler.
     """
 
     # model: Any
@@ -92,7 +94,7 @@ class ClassicalVariationalState(VariationalState):
 
     def __init__(
         self,
-        sampler,
+        sampler: Sampler,
         model=None,
         *,
         n_samples: int = 1000,
@@ -101,23 +103,24 @@ class ClassicalVariationalState(VariationalState):
         init_fun: InitFunType = None,
         apply_fun: Callable = None,
         sample_fun: Callable = None,
-        seed=None,
-        sampler_seed=None,
-        mutable=False,
-        training_kwargs={},
+        seed: Optional[SEED] = None,
+        sampler_seed: Optional[SEED] = None,
+        mutable: bool = False,
+        training_kwargs: Dict = {},
     ):
         """
-        Constructs a ClassicalVariationalState.
+        Constructs the MCState.
 
         Arguments:
-            model: The model
             sampler: The sampler
+            model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
 
         Additional Arguments:
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
+            sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Dict specifing mutable arguments. Use it to specify if the model has a state that can change
                 during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
                 (default=False)
@@ -126,10 +129,8 @@ class ClassicalVariationalState(VariationalState):
                 a non-standard init method.
             apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defafults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
-            apply_train_fun: Function of the signature f(model, variables, σ, mutable) -> Tuple[out, state], used to
-                evaluate the network when training if mutable is not False. Defaults to `model.apply(variables, σ, trainable=trainable)`,
-                but if your network has non-standard mutable state such as BatchNorm, you might need to also pass
-                `train=True`.
+            training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
+                Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
         """
         super().__init__(sampler.hilbert)
 
@@ -175,8 +176,7 @@ class ClassicalVariationalState(VariationalState):
 
     def init(self, seed=None, dtype=jnp.float32):
         """
-        Initialises the variational parameters of the
-        variational state.
+        Initialises the variational parameters of the variational state.
         """
         if self._init_fun is None:
             raise RuntimeError(
@@ -192,11 +192,11 @@ class ClassicalVariationalState(VariationalState):
         self.variables = variables
 
     @property
-    def sampler(self):
+    def sampler(self) -> Sampler:
         return self._sampler
 
     @sampler.setter
-    def sampler(self, sampler):
+    def sampler(self, sampler: Sampler):
         if not isinstance(sampler, Sampler):
             raise TypeError(
                 "The sampler should be a subtype of netket.sampler.Sampler, but {} is not.".format(
@@ -211,11 +211,11 @@ class ClassicalVariationalState(VariationalState):
         self.reset()
 
     @property
-    def n_samples(self):
+    def n_samples(self) -> int:
         return self._n_samples
 
     @n_samples.setter
-    def n_samples(self, n_samples):
+    def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
         n_samples_per_node = chain_length * self.sampler.n_chains
@@ -228,6 +228,11 @@ class ClassicalVariationalState(VariationalState):
 
     @property
     def chain_length(self) -> int:
+        """
+        Length of the markov chain used for sampling configurations.
+
+        If running under MPI, the total samples will be n_nodes * chain_length * n_batches.
+        """
         return self._chain_length
 
     @chain_length.setter
@@ -237,6 +242,9 @@ class ClassicalVariationalState(VariationalState):
 
     @property
     def n_discard(self) -> int:
+        """
+        Number of discarded samples at the beginning of the markov chain.
+        """
         return self._n_discard
 
     @n_discard.setter
@@ -246,7 +254,7 @@ class ClassicalVariationalState(VariationalState):
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
             )
 
-        # don't discard if exactsampler
+        # don't discard if ExactSampler
         if isinstance(self.sampler, ExactSampler):
             if n_discard is not None and n_discard > 0:
                 warnings.warn(
@@ -259,15 +267,37 @@ class ClassicalVariationalState(VariationalState):
         )
 
     def reset(self):
+        """
+        Resets the sampled states. This method is called automatically every time
+        that the parameters/state is updated.
+        """
         self._samples = None
 
     def sample(
-        self, *, n_samples: Optional[int] = None, chain_length: Optional[int] = None
-    ):
+        self,
+        *,
+        chain_length: Optional[int] = None,
+        n_samples: Optional[int] = None,
+        n_discard: Optional[int] = None,
+    ) -> jnp.ndarray:
+        """
+        Sample a certain number of configurations.
+
+        If one among chain_leength or n_samples is defined, that number of samples
+        are gen erated. Otherwise the value set internally is used.
+
+        Args:
+            chain_length: The length of the markov chains.
+            n_samples: The total number of samples across all MPI ranks.
+            n_discard: Number of discarded samples at the beginning of the markov chain.
+        """
         if n_samples is None and chain_length is None:
             chain_length = self.chain_length
         elif chain_length is None:
             chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+
+        if n_discard is None:
+            n_discard = self.n_discard
 
         self.sampler_state = self.sampler.reset(
             self._apply_fun, self.variables, self.sampler_state
@@ -278,7 +308,7 @@ class ClassicalVariationalState(VariationalState):
                 self._apply_fun,
                 self.variables,
                 state=self.sampler_state,
-                chain_length=self.n_discard,
+                chain_length=n_discard,
             )
 
         self._samples, self.sampler_state = self.sampler.sample(
@@ -291,6 +321,15 @@ class ClassicalVariationalState(VariationalState):
 
     @property
     def samples(self) -> jnp.ndarray:
+        """
+        Returns the set of cached samples.
+
+        The samples returnede are guaranteed valid for the current state of
+        the variational state. If no cached parameters are available, then
+        they are sampled first and then cached.
+
+        To obtain a new set of samples either use :ref:`reset` or :ref:`sample`.
+        """
         if self._samples is None:
             self.sample()
         return self._samples
@@ -575,7 +614,7 @@ def deserialize_classical_variational_state(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    ClassicalVariationalState,
+    MCState,
     serialize_classical_variational_state,
     deserialize_classical_variational_state,
 )
