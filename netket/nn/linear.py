@@ -46,6 +46,7 @@ def _normalize_axes(axes, ndim):
 
 class DenseGeneral(Module):
     """A linear transformation with flexible axes.
+
     Attributes:
       features: int or tuple with number of output features.
       axis: int or tuple with axes to apply the transformation on. For instance,
@@ -93,6 +94,7 @@ class DenseGeneral(Module):
     @compact
     def __call__(self, inputs: Array) -> Array:
         """Applies a linear transformation to the inputs along multiple dimensions.
+
         Args:
           inputs: The nd-array to be transformed.
         Returns:
@@ -169,6 +171,7 @@ class DenseGeneral(Module):
 
 class Dense(Module):
     """A linear transformation applied over the last dimension of the input.
+
     Attributes:
       features: the number of output features.
       use_bias: whether to add a bias to the output (default: True).
@@ -223,6 +226,7 @@ class Dense(Module):
 
 class Conv(Module):
     """Convolution Module wrapping lax.conv_general_dilated.
+
     Attributes:
       features: number of convolution filters.
       kernel_size: shape of the convolutional kernel. For 1D convolution,
@@ -329,6 +333,7 @@ class Conv(Module):
 
 class ConvTranspose(Module):
     """Convolution Module wrapping lax.conv_general_dilated.
+
     Attributes:
       features: number of convolution filters.
       kernel_size: shape of the convolutional kernel. For 1D convolution,
