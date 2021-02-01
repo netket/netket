@@ -1,4 +1,4 @@
-name: "Pull Request Docs"
+name: "PR Documentation Preview"
 on: 
 - pull_request
 
@@ -21,7 +21,7 @@ jobs:
 
     - name: Pip install python dependencies
       run: |
-        pip install -e ".[dev,mpi]"
+        pip install -e ".[dev]"
 
     - uses: ammaraskar/sphinx-action@master
       with:
