@@ -23,6 +23,10 @@ class JsonLog:
     Creates a Json Logger sink object, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the outpit data of the simulation.
 
+    If the model state is serialized, then it is serialized using the msgpack protocol of flax.
+    For more information on how to de-serialize the output, see
+    `here <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_
+
     Args:
         output_prefix: the name of the output files before the extension
         save_params_every: every how many iterations should machine parameters be flushed to file
