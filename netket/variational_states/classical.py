@@ -25,6 +25,7 @@ from jax.util import as_hashable_function
 
 import flax
 from flax import linen as nn
+from flax import serialization
 
 import netket
 from netket import jax as nkjax
@@ -545,3 +546,36 @@ def grad_expect_non_hermitian_non_centered(
     )
 
     return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), model_state
+
+
+# serialization
+
+
+def serialize_classical_variational_state(vstate):
+    state_dict = {
+        "variables": vstate.variables,
+        "sampler_state": vstate.sampler_state,
+        "n_samples": vstate.n_samples,
+        "n_discard": vstate.n_discard,
+    }
+    return state_dict
+
+
+def deserialize_classical_variational_state(vstate, state_dict):
+    import copy
+
+    new_vstate = copy.copy(vstate)
+
+    new_vstate.variables = state_dict["variables"]
+    new_vstate.sampler_state = state_dict["sampler_state"]
+    new_vstate.n_samples = state_dict["n_samples"]
+    new_vstate.n_discard = state_dict["n_discard"]
+
+    return new_vstate
+
+
+serialization.register_serialization_state(
+    ClassicalVariationalState,
+    serialize_classical_variational_state,
+    deserialize_classical_variational_state,
+)
