@@ -42,7 +42,8 @@ from flax.linen import compact
 
 
 def to_array(hilbert, machine, params, normalize=True):
-    import numpy as _np
+    import numpy as np
+    from jax import numpy as jnp
     from netket.utils import get_afun_if_module
 
     machine = get_afun_if_module(machine)
@@ -51,12 +52,36 @@ def to_array(hilbert, machine, params, normalize=True):
         xs = hilbert.all_states()
         psi = machine(params, xs)
         logmax = psi.real.max()
-        psi = _np.exp(psi - logmax)
+        psi = jnp.exp(psi - logmax)
 
         if normalize:
-            norm = _np.linalg.norm(psi)
+            norm = jnp.linalg.norm(psi)
             psi /= norm
 
         return psi
+    else:
+        raise RuntimeError("The hilbert space is not indexable")
+
+
+def to_matrix(hilbert, machine, params, normalize=True):
+    import numpy as np
+    from jax import numpy as jnp
+    from netket.utils import get_afun_if_module
+
+    machine = get_afun_if_module(machine)
+
+    if hilbert.is_indexable:
+        xs = hilbert.all_states()
+        psi = machine(params, xs)
+        logmax = psi.real.max()
+        psi = jnp.exp(psi - logmax)
+
+        L = hilbert.physical.n_states
+        rho = psi.reshape((L, L))
+        if normalize:
+            trace = jnp.trace(rho)
+            rho /= trace
+
+        return rho
     else:
         raise RuntimeError("The hilbert space is not indexable")
