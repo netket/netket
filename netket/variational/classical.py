@@ -137,9 +137,16 @@ class MCState(VariationalState):
         # Init type 1: pass in a model
         if model is not None:
             # exetract init and apply functions
-            self._init_fun = model.init
+            # Wrap it in an HashablePartial because if two instances of the same model are provided,
+            # model.apply and model2.apply will be different methods forcing recompilation, but
+            # model and model2 will have the same hash.
+            self._init_fun = nkjax.HashablePartial(
+                lambda model, *args, **kwargs: model.init(*args, **kwargs), model
+            )
+            self._apply_fun = nkjax.HashablePartial(
+                lambda model, *args, **kwargs: model.apply(*args, **kwargs), model
+            )
 
-            self._apply_fun = model.apply
         elif apply_fun is not None:
             self._apply_fun = apply_fun
 
