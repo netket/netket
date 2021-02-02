@@ -162,11 +162,11 @@ def Graph(nodes=[], edges=[]):
 
 def Edgeless(nodes):
     """
-    Edgeless(nodes)
-
     Construct a set graph (collection of unconnected vertices).
+
     Args:
-        nodes: An integer number of nodes or a list of ints that index nodes of a graph
+        nodes: An integer number of nodes or a list of ints that index nodes of a graph.
+
     Example:
         >>> import netket
         >>> g=netket.graph.Edgeless([0,1,2,3])
@@ -192,6 +192,9 @@ def DoubledGraph(graph):
 
     Constructs a DoubledGraph representing the doubled hilbert space of a density operator.
     The resulting graph is composed of two disjoint sub-graphs identical to the input.
+
+    Args:
+        graph: The graph to double
     """
 
     dedges = list(graph.edges())
