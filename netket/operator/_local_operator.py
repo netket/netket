@@ -1,8 +1,9 @@
-from ._abstract_operator import AbstractOperator
-
-import numpy as _np
-from numba import jit
 import numbers
+
+import numpy as np
+from numba import jit
+
+from ._abstract_operator import AbstractOperator
 
 
 @jit(nopython=True)
@@ -23,7 +24,7 @@ def _number_to_state(number, local_states, out):
 
 
 def is_hermitian(a, rtol=1e-05, atol=1e-08):
-    return _np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
+    return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
 class LocalOperator(AbstractOperator):
@@ -53,12 +54,12 @@ class LocalOperator(AbstractOperator):
            >>> print(len(empty_hat.acting_on))
            0
         """
+        super().__init__(hilbert)
         self._constant = constant
 
-        self._hilbert = hilbert
-        self._local_states = _np.asarray(hilbert.local_states)
+        self._local_states = np.asarray(hilbert.local_states)
 
-        if _np.all(_np.diff(hilbert.local_states) < 0):
+        if np.all(np.diff(hilbert.local_states) < 0):
             raise RuntimeError(
                 "LocalOperator requires local states in the hilbert object to be sorted."
             )
@@ -78,16 +79,9 @@ class LocalOperator(AbstractOperator):
             if len(act) > 0:
                 self._add_operator(op, act)
 
-        super().__init__()
-
     @property
     def operators(self):
         return self._operators_list()
-
-    @property
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        return self._hilbert
 
     @property
     def size(self):
@@ -128,8 +122,8 @@ class LocalOperator(AbstractOperator):
     def __iadd__(self, other):
         if isinstance(other, LocalOperator):
             assert other.mel_cutoff == self.mel_cutoff
-            assert _np.all(other._local_states == self._local_states)
-            assert other._hilbert.size == self._hilbert.size
+            assert np.all(other._local_states == self._local_states)
+            assert other._hilbert.size == self.hilbert.size
 
             for i in range(other._n_operators):
                 acting_on = other._acting_on[i, : other._acting_size[i]]
@@ -150,18 +144,18 @@ class LocalOperator(AbstractOperator):
     def __add__(self, other):
         if isinstance(other, LocalOperator):
             assert other.mel_cutoff == self.mel_cutoff
-            assert _np.all(other._local_states == self._local_states)
-            assert other._hilbert.size == self._hilbert.size
+            assert np.all(other._local_states == self._local_states)
+            assert other._hilbert.size == self.hilbert.size
 
             return LocalOperator(
-                self._hilbert,
+                self.hilbert,
                 self._operators_list() + other._operators_list(),
                 acting_on=self._acting_on_list() + other._acting_on_list(),
                 constant=self._constant + other._constant,
             )
         elif isinstance(other, numbers.Number):
             return LocalOperator(
-                self._hilbert,
+                self.hilbert,
                 self._operators_list(),
                 acting_on=self._acting_on_list(),
                 constant=self._constant + other,
@@ -200,16 +194,16 @@ class LocalOperator(AbstractOperator):
             tot_operators += ops
             tot_act += act
 
-        prod = LocalOperator(self._hilbert, tot_operators, tot_act)
+        prod = LocalOperator(self.hilbert, tot_operators, tot_act)
         self_constant = self._constant
-        if _np.abs(other._constant) > self.mel_cutoff:
+        if np.abs(other._constant) > self.mel_cutoff:
             self._constant = 0.0
             self *= other._constant
             self += prod
         else:
             self = prod
 
-        if _np.abs(self_constant) > self.mel_cutoff:
+        if np.abs(self_constant) > self.mel_cutoff:
             self += other * self_constant
 
         return self
@@ -220,10 +214,10 @@ class LocalOperator(AbstractOperator):
         elif not isinstance(other, numbers.Number):
             raise TypeError("`other` must be another NetKet operator or a scalar.")
 
-        new_ops = [_np.copy(op * other) for op in self._operators]
+        new_ops = [np.copy(op * other) for op in self._operators]
 
         return LocalOperator(
-            hilbert=self._hilbert,
+            hilbert=self.hilbert,
             operators=new_ops,
             acting_on=self._acting_on_list(),
             constant=self._constant * other,
@@ -243,11 +237,11 @@ class LocalOperator(AbstractOperator):
             tot_operators += ops
             tot_act += act
 
-        prod = LocalOperator(self._hilbert, tot_operators, tot_act)
+        prod = LocalOperator(self.hilbert, tot_operators, tot_act)
 
-        if _np.abs(other._constant) > self.mel_cutoff:
+        if np.abs(other._constant) > self.mel_cutoff:
             result = LocalOperator(
-                hilbert=self._hilbert,
+                hilbert=self.hilbert,
                 operators=self._operators_list(),
                 acting_on=self._acting_on_list(),
                 constant=0,
@@ -257,7 +251,7 @@ class LocalOperator(AbstractOperator):
         else:
             result = prod
 
-        if _np.abs(self._constant) > self.mel_cutoff:
+        if np.abs(self._constant) > self.mel_cutoff:
             result += other * self.constant
 
         return result
@@ -281,40 +275,40 @@ class LocalOperator(AbstractOperator):
         self._max_acting_size = 0
         self._size = 0
 
-        self._acting_on = _np.zeros((0, 0), dtype=_np.intp)
-        self._acting_size = _np.zeros(0, dtype=_np.intp)
-        self._diag_mels = _np.zeros((0, 0), dtype=_np.complex128)
-        self._mels = _np.empty((0, 0, 0), dtype=_np.complex128)
-        self._x_prime = _np.empty((0, 0, 0, 0))
-        self._n_conns = _np.empty((0, 0), dtype=_np.intp)
+        self._acting_on = np.zeros((0, 0), dtype=np.intp)
+        self._acting_size = np.zeros(0, dtype=np.intp)
+        self._diag_mels = np.zeros((0, 0), dtype=np.complex128)
+        self._mels = np.empty((0, 0, 0), dtype=np.complex128)
+        self._x_prime = np.empty((0, 0, 0, 0))
+        self._n_conns = np.empty((0, 0), dtype=np.intp)
 
-        self._basis = _np.zeros(0, dtype=_np.int64)
+        self._basis = np.zeros(0, dtype=np.int64)
         self._is_hermitian = True
 
     def _acting_on_list(self):
         acting_on = []
         for i in range(self._n_operators):
-            acting_on.append(_np.copy(self._acting_on[i, : self._acting_size[i]]))
+            acting_on.append(np.copy(self._acting_on[i, : self._acting_size[i]]))
 
         return acting_on
 
     def _operators_list(self):
         "A deep copy of the operators"
-        operators = [_np.copy(op) for op in self._operators]
+        operators = [np.copy(op) for op in self._operators]
         return operators
 
     def _add_operator(self, operator, acting_on):
-        acting_on = _np.asarray(acting_on, dtype=_np.intp)
+        acting_on = np.asarray(acting_on, dtype=np.intp)
 
-        if _np.unique(acting_on).size != acting_on.size:
+        if np.unique(acting_on).size != acting_on.size:
             raise RuntimeError("acting_on contains repeated entries.")
 
-        operator = _np.asarray(operator, dtype=_np.complex128)
+        operator = np.asarray(operator, dtype=np.complex128)
 
         # find overlapping support
         support_i = None
         for (i, support) in enumerate(self._acting_on_list()):
-            if _np.all(acting_on == support):
+            if np.all(acting_on == support):
                 support_i = i
                 break
 
@@ -346,7 +340,7 @@ class LocalOperator(AbstractOperator):
         self._n_operators += 1
         self._operators.append(operator)
 
-        self._acting_size = _np.resize(self._acting_size, self._n_operators)
+        self._acting_size = np.resize(self._acting_size, self._n_operators)
         n_local_states = self.hilbert.local_size
 
         max_op_size = 0
@@ -370,21 +364,21 @@ class LocalOperator(AbstractOperator):
             old_n_op = self._acting_on.shape[0]
 
             old_array = self._acting_on
-            self._acting_on = _np.resize(old_array, (old_n_op, self._max_acting_size))
+            self._acting_on = np.resize(old_array, (old_n_op, self._max_acting_size))
             self._acting_on[:, : old_array.shape[1]] = old_array
 
             old_array = self._diag_mels
-            self._diag_mels = _np.resize(old_array, (old_n_op, self._max_op_size))
+            self._diag_mels = np.resize(old_array, (old_n_op, self._max_op_size))
             self._diag_mels[:, : old_array.shape[1]] = old_array
 
             old_array = self._mels
-            self._mels = _np.resize(
+            self._mels = np.resize(
                 old_array, (old_n_op, self._max_op_size, self._max_op_size)
             )
             self._mels[:, : old_array.shape[1], : old_array.shape[2]] = old_array
 
             old_array = self._x_prime
-            self._x_prime = _np.resize(
+            self._x_prime = np.resize(
                 old_array,
                 (old_n_op, self._max_op_size, self._max_op_size, self._max_acting_size),
             )
@@ -393,16 +387,16 @@ class LocalOperator(AbstractOperator):
             ] = old_array
 
             old_array = self._n_conns
-            self._n_conns = _np.resize(old_array, (old_n_op, self._max_op_size))
+            self._n_conns = np.resize(old_array, (old_n_op, self._max_op_size))
             self._n_conns[:, : old_array.shape[1]] = old_array
 
         old_array = self._acting_on
-        self._acting_on = _np.resize(
+        self._acting_on = np.resize(
             old_array, (self._n_operators, self._max_acting_size)
         )
         self._acting_on[: old_array.shape[0], : old_array.shape[1]] = old_array
 
-        self._acting_on[-1].fill(_np.nan)
+        self._acting_on[-1].fill(np.nan)
 
         acting_size = acting_on.size
         self._acting_on[-1, :acting_size] = acting_on
@@ -413,7 +407,7 @@ class LocalOperator(AbstractOperator):
             raise InvalidInputError("Operator acts on an invalid set of sites")
 
         if self._basis.size != self._max_acting_size:
-            self._basis = _np.zeros(self._max_acting_size, dtype=_np.int64)
+            self._basis = np.zeros(self._max_acting_size, dtype=np.int64)
 
             ba = 1
             for s in range(self._max_acting_size):
@@ -427,12 +421,12 @@ class LocalOperator(AbstractOperator):
         max_op_size = self._max_op_size
         max_acting_size = self._max_acting_size
 
-        self._diag_mels = _np.resize(self._diag_mels, (n_operators, max_op_size))
-        self._mels = _np.resize(self._mels, (n_operators, max_op_size, max_op_size))
-        self._x_prime = _np.resize(
+        self._diag_mels = np.resize(self._diag_mels, (n_operators, max_op_size))
+        self._mels = np.resize(self._mels, (n_operators, max_op_size, max_op_size))
+        self._x_prime = np.resize(
             self._x_prime, (n_operators, max_op_size, max_op_size, max_acting_size)
         )
-        self._n_conns = _np.resize(self._n_conns, (n_operators, max_op_size))
+        self._n_conns = np.resize(self._n_conns, (n_operators, max_op_size))
 
         self._append_matrix(
             operator,
@@ -462,7 +456,7 @@ class LocalOperator(AbstractOperator):
             diag_mels[i] = operator[i, i]
             n_conns[i] = 0
             for j in range(op_size):
-                if i != j and _np.abs(operator[i, j]) > epsilon:
+                if i != j and np.abs(operator[i, j]) > epsilon:
                     k_conn = n_conns[i]
                     mels[i, k_conn] = operator[i, j]
                     _number_to_state(j, local_states, x_prime[i, k_conn, :acting_size])
@@ -471,20 +465,20 @@ class LocalOperator(AbstractOperator):
     def _multiply_operator(self, op, act):
         operators = []
         acting_on = []
-        act = _np.asarray(act)
+        act = np.asarray(act)
 
         for i in range(self._n_operators):
             act_i = self._acting_on[i, : self._acting_size[i]]
 
-            inters = _np.intersect1d(act_i, act, return_indices=False)
+            inters = np.intersect1d(act_i, act, return_indices=False)
 
-            if act.size == act_i.size and _np.array_equal(act, act_i):
+            if act.size == act_i.size and np.array_equal(act, act_i):
                 # non-interesecting with same support
-                operators.append(_np.copy(_np.matmul(self._operators[i], op)))
+                operators.append(np.copy(np.matmul(self._operators[i], op)))
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                operators.append(_np.copy(_np.kron(self._operators[i], op)))
+                operators.append(np.copy(np.kron(self._operators[i], op)))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 # partially intersecting support
@@ -497,8 +491,8 @@ class LocalOperator(AbstractOperator):
     def copy(self):
         """Returns a copy of the operator."""
         return LocalOperator(
-            hilbert=self._hilbert,
-            operators=[_np.copy(op) for op in self._operators],
+            hilbert=self.hilbert,
+            operators=[np.copy(op) for op in self._operators],
             acting_on=self._acting_on_list(),
             constant=self._constant,
         )
@@ -506,25 +500,36 @@ class LocalOperator(AbstractOperator):
     def transpose(self):
         r"""LocalOperator: Returns the tranpose of this operator."""
 
-        new_ops = [_np.copy(ops.transpose()) for ops in self._operators]
+        new_ops = [np.copy(ops.transpose()) for ops in self._operators]
 
         return LocalOperator(
-            hilbert=self._hilbert,
+            hilbert=self.hilbert,
             operators=new_ops,
             acting_on=self._acting_on_list(),
             constant=self._constant,
         )
 
+    @property
+    def T(self):
+        return self.transpose()
+
     def conjugate(self):
         r"""LocalOperator: Returns the complex conjugate of this operator."""
-        new_ops = [_np.copy(ops.conjugate()) for ops in self._operators]
+        new_ops = [np.copy(ops.conjugate()) for ops in self._operators]
 
         return LocalOperator(
-            hilbert=self._hilbert,
+            hilbert=self.hilbert,
             operators=new_ops,
             acting_on=self._acting_on_list(),
-            constant=_np.conjugate(self._constant),
+            constant=np.conjugate(self._constant),
         )
+
+    def conj(self):
+        return self.conjugate()
+
+    @property
+    def H(self):
+        return self.transpose().conjugate()
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
@@ -546,7 +551,7 @@ class LocalOperator(AbstractOperator):
 
         return self._get_conn_flattened_kernel(
             x.reshape((1, -1)),
-            _np.ones(1),
+            np.ones(1),
             self._local_states,
             self._basis,
             self._constant,
@@ -618,7 +623,7 @@ class LocalOperator(AbstractOperator):
         assert sections.shape[0] == batch_size
 
         n_operators = n_conns.shape[0]
-        xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
+        xs_n = np.empty((batch_size, n_operators), dtype=np.intp)
 
         tot_conn = 0
         max_conn = 0
@@ -636,7 +641,7 @@ class LocalOperator(AbstractOperator):
                 x_i = x_b[acting_on[i, :acting_size_i]]
                 for k in range(acting_size_i):
                     xs_n[b, i] += (
-                        _np.searchsorted(local_states, x_i[acting_size_i - k - 1])
+                        np.searchsorted(local_states, x_i[acting_size_i - k - 1])
                         * basis[k]
                     )
 
@@ -651,15 +656,15 @@ class LocalOperator(AbstractOperator):
         if pad:
             tot_conn = batch_size * max_conn
 
-        x_prime = _np.empty((tot_conn, n_sites))
-        mels = _np.empty(tot_conn, dtype=_np.complex128)
+        x_prime = np.empty((tot_conn, n_sites))
+        mels = np.empty(tot_conn, dtype=np.complex128)
 
         c = 0
         for b in range(batch_size):
             c_diag = c
             mels[c_diag] = constant
             x_batch = x[b]
-            x_prime[c_diag] = _np.copy(x_batch)
+            x_prime[c_diag] = np.copy(x_batch)
             c += 1
             for i in range(n_operators):
 
@@ -673,7 +678,7 @@ class LocalOperator(AbstractOperator):
 
                     for cc in range(n_conn_i):
                         mels[c + cc] = all_mels[i, xs_n[b, i], cc]
-                        x_prime[c + cc] = _np.copy(x_batch)
+                        x_prime[c + cc] = np.copy(x_batch)
 
                         for k in range(acting_size_i):
                             x_prime[c + cc, sites[k]] = all_x_prime[
@@ -684,7 +689,7 @@ class LocalOperator(AbstractOperator):
             if pad:
                 delta_conn = max_conn - (c - c_diag)
                 mels[c : c + delta_conn].fill(0.0j)
-                x_prime[c : c + delta_conn, :] = _np.copy(x_batch)
+                x_prime[c : c + delta_conn, :] = np.copy(x_batch)
                 c += delta_conn
                 sections[b] = c
 
@@ -752,7 +757,7 @@ class LocalOperator(AbstractOperator):
         assert filters.shape[0] == batch_size and sections.shape[0] == batch_size
 
         n_operators = n_conns.shape[0]
-        xs_n = _np.empty((batch_size, n_operators), dtype=_np.intp)
+        xs_n = np.empty((batch_size, n_operators), dtype=np.intp)
 
         tot_conn = 0
 
@@ -771,22 +776,21 @@ class LocalOperator(AbstractOperator):
             x_i = x_b[acting_on[i, :acting_size_i]]
             for k in range(acting_size_i):
                 xs_n[b, i] += (
-                    _np.searchsorted(local_states, x_i[acting_size_i - k - 1])
-                    * basis[k]
+                    np.searchsorted(local_states, x_i[acting_size_i - k - 1]) * basis[k]
                 )
 
             tot_conn += n_conns[i, xs_n[b, i]]
             sections[b] = tot_conn
 
-        x_prime = _np.empty((tot_conn, n_sites))
-        mels = _np.empty(tot_conn, dtype=_np.complex128)
+        x_prime = np.empty((tot_conn, n_sites))
+        mels = np.empty(tot_conn, dtype=np.complex128)
 
         c = 0
         for b in range(batch_size):
             c_diag = c
             mels[c_diag] = constant
             x_batch = x[b]
-            x_prime[c_diag] = _np.copy(x_batch)
+            x_prime[c_diag] = np.copy(x_batch)
             c += 1
 
             i = filters[b]
@@ -800,7 +804,7 @@ class LocalOperator(AbstractOperator):
 
                 for cc in range(n_conn_i):
                     mels[c + cc] = all_mels[i, xs_n[b, i], cc]
-                    x_prime[c + cc] = _np.copy(x_batch)
+                    x_prime[c + cc] = np.copy(x_batch)
 
                     for k in range(acting_size_i):
                         x_prime[c + cc, sites[k]] = all_x_prime[i, xs_n[b, i], cc, k]

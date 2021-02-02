@@ -1,20 +1,13 @@
-import numpy as _np
+import numpy as np
 from numba import jit
 
-from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
+import jax as _jax
 
 from netket.utils import jax_available
+from netket.legacy.machine import Jax as _Jax
 
-if jax_available:
-    import jax as _jax
-    from netket.legacy.machine import Jax as _Jax
-    from ._der_local_values_jax import der_local_values_jax
-else:
-
-    class MockJaxMachine:
-        pass
-
-    _Jax = MockJaxMachine
+from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
+from ._der_local_values_jax import der_local_values_jax
 
 
 @jit(nopython=True)
@@ -24,8 +17,8 @@ def _der_local_values_kernel(
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            _np.expand_dims(
-                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            np.expand_dims(
+                mels[low_range:s] * np.exp(log_val_p[low_range:s] - log_vals[i]), 1
             )
             * (der_log_p[low_range:s, :] - der_log[i, :])
         ).sum(axis=0)
@@ -33,7 +26,7 @@ def _der_local_values_kernel(
 
 
 def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out, batch_size=64):
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    sections = np.empty(v.shape[0], dtype=np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
@@ -41,7 +34,7 @@ def _der_local_values_impl(op, machine, v, log_vals, der_log_vals, out, batch_si
     # Compute the der_log in small batches and not in one go.
     # For C++ machines there is a 100% slowdown when the batch is too big.
     n_primes = len(log_val_primes)
-    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+    der_log_primes = np.empty((n_primes, machine.n_par), dtype=np.complex128)
 
     for s in range(0, n_primes, batch_size):
         end = min(s + batch_size, n_primes)
@@ -59,8 +52,8 @@ def _der_local_values_notcentered_kernel(
     low_range = 0
     for i, s in enumerate(sections):
         out[i, :] = (
-            _np.expand_dims(
-                mels[low_range:s] * _np.exp(log_val_p[low_range:s] - log_vals[i]), 1
+            np.expand_dims(
+                mels[low_range:s] * np.exp(log_val_p[low_range:s] - log_vals[i]), 1
             )
             * der_log_p[low_range:s, :]
         ).sum(axis=0)
@@ -68,7 +61,7 @@ def _der_local_values_notcentered_kernel(
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals, out, batch_size=64):
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
+    sections = np.empty(v.shape[0], dtype=np.int32)
     v_primes, mels = op.get_conn_flattened(v, sections)
 
     log_val_primes = machine.log_val(v_primes)
@@ -76,7 +69,7 @@ def _der_local_values_notcentered_impl(op, machine, v, log_vals, out, batch_size
     # Compute the der_log in small batches and not in one go.
     # For C++ machines there is a 100% slowdown when the batch is too big.
     n_primes = len(log_val_primes)
-    der_log_primes = _np.empty((n_primes, machine.n_par), dtype=_np.complex128)
+    der_log_primes = np.empty((n_primes, machine.n_par), dtype=np.complex128)
 
     for s in range(0, n_primes, batch_size):
         end = min(s + batch_size, n_primes)
@@ -147,7 +140,7 @@ def der_local_values(
     ), "samples has wrong shape: {}; expected (?, {})".format(v.shape, op.hilbert.size)
 
     if out is None:
-        out = _np.empty((v.shape[0], machine.n_par), dtype=_np.complex128)
+        out = np.empty((v.shape[0], machine.n_par), dtype=np.complex128)
 
     if log_vals is None:
         log_vals = machine.log_val(v)

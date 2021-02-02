@@ -1,9 +1,11 @@
-from ._abstract_operator import AbstractOperator
-from ..hilbert import Boson
-
-import math as _m
-import numpy as _np
+import math
+import numpy as np
 from numba import jit
+
+from netket.graph import AbstractGraph
+from netket.hilbert import Fock, AbstractHilbert
+
+from ._abstract_operator import AbstractOperator
 
 
 class BoseHubbard(AbstractOperator):
@@ -12,7 +14,15 @@ class BoseHubbard(AbstractOperator):
     on-site interactions and nearest-neighboring density-density interactions.
     """
 
-    def __init__(self, hilbert, graph, U, V=0, J=1, mu=0):
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        graph: AbstractGraph,
+        U: float,
+        V: float = 0,
+        J: float = 1,
+        mu: float = 0,
+    ):
         r"""
         Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
         interaction strength. The chemical potential and the density-density interaction strenght
@@ -40,30 +50,21 @@ class BoseHubbard(AbstractOperator):
             graph.n_nodes == hilbert.size
         ), "The size of the graph must match the hilbert space."
 
+        assert isinstance(hilbert, Fock)
+
+        super().__init__(hilbert)
+
         self._U = U
         self._V = V
         self._J = J
         self._mu = mu
-        self._hilbert = hilbert
-        assert isinstance(hilbert, Boson)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = _np.asarray(list(graph.edges()))
+        self._edges = np.asarray(list(graph.edges()))
         self._max_conn = 1 + self._edges.shape[0] * 2
-        self._max_mels = _np.empty(self._max_conn, dtype=_np.complex128)
-        self._max_xprime = _np.empty((self._max_conn, self._n_sites))
-
-        super().__init__()
-
-    @property
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        return self._hilbert
-
-    @property
-    def size(self):
-        return self._hilbert.size
+        self._max_mels = np.empty(self._max_conn, dtype=np.complex128)
+        self._max_xprime = np.empty((self._max_conn, self._n_sites))
 
     @property
     def is_hermitian(self):
@@ -90,11 +91,11 @@ class BoseHubbard(AbstractOperator):
         x_prime = self._max_xprime
 
         mels[0] = 0.0
-        x_prime[0] = _np.copy(x)
+        x_prime[0] = np.copy(x)
 
         J = self._J
         V = self._V
-        sqrt = _m.sqrt
+        sqrt = math.sqrt
         n_max = self._n_max
 
         c = 1
@@ -107,7 +108,7 @@ class BoseHubbard(AbstractOperator):
             # destroy on i create on j
             if n_i > 0 and n_j < n_max:
                 mels[c] = -J * sqrt(n_i) * sqrt(n_j + 1)
-                x_prime[c] = _np.copy(x)
+                x_prime[c] = np.copy(x)
                 x_prime[c, i] -= 1.0
                 x_prime[c, j] += 1.0
                 c += 1
@@ -115,7 +116,7 @@ class BoseHubbard(AbstractOperator):
             # destroy on j create on i
             if n_j > 0 and n_i < n_max:
                 mels[c] = -J * sqrt(n_j) * sqrt(n_i + 1)
-                x_prime[c] = _np.copy(x)
+                x_prime[c] = np.copy(x)
                 x_prime[c, j] -= 1.0
                 x_prime[c, i] += 1.0
                 c += 1
@@ -128,7 +129,7 @@ class BoseHubbard(AbstractOperator):
             # on-site interaction
             mels[0] += Uh * x[i] * (x[i] - 1.0)
 
-        return _np.copy(x_prime[:c]), _np.copy(mels[:c])
+        return np.copy(x_prime[:c]), np.copy(mels[:c])
 
     @staticmethod
     @jit(nopython=True)
@@ -140,16 +141,16 @@ class BoseHubbard(AbstractOperator):
         n_sites = x.shape[1]
 
         if mels.size < batch_size * max_conn:
-            mels = _np.empty(batch_size * max_conn, dtype=_np.complex128)
-            x_prime = _np.empty((batch_size * max_conn, n_sites))
+            mels = np.empty(batch_size * max_conn, dtype=np.complex128)
+            x_prime = np.empty((batch_size * max_conn, n_sites))
 
-        sqrt = _m.sqrt
+        sqrt = math.sqrt
         Uh = 0.5 * U
 
         diag_ind = 0
         for b in range(batch_size):
             mels[diag_ind] = 0.0
-            x_prime[diag_ind] = _np.copy(x[b])
+            x_prime[diag_ind] = np.copy(x[b])
 
             for i in range(n_sites):
                 # chemical potential
@@ -167,7 +168,7 @@ class BoseHubbard(AbstractOperator):
                 # destroy on i create on j
                 if n_i > 0 and n_j < n_max:
                     mels[odiag_ind] = -J * sqrt(n_i) * sqrt(n_j + 1)
-                    x_prime[odiag_ind] = _np.copy(x[b])
+                    x_prime[odiag_ind] = np.copy(x[b])
                     x_prime[odiag_ind, i] -= 1.0
                     x_prime[odiag_ind, j] += 1.0
                     odiag_ind += 1
@@ -175,7 +176,7 @@ class BoseHubbard(AbstractOperator):
                 # destroy on j create on i
                 if n_j > 0 and n_i < n_max:
                     mels[odiag_ind] = -J * sqrt(n_j) * sqrt(n_i + 1)
-                    x_prime[odiag_ind] = _np.copy(x[b])
+                    x_prime[odiag_ind] = np.copy(x[b])
                     x_prime[odiag_ind, j] -= 1.0
                     x_prime[odiag_ind, i] += 1.0
                     odiag_ind += 1
@@ -184,7 +185,7 @@ class BoseHubbard(AbstractOperator):
 
             sections[b] = odiag_ind
 
-        return _np.copy(x_prime[:odiag_ind]), _np.copy(mels[:odiag_ind])
+        return np.copy(x_prime[:odiag_ind]), np.copy(mels[:odiag_ind])
 
     def get_conn_flattened(self, x, sections):
         r"""Finds the connected elements of the Operator. Starting

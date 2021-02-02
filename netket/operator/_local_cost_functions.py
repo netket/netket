@@ -1,13 +1,13 @@
-import jax
-import numpy as _np
-import jax.numpy as jnp
 from functools import partial
+from inspect import signature
+
+import jax
+import numpy as np
+import jax.numpy as jnp
 
 from netket import jax as nkjax
 from netket.legacy.machine._jax_utils import outdtype
 from netket.legacy.machine import Jax
-
-from inspect import signature
 
 
 # The following dicts store some 'properties' of cost functions. The keys are jitted

@@ -1,9 +1,7 @@
-from ._local_operator import LocalOperator
-
-import numpy as _np
+from netket.hilbert import AbstractHilbert
 
 
-def sigmax(hilbert, site):
+def sigmax(hilbert: AbstractHilbert, site: int):
     """
     Builds the sigma_x operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -15,15 +13,18 @@ def sigmax(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
     S = (N - 1) / 2
 
-    D = [_np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
-    mat = _np.diag(D, 1) + _np.diag(D, -1)
+    D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
+    mat = np.diag(D, 1) + np.diag(D, -1)
     return LocalOperator(hilbert, mat, [site])
 
 
-def sigmay(hilbert, site):
+def sigmay(hilbert: AbstractHilbert, site: int):
     """
     Builds the sigma_y operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -35,17 +36,18 @@ def sigmay(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
     S = (N - 1) / 2
 
-    D = _np.array(
-        [1j * _np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
-    )
-    mat = _np.diag(D, -1) + _np.diag(-D, 1)
+    D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
+    mat = np.diag(D, -1) + np.diag(-D, 1)
     return LocalOperator(hilbert, mat, [site])
 
 
-def sigmaz(hilbert, site):
+def sigmaz(hilbert: AbstractHilbert, site: int):
     """
     Builds the sigma_z operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -57,15 +59,18 @@ def sigmaz(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
     S = (N - 1) / 2
 
-    D = _np.array([2 * m for m in _np.arange(S, -(S + 1), -1)])
-    mat = _np.diag(D, 0)
+    D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
+    mat = np.diag(D, 0)
     return LocalOperator(hilbert, mat, [site])
 
 
-def sigmam(hilbert, site):
+def sigmam(hilbert: AbstractHilbert, site: int):
     """
     Builds the $sigma_- = sigma_x - im * sigma_y$ operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -77,16 +82,19 @@ def sigmam(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
-    D = _np.array([_np.sqrt(S2 - m * (m - 1)) for m in _np.arange(S, -S, -1)])
-    mat = _np.diag(D, -1)
+    D = np.array([np.sqrt(S2 - m * (m - 1)) for m in np.arange(S, -S, -1)])
+    mat = np.diag(D, -1)
     return LocalOperator(hilbert, mat, [site])
 
 
-def sigmap(hilbert, site):
+def sigmap(hilbert: AbstractHilbert, site: int):
     """
     Builds the $sigma_- = sigma_x + im * sigma_y$ operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -98,10 +106,17 @@ def sigmap(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
-    D = _np.array([_np.sqrt(S2 - m * (m + 1)) for m in _np.arange(S - 1, -(S + 1), -1)])
-    mat = _np.diag(D, 1)
+    D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
+    mat = np.diag(D, 1)
     return LocalOperator(hilbert, mat, [site])
+
+
+# clean up the module
+del AbstractHilbert

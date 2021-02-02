@@ -1,9 +1,7 @@
-from ._local_operator import LocalOperator
-
-import numpy as _np
+from netket.hilbert import AbstractHilbert
 
 
-def destroy(hilbert, site):
+def destroy(hilbert: AbstractHilbert, site: int):
     """
     Builds the boson destruction operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -15,14 +13,17 @@ def destroy(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
 
-    D = _np.array([_np.sqrt(m) for m in _np.arange(1, N)])
-    mat = _np.diag(D, 1)
+    D = np.array([np.sqrt(m) for m in np.arange(1, N)])
+    mat = np.diag(D, 1)
     return LocalOperator(hilbert, mat, [site])
 
 
-def create(hilbert, site):
+def create(hilbert: AbstractHilbert, site: int):
     """
     Builds the boson creation operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -34,14 +35,17 @@ def create(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
 
-    D = _np.array([_np.sqrt(m) for m in _np.arange(1, N)])
-    mat = _np.diag(D, -1)
+    D = np.array([np.sqrt(m) for m in np.arange(1, N)])
+    mat = np.diag(D, -1)
     return LocalOperator(hilbert, mat, [site])
 
 
-def number(hilbert, site):
+def number(hilbert: AbstractHilbert, site: int):
     """
     Builds the number operator acting on the `site`-th of the
     Hilbert space `hilbert`.
@@ -53,8 +57,15 @@ def number(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
     N = hilbert.local_size
 
-    D = _np.array([m for m in _np.arange(0, N)])
-    mat = _np.diag(D, 0)
+    D = np.array([m for m in np.arange(0, N)])
+    mat = np.diag(D, 0)
     return LocalOperator(hilbert, mat, [site])
+
+
+# clean up the module
+del AbstractHilbert

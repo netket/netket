@@ -1,32 +1,32 @@
-from ._abstract_operator import AbstractOperator
-from ..hilbert import DoubledHilbert
+import numbers
 
-import numpy as _np
+import numpy as np
 from numba import jit
 from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
-import numbers
+from ._abstract_operator import AbstractOperator
+from netket.hilbert import DoubledHilbert
 
 
-class LocalLiouvillian(AbstractOperator):
+class AbstractSuperOperator(AbstractOperator):
+    def __init__(self, hilbert):
+        super().__init__(DoubledHilbert(hilbert))
+
+
+class LocalLiouvillian(AbstractSuperOperator):
     def __init__(self, ham, jump_ops=[]):
+        super().__init__(ham.hilbert)
+
         self._H = ham
         self._jump_ops = [op for op in jump_ops]  # to accept dicts
         self._Hnh = ham
         self._Hnh_dag = ham
-        self._hilbert = DoubledHilbert(ham.hilbert)
         self._max_dissipator_conn_size = 0
         self._max_conn_size = 0
 
         self._compute_hnh()
-        super().__init__()
-
-    @property
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this super-operator."""
-        return self._hilbert
 
     @property
     def size(self):
@@ -64,17 +64,17 @@ class LocalLiouvillian(AbstractOperator):
             self._max_dissipator_conn_size + Hnh.n_operators * Hnh._max_op_size
         )
         self._max_conn_size = max_conn_size
-        self._xprime = _np.empty((max_conn_size, self.hilbert.size))
-        self._xr_prime = _np.empty((max_conn_size, self.hilbert.physical.size))
-        self._xc_prime = _np.empty((max_conn_size, self.hilbert.physical.size))
+        self._xprime = np.empty((max_conn_size, self.hilbert.size))
+        self._xr_prime = np.empty((max_conn_size, self.hilbert.physical.size))
+        self._xc_prime = np.empty((max_conn_size, self.hilbert.physical.size))
         self._xrv = self._xprime[:, 0 : self.hilbert.physical.size]
         self._xcv = self._xprime[
             :, self.hilbert.physical.size : 2 * self.hilbert.physical.size
         ]
-        self._mels = _np.empty(max_conn_size, dtype=_np.complex128)
+        self._mels = np.empty(max_conn_size, dtype=np.complex128)
 
-        self._xprime_f = _np.empty((max_conn_size, self.hilbert.size))
-        self._mels_f = _np.empty(max_conn_size, dtype=_np.complex128)
+        self._xprime_f = np.empty((max_conn_size, self.hilbert.size))
+        self._mels_f = np.empty(max_conn_size, dtype=np.complex128)
 
     def add_jump_operator(self, op):
         self._jump_ops.append(op)
@@ -114,10 +114,10 @@ class LocalLiouvillian(AbstractOperator):
             for r in range(nr):
                 self._xrv[i : i + nc, :] = L_xrp[r, :]
                 self._xcv[i : i + nc, :] = L_xcp
-                self._mels[i : i + nc] = _np.conj(L_mel_r[r]) * L_mel_c
+                self._mels[i : i + nc] = np.conj(L_mel_r[r]) * L_mel_c
                 i = i + nc
 
-        return _np.copy(self._xprime[0:i, :]), _np.copy(self._mels[0:i])
+        return np.copy(self._xprime[0:i, :]), np.copy(self._mels[0:i])
 
     # pad option pads all sections to have the same (biggest) size.
     # to avoid using the biggest possible size, we dynamically check what is
@@ -133,8 +133,8 @@ class LocalLiouvillian(AbstractOperator):
         xr, xc = x[:, 0:N], x[:, N : 2 * N]
 
         # Compute all flattened connections of each term
-        sections_r = _np.empty(batch_size, dtype=_np.int64)
-        sections_c = _np.empty(batch_size, dtype=_np.int64)
+        sections_r = np.empty(batch_size, dtype=np.int64)
+        sections_c = np.empty(batch_size, dtype=np.int64)
         xr_prime, mels_r = self._Hnh_dag.get_conn_flattened(xr, sections_r)
         xc_prime, mels_c = self._Hnh.get_conn_flattened(xc, sections_c)
 
@@ -143,8 +143,8 @@ class LocalLiouvillian(AbstractOperator):
             # sections don't start from 0-index...
             # TODO: if we ever switch to 0-indexing, remove this.
             if batch_size > 1:
-                max_conns_r = _np.max(_np.diff(sections_r))
-                max_conns_c = _np.max(_np.diff(sections_c))
+                max_conns_r = np.max(np.diff(sections_r))
+                max_conns_c = np.max(np.diff(sections_c))
             else:
                 max_conns_r = sections_r[0]
                 max_conns_c = sections_c[0]
@@ -154,8 +154,8 @@ class LocalLiouvillian(AbstractOperator):
         L_xcps = List()
         L_mel_rs = List()
         L_mel_cs = List()
-        sections_Lr = _np.empty(batch_size * n_jops, dtype=_np.int32)
-        sections_Lc = _np.empty(batch_size * n_jops, dtype=_np.int32)
+        sections_Lr = np.empty(batch_size * n_jops, dtype=np.int32)
+        sections_Lc = np.empty(batch_size * n_jops, dtype=np.int32)
         for (i, L) in enumerate(self._jump_ops):
             L_xrp, L_mel_r = L.get_conn_flattened(
                 xr, sections_Lr[i * batch_size : (i + 1) * batch_size]
@@ -171,11 +171,11 @@ class LocalLiouvillian(AbstractOperator):
 
             if pad:
                 if batch_size > 1:
-                    max_lr = _np.max(
-                        _np.diff(sections_Lr[i * batch_size : (i + 1) * batch_size])
+                    max_lr = np.max(
+                        np.diff(sections_Lr[i * batch_size : (i + 1) * batch_size])
                     )
-                    max_lc = _np.max(
-                        _np.diff(sections_Lc[i * batch_size : (i + 1) * batch_size])
+                    max_lc = np.max(
+                        np.diff(sections_Lc[i * batch_size : (i + 1) * batch_size])
                     )
                 else:
                     max_lr = sections_Lr[i * batch_size]
@@ -254,8 +254,8 @@ class LocalLiouvillian(AbstractOperator):
         n_hr_i = 0
         n_hc_i = 0
 
-        n_Lr_is = _np.zeros(n_jops, dtype=_np.int32)
-        n_Lc_is = _np.zeros(n_jops, dtype=_np.int32)
+        n_Lr_is = np.zeros(n_jops, dtype=np.int32)
+        n_Lc_is = np.zeros(n_jops, dtype=np.int32)
 
         for i in range(batch_size):
             off_i = off
@@ -290,7 +290,7 @@ class LocalLiouvillian(AbstractOperator):
                     xs[off : off + n_Lc, 0:N] = L_xrp[n_Lr_i + r, :]
                     xs[off : off + n_Lc, N : 2 * N] = L_xcp[n_Lc_i:n_Lc_f, :]
                     mels[off : off + n_Lc] = (
-                        _np.conj(L_mel_r[n_Lr_i + r]) * L_mel_c[n_Lc_i:n_Lc_f]
+                        np.conj(L_mel_r[n_Lr_i + r]) * L_mel_c[n_Lc_i:n_Lc_f]
                     )
                     off = off + n_Lc
 
@@ -304,7 +304,7 @@ class LocalLiouvillian(AbstractOperator):
 
             sections[i] = off
 
-        return _np.copy(xs[0:off, :]), _np.copy(mels[0:off])
+        return np.copy(xs[0:off, :]), np.copy(mels[0:off])
 
     def to_linear_operator(
         self, *, sparse: bool = True, append_trace: bool = False
@@ -343,7 +343,7 @@ class LocalLiouvillian(AbstractOperator):
             def matvec(rho_vec):
                 rho = rho_vec.reshape((M, M))
 
-                drho = _np.zeros((M, M), dtype=rho.dtype)
+                drho = np.zeros((M, M), dtype=rho.dtype)
 
                 drho += rho @ iHnh + iHnh.conj().T @ rho
                 for J, J_c in zip(J_ops, J_ops_c):
@@ -367,7 +367,7 @@ class LocalLiouvillian(AbstractOperator):
             def matvec(rho_vec):
                 rho = rho_vec[:-1].reshape((M, M))
 
-                out = _np.zeros((M ** 2 + 1), dtype=rho.dtype)
+                out = np.zeros((M ** 2 + 1), dtype=rho.dtype)
                 drho = out[:-1].reshape((M, M))
 
                 drho += rho @ iHnh + iHnh.conj().T @ rho

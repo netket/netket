@@ -1,12 +1,22 @@
+import numpy as np
+from numba import jit
+
+from netket.graph import AbstractGraph
+from netket.hilbert import Fock, AbstractHilbert
+
 from ._abstract_operator import AbstractOperator
 from ._local_operator import LocalOperator
 
-import numpy as _np
-from numba import jit
-
 
 class GraphOperator(LocalOperator):
-    def __init__(self, hilbert, graph, site_ops=[], bond_ops=[], bond_ops_colors=[]):
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        graph: AbstractGraph,
+        site_ops=[],
+        bond_ops=[],
+        bond_ops_colors=[],
+    ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of
         local operators living on the edge of an arbitrary graph.
@@ -51,6 +61,8 @@ class GraphOperator(LocalOperator):
             graph.n_nodes == hilbert.size
         ), "The size of the graph must match the hilbert space"
 
+        super().__init__(hilbert)
+
         self.graph = graph
         size = graph.n_nodes
 
@@ -59,8 +71,6 @@ class GraphOperator(LocalOperator):
         # Ensure that at least one of SiteOps and BondOps was initialized
         if len(bond_ops) == 0 and len(site_ops) == 0:
             raise InvalidInputError("Must input at least site_ops or bond_ops.")
-
-        super().__init__(hilbert)
 
         # Site operators
         if len(site_ops) > 0:

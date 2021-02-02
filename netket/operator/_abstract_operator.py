@@ -1,7 +1,10 @@
 import abc
-import numpy as _np
+
+import numpy as np
 from scipy.sparse import csr_matrix as _csr_matrix
 from numba import jit
+
+from netket.hilbert import AbstractHilbert
 
 
 class AbstractOperator(abc.ABC):
@@ -11,11 +14,21 @@ class AbstractOperator(abc.ABC):
     class
     """
 
+    _hilbert: AbstractHilbert
+    r"""The hilbert space associated to this operator."""
+
+    def __init__(self, hilbert: AbstractHilbert):
+        self._hilbert = hilbert
+
     @property
-    @abc.abstractmethod
-    def size(self):
+    def hilbert(self) -> AbstractHilbert:
+        r"""AbstractHilbert: The hilbert space associated to this operator."""
+        return self._hilbert
+
+    @property
+    def size(self) -> int:
         r"""int: The total number number of local degrees of freedom."""
-        raise NotImplementedError()
+        return self._hilbert.size
 
     def get_conn_padded(self, x):
         r"""Finds the connected elements of the Operator.
@@ -33,7 +46,7 @@ class AbstractOperator(abc.ABC):
             matrix: The connected states x', in a 3D tensor.
             array: A matrix containing the matrix elements :math:`O(x,x')` associated to each x' for every batch.
         """
-        sections = _np.empty(x.shape[0], dtype=_np.int32)
+        sections = np.empty(x.shape[0], dtype=np.int32)
         x_primes, mels = self.get_conn_flattened(x, sections, pad=True)
 
         n_primes = sections[0]
@@ -45,7 +58,7 @@ class AbstractOperator(abc.ABC):
         return x_primes_r, mels_r
 
     @abc.abstractmethod
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(self, x, sections: np.ndarray):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -80,7 +93,7 @@ class AbstractOperator(abc.ABC):
 
         """
         if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.intc)
+            out = np.empty(x.shape[0], dtype=np.intc)
         self.get_conn_flattened(x, out)
         out = self._n_conn_from_sections(out)
 
@@ -98,16 +111,11 @@ class AbstractOperator(abc.ABC):
         return out
 
     @property
-    @abc.abstractmethod
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        raise NotImplementedError()
-
-    @property
-    def is_hermitian(self):
+    def is_hermitian(self) -> bool:
+        """Returns true if this operator is hermitian."""
         return False
 
-    def to_sparse(self):
+    def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -122,18 +130,18 @@ class AbstractOperator(abc.ABC):
 
         x = hilb.all_states()
 
-        sections = _np.empty(x.shape[0], dtype=_np.int32)
+        sections = np.empty(x.shape[0], dtype=np.int32)
         x_prime, mels = self.get_conn_flattened(x, sections)
 
         numbers = hilb.states_to_numbers(x_prime)
 
-        sections1 = _np.empty(sections.size + 1, dtype=_np.int32)
+        sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
 
         return _csr_matrix((mels, numbers, sections1))
 
-    def to_dense(self):
+    def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for

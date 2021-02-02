@@ -1,13 +1,14 @@
-import jax
-import numpy as _np
 from functools import partial
+
+import numpy as np
+import jax
+from jax import numpy as jnp
 
 from netket.legacy.machine._jax_utils import (
     outdtype,
     outdtype_iscomplex,
     tree_leaf_iscomplex,
 )
-from jax import numpy as jnp
 
 from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ._local_cost_functions import (
@@ -25,7 +26,7 @@ local_energy_kernel = local_value_cost
 # Used to compute the gradient
 # \sum_i mel(i) * exp(vp(i)-v) * ( O_k(vp(i)) - O_k(v) )
 def _der_local_values_impl(op, machine, v, log_vals):
-    v_primes, mels = op.get_conn_padded(_np.asarray(v))
+    v_primes, mels = op.get_conn_padded(np.asarray(v))
 
     val, grad = local_costs_and_grads_function(
         local_energy_kernel, machine, v_primes, mels, v
@@ -89,7 +90,7 @@ def _local_values_and_grads_notcentered_kernel(logpsi, pars, vp, mel, v):
 
 
 def _der_local_values_notcentered_impl(op, machine, v, log_vals):
-    v_primes, mels = op.get_conn_padded(_np.asarray(v))
+    v_primes, mels = op.get_conn_padded(np.asarray(v))
 
     val, grad = _local_values_and_grads_notcentered_kernel(
         machine.jax_forward, machine.parameters, v_primes, mels, v

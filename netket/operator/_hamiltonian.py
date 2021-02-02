@@ -1,12 +1,17 @@
+import numpy as np
+from numba import jit
+
+from netket.graph import AbstractGraph
+from netket.hilbert import AbstractHilbert
+
 from ._abstract_operator import AbstractOperator
 from ._graph_operator import GraphOperator
 
-import numpy as _np
-from numba import jit
-
 
 class Ising(AbstractOperator):
-    def __init__(self, hilbert, graph, h, J=1.0):
+    def __init__(
+        self, hilbert: AbstractHilbert, graph: AbstractGraph, h: float, J: float = 1.0
+    ):
         r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
         and (if specified) a coupling constant.
@@ -30,22 +35,13 @@ class Ising(AbstractOperator):
             graph.n_nodes == hilbert.size
         ), "The size of the graph must match the hilbert space"
 
+        super().__init__(hilbert)
+
         self._h = h
         self._J = J
-        self._hilbert = hilbert
-        self._n_sites = hilbert.size
         self._section = hilbert.size + 1
-        self._edges = _np.asarray(list(graph.edges()))
+        self._edges = np.asarray(list(graph.edges()))
         super().__init__()
-
-    @property
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        return self._hilbert
-
-    @property
-    def size(self):
-        return self._n_sites
 
     @property
     def is_hermitian(self):
@@ -66,7 +62,7 @@ class Ising(AbstractOperator):
 
         """
         if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.int32)
+            out = np.empty(x.shape[0], dtype=np.int32)
 
         out.fill(x.shape[1] + 1)
 
@@ -91,7 +87,7 @@ class Ising(AbstractOperator):
         """
         return self._flattened_kernel(
             x.reshape((1, -1)),
-            _np.ones(1),
+            np.ones(1),
             self._edges,
             self._h,
             self._J,
@@ -103,8 +99,8 @@ class Ising(AbstractOperator):
         n_sites = x.shape[1]
         n_conn = n_sites + 1
 
-        x_prime = _np.empty((x.shape[0] * n_conn, n_sites))
-        mels = _np.empty(x.shape[0] * n_conn)
+        x_prime = np.empty((x.shape[0] * n_conn, n_sites))
+        mels = np.empty(x.shape[0] * n_conn)
 
         diag_ind = 0
 
@@ -117,7 +113,7 @@ class Ising(AbstractOperator):
 
             mels[odiag_ind : (odiag_ind + n_sites)].fill(-h)
 
-            x_prime[diag_ind : (diag_ind + n_conn)] = _np.copy(x[i])
+            x_prime[diag_ind : (diag_ind + n_conn)] = np.copy(x[i])
 
             for j in range(n_sites):
                 x_prime[j + odiag_ind][j] *= -1.0
@@ -188,8 +184,8 @@ class Heisenberg(GraphOperator):
         self._J = J
         self._sign_rule = sign_rule
 
-        sz_sz = _np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-        exchange = _np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+        sz_sz = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        exchange = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
         if sign_rule:
             if not graph.is_bipartite():
                 raise ValueError("sign_rule=True specified for a non-bipartite lattice")
