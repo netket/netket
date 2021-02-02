@@ -137,8 +137,6 @@ class VariationalState(abc.ABC):
 
 class VariationalMixedState(VariationalState):
     def __init__(self, hilbert, *args, **kwargs):
-        print(args)
-        print(kwargs)
         super().__init__(*args, **kwargs)
         self._hilbert_doubled = DoubledHilbert(hilbert)
 
@@ -146,15 +144,15 @@ class VariationalMixedState(VariationalState):
         # If it is super-operator treat, they act on the same space so
         # the expectation value is standard.
         if isinstance(Ô, LocalLiouvillian):
-            super().expect(Ô)
+            return super().expect(Ô)
         elif isinstance(Ô, AbstractOperator):
-            super().expect_operator(Ô)
+            return self.expect_operator(Ô)
 
     def grad(self, Ô) -> PyTree:
         if isinstance(Ô, LocalLiouvillian):
-            super().grad(Ô)
+            return super().grad(Ô)
         elif isinstance(Ô, AbstractOperator):
-            super().grad_operator(Ô)
+            return self.grad_operator(Ô)
 
     def expect_and_grad(
         self,
