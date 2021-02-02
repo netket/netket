@@ -100,6 +100,27 @@ class Sampler(abc.ABC):
     ) -> SamplerState:
         """
         Creates the structure holding the state of the sampler.
+
+        If you want reproducible samples, you should specify `seed`, otherwise the state
+        will be initialised randomly.
+
+        If running across several MPI processes, all sampler_states are guaranteed to be
+        in a different (but deterministic) state.
+        This is achieved by first reducing (summing) the seed provided to every MPI rank,
+        then generating n_rank seeds starting from the reduced one, and every rank is
+        initialized with one of those seeds.
+
+        The resulting state is guaranteed to be a frozen python dataclass (in particular,
+        a flax's dataclass), and it can be serialized using Flax serialization methods.
+
+        Args:
+            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
+
+        Returns:
+            The structure holding the state of the sampler. In general you should not expect
+            it to be in a valid state, and should reset it before use.
         """
         key = nkjax.PRNGKey(seed)
 
@@ -116,6 +137,15 @@ class Sampler(abc.ABC):
         """
         Resets the state of the sampler. To be used every time
         the parameters are changed.
+
+        Args:
+            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler. If it's not provided, it will be constructed
+            by calling `sampler.init_state(machine, parameters)` with a random seed.
+
+        Returns:
+            A valid sampler state.
         """
         if state is None:
             state = sampler_state(sampler, machine, parameters)
@@ -129,7 +159,17 @@ class Sampler(abc.ABC):
         state: Optional[SamplerState] = None,
     ) -> Tuple[jnp.ndarray, SamplerState]:
         """
-        Samples the next state in the markov chain
+        Samples the next state in the markov chain.
+
+        Args:
+            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler. If it's not provided, it will be constructed
+            by calling `sampler.reset(machine, parameters)` with a random seed.
+
+        Returns:
+            state: The new state of the sampler
+            σ: The next batch of samples.
         """
         if state is None:
             state = sampler_state(sampler, machine, parameters)
@@ -160,14 +200,32 @@ class Sampler(abc.ABC):
 
     @abc.abstractmethod
     def _init_state(sampler, machine, params, seed) -> SamplerState:
+        """
+        Implementation of init_state for subclasses of Sampler.
+
+        If you sub-class Sampler, you should define this and not init_state
+        itself, because init_state contains some common logic.
+        """
         raise NotImplementedError("init_state Not Implemented")
 
     @abc.abstractmethod
     def _reset(sampler, machine, parameters, state):
+        """
+        Implementation of reset for subclasses of Sampler.
+
+        If you sub-class Sampler, you should define _reset and not reset
+        itself, because reset contains some common logic.
+        """
         raise NotImplementedError("reset Not Implemented")
 
     @abc.abstractmethod
     def _sample_next(sampler, machine, parameters, state=None):
+        """
+        Implementation of sample_next for subclasses of Sampler.
+
+        If you sub-class Sampler, you should define _sample_next and not sample_next
+        itself, because reset contains some common logic.
+        """
         raise NotImplementedError("sample_next Not Implemented")
 
 
@@ -175,14 +233,27 @@ def sampler_state(
     sampler: Sampler, machine: Union[Callable, nn.Module], parameters: PyTree
 ) -> SamplerState:
     """
-    Constructs the state for the sampler. Dispatch on the
-    sampler type.
+    Creates the structure holding the state of the sampler.
+
+    If you want reproducible samples, you should specify `seed`, otherwise the state
+    will be initialised randomly.
+
+    If running across several MPI processes, all sampler_states are guaranteed to be
+    in a different (but deterministic) state.
+
+    This is achieved by first reducing (summing) the seed provided to every MPI rank,
+    then generating n_rank seeds starting from the reduced one, and every rank is
+    initialized with one of those seeds.
+
     Args:
-        sampler:
-        machine:
-        parameters:
+        sampler: The Monte Carlo sampler.
+        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        parameters: The PyTree of parameters of the model.
+        seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
+
     Returns:
-        state : The SamplerState corresponding to this sampler
+        The structure holding the state of the sampler. In general you should not expect
+        it to be in a valid state, and should reset it before use.
     """
     return sampler.init_state(machine, parameters)
 
@@ -194,17 +265,18 @@ def reset(
     state: Optional[SamplerState] = None,
 ) -> SamplerState:
     """
-    Resets the state of a sampler.
-    To be used after, for example, parameters have changed.
-    If the state is not passed, then it is constructed
-    Args:
-        sampler:
-        machine:
-        parameters:
-        state: the current state. If None, then it is constructed
-    Returns:
-        state : The SamplerState corresponding to this sampler
+    Resets the state of the sampler. To be used every time
+    the parameters are changed.
 
+    Args:
+        sampler: The Monte Carlo sampler.
+        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        parameters: The PyTree of parameters of the model.
+        state: The current state of the sampler. If it's not provided, it will be constructed
+        by calling `sampler.init_state(machine, parameters)` with a random seed.
+
+    Returns:
+        A valid sampler state.
     """
     sampler.reset(machine, parameters, state)
 
@@ -216,17 +288,18 @@ def sample_next(
     state: Optional[SamplerState] = None,
 ) -> Tuple[jnp.ndarray, SamplerState]:
     """
-    Samples the next state in the chain.
+    Samples the next state in the markov chain.
 
     Args:
-        sampler:
-        machine:
-        parameters:
-        state: the current state. If None, then it is constructed
-    Returns:
-        samples: a batch of samples
-        state : The SamplerState corresponding to this sampler
+        sampler: The Monte Carlo sampler.
+        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        parameters: The PyTree of parameters of the model.
+        state: The current state of the sampler. If it's not provided, it will be constructed
+        by calling `sampler.reset(machine, parameters)` with a random seed.
 
+    Returns:
+        state: The new state of the sampler
+        σ: The next batch of samples.
     """
     return sampler.sample_next(machine, parameters, state)
 
@@ -243,12 +316,16 @@ def sample(
     Samples chain_length elements along the chains.
 
     Arguments:
-        sampler: The sampler
+        sampler: The Monte Carlo sampler.
         machine: The model or apply_fun to sample from (if it's a function it should have
             the signature f(parameters, σ) -> jnp.ndarray).
         parameters: The PyTree of parameters of the model.
         state: current state of the sampler. If None, then initialises it.
         chain_length: (default=1), the length of the chains.
+
+    Returns:
+        state: The new state of the sampler
+        σ: The next batch of samples.
     """
     if state is None:
         state = sampler.reset(machine, parameters, state)
@@ -264,6 +341,17 @@ def samples(
     state: Optional[SamplerState] = None,
     chain_length: int = 1,
 ):
+    """
+    Returns a generator sampling chain_length elements along the chains.
+
+    Arguments:
+        sampler: The Monte Carlo sampler.
+        machine: The model or apply_fun to sample from (if it's a function it should have
+            the signature f(parameters, σ) -> jnp.ndarray).
+        parameters: The PyTree of parameters of the model.
+        state: current state of the sampler. If None, then initialises it.
+        chain_length: (default=1), the length of the chains.
+    """
     if state is None:
         state = sampler.reset(machine, parameters, state)
 
