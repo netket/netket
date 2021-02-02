@@ -32,50 +32,96 @@ Shape = Tuple[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
+default_kernel_init = lecun_normal()
+
 
 class RBM(nn.Module):
+    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
+    nonlinear activation function in between
+
+    Attributes:
+        dtype: dtype of the weights.
+        activation: The nonlinear activation function
+        alpha: feature density. Number of features equal to alpha * input.shape[-1]
+        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_visible_bias: if True adds a bias to the input
+        kernel_init: initializer function for the weight matrix.
+        bias_init: initializer function for the bias.
+        visible_bias_init: initializer function for the visible_bias.
+    """
+
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     use_bias: bool = True
-    use_visible: bool = True
+    use_visible_bias: bool = True
 
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
 
     @nn.compact
-    def __call__(self, x):
-        if self.use_visible:
-            v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (x.shape[-1]), self.dtype
-            )
-            out_bias = jnp.dot(x, v_bias)
-
+    def __call__(self, input):
         x = nknn.Dense(
             name="Dense",
             features=self.alpha * x.shape[-1],
             dtype=self.dtype,
             use_bias=self.use_bias,
-        )(x)
+            kernel_init=kernel_init,
+            bias_init=bias_init,
+        )(input)
         x = self.activation(x)
-        return jnp.sum(x, axis=-1) + out_bias
+        x = jnp.sum(x, axis=-1)
+
+        if self.use_visible_bias:
+            v_bias = self.param(
+                "visible_bias", self.visible_bias_init, (x.shape[-1]), self.dtype
+            )
+            out_bias = jnp.dot(input, v_bias)
+            return x + out_bias
+        else:
+            return x
 
 
 class RBMModPhase(nn.Module):
+    """Two restricted boltzman machines, one encoding the real part and one
+    encoding the imaginary part of the output
+
+    Attributes:
+        dtype: dtype of the weights.
+        activation: The nonlinear activation function
+        alpha: feature density. Number of features equal to alpha * input.shape[-1]
+        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        kernel_init: initializer function for the weight matrix.
+        bias_init: initializer function for the bias.
+    """
+
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     use_bias: bool = True
 
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+
     @nn.compact
     def __call__(self, x):
         re = nknn.Dense(
-            features=self.alpha * x.shape[-1], dtype=self.dtype, use_bias=self.use_bias
+            features=self.alpha * x.shape[-1],
+            dtype=self.dtype,
+            use_bias=self.use_bias,
+            kernel_init=kernel_init,
+            bias_init=bias_init,
         )(x)
         re = self.activation(re)
         re = jnp.sum(re, axis=-1)
 
         im = nknn.Dense(
-            features=self.alpha * x.shape[-1], dtype=self.dtype, use_bias=self.use_bias
+            features=self.alpha * x.shape[-1],
+            dtype=self.dtype,
+            use_bias=self.use_bias,
+            kernel_init=kernel_init,
+            bias_init=bias_init,
         )(x)
         im = self.activation(im)
         im = jnp.sum(im, axis=-1)
