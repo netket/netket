@@ -95,7 +95,7 @@ Samplers
    netket.sampler.Sampler
    netket.sampler.ExactSampler
    netket.sampler.MetropolisSampler
-   netket.sampler.MetropolisNumpy
+   netket.sampler.MetropolisNumpySampler
    netket.sampler.MetropolisPtSampler
 
    netket.sampler.MetropolisLocal
@@ -104,6 +104,31 @@ Samplers
    netket.sampler.MetropolisLocalPt
    netket.sampler.MetropolisExchangePt
 
+Transition Rules
+~~~~~~~~~~~~~~~~
+
+Those are the transition rules that can be used with the Metropolis
+Sampler. 
+
+.. autosummary::
+  :toctree: _generated/samplers
+
+  netket.sampler.MetropolisRule
+  netket.sampler.rules.LocalRule
+  netket.sampler.rules.ExchangeRule
+  netket.sampler.rules.HamiltonianRule
+  netket.sampler.rules.HamiltonianRuleNumpy
+  netket.sampler.rules.CustomRuleNumpy
+
+
+Internal State
+~~~~~~~~~~~~~~
+
+.. autosummary::
+  :toctree: _generated/samplers
+
+  netket.sampler.SamplerState
+  netket.sampler.MetropolisSamplerState
 
 Pre-built models
 ----------------
