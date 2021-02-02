@@ -88,8 +88,39 @@ Exact solvers
 Samplers
 --------
 
+Generic API
+~~~~~~~~~~~
+
+Those functions can be used to interact with samplers
+
 .. autosummary::
    :toctree: _generated/samplers
+
+   netket.sampler.sampler_state
+   netket.sampler.reset
+   netket.sampler.sample_next
+   netket.sampler.sample
+   netket.sampler.samples
+
+Samplers
+~~~~~~~~
+
+This is a list of all available samplers.
+Please note that samplers with `Numpy` in their name are implemented in
+Numpy and not in pure jax, and they will convert from numpy<->jax at every
+sampling step the state. 
+If you are using GPUs, this conversion can be very costly. On CPUs, while the
+conversion is cheap, the dispatch cost of jax is considerate for small systems.
+
+In general those samplers, while they have the same asyntotic cost of Jax samplers,
+have a much higher overhead for small to moderate (for GPUs) system sizes.
+
+This is because it is not possible to implement all transition rules in Jax.
+
+
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: class
    :nosignatures:
 
    netket.sampler.Sampler
@@ -108,7 +139,8 @@ Transition Rules
 ~~~~~~~~~~~~~~~~
 
 Those are the transition rules that can be used with the Metropolis
-Sampler. 
+Sampler. Rules with `Numpy` in their name can only be used with 
+:ref:`MetropolisSamplerNumpy`.
 
 .. autosummary::
   :toctree: _generated/samplers
@@ -124,14 +156,20 @@ Sampler.
 Internal State
 ~~~~~~~~~~~~~~
 
+Those structure hold the state of the sampler.
+
 .. autosummary::
   :toctree: _generated/samplers
 
   netket.sampler.SamplerState
   netket.sampler.MetropolisSamplerState
 
+
 Pre-built models
 ----------------
+
+This sub-module contains several pre-built models to be used as
+neural quantum states.
 
 .. autosummary::
    :toctree: _generated/models
