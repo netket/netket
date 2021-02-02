@@ -16,43 +16,30 @@ release = "v3.0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
     "nbsphinx",
     "recommonmark",
 ]
 
 # Napoleon settings
-napoleon_google_docstring = True
-napoleon_numpy_docstring = False
-napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = False
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = True
-napoleon_use_param = True
-napoleon_use_rtype = True
 autodoc_docstring_signature = True
-
-autoclass_content = "class"
-autodoc_default_options = {
-    "members": True,
-    "inherited-members": True,
-    "show_inheritance": True,
-    "excluded-members": "__init__",
-}
-
+autodoc_inherit_docstrings = True
 autosummary_generate = True
+napoleon_use_param = True
+
+
+master_doc = "index"
+
+autodoc_typehints = "description"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = ["_templates", "_templates/autosummary"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -83,7 +70,12 @@ html_js_files = [
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
-# intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    #    "networkx": ("https://networkx.org/doc/reference/", None),
+}
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).
 # Path should be relative to the ``_static`` files directory.

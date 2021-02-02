@@ -168,13 +168,16 @@ Activation functions
 Variational State Interface
 ---------------------------
 
-.. autosummary::
-   :toctree: _generated/variational
-   :nosignatures:
+.. currentmodule:: netket
 
-   netket.variational.VariationalState
-   netket.variational.VMCState
-   netket.variational.VMCMixedState
+.. autosummary::
+  :toctree: _generated/variational
+  :nosignatures:
+
+  netket.variational.VariationalState
+  netket.variational.MCState
+  netket.variational.MCMixedState
+
 
 
 Optim
