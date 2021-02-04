@@ -345,6 +345,9 @@ class MCState(VariationalState):
         return self._apply_fun(self.variables, σ)
 
     def expect(self, Ô: AbstractOperator) -> Stats:
+        if not self.hilbert == Ô.hilbert:
+            return NotImplemented
+
         σ = self.samples
         σ_shape = σ.shape
         σ = σ.reshape((-1, σ_shape[-1]))
@@ -371,6 +374,9 @@ class MCState(VariationalState):
         is_hermitian=None,
         centered=True,
     ) -> Tuple[Stats, PyTree]:
+        if not self.hilbert == Ô.hilbert:
+            return NotImplemented
+
         # should check if it is hermitian
         # if hermitian...
 

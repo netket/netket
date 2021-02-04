@@ -138,21 +138,21 @@ class VariationalState(abc.ABC):
 class VariationalMixedState(VariationalState):
     def __init__(self, hilbert, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._hilbert_doubled = DoubledHilbert(hilbert)
+        self._hilbert_physical = hilbert
+
+    @property
+    def hilbert_physical(self) -> AbstractHilbert:
+        return self._hilbert_physical
 
     def expect(self, Ô: AbstractOperator) -> Stats:
         # If it is super-operator treat, they act on the same space so
         # the expectation value is standard.
-        if isinstance(Ô, LocalLiouvillian):
+        if self.hilbert == Ô.hilbert:
             return super().expect(Ô)
-        elif isinstance(Ô, AbstractOperator):
+        elif self.hilbert_physical == Ô.hilbert:
             return self.expect_operator(Ô)
-
-    def grad(self, Ô) -> PyTree:
-        if isinstance(Ô, LocalLiouvillian):
-            return super().grad(Ô)
-        elif isinstance(Ô, AbstractOperator):
-            return self.grad_operator(Ô)
+        else:
+            return NotImplemented
 
     def expect_and_grad(
         self,
@@ -160,12 +160,13 @@ class VariationalMixedState(VariationalState):
         mutable=None,
         centered=True,
     ) -> Tuple[Stats, PyTree]:
-        if isinstance(Ô, LocalLiouvillian):
-            return super().grad(Ô, mutable=mutable, centered=center)
-        elif isinstance(Ô, AbstractOperator):
-            return super().expect_and_grad_operator(
-                Ô, mutable=mutable, centered=center
-            )
+        # do the computation in super-operator space
+        if self.hilbert == Ô.hilbert:
+            return super().expect_and_grad(Ô, mutable=mutable, centered=centered)
+        elif self.hilbert_physical == Ô.hilbert:
+            return super().expect_and_grad(Ô, mutable=mutable, centered=centered)
+        else:
+            return NotImplemented
 
     @abc.abstractmethod
     def expect_operator(self, Ô: AbstractOperator) -> Stats:
