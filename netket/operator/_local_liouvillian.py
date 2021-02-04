@@ -14,6 +14,10 @@ class AbstractSuperOperator(AbstractOperator):
     def __init__(self, hilbert):
         super().__init__(DoubledHilbert(hilbert))
 
+    @property
+    def hilbert_physical(self):
+        return self.hilbert.physical
+
 
 class LocalLiouvillian(AbstractSuperOperator):
     def __init__(self, ham, jump_ops=[]):
