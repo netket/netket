@@ -158,6 +158,8 @@ class MetropolisSampler(Sampler):
     """The metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=0)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
+    reset_chain: bool = True
+    """If True resets the chain state when reset is called (every new sampling)."""
 
     def __init__(
         self,
@@ -165,6 +167,7 @@ class MetropolisSampler(Sampler):
         rule: MetropolisRule,
         *,
         n_sweeps: Optional[int] = None,
+        reset_chain: bool = True,
         **kwargs,
     ):
         """
@@ -189,6 +192,7 @@ class MetropolisSampler(Sampler):
             n_sweeps: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
+            reset_chain: If False the state configuration is not resetted when reset() is called.
             n_chains: The number of Markov Chain to be run in parallel on a single process.
             n_chains: The number of batches of the states to sample (default = 8)
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
@@ -200,6 +204,7 @@ class MetropolisSampler(Sampler):
 
         object.__setattr__(self, "rule", rule)
         object.__setattr__(self, "n_sweeps", n_sweeps)
+        object.__setattr__(self, "reset_chain", reset_chain)
 
         super().__init__(hilbert, **kwargs)
 
@@ -215,17 +220,29 @@ class MetropolisSampler(Sampler):
 
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
-        σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
+        σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
 
-        return MetropolisSamplerState(
+        state = MetropolisSamplerState(
             σ=σ, rng=key_state, rule_state=rule_state, n_samples=0, n_accepted=0
         )
+
+        # If we don't reset the chain at every sampling iteration, then reset it
+        # now.
+        if sampler.reset_chain:
+            key_state, rng = jax.random.split(key_state)
+            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            state = state.replace(σ=σ, rng=key_state)
+
+        return state
 
     def _reset(sampler, machine, parameters, state):
         new_rng, rng = jax.random.split(state.rng)
 
-        σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+        if sampler.reset_chain:
+            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+        else:
+            σ = state.σ
 
         rule_state = sampler.rule.reset(sampler, machine, parameters, state)
 

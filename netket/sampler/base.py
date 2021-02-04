@@ -27,6 +27,7 @@ from jax.experimental import loops
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module
+from netket.jax import HashablePartial
 
 PyTree = Any
 PRNGKeyType = jnp.ndarray
@@ -92,9 +93,25 @@ class Sampler(abc.ABC):
         """
         return self.n_chains
 
-    def log_pdf(self, machine: Union[Callable, nn.Module]):
-        apply_fun = get_afun_if_module(machine)
-        return lambda pars, σ: self.machine_pow * apply_fun(pars, σ).real
+    def log_pdf(self, model: Union[Callable, nn.Module]) -> Callable:
+        """
+        Returns a closure with the log_pdf function encoded by this sampler.
+
+        Note: the result is returned as an HashablePartial so that the closure
+        does not trigger recompilation.
+
+        Args:
+            model: The machine, or apply_fun
+
+        Returns:
+            the log probability density function
+        """
+        apply_fun = get_afun_if_module(model)
+        log_pdf = HashablePartial(
+            lambda apply_fun, pars, σ: self.machine_pow * apply_fun(pars, σ).real,
+            apply_fun,
+        )
+        return log_pdf
 
     def init_state(
         sampler,

@@ -63,12 +63,12 @@ def apply_model(machine, pars, weights):
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
-    def _init_state(sampler, machine, params, key):
+    def _init_state(sampler, machine, parameters, key):
         rgen = np.random.default_rng(np.asarray(key))
 
         σ = np.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
 
-        ma_out = jax.eval_shape(machine, params, σ)
+        ma_out = jax.eval_shape(machine, parameters, σ)
 
         state = MetropolisNumpySamplerState(
             σ=σ,
@@ -79,19 +79,29 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 sampler.n_batches, dtype=jax.dtypes.dtype_real(ma_out.dtype)
             ),
             rng=rgen,
-            rule_state=sampler.rule.init_state(sampler, machine, params, rgen),
+            rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
         )
+
+        if sampler.reset_chain:
+            key = jnp.asarray(
+                state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
+            )
+
+            state.σ = np.copy(
+                sampler.rule.random_state(sampler, machine, parameters, state, key)
+            )
 
         return state
 
     def _reset(sampler, machine, parameters, state):
-        # directly generate a PRNGKey which is a [2xuint32] array
-        key = jnp.asarray(
-            state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
-        )
-        state.σ = np.copy(
-            sampler.rule.random_state(sampler, machine, parameters, state, key)
-        )
+        if sampler.reset_chain:
+            # directly generate a PRNGKey which is a [2xuint32] array
+            key = jnp.asarray(
+                state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
+            )
+            state.σ = np.copy(
+                sampler.rule.random_state(sampler, machine, parameters, state, key)
+            )
 
         state.rule_state = sampler.rule.reset(sampler, machine, parameters, state)
         state.log_values = np.copy(apply_model(machine, parameters, state.σ))
