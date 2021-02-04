@@ -13,7 +13,7 @@ from netket.stats import (
 
 from netket.variational import MCState
 
-from .vmc_common import info, tree_map
+from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -54,9 +54,7 @@ class Vmc(AbstractVariationalDriver):
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
 
-        super(Vmc, self).__init__(
-            variational_state, optimizer, minimized_quantity_name="Energy"
-        )
+        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
         self._ham = hamiltonian
 
