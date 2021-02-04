@@ -212,7 +212,7 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, AbstractOperator):
             return self.__matmul__(other)
         elif not isinstance(other, numbers.Number):
-            raise TypeError("`other` must be another NetKet operator or a scalar.")
+            return NotImplemented
 
         new_ops = [np.copy(op * other) for op in self._operators]
 
@@ -225,9 +225,7 @@ class LocalOperator(AbstractOperator):
 
     def __matmul__(self, other):
         if not isinstance(other, LocalOperator):
-            raise NotImplementedError(
-                "Operator product is only implemented for LocalOperator."
-            )
+            return NotImplemented
 
         tot_operators = []
         tot_act = []
