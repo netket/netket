@@ -64,18 +64,18 @@ class RBM(nn.Module):
     def __call__(self, input):
         x = nknn.Dense(
             name="Dense",
-            features=self.alpha * x.shape[-1],
+            features=self.alpha * input.shape[-1],
             dtype=self.dtype,
             use_bias=self.use_bias,
-            kernel_init=kernel_init,
-            bias_init=bias_init,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
         )(input)
         x = self.activation(x)
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (x.shape[-1]), self.dtype
+                "visible_bias", self.visible_bias_init, (input.shape[-1]), self.dtype
             )
             out_bias = jnp.dot(input, v_bias)
             return x + out_bias
@@ -110,8 +110,8 @@ class RBMModPhase(nn.Module):
             features=self.alpha * x.shape[-1],
             dtype=self.dtype,
             use_bias=self.use_bias,
-            kernel_init=kernel_init,
-            bias_init=bias_init,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
         )(x)
         re = self.activation(re)
         re = jnp.sum(re, axis=-1)
@@ -120,8 +120,8 @@ class RBMModPhase(nn.Module):
             features=self.alpha * x.shape[-1],
             dtype=self.dtype,
             use_bias=self.use_bias,
-            kernel_init=kernel_init,
-            bias_init=bias_init,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
         )(x)
         im = self.activation(im)
         im = jnp.sum(im, axis=-1)
