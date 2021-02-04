@@ -16,6 +16,9 @@ max_states = np.iinfo(np.int32).max
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects"""
 
+    def __init__(self):
+        self._hash = None
+
     @property
     @abc.abstractmethod
     def size(self):

@@ -92,6 +92,10 @@ class Sampler(abc.ABC):
         """
         return self.n_chains
 
+    def log_pdf(self, machine: Union[Callable, nn.Module]):
+        apply_fun = get_afun_if_module(machine)
+        return lambda pars, σ: self.machine_pow * apply_fun(pars, σ).real
+
     def init_state(
         sampler,
         machine: Union[Callable, nn.Module],

@@ -64,6 +64,7 @@ class CustomHilbert(AbstractHilbert):
         N = graph_to_N_depwarn(N=N, graph=graph)
 
         assert isinstance(N, int)
+        super().__init__()
 
         self._size = N
 
@@ -84,10 +85,6 @@ class CustomHilbert(AbstractHilbert):
         self._constraint_fn = constraint_fn
 
         self._hilbert_index = None
-
-        self._hash = None
-
-        super().__init__()
 
     @property
     def size(self):
