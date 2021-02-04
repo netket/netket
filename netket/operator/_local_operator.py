@@ -4,7 +4,7 @@ import numpy as np
 from numba import jit
 
 from ._abstract_operator import AbstractOperator
-from ._lazy import Transpose, Adjoint
+from ._lazy import Transpose, Adjoint, Squared
 
 
 @jit(nopython=True)
@@ -219,6 +219,9 @@ class LocalOperator(AbstractOperator):
     def __matmul__(self, other):
         if not isinstance(other, LocalOperator):
             return NotImplemented
+
+        if self == other and self.is_hermitian:
+            return Squared(self)
 
         tot_operators = []
         tot_act = []
@@ -523,6 +526,9 @@ class LocalOperator(AbstractOperator):
 
     @property
     def H(self):
+        if self.is_hermitian:
+            return self
+
         return Adjoint(self)
 
     def get_conn(self, x):

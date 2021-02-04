@@ -41,6 +41,9 @@ class Transpose(WrappedOperator):
         return self.parent
 
     def conjugate(self):
+        if self.parent.is_hermitian:
+            return self.parent
+
         return Adjoint(self.parent)
 
     @property
@@ -153,9 +156,6 @@ class Squared(WrappedOperator):
         return "Squared({})".format(self.parent)
 
     def __mul__(self, other):
-        if self.parent == self.other:
-            pass
-
         return self.collect() * other
 
     def __rmul__(self, other):
