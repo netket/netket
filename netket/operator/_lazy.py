@@ -150,7 +150,7 @@ class Squared(WrappedOperator):
         return self.parent._concrete_transpose.conj()
 
     def __repr__(self):
-        return "Adjoint({})".format(self.parent)
+        return "Squared({})".format(self.parent)
 
     def __mul__(self, other):
         if self.parent == self.other:
