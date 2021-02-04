@@ -163,7 +163,7 @@ def vjp(
         if is_complex(out_shape):  # C -> C
             return vjp_cc(fun, *primals, has_aux=has_aux, conjugate=conjugate)
         else:  # C -> R
-            raise RuntimeError("C->R function detected, but not supported.")
+            return vjp_cc(fun, *primals, has_aux=has_aux, conjugate=conjugate)
     else:
         if is_complex(out_shape):  # R -> C
             return vjp_rc(fun, *primals, has_aux=has_aux, conjugate=conjugate)

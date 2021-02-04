@@ -28,6 +28,8 @@ from .utils import (
 from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
+from ._expect import expect
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)
