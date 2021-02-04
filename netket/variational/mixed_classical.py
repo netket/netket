@@ -72,6 +72,7 @@ class MCMixedState(VariationalMixedState, MCState):
         n_discard_diag: Optional[int] = None,
         seed=nkjax.PRNGKey(),
         sampler_seed: Optional[int] = None,
+        variables=None,
         **kwargs,
     ):
         seed, seed_diag = jax.random.split(nkjax.PRNGKey(seed))
@@ -93,6 +94,7 @@ class MCMixedState(VariationalMixedState, MCState):
             **kwargs,
             seed=seed,
             sampler_seed=sampler_seed,
+            variables=variables,
         )
 
         if sampler_diag is None:

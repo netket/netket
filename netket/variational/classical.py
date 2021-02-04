@@ -40,6 +40,7 @@ from netket.operator import (
     define_local_cost_function,
     local_cost_function,
     local_value_cost,
+    Squared,
 )
 
 from .base import VariationalState
