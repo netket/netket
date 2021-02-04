@@ -74,14 +74,18 @@ class CustomHilbert(AbstractHilbert):
             assert self._local_states.ndim == 1
             self._local_size = self._local_states.shape[0]
             self._local_states = self._local_states.tolist()
+            self._local_states_frozen = frozenset(self._local_states)
         else:
             self._local_states = None
+            self._local_states_frozen = None
             self._local_size = np.iinfo(np.intp).max
 
         self._has_constraint = constraint_fn is not None
         self._constraint_fn = constraint_fn
 
         self._hilbert_index = None
+
+        self._hash = None
 
         super().__init__()
 
@@ -196,4 +200,14 @@ class CustomHilbert(AbstractHilbert):
         )
         return "CustomHilbert(N={}; local_size={}{})".format(
             len(self.local_states), constr, self.size
+        )
+
+    @property
+    def _attrs(self):
+        return (
+            self.size,
+            self.local_size,
+            self._local_states_frozen,
+            self._has_constraint,
+            self._constraint_fn,
         )

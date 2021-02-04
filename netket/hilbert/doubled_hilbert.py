@@ -103,3 +103,7 @@ class DoubledHilbert(AbstractHilbert):
 
     def __repr__(self):
         return "DoubledHilbert({})".format(self.physical)
+
+    @property
+    def _attrs(self):
+        return (self.physical,)

@@ -104,6 +104,10 @@ class Fock(CustomHilbert):
         nmax = self._n_max if self._n_max < np.iinfo(np.intp).max else "INT_MAX"
         return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
 
+    @property
+    def _attrs(self):
+        return (self.size, self._n_max, self._constraint_fn)
+
 
 from netket.utils import deprecated
 

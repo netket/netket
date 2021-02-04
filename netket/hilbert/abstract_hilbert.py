@@ -221,3 +221,20 @@ class AbstractHilbert(abc.ABC):
         # Could probably put it in the class itself (which @singledispatch automatically
         # because of oop)?
         return NotImplemented
+
+    @property
+    @abc.abstractmethod
+    def _attrs(self):
+        pass
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self._attrs == other._attrs
+
+        return False
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(self._attrs)
+
+        return self._hash

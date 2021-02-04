@@ -98,3 +98,7 @@ class Spin(CustomHilbert):
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
         return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)
+
+    @property
+    def _attrs(self):
+        return (self.size, self._s, self._constraint_fn)

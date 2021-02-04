@@ -38,3 +38,7 @@ class Qubit(CustomHilbert):
 
     def __repr__(self):
         return "Qubit(N={})".format(self._size)
+
+    @property
+    def _attrs(self):
+        return (self.size,)
