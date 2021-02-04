@@ -4,6 +4,7 @@ import numpy as np
 from numba import jit
 
 from ._abstract_operator import AbstractOperator
+from ._lazy import Transpose, Adjoint
 
 
 @jit(nopython=True)
@@ -110,14 +111,6 @@ class LocalOperator(AbstractOperator):
     @property
     def n_operators(self):
         return self._n_conns.shape[0]
-
-    @property
-    def H(self):
-        return self.conjugate().transpose()
-
-    @property
-    def T(self):
-        return self.transpose()
 
     def __iadd__(self, other):
         if isinstance(other, LocalOperator):
@@ -495,7 +488,7 @@ class LocalOperator(AbstractOperator):
             constant=self._constant,
         )
 
-    def transpose(self):
+    def _concrete_transpose(self):
         r"""LocalOperator: Returns the tranpose of this operator."""
 
         new_ops = [np.copy(ops.transpose()) for ops in self._operators]
@@ -506,6 +499,9 @@ class LocalOperator(AbstractOperator):
             acting_on=self._acting_on_list(),
             constant=self._constant,
         )
+
+    def transpose(self):
+        return Transpose(self)
 
     @property
     def T(self):
@@ -527,7 +523,7 @@ class LocalOperator(AbstractOperator):
 
     @property
     def H(self):
-        return self.transpose().conjugate()
+        return Adjoint(self)
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting

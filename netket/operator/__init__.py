@@ -15,6 +15,8 @@ from ._abstract_operator import AbstractOperator
 from ._bose_hubbard import BoseHubbard
 from ._pauli_strings import PauliStrings
 
+from ._lazy import Adjoint, Transpose, Squared
+
 from netket.utils import jax_available as _jax_available
 
 if _jax_available:

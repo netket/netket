@@ -26,7 +26,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._H = ham
         self._jump_ops = [op for op in jump_ops]  # to accept dicts
         self._Hnh = ham
-        self._Hnh_dag = ham
+        self._Hnh_dag = ham.H
         self._max_dissipator_conn_size = 0
         self._max_conn_size = 0
 
@@ -61,8 +61,8 @@ class LocalLiouvillian(AbstractSuperOperator):
 
         self._max_dissipator_conn_size = max_conn_size
 
-        self._Hnh = Hnh
-        self._Hnh_dag = Hnh.conjugate().transpose()
+        self._Hnh = Hnh.collect()
+        self._Hnh_dag = Hnh.H.collect()
 
         max_conn_size = (
             self._max_dissipator_conn_size + Hnh.n_operators * Hnh._max_op_size

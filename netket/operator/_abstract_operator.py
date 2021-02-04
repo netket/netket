@@ -30,6 +30,16 @@ class AbstractOperator(abc.ABC):
         r"""int: The total number number of local degrees of freedom."""
         return self._hilbert.size
 
+    def collect(self) -> "AbstractOperator":
+        """
+        Returns a guranteed concrete instancce of an operator.
+
+        As some operations on operators return lazy wrapperes (such as transpose,
+        hermitian conjugate...), this is used to obtain a guaranteed non-lazy
+        operator.
+        """
+        return self
+
     def get_conn_padded(self, x):
         r"""Finds the connected elements of the Operator.
         Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M
@@ -126,12 +136,13 @@ class AbstractOperator(abc.ABC):
         Returns:
             scipy.sparse.csr_matrix: The sparse matrix representation of the operator.
         """
+        concrete_op = self.collect()
         hilb = self.hilbert
 
         x = hilb.all_states()
 
         sections = np.empty(x.shape[0], dtype=np.int32)
-        x_prime, mels = self.get_conn_flattened(x, sections)
+        x_prime, mels = concrete_op.get_conn_flattened(x, sections)
 
         numbers = hilb.states_to_numbers(x_prime)
 

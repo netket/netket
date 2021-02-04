@@ -41,7 +41,6 @@ class Ising(AbstractOperator):
         self._J = J
         self._section = hilbert.size + 1
         self._edges = np.asarray(list(graph.edges()))
-        super().__init__()
 
     @property
     def is_hermitian(self):
