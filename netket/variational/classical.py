@@ -470,6 +470,7 @@ class MCState(VariationalState):
         )
 
 
+@partial(jax.jit, static_argnums=(0, 1, 2))
 def _expect(
     sampler: Sampler,
     model_apply_fun: Callable,
@@ -493,11 +494,13 @@ def _expect(
     )
 
     local_value_vmap = jax.vmap(
-        local_value_kernel, in_axes=(None, None, 0, 0, 0), out_axes=0
+        partial(local_value_kernel, model_apply_fun),
+        in_axes=(None, 0, 0, 0),
+        out_axes=0,
     )
 
     _, Ō_stats = nkjax.expect(
-        log_pdf, local_value_vmap, logpsi, parameters, σ, σp, mels, n_chains=σ_shape[0]
+        log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
     )
 
     return Ō_stats
@@ -653,7 +656,7 @@ def grad_expect_operator_kernel(
 
     def expect_closure(*args):
         local_kernel_vmap = jax.vmap(
-            local_kernel, in_axes=(None, None, 0, 0, 0), out_axes=0
+            partial(local_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
         )
         return nkjax.expect(
             log_pdf, local_kernel_vmap, logpsi, *args, n_chains=σ_shape[0]
