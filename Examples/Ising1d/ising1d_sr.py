@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import numpy as np
 
 # 1D Lattice
 L = 20
@@ -26,7 +25,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=np.float64)
+ma = nk.models.RBM(alpha=1, dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
@@ -38,11 +37,9 @@ op = nk.optim.GradientDescent(learning_rate=0.1)
 sr = nk.optim.SR(diag_shift=0.01)
 
 # Variational state
-vs = nk.variational_states.ClassicalVariationalState(
-    sa, ma, n_samples=1000, n_discard=100
-)
+vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
 
-# Variational monte carlo driver
+# Variational monte carlo driver with a variational state
 gs = nk.Vmc(ha, op, variational_state=vs, sr=sr)
 
 # Run the optimization for 300 iterations
