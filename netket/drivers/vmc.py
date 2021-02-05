@@ -56,11 +56,11 @@ class Vmc(AbstractVariationalDriver):
 
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
-        self._ham = hamiltonian.collect()
+        self._ham = hamiltonian.collect()  # type: AbstractOperator
 
-        self.sr = sr
+        self.sr = sr  # type: SR
 
-        self._dp = None
+        self._dp = None  # type: PyTree
 
     def _forward_and_backward(self):
         """
