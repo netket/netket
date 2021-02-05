@@ -6,7 +6,7 @@ from netket.operator import (
     local_values as _local_values,
     der_local_values as _der_local_values,
 )
-from netket.stats import (
+from netket.legacy.stats import (
     statistics as _statistics,
     mean as _mean,
     sum_inplace as _sum_inplace,

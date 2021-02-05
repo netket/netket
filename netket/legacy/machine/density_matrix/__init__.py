@@ -5,5 +5,5 @@ from .rbm import RbmSpin
 from netket.utils import jax_available
 
 
-if jax_available:
-    from .jax import Jax, NdmSpin, NdmSpinPhase, JaxRbmSpin
+from .jax import Jax, NdmSpin, NdmSpinPhase, JaxRbmSpin
+from .flax import Flax
