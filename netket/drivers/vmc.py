@@ -56,7 +56,7 @@ class Vmc(AbstractVariationalDriver):
 
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
-        self._ham = hamiltonian
+        self._ham = hamiltonian.collect()
 
         self.sr = sr
 
@@ -97,7 +97,7 @@ class Vmc(AbstractVariationalDriver):
 
     def __repr__(self):
         return "Vmc(step_count={}, n_samples={}, n_discard={})".format(
-            self.step_count, self.n_samples, self.n_discard
+            self.step_count, self.state.n_samples, self.state.n_discard
         )
 
     def info(self, depth=0):
@@ -107,6 +107,7 @@ class Vmc(AbstractVariationalDriver):
                 ("Hamiltonian ", self._ham),
                 ("Optimizer   ", self._optimizer),
                 ("SR solver   ", self.sr),
+                ("State       ", self.state),
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
