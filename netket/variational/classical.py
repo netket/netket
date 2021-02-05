@@ -90,8 +90,9 @@ class MCState(VariationalState):
     """Cached samples obtained with the last sampling."""
 
     _init_fun: Callable = None
+    """The function used to initialise the parameters and model_state"""
     _apply_fun: Callable = None
-    _apply_train_fun: Callable = None
+    """The function used to evaluate the model"""
 
     def __init__(
         self,
@@ -343,6 +344,9 @@ class MCState(VariationalState):
         return self._samples
 
     def evaluate(self, σ) -> jnp.ndarray:
+        """
+        Evaluate the variational state given a batch of states.
+        """
         return self._apply_fun(self.variables, σ)
 
     def expect(self, Ô: AbstractOperator) -> Stats:
@@ -352,6 +356,14 @@ class MCState(VariationalState):
         σ = self.samples
         σ_shape = σ.shape
         σ = σ.reshape((-1, σ_shape[-1]))
+
+        if isinstance(Ô, Squared):
+            squared_operator = True
+        else:
+            squared_operator = False
+
+        if squared_operator:
+            Ô = Ô.parent
 
         σp, mels = Ô.get_conn_padded(np.asarray(σ))
         O_loc = local_cost_function(
@@ -365,7 +377,10 @@ class MCState(VariationalState):
 
         # notice that loc.T is passed to statistics, since that function assumes
         # that the first index is the batch index.
-        return statistics(O_loc.T)
+        if squared_operator:
+            return statistics(jnp.abs(O_loc.T) ** 2)
+        else:
+            return statistics(O_loc.T)
 
     def expect_and_grad(
         self,
@@ -378,9 +393,6 @@ class MCState(VariationalState):
         if not self.hilbert == Ô.hilbert:
             return NotImplemented
 
-        # should check if it is hermitian
-        # if hermitian...
-
         # By default the mutable variables are defined in the variationalstate itself.
         if mutable is None:
             mutable = self.mutable
@@ -388,9 +400,17 @@ class MCState(VariationalState):
         if is_hermitian is None:
             is_hermitian = Ô.is_hermitian
 
+        if isinstance(Ô, Squared):
+            squared_operator = True
+        else:
+            squared_operator = False
+
         σ = self.samples
         σ_shape = σ.shape
         σ = σ.reshape((-1, σ_shape[-1]))
+
+        if squared_operator:
+            Ô = Ô.parent
 
         # Compute local terms....
         # TODO Run this in jitted block and compute gradient directly
@@ -405,18 +425,37 @@ class MCState(VariationalState):
             mels,
             σ,
         )
-        Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+
+        if squared_operator:
+            Ō = statistics(jnp.abs(O_loc.reshape(σ_shape[:-1]).T) ** 2)
+        else:
+            Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
         if is_hermitian and centered:
-            out = grad_expect_hermitian(
-                self._apply_fun,
-                self.parameters,
-                self.model_state,
-                σ,
-                O_loc,
-                mutable,
-                self.n_samples,
-            )
+            if squared_operator:
+                *out, Ō2 = grad_expect_squared_operator(
+                    self.sampler,
+                    self._apply_fun,
+                    self.parameters,
+                    self.model_state,
+                    self.samples,
+                    mutable,
+                    σp,
+                    mels,
+                )
+                print(Ō)
+                print(Ō2)
+            else:
+                out = grad_expect_hermitian(
+                    self._apply_fun,
+                    self.parameters,
+                    self.model_state,
+                    σ,
+                    O_loc,
+                    mutable,
+                    self.n_samples,
+                )
+
         else:
             if centered:
                 out = grad_expect_non_hermitian(
@@ -558,19 +597,19 @@ def grad_expect_non_hermitian(
     return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), new_model_state
 
 
-@partial(jax.jit, static_argnums=(0, 4))
-def grad_expect_non_hermitian_non_centered(
+@partial(jax.jit, static_argnums=(0, 1, 5))
+def grad_expect_squared_operator(
+    sampler,
     model_apply_fun,
     parameters,
     model_state,
     σ,
     mutable,
-    n_samples,
     σp,
     mels,
 ) -> PyTree:
+    σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
-        σ_shape = σ.shape
         σ = σ.reshape((-1, σ_shape[-1]))
 
     has_aux = mutable is not False
@@ -587,18 +626,32 @@ def grad_expect_non_hermitian_non_centered(
             {"params": w, **model_state}, σ, mutable=mutable
         )[0]
 
-    from netket.operator._der_local_values import (
-        _local_value_and_grad_notcentered_kernel,
+    log_pdf = (
+        lambda w, σ: sampler.machine_pow
+        * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
-    # TODO Properely support has_aux
-    Ō, Ō_grad = jax.vmap(
-        _local_value_and_grad_notcentered_kernel(logpsi, pars, σp, mel, σ),
-        in_axes=(None, 0, 0, 0),
-        out_axes=(0, 0),
-    )
+    def local_value(logpsi, pars, σ, σp, mel):
+        return jnp.abs(jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))) ** 2
 
-    return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), model_state
+    def expect_closure(*args):
+        local_value_vmap = jax.vmap(
+            local_value, in_axes=(None, None, 0, 0, 0), out_axes=0
+        )
+        return nkjax.expect(
+            log_pdf, local_value_vmap, logpsi, *args, n_chains=σ_shape[0]
+        )
+
+    Ō, Ō_pb, Ō_stats = nkjax.vjp(
+        expect_closure, parameters, σ, σp, mels, has_aux=True
+    )
+    Ō_pars_grad, _, _, _ = Ō_pb(jnp.ones_like(Ō))
+
+    return (
+        tree_map(lambda x: sum_inplace(x) / netket.utils.n_nodes, Ō_pars_grad),
+        model_state,
+        Ō_stats,
+    )
 
 
 # serialization
