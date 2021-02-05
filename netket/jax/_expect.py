@@ -14,27 +14,44 @@
 
 # The score function (REINFORCE) gradient estimator of an expectation
 
+from typing import Union, Callable, Tuple, Any
 from functools import partial
 
 import jax
 from jax import numpy as jnp
 
-from netket.stats import statistics as mpi_statistics, mean as mpi_mean
+from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 
 from ._grad import grad
 from ._vjp import vjp as nkvjp
 
+PyTree = Any
 
-def expect(log_pdf, expected_fun, model, pars, σ, *expected_fun_args, n_chains=None):
-    return _expect(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args)
+
+def expect(
+    log_pdf: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
+    expected_fun: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
+    pars: PyTree,
+    σ: jnp.ndarray,
+    *expected_fun_args,
+    n_chains: bool = None,
+) -> Tuple[jnp.ndarray, Stats]:
+    """
+    Computes the expectation value over a log-pdf.
+
+    Args:
+        log_pdf:
+        expected_ffun
+    """
+    return _expect(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args)
 
 
 # log_prob_args and integrand_args are independent of params when taking the
 # gradient. They can be continuous or discrete, and they can be pytrees
 # Does not support higher-order derivatives yet
-@partial(jax.custom_vjp, nondiff_argnums=(0, 1, 2, 3))
-def _expect(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
-    L_σ = expected_fun(model, pars, σ, *expected_fun_args)
+@partial(jax.custom_vjp, nondiff_argnums=(0, 1, 2))
+def _expect(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
+    L_σ = expected_fun(pars, σ, *expected_fun_args)
     if n_chains is not None:
         L_σ = L_σ.reshape((n_chains, -1))
 
@@ -44,8 +61,8 @@ def _expect(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args
     return L̄_σ.mean, L̄_σ
 
 
-def _expect_fwd(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
-    L_σ = expected_fun(model, pars, σ, *expected_fun_args)
+def _expect_fwd(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
+    L_σ = expected_fun(pars, σ, *expected_fun_args)
     if n_chains is not None:
         L_σ_r = L_σ.reshape((n_chains, -1))
     else:
@@ -66,14 +83,14 @@ def _expect_fwd(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_
 # so it should support higher-order derivatives
 # But I don't know how to transform log_prob_fun into grad(log_prob_fun) while
 # keeping the batch dimension and without a loop through the batch dimension
-def _expect_bwd(n_chains, log_pdf, expected_fun, model, residuals, dout):
+def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
     pars, σ, cost_args, ΔL_σ = residuals
     dL̄, dL̄_stats = dout
 
     def f(pars, σ, *cost_args):
         log_p = log_pdf(pars, σ)
         term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
-        term2 = expected_fun(model, pars, σ, *cost_args)
+        term2 = expected_fun(pars, σ, *cost_args)
         out = mpi_mean(term1 + term2, axis=0)
         out = out.sum()
         return out
