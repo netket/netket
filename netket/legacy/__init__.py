@@ -2,7 +2,7 @@ from netket import (
     exact,
     callbacks,
     graph,
-    hilbert,
+    # hilbert,
     # logging,
     operator,
     #    optim,
@@ -17,7 +17,7 @@ from netket import (
 )
 
 from . import (
-    #    hilbert,
+    hilbert,
     machine,
     sampler,
     optimizer,

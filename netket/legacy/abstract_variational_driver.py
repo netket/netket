@@ -4,7 +4,7 @@ import numbers
 import netket as _nk
 import numpy as _np
 
-from netket.logging import JsonLog as _JsonLog
+from netket.legacy.logging import JsonLog as _JsonLog
 
 from netket.legacy.vmc_common import tree_map
 

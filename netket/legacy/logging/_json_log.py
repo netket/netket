@@ -1,7 +1,6 @@
 import json as _json
 from os import path as _path
-
-from jax.tree_util import tree_map
+from netket.legacy.vmc_common import tree_map as _tree_map
 
 
 def _exists_json(prefix):
@@ -96,7 +95,7 @@ class JsonLog:
 
     def _flush_log(self):
         with open(self._prefix + ".log", "w") as outfile:
-            log_data = tree_map(_to_json, self._json_out)
+            log_data = _tree_map(_to_json, self._json_out)
             _json.dump(log_data, outfile)
             self._steps_notflushed_write = 0
 
