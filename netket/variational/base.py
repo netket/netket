@@ -109,7 +109,6 @@ class VariationalState(abc.ABC):
         self,
         Ô: AbstractOperator,
         mutable=None,
-        centered=True,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
@@ -157,14 +156,13 @@ class VariationalMixedState(VariationalState):
     def expect_and_grad(
         self,
         Ô: AbstractOperator,
-        mutable=None,
-        centered=True,
+        mutable: bool = None,
     ) -> Tuple[Stats, PyTree]:
         # do the computation in super-operator space
         if self.hilbert == Ô.hilbert:
-            return super().expect_and_grad(Ô, mutable=mutable, centered=centered)
+            return super().expect_and_grad(Ô, mutable=mutable)
         elif self.hilbert_physical == Ô.hilbert:
-            return super().expect_and_grad(Ô, mutable=mutable, centered=centered)
+            return super().expect_and_grad(Ô, mutable=mutable)
         else:
             return NotImplemented
 

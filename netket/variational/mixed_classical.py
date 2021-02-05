@@ -197,5 +197,5 @@ class MCMixedState(VariationalMixedState, MCState):
         # that the first index is the batch index.
         return statistics(O_loc.T)
 
-    def expect_and_grad_operator(self, Ô: AbstractOperator, centered=True) -> Stats:
+    def expect_and_grad_operator(self, Ô: AbstractOperator) -> Stats:
         raise NotImplementedError
