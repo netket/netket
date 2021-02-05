@@ -26,17 +26,11 @@ class VariationalState(abc.ABC):
 
     """
 
-    _hilbert: AbstractHilbert
-    """The hilbert space on which this state is defined."""
+    def __init__(self, hilbert: AbstractHilbert):
+        self._hilbert = hilbert  # type: AbstractHilbert
 
-    parameters: PyTree
-    """The PyTree of variational parameters"""
-
-    def __init__(self, hilbert):
-        self._hilbert = hilbert
-
-        self._model_state = {}
-        self._parameters = {}
+        self._model_state = {}  # type: PyTree
+        self._parameters = {}  # type: PyTree
 
     @property
     def hilbert(self) -> AbstractHilbert:
@@ -78,6 +72,9 @@ class VariationalState(abc.ABC):
         self.model_state, self.parameters = vars.pop("params")
 
     def reset(self):
+        r"""Resets the internal cache of th variational state.
+        Called automatically when the parameters/state is updated.
+        """
         pass
 
     @abc.abstractmethod
@@ -94,26 +91,34 @@ class VariationalState(abc.ABC):
         """
         raise NotImplementedError
 
-    def grad(self, Ô) -> PyTree:
+    def grad(
+        self, Ô, *, is_hermitian: Optional[bool] = None, mutable: Optional[Any] = None
+    ) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
 
         Args:
             op (netket.operator.AbstractOperator): the operator O.
+            is_hermitian: optional override for whever to use or not the hermitian logic. By default
+                it's automatically detected.
 
         Returns:
             array: An estimation of the average gradient of the quantum expectation value <O>.
         """
-        return self.expect_and_grad(Ô)[1]
+        return self.expect_and_grad(Ô, mutable=mutable)[1]
 
     def expect_and_grad(
         self,
         Ô: AbstractOperator,
-        mutable=None,
+        *,
+        mutable: Optional[Any] = None,
+        is_hermitian: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
         Args:
-            Ô (netket.operator.AbstractOperator): the operator O
+            Ô: the operator O
+            is_hermitian: optional override for whever to use or not the hermitian logic. By default
+                it's automatically detected.
 
         Returns:
             An estimation of the quantum expectation value <O>.
@@ -127,6 +132,9 @@ class VariationalState(abc.ABC):
 
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.
+
+        Args:
+            sr: The object containing the settings off the SR format to be used.
 
         Returns:
            A linear operator representing the quantum geometric tensor.

@@ -121,10 +121,8 @@ class MCMixedState(VariationalMixedState, MCState):
 
         # build the
 
-    def init(self, *args, **kwargs):
-        super().init(*args, **kwargs)
-        if self.diagonal is not None:
-            self.diagonal.variables = variables
+    # def init(self, *args, **kwargs):
+    #    super().init(*args, **kwargs)
 
     @property
     def sampler_diag(self):
@@ -197,5 +195,7 @@ class MCMixedState(VariationalMixedState, MCState):
         # that the first index is the batch index.
         return statistics(O_loc.T)
 
-    def expect_and_grad_operator(self, Ô: AbstractOperator) -> Stats:
+    def expect_and_grad_operator(
+        self, Ô: AbstractOperator, is_hermitian=None
+    ) -> Stats:
         raise NotImplementedError
