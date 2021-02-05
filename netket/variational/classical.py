@@ -658,9 +658,7 @@ def grad_expect_operator_kernel(
         local_kernel_vmap = jax.vmap(
             partial(local_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
         )
-        return nkjax.expect(
-            log_pdf, local_kernel_vmap, logpsi, *args, n_chains=σ_shape[0]
-        )
+        return nkjax.expect(log_pdf, local_kernel_vmap, *args, n_chains=σ_shape[0])
 
     Ō, Ō_pb, Ō_stats = nkjax.vjp(
         expect_closure, parameters, σ, σp, mels, has_aux=True
