@@ -11,6 +11,8 @@
 __pycache__/
 *.py[cod]
 netket.egg-info/
+pip-wheel-metadata
+.ipynb_checkpoints
 
 # Packages #
 ############
