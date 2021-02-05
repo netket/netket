@@ -1,4 +1,6 @@
-import json as _json
+import json
+import dataclasses
+
 from os import path as _path
 
 from flax import serialization
@@ -10,12 +12,14 @@ def _exists_json(prefix):
     return _path.exists(prefix + ".log") or _path.exists(prefix + ".mpack")
 
 
-def _to_json(ob):
-    to_json = getattr(ob, "to_json", None)
-    if to_json is not None:
-        return ob.to_json()
-    else:
-        return ob
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if hasattr(o, "to_json"):
+            return o.to_json()
+        elif dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        else:
+            return super().default(o)
 
 
 class JsonLog:
@@ -65,7 +69,7 @@ class JsonLog:
                     "History file does not exists, but wavefunction file does. Please change `output_prefix or set mode=`write`."
                 )
 
-            starting_json_content = _json.load(open(output_prefix + ".log"))
+            starting_json_content = json.load(open(output_prefix + ".log"))
 
         elif file_exists and mode == "fail":
             raise ValueError(
@@ -102,8 +106,7 @@ class JsonLog:
 
     def _flush_log(self):
         with open(self._prefix + ".log", "w") as outfile:
-            log_data = tree_map(_to_json, self._json_out)
-            _json.dump(log_data, outfile)
+            json.dump(self._json_out, outfile, cls=EnhancedJSONEncoder)
             self._steps_notflushed_write = 0
 
     def _flush_params(self, variational_state):

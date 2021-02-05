@@ -19,47 +19,68 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
+from netket.stats import statistics as mpi_statistics, mean as mpi_mean
+
 from ._grad import grad
 from ._vjp import vjp as nkvjp
+
+
+def expect(log_pdf, expected_fun, model, pars, σ, *expected_fun_args, n_chains=None):
+    return _expect(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args)
 
 
 # log_prob_args and integrand_args are independent of params when taking the
 # gradient. They can be continuous or discrete, and they can be pytrees
 # Does not support higher-order derivatives yet
-@partial(jax.custom_vjp, nondiff_argnums=(0, 1, 2))
-def expect(log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
+@partial(jax.custom_vjp, nondiff_argnums=(0, 1, 2, 3))
+def _expect(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
     L_σ = expected_fun(model, pars, σ, *expected_fun_args)
-    return L_σ.mean(axis=0)
+    if n_chains is not None:
+        L_σ = L_σ.reshape((n_chains, -1))
+
+    L̄_σ = mpi_statistics(L_σ.T)
+    # L̄_σ = L_σ.mean(axis=0)
+
+    return L̄_σ.mean, L̄_σ
 
 
-def expect_fwd(log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
+def _expect_fwd(n_chains, log_pdf, expected_fun, model, pars, σ, *expected_fun_args):
     L_σ = expected_fun(model, pars, σ, *expected_fun_args)
-    L̄_σ = L_σ.mean(axis=0)
+    if n_chains is not None:
+        L_σ_r = L_σ.reshape((n_chains, -1))
+    else:
+        L_σ_r = L_σ
+
+    L̄_stat = mpi_statistics(L_σ_r.T)
+
+    L̄_σ = L̄_stat.mean
+    # L̄_σ = L_σ.mean(axis=0)
 
     # Use the baseline trick to reduce the variance
     ΔL_σ = L_σ - L̄_σ
-    return L̄_σ, (pars, σ, expected_fun_args, ΔL_σ)
+
+    return (L̄_σ, L̄_stat), (pars, σ, expected_fun_args, ΔL_σ)
 
 
 # TODO: in principle, the gradient of an expectation is another expectation,
 # so it should support higher-order derivatives
 # But I don't know how to transform log_prob_fun into grad(log_prob_fun) while
 # keeping the batch dimension and without a loop through the batch dimension
-def expect_bwd(log_pdf, expected_fun, model, residuals, dout):
+def _expect_bwd(n_chains, log_pdf, expected_fun, model, residuals, dout):
     pars, σ, cost_args, ΔL_σ = residuals
+    dL̄, dL̄_stats = dout
 
     def f(pars, σ, *cost_args):
         log_p = log_pdf(pars, σ)
         term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
         term2 = expected_fun(model, pars, σ, *cost_args)
-        # TODO: use nk.stats.mean, which uses MPI already
-        out = (term1 + term2).mean(axis=0)
+        out = mpi_mean(term1 + term2, axis=0)
         out = out.sum()
         return out
 
     _, pb = nkvjp(f, pars, σ, *cost_args)
-    grad_f = pb(dout)
+    grad_f = pb(dL̄)
     return grad_f
 
 
-expect.defvjp(expect_fwd, expect_bwd)
+_expect.defvjp(_expect_fwd, _expect_bwd)
