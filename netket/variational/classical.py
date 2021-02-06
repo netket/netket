@@ -363,13 +363,13 @@ class MCState(VariationalState):
 
         σ = self.samples
 
-        σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-
         if isinstance(Ô, Squared):
             Ô = Ô.parent
             kernel = local_value_squared_kernel
         else:
             kernel = local_value_kernel
+
+        σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
 
         return _expect(
             self.sampler,
@@ -494,7 +494,7 @@ def _expect(
     )
 
     local_value_vmap = jax.vmap(
-        partial(local_value_kernel, model_apply_fun),
+        partial(local_value_kernel, logpsi),
         in_axes=(None, 0, 0, 0),
         out_axes=0,
     )
