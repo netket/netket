@@ -99,7 +99,7 @@ class Lattice(NetworkX):
     by a simple integer number (the site index) or by its coordinates (actual position in space).
     """
 
-    def __init__(self, basis_vectors, extent, *, pbc=True, atoms_coord=[]):
+    def __init__(self, basis_vectors, extent, *, pbc: bool = True, atoms_coord=[]):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
