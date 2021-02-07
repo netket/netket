@@ -126,7 +126,7 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.sampler.Sampler
    netket.sampler.ExactSampler
    netket.sampler.MetropolisSampler
-   netket.sampler.MetropolisNumpySampler
+   netket.sampler.MetropolisSamplerNumpy
    netket.sampler.MetropolisPtSampler
 
    netket.sampler.MetropolisLocal
