@@ -163,7 +163,8 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, AbstractOperator):
             return self.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
-            raise TypeError("`other` must be another NetKet operator or a scalar.")
+            return NotImplemented
+
         self._constant *= other
         self._diag_mels *= other
         self._mels *= other
@@ -175,9 +176,7 @@ class LocalOperator(AbstractOperator):
 
     def __imatmul__(self, other):
         if not isinstance(other, LocalOperator):
-            raise NotImplementedError(
-                "Operator product is only implemented for LocalOperator."
-            )
+            return NotImplemented
 
         tot_operators = []
         tot_act = []

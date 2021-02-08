@@ -29,7 +29,7 @@ def _der_local_values_impl(op, machine, v, log_vals):
     v_primes, mels = op.get_conn_padded(np.asarray(v))
 
     val, grad = local_costs_and_grads_function(
-        local_energy_kernel, machine, v_primes, mels, v
+        local_energy_kernel, machine.jax_forward, machine.parameters, v_primes, mels, v
     )
     return grad
 
@@ -39,55 +39,52 @@ def _der_local_values_impl(op, machine, v, log_vals):
 # \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
 @partial(jax.jit, static_argnums=0)
 def _local_value_and_grad_notcentered_kernel(logpsi, pars, vp, mel, v):
-
-    from netket import jax as nkjax
-
-    logpsi_vp, f_vjp = nkjax.vjp(lambda w: logpsi(w, vp), pars)
-    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+    # import netket.jax as nkjax
+    # logpsi_vp, f_vjp = nkjax.vjp(lambda w: logpsi(w, vp), pars)
+    # vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+    # odtype = outdtype(logpsi, pars, v)
     # vec = jnp.asarray(vec, dtype=odtype)
+    # loc_val = vec.sum()
+    # grad_c = f_vjp(vec)[0]
+    # return loc_val, grad_c
 
-    loc_val = vec.sum()
-    grad_c = f_vjp(vec)[0]
+    odtype = outdtype(logpsi, pars, v)
+    # can use if with jit because that argument is exposed statically to the jit!
+    # if real_to_complex:
+    if not tree_leaf_iscomplex(pars) and jnp.issubdtype(odtype, jnp.complexfloating):
+        logpsi_vp_r, f_vjp_r = jax.vjp(lambda w: (logpsi(w, vp).real), pars)
+        logpsi_vp_j, f_vjp_j = jax.vjp(lambda w: (logpsi(w, vp).imag), pars)
+
+        logpsi_vp = logpsi_vp_r + 1.0j * logpsi_vp_j
+
+        vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+        vec = jnp.asarray(vec, dtype=odtype)
+
+        vec_r = vec.real
+        vec_j = vec.imag
+
+        loc_val = vec.sum()
+
+        vr_grad_r, tree_fun = jax.tree_flatten(f_vjp_r(vec_r)[0])
+        vj_grad_r, _ = jax.tree_flatten(f_vjp_r(vec_j)[0])
+        vr_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_r)[0])
+        vj_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_j)[0])
+
+        r_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_r, vj_grad_r)]
+        j_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_j, vj_grad_j)]
+        out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
+
+        grad_c = jax.tree_unflatten(tree_fun, out_flat)
+    else:
+        logpsi_vp, f_vjp = jax.vjp(lambda w: logpsi(w, vp), pars)
+
+        vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+        # vec = jnp.asarray(vec, dtype=odtype)
+
+        loc_val = vec.sum()
+        grad_c = f_vjp(vec)[0]
+
     return loc_val, grad_c
-
-
-#    odtype = outdtype(logpsi, pars, v)
-#    # can use if with jit because that argument is exposed statically to the jit!
-#    # if real_to_complex:
-#    if not tree_leaf_iscomplex(pars) and jnp.issubdtype(odtype, jnp.complexfloating):
-#        logpsi_vp_r, f_vjp_r = jax.vjp(lambda w: (logpsi(w, vp).real), pars)
-#        logpsi_vp_j, f_vjp_j = jax.vjp(lambda w: (logpsi(w, vp).imag), pars)
-#
-#        logpsi_vp = logpsi_vp_r + 1.0j * logpsi_vp_j
-#
-#        vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
-#        vec = jnp.asarray(vec, dtype=odtype)
-#
-#        vec_r = vec.real
-#        vec_j = vec.imag
-#
-#        loc_val = vec.sum()
-#
-#        vr_grad_r, tree_fun = jax.tree_flatten(f_vjp_r(vec_r)[0])
-#        vj_grad_r, _ = jax.tree_flatten(f_vjp_r(vec_j)[0])
-#        vr_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_r)[0])
-#        vj_grad_j, _ = jax.tree_flatten(f_vjp_j(vec_j)[0])
-#
-#        r_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_r, vj_grad_r)]
-#        j_flat = [rr + 1j * jr for rr, jr in zip(vr_grad_j, vj_grad_j)]
-#        out_flat = [re + 1.0j * im for re, im in zip(r_flat, j_flat)]
-#
-#        grad_c = jax.tree_unflatten(tree_fun, out_flat)
-#    else:
-#    logpsi_vp, f_vjp = nkjax.vjp(lambda w: logpsi(w, vp), pars)
-#
-#    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
-#    #vec = jnp.asarray(vec, dtype=odtype)
-#
-#    loc_val = vec.sum()
-#    grad_c = f_vjp(vec)[0]
-#
-#    return loc_val, grad_c
 
 
 @partial(jax.jit, static_argnums=0)

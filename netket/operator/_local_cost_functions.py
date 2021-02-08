@@ -124,10 +124,10 @@ def local_cost_function(local_cost_fun, model, pars, *args):
 # dtype: dtype of pars
 # outdtype: dtype of logpsi(pars, *args)
 def __local_cost_and_grad_function(local_cost_fun, logpsi, pars, *args):
-    lcfun_u = _unjitted_fun[local_cost_fun]
+    lcfun_u = partial(_unjitted_fun[local_cost_fun], logpsi)
 
-    der_local_cost_fun = nkjax.value_and_grad(lcfun_u, argnums=1)
-    return der_local_cost_fun(logpsi, pars, *args)
+    der_local_cost_fun = nkjax.value_and_grad(lcfun_u, argnums=0)
+    return der_local_cost_fun(pars, *args)
 
 
 _local_cost_and_grad_function = jax.jit(

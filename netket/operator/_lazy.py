@@ -14,6 +14,9 @@ class WrappedOperator(AbstractOperator):
     def __matmul__(self, other):
         return self.collect() @ other
 
+    def __rmatmul__(self, other):
+        return other @ self.collect()
+
     def transpose(self):
         return self.T
 
