@@ -40,7 +40,7 @@ class ExactSampler(AbstractSampler):
         self._prob /= self._prob.sum()
 
     def __next__(self):
-        numbers = netket.random.choice(
+        numbers = netket.legacy.random.choice(
             self._prob.size, size=self.sample_shape[0], replace=True, p=self._prob
         )
         return self.hilbert.numbers_to_states(numbers)
@@ -50,7 +50,7 @@ class ExactSampler(AbstractSampler):
         if samples is None:
             samples = _np.zeros((n_samples, self.sample_shape[0], self.sample_shape[1]))
 
-        numbers = netket.random.choice(
+        numbers = netket.legacy.random.choice(
             self._prob.size,
             size=self.sample_shape[0] * n_samples,
             replace=True,
