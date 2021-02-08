@@ -115,7 +115,7 @@ class Fock(CustomHilbert):
         ss = self.size
 
         for i in range(self.n_particles):
-            s = rgen.randint(0, ss, size=())
+            s = rgen.integers(0, ss, size=())
 
             out[sites[s]] += 1
 
@@ -129,20 +129,22 @@ class Fock(CustomHilbert):
         shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
-            out = _np.empty(shape=shape)
+            out = np.empty(shape=shape)
 
         if rgen is None:
             rgen = np.random.default_rng()
 
         if self.n_particles is None:
-            out[:] = rgen.randint(0, self.n_max, size=shape)
+            out[:] = rgen.integers(0, self.n_max, size=shape)
         else:
             if size is not None:
                 out_r = out.reshape(-1, self._size)
                 for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint(out_r[b], rgen, self.n_max)
+                    self._random_state_with_constraint_legacy(
+                        out_r[b], rgen, self.n_max
+                    )
             else:
-                self._random_state_with_constraint(out, rgen, self.n_max)
+                self._random_state_with_constraint_legacy(out, rgen, self.n_max)
 
         return out
 

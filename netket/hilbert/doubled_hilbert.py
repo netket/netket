@@ -114,7 +114,7 @@ class DoubledHilbert(AbstractHilbert):
         shape = (*size, self.size) if size is not None else (self.size,)
 
         if out is None:
-            out = _np.empty(shape=shape)
+            out = np.empty(shape=shape)
 
         n = self.size_physical
 

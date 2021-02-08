@@ -3,6 +3,7 @@ from .hilbert_index import HilbertIndex
 from ._deprecations import graph_to_N_depwarn
 
 import jax
+import numpy as np
 from jax import numpy as jnp
 from numba import jit
 import numpy as np
@@ -222,7 +223,7 @@ class CustomHilbert(AbstractHilbert):
         shape = (*size, self._size) if size is not None else (self._size,)
 
         if out is None:
-            out = _np.empty(shape=shape)
+            out = np.empty(shape=shape)
         if rgen is None:
             rgen = np.random.default_rng()
 
