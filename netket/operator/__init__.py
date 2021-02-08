@@ -4,7 +4,7 @@ from ._der_local_values import der_local_values
 
 
 from ._local_operator import LocalOperator
-from ._local_liouvillian import LocalLiouvillian
+from ._local_liouvillian import AbstractSuperOperator, LocalLiouvillian
 from ._graph_operator import GraphOperator
 
 from . import spin, boson
