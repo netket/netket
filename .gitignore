@@ -33,6 +33,8 @@ pip-wheel-metadata
 *.sql
 *.sqlite
 *.json
+*.wf
+*.mpack
 
 # OS generated files #
 ######################
