@@ -105,24 +105,16 @@ def test_sum():
         assert np.all(nk_sum_kd == ref_sum_kd), "axis={}, keepdims=True".format(axis)
 
     # Test with out
-    out = np.array(0.0)  # ndim=0 array
-    out = nk.stats.sum(mydata, out=out)
-    assert np.all(out == np.sum(data))
+    out = nk.stats.sum(mydata)
+    np.testing.assert_almost_equal(out, np.sum(data))
 
     # Test with out and axis
-    out = np.empty((11, 12))
-    nk.stats.sum(mydata, axis=0, out=out)
-    assert np.all(out == np.sum(data.sum(axis=0), axis=0))
+    out = nk.stats.sum(mydata, axis=0)
+    np.testing.assert_almost_equal(out, np.sum(data.sum(axis=0), axis=0))
 
     # Test with complex dtype
     out = nk.stats.sum(1j * mydata, axis=0)
-    assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
-
-    # Test with complex dtype and out
-    out = np.empty((11, 12), dtype=np.complex128)
-    _out = nk.stats.sum(1j * mydata, axis=0, out=out)
-    assert out is _out
-    assert np.all(out == np.sum(1j * data.sum(axis=0), axis=0))
+    np.testing.assert_almost_equal(out, np.sum(1j * data.sum(axis=0), axis=0))
 
 
 @pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
@@ -147,8 +139,7 @@ def test_var():
         assert nk_var == approx(ref_var), "axis={},ddof={}".format(axis, ddof)
 
     # Test with out
-    out = np.array(0.0)  # ndim=0 array
-    nk.stats.var(mydata, out=out)
+    out = nk.stats.var(mydata)
     assert out == approx(np.var(data))
 
 
@@ -161,7 +152,7 @@ def test_sum_inplace():
     ret = nk.stats.sum_inplace(mydata)
     # mydata should be changed in place
     assert mydata == approx(ref_sum)
-    assert np.all(ret == mydata)
+    np.testing.assert_almost_equal(ret, mydata)
 
 
 def test_subtract_mean():
