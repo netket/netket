@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 import netket.legacy as _nk
 from netket.logging import JsonLog as _JsonLog
-from netket.vmc_common import tree_map as _tree_map
+from jax.tree_util import tree_map as _tree_map
 
 from netket.utils import (
     n_nodes as _n_nodes,
