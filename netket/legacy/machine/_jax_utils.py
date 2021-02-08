@@ -145,6 +145,7 @@ def _vjp_RC(pars, forward_fn, v, vec, conjugate):
     vals_r, f_jvp_r = jax.vjp(lambda pars, v: forward_fn(pars, v).real, pars, v)
 
     vals_j, f_jvp_j = jax.vjp(lambda pars, v: forward_fn(pars, v).imag, pars, v)
+
     vec_r = vec.reshape(vals_r.shape).real
     vec_j = vec.reshape(vals_r.shape).imag
 

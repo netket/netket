@@ -1,5 +1,5 @@
 import warnings
-from netket.vmc_common import tree_map
+from jax.tree_util import tree_map
 
 
 # Higher-level VMC functions:
