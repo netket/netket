@@ -1,4 +1,4 @@
-import netket as nk
+import netket.legacy as nk
 import networkx as nx
 import numpy as np
 import pytest
@@ -36,7 +36,6 @@ if test_jax:
     import jax
     import jax.experimental
     import jax.experimental.stax
-    import flax
 
     def initializer(rng, shape):
         return np.random.normal(scale=0.05, size=shape)
@@ -68,14 +67,6 @@ if test_jax:
     machines["Jax mps"] = nk.machine.MPSPeriodic(hi, graph=g, bond_dim=4, dtype=complex)
 
     machines["Jax RbmSpinPhase (R->C)"] = nk.machine.JaxRbmSpinPhase(hi, alpha=1)
-
-    class flaxrbm(flax.linen.Module):
-        def apply(self, x):
-            x = flax.nn.Dense(x, features=2, dtype=jax.numpy.complex128)
-            x = jax.numpy.log(jax.numpy.cosh(x))
-            return jax.numpy.sum(x, axis=-1)
-
-    machines["Flax RBM"] = nk.machine.Flax(hi, flaxrbm())
 
     dm_machines["Jax NDM"] = nk.machine.density_matrix.NdmSpinPhase(hi, alpha=1, beta=1)
 
@@ -146,7 +137,9 @@ np.random.seed(12346)
 
 def same_derivatives(der_log, num_der_log, eps=1.0e-5):
     assert der_log.shape == num_der_log.shape
-    assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+    # assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
+
+    np.testing.assert_array_almost_equal(der_log.real, num_der_log.real, decimal=4)
 
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
