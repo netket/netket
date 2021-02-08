@@ -126,4 +126,4 @@ class RBMModPhase(nn.Module):
         im = self.activation(im)
         im = jnp.sum(im, axis=-1)
 
-        return mod + 1j * im
+        return re + 1j * im
