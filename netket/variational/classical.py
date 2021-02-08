@@ -33,10 +33,11 @@ from netket import utils
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils
+from netket.utils import flax as flax_utils, n_nodes
 from netket.optim import SR
 from netket.operator import (
     AbstractOperator,
+    AbstractSuperOperator,
     define_local_cost_function,
     local_cost_function,
     local_value_cost,
@@ -412,17 +413,30 @@ class MCState(VariationalState):
 
         if is_hermitian:
             if squared_operator:
-                Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                    self.sampler,
-                    self._apply_fun,
-                    local_value_squared_kernel,
-                    mutable,
-                    self.parameters,
-                    self.model_state,
-                    self.samples,
-                    σp,
-                    mels,
-                )
+                if isinstance(Ô, AbstractSuperOperator):
+                    Ō, Ō_grad, new_model_state = grad_expect_operator_Lrho2(
+                        self.sampler,
+                        self._apply_fun,
+                        mutable,
+                        self.parameters,
+                        self.model_state,
+                        self.samples,
+                        σp,
+                        mels,
+                    )
+                else:
+                    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
+                        self.sampler,
+                        self._apply_fun,
+                        local_value_squared_kernel,
+                        mutable,
+                        self.parameters,
+                        self.model_state,
+                        self.samples,
+                        σp,
+                        mels,
+                    )
+
             else:
                 Ō, Ō_grad, new_model_state = grad_expect_hermitian(
                     self._apply_fun,
@@ -521,7 +535,7 @@ def grad_expect_hermitian(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * netket.utils.n_nodes
+    n_samples = σ.shape[0] * utils.n_nodes
 
     O_loc = local_cost_function(
         local_value_cost,
@@ -574,7 +588,7 @@ def grad_expect_non_hermitian(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * netket.utils.n_nodes
+    n_samples = σ.shape[0] * utils.n_nodes
 
     has_aux = mutable is not False
     if not has_aux:
@@ -667,7 +681,87 @@ def grad_expect_operator_kernel(
 
     return (
         Ō_stats,
-        tree_map(lambda x: sum_inplace(x) / netket.utils.n_nodes, Ō_pars_grad),
+        tree_map(lambda x: sum_inplace(x) / utils.n_nodes, Ō_pars_grad),
+        model_state,
+    )
+
+
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def grad_expect_operator_Lrho2(
+    sampler: Sampler,
+    model_apply_fun: Callable,
+    mutable: bool,
+    parameters: PyTree,
+    model_state: PyTree,
+    σ: jnp.ndarray,
+    σp: jnp.ndarray,
+    mels: jnp.ndarray,
+) -> Tuple[PyTree, PyTree, Stats]:
+    σ_shape = σ.shape
+    if jnp.ndim(σ) != 2:
+        σ = σ.reshape((-1, σ_shape[-1]))
+
+    n_samples_node = σ.shape[0]
+
+    has_aux = mutable is not False
+    if not has_aux:
+        out_axes = (0, 0)
+    else:
+        out_axes = (0, 0, 0)
+
+    if not has_aux:
+        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
+    else:
+        # TODO: output the mutable state
+        logpsi = lambda w, σ: model_apply_fun(
+            {"params": w, **model_state}, σ, mutable=mutable
+        )[0]
+
+    local_kernel_vmap = jax.vmap(
+        partial(local_value_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
+    )
+
+    # _Lρ = local_kernel_vmap(parameters, σ, σp, mels).reshape((σ_shape[0], -1))
+    (
+        Lρ,
+        der_loc_vals,
+    ) = netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel(
+        logpsi, parameters, σp, mels, σ
+    )
+
+    LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
+    LdagL_mean = LdagL_stats.mean
+
+    grad_fun = jax.vmap(nkjax.grad(logpsi, argnums=0), in_axes=(None, 0), out_axes=0)
+
+    # old code (this works, but... yeah. let's keep it here and delete in a while.)
+    # der_logs = grad_fun(parameters, σ)
+    # der_logs_ave = tree_map(lambda x: mean(x, axis=0), der_logs)
+
+    # to compute der_logs_ave i can just do a jvp with a ones vector
+    _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
+    # TODO: this ones_like might produce a complexXX type but we only need floatXX
+    # and we cut in 1/2 the # of operations to do.
+    der_logs_ave = d_logpsi(
+        jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
+    )[0]
+    der_logs_ave = tree_map(sum_inplace, der_logs_ave)
+
+    def gradfun(der_loc_vals, der_logs_ave):
+        par_dims = der_loc_vals.ndim - 1
+
+        _lloc_r = Lρ.reshape((n_samples_node,) + tuple(1 for i in range(par_dims)))
+
+        grad = mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
+            der_logs_ave.conjugate() * LdagL_mean
+        )
+        return grad
+
+    LdagL_grad = jax.tree_util.tree_multimap(gradfun, der_loc_vals, der_logs_ave)
+
+    return (
+        LdagL_stats,
+        LdagL_grad,
         model_state,
     )
 
