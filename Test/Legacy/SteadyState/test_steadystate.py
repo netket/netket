@@ -1,6 +1,6 @@
 import json
 from pytest import approx
-import netket as nk
+import netket.legacy as nk
 import numpy as np
 import shutil
 import tempfile

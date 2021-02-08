@@ -1,4 +1,4 @@
-import netket as nk
+import netket.legacy as nk
 import time
 
 SEED = 3141592

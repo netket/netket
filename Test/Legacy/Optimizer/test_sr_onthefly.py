@@ -1,5 +1,5 @@
 import pytest
-import netket as nk
+import netket.legacy as nk
 
 if not nk.utils.jax_available:
     pytest.skip("skipping jax-only SR-onthefly tests", allow_module_level=True)
@@ -9,8 +9,10 @@ import jax.numpy as jnp
 import jax.flatten_util
 import numpy as np
 from jax.scipy.sparse.linalg import cg
-from netket.optimizer.jax._sr_onthefly import *
-from netket.optimizer.jax.stochastic_reconfiguration import _jax_cg_solve_onthefly
+from netket.legacy.optimizer.jax._sr_onthefly import *
+from netket.legacy.optimizer.jax.stochastic_reconfiguration import (
+    _jax_cg_solve_onthefly,
+)
 
 
 @partial(jax.vmap, in_axes=(None, 0))

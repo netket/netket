@@ -1,5 +1,5 @@
-import netket as nk
-from netket.optimizer import SR
+import netket.legacy as nk
+from netket.legacy.optimizer import SR
 
 import numpy as np
 

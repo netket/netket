@@ -1,8 +1,8 @@
 from pytest import approx, raises
 import numpy as np
 
-import netket as nk
-import netket.variational as vmc
+import netket.legacy as nk
+import netket.legacy.variational as vmc
 
 from io import StringIO
 from contextlib import redirect_stderr

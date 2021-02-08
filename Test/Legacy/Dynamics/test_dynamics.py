@@ -3,7 +3,7 @@ from pytest import approx, raises
 from scipy.integrate import solve_ivp
 from scipy.linalg import norm
 
-import netket as nk
+import netket.legacy as nk
 from netket.exact import PyExactTimePropagation
 
 
