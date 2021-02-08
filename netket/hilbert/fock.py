@@ -108,6 +108,44 @@ class Fock(CustomHilbert):
     def _attrs(self):
         return (self.size, self._n_max, self._constraint_fn)
 
+    def _random_state_with_constraint_legacy(self, out, rgen, n_max):
+        sites = list(range(self.size))
+
+        out.fill(0.0)
+        ss = self.size
+
+        for i in range(self.n_particles):
+            s = rgen.randint(0, ss, size=())
+
+            out[sites[s]] += 1
+
+            if out[sites[s]] == n_max:
+                sites.pop(s)
+                ss -= 1
+
+    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self._size) if size is not None else (self._size,)
+
+        if out is None:
+            out = _np.empty(shape=shape)
+
+        if rgen is None:
+            rgen = np.random.default_rng()
+
+        if self.n_particles is None:
+            out[:] = rgen.randint(0, self.n_max, size=shape)
+        else:
+            if size is not None:
+                out_r = out.reshape(-1, self._size)
+                for b in range(out_r.shape[0]):
+                    self._random_state_with_constraint(out_r[b], rgen, self.n_max)
+            else:
+                self._random_state_with_constraint(out, rgen, self.n_max)
+
+        return out
+
 
 from netket.utils import deprecated
 

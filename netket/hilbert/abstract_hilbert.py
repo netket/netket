@@ -13,6 +13,10 @@ from netket.utils import deprecated
 max_states = np.iinfo(np.int32).max
 
 
+class NoneType:
+    pass
+
+
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects"""
 
@@ -128,28 +132,61 @@ class AbstractHilbert(abc.ABC):
         for i in range(self.n_states):
             yield self.number_to_state(i).reshape(-1)
 
-    def random_state(self, key, size=None, dtype=np.float32):
+    # after removing legacy:
+    # signature must be the following
+    # def random_state(self, key, size=None, dtype=np.float32):
+    def random_state(
+        self,
+        key=NoneType(),
+        size: Optional[int] = NoneType(),
+        dtype=np.float32,
+        out=None,
+        rgen=None,
+    ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
+        random_state(self, key, size=None, dtype=np.float32)
 
         Args:
+            key: rng state from a jax-style functional generator.
             size: If provided, returns a batch of configurations of the form (size, #) if size
                 is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
                 By default, a single random configuration with shape (#,) is returned.
-            out: If provided, the random quantum numbers will be inserted into this array,
-                 which should be of the appropriate shape (see `size`) and data type.
-            rgen: The random number generator. If None, the global NetKet random
-                number generator is used.
+            dtype: Dtype of the resulting vector.
+            out: Deprecated. Will be rmeoved in v3.1
+            rgen: Deprecated. Will be removed in v3.1
+
+        Returns:
+            A state or batch of states sampled from the uniform distribution on the hilbert space.
 
         Example:
             >>> hi = netket.hilbert.Qubit(N=2)
-            >>> hi.random_state()
+            >>> hi.random_state(jax.random.PRNGKey(0))
             array([0., 1.])
             >>> hi.random_state(size=2)
             array([[0., 0.], [1., 0.]])
         """
-        from netket.hilbert import random
+        # legacy support
+        # TODO: Remove in 3.1
+        # if no positional arguments, and key is unspecified -> legacy
+        if isinstance(key, NoneType):
+            # legacy sure
+            if isinstance(size, NoneType):
+                return self._random_state_legacy(size=None, out=out, rgen=rgen)
+            else:
+                return self._random_state_legacy(size=size, out=out, rgen=rgen)
+        elif (
+            isinstance(key, tuple)
+            or isinstance(key, int)
+            and isinstance(size, NoneType)
+        ):
+            # if one positional argument legacy typee...
+            return self._random_state_legacy(size=key, out=out, rgen=rgen)
+        else:
+            from netket.hilbert import random
 
-        return random.random_state(self, key, size, dtype=dtype)
+            size = size if not isinstance(size, NoneType) else None
+
+            return random.random_state(self, key, size, dtype=dtype)
 
     def all_states(self, out=None):
         r"""Returns all valid states of the Hilbert space.
