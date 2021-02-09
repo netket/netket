@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.vmc_common import tree_map
+from netket.legacy.vmc_common import tree_map
 
 
 def test_tree_map():
