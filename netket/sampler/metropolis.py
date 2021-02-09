@@ -158,7 +158,7 @@ class MetropolisSampler(Sampler):
     """The metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=0)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
-    reset_chain: bool = True
+    reset_chain: bool = False
     """If True resets the chain state when reset is called (every new sampling)."""
 
     def __init__(
@@ -167,7 +167,7 @@ class MetropolisSampler(Sampler):
         rule: MetropolisRule,
         *,
         n_sweeps: Optional[int] = None,
-        reset_chain: bool = True,
+        reset_chain: bool = False,
         **kwargs,
     ):
         """
