@@ -28,5 +28,5 @@ def _random_state_batch_impl(hilb: Qubit, key, batches, dtype):
 
 ## flips
 @flip_state_scalar_impl.register
-def flip_state_scalar_spin(hilb: Qubit, key, state, index):
+def flip_state_scalar_spin(hilb: Qubit, key, x, i):
     return jax.ops.index_update(x, i, -x[i] + 1), x[i]
