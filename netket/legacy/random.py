@@ -3,7 +3,6 @@ from numba import jit, objmode
 from netket.utils import (
     n_nodes as _n_nodes,
     node_number as _rank,
-    MPI_comm as _MPI_comm,
 )
 
 

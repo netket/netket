@@ -18,10 +18,16 @@ try:
     from mpi4py import MPI
 
     mpi_available = True
-    MPI_comm = MPI.COMM_WORLD
-    n_nodes = MPI_comm.Get_size()
-    node_number = MPI_comm.Get_rank()
-    rank = MPI_comm.Get_rank()
+
+    #  We don't use the standard communicator because Jax and
+    # np/python must use different ones to avoid desync issues
+    # so we insulate also from the user-space.
+    MPI_py_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
+    MPI_jax_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
+
+    n_nodes = MPI_py_comm.Get_size()
+    node_number = MPI_py_comm.Get_rank()
+    rank = MPI_py_comm.Get_rank()
 
     import jax
 
@@ -36,7 +42,8 @@ try:
 
 except ImportError:
     mpi_available = False
-    MPI_comm = None
+    MPI_py_comm = None
+    MPI_jax_comm = None
     n_nodes = 1
     node_number = 0
     rank = 0

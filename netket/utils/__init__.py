@@ -13,7 +13,15 @@
 # limitations under the License.
 
 from .jax import jit_if_singleproc, get_afun_if_module
-from .mpi import mpi_available, MPI, MPI_comm, n_nodes, node_number, rank
+from .mpi import (
+    mpi_available,
+    MPI,
+    MPI_py_comm,
+    MPI_jax_comm,
+    n_nodes,
+    node_number,
+    rank,
+)
 from .optional_deps import torch_available, tensorboard_available, backpack_available
 from .seed import random_seed
 

@@ -4,7 +4,8 @@ import numpy as _np
 from netket.utils import mpi_available as _mpi_available, n_nodes as _n_nodes
 
 if _mpi_available:
-    from netket.utils import MPI_comm as _MPI_comm
+    from netket.utils import MPI_py_comm as _MPI_py_comm
+    from netket.utils import MPI_jax_comm as _MPI_jax_comm
     from netket.utils import MPI as _MPI
 
 
@@ -36,7 +37,7 @@ def sum_inplace_scalar(a):
     ar = _np.asarray(a)
 
     if _n_nodes > 1:
-        _MPI_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
+        _MPI_py_comm.Allreduce(_MPI.IN_PLACE, ar.reshape(-1), op=_MPI.SUM)
 
     return ar
 
@@ -53,7 +54,7 @@ def sum_inplace_MPI(a):
         a (numpy.ndarray): The input array, which will be overwritten in place.
     """
     if _n_nodes > 1:
-        _MPI_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
+        _MPI_py_comm.Allreduce(_MPI.IN_PLACE, a.reshape(-1), op=_MPI.SUM)
 
     return a
 
@@ -82,7 +83,9 @@ if jax_available:
                 # The token can't depend on x for the same reason
                 # This token depends on a constant and will be eliminated by DCE
                 token = jax.lax.create_token(0)
-                res, _ = mpi4jax.Allreduce(x, op=_MPI.SUM, comm=_MPI_comm, token=token)
+                res, _ = mpi4jax.Allreduce(
+                    x, op=_MPI.SUM, comm=_MPI_jax_comm, token=token
+                )
                 return res
 
     else:
