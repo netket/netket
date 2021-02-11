@@ -1,12 +1,17 @@
 import numpy as np
 import pytest
 
+import jax
+import jax.numpy as jnp
+
 import netket as nk
 import netket.variational as vmc
 from netket.operator import local_values
 from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
+
+WEIGHT_SEED = 3
 
 
 def _setup():
@@ -15,22 +20,25 @@ def _setup():
 
     ham = nk.operator.Heisenberg(hi, graph=g)
 
-    ma = nk.machine.RbmSpin(hi, alpha=2)
-    ma.init_random_parameters()
+    ma = nk.models.RBM(alpha=2, dtype=np.complex64)
 
     return hi, ham, ma
 
 
 def _test_stats_mean_std(hi, ham, ma, n_chains):
-    sampler = nk.sampler.MetropolisLocal(ma, n_chains=n_chains)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED * n_chains), jnp.zeros((1, hi.size)))
+
+    sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
 
     n_samples = 16000
     num_samples_per_chain = n_samples // n_chains
 
     # Discard a few samples
-    sampler.generate_samples(1000)
+    _, state = sampler.sample(ma, w, chain_length=1000)
 
-    samples = sampler.generate_samples(num_samples_per_chain)
+    samples, state = sampler.sample(
+        ma, w, chain_length=num_samples_per_chain, state=state
+    )
     assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
     eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
