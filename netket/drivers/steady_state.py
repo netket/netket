@@ -2,7 +2,7 @@ import math
 
 import jax
 from jax.tree_util import tree_map
-
+import jax.numpy as jnp
 
 from netket.operator import local_values as _local_values, Squared
 from netket.stats import (
@@ -82,6 +82,13 @@ class SteadyState(AbstractVariationalDriver):
         else:
             # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
             self._dp = self._loss_grad
+
+        # If parameters are real, then take only real part of the gradient (if it's complex)
+        self._dp = jax.tree_multimap(
+            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+            self._dp,
+            self.state.parameters,
+        )
 
         return self._dp
 
