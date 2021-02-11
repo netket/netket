@@ -28,7 +28,7 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 
-hib_u = nk.hilbert.Boson(N=g.n_nodes, n_max=3)
+hib_u = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
@@ -102,7 +102,7 @@ def set_pdf_power(request):
             return sampler.replace(machine_pow=request.param)
         elif cmdline_mpow == "single":
             # samee sampler leads to same rng
-            rng = np.random.default_rng(abs(hash(sampler)))
+            rng = np.random.default_rng(abs(hash(repr(sampler))))
             exponent = rng.integers(1, 3)  # 1 or 2
             if request.param == exponent:
                 return sampler.replace(machine_pow=exponent)

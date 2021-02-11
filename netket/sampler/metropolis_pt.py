@@ -338,20 +338,20 @@ class MetropolisPtSampler(MetropolisSampler):
                     print("prob_rescaled;\n", prob)
                     return new_beta
 
-                new_beta = hcb.call(
-                    cb,
-                    (
-                        beta,
-                        proposed_beta,
-                        new_beta,
-                        swap_order,
-                        do_swap,
-                        log_prob,
-                        prob_rescaled,
-                    ),
-                    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
-                )
-                s.beta = new_beta
+                # new_beta = hcb.call(
+                #    cb,
+                #    (
+                #        beta,
+                #        proposed_beta,
+                #        new_beta,
+                #        swap_order,
+                #        do_swap,
+                #        log_prob,
+                #        prob_rescaled,
+                #    ),
+                #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
+                # )
+                # s.beta = new_beta
 
                 swap_order = swap_order.reshape(-1)
 
