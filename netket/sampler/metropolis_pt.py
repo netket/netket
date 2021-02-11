@@ -151,9 +151,9 @@ class MetropolisPtSampler(MetropolisSampler):
             n_samples=0,
             n_accepted=0,
             beta=beta,
-            beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int32),
+            beta_0_index=jnp.zeros((sampler.n_chains,), dtype=int),
             n_accepted_per_beta=jnp.zeros(
-                (sampler.n_chains, sampler.n_replicas), dtype=np.int32
+                (sampler.n_chains, sampler.n_replicas), dtype=int
             ),
             beta_position=jnp.zeros((sampler.n_chains,)),
             beta_diffusion=jnp.zeros((sampler.n_chains,)),

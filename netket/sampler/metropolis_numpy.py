@@ -82,7 +82,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
         )
 
-        if sampler.reset_chain:
+        if not sampler.reset_chain:
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
             )

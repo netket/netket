@@ -229,7 +229,7 @@ class MetropolisSampler(Sampler):
 
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
-        if sampler.reset_chain:
+        if not sampler.reset_chain:
             key_state, rng = jax.random.split(key_state)
             σ = sampler.rule.random_state(sampler, machine, params, state, rng)
             state = state.replace(σ=σ, rng=key_state)
