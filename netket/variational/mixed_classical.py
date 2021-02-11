@@ -199,3 +199,8 @@ class MCMixedState(VariationalMixedState, MCState):
         self, Ô: AbstractOperator, is_hermitian=None
     ) -> Stats:
         raise NotImplementedError
+
+    def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
+        return netket.nn.to_matrix(
+            self.hilbert, self._apply_fun, self.variables, normalize=normalize
+        )

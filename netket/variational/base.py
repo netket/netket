@@ -6,6 +6,8 @@ from typing import Any, Optional, Tuple
 import flax
 from flax.core.frozen_dict import FrozenDict
 
+import jax.numpy as jnp
+
 from netket.operator import AbstractOperator, LocalLiouvillian
 from netket.hilbert import AbstractHilbert, DoubledHilbert
 from netket.stats import Stats
@@ -141,6 +143,19 @@ class VariationalState(abc.ABC):
         """
         raise NotImplementedError
 
+    def to_array(self, normalize: bool = True) -> jnp.ndarray:
+        """
+        Returns the dense-vector representation of this state.
+
+        Args:
+            normalize: If True, the vector is normalized to have L2-norm 1.
+
+        Returns:
+            An exponentially large vector representing the state in the computational
+            basis.
+        """
+        return NotImplemented
+
 
 class VariationalMixedState(VariationalState):
     def __init__(self, hilbert, *args, **kwargs):
@@ -184,3 +199,16 @@ class VariationalMixedState(VariationalState):
     # @abc.abstractmethod
     def expect_and_grad_operator(self, Ô: AbstractOperator) -> Stats:
         raise NotImplementedError
+
+    def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
+        """
+        Returns the dense-matrix representation of this operator.
+
+        Args:
+            normalize: If True, the matrix is normalized to have trace 1.
+
+        Returns:
+            An exponentially large matrix representing the state in the computational
+            basis.
+        """
+        return NotImplemented

@@ -483,6 +483,11 @@ class MCState(VariationalState):
             sr=sr,
         )
 
+    def to_array(self, normalize: bool = True) -> jnp.ndarray:
+        return netket.nn.to_array(
+            self.hilbert, self._apply_fun, self.variables, normalize=normalize
+        )
+
 
 @partial(jax.jit, static_argnums=(0, 1, 2))
 def _expect(
