@@ -227,6 +227,8 @@ class AbstractVariationalDriver(abc.ABC):
         with tqdm(
             self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
         ) as itr:
+            first_step = True
+
             for step in itr:
 
                 log_data = self.estimate(obs)
@@ -245,6 +247,11 @@ class AbstractVariationalDriver(abc.ABC):
 
                 if callback_stop:
                     break
+
+                # Reset the timing of tqdm after the first step, to ignore compilation time
+                if first_step:
+                    first_step = False
+                    itr.unpause()
 
         # flush at the end of the evolution so that final values are saved to
         # file
