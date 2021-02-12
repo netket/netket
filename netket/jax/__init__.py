@@ -15,6 +15,7 @@
 from .utils import (
     tree_ravel,
     is_complex,
+    is_complex_dtype,
     tree_size,
     eval_shape,
     tree_leaf_iscomplex,

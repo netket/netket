@@ -88,7 +88,7 @@ def tree_leaf_iscomplex(pars):
     return any(jax.tree_leaves(jax.tree_map(is_complex, pars)))
 
 
-def dtype_is_complex(typ):
+def is_complex_dtype(typ):
     return jnp.issubdtype(typ, jnp.complexfloating)
 
 
@@ -97,7 +97,7 @@ def dtype_complex(typ):
     Return the complex dtype corresponding to the type passed in.
     If it is already complex, do nothing
     """
-    if dtype_is_complex(typ):
+    if is_complex_dtype(typ):
         return typ
     elif typ == np.dtype("float32"):
         return np.dtype("complex64")
@@ -115,7 +115,7 @@ def maybe_promote_to_complex(*types):
     main_typ = types[0]
 
     for typ in types:
-        if dtype_is_complex(typ):
+        if is_complex_dtype(typ):
             return dtype_complex(main_typ)
     else:
         return main_typ
