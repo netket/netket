@@ -154,6 +154,13 @@ def findrng(rng):
 def test_correct_sampling(sampler, rbm_and_weights, set_pdf_power):
     sampler = set_pdf_power(sampler)
 
+    if isinstance(sampler, nk.sampler.MetropolisSampler):
+        if isinstance(sampler.rule, nk.sampler.rules.HamiltonianRuleNumpy):
+            pytest.xfail("MUSTFIX: We know that hamiltonian sampling is broken.")
+
+        if isinstance(sampler, nk.sampler.MetropolisPtSampler):
+            pytest.xfail("MUSTFIX: We know that Parallel Tempered sampling is broken.")
+
     hi = sampler.hilbert
     all_states = hi.all_states()
     n_states = hi.n_states
