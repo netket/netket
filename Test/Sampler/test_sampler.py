@@ -28,7 +28,7 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 
-hib_u = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
+hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
