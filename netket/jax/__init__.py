@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .utils import (
+    tree_ravel,
     is_complex,
     tree_size,
     eval_shape,

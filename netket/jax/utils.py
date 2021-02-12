@@ -13,11 +13,12 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Optional, Tuple, Any, Union
+from typing import Optional, Tuple, Any, Union, Tuple, Callable
 
 import numpy as np
 
 import jax
+import netket.jax as nkjax
 from jax import numpy as jnp
 from jax.tree_util import (
     tree_flatten,
@@ -31,6 +32,30 @@ from jax.dtypes import dtype_real
 
 from netket.utils import MPI, n_nodes, rank, random_seed
 
+PyTree = Any
+
+
+def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
+    """Ravel (i.e. flatten) a pytree of arrays down to a 1D array.
+
+    Args:
+      pytree: a pytree to ravel
+
+    Returns:
+      A pair where the first element is a 1D array representing the flattened and
+      concatenated leaf values, and the second element is a callable for
+      unflattening a 1D vector of the same length back to a pytree of of the same
+      structure as the input ``pytree``.
+    """
+    leaves, treedef = tree_flatten(pytree)
+    flat, unravel_list = nkjax.vjp(_ravel_list, *leaves)
+    unravel_pytree = lambda flat: tree_unflatten(treedef, unravel_list(flat))
+    return flat, unravel_pytree
+
+
+def _ravel_list(*lst):
+    return jnp.concatenate([jnp.ravel(elt) for elt in lst]) if lst else jnp.array([])
+
 
 def eval_shape(fun, *args, has_aux=False, **kwargs):
     """
@@ -43,7 +68,7 @@ def eval_shape(fun, *args, has_aux=False, **kwargs):
     return out
 
 
-def tree_size(tree):
+def tree_size(tree: PyTree) -> int:
     """
     Returns the sum of the size of all leaves in the tree.
     It's equivalent to the number of scalars in the pytree.
