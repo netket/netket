@@ -13,7 +13,7 @@ MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.9"]
 BASE_DEPENDENCIES = [
     "numpy>=1.16",
     "scipy>=1.5.2",
-    "tqdm>=4.42.1",
+    "tqdm>=4.56.2",
     "numba>=0.49.0",
     "networkx>=2.4",
     "jax>=0.2.9",
