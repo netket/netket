@@ -295,8 +295,18 @@ class MetropolisSampler(Sampler):
 
         return new_state, new_state.σ
 
-    # def __repr__(sampler):
-    #    return "MetropolisSampler(...)"
+    def __repr__(sampler):
+        return (
+            "MetropolisSampler("
+            + "\n  hilbert = {},".format(sampler.hilbert)
+            + "\n  rule = {},".format(sampler.rule)
+            + "\n  n_chains = {},".format(sampler.n_chains)
+            + "\n  machine_power = {},".format(sampler.machine_pow)
+            + "\n  reset_chain = {},".format(sampler.reset_chain)
+            + "\n  n_sweeps = {},".format(sampler.n_sweeps)
+            + "\n  dtype = {},".format(sampler.dtype)
+            + ")"
+        )
 
 
 from netket.utils import wraps_legacy

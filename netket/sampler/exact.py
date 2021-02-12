@@ -88,6 +88,7 @@ class ExactSampler(Sampler):
             + "\n  hilbert = {},".format(sampler.hilbert)
             + "\n  n_chains = {},".format(sampler.n_chains)
             + "\n  machine_power = {})".format(sampler.machine_pow)
+            + "\n  dtype = {})".format(sampler.dtype)
         )
 
 

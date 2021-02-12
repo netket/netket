@@ -166,6 +166,19 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         return samples, state
 
+    def __repr__(sampler):
+        return (
+            "MetropolisNumpySampler("
+            + "\n  hilbert = {},".format(sampler.hilbert)
+            + "\n  rule = {},".format(sampler.rule)
+            + "\n  n_chains = {},".format(sampler.n_chains)
+            + "\n  machine_power = {},".format(sampler.machine_pow)
+            + "\n  reset_chain = {},".format(sampler.reset_chain)
+            + "\n  n_sweeps = {},".format(sampler.n_sweeps)
+            + "\n  dtype = {},".format(sampler.dtype)
+            + ")"
+        )
+
 
 @jit(nopython=True)
 def acceptance_kernel(
@@ -201,7 +214,12 @@ def acceptance_kernel(
 #     )
 
 
-from .rules import HamiltonianRuleNumpy, CustomRuleNumpy
+from .rules import LocalRuleNumpy, HamiltonianRuleNumpy, CustomRuleNumpy
+
+
+def MetropolisLocalNumpy(hilbert: AbstractHilbert, *args, **kwargs):
+    rule = LocalRuleNumpy()
+    return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
 
 
 def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **kwargs):

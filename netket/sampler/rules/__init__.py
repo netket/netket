@@ -17,6 +17,7 @@ from .exchange import ExchangeRule
 from .hamiltonian import HamiltonianRule
 
 # numpy backend
+from .local_numpy import LocalRuleNumpy
 from .hamiltonian_numpy import HamiltonianRuleNumpy
 from .custom_numpy import CustomRuleNumpy
 

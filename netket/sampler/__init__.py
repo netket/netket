@@ -32,6 +32,7 @@ from .metropolis import (
 
 from .metropolis_numpy import (
     MetropolisSamplerNumpy,
+    MetropolisLocalNumpy,
     MetropolisHamiltonianNumpy,
     MetropolisCustomNumpy,
 )

@@ -34,10 +34,16 @@ samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
 
 samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi, n_chains=16)
-samplers["Metropolis(Local): Fock"] = nk.sampler.MetropolisLocal(hib_u, n_chains=8)
-samplers["Metropolis(Local): Doubled-Spin"] = nk.sampler.MetropolisLocal(
-    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
+
+samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
+    hi, n_chains=16
 )
+# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(
+#    hib_u, n_chains=8
+# )
+# samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
+#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
+# )
 
 samplers["MetropolisPT(Local): Spin"] = nk.sampler.MetropolisLocalPt(
     hi, n_chains=8, n_replicas=4
@@ -50,8 +56,10 @@ samplers["Metropolis(Exchange): Fock-1particle)"] = nk.sampler.MetropolisExchang
     hib, n_chains=16, graph=g
 )
 
-samplers["Metropolis(Hamiltonian): Spin"] = sa = nk.sampler.MetropolisHamiltonian(
-    hi, hamiltonian=ha
+samplers["Metropolis(Hamiltonian): Spin"] = nk.sampler.MetropolisHamiltonian(
+    hi,
+    hamiltonian=ha,
+    reset_chain=True,
 )
 
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
@@ -93,7 +101,7 @@ def sampler(request):
         pytest.skip("skipped from command-line argument")
 
 
-@pytest.fixture(params=[pytest.param(val, id=f"mpow={val}") for val in [1, 2]])
+@pytest.fixture(params=[pytest.param(val, id=f", mpow={val}") for val in [1, 2]])
 def set_pdf_power(request):
     def fun(sampler):
 
