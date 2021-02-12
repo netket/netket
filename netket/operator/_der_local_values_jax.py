@@ -45,7 +45,7 @@ def _local_value_and_grad_notcentered_kernel(logpsi, pars, vp, mel, v):
     vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
 
     odtype = outdtype(logpsi, pars, v)
-    vec = jnp.asarray(vec, dtype=odtype)
+    vec = jnp.asarray(jnp.conjugate(vec), dtype=odtype)
     loc_val = vec.sum()
     grad_c = f_vjp(vec.conj())[0]
 

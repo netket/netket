@@ -151,6 +151,8 @@ class MCState(VariationalState):
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
+            self.model = model
+
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
             )
@@ -572,7 +574,7 @@ def grad_expect_hermitian(
             conjugate=True,
             has_aux=True,
         )
-    Ō_grad = vjp_fun(O_loc / n_samples)[0]
+    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
     return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
 
@@ -682,7 +684,7 @@ def grad_expect_operator_kernel(
     Ō, Ō_pb, Ō_stats = nkjax.vjp(
         expect_closure, parameters, σ, σp, mels, has_aux=True
     )
-    Ō_pars_grad, _, _, _ = Ō_pb(jnp.ones_like(Ō))
+    Ō_pars_grad, _, _, _ = Ō_pb(jnp.ones_like(Ō).real)
 
     return (
         Ō_stats,

@@ -80,7 +80,7 @@ def vjp_rr(
             out = _vjp_fun(ȳ)
         else:
             out_r = _vjp_fun(ȳ.real)
-            out_i = _vjp_fun(-ȳ.imag)
+            out_i = _vjp_fun(ȳ.imag)
             if conjugate:
                 out = tree_multimap(lambda re, im: re - 1j * im, out_r, out_i)
             else:
@@ -133,11 +133,11 @@ def vjp_rc(
         vj_jj = vjp_j_fun(ȳ_j)
 
         r = tree_multimap(
-            lambda re, im: re - 1j * im,
+            lambda re, im: re + 1j * im,
             vr_jr,
             vj_jr,
         )
-        i = tree_multimap(lambda re, im: re - 1j * im, vr_jj, vj_jj)
+        i = tree_multimap(lambda re, im: re + 1j * im, vr_jj, vj_jj)
         out = tree_multimap(lambda re, im: re + 1j * im, r, i)
 
         if conjugate:
