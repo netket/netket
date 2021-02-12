@@ -70,7 +70,7 @@ class HamiltonianRuleNumpy(MetropolisRule):
 def _choose(states, sections, out, w, rand_vec):
     low_range = 0
     for i, s in enumerate(sections):
-        n_rand = int(rand_vec[i] * s)
+        n_rand = low_range + int(np.floor(rand_vec[i] * (s - low_range)))
         out[i] = states[n_rand]
         w[i] = math.log(s - low_range)
         low_range = s

@@ -151,9 +151,6 @@ def findrng(rng):
 # Mark tests that we know are ffailing on correctedness
 def failing_test(sampler):
     if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler.rule, nk.sampler.rules.HamiltonianRuleNumpy):
-            return True
-
         if isinstance(sampler, nk.sampler.MetropolisPtSampler):
             return True
 
