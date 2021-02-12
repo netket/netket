@@ -216,11 +216,11 @@ def test_vmc_gradient(dtype):
 
     grad_exact = central_diff_grad(energy_fun, pars, 1.0e-5, ma, ha.to_sparse())
 
-    driver.state.n_samples = 1e6
+    driver.state.n_samples = 1e5
     driver.state.n_discard = 1e3
     driver.state.parameters = pars_0
     _, _grad_approx = ma.expect_and_grad(ha)  # driver._forward_and_backward()
     grad_approx, _ = nk.jax.tree_ravel(_grad_approx)
 
-    err = 6 / np.sqrt(driver.state.n_samples) * np.sqrt(2)  # improve error bound
+    err = 6 / np.sqrt(driver.state.n_samples)  # improve error bound
     same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)
