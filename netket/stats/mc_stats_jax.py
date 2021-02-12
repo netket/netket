@@ -74,6 +74,10 @@ class Stats:
             return self.R_hat
         elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
+        else:
+            raise AttributeError(
+                "'Stats' object object has no attribute '{}'".format(name)
+            )
 
 
 def _get_blocks(data, block_size):
