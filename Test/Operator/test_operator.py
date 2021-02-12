@@ -1,4 +1,4 @@
-import netket.legacy as nk
+import netket as nk
 import networkx as nx
 import numpy as np
 
@@ -165,6 +165,26 @@ def test_Heisenberg():
         assert not g.is_bipartite()
 
         ha = nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
+
+
+def test_pauli():
+    op = nk.operator.PauliStrings(["XX", "YZ", "IZ"], [0.1, 0.2, -1.4])
+
+    op_l = (
+        0.1
+        * nk.operator.LocalOperator(op.hilbert, sx, [0])
+        * nk.operator.LocalOperator(op.hilbert, sx, [1])
+    )
+    op_l += (
+        0.2
+        * nk.operator.LocalOperator(op.hilbert, sy, [0])
+        * nk.operator.LocalOperator(op.hilbert, sz, [1])
+    )
+    op_l -= 1.4 * nk.operator.LocalOperator(op.hilbert, sz, [1])
+
+    assert np.allclose(op.to_dense(), op_l.to_dense())
+
+    assert op.to_sparse().shape == op_l.to_sparse().shape
 
 
 def test_repr():
