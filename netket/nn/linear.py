@@ -100,7 +100,7 @@ class DenseGeneral(Module):
         Returns:
           The transformed input.
         """
-        dtype = nkjax.maybe_promote_to_complex(self.dtype, inputs.dtype)
+        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 
@@ -202,7 +202,7 @@ class Dense(Module):
         Returns:
           The transformed input.
         """
-        dtype = nkjax.maybe_promote_to_complex(self.dtype, inputs.dtype)
+        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
         kernel = self.param(
@@ -282,7 +282,7 @@ class Conv(Module):
         Returns:
           The convolved data.
         """
-        dtype = nkjax.maybe_promote_to_complex(self.dtype, inputs.dtype)
+        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 
