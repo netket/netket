@@ -39,6 +39,9 @@ requires = ["setuptools", "wheel"]
 addopts = "--color=yes --verbose --durations=0 -n auto"
 filterwarnings = [
     "ignore::UserWarning",
+    "ignore:No GPU/TPU found, falling back to CPU.:UserWarning",
+    "ignore:the imp module is deprecated in favour of importlib.*:DeprecationWarning",
+    "ignore:`np.long`"
 ]
 testpaths = [
     "Test",
