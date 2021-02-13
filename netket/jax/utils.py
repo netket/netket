@@ -161,7 +161,7 @@ class HashablePartial(partial):
 
 
 def PRNGKey(
-    seed: Optional[Union[int, jnp.ndarray]] = None, root: bool = 0, comm=MPI.COMM_WORLD
+    seed: Optional[Union[int, jnp.ndarray]] = None, root: int = 0, comm=MPI.COMM_WORLD
 ) -> jnp.ndarray:
     """
     Initialises a PRNGKey using an optional starting seed.

@@ -80,8 +80,6 @@ def _random_state_batch_impl(hilb: Spin, key, batches, dtype):
 
             return state
 
-    return out
-
 
 # TODO: could numba-jit this
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):

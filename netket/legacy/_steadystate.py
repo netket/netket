@@ -1,4 +1,5 @@
 import math
+from typing import Any, Optional, Tuple, List
 
 from netket import legacy as _nk
 
@@ -164,7 +165,7 @@ class SteadyState(AbstractVariationalDriver):
         return self._n_discard_obs
 
     @n_discard.setter
-    def n_discard(self, n_discard):
+    def n_discard(self, n_discard: Optional[int]):
         if n_discard is not None and n_discard < 0:
             raise ValueError(
                 "Invalid number of discarded samples: n_discard={}".format(n_discard)
@@ -176,7 +177,7 @@ class SteadyState(AbstractVariationalDriver):
         )
 
     @n_discard_obs.setter
-    def n_discard_obs(self, n_discard):
+    def n_discard_obs(self, n_discard: Optional[int]):
         if self._sampler_obs is None:
             return
 

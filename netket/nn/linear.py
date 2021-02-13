@@ -263,7 +263,6 @@ class Conv(Module):
     kernel_dilation: Optional[Iterable[int]] = None
     feature_group_count: int = 1
     use_bias: bool = True
-    bias_dtype: Any = None
     dtype: Dtype = jnp.float32
     bias_dtype: Optional[Dtype] = None
     precision: Any = None

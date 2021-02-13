@@ -31,7 +31,7 @@ class Qubit(CustomHilbert):
         """
         N = graph_to_N_depwarn(N=N, graph=graph)
 
-        super().__init__([0, 1], N)
+        super().__init__([0.0, 1.0], N)
 
     def __pow__(self, n):
         return Qubit(self.size * n)
