@@ -41,10 +41,12 @@ for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 
 operators["operator:(Hermitian Complex)"] = H
-# operators["Non Hermitian"] =
+
 H = H.copy()
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
+
+operators["operator:(Non Hermitian)"] = H
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -59,7 +61,19 @@ def vstate(request):
 
 
 @pytest.mark.parametrize(
-    "operator", [pytest.param(op, id=name) for name, op in operators.items()]
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+            marks=pytest.mark.xfail(
+                reason="MUSTFIX: Non hermitian gradient is known to be wrong"
+            )
+            if not op.is_hermitian
+            else [],
+        )
+        for name, op in operators.items()
+    ],
 )
 def test_expect(vstate, operator):
     #  Use lots of samples
@@ -92,6 +106,9 @@ def test_expect(vstate, operator):
     O_exact = expval_fun(pars, vstate, op_sparse)
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
+    if operator.is_hermitian:
+        grad_exact = jax.tree_map(lambda x: x.real, grad_exact)
+
     # compare the two
     err = 6 / np.sqrt(vstate.n_samples)
 
@@ -113,9 +130,14 @@ def _expval(par, vstate, H, real=False):
     return expval
 
 
-def central_diff_grad(func, x, eps, *args):
-    grad = np.zeros(len(x), dtype=func(x, *args).dtype)
-    epsd = np.zeros(len(x), dtype=x.dtype)
+def central_diff_grad(func, x, eps, *args, dtype=None):
+    if dtype is None:
+        dtype = x.dtype
+
+    grad = np.zeros(
+        len(x), dtype=nk.jax.maybe_promote_to_complex(x.dtype, func(x, *args).dtype)
+    )
+    epsd = np.zeros(len(x), dtype=dtype)
     epsd[0] = eps
     for i in range(len(x)):
         assert not np.any(np.isnan(x + epsd))
