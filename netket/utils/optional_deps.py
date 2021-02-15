@@ -13,7 +13,7 @@
 # limitations under the License.
 
 try:
-    import torch
+    import torch  # type: ignore
 
     torch_available = True
 except ImportError:
@@ -21,7 +21,7 @@ except ImportError:
 
 
 try:
-    import tensorboardX
+    import tensorboardX  # type: ignore
 
     tensorboard_available = True
 except ImportError:
@@ -29,7 +29,7 @@ except ImportError:
 
 
 try:
-    import backpack
+    import backpack  # type: ignore
 
     backpack_available = True
 except ImportError:
