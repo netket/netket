@@ -34,7 +34,7 @@ def expect(
     pars: PyTree,
     σ: jnp.ndarray,
     *expected_fun_args,
-    n_chains: bool = None,
+    n_chains: int = None,
 ) -> Tuple[jnp.ndarray, Stats]:
     """
     Computes the expectation value over a log-pdf.
