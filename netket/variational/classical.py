@@ -188,6 +188,10 @@ class MCState(VariationalState):
         else:
             self.init(seed, dtype=sampler.dtype)
 
+        if sampler_seed is None and seed is not None:
+            key, key2 = jax.random.split(nkjax.PRNGKey(seed), 2)
+            sampler_seed = key2
+
         self._sampler_seed = sampler_seed
         self.sampler = sampler
 
