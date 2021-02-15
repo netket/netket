@@ -1,16 +1,91 @@
 import numpy as np
 from numba import jit
 
-from netket.graph import AbstractGraph
-from netket.hilbert import AbstractHilbert
+from netket.graph import AbstractGraph, Graph
+from netket.hilbert import (
+    AbstractHilbert,
+)
 
-from ._abstract_operator import AbstractOperator
-from ._graph_operator import GraphOperator
+from ._abstract_operator import (
+    AbstractOperator,
+)
+from ._graph_operator import (
+    GraphOperator,
+)
+
+from . import spin
+from ._local_operator import LocalOperator
 
 
-class Ising(AbstractOperator):
+class SpecialHamiltonian(AbstractOperator):
+    def to_local_operator(self):
+        raise NotImplementedError(
+            "Must implemented to_local_operator for {}".format(type(self))
+        )
+
+    def __add__(self, other):
+        if type(self) is type(other):
+            res = self.copy()
+            res += other
+            return res
+
+        return self.to_local_operator().__add__(other)
+
+    def __sub__(self, other):
+        if type(self) is type(other):
+            res = self.copy()
+            res -= other
+            return res
+
+        return self.to_local_operator().__sub__(other)
+
+    def __radd__(self, other):
+        if type(self) is type(other):
+            res = self.copy()
+            res += other
+            return res
+
+        return self.to_local_operator().__radd__(other)
+
+    def __rsub__(self, other):
+        if type(self) is type(other):
+            res = self.copy()
+            res -= other
+            return res
+
+        return self.to_local_operator().__rsub__(other)
+
+    def __iadd__(self, other):
+        if type(self) is type(other):
+            self._iadd_same_hamiltonian(other)
+            return self
+
+        return NotImplemented
+
+    def __isub__(self, other):
+        if type(self) is type(other):
+            self._isub_same_hamiltonian(other)
+            return self
+
+        return NotImplemented
+
+    def __mul__(self, other):
+        return self.to_local_operator().__mul__(other)
+
+    def __rmul__(self, other):
+        return self.to_local_operator().__rmul__(other)
+
+    def __matmul__(self, other):
+        return self.to_local_operator().__matmul__(other)
+
+
+class Ising(SpecialHamiltonian):
     def __init__(
-        self, hilbert: AbstractHilbert, graph: AbstractGraph, h: float, J: float = 1.0
+        self,
+        hilbert: AbstractHilbert,
+        graph: AbstractGraph,
+        h: float,
+        J: float = 1.0,
     ):
         r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
@@ -39,8 +114,19 @@ class Ising(AbstractOperator):
 
         self._h = h
         self._J = J
-        self._section = hilbert.size + 1
         self._edges = np.asarray(list(graph.edges()))
+
+    @property
+    def h(self):
+        return self._h
+
+    @property
+    def J(self):
+        return self._J
+
+    @property
+    def edges(self):
+        return self._edges
 
     @property
     def is_hermitian(self):
@@ -61,11 +147,55 @@ class Ising(AbstractOperator):
 
         """
         if out is None:
-            out = np.empty(x.shape[0], dtype=np.int32)
+            out = np.empty(
+                x.shape[0],
+                dtype=np.int32,
+            )
 
         out.fill(x.shape[1] + 1)
 
         return out
+
+    def copy(self):
+        graph = Graph(edges=[list(edge) for edge in self.edges])
+        print("got graph")
+        return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
+
+    def to_local_operator(self):
+        # The hamiltonian
+        ha = LocalOperator(self.hilbert)
+
+        if self.h != 0:
+            for i in range(self.hilbert.size):
+                ha -= self.h * spin.sigmax(self.hilbert, i)
+
+        if self.J != 0:
+            for (i, j) in self.edges:
+                ha += self.J * (
+                    spin.sigmaz(self.hilbert, i) * spin.sigmaz(self.hilbert, j)
+                )
+
+        return ha
+
+    def _iadd_same_hamiltonian(self, other):
+        if self.hilbert != other.hilbert:
+            raise NotImplementedError(
+                "Cannot add hamiltonians on different hilbert spaces"
+            )
+
+        print("doign the work")
+        self._h += other.h
+        self._J += other.J
+        print("donethework")
+
+    def _isub_same_hamiltonian(self, other):
+        if self.hilbert != other.hilbert:
+            raise NotImplementedError(
+                "Cannot add hamiltonians on different hilbert spaces"
+            )
+
+        self._h -= other.h
+        self._J -= other.J
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
@@ -94,11 +224,22 @@ class Ising(AbstractOperator):
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(x, sections, edges, h, J):
+    def _flattened_kernel(
+        x,
+        sections,
+        edges,
+        h,
+        J,
+    ):
         n_sites = x.shape[1]
         n_conn = n_sites + 1
 
-        x_prime = np.empty((x.shape[0] * n_conn, n_sites))
+        x_prime = np.empty(
+            (
+                x.shape[0] * n_conn,
+                n_sites,
+            )
+        )
         mels = np.empty(x.shape[0] * n_conn)
 
         diag_ind = 0
@@ -106,7 +247,23 @@ class Ising(AbstractOperator):
         for i in range(x.shape[0]):
             mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
-                mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]
+                mels[diag_ind] += (
+                    J
+                    * x[
+                        i,
+                        edges[
+                            k,
+                            0,
+                        ],
+                    ]
+                    * x[
+                        i,
+                        edges[
+                            k,
+                            1,
+                        ],
+                    ]
+                )
 
             odiag_ind = 1 + diag_ind
 
@@ -123,7 +280,12 @@ class Ising(AbstractOperator):
 
         return x_prime, mels
 
-    def get_conn_flattened(self, x, sections, pad=False):
+    def get_conn_flattened(
+        self,
+        x,
+        sections,
+        pad=False,
+    ):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -146,14 +308,26 @@ class Ising(AbstractOperator):
 
         """
 
-        return self._flattened_kernel(x, sections, self._edges, self._h, self._J)
+        return self._flattened_kernel(
+            x,
+            sections,
+            self._edges,
+            self._h,
+            self._J,
+        )
 
     def __repr__(self):
         return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
 
 
 class Heisenberg(GraphOperator):
-    def __init__(self, hilbert, graph, J=1, sign_rule=None):
+    def __init__(
+        self,
+        hilbert,
+        graph,
+        J=1,
+        sign_rule=None,
+    ):
         """
         Constructs a new ``Heisenberg`` given a hilbert space.
 
@@ -183,8 +357,22 @@ class Heisenberg(GraphOperator):
         self._J = J
         self._sign_rule = sign_rule
 
-        sz_sz = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-        exchange = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
+        sz_sz = np.array(
+            [
+                [1, 0, 0, 0],
+                [0, -1, 0, 0],
+                [0, 0, -1, 0],
+                [0, 0, 0, 1],
+            ]
+        )
+        exchange = np.array(
+            [
+                [0, 0, 0, 0],
+                [0, 0, 2, 0],
+                [0, 2, 0, 0],
+                [0, 0, 0, 0],
+            ]
+        )
         if sign_rule:
             if not graph.is_bipartite():
                 raise ValueError("sign_rule=True specified for a non-bipartite lattice")
@@ -192,7 +380,11 @@ class Heisenberg(GraphOperator):
         else:
             heis_term = sz_sz + exchange
 
-        super().__init__(hilbert, graph, bond_ops=[J * heis_term])
+        super().__init__(
+            hilbert,
+            graph,
+            bond_ops=[J * heis_term],
+        )
 
     @property
     def J(self):
