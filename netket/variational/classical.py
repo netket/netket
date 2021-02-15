@@ -682,12 +682,14 @@ def grad_expect_operator_kernel(
         local_kernel_vmap = jax.vmap(
             partial(local_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
         )
+
         return nkjax.expect(log_pdf, local_kernel_vmap, *args, n_chains=σ_shape[0])
 
-    Ō, Ō_pb, Ō_stats = nkjax.vjp(
-        expect_closure, parameters, σ, σp, mels, has_aux=True
-    )
-    Ō_pars_grad, _, _, _ = Ō_pb(jnp.ones_like(Ō).real)
+    def expect_closure_pars(pars):
+        return expect_closure(pars, σ, σp, mels)
+
+    Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
+    Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))
 
     return (
         Ō_stats,

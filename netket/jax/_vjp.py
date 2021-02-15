@@ -30,7 +30,7 @@ from jax.tree_util import (
 )
 
 
-from .utils import is_complex, tree_leaf_iscomplex, eval_shape
+from .utils import is_complex, tree_leaf_iscomplex, eval_shape, dtype_complex
 
 
 # _grad_CC, _RR and _RC are the batched gradient functions for machines going
@@ -100,11 +100,11 @@ def vjp_rc(
     if has_aux:
 
         def real_fun(*primals):
-            val, aux = fun(pars, v)
+            val, aux = fun(*primals)
             return val.real, aux
 
         def imag_fun(*primals):
-            val, aux = fun(pars, v)
+            val, aux = fun(*primals)
             return val.imag, aux
 
         vals_r, vjp_r_fun, aux = jax.vjp(real_fun, *primals, has_aux=True)

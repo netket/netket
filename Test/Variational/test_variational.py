@@ -42,6 +42,9 @@ for i in range(H.hilbert.size):
 
 operators["operator:(Hermitian Complex)"] = H
 # operators["Non Hermitian"] =
+H = H.copy()
+for i in range(H.hilbert.size):
+    H += nk.operator.spin.sigmap(H.hilbert, i)
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -91,11 +94,12 @@ def test_expect(vstate, operator):
 
     # compare the two
     err = 6 / np.sqrt(vstate.n_samples)
+
+    # check the expectation values
+    assert O_stat.mean == approx(O_exact, abs=err)
+
     O_grad, _ = nk.jax.tree_ravel(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=1.0e-3)
-
-    # check the exppectation values
-    assert O_stat.mean == approx(O_exact, abs=err)
 
 
 ###
@@ -110,7 +114,7 @@ def _expval(par, vstate, H, real=False):
 
 
 def central_diff_grad(func, x, eps, *args):
-    grad = np.zeros(len(x), dtype=x.dtype)
+    grad = np.zeros(len(x), dtype=func(x, *args).dtype)
     epsd = np.zeros(len(x), dtype=x.dtype)
     epsd[0] = eps
     for i in range(len(x)):
