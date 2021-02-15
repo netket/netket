@@ -75,7 +75,7 @@ class RBM(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (input.shape[-1]), self.dtype
+                "visible_bias", self.visible_bias_init, (input.shape[-1],), self.dtype
             )
             out_bias = jnp.dot(input, v_bias)
             return x + out_bias
