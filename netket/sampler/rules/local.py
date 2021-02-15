@@ -47,7 +47,6 @@ class LocalRule(MetropolisRule):
 
         n_chains = σ.shape[0]
         hilb = sampler.hilbert
-        local_states = jnp.array(np.sort(np.array(hilb.local_states)))
 
         indxs = jax.random.randint(key1, shape=(n_chains,), minval=0, maxval=hilb.size)
         σp, _ = flip_state(hilb, key2, σ, indxs)
