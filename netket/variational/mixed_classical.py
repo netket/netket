@@ -197,7 +197,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
     def expect_and_grad_operator(
         self, Ô: AbstractOperator, is_hermitian=None
-    ) -> Stats:
+    ) -> Tuple[Stats, PyTree]:
         raise NotImplementedError
 
     def to_matrix(self, normalize: bool = True) -> jnp.ndarray:

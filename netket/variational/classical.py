@@ -186,7 +186,7 @@ class MCState(VariationalState):
         if variables is not None:
             self.variables = variables
         else:
-            self.init(seed)
+            self.init(seed, dtype=sampler.dtype)
 
         self._sampler_seed = sampler_seed
         self.sampler = sampler
@@ -194,7 +194,7 @@ class MCState(VariationalState):
         self.n_samples = n_samples
         self.n_discard = n_discard
 
-    def init(self, seed=None, dtype=jnp.float32):
+    def init(self, seed=None, dtype=None):
         """
         Initialises the variational parameters of the variational state.
         """
@@ -203,6 +203,9 @@ class MCState(VariationalState):
                 "Cannot initialise the parameters of this state"
                 "because you did not supply a valid init_function."
             )
+
+        if dtype is None:
+            dtype = self.sampler.dtype
 
         key = nkjax.PRNGKey(seed)
 
@@ -283,7 +286,7 @@ class MCState(VariationalState):
             n_discard = 0
 
         self._n_discard = (
-            int(n_discard) if n_discard != None else self.chain_length // 10
+            int(n_discard) if n_discard is not None else self.chain_length // 10
         )
 
     def reset(self):
