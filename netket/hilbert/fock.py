@@ -95,6 +95,14 @@ class Fock(CustomHilbert):
         if the number is unconstrained."""
         return self._n_particles
 
+    def __pow__(self, n):
+        if self.n_particles is None:
+            n_particles = None
+        else:
+            n_particles = n_particles * n
+
+        return Fock(self.n_max, self.size * n, n_particles=n_particles)
+
     def __repr__(self):
         n_particles = (
             ", n_particles={}".format(self._n_particles)
