@@ -26,32 +26,37 @@ class AbstractHilbert(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def size(self):
-        r"""int: The total number number of spins."""
+    def size(self) -> int:
+        r"""The total number number of spins."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def is_discrete(self):
-        r"""bool: Whether the hilbert space is discrete."""
+    def shape(self) -> Tuple[int]:
+        r"""The size of the hilbert space on every site."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def is_finite(self):
-        r"""bool: Whether the local hilbert space is finite."""
+    def is_discrete(self) -> bool:
+        r"""Whether the hilbert space is discrete."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def local_size(self):
-        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
+    def is_finite(self) -> bool:
+        r"""Whether the local hilbert space is finite."""
         raise NotImplementedError()
 
-    @property
     @abc.abstractmethod
-    def local_states(self):
-        r"""list[float]: A list of discreet local quantum numbers."""
+    def size_at_index(self, i: int) -> int:
+        r"""Size of the local degrees of freedom at the site i."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def states_at_index(self, i: int) -> Optional[List[float]]:
+        r"""A list of discrete local quantum numbers at the site i.
+        If the local states are infinitely many, None is returned."""
         raise NotImplementedError()
 
     def numbers_to_states(self, numbers, out=None):
@@ -219,7 +224,7 @@ class AbstractHilbert(abc.ABC):
 
         log_max = np.log(max_states)
 
-        return self.size * np.log(self.local_size) <= log_max
+        return self.size * np.log(np.prod(self.shape)) <= log_max
 
     @partial(jax.jit, static_argnums=(0, 2))
     def _random_state_scalar(hilb, key, dtype):
@@ -269,6 +274,14 @@ class AbstractHilbert(abc.ABC):
         # Could probably put it in the class itself (which @singledispatch automatically
         # because of oop)?
         return NotImplemented
+
+    def __mul__(self, other):
+        if self == other:
+            return self ** 2
+        else:
+            from .tensor_hilbert import TensorHilbert
+
+            return TensorHilbert(self, other)
 
     @property
     @abc.abstractmethod

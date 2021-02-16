@@ -29,11 +29,16 @@ class DoubledHilbert(AbstractHilbert):
         self.physical = hilb
         self._size = 2 * hilb.size
 
+        self._shape = hilb.shape * 2
         super().__init__()
 
     @property
     def size(self):
         return self._size
+
+    @property
+    def shape(self):
+        return self._shape
 
     @property
     def is_discrete(self):
@@ -50,6 +55,18 @@ class DoubledHilbert(AbstractHilbert):
     @property
     def local_states(self):
         return self.physical.local_states
+
+    def size_at_index(self, i: int) -> int:
+        return self.physical.size_at_index(
+            i if i < self.physical.size else i - self.physical.size
+        )
+
+    def states_at_index(self, i: int) -> Optional[List[float]]:
+        r"""A list of discrete local quantum numbers at the site i.
+        If the local states are infinitely many, None is returned."""
+        return self.physical.states_at_index(
+            i if i < self.physical.size else i - self.physical.size
+        )
 
     @property
     def size_physical(self):

@@ -20,6 +20,8 @@ from .fock import Fock, Boson
 from .qubit import Qubit
 from .hilbert_index import HilbertIndex
 
+from .tensor_hilbert import TensorHilbert
+
 
 from netket.utils import _hide_submodules
 

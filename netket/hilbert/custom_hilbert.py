@@ -1,16 +1,18 @@
+from typing import Optional, Tuple, List, Callable
+
+from numbers import Real
+
+import numpy as np
+from numba import jit
+
+import jax
+from jax import numpy as jnp
+
+from netket.graph import AbstractGraph
+
 from .abstract_hilbert import AbstractHilbert
 from .hilbert_index import HilbertIndex
 from ._deprecations import graph_to_N_depwarn
-
-import jax
-import numpy as np
-from jax import numpy as jnp
-from numba import jit
-import numpy as np
-from netket.graph import AbstractGraph
-
-from typing import Optional, List, Callable
-from numbers import Real
 
 
 @jit(nopython=True)
@@ -86,6 +88,7 @@ class CustomHilbert(AbstractHilbert):
         self._constraint_fn = constraint_fn
 
         self._hilbert_index = None
+        self._shape = tuple(self._local_size for _ in range(self.size))
 
     @property
     def size(self):
@@ -93,20 +96,31 @@ class CustomHilbert(AbstractHilbert):
         return self._size
 
     @property
+    def shape(self):
+        r"""int: The size of the hilbert space on every site."""
+        return self._shape
+
+    @property
     def is_discrete(self):
         r"""bool: Whether the hilbert space is discrete."""
         return True
 
     @property
-    def local_size(self):
+    def local_size(self) -> int:
         r"""int: Size of the local degrees of freedom that make the total hilbert space."""
         return self._local_size
 
+    def size_at_index(self, i):
+        return self.local_size
+
     @property
-    def local_states(self):
-        r"""list[float] or None: A list of discreet local quantum numbers.
+    def local_states(self) -> Optional[List[float]]:
+        r"""A list of discreet local quantum numbers.
         If the local states are infinitely many, None is returned."""
         return self._local_states
+
+    def states_at_index(self, i):
+        return self.local_states
 
     @property
     def n_states(self):
