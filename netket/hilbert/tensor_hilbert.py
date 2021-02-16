@@ -1,5 +1,5 @@
 from fractions import Fraction
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import jax
 from jax import numpy as jnp

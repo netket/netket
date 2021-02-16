@@ -1,8 +1,10 @@
-from .abstract_hilbert import AbstractHilbert
+from typing import List, Optional, Tuple
 
 import jax
 from jax import numpy as jnp
 import numpy as np
+
+from .abstract_hilbert import AbstractHilbert
 
 
 class DoubledHilbert(AbstractHilbert):
