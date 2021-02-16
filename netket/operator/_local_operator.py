@@ -1,4 +1,5 @@
 import numbers
+from typing import Union, Tuple
 
 import numpy as np
 from numba import jit
@@ -8,16 +9,16 @@ from ._lazy import Transpose, Adjoint, Squared
 
 
 @jit(nopython=True)
-def _number_to_state(number, local_states, out):
+def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
 
-    out.fill(local_states[0])
+    out[:] = local_states_per_site[:, 0]
     size = out.shape[0]
-    local_size = local_states.shape[0]
 
     ip = number
     k = size - 1
     while ip > 0:
-        out[k] = local_states[ip % local_size]
+        local_size = hilbert_size_per_site[k]
+        out[k] = local_states_per_site[k, ip % local_size]
         ip = ip // local_size
         k -= 1
 
@@ -57,13 +58,6 @@ class LocalOperator(AbstractOperator):
         """
         super().__init__(hilbert)
         self._constant = constant
-
-        self._local_states = np.asarray(hilbert.local_states)
-
-        if np.all(np.diff(hilbert.local_states) < 0):
-            raise RuntimeError(
-                "LocalOperator requires local states in the hilbert object to be sorted."
-            )
 
         self._init_zero()
 
@@ -112,11 +106,20 @@ class LocalOperator(AbstractOperator):
     def n_operators(self):
         return self._n_conns.shape[0]
 
+    def __add__(self, other: Union["LocalOperator", numbers.Number]):
+        op = self.copy()
+        op += other
+        return op
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __iadd__(self, other):
         if isinstance(other, LocalOperator):
+            if self.hilbert != other.hilbert:
+                return NotImplemented
+
             assert other.mel_cutoff == self.mel_cutoff
-            assert np.all(other._local_states == self._local_states)
-            assert other._hilbert.size == self.hilbert.size
 
             for i in range(other._n_operators):
                 acting_on = other._acting_on[i, : other._acting_size[i]]
@@ -129,52 +132,57 @@ class LocalOperator(AbstractOperator):
         if isinstance(other, numbers.Number):
             self._constant += other
 
-        raise NotImplementedError()
-
-    def __isub__(self, other):
-        return self.__iadd__(-1 * other)
-
-    def __add__(self, other):
-        if isinstance(other, LocalOperator):
-            assert other.mel_cutoff == self.mel_cutoff
-            assert np.all(other._local_states == self._local_states)
-            assert other._hilbert.size == self.hilbert.size
-
-            return LocalOperator(
-                self.hilbert,
-                self._operators_list() + other._operators_list(),
-                acting_on=self._acting_on_list() + other._acting_on_list(),
-                constant=self._constant + other._constant,
-            )
-        elif isinstance(other, numbers.Number):
-            return LocalOperator(
-                self.hilbert,
-                self._operators_list(),
-                acting_on=self._acting_on_list(),
-                constant=self._constant + other,
-            )
-
-        raise NotImplementedError()
+        return NotImplemented
 
     def __sub__(self, other):
         return self.__add__(-1 * other)
 
-    def __imul__(self, other):
+    def __rsub__(self, other):
+        return self.__sub__(other)
+
+    def __isub__(self, other):
+        return self.__iadd__(-1 * other)
+
+    def __mul__(self, other):
+        op = self.copy()
         if isinstance(other, AbstractOperator):
-            return self.__imatmul__(other)
+            return op.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
             return NotImplemented
 
-        self._constant *= other
-        self._diag_mels *= other
-        self._mels *= other
+        op._constant *= other
+        op._diag_mels *= other
+        op._mels *= other
 
-        for op in self._operators:
-            op *= other
+        for _op in op._operators:
+            _op *= other
 
-        return self
+        return op
 
     def __imatmul__(self, other):
+        if not isinstance(other, LocalOperator):
+            return NotImplemented
+
+        return self._concrete_imatmul_(other)
+
+    def __matmul__(self, other):
+        if not isinstance(other, LocalOperator):
+            return NotImplemented
+
+        if self == other and self.is_hermitian:
+            return Squared(self)
+
+        return self._concrete_matmul_(other)
+
+    def _concrete_matmul_(self, other: "LocalOperator"):
+        if not isinstance(other, LocalOperator):
+            return NotImplemented
+
+        op = self.copy()
+        op @= other
+        return op
+
+    def _concrete_imatmul_(self, other: "LocalOperator"):
         if not isinstance(other, LocalOperator):
             return NotImplemented
 
@@ -200,55 +208,6 @@ class LocalOperator(AbstractOperator):
 
         return self
 
-    def __mul__(self, other):
-        if isinstance(other, AbstractOperator):
-            return self.__matmul__(other)
-        elif not isinstance(other, numbers.Number):
-            return NotImplemented
-
-        new_ops = [np.copy(op * other) for op in self._operators]
-
-        return LocalOperator(
-            hilbert=self.hilbert,
-            operators=new_ops,
-            acting_on=self._acting_on_list(),
-            constant=self._constant * other,
-        )
-
-    def __matmul__(self, other):
-        if not isinstance(other, LocalOperator):
-            return NotImplemented
-
-        if self == other and self.is_hermitian:
-            return Squared(self)
-
-        tot_operators = []
-        tot_act = []
-        for i in range(other._n_operators):
-            act_i = other._acting_on[i, : other._acting_size[i]].tolist()
-            ops, act = self._multiply_operator(other._operators[i], act_i)
-            tot_operators += ops
-            tot_act += act
-
-        prod = LocalOperator(self.hilbert, tot_operators, tot_act)
-
-        if np.abs(other._constant) > self.mel_cutoff:
-            result = LocalOperator(
-                hilbert=self.hilbert,
-                operators=self._operators_list(),
-                acting_on=self._acting_on_list(),
-                constant=0,
-            )
-            result *= other._constant
-            result += prod
-        else:
-            result = prod
-
-        if np.abs(self._constant) > self.mel_cutoff:
-            result += other * self.constant
-
-        return result
-
     def __truediv__(self, other):
         if not isinstance(other, numbers.Number):
             raise TypeError("Only divison by a scalar number is supported.")
@@ -257,18 +216,13 @@ class LocalOperator(AbstractOperator):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    def __radd__(self, other):
-        return self.__add__(other)
-
-    def __rsub__(self, other):
-        return self.__sub__(other)
-
     def _init_zero(self):
         self._operators = []
         self._n_operators = 0
 
         self._max_op_size = 0
         self._max_acting_size = 0
+        self._max_local_hilbert_size = 0
         self._size = 0
 
         self._acting_on = np.zeros((0, 0), dtype=np.intp)
@@ -278,7 +232,9 @@ class LocalOperator(AbstractOperator):
         self._x_prime = np.empty((0, 0, 0, 0))
         self._n_conns = np.empty((0, 0), dtype=np.intp)
 
-        self._basis = np.zeros(0, dtype=np.int64)
+        self._local_states = np.zeros((0, 0, 0), dtype=np.float64)
+
+        self._basis = np.zeros((0, 0), dtype=np.int64)
         self._is_hermitian = True
 
     def _acting_on_list(self):
@@ -295,6 +251,9 @@ class LocalOperator(AbstractOperator):
 
     def _add_operator(self, operator, acting_on):
         acting_on = np.asarray(acting_on, dtype=np.intp)
+        n_local_states_per_site = np.asarray(
+            [self.hilbert.size_at_index(i) for i in acting_on]
+        )
 
         if np.unique(acting_on).size != acting_on.size:
             raise RuntimeError("acting_on contains repeated entries.")
@@ -322,7 +281,8 @@ class LocalOperator(AbstractOperator):
                 self._n_conns[support_i],
                 self._acting_size[support_i],
                 self.mel_cutoff,
-                self._local_states,
+                n_local_states_per_site,
+                self._local_states[support_i],
             )
 
             isherm = True
@@ -337,7 +297,9 @@ class LocalOperator(AbstractOperator):
         self._operators.append(operator)
 
         self._acting_size = np.resize(self._acting_size, self._n_operators)
-        n_local_states = self.hilbert.local_size
+        local_states_per_acting_on = [
+            self.hilbert.states_at_index(i) for i in acting_on
+        ]
 
         max_op_size = 0
 
@@ -345,18 +307,22 @@ class LocalOperator(AbstractOperator):
 
         self._max_op_size = max((operator.shape[0], self._max_op_size))
 
-        if operator.shape[0] != n_local_states ** len(acting_on):
+        if operator.shape[0] != np.prod(n_local_states_per_site):
             raise RuntimeError(
                 r"""the given operator matrix has dimensions
                    incompatible with the size of the local hilbert space."""
             )
 
         self._max_acting_size = max(self._max_acting_size, acting_on.size)
+        self._max_local_hilbert_size = max(
+            self._max_local_hilbert_size, np.max(n_local_states_per_site)
+        )
 
         # numpy.resize does not preserve inner content correctly,
         # we need to do this ugly thing here to prevent issues
         # hopefully this is executed only a few times in realistic situations
         if self._acting_on.shape[1] != self._max_acting_size:
+            # print(f"changging acting on shape to {self._max_acting_size} from {self._acting_on.shape[1]}")
             old_n_op = self._acting_on.shape[0]
 
             old_array = self._acting_on
@@ -386,13 +352,39 @@ class LocalOperator(AbstractOperator):
             self._n_conns = np.resize(old_array, (old_n_op, self._max_op_size))
             self._n_conns[:, : old_array.shape[1]] = old_array
 
+            old_max_local_hilb_size = self._local_states.shape[2]
+            old_array = self._local_states
+            self._local_states = np.resize(
+                old_array, (old_n_op, self._max_acting_size, old_max_local_hilb_size)
+            )
+            self._local_states[:, :, :] = np.nan
+            self._local_states[:, : old_array.shape[1], :] = old_array
+
+            old_array = self._basis
+            self._basis = np.resize(old_array, (old_n_op, self._max_acting_size))
+            self._basis[:, :] = 1e10
+            self._basis[:, : old_array.shape[1]] = old_array
+
+        if self._local_states.shape[2] != self._max_local_hilbert_size:
+
+            n_op = self._acting_on.shape[0]
+
+            old_array = self._local_states
+            self._local_states = np.resize(
+                old_array, (n_op, self._max_acting_size, self._max_local_hilbert_size)
+            )
+            self._local_states[:, :, :] = np.nan
+            self._local_states[:, :, : old_array.shape[2]] = old_array
+
+        ## add an operator to acting_on
         old_array = self._acting_on
         self._acting_on = np.resize(
             old_array, (self._n_operators, self._max_acting_size)
         )
         self._acting_on[: old_array.shape[0], : old_array.shape[1]] = old_array
 
-        self._acting_on[-1].fill(np.nan)
+        # self._acting_on[-1].fill(np.nan)
+        self._acting_on[-1].fill(-1)
 
         acting_size = acting_on.size
         self._acting_on[-1, :acting_size] = acting_on
@@ -401,14 +393,35 @@ class LocalOperator(AbstractOperator):
             or self._acting_on[-1, :acting_size].min() < 0
         ):
             raise InvalidInputError("Operator acts on an invalid set of sites")
+        ##
 
-        if self._basis.size != self._max_acting_size:
-            self._basis = np.zeros(self._max_acting_size, dtype=np.int64)
+        ## add an operator to local_states
+        old_array = self._local_states
+        self._local_states = np.resize(
+            old_array,
+            (self._n_operators, self._max_acting_size, self._max_local_hilbert_size),
+        )
+        self._local_states[
+            : old_array.shape[0], : old_array.shape[1], : old_array.shape[2]
+        ] = old_array
+        self._local_states[-1].fill(np.nan)
 
-            ba = 1
-            for s in range(self._max_acting_size):
-                self._basis[s] = ba
-                ba *= self._local_states.size
+        for site in range(acting_size):
+            self._local_states[-1, site, : n_local_states_per_site[site]] = np.asarray(
+                local_states_per_acting_on[site]
+            )
+
+        ## add an operator to basis
+        old_array = self._basis
+        self._basis = np.resize(old_array, (self._n_operators, self._max_acting_size))
+        self._basis[: old_array.shape[0], : old_array.shape[1]] = old_array
+
+        self._basis[-1].fill(0)
+        ba = 1
+        for s in range(acting_on.size):
+            self._basis[-1, s] = ba
+            ba *= n_local_states_per_site[s]
+        ##
 
         if acting_on.max() + 1 >= self._size:
             self._size = acting_on.max() + 1
@@ -432,7 +445,8 @@ class LocalOperator(AbstractOperator):
             self._n_conns[-1],
             self._acting_size[-1],
             self.mel_cutoff,
-            self._local_states,
+            n_local_states_per_site,
+            self._local_states[-1],
         )
 
         isherm = True
@@ -444,7 +458,15 @@ class LocalOperator(AbstractOperator):
     @staticmethod
     @jit(nopython=True)
     def _append_matrix(
-        operator, diag_mels, mels, x_prime, n_conns, acting_size, epsilon, local_states
+        operator,
+        diag_mels,
+        mels,
+        x_prime,
+        n_conns,
+        acting_size,
+        epsilon,
+        hilb_size_per_site,
+        local_states_per_site,
     ):
         op_size = operator.shape[0]
         assert op_size == operator.shape[1]
@@ -455,7 +477,12 @@ class LocalOperator(AbstractOperator):
                 if i != j and np.abs(operator[i, j]) > epsilon:
                     k_conn = n_conns[i]
                     mels[i, k_conn] = operator[i, j]
-                    _number_to_state(j, local_states, x_prime[i, k_conn, :acting_size])
+                    _number_to_state(
+                        j,
+                        hilb_size_per_site,
+                        local_states_per_site[:acting_size, :],
+                        x_prime[i, k_conn, :acting_size],
+                    )
                     n_conns[i] += 1
 
     def _multiply_operator(self, op, act):
@@ -514,7 +541,7 @@ class LocalOperator(AbstractOperator):
 
     def conjugate(self):
         r"""LocalOperator: Returns the complex conjugate of this operator."""
-        new_ops = [np.copy(ops.conjugate()) for ops in self._operators]
+        new_ops = [np.copy(ops).conjugate() for ops in self._operators]
 
         return LocalOperator(
             hilbert=self.hilbert,
@@ -643,8 +670,11 @@ class LocalOperator(AbstractOperator):
                 x_i = x_b[acting_on[i, :acting_size_i]]
                 for k in range(acting_size_i):
                     xs_n[b, i] += (
-                        np.searchsorted(local_states, x_i[acting_size_i - k - 1])
-                        * basis[k]
+                        np.searchsorted(
+                            local_states[i, acting_size_i - k - 1],
+                            x_i[acting_size_i - k - 1],
+                        )
+                        * basis[i, k]
                     )
 
                 conn_b += n_conns[i, xs_n[b, i]]
@@ -815,8 +845,15 @@ class LocalOperator(AbstractOperator):
         return x_prime, mels
 
     def __repr__(self):
-        ao = self._acting_on
-        acting_str = f"acting_on={ao.tolist()}"
+        ao = []
+        for actions in self._acting_on:
+            _a = []
+            for site in actions:
+                if site >= 0:
+                    _a.append(site)
+            ao.append(_a)
+
+        acting_str = f"acting_on={ao}"
         if len(acting_str) > 55:
-            acting_str = f"#acting_on={ao.shape[0]}"
-        return f"{type(self).__name__}(dim={self.hilbert.size}, local_dim={ao.shape[1]}, {acting_str})"
+            acting_str = f"#acting_on={len(ao)} locations"
+        return f"{type(self).__name__}(dim={self.hilbert.size}, {acting_str})"
