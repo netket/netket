@@ -22,11 +22,10 @@ from jax import numpy as jnp
 
 from netket.hilbert import Spin
 
-from .base import flip_state_scalar_impl, random_state_batch_impl
+from .base import register_flip_state_impl, register_random_state_impl
 
 
-@random_state_batch_impl.register
-def _random_state_batch_impl(hilb: Spin, key, batches, dtype):
+def random_state_batch_spin_impl(hilb: Spin, key, batches, dtype):
     S = hilb._s
     shape = (batches, hilb.size)
 
@@ -81,6 +80,9 @@ def _random_state_batch_impl(hilb: Spin, key, batches, dtype):
             return state
 
 
+register_random_state_impl(Spin, batch=random_state_batch_spin_impl)
+
+
 # TODO: could numba-jit this
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     out = np.full((n_batches, hilb.size), -round(2 * hilb._s), dtype=dtype)
@@ -103,7 +105,6 @@ def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
 
 
 ## flips
-@flip_state_scalar_impl.register
 def flip_state_scalar_spin(hilb: Spin, key, state, index):
     if hilb._s == 0.5:
         return _flipat_N2(key, state, index)
@@ -112,7 +113,8 @@ def flip_state_scalar_spin(hilb: Spin, key, state, index):
 
 
 def _flipat_N2(key, x, i):
-    return jax.ops.index_update(x, i, -x[i]), x[i]
+    res = jax.ops.index_update(x, i, -x[i]), x[i]
+    return res
 
 
 def _flipat_generic(key, x, i, s):
@@ -123,4 +125,8 @@ def _flipat_generic(key, x, i, s):
     xi_new = jax.numpy.floor(r * (n_states - 1)) * 2 - (n_states - 1)
     xi_new = xi_new + 2 * (xi_new >= xi_old)
 
-    return jax.ops.index_update(x, i, xi_new), xi_old
+    new_state = jax.ops.index_update(x, i, xi_new)
+    return new_state, xi_old
+
+
+register_flip_state_impl(Spin, scalar=flip_state_scalar_spin)

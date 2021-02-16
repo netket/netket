@@ -24,13 +24,12 @@ from netket.hilbert import DoubledHilbert
 
 from .base import (
     random_state_batch,
-    random_state_batch_impl,
+    register_random_state_impl,
     flip_state_scalar,
-    flip_state_scalar_impl,
+    register_flip_state_impl,
 )
 
 
-@random_state_batch_impl.register
 def random_state_batch_doubled_impl(hilb: DoubledHilbert, key, batches, dtype):
     shape = (batches, hilb.size)
 
@@ -43,7 +42,6 @@ def random_state_batch_doubled_impl(hilb: DoubledHilbert, key, batches, dtype):
 
 
 ## flips
-@flip_state_scalar_impl.register
 def flip_state_scalar_doubled(hilb: DoubledHilbert, key, state, index):
     def flip_lower_state_scalar(args):
         key, state, index = args
@@ -59,3 +57,7 @@ def flip_state_scalar_doubled(hilb: DoubledHilbert, key, state, index):
         flip_upper_state_scalar,
         (key, state, index),
     )
+
+
+register_random_state_impl(DoubledHilbert, batch=random_state_batch_doubled_impl)
+register_flip_state_impl(DoubledHilbert, scalar=flip_state_scalar_doubled)

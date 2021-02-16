@@ -17,16 +17,18 @@ from jax import numpy as jnp
 
 from netket.hilbert import Qubit
 
-from .base import flip_state_scalar_impl, random_state_batch_impl
+from .base import register_flip_state_impl, register_random_state_impl
 
 
-@random_state_batch_impl.register
-def _random_state_batch_impl(hilb: Qubit, key, batches, dtype):
+def random_state_qubit_batch_impl(hilb: Qubit, key, batches, dtype):
     rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
     return jnp.asarray(rs, dtype=dtype)
 
 
 ## flips
-@flip_state_scalar_impl.register
 def flip_state_scalar_spin(hilb: Qubit, key, x, i):
     return jax.ops.index_update(x, i, -x[i] + 1), x[i]
+
+
+register_random_state_impl(Qubit, batch=random_state_qubit_batch_impl)
+register_flip_state_impl(Qubit, scalar=flip_state_scalar_spin)

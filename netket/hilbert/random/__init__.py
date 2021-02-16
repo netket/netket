@@ -32,13 +32,19 @@ but that is not always possible.
 
 """
 
-from .base import random_state, flip_state
+from .base import (
+    random_state,
+    flip_state,
+    register_flip_state_impl,
+    register_random_state_impl,
+)
 
 from . import custom
 from . import qubit
 from . import spin
 from . import fock
 from . import doubled
+from . import tensor_hilbert
 
 from netket.utils import _hide_submodules
 

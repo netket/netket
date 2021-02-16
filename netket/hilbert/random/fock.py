@@ -22,11 +22,10 @@ from jax import numpy as jnp
 
 from netket.hilbert import Fock
 
-from .base import flip_state_scalar_impl, random_state_batch_impl
+from .base import register_flip_state_impl, register_random_state_impl
 
 
-@random_state_batch_impl.register
-def _random_state_batch_impl(hilb: Fock, key, batches, dtype):
+def random_state_batch_fock_impl(hilb: Fock, key, batches, dtype):
     shape = (batches, hilb.size)
 
     # If unconstrained space, use fast sampling
@@ -69,8 +68,7 @@ def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
 
 
 ## flips
-@flip_state_scalar_impl.register
-def flip_state_scalarspin(hilb: Fock, key, σ, idx):
+def flip_state_scalar_fock(hilb: Fock, key, σ, idx):
     n_states = hilb._n_max + 1
 
     σi_old = σ[idx]
@@ -79,3 +77,7 @@ def flip_state_scalarspin(hilb: Fock, key, σ, idx):
     σi_new = σi_new + (σi_new >= σi_old)
 
     return jax.ops.index_update(σ, idx, σi_new), σi_old
+
+
+register_random_state_impl(Fock, batch=random_state_batch_fock_impl)
+register_flip_state_impl(Fock, scalar=flip_state_scalar_fock)

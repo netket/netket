@@ -22,10 +22,9 @@ from jax import numpy as jnp
 
 from ..custom_hilbert import CustomHilbert
 
-from .base import flip_state_batch_impl, random_state_batch_impl
+from .base import register_flip_state_impl, register_random_state_impl
 
 
-@random_state_batch_impl.register
 def random_state_batch_spin_impl(hilb: CustomHilbert, key, batches, dtype):
     if not hilb.is_discrete or not hilb.is_finite or hilb._has_constraint:
         raise NotImplementedError()
@@ -43,7 +42,15 @@ def random_state_batch_spin_impl(hilb: CustomHilbert, key, batches, dtype):
 
 
 ## flips
-@flip_state_batch_impl.register
+def flip_state_scalar_spin_impl(hilb: CustomHilbert, key, σ, indx):
+    local_states = jnp.asarray(hilb.local_states)
+
+    rs = jax.random.randint(key, shape=(), minval=0, maxval=len(hilb.local_states) - 1)
+
+    new_val = local_states[rs + (local_states[rs] >= σ[indx])]
+    return jax.ops.index_update(σ, indx, new_val), σ[indx]
+
+
 def flip_state_batch_spin_impl(hilb: CustomHilbert, key, σ, indxs):
     n_batches = σ.shape[0]
 
@@ -58,3 +65,9 @@ def flip_state_batch_spin_impl(hilb: CustomHilbert, key, σ, indxs):
         return jax.ops.index_update(σ, indx, new_val), σ[indx]
 
     return jax.vmap(scalar_update_fun, in_axes=(0, 0, 0), out_axes=0)(σ, indxs, rs)
+
+
+register_random_state_impl(CustomHilbert, batch=random_state_batch_spin_impl)
+register_flip_state_impl(
+    CustomHilbert, scalar=flip_state_scalar_spin_impl, batch=flip_state_batch_spin_impl
+)
