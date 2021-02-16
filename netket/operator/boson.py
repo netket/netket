@@ -16,7 +16,7 @@ def destroy(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, 1)
@@ -38,7 +38,7 @@ def create(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, -1)
@@ -60,7 +60,7 @@ def number(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
 
     D = np.array([m for m in np.arange(0, N)])
     mat = np.diag(D, 0)

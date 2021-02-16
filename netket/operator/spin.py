@@ -16,7 +16,7 @@ def sigmax(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
@@ -39,7 +39,7 @@ def sigmay(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
@@ -62,7 +62,7 @@ def sigmaz(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
@@ -85,7 +85,7 @@ def sigmam(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
@@ -109,7 +109,7 @@ def sigmap(hilbert: AbstractHilbert, site: int):
     import numpy as np
     from ._local_operator import LocalOperator
 
-    N = hilbert.local_size
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
