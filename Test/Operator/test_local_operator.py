@@ -30,7 +30,7 @@ def _loc(*args):
 
 
 sx_hat = _loc([sx] * 3, [[0], [1], [5]])
-sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+sy_hat = _loc([sy] * 4, [[2], [3], [4], [7]])
 szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
 szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
 szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
@@ -61,14 +61,24 @@ def same_matrices(matl, matr, eps=1.0e-6):
 
 def test_hermitian_local_operator_transpose_conjugation():
     for name, op in herm_operators.items():
+        orig_op = op.copy()
+
         op_t = op.transpose()
         op_c = op.conjugate()
         op_h = op.transpose().conjugate()
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
         mat = op.to_dense()
         mat_t = op_t.to_dense()
         mat_c = op_c.to_dense()
         mat_h = op_h.to_dense()
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
         same_matrices(mat, mat_h)
         same_matrices(mat_t, mat_c)
@@ -78,6 +88,10 @@ def test_hermitian_local_operator_transpose_conjugation():
 
         same_matrices(mat, mat_t_t)
         same_matrices(mat, mat_c_c)
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
 
 def test_local_operator_transpose_conjugation():
@@ -199,6 +213,34 @@ def test_simple_operators():
         assert np.allclose(n.to_dense(), (ad @ a).to_dense())
         assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
 
+    print("Testing mixed spaces...")
+    L = 3
+    his = nk.hilbert.Spin(0.5, N=L)
+    hib = nk.hilbert.Boson(3, N=L - 1)
+    hi = his * hib
+    for i in range(hi.size):
+        print("i=", i)
+        sx = sigmax(hi, i)
+        sy = sigmay(hi, i)
+
+        assert ad.operators[0].size == (hi.shape[i], hi.shape[i])
+        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
+        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+
+    for i in range(3):
+        print("i=", i)
+        a = bdestroy(hi, i)
+        ad = bcreate(hi, i)
+        n = bnumber(hi, i)
+        for j in range(3, 5):
+            print("j=", i)
+            a = bdestroy(hi, j)
+            ad = bcreate(hi, j)
+            n = bnumber(hi, j)
+
+        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
+        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+
 
 def test_mul_matmul():
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
@@ -257,6 +299,7 @@ def test_truediv():
 def test_copy():
     for name, op in herm_operators.items():
         print(name)
+        print(op)
         op_copy = op.copy()
         assert op_copy is not op
         for o1, o2 in zip(op._operators, op_copy._operators):
