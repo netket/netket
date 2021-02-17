@@ -1,7 +1,7 @@
 from netket.hilbert import AbstractHilbert
 
 
-def destroy(hilbert: AbstractHilbert, site: int):
+def destroy(hilbert: AbstractHilbert, site: int) -> "LocalOperator":
     """
     Builds the boson destruction operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -9,9 +9,12 @@ def destroy(hilbert: AbstractHilbert, site: int):
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space
+        site: the site on which this operator acts
+
+    Returns:
+        The resulting Local Operator
     """
     import numpy as np
     from ._local_operator import LocalOperator
@@ -23,7 +26,7 @@ def destroy(hilbert: AbstractHilbert, site: int):
     return LocalOperator(hilbert, mat, [site])
 
 
-def create(hilbert: AbstractHilbert, site: int):
+def create(hilbert: AbstractHilbert, site: int) -> "LocalOperator":
     """
     Builds the boson creation operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -31,9 +34,12 @@ def create(hilbert: AbstractHilbert, site: int):
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space
+        site: the site on which this operator acts
+
+    Returns:
+        The resulting Local Operator
     """
     import numpy as np
     from ._local_operator import LocalOperator
@@ -45,7 +51,7 @@ def create(hilbert: AbstractHilbert, site: int):
     return LocalOperator(hilbert, mat, [site])
 
 
-def number(hilbert: AbstractHilbert, site: int):
+def number(hilbert: AbstractHilbert, site: int) -> "LocalOperator":
     """
     Builds the number operator acting on the `site`-th of the
     Hilbert space `hilbert`.
@@ -53,9 +59,12 @@ def number(hilbert: AbstractHilbert, site: int):
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space
+        site: the site on which this operator acts
+
+    Returns:
+        The resulting Local Operator
     """
     import numpy as np
     from ._local_operator import LocalOperator
@@ -63,6 +72,36 @@ def number(hilbert: AbstractHilbert, site: int):
     N = hilbert.size_at_index(site)
 
     D = np.array([m for m in np.arange(0, N)])
+    mat = np.diag(D, 0)
+    return LocalOperator(hilbert, mat, [site])
+
+
+def proj(hilbert: AbstractHilbert, site: int, n: int) -> "LocalOperator":
+    """
+    Builds the projector operator acting on the `site`-th of the
+    Hilbert space `hilbert` and collapsing on the state with `n` bosons.
+
+    If `hilbert` is a non-Bosonic space of local dimension M, it is considered
+    as a bosonic space of local dimension M.
+
+    Args:
+        hilbert: The hilbert space
+        site: the site on which this operator acts
+        n: the state on which to project
+
+    Returns:
+        the resulting operator
+    """
+    import numpy as np
+    from ._local_operator import LocalOperator
+
+    N = hilbert.size_at_index(site)
+
+    if n >= N:
+        raise ValueError("Cannot project on a state above the cutoff.")
+
+    D = np.array([0 for m in np.arange(0, N)])
+    D[n] = 1
     mat = np.diag(D, 0)
     return LocalOperator(hilbert, mat, [site])
 
