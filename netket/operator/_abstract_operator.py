@@ -162,12 +162,17 @@ class AbstractOperator(abc.ABC):
         sections1[0] = 0
 
         ## eliminate duplicates from numbers
-        rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
+        # rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
 
         return _csr_matrix(
-            (mels, (rows_indices, numbers)),
+            (mels, numbers, sections1),
             shape=(self.hilbert.n_states, self.hilbert.n_states),
         )
+
+        # return _csr_matrix(
+        #    (mels, (rows_indices, numbers)),
+        #    shape=(self.hilbert.n_states, self.hilbert.n_states),
+        # )
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,

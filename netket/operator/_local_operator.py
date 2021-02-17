@@ -349,15 +349,21 @@ class LocalOperator(AbstractOperator):
 
             old_array = self._mels
             self._mels = np.resize(
-                old_array, (old_n_op, self._max_op_size, self._max_op_size)
+                old_array, (old_n_op, self._max_op_size, self._max_op_size - 1)
             )
             self._mels[:, : old_array.shape[1], : old_array.shape[2]] = old_array
 
             old_array = self._x_prime
             self._x_prime = np.resize(
                 old_array,
-                (old_n_op, self._max_op_size, self._max_op_size, self._max_acting_size),
+                (
+                    old_n_op,
+                    self._max_op_size,
+                    self._max_op_size - 1,
+                    self._max_acting_size,
+                ),
             )
+            self._x_prime[:, :, :, :] = -1
             self._x_prime[
                 :, : old_array.shape[1], : old_array.shape[2], : old_array.shape[3]
             ] = old_array
@@ -434,7 +440,7 @@ class LocalOperator(AbstractOperator):
         ba = 1
         for s in range(acting_on.size):
             self._basis[-1, s] = ba
-            ba *= n_local_states_per_site[s]
+            ba *= n_local_states_per_site[acting_on.size - s - 1]
         ##
 
         if acting_on.max() + 1 >= self._size:
@@ -445,10 +451,11 @@ class LocalOperator(AbstractOperator):
         max_acting_size = self._max_acting_size
 
         self._diag_mels = np.resize(self._diag_mels, (n_operators, max_op_size))
-        self._mels = np.resize(self._mels, (n_operators, max_op_size, max_op_size))
+        self._mels = np.resize(self._mels, (n_operators, max_op_size, max_op_size - 1))
         self._x_prime = np.resize(
-            self._x_prime, (n_operators, max_op_size, max_op_size, max_acting_size)
+            self._x_prime, (n_operators, max_op_size, max_op_size - 1, max_acting_size)
         )
+        self._x_prime[-1, :, :, :] = -1
         self._n_conns = np.resize(self._n_conns, (n_operators, max_op_size))
 
         self._append_matrix(
