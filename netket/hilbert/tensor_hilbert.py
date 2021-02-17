@@ -51,8 +51,8 @@ class TensorHilbert(AbstractHilbert):
         self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
         self._ns_states_r = _np.flip(self._ns_states)
         self._cum_ns_states = _np.concatenate([[0], _np.cumprod(self._ns_states)])
-        self._cum_ns_states_r = _np.concatenate(
-            [_np.flip(_np.cumprod(self._ns_states)[:-1]), [1]]
+        self._cum_ns_states_r = np.flip(
+            np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
         )
         self._n_states = np.prod(self._ns_states)
 

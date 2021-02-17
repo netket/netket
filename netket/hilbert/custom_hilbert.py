@@ -88,6 +88,7 @@ class CustomHilbert(AbstractHilbert):
         self._constraint_fn = constraint_fn
 
         self._hilbert_index = None
+
         self._shape = tuple(self._local_size for _ in range(self.size))
 
     @property
