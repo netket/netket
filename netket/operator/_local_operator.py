@@ -258,6 +258,7 @@ class LocalOperator(AbstractOperator):
 
     def _add_operator(self, operator, acting_on):
         acting_on = np.asarray(acting_on, dtype=np.intp)
+        operator = np.asarray(operator, dtype=np.complex128)
 
         if np.unique(acting_on).size != acting_on.size:
             raise ValueError("acting_on contains repeated entries.")
@@ -271,8 +272,6 @@ class LocalOperator(AbstractOperator):
         n_local_states_per_site = np.asarray(
             [self.hilbert.size_at_index(i) for i in acting_on]
         )
-
-        operator = np.asarray(operator, dtype=np.complex128)
 
         # find overlapping support
         support_i = None
@@ -829,7 +828,11 @@ class LocalOperator(AbstractOperator):
             x_i = x_b[acting_on[i, :acting_size_i]]
             for k in range(acting_size_i):
                 xs_n[b, i] += (
-                    np.searchsorted(local_states, x_i[acting_size_i - k - 1]) * basis[k]
+                    np.searchsorted(
+                        local_states[i, acting_size_i - k - 1],
+                        x_i[acting_size_i - k - 1],
+                    )
+                    * basis[i, k]
                 )
 
             tot_conn += n_conns[i, xs_n[b, i]]
