@@ -142,7 +142,7 @@ class Squared(WrappedOperator):
         self.parent = op
 
     def collect(self):
-        return self.parent.H._concrete_matmul_(self.parent)
+        return self.parent.H.collect()._concrete_matmul_(self.parent)
 
     @property
     def T(self):
