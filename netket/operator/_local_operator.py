@@ -64,6 +64,9 @@ class LocalOperator(AbstractOperator):
         self.mel_cutoff = 1.0e-6
 
         # check if passing a single operator or a list of operators
+        if isinstance(acting_on, numbers.Number):
+            acting_on = [acting_on]
+
         is_nested = any(hasattr(i, "__len__") for i in acting_on)
 
         if not is_nested:
@@ -108,7 +111,7 @@ class LocalOperator(AbstractOperator):
 
     def __add__(self, other: Union["LocalOperator", numbers.Number]):
         op = self.copy()
-        op += other
+        op = op.__iadd__(other)
         return op
 
     def __radd__(self, other):
@@ -131,17 +134,21 @@ class LocalOperator(AbstractOperator):
             return self
         if isinstance(other, numbers.Number):
             self._constant += other
+            return self
 
         return NotImplemented
 
     def __sub__(self, other):
-        return self.__add__(-1 * other)
+        return self + (-other)
 
     def __rsub__(self, other):
-        return self.__sub__(other)
+        return other + (-self)
 
     def __isub__(self, other):
-        return self.__iadd__(-1 * other)
+        return self.__iadd__(-other)
+
+    def __neg__(self):
+        return -1 * self
 
     def __mul__(self, other):
         op = self.copy()
@@ -251,12 +258,19 @@ class LocalOperator(AbstractOperator):
 
     def _add_operator(self, operator, acting_on):
         acting_on = np.asarray(acting_on, dtype=np.intp)
+
+        if np.unique(acting_on).size != acting_on.size:
+            raise ValueError("acting_on contains repeated entries.")
+
+        if any(acting_on >= self.hilbert.size):
+            raise ValueError("acting_on points to a site not in the hilbert space.")
+
+        if operator.ndim != 2:
+            raise ValueError("The operator should be a matrix")
+
         n_local_states_per_site = np.asarray(
             [self.hilbert.size_at_index(i) for i in acting_on]
         )
-
-        if np.unique(acting_on).size != acting_on.size:
-            raise RuntimeError("acting_on contains repeated entries.")
 
         operator = np.asarray(operator, dtype=np.complex128)
 

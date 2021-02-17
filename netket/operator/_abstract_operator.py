@@ -7,6 +7,17 @@ from numba import jit
 from netket.hilbert import AbstractHilbert
 
 
+@jit(nopython=True)
+def compute_row_indices(rows, sections):
+    ntot = sections[-1]
+    res = np.empty(ntot, dtype=np.intp)
+
+    for i in range(1, sections.size):
+        res[sections[i - 1] : sections[i]] = rows[i - 1]
+
+    return res
+
+
 class AbstractOperator(abc.ABC):
     """Abstract class for quantum Operators. This class prototypes the methods
     needed by a class satisfying the Operator concept. Users interested in
@@ -150,7 +161,13 @@ class AbstractOperator(abc.ABC):
         sections1[1:] = sections
         sections1[0] = 0
 
-        return _csr_matrix((mels, numbers, sections1))
+        ## eliminate duplicates from numbers
+        rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
+
+        return _csr_matrix(
+            (mels, (rows_indices, numbers)),
+            shape=(self.hilbert.n_states, self.hilbert.n_states),
+        )
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,

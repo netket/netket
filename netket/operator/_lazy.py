@@ -5,6 +5,18 @@ class WrappedOperator(AbstractOperator):
     def get_conn_flattened(self, *args):
         return NotImplementedError
 
+    def __add__(self, other):
+        return self.collect() + other
+
+    def __radd__(self, other):
+        return other + self.collect()
+
+    def __sub__(self, other):
+        return self.collect() - other
+
+    def __rsub__(self, other):
+        return other - self.collect()
+
     def __mul__(self, other):
         return self.collect() * other
 
