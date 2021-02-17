@@ -224,7 +224,7 @@ class AbstractHilbert(abc.ABC):
 
         log_max = np.log(max_states)
 
-        return self.size * np.log(np.prod(self.shape)) <= log_max
+        return np.sum(np.log(self.shape)) <= log_max
 
     @partial(jax.jit, static_argnums=(0, 2))
     def _random_state_scalar(hilb, key, dtype):
