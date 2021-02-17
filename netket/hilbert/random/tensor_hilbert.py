@@ -43,25 +43,33 @@ def random_state_batch_doubled_impl(hilb: TensorHilbert, key, batches, dtype):
     return jnp.concatenate(vs, axis=1)
 
 
+def _make_subfun(hilb, i, sub_hi):
+    def subfun(args):
+        key, state, index = args
+
+        # jax.experimental.host_callback.id_print(index, text=f"printing subfun_{i}:")
+
+        sub_state = state[hilb._cum_indices[i] : hilb._cum_sizes[i]]
+        new_sub_state, old_val = flip_state_scalar(
+            sub_hi, key, sub_state, index - hilb._cum_indices[i]
+        )
+        idx = jax.ops.index[hilb._cum_indices[i] : hilb._cum_sizes[i]]
+        new_state = jax.ops.index_update(state, idx, new_sub_state)
+        return new_state, old_val
+
+    return subfun
+
+
 ## flips
+from jax import experimental
+from jax.experimental import host_callback
 
 
 def flip_state_scalar_doubled(hilb: TensorHilbert, key, state, index):
 
     subfuns = []
     for (i, sub_hi) in enumerate(hilb._hilbert_spaces):
-
-        def subfun(args):
-            key, state, index = args
-            sub_state = state[hilb._cum_indices[i] : hilb._cum_sizes[i]]
-            new_sub_state, old_val = flip_state_scalar(
-                sub_hi, key, sub_state, index - hilb._cum_indices[i]
-            )
-            idx = jax.ops.index[hilb._cum_indices[i] : hilb._cum_sizes[i]]
-            new_state = jax.ops.index_update(state, idx, new_sub_state)
-            return new_state, old_val
-
-        subfuns.append(subfun)
+        subfuns.append(_make_subfun(hilb, i, sub_hi))
 
     branches = []
     for i in hilb._hilbert_i:
