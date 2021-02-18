@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Iterable
 
 import jax
 from jax import numpy as jnp
@@ -72,7 +72,7 @@ class Fock(CustomHilbert):
             self._n_particles = None
 
         if self._n_max is not None:
-            assert self._n_max > 0
+            # assert self._n_max > 0
             local_states = np.arange(self._n_max + 1)
         else:
             max_ind = np.iinfo(np.intp).max
@@ -84,24 +84,54 @@ class Fock(CustomHilbert):
         super().__init__(local_states, N, constraints)
 
     @property
-    def n_max(self):
+    def n_max(self) -> Optional[int]:
         r"""int or None: The maximum number of bosons per site, or None
         if the number is unconstrained."""
         return self._n_max
 
     @property
-    def n_particles(self):
+    def n_particles(self) -> Optional[int]:
         r"""int or None: The total number of particles, or None
         if the number is unconstrained."""
         return self._n_particles
 
-    def __pow__(self, n):
+    def __pow__(self, n) -> "Fock":
         if self.n_particles is None:
             n_particles = None
         else:
             n_particles = n_particles * n
 
         return Fock(self.n_max, self.size * n, n_particles=n_particles)
+
+    def _mul_sametype_(self, other):
+        assert type(self) == type(other)
+        if self.n_max == other.n_max:
+            if self._n_particles is None and other._n_particles is None:
+                return Fock(self.n_max, N=self.size + other.size)
+
+        return NotImplemented
+
+    def ptrace(self, sites: Union[int, List]) -> Optional["Fock"]:
+        if isinstance(sites, int):
+            sites = [sites]
+
+        for site in sites:
+            if site < 0 or site >= self.size:
+                raise ValueError(
+                    f"Site {site} not in this hilbert space of site {self.size}"
+                )
+
+        if self.n_particles is not None:
+            raise TypeError(
+                "Cannot take the partial trace with a total particles constraint."
+            )
+
+        Nsites = len(sites)
+
+        if self.size - Nsites == 0:
+            return None
+        else:
+            return Fock(self.n_max, N=self.size - Nsites)
 
     def __repr__(self):
         n_particles = (

@@ -214,6 +214,19 @@ class AbstractHilbert(abc.ABC):
         numbers = np.arange(0, self.n_states, dtype=np.int64)
         return self.numbers_to_states(numbers, out)
 
+    def ptrace(self, sites: Union[int, Iterable]) -> "AbstractHilbert":
+        """Returns the hilbert space without the selected sites.
+
+        Not all hilbert spaces support this operation.
+
+        Args:
+            sites: a site or list of sites to trace away
+        Returns:
+            The partially-traced hilbert space. The type of the resulting hilbert space
+            might be different from the starting one.
+        """
+        pass
+
     @property
     def is_indexable(self):
         if not self.is_discrete:
@@ -281,7 +294,12 @@ class AbstractHilbert(abc.ABC):
         else:
             from .tensor_hilbert import TensorHilbert
 
-            return TensorHilbert(self, other)
+            if type(self) == type(other):
+                res = self._mul_sametype_(other)
+                if res is not NotImplemented:
+                    return res
+
+            return TensorHilbert(self) * other
 
     @property
     @abc.abstractmethod

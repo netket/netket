@@ -1,5 +1,5 @@
 from fractions import Fraction
-from typing import Optional, List
+from typing import Optional, List, Union, Iterable
 
 import jax
 from jax import numpy as jnp
@@ -92,6 +92,36 @@ class Spin(CustomHilbert):
             total_sz = total_sz * n
 
         return Spin(self._s, self.size * n, total_sz=total_sz)
+
+    def _mul_sametype_(self, other):
+        assert type(self) == type(other)
+        if self._s == other._s:
+            if self._total_sz is None and other._total_sz is None:
+                return Spin(s=self._s, N=self.size + other.size)
+
+        return NotImplemented
+
+    def ptrace(self, sites: Union[int, List]) -> Optional["Spin"]:
+        if isinstance(sites, int):
+            sites = [sites]
+
+        for site in sites:
+            if site < 0 or site >= self.size:
+                raise ValueError(
+                    f"Site {site} not in this hilbert space of site {self.size}"
+                )
+
+        if self._total_sz is not None:
+            raise TypeError(
+                "Cannot take the partial trace with a total magnetization constraint."
+            )
+
+        Nsites = len(sites)
+
+        if self.size - Nsites == 0:
+            return None
+        else:
+            return Spin(s=self._s, N=self.size - Nsites)
 
     def __repr__(self):
         total_sz = (

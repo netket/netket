@@ -1,5 +1,5 @@
 from fractions import Fraction
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union, Iterable
 
 import jax
 from jax import numpy as jnp
@@ -48,6 +48,8 @@ class TensorHilbert(AbstractHilbert):
         self._cum_indices = _np.concatenate([[0], self._cum_sizes])
         self._size = sum(self._sizes)
 
+        self._shape = np.concatenate([hi.shape for hi in hilb_spaces])
+
         self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
         self._ns_states_r = _np.flip(self._ns_states)
         self._cum_ns_states = _np.concatenate([[0], _np.cumprod(self._ns_states)])
@@ -68,7 +70,7 @@ class TensorHilbert(AbstractHilbert):
 
     @property
     def shape(self) -> Tuple[int]:
-        return self._sizes
+        return self._shape
 
     @property
     def is_discrete(self):
@@ -129,6 +131,8 @@ class TensorHilbert(AbstractHilbert):
     def states_to_numbers(self, states, out=None):
         if out is None:
             out = _np.zeros(states.shape[0], _np.int64)
+        else:
+            out[:] = 0
 
         temp = out.copy()
 
@@ -155,4 +159,64 @@ class TensorHilbert(AbstractHilbert):
         return self._hilbert_spaces
 
     def __mul__(self, other):
-        return TensorHilbert(*self._hilbert_spaces, other)
+        spaces_l = self._hilbert_spaces[:-1]
+        space_center_l = self._hilbert_spaces[-1]
+
+        if isinstance(other, TensorHilbert):
+            space_center_r = other._hilbert_spaces[0]
+            spaces_r = other._hilbert_spaces[1:]
+        else:
+            space_center_r = other
+            spaces_r = tuple()
+
+        try:
+            spaces_center = space_center_l * space_center_r
+            if isinstance(spaces_center, TensorHilbert):
+                spaces_center = (space_center_l, space_center_r)
+            else:
+                spaces_center = (spaces_center,)
+        except:
+            spaces_center = (space_center_l, space_center_r)
+
+        return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)
+
+    def ptrace(self, sites: Union[int, List]) -> Optional[AbstractHilbert]:
+        if isinstance(sites, int):
+            sites = [sites]
+
+        sites = np.sort(sites)
+
+        for site in sites:
+            if site < 0 or site >= self.size:
+                raise ValueError(
+                    f"Site {site} not in this hilbert space of site {self.size}"
+                )
+
+        Nsites = len(sites)
+
+        if self.size - Nsites == 0:
+            return None
+        else:
+            new_hilberts = []
+            sz = 0
+            for hilb in self._hilbert_spaces:
+                sites_this_hilb = (
+                    sites[np.logical_and(sites >= sz, sites < sz + hilb.size)] - sz
+                )
+                if len(sites_this_hilb) == 0:
+                    new_hilberts.append(hilb)
+                else:
+                    ptraced_hilb = hilb.ptrace(sites_this_hilb)
+                    if ptraced_hilb is not None:
+                        new_hilberts.append(ptraced_hilb)
+                sz += hilb.size
+
+            if len(new_hilberts) == 0:
+                return None
+            elif len(new_hilberts) >= 1:
+                hilb = new_hilberts[0]
+
+                for h in new_hilberts[1:]:
+                    hilb = hilb * h
+
+                return hilb
