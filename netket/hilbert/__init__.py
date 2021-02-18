@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .abstract_hilbert import AbstractHilbert, max_states
+from .abstract_hilbert import AbstractHilbert
 from .custom_hilbert import CustomHilbert
 from .doubled_hilbert import DoubledHilbert
 from .spin import Spin

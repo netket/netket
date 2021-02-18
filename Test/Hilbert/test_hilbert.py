@@ -155,7 +155,7 @@ def test_hilbert_index(hi):
     assert hi.size > 0
     assert hi.local_size > 0
 
-    log_max_states = np.log(nk.hilbert.max_states)
+    log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
 
     if hi.is_indexable:
         assert hi.size * np.log(hi.local_size) < log_max_states
