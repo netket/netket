@@ -54,10 +54,10 @@ class MPSPeriodic(nn.Module):
         self._phys_dim = phys_dim
 
         # determine transformation from local states to indices
-        local_states = jnp.array(self.hilbert.local_states)
-        loc_vals_spacing = jnp.roll(local_states, -1)[0:-1] - local_states[0:-1]
-        if jnp.max(loc_vals_spacing) == jnp.min(loc_vals_spacing):
-            self._loc_vals_spacing = loc_vals_spacing[0]
+        local_states = np.array(self.hilbert.local_states)
+        loc_vals_spacing = np.roll(local_states, -1)[0:-1] - local_states[0:-1]
+        if np.max(loc_vals_spacing) == np.min(loc_vals_spacing):
+            self._loc_vals_spacing = jnp.array(loc_vals_spacing[0])
         else:
             raise AssertionError(
                 "JaxMpsPeriodic can only be used with evenly spaced hilbert local values"
@@ -99,15 +99,17 @@ class MPSPeriodic(nn.Module):
 
         # define diagonal tensors with correct unit cell shape
         if self.diag:
-            iden_tensors = jnp.ones((symperiod, phys_dim, self.bond_dim), dtype=dtype)
+            iden_tensors = jnp.ones(
+                (self.symperiod, phys_dim, self.bond_dim), dtype=self.dtype
+            )
         else:
             iden_tensors = jnp.repeat(
-                jnp.eye(self.bond_dim, dtype=dtype)[jnp.newaxis, :, :],
-                symperiod * phys_dim,
+                jnp.eye(self.bond_dim, dtype=self.dtype)[jnp.newaxis, :, :],
+                self.symperiod * phys_dim,
                 axis=0,
             )
             iden_tensors = iden_tensors.reshape(
-                symperiod, phys_dim, self.bond_dim, self.bond_dim
+                self.symperiod, phys_dim, self.bond_dim, self.bond_dim
             )
 
         self.kernel = (
@@ -120,7 +122,11 @@ class MPSPeriodic(nn.Module):
     def __call__(self, x):
         # expand diagonal to square matrices if diagonal mps
         if self.diag:
-            params = jnp.einsum("ijk,kl->ijkl", params, jnp.eye(self.kernel.shape[-1]))
+            params = jnp.einsum(
+                "ijk,kl->ijkl", self.kernel, jnp.eye(self.kernel.shape[-1])
+            )
+        else:
+            params = self.kernel
 
         # create all tensors in mps from unit cell
         all_tensors = jnp.tile(params, (self._L // self.symperiod, 1, 1, 1))
@@ -141,7 +147,7 @@ class MPSPeriodic(nn.Module):
 
         # create loop carry, in this case a unit matrix
         edges = jnp.repeat(
-            jnp.eye(bond_dim, dtype=selected_tensors.dtype)[jnp.newaxis, :, :],
+            jnp.eye(self.bond_dim, dtype=selected_tensors.dtype)[jnp.newaxis, :, :],
             selected_tensors.shape[0],
             axis=0,
         )
@@ -155,4 +161,4 @@ class MPSPeriodic(nn.Module):
             return jnp.trace(edge)
 
         # trace the matrix multiplication
-        return jax.vmap(trace_mps)(selected_tensors, edges)
+        return jnp.log(jax.vmap(trace_mps)(selected_tensors, edges))
