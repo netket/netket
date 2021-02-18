@@ -10,6 +10,7 @@ from netket.stats import (
     statistics as _statistics,
     mean as _mean,
     sum_inplace as _sum_inplace,
+    Stats,
 )
 
 from netket.variational import MCState
@@ -101,7 +102,7 @@ class Vmc(AbstractVariationalDriver):
         return self._dp
 
     @property
-    def energy(self):
+    def energy(self) -> Stats:
         """
         Return MCMC statistics for the expectation value of observables in the
         current state of the driver.
