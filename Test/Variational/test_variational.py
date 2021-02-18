@@ -114,7 +114,7 @@ def test_expect(vstate, operator):
 
     # sample the expectation value and gradient with tons of samples
     O_stat1 = vstate.expect(operator)
-    O_stat, O_grad = vstate.expect_and_grad(operator, is_hermitian=Falsew)
+    O_stat, O_grad = vstate.expect_and_grad(operator)
 
     # Check that expect and expect_and_grad give same expect. value
     O1_mean = np.asarray(O_stat1.mean)
