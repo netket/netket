@@ -102,6 +102,10 @@ def test_vmc_construction_vstate():
 
     driver.run(1)
 
+    with raises(TypeError):
+        ha2 = nk.operator.LocalOperator(ha.hilbert * ha.hilbert)
+        driver = nk.Vmc(ha2, op, variational_state=driver.state)
+
 
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
