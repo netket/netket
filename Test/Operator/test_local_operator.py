@@ -221,9 +221,8 @@ def test_simple_operators():
     for i in range(hi.size):
         print("i=", i)
         sx = sigmax(hi, i)
-        sy = sigmay(hi, i)
 
-        assert ad.operators[0].size == (hi.shape[i], hi.shape[i])
+        assert sx.operators[0].shape == (hi.shape[i], hi.shape[i])
         assert np.allclose(n.to_dense(), (ad @ a).to_dense())
         assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
 

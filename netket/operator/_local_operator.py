@@ -82,6 +82,11 @@ class LocalOperator(AbstractOperator):
         return self._operators_list()
 
     @property
+    def acting_on(self):
+        actions = [action[action >= 0].tolist() for action in self._acting_on]
+        return actions
+
+    @property
     def size(self):
         return self._size
 
@@ -173,6 +178,9 @@ class LocalOperator(AbstractOperator):
         return self._concrete_imatmul_(other)
 
     def __matmul__(self, other):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            return self(other)
+
         if not isinstance(other, LocalOperator):
             return NotImplemented
 
@@ -322,8 +330,15 @@ class LocalOperator(AbstractOperator):
 
         if operator.shape[0] != np.prod(n_local_states_per_site):
             raise RuntimeError(
-                r"""the given operator matrix has dimensions
-                   incompatible with the size of the local hilbert space."""
+                r"""the given operator matrix has shape={} and acts on 
+                    the sites={}, which have a local hilbert space size of
+                    sizes={} giving an expected shape
+                    for the operator expected_shape={}.""".format(
+                    operator.shape,
+                    acting_on,
+                    n_local_states_per_site,
+                    np.prod(n_local_states_per_site),
+                )
             )
 
         self._max_acting_size = max(self._max_acting_size, acting_on.size)
