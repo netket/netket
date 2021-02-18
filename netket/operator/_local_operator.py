@@ -4,6 +4,9 @@ from typing import Union, Tuple
 import numpy as np
 from numba import jit
 
+import jax
+import jax.numpy as jnp
+
 from ._abstract_operator import AbstractOperator
 from ._lazy import Transpose, Adjoint, Squared
 
