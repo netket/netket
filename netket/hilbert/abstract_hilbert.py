@@ -1,7 +1,7 @@
 import abc
 from functools import partial
 
-from typing import List, Tuple, Optional, Generator
+from typing import List, Tuple, Optional, Generator, Union, Iterable
 
 import jax
 import jax.numpy as jnp
