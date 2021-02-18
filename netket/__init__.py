@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # enable x64 on jax
+# must be done at 0 startup.
 from jax.config import config
 
 config.update("jax_enable_x64", True)
@@ -41,7 +42,7 @@ from . import (
     graph,
     logging,
     operator,
-    optim,
+    optimizer,
     models,
     sampler,
     jax,
@@ -58,9 +59,6 @@ from .drivers import SteadyState
 # from .drivers import Qsr
 
 # deprecations
-optimizer = optim
-
-# to deprecate
-variational_states = variational
+optim = optimizer
 
 from .version import __version__
