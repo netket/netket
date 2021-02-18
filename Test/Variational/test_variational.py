@@ -26,7 +26,7 @@ RBMModPhase = partial(nk.models.RBMModPhase, bias_init=standard_init)
 
 machines["model:(R->R)"] = RBM(alpha=1, dtype=float)
 machines["model:(R->C)"] = RBMModPhase(alpha=1, dtype=float)
-machines["operator:(C->C)"] = RBM(alpha=1, dtype=complex)
+machines["model:(C->C)"] = RBM(alpha=1, dtype=complex)
 
 operators = {}
 
@@ -46,7 +46,7 @@ H = H.copy()
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
 
-operators["operator:(Non Hermitian)"] = H
+# operators["operator:(Non Hermitian)"] = H
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -58,6 +58,38 @@ def vstate(request):
     vs = nk.variational.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
+
+
+def test_n_samples_api(vstate):
+    with raises(
+        ValueError,
+    ):
+        vstate.n_samples = -1
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chain_length = -2
+
+    with raises(
+        ValueError,
+    ):
+        vstate.n_discard = -1
+
+    vstate.n_samples = 2
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+
+    vstate.chain_length = 2
+    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+
+    vstate.n_samples = 1000
+    vstate.n_discard = None
+    assert vstate.n_discard == 0
+
+    vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    vstate.n_discard = None
+    assert vstate.n_discard == vstate.chain_length // 10
 
 
 @pytest.mark.parametrize(
@@ -82,7 +114,7 @@ def test_expect(vstate, operator):
 
     # sample the expectation value and gradient with tons of samples
     O_stat1 = vstate.expect(operator)
-    O_stat, O_grad = vstate.expect_and_grad(operator)
+    O_stat, O_grad = vstate.expect_and_grad(operator, is_hermitian=Falsew)
 
     # Check that expect and expect_and_grad give same expect. value
     O1_mean = np.asarray(O_stat1.mean)

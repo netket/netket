@@ -93,10 +93,22 @@ def test_raise_n_iter():
         driver.run("prova", 12)
 
 
+def test_vmc_construction_vstate():
+    ha, sx, ma, sa, driver = _setup_vmc()
+
+    op = nk.optimizer.GradientDescent(learning_rate=0.05)
+
+    driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
+
+    driver.run(1)
+
+
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 
     driver.advance(500)
+
+    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=1e-5)
 
     state = ma.to_array()
     exact_dist = np.abs(state) ** 2

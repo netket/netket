@@ -55,6 +55,14 @@ class Vmc(AbstractVariationalDriver):
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
 
+        if variational_state.hilbert != hamiltonian.hilbert:
+            raise TypeError(
+                f"""the variational_state has hilbert space {variational_state.hilbert} 
+                                (this is normally defined by the hilbert space in the sampler), but
+                                the hamiltonian has hilbert space {hamiltonian.hilbert}. 
+                                The two should match."""
+            )
+
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator

@@ -586,67 +586,6 @@ def grad_expect_hermitian(
     return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
 
 
-@partial(jax.jit, static_argnums=(0, 1))
-def grad_expect_non_hermitian(
-    model_apply_fun: Callable,
-    mutable: bool,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Tuple[PyTree, PyTree]:
-
-    σ_shape = σ.shape
-
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    n_samples = σ.shape[0] * utils.n_nodes
-
-    has_aux = mutable is not False
-    if not has_aux:
-        out_axes = (0, 0)
-    else:
-        out_axes = (0, 0, 0)
-
-    if not has_aux:
-        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
-    else:
-        # TODO: output the mutable state
-        logpsi = lambda w, σ: model_apply_fun(
-            {"params": w, **model_state}, σ, mutable=mutable
-        )[0]
-
-    def local_value(pars, σp, mel, σ):
-        return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
-
-    grad_fun = jax.vmap(
-        nkjax.value_and_grad(local_value, argnums=0, has_aux=has_aux),
-        in_axes=(None, 0, 0, 0),
-        out_axes=out_axes,
-    )
-
-    if not has_aux:
-        Ō, Ō_grad = grad_fun(
-            parameters,
-            σp,
-            mels,
-            σ,
-        )
-        new_model_state = None
-    else:
-        Ō, Ō_grad = grad_fun(
-            parameters,
-            σp,
-            mels,
-            σ,
-        )
-        Ō, new_model_state = Ō
-
-    return tree_map(lambda x: sum_inplace(x) / n_samples, Ō_grad), new_model_state
-
-
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def grad_expect_operator_kernel(
     sampler: Sampler,
