@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Any, Union, Tuple, Callable
+from typing import Optional, Any, Union, Tuple, Callable, Iterator
 from functools import singledispatch, partial
 
 import jax
@@ -361,7 +361,7 @@ def samples(
     *,
     state: Optional[SamplerState] = None,
     chain_length: int = 1,
-):
+) -> Iterator[np.ndarray]:
     """
     Returns a generator sampling chain_length elements along the chains.
 

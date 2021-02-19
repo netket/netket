@@ -317,7 +317,7 @@ from netket.legacy.sampler import MetropolisLocal as LegacyMetropolisLocal
 
 
 @wraps_legacy(LegacyMetropolisLocal, "machine", AbstractMachine)
-def MetropolisLocal(hilbert, *args, **kwargs):
+def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
     """
     Sampler acting on one local degree of freedom.
 
@@ -360,7 +360,9 @@ from netket.legacy.sampler import MetropolisExchange as LegacyMetropolisExchange
 
 
 @wraps_legacy(LegacyMetropolisExchange, "machine", AbstractMachine)
-def MetropolisExchange(hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs):
+def MetropolisExchange(
+    hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs
+) -> MetropolisSampler:
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
@@ -421,7 +423,7 @@ from netket.legacy.sampler import MetropolisHamiltonian as LegacyMetropolisHamil
 
 
 @wraps_legacy(LegacyMetropolisHamiltonian, "machine", AbstractMachine)
-def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs):
+def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSampler:
     r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
