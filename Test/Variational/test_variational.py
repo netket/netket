@@ -118,11 +118,11 @@ def test_expect(vstate, operator):
 
     # Check that expect and expect_and_grad give same expect. value
     O1_mean = np.asarray(O_stat1.mean)
-    O_mean = np.asarray(O_stat1.mean)
+    O_mean = np.asarray(O_stat.mean)
 
-    assert O1_mean.real == approx(O_mean.real, abs=1e-8)
+    assert O1_mean.real == approx(O_mean.real, abs=1e-5)
     if not operator.is_hermitian:
-        assert O1_mean.imag == approx(O_mean.imag, abs=1e-8)
+        assert O1_mean.imag == approx(O_mean.imag, abs=1e-5)
 
     assert np.asarray(O_stat1.variance) == approx(np.asarray(O_stat.variance), abs=1e-5)
 
