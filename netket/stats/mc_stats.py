@@ -45,6 +45,15 @@ class Stats:
     tau_corr: float = _NaN
     R_hat: float = _NaN
 
+    def to_dict(self):
+        jsd = {}
+        jsd["Mean"] = self.mean.item()
+        jsd["Variance"] = self.variance.item()
+        jsd["Sigma"] = self.error_of_mean.item()
+        jsd["R_hat"] = self.R_hat.item()
+        jsd["TauCorr"] = self.tau_corr.item()
+        return jsd
+
     def to_json(self):
         jsd = {}
         jsd["Mean"] = float(self.mean.real)
