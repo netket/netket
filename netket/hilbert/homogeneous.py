@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, List, Callable
+import abc
 
 from numbers import Real
 
@@ -33,7 +34,7 @@ def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
         return found
 
 
-class CustomHilbert(AbstractHilbert):
+class HomogeneousHilbert(AbstractHilbert):
     r"""A custom hilbert space with discrete local quantum numbers."""
 
     def __init__(
@@ -92,26 +93,26 @@ class CustomHilbert(AbstractHilbert):
         self._shape = tuple(self._local_size for _ in range(self.size))
 
     @property
-    def size(self):
-        r"""int: The total number number of degrees of freedom."""
+    def size(self) -> int:
+        r"""The total number number of degrees of freedom."""
         return self._size
 
     @property
-    def shape(self):
-        r"""int: The size of the hilbert space on every site."""
+    def shape(self) -> Tuple[int]:
+        r"""The size of the hilbert space on every site."""
         return self._shape
 
     @property
-    def is_discrete(self):
-        r"""bool: Whether the hilbert space is discrete."""
+    def is_discrete(self) -> bool:
+        r"""Whether the hilbert space is discrete."""
         return True
 
     @property
     def local_size(self) -> int:
-        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
+        r"""Size of the local degrees of freedom that make the total hilbert space."""
         return self._local_size
 
-    def size_at_index(self, i):
+    def size_at_index(self, i: int) -> int:
         return self.local_size
 
     @property
@@ -120,12 +121,12 @@ class CustomHilbert(AbstractHilbert):
         If the local states are infinitely many, None is returned."""
         return self._local_states
 
-    def states_at_index(self, i):
+    def states_at_index(self, i: int) -> Optional[List[float]]:
         return self.local_states
 
     @property
-    def n_states(self):
-        r"""int: The total dimension of the many-body Hilbert space.
+    def n_states(self) -> int:
+        r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
 
         hind = self._get_hilbert_index()
@@ -136,15 +137,23 @@ class CustomHilbert(AbstractHilbert):
             return self._bare_numbers.shape[0]
 
     @property
-    def is_finite(self):
-        r"""bool: Whether the local hilbert space is finite."""
+    def is_finite(self) -> bool:
+        r"""Whether the local hilbert space is finite."""
         return self._is_finite
 
-    def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
+    def _numbers_to_states(self, numbers, out=None):
         hind = self._get_hilbert_index()
         return hind.numbers_to_states(self._to_bare_numbers(numbers), out)
 
-    def _states_to_numbers(self, states, out):
+    def _states_to_numbers(self, states, out=None):
+        r"""Returns the basis state number corresponding to given quantum states.
+        The states are given in a batch, such that states[k] has shape (hilbert.size).
+        Throws an exception iff the space is not indexable.
+        Args:
+            states: Batch of states to be converted into the corresponding integers.
+            out: Array of integers such that out[k]=Index(states[k]).
+                 If None, memory is allocated.
+        """
         hind = self._get_hilbert_index()
 
         out = _to_constrained_numbers_kernel(
@@ -178,25 +187,6 @@ class CustomHilbert(AbstractHilbert):
             return numbers
         else:
             return self._bare_numbers[numbers]
-
-    def __pow__(self, n):
-        if self._has_constraint:
-            raise NotImplementedError(
-                """Cannot exponentiate a CustomHilbert with constraints. 
-                Construct it from scratch instead."""
-            )
-
-        return CustomHilbert(self._local_states, self.size * n)
-
-    def __repr__(self):
-        constr = (
-            ", has_constraint={}".format(self._has_constraint)
-            if self._has_constraint
-            else ""
-        )
-        return "CustomHilbert(N={}; local_size={}{})".format(
-            len(self.local_states), constr, self.size
-        )
 
     @property
     def _attrs(self):

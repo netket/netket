@@ -1,7 +1,7 @@
 import abc
 from functools import partial
 
-from typing import List, Tuple, Optional, Generator, Union, Iterable
+from typing import List, Tuple, Optional, Generator, Union, Iterable, Iterator
 
 import jax
 import jax.numpy as jnp
@@ -19,7 +19,13 @@ class NoneType:
 
 
 class AbstractHilbert(abc.ABC):
-    """Abstract class for NetKet hilbert objects"""
+    """Abstract class for NetKet hilbert objects.
+
+    This class definese the common interface that can be used to
+    interact with hilbert spaces.
+
+    Hilbert Spaces are immutable.
+    """
 
     def __init__(self):
         self._hash = None
@@ -59,37 +65,31 @@ class AbstractHilbert(abc.ABC):
         If the local states are infinitely many, None is returned."""
         raise NotImplementedError()
 
-    def numbers_to_states(self, numbers, out=None):
+    def numbers_to_states(
+        self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
         Throws an exception iff the space is not indexable.
+
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of quantum numbers.
-            out: Array of quantum numbers corresponding to numbers.
-                 If None, memory is allocated.
+            out: Optional Array of quantum numbers corresponding to numbers.
         """
-        raise NotImplementedError()
+        if out is None:
+            out = np.empty((np.atleast_1d(numbers).shape[0], self._size))
 
-    def number_to_state(self, number):
-        r"""Returns the quantum number corresponding to the n-th basis state
-        for input n. n is a integer index such that number=Index(state).
-        Throws an exception iff the space is not indexable.
-        For a batch of numbers, prefer ```numbers_to_states```.
+        if np.any(numbers >= self.n_states):
+            raise ValueError("numbers outside the range of allowed states")
 
-        Args:
-            numbers (int or numpy.array): Input numbers to be converted into arrays
-                                          of quantum numbers.
-
-        Returns:
-            int or numpy.array: A single number or an array (batched version) of
-                                quantum numbers corresponding to the state.
-        """
-        if np.isscalar(number):
-            return self.numbers_to_states(np.atleast_1d(number))[0, :]
+        if np.isscalar(numbers):
+            return self._numbers_to_states(np.atleast_1d(numbers), out=out)[0, :]
         else:
-            return self.numbers_to_states(number)
+            return self._numbers_to_states(numbers, out=out)
 
-    def states_to_numbers(self, states, out=None):
+    def states_to_numbers(
+        self, states: np.ndarray, out: Optional[np.ndarray] = None
+    ) -> Union[int, np.ndarray]:
         r"""Returns the basis state number corresponding to given quantum states.
         The states are given in a batch, such that states[k] has shape (hilbert.size).
         Throws an exception iff the space is not indexable.
@@ -102,33 +102,23 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.darray: Array of integers corresponding to out.
         """
-        raise NotImplementedError()
+        if out is None:
+            out = np.empty(np.atleast_2d(states).shape[0], dtype=np.int64)
 
-    def state_to_number(self, state):
-        r"""Returns the basis state number corresponding to given quantum states.
-        Throws an exception iff the space is not indexable.
-        For a batch of states, prefer ```states_to_numbers```.
-
-        Args:
-            state: A state or a batch of states to be converted into the corresponding integer.
-
-        Returns:
-            int: The index of the given input state.
-        """
-        if state.ndim == 1:
-            return self.states_to_numbers(np.atleast_2d(state))[0]
-        elif state.ndim == 2:
-            return self.states_to_numbers(state)
+        if states.ndim == 1:
+            return self._states_to_numbers(np.atleast_2d(states), out=out)[0]
+        elif states.ndim == 2:
+            return self._states_to_numbers(states, out=out)
         else:
             raise RuntimeError("Invalid shape for state.")
 
     @property
-    def n_states(self):
-        r"""int: The total dimension of the many-body Hilbert space.
+    def n_states(self) -> int:
+        r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
         raise NotImplementedError()
 
-    def states(self):
+    def states(self) -> Iterator[np.ndarray]:
         r"""Returns an iterator over all valid configurations of the Hilbert space.
         Throws an exception iff the space is not indexable.
         Iterating over all states with this method is typically inefficient,
@@ -136,14 +126,7 @@ class AbstractHilbert(abc.ABC):
 
         """
         for i in range(self.n_states):
-            yield self.number_to_state(i).reshape(-1)
-
-    @deprecated("use random_state instead")
-    def random_vals(self, *args, **kwargs):
-        """
-        Deprecated alias for random_state. Prefer using random_state directly.
-        """
-        return self.random_state(*args, **kwargs)
+            yield self.numbers_to_states(i).reshape(-1)
 
     # after removing legacy:
     # signature must be the following
@@ -153,7 +136,7 @@ class AbstractHilbert(abc.ABC):
         key=NoneType(),
         size: Optional[int] = NoneType(),
         dtype=np.float32,
-        out=None,
+        out: Optional[np.ndarray] = None,
         rgen=None,
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
@@ -165,7 +148,7 @@ class AbstractHilbert(abc.ABC):
                 is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
                 By default, a single random configuration with shape (#,) is returned.
             dtype: Dtype of the resulting vector.
-            out: Deprecated. Will be rmeoved in v3.1
+            out: Deprecated. Will be removed in v3.1
             rgen: Deprecated. Will be removed in v3.1
 
         Returns:
@@ -201,17 +184,20 @@ class AbstractHilbert(abc.ABC):
 
             return random.random_state(self, key, size, dtype=dtype)
 
-    def all_states(self, out=None):
+    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
-        Throws an exception iff the space is not indexable.
+
+        Throws an exception if the space is not indexable.
+
         Args:
-            batch_size: If 'all' or None, all valid states in the Hilbert space are returned,
-                        otherwise an iterator yielding batch_size states at the time.
-                        If batch_size is not an integer multiple of the total number of states,
-                        an error is returned.
-            out: Optionally pre-allocated output.
+            out: an optional pre-allocated output array
+
+        Returns:
+            A (n_states x size) batch of statess. this corresponds
+            to the pre-allocated array if it was passed.
         """
         numbers = np.arange(0, self.n_states, dtype=np.int64)
+
         return self.numbers_to_states(numbers, out)
 
     def ptrace(self, sites: Union[int, Iterable]) -> "AbstractHilbert":
@@ -221,6 +207,7 @@ class AbstractHilbert(abc.ABC):
 
         Args:
             sites: a site or list of sites to trace away
+
         Returns:
             The partially-traced hilbert space. The type of the resulting hilbert space
             might be different from the starting one.
@@ -228,7 +215,8 @@ class AbstractHilbert(abc.ABC):
         pass
 
     @property
-    def is_indexable(self):
+    def is_indexable(self) -> bool:
+        """"Whever the space can be indexed with an integer"""
         if not self.is_discrete:
             return False
 
@@ -239,56 +227,7 @@ class AbstractHilbert(abc.ABC):
 
         return np.sum(np.log(self.shape)) <= log_max
 
-    @partial(jax.jit, static_argnums=(0, 2))
-    def _random_state_scalar(hilb, key, dtype):
-        """
-        Generates a single random state-vector given an hilbert space and a rng key.
-        """
-        # Attempt to use the scalar method
-        res = hilb._random_state_scalar_impl(key, dtype)
-        if res is NotImplemented:
-            # If the scalar method is not implemented, use the batch method and take the first batch
-            res = hilb._random_state_batch_impl(key, 1, dtype).reshape(-1)
-            if res is NotImplemented:
-                raise NotImplementedError(
-                    """_jax_random_state_scalar(hilb, key, dtype) is not defined for hilb of type {} or a supertype.
-                    For better performance you should define _jax_random_state_batch.""".format(
-                        type(hilb)
-                    )
-                )
-
-        return res
-
-    @partial(jax.jit, static_argnums=(0, 2, 3))
-    def _random_state_batch(hilb, key, size, dtype):
-        """
-        Generates a batch of random state-vectors given an hilbert space and a rng key.
-        """
-        # Attempt to use the batch method
-        res = hilb._random_state_batch_impl(key, size, dtype)
-        if res is NotImplemented:
-            # If it fails, vmap over the scalar method
-            keys = jax.random.split(key, size)
-            res = jax.vmap(
-                hilb._random_state_scalar_impl, in_axes=(None, 0, None), out_axes=0
-            )(hilb, key, dtype)
-        return res
-
-    def _random_state_scalar_impl(hilb, key, dtype):
-        # Implementation for jax_random_state_scalar, dispatching on the
-        # type of hilbert.
-        # Could probably put it in the class itself (which @singledispatch automatically
-        # because of oop)?
-        return NotImplemented
-
-    def _random_state_batch_impl(hilb, key, size, dtype):
-        # Implementation for jax_random_state_batch, dispatching on the
-        # type of hilbert.
-        # Could probably put it in the class itself (which @singledispatch automatically
-        # because of oop)?
-        return NotImplemented
-
-    def __mul__(self, other):
+    def __mul__(self, other: "AbstractHilbert"):
         if self == other:
             return self ** 2
         else:
@@ -303,10 +242,14 @@ class AbstractHilbert(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def _attrs(self):
+    def _attrs(self) -> Tuple:
+        """
+        Tuple of hashable attributs, used to compute the immutable
+        hash of this Hilbert space
+        """
         pass
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, type(self)):
             return self._attrs == other._attrs
 

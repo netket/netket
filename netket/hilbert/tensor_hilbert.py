@@ -103,10 +103,7 @@ class TensorHilbert(AbstractHilbert):
     def n_states(self):
         return self._n_states
 
-    def numbers_to_states(self, numbers, out=None):
-        if out is None:
-            out = _np.empty((numbers.shape[0], self._size))
-
+    def _numbers_to_states(self, numbers, out):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -128,11 +125,8 @@ class TensorHilbert(AbstractHilbert):
 
         return out
 
-    def states_to_numbers(self, states, out=None):
-        if out is None:
-            out = _np.zeros(states.shape[0], _np.int64)
-        else:
-            out[:] = 0
+    def _states_to_numbers(self, states, out):
+        out[:] = 0
 
         temp = out.copy()
 

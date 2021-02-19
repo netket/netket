@@ -1,6 +1,6 @@
 import abc
 
-from typing import List, Generator
+from typing import List, Generator, Iterator, Tuple
 
 
 class AbstractGraph(abc.ABC):
@@ -17,12 +17,12 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def edges(self) -> Generator:
+    def edges(self) -> Iterator[Tuple[int, int]]:
         r"""Iterator over the edges of the graph"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def nodes(self) -> Generator:
+    def nodes(self) -> Iterator[int]:
         r"""Iterator over the nodes of the graph"""
         raise NotImplementedError
 

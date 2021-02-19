@@ -49,6 +49,7 @@ class Spin(CustomHilbert):
            s: Spin at each site. Must be integer or half-integer.
            N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular value.
+           graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
            Simple spin hilbert space.

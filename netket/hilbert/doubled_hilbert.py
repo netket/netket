@@ -78,10 +78,7 @@ class DoubledHilbert(AbstractHilbert):
     def n_states(self):
         return self.physical.n_states ** 2
 
-    def numbers_to_states(self, numbers, out=None):
-        if out is None:
-            out = np.empty((numbers.shape[0], self._size))
-
+    def _numbers_to_states(self, numbers, out):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -102,20 +99,17 @@ class DoubledHilbert(AbstractHilbert):
 
         return out
 
-    def states_to_numbers(self, states, out=None):
-        if out is None:
-            out = np.empty(states.shape[0], np.int64)
-
+    def _states_to_numbers(self, states, out):
         # !!! WARNING
         # See note above in numbers_to_states
 
         n = self.physical.size
         dim = self.physical.n_states
 
-        self.physical.states_to_numbers(states[:, 0:n], out=out)
+        self.physical._states_to_numbers(states[:, 0:n], out=out)
         _out_l = out * dim
 
-        self.physical.states_to_numbers(states[:, n : 2 * n], out=out)
+        self.physical._states_to_numbers(states[:, n : 2 * n], out=out)
         out += _out_l
 
         return out

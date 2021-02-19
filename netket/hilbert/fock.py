@@ -85,13 +85,13 @@ class Fock(CustomHilbert):
 
     @property
     def n_max(self) -> Optional[int]:
-        r"""int or None: The maximum number of bosons per site, or None
+        r"""The maximum number of bosons per site, or None
         if the number is unconstrained."""
         return self._n_max
 
     @property
     def n_particles(self) -> Optional[int]:
-        r"""int or None: The total number of particles, or None
+        r"""The total number of particles, or None
         if the number is unconstrained."""
         return self._n_particles
 
@@ -103,7 +103,7 @@ class Fock(CustomHilbert):
 
         return Fock(self.n_max, self.size * n, n_particles=n_particles)
 
-    def _mul_sametype_(self, other):
+    def _mul_sametype_(self, other: "Fock") -> "Fock":
         assert type(self) == type(other)
         if self.n_max == other.n_max:
             if self._n_particles is None and other._n_particles is None:
@@ -205,5 +205,5 @@ def Boson(
     N: int = 1,
     n_bosons: Optional[int] = None,
     graph: Optional[AbstractGraph] = None,
-):
+) -> Fock:
     return Fock(n_max, N, n_bosons, graph)

@@ -75,6 +75,8 @@ hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(
     CustomHilbert(local_states=[-1232, 132, 0], N=5)
 )
 
+# hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
+
 
 #
 # Tests
@@ -159,13 +161,13 @@ def test_hilbert_index(hi):
 
     if hi.is_indexable:
         assert hi.size * np.log(hi.local_size) < log_max_states
-        assert np.allclose(hi.state_to_number(hi.all_states()), range(hi.n_states))
+        assert np.allclose(hi.states_to_numbers(hi.all_states()), range(hi.n_states))
 
         # batched version of number to state
         n_few = min(hi.n_states, 100)
         few_states = np.zeros(shape=(n_few, hi.size))
         for k in range(n_few):
-            few_states[k] = hi.number_to_state(k)
+            few_states[k] = hi.numbers_to_states(k)
 
         assert np.allclose(hi.numbers_to_states(np.asarray(range(n_few))), few_states)
 

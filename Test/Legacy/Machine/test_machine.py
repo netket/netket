@@ -361,7 +361,7 @@ def test_to_array():
             local_states = hi.local_states
             hi.random_state(out=rstate)
 
-            number = hi.state_to_number(rstate)
+            number = hi.states_to_numbers(rstate)
 
             assert np.abs(
                 np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax)
@@ -377,7 +377,7 @@ def test_to_array():
             local_states = hi.local_states
             hi.random_state(out=rstate)
 
-            number = hi.state_to_number(rstate)
+            number = hi.states_to_numbers(rstate)
 
             assert np.abs(
                 np.exp(machine.log_val(rstate.reshape(1, -1)) - logmax) / np.sqrt(norm)
