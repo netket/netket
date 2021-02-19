@@ -23,6 +23,9 @@ class SpecialHamiltonian(AbstractOperator):
             "Must implemented to_local_operator for {}".format(type(self))
         )
 
+    def conjugate(self, *, concrete=True):
+        return self.to_local_operator().conjugate(concrete=concrete)
+
     def __add__(self, other):
         if type(self) is type(other):
             res = self.copy()
@@ -132,6 +135,13 @@ class Ising(SpecialHamiltonian):
     def is_hermitian(self):
         return True
 
+    def conjugate(self, *, concrete=True):
+        # if real
+        if isinstance(self.h, float) and isinstance(self.J, float):
+            return self
+        else:
+            raise NotImplementedError
+
     @staticmethod
     @jit(nopython=True)
     def n_conn(x, out):
@@ -158,7 +168,6 @@ class Ising(SpecialHamiltonian):
 
     def copy(self):
         graph = Graph(edges=[list(edge) for edge in self.edges])
-        print("got graph")
         return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
 
     def to_local_operator(self):
@@ -183,10 +192,8 @@ class Ising(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
-        print("doign the work")
         self._h += other.h
         self._J += other.J
-        print("donethework")
 
     def _isub_same_hamiltonian(self, other):
         if self.hilbert != other.hilbert:

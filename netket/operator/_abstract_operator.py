@@ -1,4 +1,5 @@
 import abc
+from typing import Optional, Tuple, List
 
 import numpy as np
 from scipy.sparse import csr_matrix as _csr_matrix
@@ -33,13 +34,33 @@ class AbstractOperator(abc.ABC):
 
     @property
     def hilbert(self) -> AbstractHilbert:
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
+        r"""The hilbert space associated to this operator."""
         return self._hilbert
 
     @property
     def size(self) -> int:
-        r"""int: The total number number of local degrees of freedom."""
+        r"""The total number number of local degrees of freedom."""
         return self._hilbert.size
+
+    @property
+    def is_hermitian(self) -> bool:
+        """Returns true if this operator is hermitian."""
+        return False
+
+    @property
+    def H(self) -> "AbstractOperator":
+        """Returns the Conjugate-Transposed operator"""
+        if self.is_hermitian:
+            return self
+
+        from .lazy import Adjoint
+
+        return Adjoint(self)
+
+    @property
+    def T(self) -> "AbstractOperator":
+        """Returns the transposed operator"""
+        return self.transpose()
 
     def collect(self) -> "AbstractOperator":
         """
@@ -51,7 +72,36 @@ class AbstractOperator(abc.ABC):
         """
         return self
 
-    def get_conn_padded(self, x):
+    def transpose(self, *, concrete=False) -> "AbstractOperator":
+        """Returns the transpose of this operator.
+
+        Args:
+            concrete: if True returns a concrete operator and not a lazy wrapper
+
+        Returns:
+            if concrete is not True, self or a lazy wrapper; the
+            transposed operator otherwise
+        """
+        if not concrete:
+            from .lazy import Transpose
+
+            return Transpose(self)
+        else:
+            raise NotImplementedError
+
+    def conjugate(self, *, concrete=False) -> "AbstractOperator":
+        """Returns the complex-conjugate of this operator.
+
+        Args:
+            concrete: if True returns a concrete operator and not a lazy wrapper
+
+        Returns:
+            if concrete is not True, self or a lazy wrapper; the
+            complex-conjugated operator otherwise
+        """
+        raise NotImplementedError
+
+    def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
         Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M
         where B size of the batch and M size of the hilbert space, finds all states
@@ -79,7 +129,9 @@ class AbstractOperator(abc.ABC):
         return x_primes_r, mels_r
 
     @abc.abstractmethod
-    def get_conn_flattened(self, x, sections: np.ndarray):
+    def get_conn_flattened(
+        self, x: np.ndarray, sections: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -101,7 +153,7 @@ class AbstractOperator(abc.ABC):
         """
         raise NotImplementedError()
 
-    def n_conn(self, x, out=None):
+    def n_conn(self, x, out=None) -> np.ndarray:
         r"""Return the number of states connected to x.
 
         Args:
@@ -131,11 +183,6 @@ class AbstractOperator(abc.ABC):
 
         return out
 
-    @property
-    def is_hermitian(self) -> bool:
-        """Returns true if this operator is hermitian."""
-        return False
-
     def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
@@ -145,7 +192,7 @@ class AbstractOperator(abc.ABC):
         This method requires an indexable Hilbert space.
 
         Returns:
-            scipy.sparse.csr_matrix: The sparse matrix representation of the operator.
+            The sparse matrix representation of the operator.
         """
         concrete_op = self.collect()
         hilb = self.hilbert
@@ -183,15 +230,18 @@ class AbstractOperator(abc.ABC):
         This method requires an indexable Hilbert space.
 
         Returns:
-            numpy.ndarray: The dense matrix representation of the operator as a Numpy array.
+            The dense matrix representation of the operator as a Numpy array.
         """
         return self.to_sparse().todense().A
 
-    def apply(self, v):
+    def apply(self, v: np.ndarray) -> np.ndarray:
         return self.to_linear_operator().dot(v)
 
-    def __call__(self, v):
+    def __call__(self, v: np.ndarray) -> np.ndarray:
         return self.apply(v)
+
+    def conj(self, *, concrete=False) -> "AbstractOperator":
+        return self.conjugate(concrete=False)
 
     def to_linear_operator(self):
         return self.to_sparse()

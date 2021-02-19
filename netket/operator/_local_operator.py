@@ -558,26 +558,22 @@ class LocalOperator(AbstractOperator):
             constant=self._constant,
         )
 
-    def _concrete_transpose(self):
+    def transpose(self, *, concrete=False):
         r"""LocalOperator: Returns the tranpose of this operator."""
+        if concrete:
 
-        new_ops = [np.copy(ops.transpose()) for ops in self._operators]
+            new_ops = [np.copy(ops.transpose()) for ops in self._operators]
 
-        return LocalOperator(
-            hilbert=self.hilbert,
-            operators=new_ops,
-            acting_on=self._acting_on_list(),
-            constant=self._constant,
-        )
+            return LocalOperator(
+                hilbert=self.hilbert,
+                operators=new_ops,
+                acting_on=self._acting_on_list(),
+                constant=self._constant,
+            )
+        else:
+            return Transpose(self)
 
-    def transpose(self):
-        return Transpose(self)
-
-    @property
-    def T(self):
-        return self.transpose()
-
-    def conjugate(self):
+    def conjugate(self, *, concrete=False):
         r"""LocalOperator: Returns the complex conjugate of this operator."""
         new_ops = [np.copy(ops).conjugate() for ops in self._operators]
 
@@ -587,16 +583,6 @@ class LocalOperator(AbstractOperator):
             acting_on=self._acting_on_list(),
             constant=np.conjugate(self._constant),
         )
-
-    def conj(self):
-        return self.conjugate()
-
-    @property
-    def H(self):
-        if self.is_hermitian:
-            return self
-
-        return Adjoint(self)
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting

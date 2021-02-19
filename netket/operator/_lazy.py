@@ -29,12 +29,6 @@ class WrappedOperator(AbstractOperator):
     def __rmatmul__(self, other):
         return other @ self.collect()
 
-    def transpose(self):
-        return self.T
-
-    def conj(self):
-        return self.conjugate()
-
 
 class Transpose(WrappedOperator):
     """
@@ -49,24 +43,23 @@ class Transpose(WrappedOperator):
         self.parent = op
 
     def collect(self):
-        return self.parent._concrete_transpose()
+        return self.parent.transpose(concrete=True)
 
-    @property
-    def T(self):
+    def transpose(self, *, concrete=False):
         return self.parent
 
-    def conjugate(self):
+    def conjugate(self, *, concrete=False):
         if self.parent.is_hermitian:
             return self.parent
+
+        if concrete:
+            return self.parent.conjugate(concrete=True)
 
         return Adjoint(self.parent)
 
     @property
     def H(self):
         return self.parent.conjugate()
-
-    def _concrete_transpose(self):
-        return self.parent
 
     def __repr__(self):
         return "Transpose({})".format(self.parent)
@@ -88,24 +81,17 @@ class Adjoint(WrappedOperator):
         self.parent = op
 
     def collect(self):
-        return self.parent._concrete_transpose().conj()
+        return self.parent.transpose(concrete=True).conj(concrete=True)
 
-    @property
-    def T(self):
-        return self.parent.conjugate()
+    def transpose(self, *, concrete=False):
+        return self.parent.conjugate(concrete=concrete)
 
-    def conjugate(self):
-        return Transpose(self.parent)
+    def conjugate(self, concrete=False):
+        return self.parent.transpose(concrete=concrete)
 
     @property
     def H(self):
         return self.parent
-
-    def _concrete_transpose(self):
-        return self.parent.conj()
-
-    def _concrete_adjoint(self):
-        return self.parent._concrete_transpose.conj()
 
     def __repr__(self):
         return "Adjoint({})".format(self.parent)
@@ -160,12 +146,6 @@ class Squared(WrappedOperator):
     @property
     def is_hermitian(self) -> bool:
         return True
-
-    def _concrete_transpose(self):
-        return self.parent.conj()
-
-    def _concrete_adjoint(self):
-        return self.parent._concrete_transpose.conj()
 
     def __repr__(self):
         return "Squared({})".format(self.parent)
