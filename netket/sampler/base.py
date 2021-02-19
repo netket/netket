@@ -197,8 +197,33 @@ class Sampler(abc.ABC):
 
         return sampler._sample_next(get_afun_if_module(machine), parameters, state)
 
-    def sample(sampler, *args, **kwargs) -> Tuple[jnp.ndarray, SamplerState]:
-        return sample(sampler, *args, **kwargs)
+    def sample(
+        sampler,
+        machine: Union[Callable, nn.Module],
+        parameters: PyTree,
+        *,
+        state: Optional[SamplerState] = None,
+        chain_length: int = 1,
+    ) -> Tuple[jnp.ndarray, SamplerState]:
+        """
+        Samples chain_length elements along the chains.
+
+        Arguments:
+            sampler: The Monte Carlo sampler.
+            machine: The model or apply_fun to sample from (if it's a function it should have
+                the signature f(parameters, σ) -> jnp.ndarray).
+            parameters: The PyTree of parameters of the model.
+            state: current state of the sampler. If None, then initialises it.
+            chain_length: (default=1), the length of the chains.
+
+        Returns:
+            state: The new state of the sampler
+            σ: The next batch of samples.
+        """
+
+        return sample(
+            sampler, machine, parameters, state=state, chain_length=chain_length
+        )
 
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(

@@ -15,27 +15,18 @@ import netket as nk
 
 
 class TensorHilbert(AbstractHilbert):
-    r"""Superoperatorial hilbert space for states living in the
-    tensorised state H\otimes H, encoded according to Choi's isomorphism."""
+    r"""Tensor product of several sub-spaces.
 
-    def __init__(self, *hilb_spaces):
-        r"""Superoperatorial hilbert space for states living in the
-           tensorised state H\otimes H, encoded according to Choi's isomorphism.
+    In general you should not need to construcct this objecct directly, but
+    rather may get it when multiplying hilbert spaces.
+    """
+
+    def __init__(self, *hilb_spaces: AbstractHilbert):
+        r"""Constructs a tensor Hilbert space
+
         Args:
-            hilb: the hilbrt space H.
-        Examples:
-            Simple superoperatorial hilbert space for few spins.
-           >>> from netket.graph import Hypercube
-           >>> from netket.hilbert import Spin, DoubledHilbert
-           >>> g = Hypercube(length=5,n_dim=2,pbc=True)
-           >>> hi = Spin(graph=g, s=0.5)
-           >>> hi2 = DoubledHilbert(hi)
-           >>> print(hi2.size)
-           50
+            *hilb: An iterable object containing at least 1 hilbert space.
         """
-        # if hasattr(hilb_1, "graph") and hasattr(hilb_2, "graph"):
-        #    joint_graph = nk.graph.disjoint_union(hilb_1.graph, hilb_2.graph)
-        #    self.graph = joint_graph
 
         self._hilbert_spaces = hilb_spaces
         self._n_hilbert_spaces = len(hilb_spaces)

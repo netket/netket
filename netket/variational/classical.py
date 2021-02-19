@@ -220,6 +220,7 @@ class MCState(VariationalState):
 
     @property
     def sampler(self) -> Sampler:
+        """The Monte Carlo sampler used by this Monte Carlo variational state."""
         return self._sampler
 
     @sampler.setter
@@ -239,6 +240,7 @@ class MCState(VariationalState):
 
     @property
     def n_samples(self) -> int:
+        """The total nummber of samples generated at every sampling step."""
         return self._n_samples
 
     @n_samples.setter

@@ -70,7 +70,8 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
 @struct.dataclass
 class MetropolisPtSampler(MetropolisSampler):
     """
-    Metropolis-Hastings sampler.
+    Metropolis-Hastings with Parallel Tempering sampler.
+
     This sampler samples an Hilbert space, producing samples off a specific dtype.
     The samples are generated according to a transition rule that must be
     specified.
