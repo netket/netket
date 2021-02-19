@@ -1,5 +1,5 @@
 import numbers
-from typing import Union, Tuple
+from typing import Union, Tuple, List, Optional
 
 import numpy as np
 from numba import jit
@@ -81,11 +81,18 @@ class LocalOperator(AbstractOperator):
                 self._add_operator(op, act)
 
     @property
-    def operators(self):
+    def operators(self) -> List[np.ndarray]:
+        """List of the matrices of the operators encoded in this Local Operator.
+        Returns a copy.
+        """
         return self._operators_list()
 
     @property
-    def acting_on(self):
+    def acting_on(self) -> List[List[int]]:
+        """List containing the list of the sites on which every operator acts.
+
+        Every operator `self.operators[i]` acts on the sites `self.acting_on[i]`
+        """
         actions = [action[action >= 0].tolist() for action in self._acting_on]
         return actions
 
@@ -94,7 +101,8 @@ class LocalOperator(AbstractOperator):
         return self._size
 
     @property
-    def is_hermitian(self):
+    def is_hermitian(self) -> bool:
+        """Returns true if this operator is hermitian."""
         return self._is_hermitian
 
     @property
@@ -751,7 +759,7 @@ class LocalOperator(AbstractOperator):
                 c += delta_conn
                 sections[b] = c
 
-        return x_prime, mels
+        return x_prime, mels.real
 
     def get_conn_filtered(self, x, sections, filters):
         r"""Finds the connected elements of the Operator using only a subset of operators. Starting

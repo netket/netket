@@ -126,6 +126,8 @@ class MCMixedState(VariationalMixedState, MCState):
 
     @property
     def sampler_diag(self):
+        """The Monte Carlo sampler used by this Monte Carlo variational state to
+        sample the diagonal."""
         return self.diagonal.sampler
 
     @sampler_diag.setter
@@ -134,6 +136,9 @@ class MCMixedState(VariationalMixedState, MCState):
 
     @property
     def n_samples_diag(self):
+        """The total number of samples generated at every sampling step
+        when sampling the diagonal of this mixed state.
+        """
         return self.diagonal.n_samples
 
     @n_samples_diag.setter
@@ -150,6 +155,9 @@ class MCMixedState(VariationalMixedState, MCState):
 
     @property
     def n_discard_diag(self) -> int:
+        """Number of discarded samples at the beginning of the markov chain used to
+        sample the diagonal of this mixed state.
+        """
         return self.diagonal.n_discard_diag
 
     @n_discard_diag.setter

@@ -240,7 +240,7 @@ class MCState(VariationalState):
 
     @property
     def n_samples(self) -> int:
-        """The total nummber of samples generated at every sampling step."""
+        """The total number of samples generated at every sampling step."""
         return self._n_samples
 
     @n_samples.setter

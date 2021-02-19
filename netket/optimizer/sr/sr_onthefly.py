@@ -20,7 +20,7 @@ import flax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils import rename
+from netket.utils import rename_class
 
 from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 
@@ -29,7 +29,7 @@ from .base import SR
 Ndarray = Any
 
 
-@rename(r"SR{Onthefly}")
+@rename_class(r"SR{Onthefly}")
 @struct.dataclass
 class SR_otf(SR):
     """
@@ -45,7 +45,7 @@ class SR_otf(SR):
         return LazySMatrix(*args, **kwargs)
 
 
-@rename(r"SR{Onthefly,CG}")
+@rename_class(r"SR{Onthefly,CG}")
 @struct.dataclass
 class SR_otf_cg(SR_otf):
     ...
@@ -60,7 +60,7 @@ class SR_otf_cg(SR_otf):
         )
 
 
-@rename(r"SR{Onthefly,GMRES}")
+@rename_class(r"SR{Onthefly,GMRES}")
 @struct.dataclass
 class SR_otf_gmres(SR_otf):
     restart: int = 20

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-def _hide_submodules(module_name, *, remove_self=True):
+def _hide_submodules(module_name, *, remove_self=True, ignore=[]):
     """
     Hide all submodules created by files (not folders) in module_name defined
     at module_path.
@@ -27,7 +27,11 @@ def _hide_submodules(module_name, *, remove_self=True):
     for file in os.listdir(module_path):
         if file.endswith(".py") and not file == "__init__.py":
             mod_name = file[:-3]
-            if hasattr(module, mod_name) and mod_name[0] != "_":
+            if (
+                hasattr(module, mod_name)
+                and mod_name[0] != "_"
+                and mod_name not in ignore
+            ):
                 new_name = "_" + mod_name
                 setattr(module, new_name, getattr(module, mod_name))
                 delattr(module, mod_name)
@@ -36,7 +40,7 @@ def _hide_submodules(module_name, *, remove_self=True):
         delattr(module, "_hide_submodules")
 
 
-def rename(new_name):
+def rename_class(new_name):
     """
     Decorator to renames a class
     """
