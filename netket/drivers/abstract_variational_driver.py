@@ -153,6 +153,7 @@ class AbstractVariationalDriver(abc.ABC):
                 if i == 0:
                     yield self.step_count
 
+                self._step_count += 1
                 self.update_parameters(dp)
 
     def advance(self, steps=1):
