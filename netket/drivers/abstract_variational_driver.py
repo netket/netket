@@ -6,11 +6,11 @@ import numpy as np
 from tqdm import tqdm
 import warnings
 
-
+import jax
 from jax.tree_util import tree_map
 
-from netket.logging import JsonLog as _JsonLog
-from netket.utils import node_number as _rank, n_nodes as _n_nodes
+from netket.logging import JsonLog
+from netket.utils import node_number, n_nodes
 
 
 def _to_iterable(maybe_iterable):
@@ -45,8 +45,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
-        self._mynode = _rank
-        self._mpi_nodes = _n_nodes
+        self._mynode = node_number
+        self._mpi_nodes = n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
@@ -215,7 +215,7 @@ class AbstractVariationalDriver(abc.ABC):
         if self._mynode == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
-                loggers = (_JsonLog(out, "w", save_params_every, write_every),)
+                loggers = (JsonLog(out, "w", save_params_every, write_every),)
             else:
                 loggers = _to_iterable(out)
         else:
@@ -280,5 +280,10 @@ class AbstractVariationalDriver(abc.ABC):
         Args:
             :param dp: the gradient
         """
-        self._optimizer_state = self._optimizer_state.apply_gradient(dp)
+        self._optimizer_state = apply_gradient(self._optimizer_state, dp)
         self.state.parameters = self._optimizer_state.target
+
+
+@jax.jit
+def apply_gradient(optimizer_state, dp):
+    return optimizer_state.apply_gradient(dp)

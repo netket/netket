@@ -1,15 +1,11 @@
 import math
 
 import jax
-from jax.tree_util import tree_map
 import jax.numpy as jnp
+from jax.tree_util import tree_map
 
-from netket.operator import local_values as _local_values, Squared
-from netket.stats import (
-    statistics as _statistics,
-    mean as _mean,
-    sum_inplace as _sum_inplace,
-)
+from netket.operator import Squared
+from netket.stats import Stats
 
 from netket.variational import MCMixedState
 

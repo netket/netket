@@ -1,17 +1,10 @@
 import math
 
 import jax
+import jax.numpy as jnp
 from jax.tree_util import tree_map
-from jax import numpy as jnp
 
-
-from netket.operator import local_values as _local_values
-from netket.stats import (
-    statistics as _statistics,
-    mean as _mean,
-    sum_inplace as _sum_inplace,
-    Stats,
-)
+from netket.stats import Stats
 
 from netket.variational import MCState
 
@@ -19,7 +12,7 @@ from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
-class Vmc(AbstractVariationalDriver):
+class VMC(AbstractVariationalDriver):
     """
     Energy minimization using Variational Monte Carlo (VMC).
     """

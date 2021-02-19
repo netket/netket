@@ -37,6 +37,7 @@ class MetropolisRule:
     Methods:
         - init_state(rule, sampler, machine, params), constructing the state of the rule.
         By default the state is None.
+
         - reset(rule, sampler, machine, parameters, state), resets the state of the rule,
         by default returns None.
         - transition(rule, sampler, machine, parameters, state, key, σ), which returns a
