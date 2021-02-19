@@ -53,7 +53,7 @@ class AbstractOperator(abc.ABC):
         if self.is_hermitian:
             return self
 
-        from .lazy import Adjoint
+        from ._lazy import Adjoint
 
         return Adjoint(self)
 
@@ -83,7 +83,7 @@ class AbstractOperator(abc.ABC):
             transposed operator otherwise
         """
         if not concrete:
-            from .lazy import Transpose
+            from ._lazy import Transpose
 
             return Transpose(self)
         else:
