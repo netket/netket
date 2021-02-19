@@ -56,13 +56,27 @@ class AbstractHilbert(abc.ABC):
 
     @abc.abstractmethod
     def size_at_index(self, i: int) -> int:
-        r"""Size of the local degrees of freedom at the site i."""
+        r"""Size of the local degrees of freedom at the site i.
+
+        Args:
+            i: The index of the desired site
+
+        Returns:
+            The number of degrees of freedom at that site
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def states_at_index(self, i: int) -> Optional[List[float]]:
         r"""A list of discrete local quantum numbers at the site i.
-        If the local states are infinitely many, None is returned."""
+        If the local states are infinitely many, None is returned.
+
+        Args:
+            i: The index of the desired site.
+
+        Returns:
+            A list of values or None if there are infintely many.
+        """
         raise NotImplementedError()
 
     def numbers_to_states(
