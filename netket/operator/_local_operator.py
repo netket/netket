@@ -358,6 +358,7 @@ class LocalOperator(AbstractOperator):
 
             old_array = self._acting_on
             self._acting_on = np.resize(old_array, (old_n_op, self._max_acting_size))
+            self._acting_on[:, :] = -1
             self._acting_on[:, : old_array.shape[1]] = old_array
 
             old_array = self._diag_mels
@@ -418,6 +419,7 @@ class LocalOperator(AbstractOperator):
         self._acting_on = np.resize(
             old_array, (self._n_operators, self._max_acting_size)
         )
+        self._acting_on[:, :] = -1
         self._acting_on[: old_array.shape[0], : old_array.shape[1]] = old_array
 
         # self._acting_on[-1].fill(np.nan)
@@ -453,7 +455,7 @@ class LocalOperator(AbstractOperator):
         self._basis = np.resize(old_array, (self._n_operators, self._max_acting_size))
         self._basis[: old_array.shape[0], : old_array.shape[1]] = old_array
 
-        self._basis[-1].fill(0)
+        self._basis[-1].fill(1e10)
         ba = 1
         for s in range(acting_on.size):
             self._basis[-1, s] = ba
