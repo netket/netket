@@ -759,7 +759,7 @@ class LocalOperator(AbstractOperator):
                 c += delta_conn
                 sections[b] = c
 
-        return x_prime, mels.real
+        return x_prime, mels
 
     def get_conn_filtered(self, x, sections, filters):
         r"""Finds the connected elements of the Operator using only a subset of operators. Starting
