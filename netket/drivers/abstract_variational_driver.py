@@ -239,12 +239,12 @@ class AbstractVariationalDriver(abc.ABC):
                     itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
                     log_data[self._loss_name] = self._loss_stats
 
-                for logger in loggers:
-                    logger(self.step_count, log_data, self.state)
-
                 for callback in callbacks:
                     if not callback(step, log_data, self):
                         callback_stop = True
+
+                for logger in loggers:
+                    logger(self.step_count, log_data, self.state)
 
                 if callback_stop:
                     break
