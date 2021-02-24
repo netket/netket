@@ -240,9 +240,7 @@ class LocalOperator(AbstractOperator):
         return self._n_operators
 
     def __add__(self, other: Union["LocalOperator", numbers.Number]):
-        print(self.dtype, _dtype(other), np.promote_types(self.dtype, _dtype(other)))
         op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
-        print(op.dtype)
         op = op.__iadd__(other)
         return op
 
@@ -352,7 +350,6 @@ class LocalOperator(AbstractOperator):
     def _concrete_matmul_(self, other: "LocalOperator") -> "LocalOperator":
         if not isinstance(other, LocalOperator):
             return NotImplemented
-
         op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
         op @= other
         return op
@@ -442,6 +439,9 @@ class LocalOperator(AbstractOperator):
 
         if operator.ndim != 2:
             raise ValueError("The operator should be a matrix")
+
+        if np.all(np.abs(operator) < self.mel_cutoff):
+            return
 
         # re-sort the operator
         operator, acting_on = _reorder_matrix(self.hilbert, operator, acting_on)
