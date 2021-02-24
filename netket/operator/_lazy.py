@@ -42,6 +42,10 @@ class Transpose(WrappedOperator):
         super().__init__(op.hilbert)
         self.parent = op
 
+    @property
+    def dtype(self):
+        return self.parent.dtype
+
     def collect(self):
         return self.parent.transpose(concrete=True)
 
@@ -79,6 +83,10 @@ class Adjoint(WrappedOperator):
     def __init__(self, op):
         super().__init__(op.hilbert)
         self.parent = op
+
+    @property
+    def dtype(self):
+        return self.parent.dtype
 
     def collect(self):
         return self.parent.transpose(concrete=True).conj(concrete=True)
@@ -126,6 +134,10 @@ class Squared(WrappedOperator):
     def __init__(self, op):
         super().__init__(op.hilbert)
         self.parent = op
+
+    @property
+    def dtype(self):
+        return self.parent.dtype
 
     def collect(self):
         return self.parent.H.collect()._concrete_matmul_(self.parent)

@@ -37,6 +37,10 @@ class LocalLiouvillian(AbstractSuperOperator):
         return self._size
 
     @property
+    def dtype(self):
+        return self._Hnh.dtype
+
+    @property
     def is_hermitian(self):
         return False
 

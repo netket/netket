@@ -89,6 +89,7 @@ class Ising(SpecialHamiltonian):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
+        dtype=float,
     ):
         r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
@@ -119,6 +120,8 @@ class Ising(SpecialHamiltonian):
         self._J = J
         self._edges = np.asarray(list(graph.edges()))
 
+        self._dtype = dtype
+
     @property
     def h(self):
         return self._h
@@ -134,6 +137,10 @@ class Ising(SpecialHamiltonian):
     @property
     def is_hermitian(self):
         return True
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     def conjugate(self, *, concrete=True):
         # if real
@@ -172,7 +179,7 @@ class Ising(SpecialHamiltonian):
 
     def to_local_operator(self):
         # The hamiltonian
-        ha = LocalOperator(self.hilbert)
+        ha = LocalOperator(self.hilbert, dtype=self.dtype)
 
         if self.h != 0:
             for i in range(self.hilbert.size):

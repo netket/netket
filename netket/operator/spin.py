@@ -1,7 +1,8 @@
 from netket.hilbert import AbstractHilbert
+from numpy.typing import DTypeLike
 
 
-def sigmax(hilbert: AbstractHilbert, site: int):
+def sigmax(hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float):
     """
     Builds the sigma_x operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -21,10 +22,10 @@ def sigmax(hilbert: AbstractHilbert, site: int):
 
     D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
     mat = np.diag(D, 1) + np.diag(D, -1)
-    return LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmay(hilbert: AbstractHilbert, site: int):
+def sigmay(hilbert: AbstractHilbert, site: int, dtype: DTypeLike = complex):
     """
     Builds the sigma_y operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -44,10 +45,10 @@ def sigmay(hilbert: AbstractHilbert, site: int):
 
     D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
     mat = np.diag(D, -1) + np.diag(-D, 1)
-    return LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmaz(hilbert: AbstractHilbert, site: int):
+def sigmaz(hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float):
     """
     Builds the sigma_z operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -67,10 +68,10 @@ def sigmaz(hilbert: AbstractHilbert, site: int):
 
     D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
     mat = np.diag(D, 0)
-    return LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmam(hilbert: AbstractHilbert, site: int):
+def sigmam(hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float):
     """
     Builds the $sigma_- = sigma_x - im * sigma_y$ operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -91,10 +92,10 @@ def sigmam(hilbert: AbstractHilbert, site: int):
     S2 = (S + 1) * S
     D = np.array([np.sqrt(S2 - m * (m - 1)) for m in np.arange(S, -S, -1)])
     mat = np.diag(D, -1)
-    return LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmap(hilbert: AbstractHilbert, site: int):
+def sigmap(hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float):
     """
     Builds the $sigma_- = sigma_x + im * sigma_y$ operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -115,7 +116,7 @@ def sigmap(hilbert: AbstractHilbert, site: int):
     S2 = (S + 1) * S
     D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
     mat = np.diag(D, 1)
-    return LocalOperator(hilbert, mat, [site])
+    return LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
 # clean up the module

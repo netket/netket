@@ -58,17 +58,22 @@ class BoseHubbard(AbstractOperator):
         self._V = V
         self._J = J
         self._mu = mu
+        self._dtype = np.complex128
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
         self._edges = np.asarray(list(graph.edges()))
         self._max_conn = 1 + self._edges.shape[0] * 2
-        self._max_mels = np.empty(self._max_conn, dtype=np.complex128)
+        self._max_mels = np.empty(self._max_conn, dtype=self.dtype)
         self._max_xprime = np.empty((self._max_conn, self._n_sites))
 
     @property
     def is_hermitian(self):
         return True
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting
