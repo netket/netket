@@ -116,15 +116,24 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.darray: Array of integers corresponding to out.
         """
+        if states.shape[-1] != self.size:
+            raise ValueError(
+                f"""Size of this state ({states.shape[-1]}) not 
+                                 corresponding to this hilbert space {self.size}
+                                 """
+            )
+
+        states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
+
         if out is None:
-            out = np.empty(np.atleast_2d(states).shape[0], dtype=np.int64)
+            out = np.empty(states_r.shape[:-1], dtype=np.int64)
+
+        out = self._states_to_numbers(states_r, out=out.reshape(-1))
 
         if states.ndim == 1:
-            return self._states_to_numbers(np.atleast_2d(states), out=out)[0]
-        elif states.ndim == 2:
-            return self._states_to_numbers(states, out=out)
+            return out[0]
         else:
-            raise RuntimeError("Invalid shape for state.")
+            return out.reshape(states.shape[:-1])
 
     @property
     def n_states(self) -> int:
@@ -226,7 +235,7 @@ class AbstractHilbert(abc.ABC):
             The partially-traced hilbert space. The type of the resulting hilbert space
             might be different from the starting one.
         """
-        pass
+        raise NotImplementedError("Ptrace not implemented for this hilbert space type")
 
     @property
     def is_indexable(self) -> bool:
