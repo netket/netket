@@ -172,7 +172,7 @@ def test_pauli():
 
     op_l = (
         0.1
-        * nk.operator.LocalOperator(op.hilbert, sx, [0])
+        * nk.operator.LocalOperator(op.hilbert, sx, [0], dtype=complex)
         * nk.operator.LocalOperator(op.hilbert, sx, [1])
     )
     op_l += (

@@ -9,7 +9,7 @@ import netket.legacy as nk
 import networkx as nx
 import numpy as np
 import pytest
-from pytest import approx
+from pytest import approx, raises
 import os
 
 herm_operators = {}
@@ -120,8 +120,11 @@ def test_local_operator_add():
     same_matrices(ha, ham)
 
     ha = ha * 1j
-    ha2 *= 1j
-    ham *= 1j
+    with raises(ValueError):
+        ha2 *= 1j
+
+    ha2 = ha2 * 1j
+    ham = ham * 1j
     same_matrices(ha, ha2)
     same_matrices(ha, ham)
 
@@ -154,7 +157,7 @@ def test_local_operator_add():
 
     # test commutativity
     ha = LocalOperator(hi)
-    ha2 = LocalOperator(hi)
+    ha2 = LocalOperator(hi, dtype=complex)
     for i in range(0, 3):
         ha += 0.3 * nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmax(hi, i + 1)
         ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
