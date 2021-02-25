@@ -174,7 +174,7 @@ def _vjp(pars, forward_fn, v, vec, conjugate):
 
     # output dtype
     out_dtype = forward_scalar(pars, forward_fn, v[0, :]).dtype
-
+    out_dtype = _np.promote_types(out_dtype, vec.dtype)
     # convert the sensitivity to right dtype
     vec = jnp.asarray(vec, dtype=out_dtype)
 

@@ -38,6 +38,4 @@ op = nk.optim.GradientDescent(learning_rate=0.1)
 gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=50)
 
 # Run the optimization for 300 iterations
-gs.run(n_iter=1, out="test")
-
 gs.run(n_iter=300, out="test")

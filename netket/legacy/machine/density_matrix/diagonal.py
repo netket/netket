@@ -24,6 +24,9 @@ class Diagonal(AbstractMachine):
         """
         return self._rho.log_val(x, x, out)
 
+    def der_log(self, x, out=None):
+        return self._rho.der_log(x, x, out)
+
     @property
     def n_par(self):
         r"""The number of variational parameters in the machine."""

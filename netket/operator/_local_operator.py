@@ -367,7 +367,7 @@ class LocalOperator(AbstractOperator):
             tot_operators += ops
             tot_act += act
 
-        prod = LocalOperator(self.hilbert, tot_operators, tot_act)
+        prod = LocalOperator(self.hilbert, tot_operators, tot_act, dtype=self.dtype)
         self_constant = self._constant
         if np.abs(other._constant) > self.mel_cutoff:
             self *= other._constant

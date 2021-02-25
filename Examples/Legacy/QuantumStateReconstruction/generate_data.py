@@ -7,7 +7,7 @@ import numpy as np
 
 
 def build_rotation(hi, basis):
-    localop = op.LocalOperator(hi, constant=1.0)
+    localop = op.LocalOperator(hi, constant=1.0, dtype=complex)
     U_X = 1.0 / (ma.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (ma.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
 
@@ -24,11 +24,11 @@ def build_rotation(hi, basis):
 
 def generate(N, n_basis=20, n_shots=1000, seed=1234):
     g = gr.Hypercube(length=N, n_dim=1, pbc=False)
-    hi = hs.Spin(g, s=1 / 2)
-    ha = op.Ising(hilbert=hi, h=1)
-    res = exact.lanczos_ed(ha, first_n=1, compute_eigenvectors=True)
+    hi = hs.Spin(1 / 2, N=g.n_nodes)
+    ha = op.Ising(hilbert=hi, h=1, graph=g)
+    evals, evecs = exact.lanczos_ed(ha, k=1, compute_eigenvectors=True)
 
-    psi = res.eigenvectors[0]
+    psi = evecs.reshape(-1)
 
     rotations = []
     training_samples = []
@@ -49,7 +49,7 @@ def generate(N, n_basis=20, n_shots=1000, seed=1234):
         )
 
         for rn in rand_n:
-            training_samples.append(hi.number_to_state(rn))
+            training_samples.append(hi.numbers_to_states(rn))
         training_bases += [m] * n_shots
 
         rotations.append(rotation)

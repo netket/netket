@@ -182,7 +182,7 @@ def NdmSpin(hilbert, alpha, beta, use_hidden_bias=True):
         hilbert,
         stax.serial(
             DensePurificationComplex(
-                alpha * hilbert.size, beta * hilbert.size, use_hidden_bias
+                int(alpha * hilbert.size), int(beta * hilbert.size), use_hidden_bias
             ),
             LogCoshLayer,
             SumLayer,
@@ -404,7 +404,7 @@ def NdmSpinPhase(hilbert, alpha, beta, use_hidden_bias=True, use_visible_bias=Tr
     )
 
     mixing = stax.serial(
-        DenseMixingReal(beta * hilbert.size, use_hidden_bias),
+        DenseMixingReal(int(beta * hilbert.size), use_hidden_bias),
         LogCoshLayer,
         SumLayer,
     )

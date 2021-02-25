@@ -28,21 +28,23 @@ ma = nk.machine.RbmSpinPhase(hilbert=hi, alpha=1)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
 # Sampler
-sa = nk.sampler.MetropolisLocal(machine=ma)
+sa = nk.sampler.MetropolisLocal(machine=ma, n_chains=1000)
 
 # Optimizer
-op = nk.optimizer.AdaDelta()
+op = nk.optimizer.AdaDelta(ma)
+
+sr = nk.optimizer.SR(ma, diag_shift=0.01)
 
 # Quantum State Reconstruction
-qst = nk.unsupervised.Qsr(
+qst = nk.Qsr(
     sampler=sa,
     optimizer=op,
-    n_chains=1000,
     n_samples=1000,
+    n_samples_data=500,
     rotations=rotations,
     samples=training_samples,
     bases=training_bases,
-    method="Sr",
+    sr=sr,
 )
 
 obs = {"Energy": ha}
