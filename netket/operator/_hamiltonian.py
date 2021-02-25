@@ -1,20 +1,16 @@
-import numpy as np
 from numba import jit
 
+import numpy as np
+import math
+from numpy.typing import DTypeLike
+
 from netket.graph import AbstractGraph, Graph
-from netket.hilbert import (
-    AbstractHilbert,
-)
+from netket.hilbert import AbstractHilbert, Fock
 
-from ._abstract_operator import (
-    AbstractOperator,
-)
-from ._graph_operator import (
-    GraphOperator,
-)
-
-from . import spin
+from . import spin, boson
 from ._local_operator import LocalOperator
+from ._graph_operator import GraphOperator
+from ._abstract_operator import AbstractOperator
 
 
 class SpecialHamiltonian(AbstractOperator):
@@ -23,7 +19,7 @@ class SpecialHamiltonian(AbstractOperator):
             "Must implemented to_local_operator for {}".format(type(self))
         )
 
-    def conjugate(self, *, concrete=True):
+    def conjugate(self, *, concrete: bool = True):
         return self.to_local_operator().conjugate(concrete=concrete)
 
     def __add__(self, other):
@@ -89,7 +85,7 @@ class Ising(SpecialHamiltonian):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype=float,
+        dtype: DTypeLike = float,
     ):
         r"""
         Constructs a new ``Ising`` given a hilbert space, a transverse field,
@@ -99,6 +95,7 @@ class Ising(SpecialHamiltonian):
             hilbert: Hilbert space the operator acts on.
             h: The strength of the transverse field.
             J: The strength of the coupling. Default is 1.0.
+            dtype: The dtype of the underlying matrix elements
 
         Examples:
             Constructs an ``Ising`` operator for a 1D system.
@@ -116,30 +113,32 @@ class Ising(SpecialHamiltonian):
 
         super().__init__(hilbert)
 
-        self._h = h
-        self._J = J
+        self._h = dtype(h)
+        self._J = dtype(J)
         self._edges = np.asarray(list(graph.edges()))
 
         self._dtype = dtype
 
     @property
-    def h(self):
+    def h(self) -> float:
+        """The magnitude of the transverse field"""
         return self._h
 
     @property
-    def J(self):
+    def J(self) -> float:
+        """The magnitude of the hopping"""
         return self._J
 
     @property
-    def edges(self):
+    def edges(self) -> np.ndarray:
         return self._edges
 
     @property
-    def is_hermitian(self):
+    def is_hermitian(self) -> bool:
         return True
 
     @property
-    def dtype(self):
+    def dtype(self) -> DTypeLike:
         return self._dtype
 
     def conjugate(self, *, concrete=True):
@@ -211,31 +210,6 @@ class Ising(SpecialHamiltonian):
         self._h -= other.h
         self._J -= other.J
 
-    def get_conn(self, x):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
-
-        Returns:
-            matrix: The connected states x' of shape (N_connected,hilbert.size)
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-        return self._flattened_kernel(
-            x.reshape((1, -1)),
-            np.ones(1),
-            self._edges,
-            self._h,
-            self._J,
-        )
-
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(
@@ -254,7 +228,7 @@ class Ising(SpecialHamiltonian):
                 n_sites,
             )
         )
-        mels = np.empty(x.shape[0] * n_conn)
+        mels = np.empty(x.shape[0] * n_conn, dtype=type(h))
 
         diag_ind = 0
 
@@ -405,12 +379,308 @@ class Heisenberg(GraphOperator):
         return self._J
 
     @property
-    def is_hermitian(self):
-        return True
-
-    @property
     def uses_sign_rule(self):
         return self._sign_rule
 
     def __repr__(self):
         return f"Heisenberg(J={self._J}, sign_rule={self._sign_rule}; dim={self.hilbert.size})"
+
+
+class BoseHubbard(SpecialHamiltonian):
+    r"""
+    An extended Bose Hubbard model Hamiltonian operator, containing both
+    on-site interactions and nearest-neighboring density-density interactions.
+    """
+
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        graph: AbstractGraph,
+        U: float,
+        V: float = 0.0,
+        J: float = 1.0,
+        mu: float = 0.0,
+        dtype: DTypeLike = float,
+    ):
+        r"""
+        Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
+        interaction strength. The chemical potential and the density-density interaction strenght
+        can be specified as well.
+
+        Args:
+           hilbert (netket.hilbert.Boson): Hilbert space the operator acts on.
+           U (float): The Hubbard interaction term.
+           V (float): The strenght of density-density interaction term.
+           J (float): The hopping amplitude.
+           mu (float): The chemical potential.
+
+        Examples:
+           Constructs a ``BoseHubbard`` operator for a 2D system.
+
+           >>> import netket as nk
+           >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
+           >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
+           >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+           >>> print(op.hilbert.size)
+           9
+        """
+
+        assert (
+            graph.n_nodes == hilbert.size
+        ), "The size of the graph must match the hilbert space."
+
+        assert isinstance(hilbert, Fock)
+
+        super().__init__(hilbert)
+
+        self._U = dtype(U)
+        self._V = dtype(V)
+        self._J = dtype(J)
+        self._mu = dtype(mu)
+        self._dtype = dtype
+
+        self._n_max = hilbert.n_max
+        self._n_sites = hilbert.size
+        self._edges = np.asarray(list(graph.edges()))
+        self._max_conn = 1 + self._edges.shape[0] * 2
+        self._max_mels = np.empty(self._max_conn, dtype=self.dtype)
+        self._max_xprime = np.empty((self._max_conn, self._n_sites))
+
+    @property
+    def is_hermitian(self):
+        return True
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def edges(self) -> np.ndarray:
+        return self._edges
+
+    @property
+    def U(self):
+        return self._U
+
+    @property
+    def V(self):
+        return self._V
+
+    @property
+    def J(self):
+        return self._J
+
+    @property
+    def mu(self):
+        return self._mu
+
+    @property
+    def is_hermitian(self) -> bool:
+        return True
+
+    def copy(self):
+        graph = Graph(edges=[list(edge) for edge in self.edges])
+        return BoseHubbard(
+            hilbert=self.hilbert,
+            graph=graph,
+            J=self.J,
+            U=self.U,
+            V=self.V,
+            mu=self.mu,
+            dtype=self.dtype,
+        )
+
+    def to_local_operator(self):
+        # The hamiltonian
+        ha = LocalOperator(self.hilbert, dtype=self.dtype)
+
+        if self.h != 0:
+            for i in range(self.hilbert.size):
+                n_i = boson.number(self.hilbert, i)
+                ha += self.U * n_i * (n_i - 1) - self.mu * n_i
+
+        if self.J != 0:
+            for (i, j) in self.edges:
+                ha += self.V * (
+                    boson.number(self.hilbert, i) * boson.number(self.hilbert, j)
+                )
+                ha -= self.J * (
+                    self.destroy(self.hilbert, i) * self.create(self.hilbert, j)
+                    + self.create(self.hilbert, i) * self.destroy(self.hilbert, j)
+                )
+
+        return ha
+
+    def _iadd_same_hamiltonian(self, other):
+        if self.hilbert != other.hilbert:
+            raise NotImplementedError(
+                "Cannot add hamiltonians on different hilbert spaces"
+            )
+
+        self._mu += other.mu
+        self._U += other.U
+        self._J += other.J
+        self._V += other.V
+
+    def _isub_same_hamiltonian(self, other):
+        if self.hilbert != other.hilbert:
+            raise NotImplementedError(
+                "Cannot add hamiltonians on different hilbert spaces"
+            )
+
+        self._mu -= other.mu
+        self._U -= other.U
+        self._J -= other.J
+        self._V -= other.V
+
+    def get_conn(self, x):
+        r"""Finds the connected elements of the Operator. Starting
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+
+        Args:
+            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
+
+        Returns:
+            matrix: The connected states x' of shape (N_connected,hilbert.size)
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+
+        """
+        mels = self._max_mels
+        x_prime = self._max_xprime
+
+        mels[0] = 0.0
+        x_prime[0] = np.copy(x)
+
+        J = self._J
+        V = self._V
+        sqrt = math.sqrt
+        n_max = self._n_max
+
+        c = 1
+        for e in self._edges:
+            i, j = e
+            n_i = x[i]
+            n_j = x[j]
+            mels[0] += V * n_i * n_j
+
+            # destroy on i create on j
+            if n_i > 0 and n_j < n_max:
+                mels[c] = -J * sqrt(n_i) * sqrt(n_j + 1)
+                x_prime[c] = np.copy(x)
+                x_prime[c, i] -= 1.0
+                x_prime[c, j] += 1.0
+                c += 1
+
+            # destroy on j create on i
+            if n_j > 0 and n_i < n_max:
+                mels[c] = -J * sqrt(n_j) * sqrt(n_i + 1)
+                x_prime[c] = np.copy(x)
+                x_prime[c, j] -= 1.0
+                x_prime[c, i] += 1.0
+                c += 1
+
+        mu = self._mu
+        Uh = 0.5 * self._U
+        for i in range(self._n_sites):
+            # chemical potential
+            mels[0] -= mu * x[i]
+            # on-site interaction
+            mels[0] += Uh * x[i] * (x[i] - 1.0)
+
+        return np.copy(x_prime[:c]), np.copy(mels[:c])
+
+    @staticmethod
+    @jit(nopython=True)
+    def _flattened_kernel(
+        x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn
+    ):
+
+        batch_size = x.shape[0]
+        n_sites = x.shape[1]
+
+        if mels.size < batch_size * max_conn:
+            mels = np.empty(batch_size * max_conn, dtype=type(U))
+            x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
+
+        sqrt = math.sqrt
+        Uh = 0.5 * U
+
+        diag_ind = 0
+        for b in range(batch_size):
+            mels[diag_ind] = 0.0
+            x_prime[diag_ind] = np.copy(x[b])
+
+            for i in range(n_sites):
+                # chemical potential
+                mels[diag_ind] -= mu * x[b, i]
+                # on-site interaction
+                mels[diag_ind] += Uh * x[b, i] * (x[b, i] - 1.0)
+
+            odiag_ind = 1 + diag_ind
+            for e in range(edges.shape[0]):
+                i, j = edges[e][0], edges[e][1]
+                n_i = x[b, i]
+                n_j = x[b, j]
+                mels[diag_ind] += V * n_i * n_j
+
+                # destroy on i create on j
+                if n_i > 0 and n_j < n_max:
+                    mels[odiag_ind] = -J * sqrt(n_i) * sqrt(n_j + 1)
+                    x_prime[odiag_ind] = np.copy(x[b])
+                    x_prime[odiag_ind, i] -= 1.0
+                    x_prime[odiag_ind, j] += 1.0
+                    odiag_ind += 1
+
+                # destroy on j create on i
+                if n_j > 0 and n_i < n_max:
+                    mels[odiag_ind] = -J * sqrt(n_j) * sqrt(n_i + 1)
+                    x_prime[odiag_ind] = np.copy(x[b])
+                    x_prime[odiag_ind, j] -= 1.0
+                    x_prime[odiag_ind, i] += 1.0
+                    odiag_ind += 1
+
+            diag_ind = odiag_ind
+
+            sections[b] = odiag_ind
+
+        return np.copy(x_prime[:odiag_ind]), np.copy(mels[:odiag_ind])
+
+    def get_conn_flattened(self, x, sections):
+        r"""Finds the connected elements of the Operator. Starting
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
+        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            sections (array): An array of size (batch_size) useful to unflatten
+                        the output of this function.
+                        See numpy.split for the meaning of sections.
+
+        Returns:
+            matrix: The connected states x', flattened together in a single matrix.
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+
+        """
+        return self._flattened_kernel(
+            x,
+            sections,
+            self._edges,
+            self._max_mels,
+            self._max_xprime,
+            self._U,
+            self._V,
+            self._J,
+            self._mu,
+            self._n_max,
+            self._max_conn,
+        )

@@ -176,6 +176,7 @@ class LocalOperator(AbstractOperator):
 
         operators = [np.asarray(operator) for operator in operators]
 
+        # If we asked for a specific dtype, enforce it.
         if dtype is None:
             dtype = np.promote_types(operators[0].dtype, np.float32)
             for op in operators[1:]:
@@ -731,38 +732,6 @@ class LocalOperator(AbstractOperator):
             constant=np.conjugate(self._constant),
         )
 
-    def get_conn(self, x):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
-
-        Returns:
-            matrix: The connected states x' of shape (N_connected,hilbert.size)
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-
-        return self._get_conn_flattened_kernel(
-            x.reshape((1, -1)),
-            np.ones(1),
-            self._local_states,
-            self._basis,
-            self._constant,
-            self._diag_mels,
-            self._n_conns,
-            self._mels,
-            self._x_prime,
-            self._acting_on,
-            self._acting_size,
-        )
-
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
@@ -860,7 +829,7 @@ class LocalOperator(AbstractOperator):
         if pad:
             tot_conn = batch_size * max_conn
 
-        x_prime = np.empty((tot_conn, n_sites))
+        x_prime = np.empty((tot_conn, n_sites), dtype=x.dtype)
         mels = np.empty(tot_conn, dtype=dtype)
 
         c = 0
@@ -1022,13 +991,7 @@ class LocalOperator(AbstractOperator):
         return x_prime, mels
 
     def __repr__(self):
-        ao = []
-        for actions in self._acting_on:
-            _a = []
-            for site in actions:
-                if site >= 0:
-                    _a.append(site)
-            ao.append(_a)
+        ao = self.acting_on
 
         acting_str = f"acting_on={ao}"
         if len(acting_str) > 55:

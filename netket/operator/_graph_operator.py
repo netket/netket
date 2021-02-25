@@ -1,5 +1,7 @@
-import numpy as np
 from numba import jit
+
+import numpy as np
+from numpy.typing import DTypeLike
 
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock, AbstractHilbert
@@ -16,6 +18,7 @@ class GraphOperator(LocalOperator):
         site_ops=[],
         bond_ops=[],
         bond_ops_colors=[],
+        dtype: DTypeLike = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of
@@ -57,26 +60,26 @@ class GraphOperator(LocalOperator):
          20
         """
 
-        assert (
-            graph.n_nodes == hilbert.size
-        ), "The size of the graph must match the hilbert space"
-
-        super().__init__(hilbert)
-
-        self.graph = graph
-        size = graph.n_nodes
-
-        # Create the local operator as the sum of all site and bond operators
+        if graph.n_nodes != hilbert.size:
+            raise ValueError(
+                """The number of vertices in the graph ({graph.n_nodes}) 
+                                must match the hilbert space size ({hilbert.size})"""
+            )
 
         # Ensure that at least one of SiteOps and BondOps was initialized
         if len(bond_ops) == 0 and len(site_ops) == 0:
             raise InvalidInputError("Must input at least site_ops or bond_ops.")
 
+        # Create the local operator as the sum of all site and bond operators
+        operators = []
+        acting_on = []
+
         # Site operators
         if len(site_ops) > 0:
-            for i in range(size):
+            for i in range(graph.n_nodes):
                 for j, site_op in enumerate(site_ops):
-                    self += LocalOperator(hilbert, site_op, [i])
+                    operators.append(site_op)
+                    acting_on.append([i])
 
         # Bond operators
         if len(bond_ops_colors) > 0:
@@ -92,9 +95,27 @@ class GraphOperator(LocalOperator):
                     edge = u, v
                     for c, bond_color in enumerate(bond_ops_colors):
                         if bond_color == color:
-                            self += LocalOperator(hilbert, bond_ops[c], edge)
+                            operators.append(bond_ops[c])
+                            acting_on.append(edge)
         else:
             assert len(bond_ops) == 1
 
             for edge in graph.edges():
-                self += LocalOperator(hilbert, bond_ops[0], edge)
+                operators.append(bond_ops[0])
+                acting_on.append(edge)
+
+        super().__init__(hilbert, operators, acting_on, dtype=dtype)
+        self._graph = graph
+
+    @property
+    def graph(self) -> AbstractGraph:
+        """The graph on which this Operator is defined"""
+        return self._graph
+
+    def __repr__(self):
+        ao = self.acting_on
+
+        acting_str = f"acting_on={ao}"
+        if len(acting_str) > 55:
+            acting_str = f"#acting_on={len(ao)} locations"
+        return f"{type(self).__name__}(dim={self.hilbert.size}, {acting_str}, constant={self.constant}, dtype={self.dtype}, graph={self.graph})"

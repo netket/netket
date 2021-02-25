@@ -2,6 +2,8 @@ import abc
 from typing import Optional, Tuple, List
 
 import numpy as np
+from numpy.typing import DTypeLike
+
 from scipy.sparse import csr_matrix as _csr_matrix
 from numba import jit
 
@@ -61,6 +63,12 @@ class AbstractOperator(abc.ABC):
     def T(self) -> "AbstractOperator":
         """Returns the transposed operator"""
         return self.transpose()
+
+    @property
+    @abc.abstractmethod
+    def dtype(self) -> DTypeLike:
+        """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
+        raise NotImplementedError
 
     def collect(self) -> "AbstractOperator":
         """
@@ -152,6 +160,27 @@ class AbstractOperator(abc.ABC):
 
         """
         raise NotImplementedError()
+
+    def get_conn(self, x):
+        r"""Finds the connected elements of the Operator. Starting
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
+        Args:
+            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
+
+        Returns:
+            matrix: The connected states x' of shape (N_connected,hilbert.size)
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+
+        """
+
+        return self.get_conn_flattened(
+            x.reshape((1, -1)),
+            np.ones(1),
+        )
 
     def n_conn(self, x, out=None) -> np.ndarray:
         r"""Return the number of states connected to x.
