@@ -18,7 +18,7 @@ BASE_DEPENDENCIES = [
     "numba>=0.49.0",
     "networkx>=2.4",
     "jax>=0.2.9",
-    "jaxlib>=1.57",
+    "jaxlib>=0.1.57",
     "flax>=0.3.0",
 ]
 
