@@ -253,7 +253,7 @@ class LocalOperator(AbstractOperator):
             if self.hilbert != other.hilbert:
                 return NotImplemented
 
-            if not np.can_cast(other.dtype, self.dtype):
+            if not np.can_cast(other.dtype, self.dtype, casting="same_kind"):
                 raise ValueError(
                     f"Cannot add inplace operator with dtype {other.dtype} to operator with dtype {self.dtype}"
                 )
@@ -270,7 +270,7 @@ class LocalOperator(AbstractOperator):
             return self
         if isinstance(other, numbers.Number):
 
-            if not np.can_cast(type(other), self.dtype):
+            if not np.can_cast(type(other), self.dtype, casting="same_kind"):
                 raise ValueError(
                     f"Cannot add inplace operator with dtype {type(other)} to operator with dtype {self.dtype}"
                 )
@@ -316,7 +316,7 @@ class LocalOperator(AbstractOperator):
         elif not isinstance(other, numbers.Number):
             return NotImplemented
 
-        if not np.can_cast(type(other), self.dtype):
+        if not np.can_cast(type(other), self.dtype, casting="same_kind"):
             raise ValueError(
                 f"Cannot add inplace operator with dtype {type(other)} to operator with dtype {self.dtype}"
             )
@@ -333,6 +333,11 @@ class LocalOperator(AbstractOperator):
     def __imatmul__(self, other):
         if not isinstance(other, LocalOperator):
             return NotImplemented
+
+        if not np.can_cast(other.dtype, self.dtype, casting="same_kind"):
+            raise ValueError(
+                f"Cannot add inplace operator with dtype {type(other)} to operator with dtype {self.dtype}"
+            )
 
         return self._concrete_imatmul_(other)
 
@@ -426,8 +431,8 @@ class LocalOperator(AbstractOperator):
         return operators
 
     def _add_operator(self, operator: ArrayLike, acting_on: List[int]):
-        if not np.can_cast(operator, self.dtype):
-            raise TypeError(f"Cannot cast type {operator.dtype} to {self.dtype}")
+        if not np.can_cast(operator, self.dtype, casting="same_kind"):
+            raise ValueError(f"Cannot cast type {operator.dtype} to {self.dtype}")
 
         acting_on = np.asarray(acting_on, dtype=np.intp)
         operator = np.asarray(operator, dtype=self.dtype)
@@ -695,7 +700,7 @@ class LocalOperator(AbstractOperator):
         if dtype is None:
             dtype = self.dtype
 
-        if not np.can_cast(self.dtype, dtype):
+        if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
         return LocalOperator(

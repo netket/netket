@@ -255,10 +255,14 @@ def test_mul_matmul():
     assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
     op = nk.operator.LocalOperator(hi, sx, [0])
+    with raises(ValueError):
+        op @= nk.operator.LocalOperator(hi, sy, [1])
+
+    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op @= nk.operator.LocalOperator(hi, sy, [1])
     assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
 
-    op = nk.operator.LocalOperator(hi, sx, [0])
+    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op *= nk.operator.LocalOperator(hi, sy, [1])
     assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
 
