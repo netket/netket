@@ -92,7 +92,6 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self.state.expect(observable)
 
-    #    @abc.abstractmethod
     def reset(self):
         """
         Resets the driver.

@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, use_visible_bias=True)
+ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
@@ -35,7 +35,7 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 op = nk.optim.GradientDescent(learning_rate=0.1)
 
 # Variational monte carlo driver
-gs = nk.Vmc(ha, op, sa, ma, n_samples=1000)
+gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=50)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=1, out="test")

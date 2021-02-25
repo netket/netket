@@ -111,7 +111,7 @@ def test_linear_operator():
 
 # Construct the operators for Sx, Sy and Sz
 obs_sx = nk.operator.LocalOperator(hi)
-obs_sy = nk.operator.LocalOperator(hi)
+obs_sy = nk.operator.LocalOperator(hi, dtype=complex)
 obs_sz = nk.operator.LocalOperator(hi)
 for i in range(L):
     obs_sx += nk.operator.LocalOperator(hi, sx, [i])

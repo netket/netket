@@ -10,13 +10,15 @@ DEV_DEPENDENCIES = [
     "black==20.8b1",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.9"]
+TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
 BASE_DEPENDENCIES = [
-    "numpy>=1.16",
+    "numpy>=1.20",
     "scipy>=1.5.2",
     "tqdm>=4.56.2",
     "numba>=0.49.0",
     "networkx>=2.4",
     "jax>=0.2.9",
+    "jaxlib>=1.57",
     "flax>=0.3.0",
 ]
 
@@ -36,6 +38,7 @@ setup(
     extras_require={
         "dev": DEV_DEPENDENCIES,
         "mpi": MPI_DEPENDENCIES,
-        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES,
+        "tensorboard": TENSORBOARD_DEPENDENCIES,
+        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + TENSORBOARD_DEPENDENCIES,
     },
 )

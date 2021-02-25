@@ -79,10 +79,10 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._xcv = self._xprime[
             :, self.hilbert.physical.size : 2 * self.hilbert.physical.size
         ]
-        self._mels = np.empty(max_conn_size, dtype=np.complex128)
+        self._mels = np.empty(max_conn_size, dtype=self.dtype)
 
         self._xprime_f = np.empty((max_conn_size, self.hilbert.size))
-        self._mels_f = np.empty(max_conn_size, dtype=np.complex128)
+        self._mels_f = np.empty(max_conn_size, dtype=self.dtype)
 
     def add_jump_operator(self, op):
         self._jump_ops.append(op)
