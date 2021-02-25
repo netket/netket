@@ -8,7 +8,7 @@ from netket.operator import local_values as _local_values
 
 from .random import randint
 
-from netket.stats import (
+from netket.legacy.stats import (
     statistics as _statistics,
     subtract_mean as _subtract_mean,
     mean as _mean,
@@ -65,7 +65,7 @@ class Qsr(AbstractVariationalDriver):
                 the optimizer. If this parameter is not passed or None, SR is not used.
 
         """
-        super(Qsr, self).__init__(sampler.machine, optimizer)
+        super().__init__(sampler.machine, optimizer)
 
         self._sampler = sampler
         self.sr = sr
