@@ -48,6 +48,9 @@ class VariationalState(abc.ABC):
 
     @parameters.setter
     def parameters(self, pars: PyTree):
+        if not isinstance(pars, FrozenDict):
+            pars = flax.core.freeze(pars)
+
         self._parameters = pars
 
     @property
@@ -57,6 +60,9 @@ class VariationalState(abc.ABC):
 
     @model_state.setter
     def model_state(self, state: PyTree):
+        if not isinstance(state, FrozenDict):
+            state = flax.core.freeze(state)
+
         self._model_state = state
 
     @property
@@ -67,7 +73,7 @@ class VariationalState(abc.ABC):
         return flax.core.freeze({"params": self.parameters, **self.model_state})
 
     @variables.setter
-    def variables(self, vars) -> PyTree:
+    def variables(self, vars: PyTree):
         if not isinstance(vars, FrozenDict):
             vars = flax.core.freeze(vars)
 
