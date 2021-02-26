@@ -64,7 +64,7 @@ class RBM(nn.Module):
     def __call__(self, input):
         x = nknn.Dense(
             name="Dense",
-            features=self.alpha * input.shape[-1],
+            features=int(self.alpha * input.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -107,7 +107,7 @@ class RBMModPhase(nn.Module):
     @nn.compact
     def __call__(self, x):
         re = nknn.Dense(
-            features=self.alpha * x.shape[-1],
+            features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -117,7 +117,7 @@ class RBMModPhase(nn.Module):
         re = jnp.sum(re, axis=-1)
 
         im = nknn.Dense(
-            features=self.alpha * x.shape[-1],
+            features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,

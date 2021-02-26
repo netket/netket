@@ -55,7 +55,7 @@ class PureRBM(nn.Module):
     def __call__(self, σr, σc, symmetric=True):
         W = nknn.Dense(
             name="Dense",
-            features=self.alpha * σr.shape[-1],
+            features=int(self.alpha * σr.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -101,23 +101,23 @@ class MixedRBM(nn.Module):
     def __call__(self, σr, σc, symmetric=True):
         U_S = nknn.Dense(
             name="Symm",
-            features=self.alpha * σr.shape[-1],
+            features=int(self.alpha * σr.shape[-1]),
             dtype=self.dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
         )
         U_A = nknn.Dense(
             name="ASymm",
-            features=self.alpha * σr.shape[-1],
+            features=int(self.alpha * σr.shape[-1]),
             dtype=self.dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
         )
-        y = U_S(0.5 * (σr + σc)) + 1j * U_A(0.5 * (σc - σc))
+        y = U_S(0.5 * (σr + σc)) + 1j * U_A(0.5 * (σr - σc))
 
         if self.use_bias:
             bias = self.param(
-                "bias", self.bias_init, (self.alpha * σr.shape[-1],), self.dtype
+                "bias", self.bias_init, (int(self.alpha * σr.shape[-1]),), self.dtype
             )
             y = y + bias
 
