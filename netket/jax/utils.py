@@ -33,6 +33,7 @@ from jax.dtypes import dtype_real
 from netket.utils import MPI, n_nodes, rank, random_seed
 
 PyTree = Any
+PRNGKeyType = jnp.ndarray
 
 
 def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
@@ -161,8 +162,8 @@ class HashablePartial(partial):
 
 
 def PRNGKey(
-    seed: Optional[Union[int, jnp.ndarray]] = None, root: int = 0, comm=MPI.COMM_WORLD
-) -> jnp.ndarray:
+    seed: Optional[Union[int, PRNGKeyType]] = None, root: int = 0, comm=MPI.COMM_WORLD
+) -> PRNGKeyType:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -182,7 +183,7 @@ def PRNGKey(
     return key
 
 
-def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> jnp.ndarray:
+def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyType:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -206,3 +207,32 @@ def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> jnp.ndarray:
         keys, _ = mpi4jax.Bcast(keys, root=root, comm=comm)
 
     return keys[rank]
+
+
+class PRNGSeq:
+    """
+    A sequence of PRNG keys genrated based on an initial key.
+    """
+
+    def __init__(self, base_key: Optional[PRNGKeyType] = None):
+        if base_key is None:
+            base_key = PRNGKey()
+        self._current = base_key
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._current = jax.random.split(self._current, num=1)[0]
+        return self._current
+
+    def next(self):
+        return self.__next__()
+
+    def take(self, num: int):
+        """
+        Returns an array of `num` PRNG keys and advances the iterator accordingly.
+        """
+        keys = jax.random.split(self._current, num=num + 1)
+        self._current = keys[-1]
+        return keys[:-1]
