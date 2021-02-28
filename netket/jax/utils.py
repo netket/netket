@@ -214,9 +214,11 @@ class PRNGSeq:
     A sequence of PRNG keys genrated based on an initial key.
     """
 
-    def __init__(self, base_key: Optional[PRNGKeyType] = None):
+    def __init__(self, base_key: Optional[Union[int, PRNGKeyType]] = None):
         if base_key is None:
             base_key = PRNGKey()
+        elif isinstance(base_key, int):
+            base_key = PRNGKey(base_key)
         self._current = base_key
 
     def __iter__(self):

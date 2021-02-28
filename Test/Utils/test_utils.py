@@ -18,9 +18,8 @@ import jax.numpy as jnp
 
 
 def test_PRNGSeq():
-    k = PRNGKey()
-
-    seq = PRNGSeq(k)
+    k = PRNGKey(44)
+    seq = PRNGSeq()
     k1 = next(seq)
     k2 = next(seq)
 
@@ -29,6 +28,6 @@ def test_PRNGSeq():
     keys = seq.take(4)
     assert keys.shape == (4, 2)
 
-    seq1 = PRNGSeq(k)
-    seq2 = PRNGSeq(k)
+    seq1 = PRNGSeq(12)
+    seq2 = PRNGSeq(12)
     assert jnp.all(seq1.take(10) == seq2.take(10))
