@@ -46,6 +46,12 @@ class MPSPeriodic(nn.Module):
     ] = jax.nn.initializers.normal()  # default standard deviation equals 1e-2
     dtype: Any = np.complex64
 
+    def __post_init__(self):
+        if self.symperiod is None:
+            self.symperiod = L
+
+        super().__post_init__()
+
     def setup(self):
         L = self.hilbert.size
         phys_dim = self.hilbert.local_size
@@ -80,8 +86,6 @@ class MPSPeriodic(nn.Module):
             )
 
         # determine shape of unit cell
-        if self.symperiod == None:
-            self.symperiod = L
         if L % self.symperiod == 0 and self.symperiod > 0:
             if self.diag:
                 unit_cell_shape = (self.symperiod, phys_dim, self.bond_dim)
@@ -116,7 +120,6 @@ class MPSPeriodic(nn.Module):
             self.param("kernel", self.kernel_init, unit_cell_shape, self.dtype)
             + iden_tensors
         )
-        self.hilbert = None
 
     @nn.compact
     def __call__(self, x):
