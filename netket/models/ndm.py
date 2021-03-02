@@ -26,6 +26,7 @@ from netket.graph import AbstractGraph
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros
 
+from .rbm import RBM
 
 PRNGKey = Any
 Shape = Tuple[int]
@@ -170,6 +171,7 @@ class NDM(nn.Module):
             alpha=self.beta,
             dtype=self.dtype,
             use_bias=self.use_bias,
+            activation=self.activation,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
         )

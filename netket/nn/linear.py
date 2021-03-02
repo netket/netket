@@ -30,7 +30,7 @@ import numpy as np
 
 
 PRNGKey = Any
-Shape = Tuple[int]
+Shape = Iterable[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
@@ -42,6 +42,13 @@ default_kernel_init = lecun_normal()
 def _normalize_axes(axes, ndim):
     # A tuple by convention. len(axes_tuple) then also gives the rank efficiently.
     return tuple([ax if ax >= 0 else ndim + ax for ax in axes])
+
+
+def _canonicalize_tuple(x):
+    if isinstance(x, Iterable):
+        return tuple(x)
+    else:
+        return (x,)
 
 
 class DenseGeneral(Module):
@@ -65,50 +72,38 @@ class DenseGeneral(Module):
     batch_dims: Iterable[int] = ()
     use_bias: bool = True
     dtype: Dtype = jnp.float32
-    bias_dtype: Optional[Dtype] = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
     precision: Any = None
 
-    def setup(self):
-        """Normalize hyperparameters."""
-        if self.bias_dtype is None:
-            self.bias_dtype = self.dtype
-        if not isinstance(self.features, Iterable):
-            self.features = (self.features,)
-        if not isinstance(self.axis, Iterable):
-            self.axis = (self.axis,)
-        if not isinstance(self.batch_dims, Iterable):
-            self.batch_dims = (self.batch_dims,)
-        self.features = tuple(self.features)
-        self.axis = tuple(self.axis)
-        self.batch_dims = tuple(self.batch_dims)
-        if self.batch_dims:
-            max_dim = np.max(self.batch_dims)
-            if set(self.batch_dims) != set(range(max_dim + 1)):
-                raise ValueError(
-                    "batch_dims %s must be consecutive leading "
-                    "dimensions starting from 0." % str(self.batch_dims)
-                )
-
     @compact
     def __call__(self, inputs: Array) -> Array:
         """Applies a linear transformation to the inputs along multiple dimensions.
-
         Args:
           inputs: The nd-array to be transformed.
         Returns:
           The transformed input.
         """
+        features = _canonicalize_tuple(self.features)
+        axis = _canonicalize_tuple(self.axis)
+        batch_dims = _canonicalize_tuple(self.batch_dims)
+        if batch_dims:
+            max_dim = np.max(batch_dims)
+            if set(batch_dims) != set(range(max_dim + 1)):
+                raise ValueError(
+                    "batch_dims %s must be consecutive leading "
+                    "dimensions starting from 0." % str(batch_dims)
+                )
+
         dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 
         ndim = inputs.ndim
-        n_batch_dims = len(self.batch_dims)
-        axis = _normalize_axes(self.axis, ndim)
-        batch_dims = _normalize_axes(self.batch_dims, ndim)
-        n_axis, n_features = len(axis), len(self.features)
+        n_batch_dims = len(batch_dims)
+        axis = _normalize_axes(axis, ndim)
+        batch_dims = _normalize_axes(batch_dims, ndim)
+        n_axis, n_features = len(axis), len(features)
 
         def kernel_init_wrap(rng, shape, dtype=jnp.float32):
             size_batch_dims = np.prod(shape[:n_batch_dims], dtype=np.int32)
@@ -126,10 +121,8 @@ class DenseGeneral(Module):
             return jnp.reshape(kernel, shape)
 
         batch_shape = tuple([inputs.shape[ax] for ax in batch_dims])
-        kernel_shape = tuple([inputs.shape[ax] for ax in axis]) + self.features
-        kernel = self.param(
-            "kernel", kernel_init_wrap, batch_shape + kernel_shape, self.dtype
-        )
+        kernel_shape = tuple([inputs.shape[ax] for ax in axis]) + features
+        kernel = self.param("kernel", kernel_init_wrap, batch_shape + kernel_shape)
         kernel = jnp.asarray(kernel, dtype)
 
         batch_ind = tuple(range(n_batch_dims))
@@ -140,6 +133,7 @@ class DenseGeneral(Module):
             ((axis, contract_ind), (batch_dims, batch_ind)),
             precision=self.precision,
         )
+
         if self.use_bias:
 
             def bias_init_wrap(rng, shape, dtype=jnp.float32):
@@ -154,17 +148,13 @@ class DenseGeneral(Module):
                 )
                 return jnp.reshape(bias, shape)
 
-            bias = self.param(
-                "bias", bias_init_wrap, batch_shape + self.features, self.bias_dtype
-            )
+            bias = self.param("bias", bias_init_wrap, batch_shape + features)
 
             # Reshape bias for broadcast.
             expand_dims = sorted(set(range(inputs.ndim)) - set(axis) - set(batch_dims))
             for ax in expand_dims:
                 bias = jnp.expand_dims(bias, ax)
-            bias = jnp.asarray(
-                bias, nkjax.maybe_promote_to_complex(dtype, self.bias_dtype)
-            )
+            bias = jnp.asarray(bias, dtype)
             out = out + bias
         return out
 
@@ -188,11 +178,6 @@ class Dense(Module):
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-    bias_dtype: Optional[Dtype] = None
-
-    def setup(self):
-        if self.bias_dtype is None:
-            self.bias_dtype = self.dtype
 
     @compact
     def __call__(self, inputs: Array) -> Array:
@@ -216,10 +201,8 @@ class Dense(Module):
             precision=self.precision,
         )
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.bias_dtype)
-            bias = jnp.asarray(
-                bias, nkjax.maybe_promote_to_complex(dtype, self.bias_dtype)
-            )
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
 
@@ -264,14 +247,9 @@ class Conv(Module):
     feature_group_count: int = 1
     use_bias: bool = True
     dtype: Dtype = jnp.float32
-    bias_dtype: Optional[Dtype] = None
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-
-    def setup(self):
-        if self.bias_dtype is None:
-            self.bias_dtype = self.dtype
 
     @compact
     def __call__(self, inputs: Array) -> Array:
@@ -322,10 +300,8 @@ class Conv(Module):
         if is_single_input:
             y = jnp.squeeze(y, axis=0)
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.bias_dtype)
-            bias = jnp.asarray(
-                bias, nkjax.maybe_promote_to_complex(dtype, self.bias_dtype)
-            )
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
 
@@ -362,14 +338,9 @@ class ConvTranspose(Module):
     kernel_dilation: Optional[Iterable[int]] = None
     use_bias: bool = True
     dtype: Dtype = jnp.float32
-    bias_dtype: Optional[Dtype] = None
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-
-    def setup(self):
-        if self.bias_dtype is None:
-            self.bias_dtype = self.dtype
 
     @compact
     def __call__(self, inputs: Array) -> Array:
@@ -413,10 +384,8 @@ class ConvTranspose(Module):
         if is_single_input:
             y = jnp.squeeze(y, axis=0)
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.bias_dtype)
-            bias = jnp.asarray(
-                bias, nkjax.maybe_promote_to_complex(dtype, self.bias_dtype)
-            )
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(bias, dtype)
             bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
