@@ -43,7 +43,7 @@ from netket.operator import (
 )
 
 from .base import VariationalState, VariationalMixedState
-from .classical import MCState
+from .mc_state import MCState
 
 PyTree = Any
 PRNGKey = jnp.ndarray
