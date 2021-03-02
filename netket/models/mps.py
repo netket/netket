@@ -46,12 +46,6 @@ class MPSPeriodic(nn.Module):
     ] = jax.nn.initializers.normal()  # default standard deviation equals 1e-2
     dtype: Any = np.complex64
 
-    def __post_init__(self):
-        if self.symperiod is None:
-            self.symperiod = L
-
-        super().__post_init__()
-
     def setup(self):
         L = self.hilbert.size
         phys_dim = self.hilbert.local_size
@@ -86,12 +80,17 @@ class MPSPeriodic(nn.Module):
             )
 
         # determine shape of unit cell
-        if L % self.symperiod == 0 and self.symperiod > 0:
+        if self.symperiod is None:
+            self._symperiod = L
+        else:
+            self._symperiod = self.symperiod
+
+        if L % self._symperiod == 0 and self._symperiod > 0:
             if self.diag:
-                unit_cell_shape = (self.symperiod, phys_dim, self.bond_dim)
+                unit_cell_shape = (self._symperiod, phys_dim, self.bond_dim)
             else:
                 unit_cell_shape = (
-                    self.symperiod,
+                    self._symperiod,
                     phys_dim,
                     self.bond_dim,
                     self.bond_dim,
@@ -104,16 +103,16 @@ class MPSPeriodic(nn.Module):
         # define diagonal tensors with correct unit cell shape
         if self.diag:
             iden_tensors = jnp.ones(
-                (self.symperiod, phys_dim, self.bond_dim), dtype=self.dtype
+                (self._symperiod, phys_dim, self.bond_dim), dtype=self.dtype
             )
         else:
             iden_tensors = jnp.repeat(
                 jnp.eye(self.bond_dim, dtype=self.dtype)[jnp.newaxis, :, :],
-                self.symperiod * phys_dim,
+                self._symperiod * phys_dim,
                 axis=0,
             )
             iden_tensors = iden_tensors.reshape(
-                self.symperiod, phys_dim, self.bond_dim, self.bond_dim
+                self._symperiod, phys_dim, self.bond_dim, self.bond_dim
             )
 
         self.kernel = (
@@ -132,7 +131,7 @@ class MPSPeriodic(nn.Module):
             params = self.kernel
 
         # create all tensors in mps from unit cell
-        all_tensors = jnp.tile(params, (self._L // self.symperiod, 1, 1, 1))
+        all_tensors = jnp.tile(params, (self._L // self._symperiod, 1, 1, 1))
 
         # transform input to indices
         x = (x - self._loc_vals_bias) / self._loc_vals_spacing
