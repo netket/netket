@@ -13,10 +13,8 @@
 # limitations under the License.
 
 from .base import VariationalState, VariationalMixedState
-from .classical import MCState
-from .mixed_classical import MCMixedState
-
-ClassicalVariationalPureState = MCState
+from .mc_state import MCState
+from .mc_mixed_state import MCMixedState
 
 from netket.utils import _hide_submodules
 
