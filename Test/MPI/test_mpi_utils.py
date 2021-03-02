@@ -12,27 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import (
-    tree_ravel,
-    is_complex,
-    is_complex_dtype,
-    tree_size,
-    eval_shape,
-    tree_leaf_iscomplex,
-    dtype_complex,
-    dtype_real,
-    maybe_promote_to_complex,
-    HashablePartial,
-    mpi_split,
-    PRNGKey,
-    PRNGSeq,
-)
+import jax.numpy as jnp
+from mpi4py import MPI
+import pytest
 
-from ._vjp import vjp
-from ._grad import grad, value_and_grad
+import netket as nk
 
-from ._expect import expect
+size = MPI.COMM_WORLD.size
 
-from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
+def test_key_split():
+    key = nk.jax.PRNGKey(1256)
+
+    keys = MPI.COMM_WORLD.allgather(key)
+    assert all([jnp.all(k == key) for k in keys])
+
+    key = nk.jax.mpi_split(key)
+    keys = MPI.COMM_WORLD.allgather(key)
+    assert all([not jnp.all(k == keys) for k in keys])

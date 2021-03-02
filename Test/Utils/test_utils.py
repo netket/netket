@@ -12,27 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import (
-    tree_ravel,
-    is_complex,
-    is_complex_dtype,
-    tree_size,
-    eval_shape,
-    tree_leaf_iscomplex,
-    dtype_complex,
-    dtype_real,
-    maybe_promote_to_complex,
-    HashablePartial,
-    mpi_split,
-    PRNGKey,
-    PRNGSeq,
-)
+from netket.jax import PRNGKey, PRNGSeq
 
-from ._vjp import vjp
-from ._grad import grad, value_and_grad
+import jax.numpy as jnp
 
-from ._expect import expect
 
-from netket.utils import _hide_submodules
+def test_PRNGSeq():
+    k = PRNGKey(44)
+    seq = PRNGSeq()
+    k1 = next(seq)
+    k2 = next(seq)
 
-_hide_submodules(__name__)
+    assert k is not k1 and k1 is not k2
+
+    keys = seq.take(4)
+    assert keys.shape == (4, 2)
+
+    seq1 = PRNGSeq(12)
+    seq2 = PRNGSeq(12)
+    assert jnp.all(seq1.take(10) == seq2.take(10))

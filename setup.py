@@ -9,7 +9,7 @@ DEV_DEPENDENCIES = [
     "pre-commit",
     "black==20.8b1",
 ]
-MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.9"]
+MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.10"]
 TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
 BASE_DEPENDENCIES = [
     "numpy>=1.20",
