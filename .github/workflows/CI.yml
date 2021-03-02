@@ -16,14 +16,17 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: 3.8
+            mpi: "mpich"
           - os: macos-latest
             python-version: 3.8
+            mpi: ""
 
         #python-version: [3.6, 3.7, 3.8]
         #os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
+      USE_MPI: ${{ matrix.mpi }} 
 
     steps:
       - uses: actions/checkout@v2
@@ -43,13 +46,13 @@ jobs:
           python -m pip install --upgrade pip
           echo "::set-output name=dir::$(pip cache dir)"
 
-      - name: pip cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+      #- name: pip cache
+      #  uses: actions/cache@v2
+      #  with:
+      #    path: ${{ steps.pip-cache.outputs.dir }}
+      #    key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-pip-
 
       - name: Pip install python dependencies
         run: |
