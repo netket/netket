@@ -26,4 +26,4 @@ a new file in this folder and include it here.
 
 from .base import maybe_wrap_module, registered_frameworks
 
-from . import flax, jax
+from . import flax, jax, haiku
