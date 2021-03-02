@@ -206,9 +206,9 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         0.0, rel=rel_eps, abs=abs_eps
     )
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
-        0.0, rel=rel_eps, abs=abs_eps
-    )
+    assert np.max(
+        np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)
+    ) == approx(0.0, rel=rel_eps, abs=abs_eps)
 
 
 @pytest.mark.parametrize("dtype", [np.float64, np.complex128])

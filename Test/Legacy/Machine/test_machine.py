@@ -142,9 +142,9 @@ def same_derivatives(der_log, num_der_log, eps=1.0e-5):
     np.testing.assert_array_almost_equal(der_log.real, num_der_log.real, decimal=4)
 
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
-        0.0, rel=eps, abs=eps
-    )
+    assert np.max(
+        np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)
+    ) == approx(0.0, rel=eps, abs=eps)
 
 
 def log_val_f(par, machine, v):

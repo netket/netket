@@ -259,9 +259,9 @@ def central_diff_grad(func, x, eps, *args):
 def same_derivatives(der_log, num_der_log, eps=1.0e-6):
     assert np.max(np.real(der_log - num_der_log)) == approx(0.0, rel=eps, abs=eps)
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
-        0.0, rel=eps, abs=eps
-    )
+    assert np.max(
+        np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)
+    ) == approx(0.0, rel=eps, abs=eps)
 
 
 # disable test because to make it work we need MUCH more samples than travis

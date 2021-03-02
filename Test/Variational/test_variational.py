@@ -46,7 +46,7 @@ H = H.copy()
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
 
-# operators["operator:(Non Hermitian)"] = H
+operators["operator:(Non Hermitian)"] = H
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -109,7 +109,7 @@ def test_n_samples_api(vstate):
 )
 def test_expect(vstate, operator):
     #  Use lots of samples
-    vstate.n_samples = 2 * 1e5
+    vstate.n_samples = 5 * 1e5
     vstate.n_discard = 1e3
 
     # sample the expectation value and gradient with tons of samples
@@ -138,8 +138,8 @@ def test_expect(vstate, operator):
     O_exact = expval_fun(pars, vstate, op_sparse)
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
-    if operator.is_hermitian:
-        grad_exact = jax.tree_map(lambda x: x.real, grad_exact)
+    if not operator.is_hermitian:
+        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
     # compare the two
     err = 6 / np.sqrt(vstate.n_samples)
@@ -148,7 +148,7 @@ def test_expect(vstate, operator):
     assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
-    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=1.0e-3)
+    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=2.0e-3)
 
 
 ###
@@ -194,6 +194,6 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         0.0, rel=rel_eps, abs=abs_eps
     )
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-    assert np.max(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0) == approx(
-        0.0, rel=rel_eps, abs=abs_eps
-    )
+    assert np.max(
+        np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)
+    ) == approx(0.0, rel=rel_eps, abs=abs_eps)
