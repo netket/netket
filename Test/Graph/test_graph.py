@@ -1,7 +1,8 @@
 import netket as nk
 import networkx as nx
-import igraph as ig
 import math
+import numpy as np
+import igraph as ig
 
 from netket.graph import *
 
@@ -252,6 +253,16 @@ def test_automorphisms():
             dim = len(autom_g)
             for i in range(dim):
                 assert autom_g[i] in autom
+
+
+def test_duplicate_atoms():
+    lattice = Lattice(
+        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
+        extent=[10, 10],
+        pbc=[False, False],
+        atoms_coord=[[0, 0], [0, 0]],
+    )
+    assert np.all(lattice.atoms_coord == np.array([[0, 0]]))
 
 
 # def test_edge_color_accessor():
