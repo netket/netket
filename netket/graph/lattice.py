@@ -143,8 +143,7 @@ class Lattice(NetworkX):
             raise ValueError(
                 "atoms must reside inside their corresponding unit cell, which includes only the 0-faces in fractional coordinates."
             )
-        tuple_array = [tuple(row) for row in atoms_coord]
-        uniques = _np.unique(tuple_array)
+        uniques = _np.unique(atoms_coord, axis=0)
         if len(atoms_coord) != uniques.shape[0]:
             atoms_coord = _np.asarray(uniques)
             print(
