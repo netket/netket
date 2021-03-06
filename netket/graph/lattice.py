@@ -4,6 +4,7 @@ from scipy.sparse import find, triu
 import numpy as _np
 import itertools
 import networkx as _nx
+import warnings
 
 
 def get_edges(atoms_positions, cutoff):
@@ -146,11 +147,12 @@ class Lattice(NetworkX):
         uniques = _np.unique(atoms_coord, axis=0)
         if len(atoms_coord) != uniques.shape[0]:
             atoms_coord = _np.asarray(uniques)
-            print(
-                "Warning: Some atom positions are not unique. Duplicates were dropped, and now atom positions are {0}".format(
-                    atoms_coord
-                )
+            warnings.warn(
+                f"Some atom positions are not unique. Duplicates were dropped, and now atom positions are {atoms_coord}",
+                UserWarning,
             )
+
+        self._atoms_coord = atoms_coord
 
         if isinstance(pbc, bool):
             self._pbc = [pbc] * self._basis_vectors.shape[1]
@@ -197,6 +199,13 @@ class Lattice(NetworkX):
     @property
     def basis_vectors(self):
         return self._basis_vectors
+
+    @property
+    def atoms_coord(self):
+        """
+        Coordinates of atoms in the unit cell.
+        """
+        return self._atoms_coord
 
     def atom_label(self, site):
         return self._atoms[site]["Label"]
