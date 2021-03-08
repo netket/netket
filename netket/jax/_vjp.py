@@ -77,10 +77,10 @@ def vjp_rr(
         function computing the vjp product for a R->R function.
         """
         if not is_complex(ȳ):
-            out = _vjp_fun(ȳ)
+            out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out.dtype))
         else:
-            out_r = _vjp_fun(ȳ.real)
-            out_i = _vjp_fun(ȳ.imag)
+            out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
+            out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
             if conjugate:
                 out = tree_multimap(lambda re, im: re - 1j * im, out_r, out_i)
             else:
