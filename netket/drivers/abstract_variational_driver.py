@@ -259,6 +259,8 @@ class AbstractVariationalDriver(abc.ABC):
         for logger in loggers:
             logger.flush(self.state)
 
+        return loggers
+
     def estimate(self, observables):
         """
         Return MCMC statistics for the expectation value of observables in the

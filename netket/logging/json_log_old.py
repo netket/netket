@@ -1,7 +1,10 @@
 import json
 import dataclasses
+import orjson
 
 from os import path as _path
+import numpy as np
+import jax
 
 from flax import serialization
 
@@ -12,14 +15,22 @@ def _exists_json(prefix):
     return _path.exists(prefix + ".log") or _path.exists(prefix + ".mpack")
 
 
-class EnhancedJSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if hasattr(o, "to_json"):
-            return o.to_json()
-        elif dataclasses.is_dataclass(o):
-            return dataclasses.asdict(o)
+def default(obj):
+    if hasattr(obj, "to_json"):
+        return obj.to_json()
+    elif isinstance(obj, np.ndarray):
+        if obj.ndim == 0:
+            return obj.item()
+        elif obj.ndim == 1:
+            return obj.tolist()
         else:
-            return super().default(o)
+            raise TypeError
+    elif hasattr(obj, "_device"):
+        return np.array(obj)
+    elif isinstance(obj, complex):
+        return obj.real
+
+    raise TypeError
 
 
 class JsonLog:
@@ -105,8 +116,9 @@ class JsonLog:
         self._steps_notflushed_pars += 1
 
     def _flush_log(self):
-        with open(self._prefix + ".log", "w") as outfile:
-            json.dump(self._json_out, outfile, cls=EnhancedJSONEncoder)
+        with open(self._prefix + ".log", "wb") as outfile:
+
+            outfile.write(orjson.dumps(self._json_out, default=default))
             self._steps_notflushed_write = 0
 
     def _flush_params(self, variational_state):

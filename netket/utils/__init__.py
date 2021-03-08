@@ -30,6 +30,8 @@ from .moduletools import _hide_submodules, rename_class
 
 from .model_frameworks import maybe_wrap_module
 
+from .history import History, accum_in_tree, accum_histories_in_tree
+
 jax_available = True
 flax_available = True
 mpi4jax_available = mpi_available
