@@ -73,9 +73,7 @@ if jax_available:
         import mpi4jax
 
         @sum_inplace.register(jax.interpreters.xla.DeviceArray)
-        @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
-        @sum_inplace.register(jax.interpreters.partial_eval.DynamicJaxprTracer)
-        @sum_inplace.register(jax.interpreters.ad.JVPTracer)
+        @sum_inplace.register(jax.core.Tracer)
         def sum_inplace_jax(x):
             if _n_nodes == 1:
                 return x
@@ -92,9 +90,7 @@ if jax_available:
     else:
 
         @sum_inplace.register(jax.interpreters.xla.DeviceArray)
-        @sum_inplace.register(jax.interpreters.partial_eval.JaxprTracer)
-        @sum_inplace.register(jax.interpreters.partial_eval.DynamicJaxprTracer)
-        @sum_inplace.register(jax.interpreters.ad.JVPTracer)
+        @sum_inplace.register(jax.core.Tracer)
         def sum_inplace_jax(x):
             if _n_nodes == 1:
                 return x
