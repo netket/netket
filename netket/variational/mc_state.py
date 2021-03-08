@@ -72,7 +72,12 @@ def local_value_kernel(logpsi, pars, σ, σp, mel):
 
 
 def local_value_squared_kernel(logpsi, pars, σ, σp, mel):
-    return jnp.abs(jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))) ** 2
+    return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
+
+
+@partial(jax.jit, static_argnums=0)
+def apply(fun, *args):
+    return fun(*args)
 
 
 class MCState(VariationalState):
@@ -363,11 +368,11 @@ class MCState(VariationalState):
             self.sample()
         return self._samples
 
-    def evaluate(self, σ) -> jnp.ndarray:
+    def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
         Evaluate the variational state given a batch of states.
         """
-        return self._apply_fun(self.variables, σ)
+        return apply(self._apply_fun, self.variables, σ)
 
     def expect(self, Ô: AbstractOperator) -> Stats:
         if not self.hilbert == Ô.hilbert:
