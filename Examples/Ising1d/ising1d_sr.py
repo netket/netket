@@ -43,6 +43,4 @@ vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
 gs = nk.Vmc(ha, op, variational_state=vs, sr=sr)
 
 # Run the optimization for 300 iterations
-gs.run(n_iter=1, out=None)
-
 gs.run(n_iter=300, out=None)
