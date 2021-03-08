@@ -127,10 +127,10 @@ def vjp_rc(
         ȳ_j = ȳ.imag
 
         # val = vals_r + vals_j
-        vr_jr = vjp_r_fun(ȳ_r)
-        vj_jr = vjp_r_fun(ȳ_j)
-        vr_jj = vjp_j_fun(ȳ_r)
-        vj_jj = vjp_j_fun(ȳ_j)
+        vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r.dtype))
+        vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r.dtype))
+        vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j.dtype))
+        vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j.dtype))
 
         r = tree_multimap(
             lambda re, im: re + 1j * im,
