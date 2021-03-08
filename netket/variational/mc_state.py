@@ -33,7 +33,7 @@ from netket import utils
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils, n_nodes
+from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module
 from netket.optimizer import SR
 from netket.operator import (
     AbstractOperator,
@@ -156,6 +156,8 @@ class MCState(VariationalState):
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
+            _, model = maybe_wrap_module(model)
+
             self.model = model
 
             self._init_fun = nkjax.HashablePartial(
