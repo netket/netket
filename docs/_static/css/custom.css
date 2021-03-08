@@ -140,3 +140,13 @@ td {
   overflow-wrap: break-word;
   hyphens: none;
 }
+
+/* Custom list bullets */
+
+ul.simple > li > ul > li {
+  margin-left: 20px;
+}
+
+ul.simple > li > ul > li > ul > li{
+  margin-left: 20px;
+}

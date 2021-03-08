@@ -114,11 +114,11 @@ ol,
 ul {
   margin: 0;
   padding: 0;
-  list-style: none;
-  list-style-image: none;
+  /*list-style: none;
+  list-style-image: none;*/
 }
 li {
-  list-style: none;
+  /*list-style: none;*/
 }
 dd {
   margin: 0;
