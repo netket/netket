@@ -110,7 +110,7 @@ def set_pdf_power(request):
             return sampler.replace(machine_pow=request.param)
         elif cmdline_mpow == "single":
             # samee sampler leads to same rng
-            rng = np.random.default_rng(abs(hash(repr(sampler))))
+            rng = np.random.default_rng(abs(hash((type(sampler), repr(sampler)))))
             exponent = rng.integers(1, 3)  # 1 or 2
             if request.param == exponent:
                 return sampler.replace(machine_pow=exponent)
