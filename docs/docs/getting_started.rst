@@ -16,8 +16,8 @@ To install, run one of the two following commands
 
 .. code-block:: 
 
-   pip install git+https://github.com/netket/netket@nk3
-   pip install git+https://github.com/netket/netket@nk3#egg=netket[mpi]
+   pip install git+https://github.com/netket/netket
+   pip install git+https://github.com/netket/netket#egg=netket[mpi]
 
 The latter enables MPI-related functionalities.
 Additionally, if you don't have it installed (yet) you must install `libjax`
@@ -30,7 +30,7 @@ with one of the following commands.
 
 The latter enables nvidia-gpu support.
 
-To query the installed `netkte` version you can run the following command in your shell
+To query the installed `netket` version you can run the following command in your shell
 
 .. code-block:: 
 
@@ -94,6 +94,8 @@ improvement.
 Some documentation of the legacy module can be found in this section :ref:`Legacy`, 
 but please be advised that it is no longer-supported and documentation will 
 probably be of poor quality.
+
+For more information on new features and API changes, please consult :ref:`Whats New`.
 
 
 Commented Example
@@ -169,7 +171,7 @@ carlo optimisation driver by passing the constructor the hamiltonian and thee
 optimmmiser (which must always be the first two arguments), and theene the
 sampler, mahcine and various options.
 
-Once that is done, you can run the simulation by calling the :ref:`run` mmethod
+Once that is done, you can run the simulation by calling the :ref:`run` method
 in the driver, specifying the output loggers and the number of iterations in
 the optimisation.
 

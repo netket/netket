@@ -25,6 +25,7 @@
    :hidden:
 
    docs/getting_started
+   docs/whats_new
    docs/graphs
    docs/api
    docs/requirements

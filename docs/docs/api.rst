@@ -73,6 +73,8 @@ Pre-defined operators
    netket.operator.spin.sigmap
    netket.operator.spin.sigmam
 
+.. _exact-api:
+
 Exact solvers
 -------------
 
@@ -84,9 +86,10 @@ Exact solvers
    netket.exact.lanczos_ed
    netket.exact.steady_state
 
+.. _sampler-api:
 
-Samplers
---------
+Sampler
+-------
 
 Generic API
 ~~~~~~~~~~~
@@ -102,8 +105,8 @@ Those functions can be used to interact with samplers
    netket.sampler.sample
    netket.sampler.samples
 
-Samplers
-~~~~~~~~
+List of Samplers
+~~~~~~~~~~~~~~~~
 
 This is a list of all available samplers.
 Please note that samplers with `Numpy` in their name are implemented in
@@ -164,6 +167,7 @@ Those structure hold the state of the sampler.
   netket.sampler.SamplerState
   netket.sampler.MetropolisSamplerState
 
+.. _Models:
 
 Pre-built models
 ----------------
@@ -228,6 +232,8 @@ Activation functions
     logcosh
 
 
+.. _variational-api:
+
 Variational State Interface
 ---------------------------
 
@@ -242,8 +248,9 @@ Variational State Interface
   netket.variational.MCMixedState
 
 
+.. _optimizer-api:
 
-Optim
+Optimizer
 ---------
 
 .. currentmodule:: netket
@@ -254,7 +261,7 @@ This module provides the following functionalities
    :toctree: _generated/optim
    :nosignatures:
    
-   netket.optim.SR
+   netket.optimizer.SR
 
 This module also re-exports `flax.optim <https://flax.readthedocs.io/en/latest/flax.optim.html#available-optimizers>`_. Check it out for up-to-date informations on available optimisers. 
 A non-comprehensive list is also included here:
@@ -263,11 +270,11 @@ A non-comprehensive list is also included here:
    :toctree: _generated/optim
    :nosignatures:
 
-   netket.optim.Adam
-   netket.optim.Adagrad
-   netket.optim.GradientDescent
-   netket.optim.LAMB
-   netket.optim.LARS
-   netket.optim.Momentum
-   netket.optim.RMSProp
+   netket.optimizer.Adam
+   netket.optimizer.Adagrad
+   netket.optimizer.GradientDescent
+   netket.optimizer.LAMB
+   netket.optimizer.LARS
+   netket.optimizer.Momentum
+   netket.optimizer.RMSProp
 
