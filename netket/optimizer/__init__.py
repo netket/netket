@@ -14,7 +14,7 @@
 
 from .sr import SR
 
-from flax.optim import *
+from optax import adabelief, adagrad, adam, adamw, rmsprop, sgd
 
 from netket.utils import _hide_submodules
 

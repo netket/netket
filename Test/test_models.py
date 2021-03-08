@@ -28,7 +28,7 @@ def test_mps(diag):
     vs = nk.variational.MCState(sa, ma, n_samples=1000)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
-    op = nk.optimizer.GradientDescent(learning_rate=0.05)
+    op = nk.optimizer.sgd(learning_rate=0.05)
 
     driver = nk.Vmc(ha, op, variational_state=vs)
 

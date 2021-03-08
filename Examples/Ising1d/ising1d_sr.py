@@ -31,10 +31,10 @@ ma = nk.models.RBM(alpha=1, dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.1)
+op = nk.optimizer.sgd(learning_rate=0.1)
 
 # SR
-sr = nk.optim.SR(diag_shift=0.01)
+sr = nk.optimizer.SR(diag_shift=0.01)
 
 # Variational state
 vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
