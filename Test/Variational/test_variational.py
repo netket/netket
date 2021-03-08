@@ -5,6 +5,7 @@ import pytest
 from pytest import approx, raises
 
 import numpy as np
+from numpy import testing
 import jax
 import jax.numpy as jnp
 import netket as nk
@@ -15,7 +16,7 @@ from contextlib import redirect_stderr
 import tempfile
 import re
 
-SEED = 214748364
+SEED = 2148364
 
 machines = {}
 
@@ -142,13 +143,13 @@ def test_expect(vstate, operator):
         grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
     # compare the two
-    err = 6 / np.sqrt(vstate.n_samples)
+    err = 5 / np.sqrt(vstate.n_samples)
 
     # check the expectation values
     assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
-    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=2.0e-3)
+    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
 ###
@@ -190,10 +191,12 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
 def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     assert der_log.shape == num_der_log.shape
 
-    assert np.max(np.real(der_log - num_der_log)) == approx(
-        0.0, rel=rel_eps, abs=abs_eps
+    np.testing.assert_allclose(
+        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
     )
-    # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
-    assert np.max(
-        np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)
-    ) == approx(0.0, rel=rel_eps, abs=abs_eps)
+    np.testing.assert_allclose(
+        np.mod(der_log.imag, np.pi * 2),
+        np.mod(num_der_log.imag, np.pi * 2),
+        rtol=rel_eps,
+        atol=abs_eps,
+    )
