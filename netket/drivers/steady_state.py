@@ -74,7 +74,7 @@ class SteadyState(AbstractVariationalDriver):
 
         if self.sr is not None:
             self._S = self.state.quantum_geometric_tensor(self.sr)
-            self._dp = self._S(self._loss_grad)
+            self._dp = self._S.solve(self._loss_grad)
         else:
             # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
             self._dp = self._loss_grad
