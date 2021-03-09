@@ -99,7 +99,7 @@ class JsonLog(RuntimeLog):
             )
 
         dir_name = _path.dirname(output_prefix)
-        if dir_name is not "":
+        if dir_name != "":
             os.makedirs(dir_name, exist_ok=True)
 
         self._prefix = output_prefix
