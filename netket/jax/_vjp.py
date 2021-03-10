@@ -47,16 +47,15 @@ def vjp_cc(
     else:
         out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    if conjugate:
+    def vjp_fun(ȳ):
+        ȳ = jnp.asarray(ȳ, dtype=out.dtype)
 
-        def vjp_fun(ȳ):
-            """
-            function computing the vjp product for a conjugated C->C function
-            """
-            return tree_map(jnp.conjugate, _vjp_fun(ȳ))
+        dȳ = _vjp_fun(ȳ)
 
-    else:
-        vjp_fun = _vjp_fun
+        if conjugate:
+            dȳ = tree_map(jnp.conjugate, dȳ)
+
+        return dȳ
 
     if has_aux:
         return out, vjp_fun, aux
