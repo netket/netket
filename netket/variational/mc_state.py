@@ -507,7 +507,7 @@ class MCState(VariationalState):
         )
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
+@partial(jax.jit, static_argnums=(1, 2))
 def _expect(
     sampler: Sampler,
     model_apply_fun: Callable,
@@ -603,7 +603,7 @@ def grad_expect_hermitian(
     return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(1, 2, 3))
 def grad_expect_operator_kernel(
     sampler: Sampler,
     model_apply_fun: Callable,
@@ -658,7 +658,7 @@ def grad_expect_operator_kernel(
     )
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
+@partial(jax.jit, static_argnums=(1, 2))
 def grad_expect_operator_Lrho2(
     sampler: Sampler,
     model_apply_fun: Callable,
