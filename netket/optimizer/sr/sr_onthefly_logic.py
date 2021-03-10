@@ -172,7 +172,7 @@ def mat_vec(v, forward_fn, params, samples, diag_shift):
     compute (S + diag_shift) v
 
     where the elements of S are given by
-    S_kl = \langle O_k^\dagger \DeltaO_ \rangle
+    S_kl = \langle O_k^\dagger \DeltaO_l \rangle
     \DeltaO_k = O_k - \langle O_k \rangle
     and O_k (operator) is derivative of the log wavefunction w.r.t parameter k
     The expectation values are calculated as mean over the samples
