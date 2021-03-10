@@ -19,18 +19,27 @@ class SteadyState(AbstractVariationalDriver):
     """
 
     def __init__(
-        self, lindbladian, optimizer, *args, variational_state=None, sr=None, **kwargs
+        self,
+        lindbladian,
+        optimizer,
+        *args,
+        variational_state=None,
+        sr=None,
+        sr_restart=False,
+        **kwargs,
     ):
         """
         Initializes the driver class.
 
         Args:
-            lindbladian (AbstractOperator): The Hamiltonian of the system.
-            optimizer (AbstractOptimizer): Determines how optimization steps are performed given the
+            lindbladian: The Hamiltonian of the system.
+            optimizer: Determines how optimization steps are performed given the
                 bare energy gradient.
-            sr (SR, optional): Determines whether and how stochastic reconfiguration
+            sr: Determines whether and how stochastic reconfiguration
                 is applied to the bare energy gradient before performing applying
                 the optimizer. If this parameter is not passed or None, SR is not used.
+            sr_restart: whever to restart the SR solver at every iteration, or use the
+                previous result to speed it up
 
         Example:
             Optimizing a 1D wavefunction with Variational Monte Carlo.
@@ -56,6 +65,7 @@ class SteadyState(AbstractVariationalDriver):
         self._ldag_l = Squared(lindbladian)
 
         self.sr = sr
+        self.sr_restart = sr_restart
 
         self._dp = None
 
@@ -74,7 +84,10 @@ class SteadyState(AbstractVariationalDriver):
 
         if self.sr is not None:
             self._S = self.state.quantum_geometric_tensor(self.sr)
-            self._dp = self._S.solve(self._loss_grad)
+
+            # use the previous solution as an initial guess to speed up the solution of the linear system
+            x0 = self._dp if self.sr_restart is False else None
+            self._dp = self._S.solve(self._loss_grad, x0=x0)
         else:
             # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
             self._dp = self._loss_grad
