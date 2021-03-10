@@ -54,7 +54,7 @@ except ImportError:
     MPI = FakeMPI()
 
 if mpi_available:
-    _min_mpi4jax_version = "0.2.7"
+    _min_mpi4jax_version = "0.2.11"
     if not _LooseVersion(mpi4jax.__version__) >= _LooseVersion(_min_mpi4jax_version):
         raise ImportError(
             "Netket is only compatible with mpi4jax >= {}. Please update it (`pip install -U mpi4jax`).".format(

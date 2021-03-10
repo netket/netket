@@ -178,7 +178,7 @@ def PRNGKey(
     if n_nodes > 1:
         import mpi4jax
 
-        key, _ = mpi4jax.Bcast(key, root=root, comm=comm)
+        key, _ = mpi4jax.bcast(key, root=root, comm=comm)
 
     return key
 
@@ -204,7 +204,7 @@ def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyType:
     if n_nodes > 1:
         import mpi4jax
 
-        keys, _ = mpi4jax.Bcast(keys, root=root, comm=comm)
+        keys, _ = mpi4jax.bcast(keys, root=root, comm=comm)
 
     return keys[rank]
 

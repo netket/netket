@@ -82,7 +82,7 @@ if jax_available:
                 # The token can't depend on x for the same reason
                 # This token depends on a constant and will be eliminated by DCE
                 token = jax.lax.create_token(0)
-                res, _ = mpi4jax.Allreduce(
+                res, _ = mpi4jax.allreduce(
                     x, op=_MPI.SUM, comm=MPI_jax_comm, token=token
                 )
                 return res
