@@ -59,7 +59,7 @@ def mean(a, axis=None, keepdims: bool = False):
 
 def sum(a, axis=None, out=None, keepdims: bool = False):
     """
-    Compute the arithmetic mean along the specified axis and over MPI processes.
+    Compute the sum along the specified axis and over MPI processes.
 
     Args:
         a: The input array
