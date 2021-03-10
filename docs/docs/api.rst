@@ -263,18 +263,25 @@ This module provides the following functionalities
    
    netket.optimizer.SR
 
-This module also re-exports `flax.optim <https://flax.readthedocs.io/en/latest/flax.optim.html#available-optimizers>`_. Check it out for up-to-date informations on available optimisers. 
-A non-comprehensive list is also included here:
+This module also provides some optimisers from `optax <https://github.com/deepmind/optax>`_. 
+Check it out for up-to-date informations on available optimisers.
+
+.. warning::
+
+  Even if optimisers in `netket.optimizer` are optax optimisers, they have slightly different 
+  names (they are capitalised) and the argument names have been rearranged and renamed.
+  This was chosen in order not to break our API from previous versions
+
+  In general, we advise you to directly use optax, as it is much more powerful, provides more
+  optimisers, and it's extremely easy to use step-dependent schedulers.
 
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:
 
    netket.optimizer.Adam
-   netket.optimizer.Adagrad
-   netket.optimizer.GradientDescent
-   netket.optimizer.LAMB
-   netket.optimizer.LARS
+   netket.optimizer.AdaGrad
+   netket.optimizer.Sgd
    netket.optimizer.Momentum
-   netket.optimizer.RMSProp
+   netket.optimizer.RmsProp
 
