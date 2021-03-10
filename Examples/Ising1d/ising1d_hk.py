@@ -32,13 +32,11 @@ class MyLinear(hk.Module):
 
 
 def forward_fn(x):
-    model = MyLinear(1)
-    return jnp.squeeze(model(x))
+    model = MyLinear(10)
+    return jnp.squeeze(jnp.sum(model(x), axis=-1))
 
 
-forward = hk.transform(forward_fn)
-
-_, ma = nk.utils.maybe_wrap_module(forward)
+ma = hk.transform(forward_fn)
 
 # 1D Lattice
 L = 20  # 10
@@ -55,7 +53,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational monte carlo driver
 gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=50)

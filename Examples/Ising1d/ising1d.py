@@ -32,7 +32,7 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optim.GradientDescent(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational monte carlo driver
 gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=50)

@@ -35,6 +35,9 @@ class HaikuWrapper:
     def unwrap_params(self, variables):
         return variables["params"]
 
+    def __repr__(self):
+        return f"HaikuWrapper({self.transformed})"
+
 
 @framework
 class HaikuFramework(ModuleFramework):
