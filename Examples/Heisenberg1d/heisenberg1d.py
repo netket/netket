@@ -21,7 +21,6 @@ L = 20
 
 g = nk.graph.Chain(length=L, pbc=True)
 # Lattice translation operations
-translations = np.array([np.roll(np.arange(L), i) for i in range(L)])
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, total_sz=0)
@@ -31,7 +30,7 @@ ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # RBM Spin Machine
 ma = nk.models.RBMSymm(
-    permutations=translations,
+    permutations=g.periodic_translations(),
     alpha=4,
     use_visible_bias=False,
     use_bias=True,

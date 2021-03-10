@@ -1,3 +1,18 @@
+# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import itertools
 from typing import List
 
 from .graph import NetworkX
@@ -61,7 +76,10 @@ class Grid(NetworkX):
             periodic = pbc
 
         self.length = length
-        self.pbc = pbc
+        if isinstance(pbc, list):
+            self.pbc = pbc
+        else:
+            self.pbc = [pbc] * len(length)
 
         graph = _nx.generators.lattice.grid_graph(length, periodic=periodic)
 
@@ -95,7 +113,36 @@ class Grid(NetworkX):
         super().__init__(graph)
 
     def __repr__(self):
-        return "Grid(length={}, pbc={})".format(self.length, self.pbc)
+        if all(self.pbc):
+            pbc = True
+        elif not any(self.pbc):
+            pbc = False
+        else:
+            pbc = self.pbc
+        return "Grid(length={}, pbc={})".format(self.length, pbc)
+
+    def periodic_translations(self):
+        """
+        Returns all permutations of lattice sites that correspond to translations
+        along the grid directions with periodic boundary conditions.
+
+        The periodic translations are a subset of the permutations returned by
+        `self.automorphisms()`.
+        """
+        basis = [
+            range(l) if is_per else range(1)
+            for l, is_per in zip(self.length[::-1], self.pbc[::-1])
+        ]
+
+        translation_group = itertools.product(*basis)
+        identity = _np.array(list(self.nodes())).reshape(*self.length[::-1])
+
+        def translate(el, sites):
+            for i, n in enumerate(el):
+                sites = _np.roll(sites, shift=n, axis=i)
+            return sites.ravel().tolist()
+
+        return [translate(el, identity) for el in translation_group]
 
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:
