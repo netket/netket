@@ -27,7 +27,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
     vs = nk.variational.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
-    op = nk.optimizer.sgd(learning_rate=0.05)
+    op = nk.optimizer.Sgd(learning_rate=0.05)
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
@@ -96,7 +96,7 @@ def test_raise_n_iter():
 def test_vmc_construction_vstate():
     ha, sx, ma, sa, driver = _setup_vmc()
 
-    op = nk.optimizer.sgd(learning_rate=0.05)
+    op = nk.optimizer.Sgd(learning_rate=0.05)
 
     driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
 

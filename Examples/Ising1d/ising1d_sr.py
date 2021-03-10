@@ -31,7 +31,7 @@ ma = nk.models.RBM(alpha=1, dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optimizer.sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # SR
 sr = nk.optimizer.SR(diag_shift=0.01)

@@ -53,7 +53,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optimizer.sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational monte carlo driver
 gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=50)
