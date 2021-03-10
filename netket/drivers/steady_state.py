@@ -32,7 +32,7 @@ class SteadyState(AbstractVariationalDriver):
         Initializes the driver class.
 
         Args:
-            lindbladian: The Hamiltonian of the system.
+            lindbladian: The Lindbladian of the system.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient.
             sr: Determines whether and how stochastic reconfiguration
