@@ -99,17 +99,17 @@ def O_vjp(x, params, v, forward_fn, return_vjp_fun=False, vjp_fun=None, allreduc
         return res
 
 
-def O_mean(samples, params, forward_fn, **kwargs):
+def O_mean(samples, params, forward_fn, *, dtype, **kwargs):
     r"""
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
     """
-    dtype = jax.eval_shape(forward_fn, params, samples).dtype
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+
     return O_vjp(samples, params, v, forward_fn, **kwargs)
 
 
-def OH_w(samples, params, w, forward_fn, **kwargs):
+def OH_w(samples, params, w, forward_fn, *, dtype, **kwargs):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
@@ -120,18 +120,11 @@ def OH_w(samples, params, w, forward_fn, **kwargs):
 
     # TODO The allreduce in O_vjp could be deferred until after the tree_cast
     # where the amount of data to be transferred would potentially be smaller
-    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn, **kwargs))
+    w̄ = jnp.asarray(w.conjugate(), dtype=dtype)
+
+    res = tree_conj(O_vjp(samples, params, w̄, forward_fn, **kwargs))
     #
     return tree_cast(res, params)
-
-
-def Odagger_O_v(samples, params, v, forward_fn):
-    r"""
-    compute  \langle O^\dagger O \rangle v
-    """
-    v_tilde = O_jvp(samples, params, v, forward_fn)
-    v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
-    return OH_w(samples, params, v_tilde, forward_fn)
 
 
 def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
@@ -142,6 +135,10 @@ def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     optional: pass jvp_fun to be reused
     """
 
+    # determine the output type of the forward pass, because
+    # we need to cast the vectors in vjp to that type
+    dtype = jax.eval_shape(forward_fn, params, samples).dtype
+
     # here the allreduce is deferred until after the dot product,
     # where only scalars instead of vectors have to be summed
     # the vjp_fun is returned so that it can be reused in OH_w below
@@ -149,6 +146,7 @@ def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
         samples,
         params,
         forward_fn,
+        dtype=dtype,
         return_vjp_fun=True,
         vjp_fun=vjp_fun,
         allreduce=False,
@@ -163,7 +161,7 @@ def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     # v_tilde /= n_samples (elementwise):
     v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
 
-    return OH_w(samples, params, v_tilde, forward_fn, vjp_fun=vjp_fun)
+    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
 
 
 # TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples

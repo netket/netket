@@ -111,15 +111,6 @@ def OH_w(samples, params, w, forward_fn, **kwargs):
     return tree_cast(res, params)
 
 
-def Odagger_O_v(samples, params, v, forward_fn):
-    r"""
-    compute  \langle O^\dagger O \rangle v
-    """
-    v_tilde = O_jvp(samples, params, v, forward_fn)
-    v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
-    return OH_w(samples, params, v_tilde, forward_fn)
-
-
 def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     r"""
     compute \langle O^\dagger \DeltaO \rangle v
