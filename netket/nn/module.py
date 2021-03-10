@@ -9,18 +9,7 @@ from typing import Union, Tuple, Optional, Any, Callable
 
 from jax.random import PRNGKey
 
-
-class Module(nn.Module):
-    hilbert: AbstractHilbert = struct.field(pytree_node=False)
-
-    def random_weights(self, rngs: Union[PRNGKey], *args, **kwargs):
-        if isinstance(rngs, int):
-            rngs = jax.random.PRNGKey(rngs)
-
-        input_shape = (1, self.hilbert.size)
-        dummy_input = jnp.zeros(input_shape, dtype=jnp.float64)
-
-        return self.init(rngs, dummy_input, *args, **kwargs)
+from flax.linen import Module
 
 
 class JaxWrapModule(nn.Module):
