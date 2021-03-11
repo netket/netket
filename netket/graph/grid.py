@@ -119,7 +119,7 @@ class Grid(NetworkX):
             pbc = False
         else:
             pbc = self.pbc
-        return "Grid(length={}, pbc={})".format(self.length, pbc)
+        return f"Grid(length={self.length}, pbc={pbc})"
 
     def periodic_translations(self):
         """
