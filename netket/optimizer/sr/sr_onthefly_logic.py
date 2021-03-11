@@ -129,8 +129,8 @@ def OH_w(samples, params, w, forward_fn, *, dtype, **kwargs):
 
 def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     r"""
-    compute \langle O^\dagger \DeltaO \rangle v
-    where \DeltaO = O - \langle O \rangle
+    compute \langle O^\dagger \Delta O \rangle v
+    where \Delta O = O - \langle O \rangle
 
     optional: pass jvp_fun to be reused
     """
@@ -172,8 +172,8 @@ def mat_vec(v, forward_fn, params, samples, diag_shift):
     compute (S + diag_shift) v
 
     where the elements of S are given by
-    S_kl = \langle O_k^\dagger \DeltaO_l \rangle
-    \DeltaO_k = O_k - \langle O_k \rangle
+    S_kl = \langle O_k^\dagger \Delta O_l \rangle
+    \Delta O_k = O_k - \langle O_k \rangle
     and O_k (operator) is derivative of the log wavefunction w.r.t parameter k
     The expectation values are calculated as mean over the samples
 
