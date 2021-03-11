@@ -24,10 +24,30 @@ standard_init = flax.linen.initializers.normal()
 RBM = partial(nk.models.RBM, bias_init=standard_init, visible_bias_init=standard_init)
 RBMModPhase = partial(nk.models.RBMModPhase, bias_init=standard_init)
 
-
-machines["model:(R->R)"] = RBM(alpha=1, dtype=float)
-machines["model:(R->C)"] = RBMModPhase(alpha=1, dtype=float)
-machines["model:(C->C)"] = RBM(alpha=1, dtype=complex)
+nk.models.RBM(
+    alpha=1,
+    dtype=complex,
+    kernel_init=nk.nn.initializers.normal(stddev=0.1),
+    bias_init=nk.nn.initializers.normal(stddev=0.1),
+)
+machines["model:(R->R)"] = RBM(
+    alpha=1,
+    dtype=float,
+    kernel_init=nk.nn.initializers.normal(stddev=0.1),
+    bias_init=nk.nn.initializers.normal(stddev=0.1),
+)
+machines["model:(R->C)"] = RBMModPhase(
+    alpha=1,
+    dtype=float,
+    kernel_init=nk.nn.initializers.normal(stddev=0.1),
+    bias_init=nk.nn.initializers.normal(stddev=0.1),
+)
+machines["model:(C->C)"] = RBM(
+    alpha=1,
+    dtype=complex,
+    kernel_init=nk.nn.initializers.normal(stddev=0.1),
+    bias_init=nk.nn.initializers.normal(stddev=0.1),
+)
 
 operators = {}
 

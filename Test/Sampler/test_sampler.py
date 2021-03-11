@@ -74,7 +74,12 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
 @pytest.fixture
 def rbm_and_weights(request):
     def build_rbm(hilb):
-        ma = nk.models.RBM(alpha=1, dtype=np.complex64)
+        ma = nk.models.RBM(
+            alpha=1,
+            dtype=complex,
+            kernel_init=nk.nn.initializers.normal(stddev=0.1),
+            bias_init=nk.nn.initializers.normal(stddev=0.1),
+        )
         # init network
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
 
