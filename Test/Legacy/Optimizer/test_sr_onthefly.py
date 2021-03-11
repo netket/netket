@@ -137,14 +137,6 @@ def test_jvp():
     assert tree_allclose(actual, expected)
 
 
-def test_Odagger_O_v():
-    actual = Odagger_O_v(samples, params, v, f)
-    expected = reassemble_complex(
-        (ok_real.conjugate().transpose() @ ok_real @ v_real_flat).real / n_samp
-    )
-    assert tree_allclose(actual, expected)
-
-
 def test_Odagger_DeltaO_v():
     actual = Odagger_DeltaO_v(samples, params, v, f)
     expected = reassemble_complex(S_real @ v_real_flat)
