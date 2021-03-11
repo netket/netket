@@ -320,6 +320,17 @@ class Ising(SpecialHamiltonian):
             self._J,
         )
 
+    def numba_get_conn_flattened_fun(self):
+        _edges = self._edges
+        _h = self._h
+        _J = self._J
+        fun = self._flattened_kernel
+
+        def gccf_fun(x, sections):
+            return fun(x, sections, _edges, _h, _J)
+
+        return jit(nopython=True)(gccf_fun)
+
     def __repr__(self):
         return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
 

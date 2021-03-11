@@ -26,6 +26,7 @@ import math
 from typing import Any
 
 from netket.operator import AbstractOperator
+from netket.jax import numba_to_jax, njit4jax
 
 from ..metropolis import MetropolisRule
 
@@ -53,17 +54,33 @@ class HamiltonianRule(MetropolisRule):
             )
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
+
+        hilbert = sampler.hilbert
+        get_conn_flattened = rule.Ô.numba_get_conn_flattened_fun()
+        n_conn_from_sections = rule.Ô._n_conn_from_sections
+
+        @njit4jax(
+            (
+                jax.abstract_arrays.ShapedArray(σ.shape, σ.dtype),
+                jax.abstract_arrays.ShapedArray((σ.shape[0],), σ.dtype),
+            )
+        )
         def _transition(args):
             # unpack arguments
-            σ, rand_vec = args
-            # rgen = np.random.default_rng(key)
+            v_proposed, log_prob_corr, v, rand_vec = args
 
-            sections = np.empty(σ.shape[0], dtype=np.int32)
-            σp, _ = rule.Ô.get_conn_flattened(σ, sections)
+            log_prob_corr.fill(0)
+            sections = np.empty(v.shape[0], dtype=np.int32)
+            vp, _ = get_conn_flattened(v, sections)
 
-            σ_proposed, log_prob_corr = _choose(σp, sections, rand_vec)
+            _choose(vp, sections, rand_vec, v_proposed, log_prob_corr)
 
-            return σ_proposed, log_prob_corr - np.log(sections)
+            # TODO: n_conn(v_proposed, sections) implemented below, but
+            # might be slower than fast implementations like ising
+            get_conn_flattened(v_proposed, sections)
+            n_conn_from_sections(sections)
+
+            log_prob_corr -= np.log(sections)
 
         # ideally we would pass the key to python/numba in _choose, initialise a
         # np.random.default_rng(key) and use it to generatee random uniform integers.
@@ -72,14 +89,7 @@ class HamiltonianRule(MetropolisRule):
         # to python
         rand_vec = jax.random.uniform(key, shape=(σ.shape[0],))
 
-        σp, log_prob_correction = hcb.call(
-            _transition,
-            (σ, rand_vec),
-            result_shape=(
-                jax.ShapeDtypeStruct(σ.shape, σ.dtype),
-                jax.ShapeDtypeStruct((σ.shape[0],), σ.dtype),
-            ),
-        )
+        σp, log_prob_correction = _transition(σ, rand_vec)
 
         return σp, log_prob_correction
 
@@ -88,15 +98,10 @@ class HamiltonianRule(MetropolisRule):
 
 
 @jit(nopython=True)
-def _choose(σp, sections, rand_vec):
-    out_σ = np.empty((len(sections), σp.shape[-1]), dtype=σp.dtype)
-    out_log_prob_corr = np.zeros(sections.shape)
-
+def _choose(vp, sections, rand_vec, out, w):
     low_range = 0
     for i, s in enumerate(sections):
-        n_rand = int(rand_vec[i] * s)
-        out_σ[i] = σp[n_rand]
-        out_log_prob_corr[i] = math.log(s - low_range)
+        n_rand = low_range + int(np.floor(rand_vec[i] * (s - low_range)))
+        out[i] = vp[n_rand]
+        w[i] = math.log(s - low_range)
         low_range = s
-
-    return out_σ, out_log_prob_corr

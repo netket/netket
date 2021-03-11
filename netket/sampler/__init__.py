@@ -29,6 +29,8 @@ from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,
     MetropolisExchange,
+    MetropolisRule,
+    MetropolisSamplerState,
     #    MetropolisHamiltonian,
 )
 
