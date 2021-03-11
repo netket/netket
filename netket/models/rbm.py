@@ -144,7 +144,7 @@ class RBMSymm_Scan(nn.Module):
         visible_bias_init: initializer function for the visible_bias.
     """
 
-    permutations: Any
+    permutations: Callable
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
@@ -156,7 +156,8 @@ class RBMSymm_Scan(nn.Module):
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
 
     def setup(self):
-        self._n_symm, self._n_sites = self.permutations.A.shape
+        self.perms = self.permutations()
+        self._n_symm, self._n_sites = self.perms.shape
         self._alpha_symm = int(self.alpha * self._n_sites / self._n_symm)
         self._n_hidden = int(self.alpha * self._n_symm)
 
@@ -197,7 +198,7 @@ class RBMSymm_Scan(nn.Module):
         y_out, _ = jax.lax.scan(
             f,
             jnp.zeros(shape=x_in.shape[:-1], dtype=self.dtype),
-            self.permutations.A,
+            self.perms,
         )
 
         if self.use_visible_bias:
@@ -227,7 +228,7 @@ class RBMSymm_Expand(nn.Module):
         visible_bias_init: initializer function for the visible_bias.
     """
 
-    permutations: Any
+    permutations: Callable
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
@@ -239,7 +240,8 @@ class RBMSymm_Expand(nn.Module):
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
 
     def setup(self):
-        self._n_symm, self._n_sites = self.permutations.A.shape
+        self.perms = self.permutations()
+        self._n_symm, self._n_sites = self.perms.shape
 
         self._alpha_symm = int(self.alpha * self._n_sites / self._n_symm)
         self._n_hidden = int(self.alpha * self._n_symm)
@@ -254,7 +256,7 @@ class RBMSymm_Expand(nn.Module):
         return jnp.array(
             [
                 jnp.concatenate([Wsymm[perm, j] for j in range(self._alpha_symm)])
-                for perm in self.permutations.A
+                for perm in self.perms
             ]
         )
 
@@ -297,17 +299,6 @@ class RBMSymm_Expand(nn.Module):
         return y_out
 
 
-import dataclasses
-
-
-@dataclasses.dataclass
-class FakeHashArray:
-    A: jnp.ndarray
-
-    def __hash__(self):
-        return 0
-
-
 def RBMSymm(permutations, implementation="expand", *args, **kwargs):
     RBMSymm_impls = {
         "scan": RBMSymm_Scan,
@@ -329,4 +320,4 @@ def RBMSymm(permutations, implementation="expand", *args, **kwargs):
             "permutations must be an array of shape (#permutations, #sites)."
         )
 
-    return RBMSymm_impls[implementation](FakeHashArray(permutations), *args, **kwargs)
+    return RBMSymm_impls[implementation](lambda: permutations, *args, **kwargs)
