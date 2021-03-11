@@ -164,6 +164,45 @@ def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
 
 
+def Odagger_O_v(samples, params, v, forward_fn, dtype):
+    r"""
+    compute  \langle O^\dagger O \rangle v
+    """
+    v_tilde = O_jvp(samples, params, v, forward_fn)
+    v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
+    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype)
+
+
+def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
+
+    r"""
+    compute \langle \Delta O^\dagger \Delta O \rangle v
+
+    where \Delta O = O - \langle O \rangle
+
+    optional: pass jvp_fun to be reused
+    """
+
+    # determine the output type of the forward pass, because
+    # we need to cast the vectors in vjp to that type
+    dtype = jax.eval_shape(forward_fn, params, samples).dtype
+
+    omean = O_mean(
+        samples,
+        params,
+        forward_fn,
+        dtype=dtype,
+        return_vjp_fun=False,
+        vjp_fun=vjp_fun,
+        allreduce=True,
+    )
+
+    def forward_fn_centered(params, x):
+        return forward_fn(params, x) - tree_dot(params, omean)
+
+    return Odagger_O_v(samples, params, v, forward_fn_centered, dtype)
+
+
 # TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples
 # and optionally return vjp_fun so that it can be reused in subsequent calls
 # TODO block the computations (in the same way as done with MPI) if memory consumtion becomes an issue
