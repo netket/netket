@@ -21,7 +21,7 @@ from functools import partial
 
 import flax
 from flax.linen.module import Module, compact
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros
+from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
 
 from jax import lax
@@ -35,7 +35,7 @@ Dtype = Any  # this could be a real type?
 Array = Any
 
 
-default_kernel_init = lecun_normal()
+default_kernel_init = normal()
 # complex_kernel_init = lecun_normal()
 
 
