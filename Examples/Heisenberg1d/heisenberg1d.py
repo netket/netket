@@ -38,7 +38,7 @@ ma = nk.models.RBMSymm(
 )
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=16)
 
 # Optimizer
 op = nk.optim.Sgd(learning_rate=0.01)
