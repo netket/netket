@@ -56,9 +56,9 @@ class RBM(nn.Module):
     use_bias: bool = True
     use_visible_bias: bool = True
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
 
     @nn.compact
     def __call__(self, input):
