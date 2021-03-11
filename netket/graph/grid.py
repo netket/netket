@@ -121,7 +121,7 @@ class Grid(NetworkX):
             pbc = self.pbc
         return f"Grid(length={self.length}, pbc={pbc})"
 
-    def periodic_translations(self):
+    def periodic_translations(self) -> List[List[int]]:
         """
         Returns all permutations of lattice sites that correspond to translations
         along the grid directions with periodic boundary conditions.
