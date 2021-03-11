@@ -54,6 +54,10 @@ class Stats:
         jsd["TauCorr"] = self.tau_corr.item()
         return jsd
 
+    def to_compound(self):
+        return "Mean", self.to_dict()
+
+    # Remove this method once we remove legacy.
     def to_json(self):
         jsd = {}
         jsd["Mean"] = float(self.mean.real)
