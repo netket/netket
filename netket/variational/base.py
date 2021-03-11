@@ -8,6 +8,7 @@ from flax.core.frozen_dict import FrozenDict
 
 import jax.numpy as jnp
 
+import netket.jax as nkjax
 from netket.operator import AbstractOperator, LocalLiouvillian
 from netket.hilbert import AbstractHilbert, DoubledHilbert
 from netket.stats import Stats
@@ -45,6 +46,11 @@ class VariationalState(abc.ABC):
     def parameters(self) -> PyTree:
         r"""The pytree of the parameters of the model."""
         return self._parameters
+
+    @property
+    def n_parameters(self) -> int:
+        r"""The total number of parameters in the model."""
+        return nkjax.tree_size(self.parameters)
 
     @parameters.setter
     def parameters(self, pars: PyTree):
