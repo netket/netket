@@ -2,10 +2,12 @@ from numpy.typing import DTypeLike
 
 from netket.hilbert import AbstractHilbert
 
+from ._local_operator import LocalOperator as _LocalOperator
+
 
 def destroy(
     hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> "LocalOperator":
+) -> _LocalOperator:
     """
     Builds the boson destruction operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -21,18 +23,17 @@ def destroy(
         The resulting Local Operator
     """
     import numpy as np
-    from ._local_operator import LocalOperator
 
     N = hilbert.size_at_index(site)
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, 1)
-    return LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
 def create(
     hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> "LocalOperator":
+) -> _LocalOperator:
     """
     Builds the boson creation operator acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -48,18 +49,17 @@ def create(
         The resulting Local Operator
     """
     import numpy as np
-    from ._local_operator import LocalOperator
 
     N = hilbert.size_at_index(site)
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, -1)
-    return LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
 def number(
     hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> "LocalOperator":
+) -> _LocalOperator:
     """
     Builds the number operator acting on the `site`-th of the
     Hilbert space `hilbert`.
@@ -75,18 +75,17 @@ def number(
         The resulting Local Operator
     """
     import numpy as np
-    from ._local_operator import LocalOperator
 
     N = hilbert.size_at_index(site)
 
     D = np.array([m for m in np.arange(0, N)])
     mat = np.diag(D, 0)
-    return LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
 def proj(
     hilbert: AbstractHilbert, site: int, n: int, dtype: DTypeLike = float
-) -> "LocalOperator":
+) -> _LocalOperator:
     """
     Builds the projector operator acting on the `site`-th of the
     Hilbert space `hilbert` and collapsing on the state with `n` bosons.
@@ -103,7 +102,6 @@ def proj(
         the resulting operator
     """
     import numpy as np
-    from ._local_operator import LocalOperator
 
     N = hilbert.size_at_index(site)
 
@@ -113,7 +111,7 @@ def proj(
     D = np.array([0 for m in np.arange(0, N)])
     D[n] = 1
     mat = np.diag(D, 0)
-    return LocalOperator(hilbert, mat, [site], dtype=dtype)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
 # clean up the module
