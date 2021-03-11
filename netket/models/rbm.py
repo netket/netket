@@ -24,7 +24,7 @@ from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
 
 from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros
+from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
 
 
 PRNGKey = Any
@@ -32,7 +32,7 @@ Shape = Tuple[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
-default_kernel_init = lecun_normal()
+default_kernel_init = normal()
 
 
 class RBM(nn.Module):
