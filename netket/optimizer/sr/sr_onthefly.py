@@ -41,6 +41,7 @@ class SR_otf(SR):
     atol: float = 0.0
     maxiter: int = None
     M: Optional[Union[Callable, Ndarray]] = None
+    centered: bool = struct.field(pytree_node=False, default=True)
 
     def create(self, *args, **kwargs):
         return LazySMatrix(*args, **kwargs)
@@ -101,6 +102,7 @@ def apply_onthefly(S, grad, x0):
         params=S.params,
         samples=samples,
         diag_shift=S.sr.diag_shift,
+        centered=S.sr.centered,
     )
     solve_fun = S.sr.solve_fun()
     out, _ = solve_fun(_mat_vec, grad, x0=x0)
