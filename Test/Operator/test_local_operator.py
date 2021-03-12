@@ -285,7 +285,7 @@ def test_complicated_mul():
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
-    ha = nk.operator.Ising(hi, graph=g, g=0.4)
+    ha = nk.operator.Ising(hi, graph=g, h=0.4)
 
     assert np.allclose(ha.to_dense(), ha.to_local_operator().to_dense())
     assert np.allclose(ha.to_dense() @ ha.to_dense(), (ha @ ha).to_dense())
