@@ -206,13 +206,16 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
 # TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples
 # and optionally return vjp_fun so that it can be reused in subsequent calls
 # TODO block the computations (in the same way as done with MPI) if memory consumtion becomes an issue
-def mat_vec(v, forward_fn, params, samples, diag_shift):
+def mat_vec(v, forward_fn, params, samples, diag_shift, centered=False):
     r"""
     compute (S + diag_shift) v
 
-    where the elements of S are given by
-    S_kl = \langle O_k^\dagger \Delta O_l \rangle
-    \Delta O_k = O_k - \langle O_k \rangle
+    where the elements of S are given by one of the following equivalent formulations:
+
+    if centered=False (default): S_kl = \langle O_k^\dagger \Delta O_l \rangle
+    if centered=True : S_kl = \langle \Delta O_k^\dagger \Delta O_l \rangle
+
+    where \Delta O_k = O_k - \langle O_k \rangle
     and O_k (operator) is derivative of the log wavefunction w.r.t parameter k
     The expectation values are calculated as mean over the samples
 
@@ -223,7 +226,11 @@ def mat_vec(v, forward_fn, params, samples, diag_shift):
     diag_shift: a scalar diagonal shift
     """
 
-    res = Odagger_DeltaO_v(samples, params, v, forward_fn)
+    if centered:
+        f = DeltaOdagger_DeltaO_v
+    else:
+        f = Odagger_DeltaO_v
+    res = f(samples, params, v, forward_fn)
     # add diagonal shift:
     res = tree_axpy(diag_shift, v, res)  # res += diag_shift * v
     return res
