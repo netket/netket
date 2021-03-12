@@ -19,6 +19,10 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 del config
 
+from . import utils
+from .utils import config
+
+
 __all__ = [
     "exact",
     "graph",
@@ -48,7 +52,6 @@ from . import (
     jax,
     nn,
     stats,
-    utils,
     variational,
 )
 

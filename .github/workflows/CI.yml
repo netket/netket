@@ -64,7 +64,9 @@ jobs:
           mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test/MPI
 
       - name: Netket tests
-        run : pytest --cov=netket --cov-append
+        run : |
+          export NETKET_EXPERIMENTAL=1
+          pytest --cov=netket --cov-append
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1

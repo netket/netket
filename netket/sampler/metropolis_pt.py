@@ -26,6 +26,7 @@ from jax.experimental import host_callback as hcb
 from flax import struct
 
 from netket.hilbert import AbstractHilbert
+from netket import config
 
 from .base import Sampler, SamplerState
 from .metropolis import MetropolisSamplerState, MetropolisSampler, MetropolisRule
@@ -115,6 +116,18 @@ class MetropolisPtSampler(MetropolisSampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the statees sampled (default = np.float32).
         """
+
+        if not config.FLAGS["NETKET_EXPERIMENTAL"]:
+            raise RuntimeError(
+                """
+                               Parallel Tempering samplers are under development and
+                               are known not to work.
+                               
+                               If you want to debug it, set the environment variable
+                               NETKET_EXPERIMENTAL=1
+                               """
+            )
+
         object.__setattr__(self, "n_replicas", n_replicas)
 
         super().__init__(hilbert, rule, **kwargs)

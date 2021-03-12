@@ -8,6 +8,7 @@ from scipy.stats import power_divergence, combine_pvalues, chisquare
 import jax
 from jax import numpy as jnp
 
+nk.config.update("NETKET_EXPERIMENTAL", True)
 np.random.seed(1234)
 
 WEIGHT_SEED = 1234

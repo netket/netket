@@ -16,6 +16,8 @@ from contextlib import redirect_stderr
 import tempfile
 import re
 
+nk.config.update("NETKET_EXPERIMENTAL", True)
+
 SEED = 2148364
 
 machines = {}

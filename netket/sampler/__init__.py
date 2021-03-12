@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket import config as _config
+
 from .base import (
     Sampler,
     SamplerState,

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .config_flags import config
+
 from .jax import jit_if_singleproc, get_afun_if_module
 from .mpi import (
     mpi_available,

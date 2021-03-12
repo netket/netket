@@ -30,6 +30,7 @@ from flax import serialization
 import netket
 from netket import jax as nkjax
 from netket import utils
+from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
@@ -615,6 +616,19 @@ def grad_expect_operator_kernel(
     σp: jnp.ndarray,
     mels: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree, Stats]:
+
+    if not config.FLAGS["NETKET_EXPERIMENTAL"]:
+        raise RuntimeError(
+            """
+                           Computing the gradient of a squared or non hermitian 
+                           operator is an experimental feature under development 
+                           and is known not to return wrong values sometimes.
+
+                           If you want to debug it, set the environment variable
+                           NETKET_EXPERIMENTAL=1
+                           """
+        )
+
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
