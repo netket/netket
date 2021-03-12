@@ -41,7 +41,7 @@ class SR_otf(SR):
     atol: float = 0.0
     maxiter: int = None
     M: Optional[Union[Callable, Ndarray]] = None
-    centered: bool = struct.field(pytree_node=False, default=False)
+    centered: bool = struct.field(pytree_node=False, default=True)
 
     def create(self, *args, **kwargs):
         return LazySMatrix(*args, **kwargs)
