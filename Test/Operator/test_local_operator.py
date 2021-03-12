@@ -279,6 +279,18 @@ def test_mul_matmul():
         op @= 2.0
 
 
+def test_complicated_mul():
+    # If this test fails probably we are tripping the reordering
+    L = 5  # 10
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+
+    ha = nk.operator.Ising(hi, graph=g, g=0.4)
+
+    assert np.allclose(ha.to_dense(), ha.to_local_operator().to_dense())
+    assert np.allclose(ha.to_dense() @ ha.to_dense(), (ha @ ha).to_dense())
+
+
 def test_truediv():
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
 

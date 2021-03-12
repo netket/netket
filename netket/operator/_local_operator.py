@@ -111,18 +111,36 @@ def _reorder_matrix(hi, mat, acting_on):
     if np.all(acting_on_sorted == acting_on):
         return mat, acting_on
 
-    # could write custom binary <-> int logic instead of using Fock...
-    hi_subspace = Fock(hi.shape[acting_on[0]] - 1)
-    for site in acting_on[1:]:
-        hi_subspace = hi_subspace * Fock(hi.shape[site] - 1)
+    acting_on_sorted_ids = np.argsort(acting_on)
 
+    # could write custom binary <-> int logic instead of using Fock...
+    # Since i need to work with bit-strings (where instead of bits i
+    # have integers, in order to support arbitrary size spaces) this
+    # is exactly what hilbert.to_number() and viceversa do.
+
+    # target ordering binary representation
+    hi_subspace = Fock(hi.shape[acting_on_sorted[0]] - 1)
+    for site in acting_on_sorted[1:]:
+        hi_subspace = Fock(hi.shape[site] - 1) * hi_subspace
+
+    # find how to map target ordering back to unordered
+    acting_on_unsorted_ids = np.zeros(len(acting_on), dtype=np.intp)
+    for (i, site) in enumerate(acting_on):
+        acting_on_unsorted_ids[i] = np.argmax(site == acting_on_sorted)
+
+    # now it is valid that
+    # acting_on_sorted == acting_on[acting_on_unsorted_ids]
+
+    # generate n-bit strings in the target ordering
     v = hi_subspace.all_states()
 
-    acting_on_sorted_ids = np.argsort(acting_on)
-    v_sorted = v[:, acting_on_sorted_ids]
-    n_sorted = hi_subspace.states_to_numbers(v_sorted)
+    # convert them to origin (unordered) ordering
+    v_unsorted = v[:, acting_on_unsorted_ids]
+    # convert the unordered bit-strings to numbers in the target space.
+    n_unsorted = hi_subspace.states_to_numbers(v_unsorted)
 
-    mat_sorted = mat[n_sorted, :][:, n_sorted]
+    # reorder the matrix
+    mat_sorted = mat[n_unsorted, :][:, n_unsorted]
 
     return mat_sorted, acting_on_sorted
 
