@@ -9,3 +9,4 @@ recommonmark>=0.7
 nbsphinx>=0.8
 -e .
 jaxlib>=0.1.59
+sphinx_panels>=0.5.2
