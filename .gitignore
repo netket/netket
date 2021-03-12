@@ -1,3 +1,6 @@
+#
+docs/tutorials/*.ipynb
+
 # Compiled source #
 ###################
 *.com

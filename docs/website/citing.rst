@@ -1,7 +1,16 @@
-Citing NetKet
--------------
+.. container:: jumbotron jumbotron-fluid landing-page-box landing-page-box-logo
+
+    .. rst-class:: h1 
+
+      **Citing Netket**
+
+    .. rst-class:: h2
+
+      Sustain NetKet's developers
+
 
 If you find the NetKet project useful for your research, please consider citing `our paper <https://www.sciencedirect.com/science/article/pii/S2352711019300974>`_ using this ready-made BibTeX entry
+
 
 
 .. code-block:: bibtex

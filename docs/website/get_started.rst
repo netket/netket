@@ -1,42 +1,39 @@
 .. title:: Get Started 
 
-.. raw:: html
+.. container:: jumbotron jumbotron-fluid landing-page-box landing-page-box-logo
 
-    <br>
-    <div class="container">
+    .. rst-class:: h1 
 
-    <div class="row" >
-      <div class="col-sm-8 col-sm-offset-2">
-        <div class="jumbotron">
-        <h2 class="text-center">Quick Start</h2>
+      **Get Started!**
 
-        <div class="text-center">
-        <p class="text-muted"> in four steps</p>
-        </div>
-        </div>
-        </div>
-      </div>
+    .. rst-class:: h2 
+
+      In few easy steps
 
 
-    <div class="row" >
-    <div class="col-sm-8 col-sm-offset-2">
-      <ol class="list-group">
-         <libullet class="list-group-item" markdown="span">Make sure you satisfy all <a href="requirements.html">requirements</a>: a working <code>MPI</code> compiler, and a <code>Python</code> interpreter.</libullet>
-         <libullet class="list-group-item" markdown="span"><code>pip install netket</code></libullet>
-         <libullet class="list-group-item" markdown="span">Explore our <a href="tutorials.html">Tutorials</a>.</libullet>
-         <libullet class="list-group-item" markdown="span">Check out our <a href="https://github.com/netket/netket/tree/master/Examples">example codes</a> on GitHub</libullet>
-      </ol>
-    </div>
-    </div>
+.. container:: inner-content
 
-    <div class="row" >
-    <div class="col-sm-8 col-sm-offset-2">
-    <div class="alert alert-info">
-      <h3 class="text-center">Remarks</h3>
-      <h5 class="text-center" markdown="span"> We are not yet supporting Conda installs</h5>
-      <h5 class="text-center" markdown="span">Windows Os is not supported</h5>
-    </div>
-    </div>
-    </div>
+    .. dropdown:: Make sure you have Python 3.7 or higher installed on Mac or Linux
 
-    </div>
+        If Python 3.7 is not available on your computer, don't despair! 
+        You can use `pyenv <https://github.com/pyenv/pyenv>`_ (the easiest way to install it is with the `pyenv installer <https://github.com/pyenv/pyenv-installer>`_) to install any Python version, or you can use Anaconda, even though the latter is not recomended if you plan on using MPI.
+
+        Windows is not natively supported because Jax does not yet support it. However, if you use WSL (Windows Subsystem for Linux) NetKet will run smoothly. 
+
+    .. dropdown:: If you plan to use MPI, make sure you have an up to date version of the `mpicc` compilers available on your path.
+
+        When using MPI, we recommend not to use Anaconda unless it's for small experimentation on a laptop. This is due to a dependency of netket, mpi4jax. You can read more about the limitations on the `mpi4jax documentation <https://mpi4jax.readthedocs.io/en/latest/installation.html>`_. 
+
+    .. dropdown:: :code:`pip install --pre netket`, or :code:`conda install netket`. 
+       Choose between pip or conda. We recommend pip.
+        
+       Be mindfull that this will install the latest 3.0 beta version. If you prefer to keep using the old stable versions, remove the :code:`--pre` directive.  Eventually we will release the stable 3.0, but we need your help in order to test it!
+
+       If you want to use MPI, use :code:`pip install --pre netket[mpi]`.
+
+       If you want to develop netket, extra development dependencies are installed by running :code:`pip install --pre netket[all,dev]`
+
+    .. dropdown:: Explore our `Tutorials <../tutorials/tutorials.html>`_ and check out our `Examples <https://github.com/netket/netket/tree/master/Examples>`_ 
+
+       Tutorials are commented python notebooks. Examples are sample python files that can be run.
+       If you want to experiment with mpi, try running some examples with :code:`mpirun -np2 python path/to/example.py`

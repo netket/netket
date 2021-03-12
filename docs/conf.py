@@ -25,6 +25,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "sphinx_panels",
     "nbsphinx",
     "recommonmark",
 ]
@@ -35,6 +36,7 @@ autodoc_inherit_docstrings = True
 autosummary_generate = True
 napoleon_use_param = True
 
+panels_add_bootstrap_css = False
 
 master_doc = "index"
 

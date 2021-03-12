@@ -16,19 +16,25 @@ To install, run one of the two following commands
 
 .. code-block:: 
 
-   pip install git+https://github.com/netket/netket
-   pip install git+https://github.com/netket/netket#egg=netket[mpi]
+   pip install --pre netket
+   pip install --pre netket[mpi]
 
 The latter enables MPI-related functionalities.
 Additionally, if you don't have it installed (yet) you must install `libjax`
 with one of the following commands.
 
+The flag :code:`--pre` tells pip to also install pre-release versions. As NetKet 3 is in beta, this is necessary.
+
+If you want to run NetKet on a GPU, you must install a GPU-compatible :code:`jaxlib`. For that, we advise you to
+look at the instructions on `jax repository <https://github.com/google/jax#pip-installation>`_, however at the time
+of writing, this means you should run the following command: 
+
 .. code-block:: 
 
-    pip install -U libjax
-    pip install -U jax jaxlib==0.1.59+cuda110 -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install -U jax jaxlib==X.XX.XX+cudaYYY -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
-The latter enables nvidia-gpu support.
+where X.XX.XX should be a recent jaxlib version and YYY the cuda version installed on your computer.
+At the time of writing, Netket was tested with X=0.1.62 and cuda=111
 
 To query the installed `netket` version you can run the following command in your shell
 

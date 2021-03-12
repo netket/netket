@@ -37,7 +37,6 @@ Hilbert
    netket.hilbert.AbstractHilbert
    netket.hilbert.Qubit
    netket.hilbert.Spin
-   netket.hilbert.Boson
    netket.hilbert.CustomHilbert
    netket.hilbert.DoubledHilbert
 
