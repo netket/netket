@@ -56,7 +56,7 @@ class HamiltonianRule(MetropolisRule):
     def transition(rule, sampler, machine, parameters, state, key, σ):
 
         hilbert = sampler.hilbert
-        get_conn_flattened = rule.Ô.numba_get_conn_flattened_fun()
+        get_conn_flattened = rule.Ô._get_conn_flattened_closure()
         n_conn_from_sections = rule.Ô._n_conn_from_sections
 
         @njit4jax(

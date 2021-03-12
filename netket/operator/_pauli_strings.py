@@ -146,8 +146,8 @@ class PauliStrings(AbstractOperator):
     @jit(nopython=True)
     def _flattened_kernel(
         x,
-        x_prime,
         sections,
+        x_prime,
         mels,
         sites,
         ns,
@@ -209,8 +209,8 @@ class PauliStrings(AbstractOperator):
 
         return self._flattened_kernel(
             x,
-            self._x_prime_max,
             sections,
+            self._x_prime_max,
             self._mels_max,
             self._sites,
             self._ns,
@@ -221,3 +221,34 @@ class PauliStrings(AbstractOperator):
             self._cutoff,
             self._n_operators,
         )
+
+    def _get_conn_flattened_closure(self):
+        _x_prime_max = self._x_prime_max
+        _mels_max = self._mels_max
+        _sites = self._sites
+        _ns = self._ns
+        _n_op = self._n_op
+        _weights = self._weights
+        _nz_check = self._nz_check
+        _z_check = self._z_check
+        _cutoff = self._cutoff
+        _n_operators = self._n_operators
+        fun = self._get_conn_flattened_kernel
+
+        def gccf_fun(x, sections):
+            return fun(
+                x,
+                sections,
+                _x_prime_max,
+                _mels_max,
+                _sites,
+                _ns,
+                _n_op,
+                _weights,
+                _nz_check,
+                _z_check,
+                _cutoff,
+                _n_operators,
+            )
+
+        return jit(nopython=True)(gccf_fun)

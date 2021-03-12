@@ -784,7 +784,7 @@ class LocalOperator(AbstractOperator):
             pad,
         )
 
-    def numba_get_conn_flattened_fun(self):
+    def _get_conn_flattened_closure(self):
         _local_states = self._local_states
         _basis = self._basis
         _constant = self._constant
