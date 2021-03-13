@@ -88,6 +88,7 @@ def O_jvp(x, params, v, forward_fn):
 def O_vjp(
     x, params, v, forward_fn, *, return_vjp_fun=False, vjp_fun=None, allreduce=True
 ):
+
     if vjp_fun is None:
         _, vjp_fun = jax.vjp(forward_fn, params, x)
     res, _ = vjp_fun(v)
@@ -101,37 +102,45 @@ def O_vjp(
         return res
 
 
-def O_mean(samples, params, forward_fn, *, dtype, **kwargs):
+def O_mean(samples, params, forward_fn, **kwargs):
     r"""
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
     """
+
+    # determine the output type of the forward pass, because
+    # we need to cast the vectors in vjp to that type
+    dtype = jax.eval_shape(forward_fn, params, samples).dtype
+
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
 
     return O_vjp(samples, params, v, forward_fn, **kwargs)
 
 
-def OH_w(samples, params, w, forward_fn, *, dtype, **kwargs):
+def OH_w(samples, params, w, forward_fn, *, cast=False, **kwargs):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
     """
+
+    if cast:
+        # determine the output type of the forward pass, because
+        # we need to cast the vectors in vjp to that type
+        dtype = jax.eval_shape(forward_fn, params, samples).dtype
+        w = w.astype(dtype)
+
     # O^H w = (w^H O)^H
     # The transposition of the 1D arrays is omitted in the implementation:
     # (w^H O)^H -> (w* O)*
 
     # TODO The allreduce in O_vjp could be deferred until after the tree_cast
     # where the amount of data to be transferred would potentially be smaller
-    w̄ = jnp.asarray(w.conjugate(), dtype=dtype)
+    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn, **kwargs))
 
-    res = tree_conj(O_vjp(samples, params, w̄, forward_fn, **kwargs))
-    #
     return tree_cast(res, params)
 
 
-def Odagger_O_v(
-    samples, params, v, forward_fn, *, dtype=None, vjp_fun=None, center=False
-):
+def Odagger_O_v(samples, params, v, forward_fn, *, vjp_fun=None, center=False):
     r"""
     if center=False (default):
         compute \langle O^\dagger O \rangle v
@@ -143,20 +152,16 @@ def Odagger_O_v(
     optional: pass vjp_fun to be reused
     """
 
-    if dtype is None:
-        # determine the output type of the forward pass, because
-        # we need to cast the vectors in vjp to that type
-        dtype = jax.eval_shape(forward_fn, params, samples).dtype
-
-    # v_tilde is an array of size n_samples; each MPI rank has its own slice
-    v_tilde = O_jvp(samples, params, v, forward_fn)
-    # v_tilde /= n_samples (elementwise):
-    v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
+    # w is an array of size n_samples; each MPI rank has its own slice
+    w = O_jvp(samples, params, v, forward_fn)
+    # w /= n_samples (elementwise):
+    w = w * (1.0 / (samples.shape[0] * n_nodes))
 
     if center:
-        v_tilde = subtract_mean(v_tilde)  # w/ MPI
+        w = subtract_mean(w)  # w/ MPI
 
-    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
+    # TODO cast=True might be needed when the input and output are of different precision
+    return OH_w(samples, params, w, forward_fn, vjp_fun=vjp_fun, cast=False)
 
 
 Odagger_DeltaO_v = partial(Odagger_O_v, center=True)
@@ -172,15 +177,10 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     optional: pass jvp_fun to be reused
     """
 
-    # determine the output type of the forward pass, because
-    # we need to cast the vectors in vjp to that type
-    dtype = jax.eval_shape(forward_fn, params, samples).dtype
-
     omean = O_mean(
         samples,
         params,
         forward_fn,
-        dtype=dtype,
         return_vjp_fun=False,
         vjp_fun=vjp_fun,
         allreduce=True,
@@ -189,7 +189,7 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     def forward_fn_centered(params, x):
         return forward_fn(params, x) - tree_dot(params, omean)
 
-    return Odagger_O_v(samples, params, v, forward_fn_centered, dtype=dtype)
+    return Odagger_O_v(samples, params, v, forward_fn_centered)
 
 
 # TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples

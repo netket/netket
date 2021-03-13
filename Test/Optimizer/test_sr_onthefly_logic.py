@@ -101,7 +101,7 @@ class Example:
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
 
         self.samples = jax.random.normal(k1, (n_samp, 2))
-        self.v_tilde = jax.random.normal(k2, (n_samp,), self.dtype).astype(
+        self.w = jax.random.normal(k2, (n_samp,), self.dtype).astype(
             self.dtype
         )  # TODO remove astype once its fixed in jax
         self.params = tree_random_normal_like(k3, self.target)
@@ -149,9 +149,9 @@ def test_reassemble_complex(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_vjp(e):
-    actual = _sr_onthefly_logic.O_vjp(e.samples, e.params, e.v_tilde, e.f)
+    actual = _sr_onthefly_logic.O_vjp(e.samples, e.params, e.w, e.f)
     expected = _sr_onthefly_logic.tree_conj(
-        reassemble_complex((e.v_tilde @ e.ok_real).real, target=e.target)
+        reassemble_complex((e.w @ e.ok_real).real, target=e.target)
     )
     assert tree_allclose(actual, expected)
 
@@ -159,7 +159,7 @@ def test_vjp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_mean(e):
-    actual = _sr_onthefly_logic.O_mean(e.samples, e.params, e.f, dtype=e.dtype)
+    actual = _sr_onthefly_logic.O_mean(e.samples, e.params, e.f)
     expected = _sr_onthefly_logic.tree_conj(
         reassemble_complex(e.okmean_real.real, target=e.target)
     )
@@ -169,9 +169,9 @@ def test_mean(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_OH_w(e):
-    actual = _sr_onthefly_logic.OH_w(e.samples, e.params, e.v_tilde, e.f, dtype=e.dtype)
+    actual = _sr_onthefly_logic.OH_w(e.samples, e.params, e.w, e.f)
     expected = reassemble_complex(
-        (e.ok_real.conjugate().transpose() @ e.v_tilde).real, target=e.target
+        (e.ok_real.conjugate().transpose() @ e.w).real, target=e.target
     )
     assert tree_allclose(actual, expected)
 
@@ -187,9 +187,7 @@ def test_jvp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_Odagger_O_v(e):
-    actual = _sr_onthefly_logic.Odagger_O_v(
-        e.samples, e.params, e.v, e.f, dtype=e.dtype
-    )
+    actual = _sr_onthefly_logic.Odagger_O_v(e.samples, e.params, e.v, e.f)
     expected = reassemble_complex(
         (e.ok_real.conjugate().transpose() @ e.ok_real @ e.v_real_flat).real / e.n_samp,
         target=e.target,
