@@ -15,7 +15,7 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
-from netket.stats import sum_inplace, sum as _sum
+from netket.stats import sum_inplace, subtract_mean
 from netket.utils import n_nodes
 
 # Stochastic Reconfiguration with jvp and vjp
@@ -85,7 +85,9 @@ def O_jvp(x, params, v, forward_fn):
     return res
 
 
-def O_vjp(x, params, v, forward_fn, return_vjp_fun=False, vjp_fun=None, allreduce=True):
+def O_vjp(
+    x, params, v, forward_fn, *, return_vjp_fun=False, vjp_fun=None, allreduce=True
+):
     if vjp_fun is None:
         _, vjp_fun = jax.vjp(forward_fn, params, x)
     res, _ = vjp_fun(v)
@@ -127,45 +129,37 @@ def OH_w(samples, params, w, forward_fn, *, dtype, **kwargs):
     return tree_cast(res, params)
 
 
-def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
+def Odagger_O_v(
+    samples, params, v, forward_fn, *, dtype=None, vjp_fun=None, center=False
+):
     r"""
-    compute \langle O^\dagger \Delta O \rangle v
-    where \Delta O = O - \langle O \rangle
+    if center=False (default):
+        compute \langle O^\dagger O \rangle v
+
+    else (center=True):
+        compute \langle O^\dagger \Delta O \rangle v
+        where \Delta O = O - \langle O \rangle
 
     optional: pass vjp_fun to be reused
     """
 
-    # determine the output type of the forward pass, because
-    # we need to cast the vectors in vjp to that type
-    dtype = jax.eval_shape(forward_fn, params, samples).dtype
+    if dtype is None:
+        # determine the output type of the forward pass, because
+        # we need to cast the vectors in vjp to that type
+        dtype = jax.eval_shape(forward_fn, params, samples).dtype
 
     # v_tilde is an array of size n_samples; each MPI rank has its own slice
     v_tilde = O_jvp(samples, params, v, forward_fn)
     # v_tilde /= n_samples (elementwise):
     v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
 
-    v_tilde_mean = _sum(v_tilde) * (1.0 / (samples.shape[0] * n_nodes))  # is a scalar
+    if center:
+        v_tilde = subtract_mean(v_tilde)  # w/ MPI
 
-    # convert shape from () to (1,)
-    # this is needed for automatic broadcasting to work also when transposed with linear_transpose
-    v_tilde_mean = jnp.expand_dims(v_tilde_mean, 0)
-
-    v_tilde_centered = v_tilde - v_tilde_mean  # automatic broadcast
-
-    return OH_w(
-        samples, params, v_tilde_centered, forward_fn, dtype=dtype, vjp_fun=vjp_fun
-    )
-
-
-def Odagger_O_v(samples, params, v, forward_fn, dtype, vjp_fun=None):
-    r"""
-    compute  \langle O^\dagger O \rangle v
-
-    optional: pass vjp_fun to be reused
-    """
-    v_tilde = O_jvp(samples, params, v, forward_fn)
-    v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
     return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
+
+
+Odagger_DeltaO_v = partial(Odagger_O_v, center=True)
 
 
 def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
@@ -195,7 +189,7 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     def forward_fn_centered(params, x):
         return forward_fn(params, x) - tree_dot(params, omean)
 
-    return Odagger_O_v(samples, params, v, forward_fn_centered, dtype)
+    return Odagger_O_v(samples, params, v, forward_fn_centered, dtype=dtype)
 
 
 # TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples
