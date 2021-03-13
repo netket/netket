@@ -164,7 +164,9 @@ def test_reassemble_complex(e):
 def test_vjp(e):
     actual = _sr_onthefly_logic.O_vjp(e.samples, e.params, e.w, e.f)
     expected = _sr_onthefly_logic.tree_conj(
-        reassemble_complex((e.w @ e.ok_real).real, target=e.target)
+        reassemble_complex(
+            (e.w @ e.ok_real).real.astype(e.params_real_flat.dtype), target=e.target
+        )
     )
     assert tree_allclose(actual, expected)
 
@@ -184,7 +186,8 @@ def test_mean(e):
 def test_OH_w(e):
     actual = _sr_onthefly_logic.OH_w(e.samples, e.params, e.w, e.f)
     expected = reassemble_complex(
-        (e.ok_real.conjugate().transpose() @ e.w).real, target=e.target
+        (e.ok_real.conjugate().transpose() @ e.w).real.astype(e.params_real_flat.dtype),
+        target=e.target,
     )
     assert tree_allclose(actual, expected)
 
