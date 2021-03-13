@@ -1,4 +1,3 @@
-import numpy as np
 import jax.numpy as jnp
 from ._sum_inplace import sum_inplace as mpi_sum
 
@@ -21,10 +20,11 @@ def subtract_mean(x, axis=None):
         The resulting array.
 
     """
-    x_mean = mean(x, axis=axis)
-    x -= x_mean
 
-    return x
+    # here we keep the dims, since automatic broadcasting of a scalar (shape () ) to an array produces errors
+    # when used inside of a function which is transposed with jax.linear_transpose
+    x_mean = mean(x, axis=axis, keepdims=True)
+    return x - x_mean  # automatic broadcasting of x_mean
 
 
 def mean(a, axis=None, keepdims: bool = False):
