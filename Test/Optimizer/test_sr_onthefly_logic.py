@@ -70,16 +70,6 @@ def tree_random_normal_like(rng_key, target):
 
 
 class Example:
-    @staticmethod
-    @partial(jax.vmap, in_axes=(None, 0))
-    def f(params, x):
-        return (
-            params["a"][0] * x[0]
-            + params["b"] * x[1]
-            + params["c"] * (x[0] * x[1])
-            + jnp.sin(x[1] * params["a"][1])
-        )
-
     def f_real_flat(self, p, samples):
         return self.f(reassemble_complex(p, target=self.params), samples)
 
@@ -103,19 +93,31 @@ class Example:
     def n_samp(self):
         return len(self.samples)
 
-    def __init__(self, n_samp, seed):
+    def __init__(self, n_samp, seed, outdtype):
+
+        self.dtype = outdtype
+
         k = jax.random.PRNGKey(seed)
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
 
         self.samples = jax.random.normal(k1, (n_samp, 2))
+        self.v_tilde = jax.random.normal(k2, (n_samp,), self.dtype).astype(
+            self.dtype
+        )  # TODO remove astype once its fixed in jax
         self.params = tree_random_normal_like(k3, self.target)
         self.v = tree_random_normal_like(k4, self.target)
         self.grad = tree_random_normal_like(k5, self.target)
 
-        self.dtype = jax.eval_shape(self.f, self.params, self.samples).dtype
-        self.v_tilde = jax.random.normal(k2, (n_samp,), self.dtype).astype(
-            self.dtype
-        )  # TODO remove astype once its fixed in jax
+        @partial(jax.vmap, in_axes=(None, 0))
+        def f(params, x):
+            return (
+                params["a"][0] * x[0]
+                + params["b"] * x[1]
+                + params["c"] * (x[0] * x[1])
+                + jnp.sin(x[1] * params["a"][1])
+            ).astype(self.dtype)
+
+        self.f = f
 
         self.params_real_flat = tree_toreal_flat(self.params)
         self.grad_real_flat = tree_toreal_flat(self.grad)
@@ -129,14 +131,15 @@ class Example:
 
 
 @pytest.fixture
-def e(n_samp, seed=123):
-    return Example(n_samp, seed)
+def e(n_samp, outdtype, seed=123):
+    return Example(n_samp, seed, outdtype)
 
 
 # tests
 
 
 @pytest.mark.parametrize("n_samp", [0])
+@pytest.mark.parametrize("outdtype", [jnp.complex128])
 def test_reassemble_complex(e):
     assert tree_allclose(
         e.params, reassemble_complex(tree_toreal_flat(e.params), target=e.target)
@@ -144,6 +147,7 @@ def test_reassemble_complex(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_vjp(e):
     actual = _sr_onthefly_logic.O_vjp(e.samples, e.params, e.v_tilde, e.f)
     expected = _sr_onthefly_logic.tree_conj(
@@ -153,6 +157,7 @@ def test_vjp(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_mean(e):
     actual = _sr_onthefly_logic.O_mean(e.samples, e.params, e.f, dtype=e.dtype)
     expected = _sr_onthefly_logic.tree_conj(
@@ -162,6 +167,7 @@ def test_mean(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_OH_w(e):
     actual = _sr_onthefly_logic.OH_w(e.samples, e.params, e.v_tilde, e.f, dtype=e.dtype)
     expected = reassemble_complex(
@@ -171,6 +177,7 @@ def test_OH_w(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_jvp(e):
     actual = _sr_onthefly_logic.O_jvp(e.samples, e.params, e.v, e.f)
     expected = e.ok_real @ e.v_real_flat
@@ -178,6 +185,7 @@ def test_jvp(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_Odagger_O_v(e):
     actual = _sr_onthefly_logic.Odagger_O_v(
         e.samples, e.params, e.v, e.f, dtype=e.dtype
@@ -190,6 +198,7 @@ def test_Odagger_O_v(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_Odagger_DeltaO_v(e):
     actual = _sr_onthefly_logic.Odagger_DeltaO_v(e.samples, e.params, e.v, e.f)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
@@ -197,6 +206,7 @@ def test_Odagger_DeltaO_v(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_DeltaOdagger_DeltaO_v(e):
     actual = _sr_onthefly_logic.DeltaOdagger_DeltaO_v(e.samples, e.params, e.v, e.f)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
@@ -206,6 +216,7 @@ def test_DeltaOdagger_DeltaO_v(e):
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_matvec(e, centered, jit):
     diag_shift = 0.01
     mv = _sr_onthefly_logic.mat_vec
@@ -221,6 +232,7 @@ def test_matvec(e, centered, jit):
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize("outdtype", [jnp.complex128, jnp.complex64])
 def test_matvec_linear_transpose(e, centered, jit):
     def mvt(v, f, params, samples, centered, w):
         (res,) = jax.linear_transpose(
