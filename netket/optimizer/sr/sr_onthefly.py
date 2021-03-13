@@ -148,6 +148,7 @@ def lazysmatrix_mat_treevec(S, vec):
         params=S.params,
         samples=samples,
         diag_shift=S.sr.diag_shift,
+        centered=S.sr.centered,
     )
 
     res = mat_vec(vec)
