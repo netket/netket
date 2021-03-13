@@ -63,7 +63,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
 def tree_random_normal_like(rng_key, target):
     keys_tree = random_split_like_tree(rng_key, target)
     return jax.tree_multimap(
-        # TODO remove astype once its fixed in jax
+        # TODO remove astype once its fixed in Jax#6052
         lambda l, k: jax.random.normal(k, l.shape, l.dtype).astype(l.dtype),
         target,
         keys_tree,
