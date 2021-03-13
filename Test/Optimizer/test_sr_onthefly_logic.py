@@ -106,11 +106,16 @@ class Example:
     def __init__(self, n_samp, seed):
         k = jax.random.PRNGKey(seed)
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
+
         self.samples = jax.random.normal(k1, (n_samp, 2))
-        self.v_tilde = jax.random.normal(k2, (n_samp,), dtype=jnp.complex128)
         self.params = tree_random_normal_like(k3, self.target)
         self.v = tree_random_normal_like(k4, self.target)
         self.grad = tree_random_normal_like(k5, self.target)
+
+        self.dtype = jax.eval_shape(self.f, self.params, self.samples).dtype
+        self.v_tilde = jax.random.normal(k2, (n_samp,), self.dtype).astype(
+            self.dtype
+        )  # TODO remove astype once its fixed in jax
 
         self.params_real_flat = tree_toreal_flat(self.params)
         self.grad_real_flat = tree_toreal_flat(self.grad)
@@ -121,7 +126,6 @@ class Example:
         self.S_real = (
             self.dok_real.conjugate().transpose() @ self.dok_real / n_samp
         ).real
-        self.dtype = jax.eval_shape(self.f, self.params, self.samples).dtype
 
 
 @pytest.fixture
