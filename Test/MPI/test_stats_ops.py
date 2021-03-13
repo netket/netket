@@ -163,5 +163,5 @@ def test_subtract_mean():
     ref_mean = nk.stats.mean(mydata, axis=0)
     ref_data = mydata - ref_mean[np.newaxis, :, :]
 
-    nk.stats.subtract_mean(mydata, axis=0)
+    mydata = nk.stats.subtract_mean(mydata, axis=0)
     assert mydata == approx(ref_data)
