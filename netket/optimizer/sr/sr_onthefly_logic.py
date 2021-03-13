@@ -15,7 +15,7 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
-from netket.stats import sum_inplace
+from netket.stats import sum_inplace, sum as _sum
 from netket.utils import n_nodes
 
 # Stochastic Reconfiguration with jvp and vjp
@@ -132,45 +132,40 @@ def Odagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     compute \langle O^\dagger \Delta O \rangle v
     where \Delta O = O - \langle O \rangle
 
-    optional: pass jvp_fun to be reused
+    optional: pass vjp_fun to be reused
     """
 
     # determine the output type of the forward pass, because
     # we need to cast the vectors in vjp to that type
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
 
-    # here the allreduce is deferred until after the dot product,
-    # where only scalars instead of vectors have to be summed
-    # the vjp_fun is returned so that it can be reused in OH_w below
-    omean, vjp_fun = O_mean(
-        samples,
-        params,
-        forward_fn,
-        dtype=dtype,
-        return_vjp_fun=True,
-        vjp_fun=vjp_fun,
-        allreduce=False,
-    )
-    omeanv = tree_dot(omean, v)  # omeanv = omean.dot(v); is a scalar
-    omeanv = sum_inplace(omeanv)  # MPI Allreduce w/ MPI_SUM
-
     # v_tilde is an array of size n_samples; each MPI rank has its own slice
     v_tilde = O_jvp(samples, params, v, forward_fn)
-    # v_tilde -= omeanv (elementwise):
-    v_tilde = v_tilde - omeanv
     # v_tilde /= n_samples (elementwise):
     v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
 
-    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
+    v_tilde_mean = _sum(v_tilde) * (1.0 / (samples.shape[0] * n_nodes))  # is a scalar
+
+    # convert shape from () to (1,)
+    # this is needed for automatic broadcasting to work also when transposed with linear_transpose
+    v_tilde_mean = jnp.expand_dims(v_tilde_mean, 0)
+
+    v_tilde_centered = v_tilde - v_tilde_mean  # automatic broadcast
+
+    return OH_w(
+        samples, params, v_tilde_centered, forward_fn, dtype=dtype, vjp_fun=vjp_fun
+    )
 
 
-def Odagger_O_v(samples, params, v, forward_fn, dtype):
+def Odagger_O_v(samples, params, v, forward_fn, dtype, vjp_fun=None):
     r"""
     compute  \langle O^\dagger O \rangle v
+
+    optional: pass vjp_fun to be reused
     """
     v_tilde = O_jvp(samples, params, v, forward_fn)
     v_tilde = v_tilde * (1.0 / (samples.shape[0] * n_nodes))
-    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype)
+    return OH_w(samples, params, v_tilde, forward_fn, dtype=dtype, vjp_fun=vjp_fun)
 
 
 def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
