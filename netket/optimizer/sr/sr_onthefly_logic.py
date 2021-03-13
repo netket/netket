@@ -108,8 +108,7 @@ def O_mean(samples, params, forward_fn, **kwargs):
     i.e. the mean of the rows of the jacobian of forward_fn
     """
 
-    # determine the output type of the forward pass, because
-    # we need to cast the vectors in vjp to that type
+    # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
 
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
@@ -117,17 +116,11 @@ def O_mean(samples, params, forward_fn, **kwargs):
     return O_vjp(samples, params, v, forward_fn, **kwargs)
 
 
-def OH_w(samples, params, w, forward_fn, *, cast=False, **kwargs):
+def OH_w(samples, params, w, forward_fn, **kwargs):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
     """
-
-    if cast:
-        # determine the output type of the forward pass, because
-        # we need to cast the vectors in vjp to that type
-        dtype = jax.eval_shape(forward_fn, params, samples).dtype
-        w = w.astype(dtype)
 
     # O^H w = (w^H O)^H
     # The transposition of the 1D arrays is omitted in the implementation:
@@ -160,8 +153,7 @@ def Odagger_O_v(samples, params, v, forward_fn, *, vjp_fun=None, center=False):
     if center:
         w = subtract_mean(w)  # w/ MPI
 
-    # TODO cast=True might be needed when the input and output are of different precision
-    return OH_w(samples, params, w, forward_fn, vjp_fun=vjp_fun, cast=False)
+    return OH_w(samples, params, w, forward_fn, vjp_fun=vjp_fun)
 
 
 Odagger_DeltaO_v = partial(Odagger_O_v, center=True)
