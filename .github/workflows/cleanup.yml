@@ -1,13 +1,11 @@
-name: "Website/Docs"
+name: "Cleanup Docs Preview"
+
+# This Github Action deletes the website preview generated
+# from pull requests that are closed.
 
 on:
   pull_request:
     types: [closed]
-
-  push:
-    branches:
-      - master
-
 
 jobs:
   docs-preview:
@@ -21,8 +19,7 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Publish built docs to gh-pages branch.
-    # ===============================
+    # Delete the published preview and.
     - name: Delete website preview
       run: |
         git clone https://github.com/netket/netket.git --branch gh-pages --single-branch gh-pages
