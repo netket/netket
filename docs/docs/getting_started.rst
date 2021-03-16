@@ -165,7 +165,7 @@ you must provide the constructor the hilbert space to be sampled and some option
 .. code-block:: python
 
     # Optimizer
-    op = nk.optim.GradientDescent(learning_rate=0.01)
+    op = nk.optim.Sgd(learning_rate=0.01)
 
 
 You can then chose an optimizer from the :ref:`optim` submodule. You can also 
