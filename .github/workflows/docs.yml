@@ -16,11 +16,9 @@ jobs:
     # Determine the branch name
     - uses: mdecoleman/pr-branch-name@1.0.0
       id: determine-branch
+      if: ${{ github.event_name == 'pull_request' }}
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-    # Print the branch namee
-    - run: echo ${{ steps.determine-branch.outputs.branch }}
 
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
