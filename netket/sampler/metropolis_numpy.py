@@ -186,7 +186,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
     def __repr__(sampler):
         return (
-            "MetropolisNumpySampler("
+            "MetropolisSamplerNumpy("
             + "\n  hilbert = {},".format(sampler.hilbert)
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
@@ -195,6 +195,16 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
             + "\n  dtype = {},".format(sampler.dtype)
             + ")"
+        )
+
+    def __str__(sampler):
+        return (
+            "MetropolisSamplerNumpy("
+            + "rule = {}, ".format(sampler.rule)
+            + "n_chains = {}, ".format(sampler.n_chains)
+            + "machine_power = {}, ".format(sampler.machine_pow)
+            + "n_sweeps = {}, ".format(sampler.n_sweeps)
+            + "dtype = {})".format(sampler.dtype)
         )
 
 

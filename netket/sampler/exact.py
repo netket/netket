@@ -31,6 +31,9 @@ class ExactSamplerState(SamplerState):
     pdf: Any
     rng: Any
 
+    def __repr__(self):
+        return f"ExactSamplerState(rng state={self.rng})"
+
 
 @struct.dataclass
 class ExactSampler(Sampler):
@@ -87,8 +90,16 @@ class ExactSampler(Sampler):
             "ExactSampler("
             + "\n  hilbert = {},".format(sampler.hilbert)
             + "\n  n_chains = {},".format(sampler.n_chains)
-            + "\n  machine_power = {})".format(sampler.machine_pow)
+            + "\n  machine_power = {},".format(sampler.machine_pow)
             + "\n  dtype = {})".format(sampler.dtype)
+        )
+
+    def __str__(sampler):
+        return (
+            "ExactSampler("
+            + "n_chains = {}, ".format(sampler.n_chains)
+            + "machine_power = {}, ".format(sampler.machine_pow)
+            + "dtype = {})".format(sampler.dtype)
         )
 
 

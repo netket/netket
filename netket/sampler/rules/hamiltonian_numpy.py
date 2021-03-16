@@ -74,6 +74,9 @@ class HamiltonianRuleNumpy(MetropolisRule):
         rule.Ô.n_conn(σ1, sections)
         log_prob_corr -= np.log(sections)
 
+    def __repr__(self):
+        return f"HamiltonianRuleNumpy({self.Ô})"
+
 
 @jit(nopython=True)
 def _choose(states, sections, out, w, rand_vec):

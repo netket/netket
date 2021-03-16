@@ -507,6 +507,25 @@ class MCState(VariationalState):
             self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
 
+    def __repr__(self):
+        return (
+            "MCState("
+            + "\n  hilbert = {},".format(self.hilbert)
+            + "\n  sampler = {},".format(self.sampler)
+            + "\n  n_samples = {},".format(self.n_samples)
+            + "\n  n_discard = {},".format(self.n_discard)
+            + "\n  sampler_state = {},".format(self.sampler_state)
+            + "\n  n_parameters = {})".format(self.n_parameters)
+        )
+
+    def __str__(self):
+        return (
+            "MCState("
+            + "hilbert = {}, ".format(self.hilbert)
+            + "sampler = {}, ".format(self.sampler)
+            + "n_samples = {})".format(self.n_samples)
+        )
+
 
 @partial(jax.jit, static_argnums=(1, 2))
 def _expect(

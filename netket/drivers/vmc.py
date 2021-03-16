@@ -116,8 +116,10 @@ class VMC(AbstractVariationalDriver):
         return self._loss_stats
 
     def __repr__(self):
-        return "Vmc(step_count={}, n_samples={}, n_discard={})".format(
-            self.step_count, self.state.n_samples, self.state.n_discard
+        return (
+            "Vmc("
+            + f"\n  step_count = {self.step_count},"
+            + f"\n  state = {self.state})"
         )
 
     def info(self, depth=0):
