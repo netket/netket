@@ -250,3 +250,26 @@ class MCMixedState(VariationalMixedState, MCState):
         return netket.nn.to_matrix(
             self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
+
+    def __repr__(self):
+        return (
+            "MCMixedState("
+            + "\n  hilbert = {},".format(self.hilbert)
+            + "\n  sampler = {},".format(self.sampler)
+            + "\n  n_samples = {},".format(self.n_samples)
+            + "\n  n_discard = {},".format(self.n_discard)
+            + "\n  sampler_state = {},".format(self.sampler_state)
+            + "\n  sampler_diag = {},".format(self.sampler_diag)
+            + "\n  n_samples_diag = {},".format(self.n_samples_diag)
+            + "\n  n_discard_diag = {},".format(self.n_discard_diag)
+            + "\n  sampler_state_diag = {},".format(self.diagonal.sampler_state)
+            + "\n  n_parameters = {})".format(self.n_parameters)
+        )
+
+    def __str__(self):
+        return (
+            "MCMixedState("
+            + "hilbert = {}, ".format(self.hilbert)
+            + "sampler = {}, ".format(self.sampler)
+            + "n_samples = {})".format(self.n_samples)
+        )

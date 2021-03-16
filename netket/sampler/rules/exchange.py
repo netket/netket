@@ -77,6 +77,9 @@ class ExchangeRule_(MetropolisRule):
             None,
         )
 
+    def __repr__(self):
+        return f"ExchangeRule(# of clusters: {len(self.clusters)})"
+
 
 def compute_clusters(graph, d_max):
     clusters = []

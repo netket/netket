@@ -142,7 +142,7 @@ class MetropolisSamplerState(SamplerState):
         else:
             acc_string = ""
 
-        text = "MetropolisSamplerState(" + acc_string + "rng state={}".format(self.rng)
+        text = "MetropolisSamplerState(" + acc_string + "rng state={})".format(self.rng)
         return text
 
 
@@ -302,8 +302,18 @@ class MetropolisSampler(Sampler):
             + "\n  machine_power = {},".format(sampler.machine_pow)
             + "\n  reset_chain = {},".format(sampler.reset_chain)
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
-            + "\n  dtype = {},".format(sampler.dtype)
+            + "\n  dtype = {}".format(sampler.dtype)
             + ")"
+        )
+
+    def __str__(sampler):
+        return (
+            "MetropolisSampler("
+            + "rule = {}, ".format(sampler.rule)
+            + "n_chains = {}, ".format(sampler.n_chains)
+            + "machine_power = {}, ".format(sampler.machine_pow)
+            + "n_sweeps = {}, ".format(sampler.n_sweeps)
+            + "dtype = {})".format(sampler.dtype)
         )
 
 

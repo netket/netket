@@ -113,8 +113,10 @@ class SteadyState(AbstractVariationalDriver):
     #        super().reset()
 
     def __repr__(self):
-        return "SteadyState(step_count={}, n_samples={}, n_discard={})".format(
-            self.step_count, self.n_samples, self.n_discard
+        return (
+            "SteadyState("
+            + f"\n  step_count = {self.step_count},"
+            + f"\n  state = {self.state})"
         )
 
     def info(self, depth=0):

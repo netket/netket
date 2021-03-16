@@ -52,3 +52,6 @@ class LocalRule(MetropolisRule):
         σp, _ = flip_state(hilb, key2, σ, indxs)
 
         return σp, None
+
+    def __repr__(self):
+        return "LocalRule()"

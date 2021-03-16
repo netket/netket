@@ -430,6 +430,17 @@ class MetropolisPtSampler(MetropolisSampler):
             + ")"
         )
 
+    def __str__(sampler):
+        return (
+            "MetropolisPTSampler("
+            + "rule = {}, ".format(sampler.rule)
+            + "n_chains = {}, ".format(sampler.n_chains)
+            + "machine_power = {}, ".format(sampler.machine_pow)
+            + "reset_chain = {}, ".format(sampler.reset_chain)
+            + "n_sweeps = {}, ".format(sampler.n_sweeps)
+            + "dtype = {})".format(sampler.dtype)
+        )
+
 
 from netket.utils import wraps_legacy
 from netket.legacy.machine import AbstractMachine

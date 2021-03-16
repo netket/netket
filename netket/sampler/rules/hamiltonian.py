@@ -83,6 +83,9 @@ class HamiltonianRule(MetropolisRule):
 
         return σp, log_prob_correction
 
+    def __repr__(self):
+        return f"HamiltonianRule({self.Ô})"
+
 
 @jit(nopython=True)
 def _choose(σp, sections, rand_vec):

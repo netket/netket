@@ -43,6 +43,9 @@ class LocalRuleNumpy(MetropolisRule):
 
         _kernel(σ, σ1, si, rs, state.rule_state.local_states)
 
+    def __repr__(self):
+        return "LocalRuleNumpy()"
+
 
 @jit(nopython=True)
 def _kernel(σ, σ1, si, rs, local_states):

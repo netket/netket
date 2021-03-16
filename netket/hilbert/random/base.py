@@ -72,7 +72,15 @@ def random_state_scalar(hilb, key, dtype):
     Generates a single random state-vector given an hilbert space and a rng key.
     """
     # Attempt to use the scalar method
-    raise NotImplementedError()
+    raise NotImplementedError(
+        f"""
+                              random_state_scalar(hilb, key, dtype) is not implemented
+                              for hilbert space of type {type(hilb)}. 
+
+                              See the documentation of 
+                              nk.hilbert.random.register_random_state_impl.
+                              """
+    )
 
 
 @singledispatch
@@ -81,7 +89,15 @@ def random_state_batch(hilb, key, size, dtype):
     Generates a batch of random state-vectors given an hilbert space and a rng key.
     """
     # Attempt to use the batch method
-    raise NotImplementedError()
+    raise NotImplementedError(
+        f"""
+                              random_state_batch(hilb, key, size, dtype) is not implemented
+                              for hilbert space of type {type(hilb)}. 
+
+                              See the documentation of 
+                              nk.hilbert.random.register_random_state_impl.
+                              """
+    )
 
 
 def _random_state_scalar_default_impl(hilb, key, dtype, batch_rule):
@@ -95,7 +111,29 @@ def _random_state_batch_default_impl(hilb, key, size, dtype, scalar_rule):
 
 
 def register_random_state_impl(clz=None, *, scalar=None, batch=None):
-    """"""
+    """
+    Register an implementation for the function generating random
+    state for the given Hilbert space class.
+
+    The rule can be implemented both as a scalar rule and as a batched
+    rule, but the best performance will be obtained by implementing
+    the batched version.
+
+    The missing rule will be auto-implemented from the over.
+
+    scalar must have signature
+        (hilb, key, dtype) -> vector
+    batch must have signature
+        (hilb, key, size, dtype) -> matrix of states
+
+    The function will be jit compiled, so make sure to use jax.numpy.
+    Hilbert is passed as a static object.
+
+    Arguments:
+        clz: The class of the hilbert space
+        scalar: The function computing a single random state
+        batch: the function computing batches of random states
+    """
     if scalar is None and batch is None:
         raise ValueError("You must at least provide a scalar or batch rule.")
 
@@ -122,16 +160,30 @@ def register_random_state_impl(clz=None, *, scalar=None, batch=None):
 ##############################
 
 
-# @partial(jax.jit, static_argnums=(0,))
 @singledispatch
 def flip_state_scalar(hilb, key, state, indx):
-    pass
+    raise NotImplementedError(
+        f"""
+                              flip_state_scalar(hilb, key, state, indx) is not implemented
+                              for hilbert space of type {type(hilb)}. 
+
+                              See the documentation of 
+                              nk.hilbert.random.register_flip_state_impl
+                              """
+    )
 
 
-# @partial(jax.jit, static_argnums=(0,))
 @singledispatch
 def flip_state_batch(hilb, key, states, indxs):
-    pass
+    raise NotImplementedError(
+        f"""
+                              flip_state_batch(hilb, key, states, indx) is not implemented
+                              for hilbert space of type {type(hilb)}. 
+
+                              See the documentation of 
+                              nk.hilbert.random.register_flip_state_impl
+                              """
+    )
 
 
 def _flip_state_scalar_default_impl(hilb, key, state, indx, batch_rule):
@@ -150,7 +202,29 @@ def _flip_state_batch_default_impl(hilb, key, states, indxs, scalar_rule):
 
 
 def register_flip_state_impl(clz=None, *, scalar=None, batch=None):
-    """"""
+    """
+    Register an implementation for the function generating and
+    applying random local states for the given Hilbert space class.
+
+    The rule can be implemented both as a scalar rule and as a batched
+    rule, but the best performance will be obtained by implementing
+    the batched version.
+
+    The missing rule will be auto-implemented from the over.
+
+    scalar must have signature
+        (hilb, key, state, indx) -> (new state, state[indx])
+    batch must have signature
+        (hilb, key, states, indxs) -> batch of scalar results
+
+    The function will be jit compiled, so make sure to use jax.numpy.
+    Hilbert is passed as a static object.
+
+    Arguments:
+        clz: The class of the hilbert space
+        scalar: The function computing a single entry
+        batch: the function computing batches
+    """
     if scalar is None and batch is None:
         raise ValueError("You must at least provide a scalar or batch rule.")
 
