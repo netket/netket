@@ -17,8 +17,8 @@ import itertools as _itertools
 import numpy as np
 from scipy.sparse.linalg import LinearOperator, bicgstab
 
-from . import _core
 from .operator import AbstractOperator
+
 from ._exact_dynamics import PyExactTimePropagation
 
 
@@ -45,23 +45,21 @@ def lanczos_ed(
             See the Scipy documentation for further information.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether
-            `compute_eigenvectors` is True.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
 
         w: Array containing the lowest `first_n` eigenvalues.
-        v: Array containing the eigenvectors as columns, such that
-            `v[:, i]` corresponds to `w[i]`.
 
-    Examples:
+        v: Array containing the eigenvectors as columns, such that`v[:, i]` corresponds to `w[i]`.
+
+    Example:
         Test for 1D Ising chain with 8 sites.
-        ```python
+        s
         >>> import netket as nk
-        >>> hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)
+        >>> hi = nk.hilbert.Spin(s=1/2)**8
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
         >>> w = nk.exact.lanczos_ed(hamiltonian, k=3)
         >>> w
         array([-10.25166179, -10.05467898,  -8.69093921])
-        ```
     """
     from scipy.sparse.linalg import eigsh
 
@@ -86,7 +84,7 @@ def lanczos_ed(
 
 
 def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
-    r"""Computes all eigenvalues and, optionally, eigenvectors
+    """Computes all eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
     Args:
@@ -95,23 +93,18 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
             of the operator.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether
-            `compute_eigenvectors` is True.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
 
-        w: Array containing the lowest `first_n` eigenvalues.
-        v: Array containing the eigenvectors as columns, such that
-            `v[:, i]` corresponds to `w[i]`.
+    Example:
 
-    Examples:
-        ```python
         Test for 1D Ising chain with 8 sites.
+
         >>> import netket as nk
         >>> hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
         >>> w = nk.exact.full_ed(hamiltonian)
         >>> w.shape
         (256,)
-        ```
     """
     from numpy.linalg import eigh, eigvalsh
 
@@ -149,7 +142,7 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
         maxiter: maximum number of iterations for the iterative solver (default: None)
         tol: The precision for the calculation (default: 1e-05)
         callback: User-supplied function to call after each iteration. It is called as callback(xk),
-                  where xk is the current solution vector
+         where xk is the current solution vector
 
     Returns:
         The steady-state density matrix.

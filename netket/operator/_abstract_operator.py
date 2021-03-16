@@ -1,7 +1,25 @@
 import abc
-import numpy as _np
+from typing import Optional, Tuple, List
+
+import numpy as np
+import jax.numpy as jnp
+from numpy.typing import DTypeLike
+
 from scipy.sparse import csr_matrix as _csr_matrix
 from numba import jit
+
+from netket.hilbert import AbstractHilbert
+
+
+@jit(nopython=True)
+def compute_row_indices(rows, sections):
+    ntot = sections[-1]
+    res = np.empty(ntot, dtype=np.intp)
+
+    for i in range(1, sections.size):
+        res[sections[i - 1] : sections[i]] = rows[i - 1]
+
+    return res
 
 
 class AbstractOperator(abc.ABC):
@@ -11,13 +29,88 @@ class AbstractOperator(abc.ABC):
     class
     """
 
+    _hilbert: AbstractHilbert
+    r"""The hilbert space associated to this operator."""
+
+    def __init__(self, hilbert: AbstractHilbert):
+        self._hilbert = hilbert
+
+    @property
+    def hilbert(self) -> AbstractHilbert:
+        r"""The hilbert space associated to this operator."""
+        return self._hilbert
+
+    @property
+    def size(self) -> int:
+        r"""The total number number of local degrees of freedom."""
+        return self._hilbert.size
+
+    @property
+    def is_hermitian(self) -> bool:
+        """Returns true if this operator is hermitian."""
+        return False
+
+    @property
+    def H(self) -> "AbstractOperator":
+        """Returns the Conjugate-Transposed operator"""
+        if self.is_hermitian:
+            return self
+
+        from ._lazy import Adjoint
+
+        return Adjoint(self)
+
+    @property
+    def T(self) -> "AbstractOperator":
+        """Returns the transposed operator"""
+        return self.transpose()
+
     @property
     @abc.abstractmethod
-    def size(self):
-        r"""int: The total number number of local degrees of freedom."""
-        raise NotImplementedError()
+    def dtype(self) -> DTypeLike:
+        """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
+        raise NotImplementedError
 
-    def get_conn_padded(self, x):
+    def collect(self) -> "AbstractOperator":
+        """
+        Returns a guranteed concrete instancce of an operator.
+
+        As some operations on operators return lazy wrapperes (such as transpose,
+        hermitian conjugate...), this is used to obtain a guaranteed non-lazy
+        operator.
+        """
+        return self
+
+    def transpose(self, *, concrete=False) -> "AbstractOperator":
+        """Returns the transpose of this operator.
+
+        Args:
+            concrete: if True returns a concrete operator and not a lazy wrapper
+
+        Returns:
+            if concrete is not True, self or a lazy wrapper; the
+            transposed operator otherwise
+        """
+        if not concrete:
+            from ._lazy import Transpose
+
+            return Transpose(self)
+        else:
+            raise NotImplementedError
+
+    def conjugate(self, *, concrete=False) -> "AbstractOperator":
+        """Returns the complex-conjugate of this operator.
+
+        Args:
+            concrete: if True returns a concrete operator and not a lazy wrapper
+
+        Returns:
+            if concrete is not True, self or a lazy wrapper; the
+            complex-conjugated operator otherwise
+        """
+        raise NotImplementedError
+
+    def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
         Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M
         where B size of the batch and M size of the hilbert space, finds all states
@@ -33,7 +126,7 @@ class AbstractOperator(abc.ABC):
             matrix: The connected states x', in a 3D tensor.
             array: A matrix containing the matrix elements :math:`O(x,x')` associated to each x' for every batch.
         """
-        sections = _np.empty(x.shape[0], dtype=_np.int32)
+        sections = np.empty(x.shape[0], dtype=np.int32)
         x_primes, mels = self.get_conn_flattened(x, sections, pad=True)
 
         n_primes = sections[0]
@@ -45,7 +138,9 @@ class AbstractOperator(abc.ABC):
         return x_primes_r, mels_r
 
     @abc.abstractmethod
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(
+        self, x: np.ndarray, sections: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -67,7 +162,28 @@ class AbstractOperator(abc.ABC):
         """
         raise NotImplementedError()
 
-    def n_conn(self, x, out=None):
+    def get_conn(self, x):
+        r"""Finds the connected elements of the Operator. Starting
+        from a given quantum number x, it finds all other quantum numbers x' such
+        that the matrix element :math:`O(x,x')` is different from zero. In general there
+        will be several different connected states x' satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
+        Args:
+            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
+
+        Returns:
+            matrix: The connected states x' of shape (N_connected,hilbert.size)
+            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+
+        """
+
+        return self.get_conn_flattened(
+            x.reshape((1, -1)),
+            np.ones(1),
+        )
+
+    def n_conn(self, x, out=None) -> np.ndarray:
         r"""Return the number of states connected to x.
 
         Args:
@@ -80,7 +196,7 @@ class AbstractOperator(abc.ABC):
 
         """
         if out is None:
-            out = _np.empty(x.shape[0], dtype=_np.intc)
+            out = np.empty(x.shape[0], dtype=np.intc)
         self.get_conn_flattened(x, out)
         out = self._n_conn_from_sections(out)
 
@@ -97,13 +213,7 @@ class AbstractOperator(abc.ABC):
 
         return out
 
-    @property
-    @abc.abstractmethod
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        raise NotImplementedError()
-
-    def to_sparse(self):
+    def to_sparse(self) -> _csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -112,24 +222,36 @@ class AbstractOperator(abc.ABC):
         This method requires an indexable Hilbert space.
 
         Returns:
-            scipy.sparse.csr_matrix: The sparse matrix representation of the operator.
+            The sparse matrix representation of the operator.
         """
+        concrete_op = self.collect()
         hilb = self.hilbert
 
         x = hilb.all_states()
 
-        sections = _np.empty(x.shape[0], dtype=_np.int32)
-        x_prime, mels = self.get_conn_flattened(x, sections)
+        sections = np.empty(x.shape[0], dtype=np.int32)
+        x_prime, mels = concrete_op.get_conn_flattened(x, sections)
 
         numbers = hilb.states_to_numbers(x_prime)
 
-        sections1 = _np.empty(sections.size + 1, dtype=_np.int32)
+        sections1 = np.empty(sections.size + 1, dtype=np.int32)
         sections1[1:] = sections
         sections1[0] = 0
 
-        return _csr_matrix((mels, numbers, sections1))
+        ## eliminate duplicates from numbers
+        # rows_indices = compute_row_indices(hilb.states_to_numbers(x), sections1)
 
-    def to_dense(self):
+        return _csr_matrix(
+            (mels, numbers, sections1),
+            shape=(self.hilbert.n_states, self.hilbert.n_states),
+        )
+
+        # return _csr_matrix(
+        #    (mels, (rows_indices, numbers)),
+        #    shape=(self.hilbert.n_states, self.hilbert.n_states),
+        # )
+
+    def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -138,18 +260,57 @@ class AbstractOperator(abc.ABC):
         This method requires an indexable Hilbert space.
 
         Returns:
-            numpy.ndarray: The dense matrix representation of the operator as a Numpy array.
+            The dense matrix representation of the operator as a Numpy array.
         """
         return self.to_sparse().todense().A
 
-    def apply(self, v):
-        return self.to_linear_operator().dot(v)
+    def apply(self, v: np.ndarray) -> np.ndarray:
+        op = self.to_linear_operator()
+        return op.dot(v)
 
-    def __call__(self, v):
+    def __call__(self, v: np.ndarray) -> np.ndarray:
         return self.apply(v)
+
+    def conj(self, *, concrete=False) -> "AbstractOperator":
+        return self.conjugate(concrete=False)
 
     def to_linear_operator(self):
         return self.to_sparse()
 
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert})"
+
+    def __matmul__(self, other):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            return self.apply(other)
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__matmul__(other)
+        else:
+            return NotImplemented
+
+    def _op__matmul__(self, other):
+        "Implementation on subclasses of __matmul__"
+        return NotImplemented
+
+    def __rmatmul__(self, other):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            # return self.apply(other)
+            return NotImplemented
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__rmatmul__(other)
+        else:
+            return NotImplemented
+
+    def _op__rmatmul__(self, other):
+        "Implementation on subclasses of __matmul__"
+        return NotImplemented

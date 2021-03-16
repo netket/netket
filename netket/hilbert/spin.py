@@ -1,14 +1,36 @@
-from .custom_hilbert import CustomHilbert
-from ._deprecations import graph_to_N_depwarn
-
 from fractions import Fraction
+from typing import Optional, List, Union, Iterable
 
-import numpy as _np
-from netket import random as _random
+import jax
+from jax import numpy as jnp
+import numpy as np
 from netket.graph import AbstractGraph
 from numba import jit
 
-from typing import Optional, List
+
+from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
+
+
+def _check_total_sz(total_sz, size):
+    if total_sz is None:
+        return
+
+    m = round(2 * total_sz)
+    if np.abs(m) > size:
+        raise Exception(
+            "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
+        )
+
+    if (size + m) % 2 != 0:
+        raise Exception(
+            "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
+        )
+
+
+@jit(nopython=True)
+def _sum_constraint(x, total_sz):
+    return np.sum(x, axis=1) == round(2 * total_sz)
 
 
 class Spin(CustomHilbert):
@@ -27,6 +49,7 @@ class Spin(CustomHilbert):
            s: Spin at each site. Must be integer or half-integer.
            N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular value.
+           graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
            Simple spin hilbert space.
@@ -40,7 +63,7 @@ class Spin(CustomHilbert):
         N = graph_to_N_depwarn(N=N, graph=graph)
 
         local_size = round(2 * s + 1)
-        local_states = _np.empty(local_size)
+        local_states = np.empty(local_size)
 
         assert int(2 * s + 1) == local_size
 
@@ -48,11 +71,11 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        self._check_total_sz(total_sz, N)
+        _check_total_sz(total_sz, N)
         if total_sz is not None:
 
             def constraints(x):
-                return self._sum_constraint(x, total_sz)
+                return _sum_constraint(x, total_sz)
 
         else:
             constraints = None
@@ -63,64 +86,6 @@ class Spin(CustomHilbert):
 
         super().__init__(local_states, N, constraints)
 
-    def _random_state_with_constraint(self, out, rgen):
-        sites = list(range(self.size))
-        out.fill(-round(2 * self._s))
-        ss = self.size
-
-        for i in range(round(self._s * self.size) + self._total_sz):
-            s = rgen.randint(0, ss, size=())
-
-            out[sites[s]] += 2
-
-            if out[sites[s]] > round(2 * self._s - 1):
-                sites.pop(s)
-                ss -= 1
-
-    def random_state(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = _np.empty(shape=shape)
-
-        if rgen is None:
-            rgen = _random
-
-        if self._total_sz is None:
-            out[:] = rgen.choice(self.local_states, size=shape)
-        else:
-            # TODO: this can most likely be done more efficiently
-            if size is not None:
-                out_r = out.reshape(-1, self._size)
-                for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint(out_r[b], rgen)
-            else:
-                self._random_state_with_constraint(out, rgen)
-
-        return out
-
-    @staticmethod
-    @jit(nopython=True)
-    def _sum_constraint(x, total_sz):
-        return _np.sum(x, axis=1) == round(2 * total_sz)
-
-    def _check_total_sz(self, total_sz, size):
-        if total_sz is None:
-            return
-
-        m = round(2 * total_sz)
-        if _np.abs(m) > size:
-            raise Exception(
-                "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
-            )
-
-        if (size + m) % 2 != 0:
-            raise Exception(
-                "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
-            )
-
     def __pow__(self, n):
         if self._total_sz is None:
             total_sz = None
@@ -129,8 +94,80 @@ class Spin(CustomHilbert):
 
         return Spin(self._s, self.size * n, total_sz=total_sz)
 
+    def _mul_sametype_(self, other):
+        assert type(self) == type(other)
+        if self._s == other._s:
+            if self._total_sz is None and other._total_sz is None:
+                return Spin(s=self._s, N=self.size + other.size)
+
+        return NotImplemented
+
+    def ptrace(self, sites: Union[int, List]) -> Optional["Spin"]:
+        if isinstance(sites, int):
+            sites = [sites]
+
+        for site in sites:
+            if site < 0 or site >= self.size:
+                raise ValueError(
+                    f"Site {site} not in this hilbert space of site {self.size}"
+                )
+
+        if self._total_sz is not None:
+            raise TypeError(
+                "Cannot take the partial trace with a total magnetization constraint."
+            )
+
+        Nsites = len(sites)
+
+        if self.size - Nsites == 0:
+            return None
+        else:
+            return Spin(s=self._s, N=self.size - Nsites)
+
     def __repr__(self):
         total_sz = (
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
         return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)
+
+    @property
+    def _attrs(self):
+        return (self.size, self._s, self._constraint_fn)
+
+    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
+        if isinstance(size, int):
+            size = (size,)
+        shape = (*size, self._size) if size is not None else (self._size,)
+
+        if out is None:
+            out = np.empty(shape=shape)
+
+        if rgen is None:
+            rgen = np.random.default_rng()
+
+        if self._total_sz is None:
+            out[:] = rgen.choice(self.local_states, size=shape)
+        else:
+            # TODO: this can most likely be done more efficiently
+            if size is not None:
+                out_r = out.reshape(-1, self._size)
+                for b in range(out_r.shape[0]):
+                    self._random_state_with_constraint_legacy(out_r[b], rgen)
+            else:
+                self._random_state_with_constraint_legacy(out, rgen)
+
+        return out
+
+    def _random_state_with_constraint_legacy(self, out, rgen):
+        sites = list(range(self.size))
+        out.fill(-round(2 * self._s))
+        ss = self.size
+
+        for i in range(round(self._s * self.size) + self._total_sz):
+            s = rgen.integers(0, ss, size=())
+
+            out[sites[s]] += 2
+
+            if out[sites[s]] > round(2 * self._s - 1):
+                sites.pop(s)
+                ss -= 1

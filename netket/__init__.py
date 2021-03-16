@@ -12,50 +12,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# enable x64 on jax
+# must be done at 0 startup.
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+del config
+
+from . import utils
+from .utils import config
+
+
 __all__ = [
-    "dynamics",
     "exact",
     "graph",
     "callbacks",
     "hilbert",
-    "machine",
     "operator",
     "optimizer",
-    "random",
     "sampler",
     "stats",
-    # "supervised",
     "utils",
     "variational",
+    "nn",
 ]
 
+from . import legacy
+
 from . import (
-    dynamics,
+    hilbert,
     exact,
     callbacks,
     graph,
-    hilbert,
     logging,
-    machine,
     operator,
     optimizer,
-    random,
+    models,
     sampler,
+    jax,
+    nn,
     stats,
-    # supervised,
-    utils,
     variational,
-    _exact_dynamics,
-    _vmc,
-    _steadystate,
 )
 
 # Main applications
-from ._vmc import Vmc
-from ._qsr import Qsr
-from ._steadystate import SteadyState
+from .drivers import Vmc
+from .drivers import SteadyState
 
-from .vmc_common import (
-    tree_map as _tree_map,
-    trees2_map as _trees2_map,
-)
+# from .drivers import Qsr
+
+# deprecations
+optim = optimizer
+
+from .version import __version__

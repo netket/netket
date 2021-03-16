@@ -1,7 +1,15 @@
 import math
 
+from typing import Union
+
+from functools import partial
+
+from flax import struct
+import jax
+from jax import numpy as jnp
+
 from numba import jit
-import numpy as _np
+import numpy as np
 from . import mean as _mean
 from . import var as _var
 from . import total_size as _total_size
@@ -9,7 +17,7 @@ from . import total_size as _total_size
 
 def _format_decimal(value, std, var):
     if math.isfinite(std) and std > 1e-7:
-        decimals = max(int(_np.ceil(-_np.log10(std))), 0)
+        decimals = max(int(np.ceil(-np.log10(std))), 0)
         return (
             "{0:.{1}f}".format(value, decimals + 1),
             "{0:.{1}f}".format(std, decimals + 1),
@@ -23,32 +31,40 @@ def _format_decimal(value, std, var):
         )
 
 
+_NaN = float("NaN")
+
+
+@struct.dataclass
 class Stats:
     """A dict-compatible class containing the result of the statistics function."""
 
-    _NaN = float("NaN")
+    mean: Union[float, complex] = _NaN
+    """The mean value"""
+    error_of_mean: float = _NaN
+    variance: float = _NaN
+    tau_corr: float = _NaN
+    R_hat: float = _NaN
 
-    def __init__(
-        self,
-        mean=_NaN,
-        error_of_mean=_NaN,
-        variance=_NaN,
-        tau_corr=_NaN,
-        R_hat=_NaN,
-    ):
-        self.mean = complex(mean) if _np.iscomplexobj(mean) else float(mean)
-        self.error_of_mean = float(error_of_mean)
-        self.variance = float(variance)
-        self.tau_corr = float(tau_corr)
-        self.R_hat = float(R_hat)
+    def to_dict(self):
+        jsd = {}
+        jsd["Mean"] = self.mean.item()
+        jsd["Variance"] = self.variance.item()
+        jsd["Sigma"] = self.error_of_mean.item()
+        jsd["R_hat"] = self.R_hat.item()
+        jsd["TauCorr"] = self.tau_corr.item()
+        return jsd
 
+    def to_compound(self):
+        return "Mean", self.to_dict()
+
+    # Remove this method once we remove legacy.
     def to_json(self):
         jsd = {}
-        jsd["Mean"] = self.mean.real
-        jsd["Variance"] = self.variance
-        jsd["Sigma"] = self.error_of_mean
-        jsd["R_hat"] = self.R_hat
-        jsd["TauCorr"] = self.tau_corr
+        jsd["Mean"] = float(self.mean.real)
+        jsd["Variance"] = float(self.variance)
+        jsd["Sigma"] = float(self.error_of_mean)
+        jsd["R_hat"] = float(self.R_hat)
+        jsd["TauCorr"] = float(self.tau_corr)
         return jsd
 
     def __repr__(self):
@@ -59,7 +75,8 @@ class Stats:
             ext = ""
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
-    def __getitem__(self, name):
+    # Alias accessors
+    def __getattr__(self, name):
         if name in ("mean", "Mean"):
             return self.mean
         elif name in ("variance", "Variance"):
@@ -70,18 +87,19 @@ class Stats:
             return self.R_hat
         elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
+        else:
+            raise AttributeError(
+                "'Stats' object object has no attribute '{}'".format(name)
+            )
 
 
-@jit(nopython=True)
-def _get_blocks(data, l):
-    n_blocks = int(_np.floor(data.shape[1] / float(l)))
-    blocks = _np.empty(data.shape[0] * n_blocks, dtype=data.dtype)
-    k = 0
-    for i in range(data.shape[0]):
-        for b in range(n_blocks):
-            blocks[k] = data[i, b * l : (b + 1) * l].mean()
-            k += 1
-    return blocks
+def _get_blocks(data, block_size):
+    n_chains = data.shape[0]
+    chain_length = data.shape[1]
+
+    n_blocks = int(np.floor(chain_length / float(block_size)))
+
+    return data[:, 0 : n_blocks * block_size].reshape((-1, block_size)).mean(axis=1)
 
 
 def _block_variance(data, l):
@@ -90,16 +108,17 @@ def _block_variance(data, l):
     if ts > 0:
         return _var(blocks), ts
     else:
-        return _np.nan, 0
+        return jnp.nan, 0
 
 
 def _batch_variance(data):
-    b_means = _np.mean(data, axis=1)
+    b_means = data.mean(axis=1)
     ts = _total_size(b_means)
     return _var(b_means), ts
 
 
-def statistics(data):
+# this is not batch_size maybe?
+def statistics(data, batch_size=32):
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
@@ -120,9 +139,12 @@ def statistics(data):
              dict sintax (e.g. res['mean']), one can also access them directly with the dot operator
              (e.g. res.mean).
     """
+    return _statistics(data, batch_size)
 
-    stats = Stats()
-    data = _np.atleast_1d(data)
+
+@partial(jax.jit, static_argnums=1)
+def _statistics(data, batch_size):
+    data = jnp.atleast_1d(data)
     if data.ndim == 1:
         data = data.reshape((1, -1))
 
@@ -138,26 +160,63 @@ def statistics(data):
 
     batch_var, n_batches = _batch_variance(data)
 
-    b_s = 32
-    l_block = max(1, data.shape[1] // b_s)
+    l_block = max(1, data.shape[1] // batch_size)
 
     block_var, n_blocks = _block_variance(data, l_block)
 
     tau_batch = ((ts / n_batches) * batch_var / bare_var - 1) * 0.5
     tau_block = ((ts / n_blocks) * block_var / bare_var - 1) * 0.5
 
-    block_good = n_blocks >= b_s and tau_block < 6 * l_block
-    batch_good = n_batches >= b_s and tau_batch < 6 * data.shape[1]
+    batch_good = (tau_batch < 6 * data.shape[1]) * (n_batches >= batch_size)
+    block_good = (tau_block < 6 * l_block) * (n_blocks >= batch_size)
 
-    if batch_good:
-        error_of_mean = _np.sqrt(batch_var / n_batches)
-        tau_corr = max(0, tau_batch)
-    elif block_good:
-        error_of_mean = _np.sqrt(block_var / n_blocks)
-        tau_corr = max(0, tau_block)
-    else:
-        error_of_mean = _np.nan
-        tau_corr = _np.nan
+    stat_dtype = jax.dtypes.dtype_real(data.dtype)
+    # if batch_good:
+    #    error_of_mean = jnp.sqrt(batch_var / n_batches)
+    #    tau_corr = jnp.max(0, tau_batch)
+    # elif block_good:
+    #    error_of_mean = jnp.sqrt(block_var / n_blocks)
+    #    tau_corr = jnp.max(0, tau_block)
+    # else:
+    #    error_of_mean = jnp.nan
+    #    tau_corr = jnp.nan
+    # jax style
+    def batch_good_err(args):
+        batch_var, tau_batch, *_ = args
+        error_of_mean = jnp.sqrt(batch_var / n_batches)
+        tau_corr = jnp.clip(tau_batch, 0)
+        return jnp.asarray(error_of_mean, dtype=stat_dtype), jnp.asarray(
+            tau_corr, dtype=stat_dtype
+        )
+
+    def block_good_err(args):
+        _, _, block_var, tau_block = args
+        error_of_mean = jnp.sqrt(block_var / n_blocks)
+        tau_corr = jnp.clip(tau_block, 0)
+        return jnp.asarray(error_of_mean, dtype=stat_dtype), jnp.asarray(
+            tau_corr, dtype=stat_dtype
+        )
+
+    def nan_err(args):
+        return jnp.asarray(jnp.nan, dtype=stat_dtype), jnp.asarray(
+            jnp.nan, dtype=stat_dtype
+        )
+
+    def batch_not_good(args):
+        batch_var, tau_batch, block_var, tau_block, block_good = args
+        return jax.lax.cond(
+            block_good,
+            block_good_err,
+            nan_err,
+            (batch_var, tau_batch, block_var, tau_block),
+        )
+
+    error_of_mean, tau_corr = jax.lax.cond(
+        batch_good,
+        batch_good_err,
+        batch_not_good,
+        (batch_var, tau_batch, block_var, tau_block, block_good),
+    )
 
     if n_batches > 1:
         N = data.shape[-1]
@@ -168,8 +227,11 @@ def statistics(data):
         # # This approximation seems to hold well enough for larger n_samples
         W = variance
 
-        R_hat = _np.sqrt((N - 1) / N + batch_var / W)
+        R_hat = jnp.sqrt((N - 1) / N + batch_var / W)
     else:
-        R_hat = float("nan")
+        R_hat = jnp.nan
 
-    return Stats(mean, error_of_mean, variance, tau_corr, R_hat)
+    res = Stats(mean, error_of_mean, variance, tau_corr, R_hat)
+
+    return res
+    ##

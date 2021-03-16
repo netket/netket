@@ -1,0 +1,36 @@
+name: "Website/Docs"
+
+on:
+  pull_request:
+    types: [closed]
+
+  push:
+    branches:
+      - master
+
+
+jobs:
+  docs-preview:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    # Determine the branch name
+    - uses: mdecoleman/pr-branch-name@1.0.0
+      id: determine-branch
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+    # Publish built docs to gh-pages branch.
+    # ===============================
+    - name: Delete website preview
+      run: |
+        git clone https://github.com/netket/netket.git --branch gh-pages --single-branch gh-pages
+        rm -rf gh-pages/preview/${{ steps.determine-branch.outputs.branch }}
+        cd gh-pages/preview/${{ steps.vars.outputs.branch }}
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Remove preview for PR ${{ steps.vars.outputs.branch }}" -a || true
+        # The above command will fail if no changes were present, so we ignore
+        # that.

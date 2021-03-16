@@ -15,17 +15,11 @@ while True:
     plt.ylabel("LdagL")
     plt.xlabel("Iteration #")
 
-    iters = []
-    energy = []
-    sigma = []
-    evar = []
-
     data = json.load(open("test.log"))
-    for iteration in data["Output"]:
-        iters.append(iteration["Iteration"])
-        energy.append(iteration["LdagL"]["Mean"])
-        sigma.append(iteration["LdagL"]["Sigma"])
-        evar.append(iteration["LdagL"]["Variance"])
+    iters = data["LdagL"]["iters"]
+    energy = data["LdagL"]["Mean"]
+    sigma = data["LdagL"]["Sigma"]
+    evar = data["LdagL"]["Variance"]
 
     nres = len(iters)
     cut = nres

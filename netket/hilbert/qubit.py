@@ -1,8 +1,12 @@
-from .custom_hilbert import CustomHilbert
-from ._deprecations import graph_to_N_depwarn
+from typing import Optional, Union, Iterable, List
+
+import jax
+from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
-from typing import Optional
+
+from .custom_hilbert import CustomHilbert
+from ._deprecations import graph_to_N_depwarn
 
 
 class Qubit(CustomHilbert):
@@ -27,10 +31,35 @@ class Qubit(CustomHilbert):
         """
         N = graph_to_N_depwarn(N=N, graph=graph)
 
-        super().__init__([0, 1], N)
+        super().__init__([0.0, 1.0], N)
 
     def __pow__(self, n):
         return Qubit(self.size * n)
 
+    def _mul_sametype_(self, other):
+        assert type(self) == type(other)
+        return Qubit(self.size + other.size)
+
+    def ptrace(self, sites: Union[int, List]) -> Optional["Qubit"]:
+        if isinstance(sites, int):
+            sites = [sites]
+
+        for site in sites:
+            if site < 0 or site >= self.size:
+                raise ValueError(
+                    f"Site {site} not in this hilbert space of site {self.size}"
+                )
+
+        Nsites = len(sites)
+
+        if self.size - Nsites == 0:
+            return None
+        else:
+            return Qubit(N=self.size - Nsites)
+
     def __repr__(self):
         return "Qubit(N={})".format(self._size)
+
+    @property
+    def _attrs(self):
+        return (self.size,)

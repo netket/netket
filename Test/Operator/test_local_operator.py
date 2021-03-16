@@ -5,11 +5,11 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import LocalOperator
-import netket as nk
+import netket.legacy as nk
 import networkx as nx
 import numpy as np
 import pytest
-from pytest import approx
+from pytest import approx, raises
 import os
 
 herm_operators = {}
@@ -30,7 +30,7 @@ def _loc(*args):
 
 
 sx_hat = _loc([sx] * 3, [[0], [1], [5]])
-sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+sy_hat = _loc([sy] * 4, [[2], [3], [4], [7]])
 szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
 szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
 szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
@@ -61,14 +61,24 @@ def same_matrices(matl, matr, eps=1.0e-6):
 
 def test_hermitian_local_operator_transpose_conjugation():
     for name, op in herm_operators.items():
+        orig_op = op.copy()
+
         op_t = op.transpose()
         op_c = op.conjugate()
         op_h = op.transpose().conjugate()
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
         mat = op.to_dense()
         mat_t = op_t.to_dense()
         mat_c = op_c.to_dense()
         mat_h = op_h.to_dense()
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
         same_matrices(mat, mat_h)
         same_matrices(mat_t, mat_c)
@@ -78,6 +88,10 @@ def test_hermitian_local_operator_transpose_conjugation():
 
         same_matrices(mat, mat_t_t)
         same_matrices(mat, mat_c_c)
+
+        assert [
+            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        ]
 
 
 def test_local_operator_transpose_conjugation():
@@ -106,8 +120,11 @@ def test_local_operator_add():
     same_matrices(ha, ham)
 
     ha = ha * 1j
-    ha2 *= 1j
-    ham *= 1j
+    with raises(ValueError):
+        ha2 *= 1j
+
+    ha2 = ha2 * 1j
+    ham = ham * 1j
     same_matrices(ha, ha2)
     same_matrices(ha, ham)
 
@@ -140,7 +157,7 @@ def test_local_operator_add():
 
     # test commutativity
     ha = LocalOperator(hi)
-    ha2 = LocalOperator(hi)
+    ha2 = LocalOperator(hi, dtype=complex)
     for i in range(0, 3):
         ha += 0.3 * nk.operator.spin.sigmaz(hi, i) @ nk.operator.spin.sigmax(hi, i + 1)
         ha += 0.4 * nk.operator.spin.sigmaz(hi, i)
@@ -199,6 +216,33 @@ def test_simple_operators():
         assert np.allclose(n.to_dense(), (ad @ a).to_dense())
         assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
 
+    print("Testing mixed spaces...")
+    L = 3
+    his = nk.hilbert.Spin(0.5, N=L)
+    hib = nk.hilbert.Boson(3, N=L - 1)
+    hi = his * hib
+    for i in range(hi.size):
+        print("i=", i)
+        sx = sigmax(hi, i)
+
+        assert sx.operators[0].shape == (hi.shape[i], hi.shape[i])
+        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
+        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+
+    for i in range(3):
+        print("i=", i)
+        a = bdestroy(hi, i)
+        ad = bcreate(hi, i)
+        n = bnumber(hi, i)
+        for j in range(3, 5):
+            print("j=", i)
+            a = bdestroy(hi, j)
+            ad = bcreate(hi, j)
+            n = bnumber(hi, j)
+
+        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
+        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+
 
 def test_mul_matmul():
     hi = nk.hilbert.Spin(s=1 / 2, N=2)
@@ -211,10 +255,14 @@ def test_mul_matmul():
     assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
     op = nk.operator.LocalOperator(hi, sx, [0])
+    with raises(ValueError):
+        op @= nk.operator.LocalOperator(hi, sy, [1])
+
+    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op @= nk.operator.LocalOperator(hi, sy, [1])
     assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
 
-    op = nk.operator.LocalOperator(hi, sx, [0])
+    op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op *= nk.operator.LocalOperator(hi, sy, [1])
     assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
 
@@ -224,11 +272,23 @@ def test_mul_matmul():
     op *= 2.0
     assert np.allclose(op.to_dense(), 2.0 * sx0sy1_hat.to_dense())
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         doesnotwork = sx0_hat @ 2.0
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         op = nk.operator.LocalOperator(hi, sx, [0])
         op @= 2.0
+
+
+def test_complicated_mul():
+    # If this test fails probably we are tripping the reordering
+    L = 5  # 10
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+
+    ha = nk.operator.Ising(hi, graph=g, h=0.4)
+
+    assert np.allclose(ha.to_dense(), ha.to_local_operator().to_dense())
+    assert np.allclose(ha.to_dense() @ ha.to_dense(), (ha @ ha).to_dense())
 
 
 def test_truediv():
@@ -257,6 +317,7 @@ def test_truediv():
 def test_copy():
     for name, op in herm_operators.items():
         print(name)
+        print(op)
         op_copy = op.copy()
         assert op_copy is not op
         for o1, o2 in zip(op._operators, op_copy._operators):

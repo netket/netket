@@ -1,11 +1,14 @@
-from ._local_operator import LocalOperator
+from netket.hilbert import AbstractHilbert
+from numpy.typing import DTypeLike
 
-import numpy as _np
+from ._local_operator import LocalOperator as _LocalOperator
 
 
-def sigmax(hilbert, site):
+def sigmax(
+    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+) -> _LocalOperator:
     """
-    Builds the sigma_x operator acting on the `site`-th of the Hilbert
+    Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -15,17 +18,21 @@ def sigmax(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
-    N = hilbert.local_size
+    import numpy as np
+
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
-    D = [_np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
-    mat = _np.diag(D, 1) + _np.diag(D, -1)
-    return LocalOperator(hilbert, mat, [site])
+    D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
+    mat = np.diag(D, 1) + np.diag(D, -1)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmay(hilbert, site):
+def sigmay(
+    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = complex
+) -> _LocalOperator:
     """
-    Builds the sigma_y operator acting on the `site`-th of the Hilbert
+    Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -35,19 +42,21 @@ def sigmay(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
-    N = hilbert.local_size
+    import numpy as np
+
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
-    D = _np.array(
-        [1j * _np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in _np.arange(1, N)]
-    )
-    mat = _np.diag(D, -1) + _np.diag(-D, 1)
-    return LocalOperator(hilbert, mat, [site])
+    D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
+    mat = np.diag(D, -1) + np.diag(-D, 1)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmaz(hilbert, site):
+def sigmaz(
+    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+) -> _LocalOperator:
     """
-    Builds the sigma_z operator acting on the `site`-th of the Hilbert
+    Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -57,17 +66,21 @@ def sigmaz(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
-    N = hilbert.local_size
+    import numpy as np
+
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
-    D = _np.array([2 * m for m in _np.arange(S, -(S + 1), -1)])
-    mat = _np.diag(D, 0)
-    return LocalOperator(hilbert, mat, [site])
+    D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
+    mat = np.diag(D, 0)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmam(hilbert, site):
+def sigmam(
+    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+) -> _LocalOperator:
     """
-    Builds the $sigma_- = sigma_x - im * sigma_y$ operator acting on the
+    Builds the :math:`\\sigma^{-} = \\sigma^x - i \\sigma^y` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -77,18 +90,22 @@ def sigmam(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
-    N = hilbert.local_size
+    import numpy as np
+
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
-    D = _np.array([_np.sqrt(S2 - m * (m - 1)) for m in _np.arange(S, -S, -1)])
-    mat = _np.diag(D, -1)
-    return LocalOperator(hilbert, mat, [site])
+    D = np.array([np.sqrt(S2 - m * (m - 1)) for m in np.arange(S, -S, -1)])
+    mat = np.diag(D, -1)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmap(hilbert, site):
+def sigmap(
+    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+) -> _LocalOperator:
     """
-    Builds the $sigma_- = sigma_x + im * sigma_y$ operator acting on the
+    Builds the :math:`\\sigma^{+} = \\sigma^x + i \\sigma^y` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -98,10 +115,16 @@ def sigmap(hilbert, site):
     :param site: the site on which this operator acts
     :return: a nk.operator.LocalOperator
     """
-    N = hilbert.local_size
+    import numpy as np
+
+    N = hilbert.size_at_index(site)
     S = (N - 1) / 2
 
     S2 = (S + 1) * S
-    D = _np.array([_np.sqrt(S2 - m * (m + 1)) for m in _np.arange(S - 1, -(S + 1), -1)])
-    mat = _np.diag(D, 1)
-    return LocalOperator(hilbert, mat, [site])
+    D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
+    mat = np.diag(D, 1)
+    return _LocalOperator(hilbert, mat, [site], dtype=dtype)
+
+
+# clean up the module
+del AbstractHilbert

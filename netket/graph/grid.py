@@ -1,3 +1,5 @@
+from typing import List
+
 from .graph import NetworkX
 
 import numpy as _np
@@ -8,7 +10,7 @@ class Grid(NetworkX):
     r"""A Grid lattice of d dimensions, and possibly different sizes of each dimension.
     Periodic boundary conditions can also be imposed"""
 
-    def __init__(self, length, *, pbc=True, color_edges=False):
+    def __init__(self, length: List, *, pbc: bool = True, color_edges: bool = False):
         """
         Constructs a new `Grid` given its length vector.
 
@@ -20,6 +22,7 @@ class Grid(NetworkX):
                 the parameter `length`, in which case each dimension will have
                 PBC/OBC depending on the corresponding entry of `pbc`.
             color_edges: If `True`, the edges will be colored by their grid direction.
+
         Examples:
             A 5x10 lattice with periodic boundary conditions can be
             constructed as follows:
@@ -95,7 +98,7 @@ class Grid(NetworkX):
         return "Grid(length={}, pbc={})".format(self.length, self.pbc)
 
 
-def Hypercube(length, n_dim=1, *, pbc=True):
+def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:
     r"""A hypercube lattice of side L in d dimensions.
     Periodic boundary conditions can also be imposed.
 
@@ -103,10 +106,10 @@ def Hypercube(length, n_dim=1, *, pbc=True):
 
     Args:
         length: Side length of the hypercube; must always be >=1
-         n_dim: Dimension of the hypercube; must be at least 1.
-         pbc: If ``True`` then the constructed hypercube
-             will have periodic boundary conditions, otherwise
-             open boundary conditions are imposed.
+        n_dim: Dimension of the hypercube; must be at least 1.
+        pbc: If ``True`` then the constructed hypercube
+            will have periodic boundary conditions, otherwise
+            open boundary conditions are imposed.
 
     Examples:
          A 10x10x10 cubic lattice with periodic boundary conditions can be
@@ -121,7 +124,7 @@ def Hypercube(length, n_dim=1, *, pbc=True):
     return Grid(length_vector, pbc=pbc)
 
 
-def Square(length, *, pbc=True):
+def Square(length: int, *, pbc: bool = True) -> Grid:
     r"""A square lattice of side L.
     Periodic boundary conditions can also be imposed
 
@@ -145,17 +148,17 @@ def Square(length, *, pbc=True):
     return Hypercube(length, n_dim=2, pbc=pbc)
 
 
-def Chain(length, *, pbc=True):
+def Chain(length: int, *, pbc: bool = True) -> Grid:
     r"""A chain of L sites.
     Periodic boundary conditions can also be imposed
 
     Constructs a new ``Chain`` given its length.
 
     Args:
-      length: Length of the chain. It must always be >=1
-         pbc: If ``True`` then the constructed chain
-             will have periodic boundary conditions, otherwise
-             open boundary conditions are imposed.
+        length: Length of the chain. It must always be >=1
+        pbc: If ``True`` then the constructed chain
+            will have periodic boundary conditions, otherwise
+            open boundary conditions are imposed.
 
     Examples:
          A 10 site chain with periodic boundary conditions can be

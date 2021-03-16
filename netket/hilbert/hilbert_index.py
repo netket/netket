@@ -1,4 +1,4 @@
-import numpy as _np
+import numpy as np
 from numba.experimental import jitclass
 from numba import int64, float64
 import numba
@@ -15,18 +15,18 @@ spec = [
 @jitclass(spec)
 class HilbertIndex:
     def __init__(self, local_states, size):
-        self._local_states = _np.sort(local_states)
+        self._local_states = np.sort(local_states)
         self._local_size = len(self._local_states)
         self._size = size
 
-        self._basis = _np.zeros(size, dtype=_np.int64)
+        self._basis = np.zeros(size, dtype=np.int64)
         ba = 1
         for s in range(size):
             self._basis[s] = ba
             ba *= self._local_size
 
     def _local_state_number(self, x):
-        return _np.searchsorted(self.local_states, x)
+        return np.searchsorted(self.local_states, x)
 
     @property
     def n_states(self):
@@ -53,7 +53,7 @@ class HilbertIndex:
     def number_to_state(self, number, out=None):
 
         if out is None:
-            out = _np.empty(self._size)
+            out = np.empty(self._size)
         # else:
         #     assert out.size == self._size
 
@@ -73,7 +73,7 @@ class HilbertIndex:
             raise RuntimeError("Invalid input shape, expecting a 2d array.")
 
         if out is None:
-            out = _np.empty(states.shape[0], _np.int64)
+            out = np.empty(states.shape[0], np.int64)
         # else:
         #     assert out.size == states.shape[0]
 
@@ -91,7 +91,7 @@ class HilbertIndex:
             raise RuntimeError("Invalid input shape, expecting a 1d array.")
 
         if out is None:
-            out = _np.empty((numbers.shape[0], self._size))
+            out = np.empty((numbers.shape[0], self._size))
         # else:
         #     assert out.shape == (numbers.shape[0], self._size)
 
@@ -102,7 +102,7 @@ class HilbertIndex:
 
     def all_states(self, out=None):
         if out is None:
-            out = _np.empty((self.n_states, self._size))
+            out = np.empty((self.n_states, self._size))
 
         for i in range(self.n_states):
             self.number_to_state(i, out[i])
