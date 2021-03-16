@@ -168,7 +168,7 @@ you must provide the constructor the hilbert space to be sampled and some option
     op = nk.optimizer.Sgd(learning_rate=0.01)
 
 
-You can then chose an optimizer from the :ref:`optim` submodule. You can also 
+You can then chose an optimizer from the :ref:`optimizer` submodule. You can also 
 use an arbitrary flax optimiser, or define your own.  
 
 .. code-block:: python
