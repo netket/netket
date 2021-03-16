@@ -165,7 +165,7 @@ you must provide the constructor the hilbert space to be sampled and some option
 .. code-block:: python
 
     # Optimizer
-    op = nk.optim.Sgd(learning_rate=0.01)
+    op = nk.optimizer.Sgd(learning_rate=0.01)
 
 
 You can then chose an optimizer from the :ref:`optim` submodule. You can also 
@@ -186,4 +186,3 @@ sampler, mahcine and various options.
 Once that is done, you can run the simulation by calling the :ref:`run` method
 in the driver, specifying the output loggers and the number of iterations in
 the optimisation.
-
