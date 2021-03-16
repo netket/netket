@@ -16,7 +16,10 @@
 This module constains functions that act on hilbert spaces necessary
 for sampling.
 
-This module exports two functions: 
+If you define custom hilbert spaces, and want to sample from it, you
+should read carefully.
+
+This module *exports* two functions: 
  - `random_state(hilbert, key, batch_size, dtype)` which generates a batch of random
  states in the given hilbert space, in an array with the specified dtype. 
  - `flip_state(hilb, key, states, indices)` which, for every state σ in the batch of states,
@@ -24,11 +27,39 @@ This module exports two functions:
  The new configuration is selected with uniform probability among the local possible
  configurations.
 
-Those methods can be implemented both as scalar functions by overloading
-`xxx_scalar_impl` or as batched functions by overloading `xxx_batch_impl`.
-If only the scalar is defined, then jax.vmap is used to map over the batch
-axis. Of course, it is usually more performant to define the batched code, 
-but that is not always possible.
+Hilbert spaces must at least implement a `random_state` to support sampling.
+`flip_state` is only necessary in order to use LocalRule samplers.
+All hilbert spaces in netket implement both.
+
+How to implement the two functions above
+----------------------------------------
+
+While the *exported* function acts on batches, sometimes it is hard to implement
+the function on batches. Therefore they can be implemented either as a scalar 
+function, that gets jax.vmap-ed automatically, or directly as a batched rule.
+Of course, if you implement the batched rule you will most likely see better 
+performance.
+
+In order to implement the scalar rule for your custom hilbert object `MyHilbert`
+you should define a function taking 4 inputs, the hilbert space, a jax PRNG key and
+the dtype of the derised result. For random operations you should use the key 
+provided.
+
+def random_state_myhilbert_scalar_impl(hilb: MyHilbert, key, dtype):    
+    return mystate
+
+The batched version takes an extra argument, that is the number of batches to generate, 
+an int.
+
+def random_state_myhilbert_batch_impl(hilb: MyHilbert, key, batches, dtype):    
+    return mystate
+
+Then register the implementation with the following function:
+batch can be None or your implementation. 
+
+nk.hilbert.random.register_random_state_impl(MyHilbert, scalar=random_state_myhilbert_scalar_impl, batch=None)
+
+flip_state is implemented in the same way, through the function register_flip_state_impl
 
 """
 
