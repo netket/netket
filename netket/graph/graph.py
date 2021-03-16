@@ -1,12 +1,15 @@
-from .abstract_graph import AbstractGraph
-import numpy as _np
+from typing import List, Generator, Union
+
+import numpy as np
 import networkx as _nx
+
+from .abstract_graph import AbstractGraph
 
 
 class NetworkX(AbstractGraph):
     """ Wrapper for a networkx graph"""
 
-    def __init__(self, graph):
+    def __init__(self, graph: _nx.Graph):
         """
         Constructs a netket graph from a networkx graph.
 
@@ -36,16 +39,16 @@ class NetworkX(AbstractGraph):
 
         super().__init__()
 
-    def adjacency_list(self):
+    def adjacency_list(self) -> List[List]:
         return [list(self.graph.neighbors(node)) for node in self.graph.nodes]
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
         return _nx.is_connected(self.graph)
 
-    def nodes(self):
+    def nodes(self) -> Generator:
         return self.graph.nodes()
 
-    def edges(self, color=False):
+    def edges(self, color: Union[bool, int] = False) -> Generator:
         if color is True:
             return self.graph.edges(data="color")
         elif color is not False:
@@ -53,21 +56,21 @@ class NetworkX(AbstractGraph):
         else:  # color is False
             return self.graph.edges()
 
-    def distances(self):
+    def distances(self) -> List[List]:
         return _nx.floyd_warshall_numpy(self.graph).tolist()
 
-    def is_bipartite(self):
+    def is_bipartite(self) -> bool:
         return _nx.is_bipartite(self.graph)
 
     @property
-    def n_nodes(self):
+    def n_nodes(self) -> int:
         return self.graph.number_of_nodes()
 
     @property
-    def n_edges(self):
+    def n_edges(self) -> int:
         return self.graph.size()
 
-    def automorphisms(self):
+    def automorphisms(self) -> List[List]:
         # TODO: check how to compute these when we have a coloured graph where there could
         #       be a duplicated edge with two different colors.
 
@@ -98,7 +101,7 @@ class NetworkX(AbstractGraph):
         )
 
 
-def Graph(nodes=[], edges=[]):
+def Graph(nodes: List = [], edges: List = []) -> NetworkX:
     r"""
     Constructs a Graph given a list of nodes and edges.
     Args:
@@ -130,7 +133,7 @@ def Graph(nodes=[], edges=[]):
         if False in type_condition:
             raise ValueError("edges must be a list of lists or tuples")
 
-        edges_array = _np.array(edges, dtype=_np.int32)
+        edges_array = np.array(edges, dtype=np.int32)
         if edges_array.ndim != 2:
             raise ValueError(
                 "edges must be a list of lists or tuples of the same length (2 or 3)"
@@ -160,13 +163,13 @@ def Graph(nodes=[], edges=[]):
     return NetworkX(graph)
 
 
-def Edgeless(nodes):
+def Edgeless(nodes: Union[list, int]) -> NetworkX:
     """
-    Edgeless(nodes)
-
     Construct a set graph (collection of unconnected vertices).
+
     Args:
-        nodes: An integer number of nodes or a list of ints that index nodes of a graph
+        nodes: An integer number of nodes or a list of ints that index nodes of a graph.
+
     Example:
         >>> import netket
         >>> g=netket.graph.Edgeless([0,1,2,3])
@@ -186,12 +189,15 @@ def Edgeless(nodes):
     return NetworkX(edgelessgraph)
 
 
-def DoubledGraph(graph):
+def DoubledGraph(graph: AbstractGraph) -> NetworkX:
     """
     DoubledGraph(graph)
 
     Constructs a DoubledGraph representing the doubled hilbert space of a density operator.
     The resulting graph is composed of two disjoint sub-graphs identical to the input.
+
+    Args:
+        graph: The graph to double
     """
 
     dedges = list(graph.edges())
@@ -204,7 +210,7 @@ def DoubledGraph(graph):
     return Graph(nodes=dnodes, edges=dedges)
 
 
-def disjoint_union(graph_1, graph_2):
+def disjoint_union(graph_1: NetworkX, graph_2: NetworkX) -> NetworkX:
     """
     disjoint_union(graph_1, graph_2)
 

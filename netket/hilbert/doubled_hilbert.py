@@ -1,7 +1,10 @@
-from .abstract_hilbert import AbstractHilbert
+from typing import List, Optional, Tuple
 
-import numpy as _np
-from netket import random as _random
+import jax
+from jax import numpy as jnp
+import numpy as np
+
+from .abstract_hilbert import AbstractHilbert
 
 
 class DoubledHilbert(AbstractHilbert):
@@ -28,11 +31,16 @@ class DoubledHilbert(AbstractHilbert):
         self.physical = hilb
         self._size = 2 * hilb.size
 
+        self._shape = hilb.shape * 2
         super().__init__()
 
     @property
     def size(self):
         return self._size
+
+    @property
+    def shape(self):
+        return self._shape
 
     @property
     def is_discrete(self):
@@ -50,6 +58,18 @@ class DoubledHilbert(AbstractHilbert):
     def local_states(self):
         return self.physical.local_states
 
+    def size_at_index(self, i: int) -> int:
+        return self.physical.size_at_index(
+            i if i < self.physical.size else i - self.physical.size
+        )
+
+    def states_at_index(self, i: int) -> Optional[List[float]]:
+        r"""A list of discrete local quantum numbers at the site i.
+        If the local states are infinitely many, None is returned."""
+        return self.physical.states_at_index(
+            i if i < self.physical.size else i - self.physical.size
+        )
+
     @property
     def size_physical(self):
         return self.physical.size
@@ -58,10 +78,7 @@ class DoubledHilbert(AbstractHilbert):
     def n_states(self):
         return self.physical.n_states ** 2
 
-    def numbers_to_states(self, numbers, out=None):
-        if out is None:
-            out = _np.empty((numbers.shape[0], self._size))
-
+    def _numbers_to_states(self, numbers, out):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -75,38 +92,42 @@ class DoubledHilbert(AbstractHilbert):
 
         n = self.physical.size
         dim = self.physical.n_states
-        left, right = _np.divmod(numbers, dim)
+        left, right = np.divmod(numbers, dim)
 
         self.physical.numbers_to_states(left, out=out[:, 0:n])
         self.physical.numbers_to_states(right, out=out[:, n : 2 * n])
 
         return out
 
-    def states_to_numbers(self, states, out=None):
-        if out is None:
-            out = _np.empty(states.shape[0], _np.int64)
-
+    def _states_to_numbers(self, states, out):
         # !!! WARNING
         # See note above in numbers_to_states
 
         n = self.physical.size
         dim = self.physical.n_states
 
-        self.physical.states_to_numbers(states[:, 0:n], out=out)
+        self.physical._states_to_numbers(states[:, 0:n], out=out)
         _out_l = out * dim
 
-        self.physical.states_to_numbers(states[:, n : 2 * n], out=out)
+        self.physical._states_to_numbers(states[:, n : 2 * n], out=out)
         out += _out_l
 
         return out
 
-    def random_state(self, size=None, *, out=None, rgen=None):
+    def __repr__(self):
+        return "DoubledHilbert({})".format(self.physical)
+
+    @property
+    def _attrs(self):
+        return (self.physical,)
+
+    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
         if isinstance(size, int):
             size = (size,)
         shape = (*size, self.size) if size is not None else (self.size,)
 
         if out is None:
-            out = _np.empty(shape=shape)
+            out = np.empty(shape=shape)
 
         n = self.size_physical
 
@@ -114,6 +135,3 @@ class DoubledHilbert(AbstractHilbert):
         self.physical.random_state(out=out[..., n:], size=size, rgen=rgen)
 
         return out
-
-    def __repr__(self):
-        return "DoubledHilbert({})".format(self.physical)

@@ -1,79 +1,109 @@
 import abc
-import numpy as _np
+from functools import partial
 
-from typing import List, Tuple, Optional, Generator
+from typing import List, Tuple, Optional, Generator, Union, Iterable, Iterator
 
-from .._core import deprecated
+import jax
+import jax.numpy as jnp
+import numpy as np
+
+from netket.utils import deprecated
 
 
 """int: Maximum number of states that can be indexed"""
-max_states = _np.iinfo(_np.int32).max
+max_states = np.iinfo(np.int32).max
+
+
+class NoneType:
+    pass
 
 
 class AbstractHilbert(abc.ABC):
-    """Abstract class for NetKet hilbert objects"""
+    """Abstract class for NetKet hilbert objects.
+
+    This class definese the common interface that can be used to
+    interact with hilbert spaces.
+
+    Hilbert Spaces are immutable.
+    """
+
+    def __init__(self):
+        self._hash = None
 
     @property
     @abc.abstractmethod
-    def size(self):
-        r"""int: The total number number of spins."""
+    def size(self) -> int:
+        r"""The total number number of spins."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def is_discrete(self):
-        r"""bool: Whether the hilbert space is discrete."""
+    def shape(self) -> Tuple[int, ...]:
+        r"""The size of the hilbert space on every site."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def is_finite(self):
-        r"""bool: Whether the local hilbert space is finite."""
+    def is_discrete(self) -> bool:
+        r"""Whether the hilbert space is discrete."""
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
-    def local_size(self):
-        r"""int: Size of the local degrees of freedom that make the total hilbert space."""
+    def is_finite(self) -> bool:
+        r"""Whether the local hilbert space is finite."""
         raise NotImplementedError()
 
-    @property
     @abc.abstractmethod
-    def local_states(self):
-        r"""list[float]: A list of discreet local quantum numbers."""
+    def size_at_index(self, i: int) -> int:
+        r"""Size of the local degrees of freedom at the site i.
+
+        Args:
+            i: The index of the desired site
+
+        Returns:
+            The number of degrees of freedom at that site
+        """
         raise NotImplementedError()
 
-    def numbers_to_states(self, numbers, out=None):
+    @abc.abstractmethod
+    def states_at_index(self, i: int) -> Optional[List[float]]:
+        r"""A list of discrete local quantum numbers at the site i.
+        If the local states are infinitely many, None is returned.
+
+        Args:
+            i: The index of the desired site.
+
+        Returns:
+            A list of values or None if there are infintely many.
+        """
+        raise NotImplementedError()
+
+    def numbers_to_states(
+        self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
         Throws an exception iff the space is not indexable.
+
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of quantum numbers.
-            out: Array of quantum numbers corresponding to numbers.
-                 If None, memory is allocated.
+            out: Optional Array of quantum numbers corresponding to numbers.
         """
-        raise NotImplementedError()
+        if out is None:
+            out = np.empty((np.atleast_1d(numbers).shape[0], self._size))
 
-    def number_to_state(self, number):
-        r"""Returns the quantum number corresponding to the n-th basis state
-        for input n. n is a integer index such that number=Index(state).
-        Throws an exception iff the space is not indexable.
-        For a batch of numbers, prefer ```numbers_to_states```.
+        if np.any(numbers >= self.n_states):
+            raise ValueError("numbers outside the range of allowed states")
 
-        Args:
-            numbers (int or numpy.array): Input numbers to be converted into arrays
-                                          of quantum numbers.
-
-        Returns:
-            int or numpy.array: A single number or an array (batched version) of
-                                quantum numbers corresponding to the state.
-        """
-        if _np.isscalar(number):
-            return self.numbers_to_states(_np.atleast_1d(number))[0, :]
+        if np.isscalar(numbers):
+            return self._numbers_to_states(np.atleast_1d(numbers), out=out)[0, :]
         else:
-            return self.numbers_to_states(number)
+            return self._numbers_to_states(numbers, out=out)
 
-    def states_to_numbers(self, states, out=None):
+    def states_to_numbers(
+        self, states: np.ndarray, out: Optional[np.ndarray] = None
+    ) -> Union[int, np.ndarray]:
         r"""Returns the basis state number corresponding to given quantum states.
         The states are given in a batch, such that states[k] has shape (hilbert.size).
         Throws an exception iff the space is not indexable.
@@ -86,33 +116,32 @@ class AbstractHilbert(abc.ABC):
         Returns:
             numpy.darray: Array of integers corresponding to out.
         """
-        raise NotImplementedError()
+        if states.shape[-1] != self.size:
+            raise ValueError(
+                f"""Size of this state ({states.shape[-1]}) not 
+                                 corresponding to this hilbert space {self.size}
+                                 """
+            )
 
-    def state_to_number(self, state):
-        r"""Returns the basis state number corresponding to given quantum states.
-        Throws an exception iff the space is not indexable.
-        For a batch of states, prefer ```states_to_numbers```.
+        states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
 
-        Args:
-            state: A state or a batch of states to be converted into the corresponding integer.
+        if out is None:
+            out = np.empty(states_r.shape[:-1], dtype=np.int64)
 
-        Returns:
-            int: The index of the given input state.
-        """
-        if state.ndim == 1:
-            return self.states_to_numbers(_np.atleast_2d(state))[0]
-        elif state.ndim == 2:
-            return self.states_to_numbers(state)
+        out = self._states_to_numbers(states_r, out=out.reshape(-1))
+
+        if states.ndim == 1:
+            return out[0]
         else:
-            raise RuntimeError("Invalid shape for state.")
+            return out.reshape(states.shape[:-1])
 
     @property
-    def n_states(self):
-        r"""int: The total dimension of the many-body Hilbert space.
+    def n_states(self) -> int:
+        r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
         raise NotImplementedError()
 
-    def states(self):
+    def states(self) -> Iterator[np.ndarray]:
         r"""Returns an iterator over all valid configurations of the Hilbert space.
         Throws an exception iff the space is not indexable.
         Iterating over all states with this method is typically inefficient,
@@ -120,58 +149,137 @@ class AbstractHilbert(abc.ABC):
 
         """
         for i in range(self.n_states):
-            yield self.number_to_state(i).reshape(-1)
+            yield self.numbers_to_states(i).reshape(-1)
 
-    @deprecated("use random_state instead")
-    def random_vals(self, *args, **kwargs):
-        """
-        Deprecated alias for random_state. Prefer using random_state directly.
-        """
-        return self.random_state(*args, **kwargs)
-
-    @abc.abstractmethod
-    def random_state(self, size=None, *, out=None, rgen=None):
+    # after removing legacy:
+    # signature must be the following
+    # def random_state(self, key, size=None, dtype=np.float32):
+    def random_state(
+        self,
+        key=NoneType(),
+        size: Optional[int] = NoneType(),
+        dtype=np.float32,
+        out: Optional[np.ndarray] = None,
+        rgen=None,
+    ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
+        random_state(self, key, size=None, dtype=np.float32)
 
         Args:
+            key: rng state from a jax-style functional generator.
             size: If provided, returns a batch of configurations of the form (size, #) if size
                 is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
                 By default, a single random configuration with shape (#,) is returned.
-            out: If provided, the random quantum numbers will be inserted into this array,
-                 which should be of the appropriate shape (see `size`) and data type.
-            rgen: The random number generator. If None, the global NetKet random
-                number generator is used.
+            dtype: Dtype of the resulting vector.
+            out: Deprecated. Will be removed in v3.1
+            rgen: Deprecated. Will be removed in v3.1
+
+        Returns:
+            A state or batch of states sampled from the uniform distribution on the hilbert space.
 
         Example:
             >>> hi = netket.hilbert.Qubit(N=2)
-            >>> hi.random_state()
+            >>> hi.random_state(jax.random.PRNGKey(0))
             array([0., 1.])
             >>> hi.random_state(size=2)
             array([[0., 0.], [1., 0.]])
         """
-        raise NotImplementedError()
+        # legacy support
+        # TODO: Remove in 3.1
+        # if no positional arguments, and key is unspecified -> legacy
+        if isinstance(key, NoneType):
+            # legacy sure
+            if isinstance(size, NoneType):
+                return self._random_state_legacy(size=None, out=out, rgen=rgen)
+            else:
+                return self._random_state_legacy(size=size, out=out, rgen=rgen)
+        elif (
+            isinstance(key, tuple)
+            or isinstance(key, int)
+            and isinstance(size, NoneType)
+        ):
+            # if one positional argument legacy typee...
+            return self._random_state_legacy(size=key, out=out, rgen=rgen)
+        else:
+            from netket.hilbert import random
 
-    def all_states(self, out=None):
+            size = size if not isinstance(size, NoneType) else None
+
+            return random.random_state(self, key, size, dtype=dtype)
+
+    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
-        Throws an exception iff the space is not indexable.
+
+        Throws an exception if the space is not indexable.
+
         Args:
-            batch_size: If 'all' or None, all valid states in the Hilbert space are returned,
-                        otherwise an iterator yielding batch_size states at the time.
-                        If batch_size is not an integer multiple of the total number of states,
-                        an error is returned.
-            out: Optionally pre-allocated output.
+            out: an optional pre-allocated output array
+
+        Returns:
+            A (n_states x size) batch of statess. this corresponds
+            to the pre-allocated array if it was passed.
         """
-        numbers = _np.arange(0, self.n_states, dtype=_np.int64)
+        numbers = np.arange(0, self.n_states, dtype=np.int64)
+
         return self.numbers_to_states(numbers, out)
 
+    def ptrace(self, sites: Union[int, Iterable]) -> "AbstractHilbert":
+        """Returns the hilbert space without the selected sites.
+
+        Not all hilbert spaces support this operation.
+
+        Args:
+            sites: a site or list of sites to trace away
+
+        Returns:
+            The partially-traced hilbert space. The type of the resulting hilbert space
+            might be different from the starting one.
+        """
+        raise NotImplementedError("Ptrace not implemented for this hilbert space type")
+
     @property
-    def is_indexable(self):
+    def is_indexable(self) -> bool:
+        """"Whever the space can be indexed with an integer"""
         if not self.is_discrete:
             return False
 
         if not self.is_finite:
             return False
 
-        log_max = _np.log(max_states)
+        log_max = np.log(max_states)
 
-        return self.size * _np.log(self.local_size) <= log_max
+        return np.sum(np.log(self.shape)) <= log_max
+
+    def __mul__(self, other: "AbstractHilbert"):
+        if self == other:
+            return self ** 2
+        else:
+            from .tensor_hilbert import TensorHilbert
+
+            if type(self) == type(other):
+                res = self._mul_sametype_(other)
+                if res is not NotImplemented:
+                    return res
+
+            return TensorHilbert(self) * other
+
+    @property
+    @abc.abstractmethod
+    def _attrs(self) -> Tuple:
+        """
+        Tuple of hashable attributs, used to compute the immutable
+        hash of this Hilbert space
+        """
+        pass
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, type(self)):
+            return self._attrs == other._attrs
+
+        return False
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(self._attrs)
+
+        return self._hash

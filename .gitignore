@@ -1,3 +1,6 @@
+#
+docs/tutorials/*.ipynb
+
 # Compiled source #
 ###################
 *.com
@@ -11,6 +14,8 @@
 __pycache__/
 *.py[cod]
 netket.egg-info/
+pip-wheel-metadata
+.ipynb_checkpoints
 
 # Packages #
 ############
@@ -31,6 +36,8 @@ netket.egg-info/
 *.sql
 *.sqlite
 *.json
+*.wf
+*.mpack
 
 # OS generated files #
 ######################
@@ -63,3 +70,7 @@ build/
 ##################
 .coverage
 .coverage.*
+
+##
+_build
+_generated

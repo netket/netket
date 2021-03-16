@@ -1,15 +1,17 @@
-from ._abstract_operator import AbstractOperator
-from ..hilbert import Qubit
-
-import numpy as _np
-from numba import jit
 import re
+
+import numpy as np
+from numba import jit
+
+from netket.hilbert import Qubit
+
+from ._abstract_operator import AbstractOperator
 
 
 class PauliStrings(AbstractOperator):
     """A Hamiltonian consisiting of the sum of products of Pauli operators."""
 
-    def __init__(self, operators, weights, cutoff=1.0e-10):
+    def __init__(self, operators, weights, cutoff=1.0e-10, dtype=complex):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
 
@@ -32,7 +34,7 @@ class PauliStrings(AbstractOperator):
         if len(weights) != len(operators):
             raise ValueError("weights should have the same length as operators.")
 
-        if not _np.isscalar(cutoff) or cutoff < 0:
+        if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
 
         _n_qubits = len(operators[0])
@@ -51,12 +53,12 @@ class PauliStrings(AbstractOperator):
             )
 
         self._n_qubits = _n_qubits
-        self._hilbert = Qubit(_n_qubits)
+        super().__init__(Qubit(_n_qubits))
 
         n_operators = len(operators)
 
         self._cutoff = cutoff
-        b_weights = _np.asarray(weights, dtype=_np.complex128)
+        b_weights = np.asarray(weights, dtype=np.complex128)
 
         b_to_change = [] * n_operators
         b_z_check = [] * n_operators
@@ -105,12 +107,12 @@ class PauliStrings(AbstractOperator):
         )
 
         # unpacking the dictionary into fixed-size arrays
-        _sites = _np.empty((n_operators, _n_qubits), dtype=_np.intp)
-        _ns = _np.empty((n_operators), dtype=_np.intp)
-        _n_op = _np.empty(n_operators, dtype=_np.intp)
-        _weights = _np.empty((n_operators, _n_op_max), dtype=_np.complex128)
-        _nz_check = _np.empty((n_operators, _n_op_max), dtype=_np.intp)
-        _z_check = _np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=_np.intp)
+        _sites = np.empty((n_operators, _n_qubits), dtype=np.intp)
+        _ns = np.empty((n_operators), dtype=np.intp)
+        _n_op = np.empty(n_operators, dtype=np.intp)
+        _weights = np.empty((n_operators, _n_op_max), dtype=np.complex128)
+        _nz_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
+        _z_check = np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=np.intp)
 
         for i, act in enumerate(acting.items()):
             sites = act[0]
@@ -131,52 +133,14 @@ class PauliStrings(AbstractOperator):
         self._nz_check = _nz_check
         self._z_check = _z_check
 
-        self._x_prime_max = _np.empty((n_operators, _n_qubits))
-        self._mels_max = _np.empty((n_operators), dtype=_np.complex128)
+        self._x_prime_max = np.empty((n_operators, _n_qubits))
+        self._mels_max = np.empty((n_operators), dtype=dtype)
         self._n_operators = n_operators
-
-        super().__init__()
-
-    @property
-    def hilbert(self):
-        r"""AbstractHilbert: The hilbert space associated to this operator."""
-        return self._hilbert
+        self._dtype = dtype
 
     @property
-    def size(self):
-        return self._n_qubits
-
-    def get_conn(self, x):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
-
-        Returns:
-            matrix: The connected states x' of shape (N_connected,hilbert.size)
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-        return self._flattened_kernel(
-            _np.atleast_2d(x),
-            self._x_prime_max,
-            _np.ones(1),
-            self._mels_max,
-            self._sites,
-            self._ns,
-            self._n_op,
-            self._weights,
-            self._nz_check,
-            self._z_check,
-            self._cutoff,
-            self._n_operators,
-        )
+    def dtype(self):
+        return self._dtype
 
     @staticmethod
     @jit(nopython=True)
@@ -195,8 +159,8 @@ class PauliStrings(AbstractOperator):
         max_conn,
     ):
 
-        x_prime = _np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
-        mels = _np.empty((x.shape[0] * max_conn), dtype=_np.complex128)
+        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
+        mels = np.empty((x.shape[0] * max_conn), dtype=mels.dtype)
 
         n_c = 0
         for b in range(x.shape[0]):
@@ -206,14 +170,14 @@ class PauliStrings(AbstractOperator):
                 for j in range(n_op[i]):
                     if nz_check[i, j] > 0:
                         to_check = z_check[i, j, : nz_check[i, j]]
-                        n_z = _np.count_nonzero(xb[to_check] == 1)
+                        n_z = np.count_nonzero(xb[to_check] == 1)
                     else:
                         n_z = 0
 
                     mel += weights[i, j] * (-1.0) ** n_z
 
                 if abs(mel) > cutoff:
-                    x_prime[n_c] = _np.copy(xb)
+                    x_prime[n_c] = np.copy(xb)
                     for site in sites[i, : ns[i]]:
                         x_prime[n_c, site] = 1 - x_prime[n_c, site]
                     mels[n_c] = mel

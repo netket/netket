@@ -1,10 +1,11 @@
-import numpy as _np
+import numpy as np
 from numba import jit
 
-from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
-from netket.machine.density_matrix.abstract_density_matrix import (
+from netket.legacy.machine.density_matrix.abstract_density_matrix import (
     AbstractDensityMatrix as DensityMatrix,
 )
+
+from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 
 
 @jit(nopython=True)
@@ -12,20 +13,20 @@ def _local_values_kernel(log_vals, log_val_primes, mels, sections, out):
     low_range = 0
     for i, s in enumerate(sections):
         out[i] = (
-            mels[low_range:s] * _np.exp(log_val_primes[low_range:s] - log_vals[i])
+            mels[low_range:s] * np.exp(log_val_primes[low_range:s] - log_vals[i])
         ).sum()
         low_range = s
 
 
 def _local_values_impl(op, machine, v, log_vals, out):
 
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_primes, mels = op.get_conn_flattened(_np.asarray(v), sections)
+    sections = np.empty(v.shape[0], dtype=np.int32)
+    v_primes, mels = op.get_conn_flattened(np.asarray(v), sections)
 
     log_val_primes = machine.log_val(v_primes)
 
     _local_values_kernel(
-        _np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out
+        np.asarray(log_vals), np.asarray(log_val_primes), mels, sections, out
     )
 
 
@@ -42,17 +43,17 @@ def _op_op_unpack_kernel(v, sections, vold):
 
 def _local_values_op_op_impl(op, machine, v, log_vals, out):
 
-    sections = _np.empty(v.shape[0], dtype=_np.int32)
-    v_np = _np.asarray(v)
+    sections = np.empty(v.shape[0], dtype=np.int32)
+    v_np = np.asarray(v)
     v_primes, mels = op.get_conn_flattened(v_np, sections)
 
-    vold = _np.empty((sections[-1], v.shape[1]))
+    vold = np.empty((sections[-1], v.shape[1]))
     _op_op_unpack_kernel(v_np, sections, vold)
 
     log_val_primes = machine.log_val(v_primes, vold)
 
     _local_values_kernel(
-        _np.asarray(log_vals), _np.asarray(log_val_primes), mels, sections, out
+        np.asarray(log_vals), np.asarray(log_val_primes), mels, sections, out
     )
 
 
@@ -105,7 +106,7 @@ def local_values(op, machine, v, log_vals=None, out=None):
     ), "samples has wrong shape: {}; expected (?, {})".format(v.shape, op.hilbert.size)
 
     if out is None:
-        out = _np.empty(v.shape[0], dtype=_np.complex128)
+        out = np.empty(v.shape[0], dtype=np.complex128)
 
     _impl(op, machine, v, log_vals, out)
 

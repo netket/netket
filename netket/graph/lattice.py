@@ -4,6 +4,7 @@ from scipy.sparse import find, triu
 import numpy as _np
 import itertools
 import networkx as _nx
+import warnings
 
 
 def get_edges(atoms_positions, cutoff):
@@ -90,14 +91,16 @@ def dicts_to_array(dicts, key):
 
 class Lattice(NetworkX):
     """A lattice built translating a unit cell and adding edges between nearest neighbours sites.
+
     The unit cell is defined by the ``basis_vectors`` and it can contain an arbitrary number of atoms.
     Each atom is located at an arbitrary position and is labelled by an integer number,
     meant to distinguish between the different atoms within the unit cell.
     Periodic boundary conditions can also be imposed along the desired directions.
     There are three different ways to refer to the lattice sites. A site can be labelled
-    by a simple integer number (the site index) or by its coordinates (actual position in space)."""
+    by a simple integer number (the site index) or by its coordinates (actual position in space).
+    """
 
-    def __init__(self, basis_vectors, extent, *, pbc=True, atoms_coord=[]):
+    def __init__(self, basis_vectors, extent, *, pbc: bool = True, atoms_coord=[]):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
@@ -141,15 +144,15 @@ class Lattice(NetworkX):
             raise ValueError(
                 "atoms must reside inside their corresponding unit cell, which includes only the 0-faces in fractional coordinates."
             )
-        tuple_array = [tuple(row) for row in atoms_coord]
-        uniques = _np.unique(tuple_array)
+        uniques = _np.unique(atoms_coord, axis=0)
         if len(atoms_coord) != uniques.shape[0]:
             atoms_coord = _np.asarray(uniques)
-            print(
-                "Warning: Some atom positions are not unique. Duplicates were dropped, and now atom positions are {0}".format(
-                    atoms_coord
-                )
+            warnings.warn(
+                f"Some atom positions are not unique. Duplicates were dropped, and now atom positions are {atoms_coord}",
+                UserWarning,
             )
+
+        self._atoms_coord = atoms_coord
 
         if isinstance(pbc, bool):
             self._pbc = [pbc] * self._basis_vectors.shape[1]
@@ -196,6 +199,13 @@ class Lattice(NetworkX):
     @property
     def basis_vectors(self):
         return self._basis_vectors
+
+    @property
+    def atoms_coord(self):
+        """
+        Coordinates of atoms in the unit cell.
+        """
+        return self._atoms_coord
 
     def atom_label(self, site):
         return self._atoms[site]["Label"]

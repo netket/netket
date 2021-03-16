@@ -1,12 +1,32 @@
 import numpy as np
 import pytest
 
+import jax
+import jax.numpy as jnp
+
+from functools import partial
+
 import netket as nk
 import netket.variational as vmc
-from netket.operator import local_values
 from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
+
+WEIGHT_SEED = 3
+
+
+@partial(jax.jit, static_argnums=0)
+@partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=(0))
+def local_value_kernel(logpsi, pars, σ, σp, mel):
+    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
+
+
+def local_values(logpsi, variables, Ô, σ):
+    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+    loc_vals = local_value_kernel(
+        logpsi, variables, σ.reshape((-1, σ.shape[-1])), σp, mels
+    )
+    return loc_vals.reshape(σ.shape[:-1])
 
 
 def _setup():
@@ -15,32 +35,32 @@ def _setup():
 
     ham = nk.operator.Heisenberg(hi, graph=g)
 
-    ma = nk.machine.RbmSpin(hi, alpha=2)
-    ma.init_random_parameters()
+    ma = nk.models.RBM(alpha=2, dtype=np.complex64)
 
     return hi, ham, ma
 
 
 def _test_stats_mean_std(hi, ham, ma, n_chains):
-    sampler = nk.sampler.MetropolisLocal(ma, n_chains=n_chains)
+    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED * n_chains), jnp.zeros((1, hi.size)))
+
+    sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
 
     n_samples = 16000
     num_samples_per_chain = n_samples // n_chains
 
     # Discard a few samples
-    sampler.generate_samples(1000)
+    _, state = sampler.sample(ma, w, chain_length=1000)
 
-    samples = sampler.generate_samples(num_samples_per_chain)
+    samples, state = sampler.sample(
+        ma, w, chain_length=num_samples_per_chain, state=state
+    )
     assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
-    eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
-    for i in range(num_samples_per_chain):
-        eloc[i] = local_values(ham, ma, samples[i])
+    # eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
+    eloc = local_values(ma.apply, w, ham, samples)
+    assert eloc.shape == (num_samples_per_chain, n_chains)
 
     stats = statistics(eloc.T)
-
-    # These tests only work for one MPI process
-    assert nk.stats.MPI.COMM_WORLD.size == 1
 
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:
@@ -53,6 +73,9 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
+@pytest.mark.skipif(
+    nk.utils.n_nodes > 1, reason="This test works only on one MPI process"
+)
 def test_stats_mean_std():
     hi, ham, ma = _setup()
     for bs in (1, 2, 16, 32):
