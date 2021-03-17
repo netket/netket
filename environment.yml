@@ -10,7 +10,7 @@ dependencies:
   - numpy>=1.20
   - scipy>=1.5.2
   - networkx
-  - mpi4jax
+  - mpi4jax>=0.2.13
   - tqdm
   - pip
   - matplotlib
@@ -18,3 +18,4 @@ dependencies:
   - mpi4py
   - mkl
   - numba
+  - dm-tree
