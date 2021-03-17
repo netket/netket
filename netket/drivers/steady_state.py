@@ -15,7 +15,7 @@ from .abstract_variational_driver import AbstractVariationalDriver
 
 class SteadyState(AbstractVariationalDriver):
     """
-    Energy minimization using Variational Monte Carlo (VMC).
+    Steady-state driver minimizing L^†L.
     """
 
     def __init__(
@@ -40,20 +40,6 @@ class SteadyState(AbstractVariationalDriver):
                 the optimizer. If this parameter is not passed or None, SR is not used.
             sr_restart: whever to restart the SR solver at every iteration, or use the
                 previous result to speed it up
-
-        Example:
-            Optimizing a 1D wavefunction with Variational Monte Carlo.
-
-            >>> import netket as nk
-            >>> SEED = 3141592
-            >>> g = nk.graph.Hypercube(length=8, n_dim=1)
-            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-            >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-            >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
-            >>> ha = nk.operator.Ising(hi, h=1.0)
-            >>> sa = nk.sampler.MetropolisLocal(machine=ma)
-            >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> vmc = nk.Vmc(ha, sa, op, 200)
 
         """
         if variational_state is None:

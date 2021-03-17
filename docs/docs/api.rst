@@ -289,3 +289,18 @@ Check it out for up-to-date informations on available optimisers.
    netket.optimizer.Momentum
    netket.optimizer.RmsProp
 
+
+.. _drivers-api:
+
+Optimization drivers
+---------------------
+
+Those are the optimization drivers already implmented in Netket:
+
+.. autosummary::
+   :toctree: _generated/driver
+   :nosignatures:
+
+   netket.drivers.VMC
+   netket.drivers.SteadyState
+

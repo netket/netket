@@ -61,7 +61,8 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete drivers should either override this method, or override individually
         _forward and _backward.
 
-        :return: the update for the weights.
+        Returns:
+            the update for the weights.
         """
         self._forward()
         dp = self._backward()
@@ -134,14 +135,14 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self._step_count
 
-    def iter(self, n_steps, step=1):
+    def iter(self, n_steps: int, step: int = 1):
         """
         Returns a generator which advances the VMC optimization, yielding
         after every `step_size` steps.
 
         Args:
-            :n_iter (int=None): The total number of steps to perform.
-            :step_size (int=1): The number of internal steps the simulation
+            n_iter: The total number of steps to perform.
+            step_size: The number of internal steps the simulation
                 is advanced every turn.
 
         Yields:
@@ -156,11 +157,11 @@ class AbstractVariationalDriver(abc.ABC):
                 self._step_count += 1
                 self.update_parameters(dp)
 
-    def advance(self, steps=1):
+    def advance(self, steps: int = 1):
         """
         Performs `steps` optimization steps.
 
-        :param steps: (Default=1) number of steps
+        steps: (Default=1) number of steps
         """
         for _ in self.iter(steps):
             pass
@@ -183,17 +184,17 @@ class AbstractVariationalDriver(abc.ABC):
         overwriting files with the same prefix.
 
         Args:
-            :n_iter: the total number of iterations
-            :out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
+            n_iter: the total number of iterations
+            out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
-            :obs: An iterable containing all observables that should be computed
-            :save_params_every: Every how many steps the parameters of the network should be
-            serialized to disk (ignored if logger is provided)
-            :write_every: Every how many steps the json data should be flushed to disk (ignored if
-            logger is provided)
-            :step_size: Every how many steps should observables be logged to disk (default=1)
-            :show_progress: If true displays a progress bar (default=True)
-            :callback: Callable or list of callable callback functions to stop training given a condition
+            obs: An iterable containing all observables that should be computed
+            save_params_every: Every how many steps the parameters of the network should be
+                serialized to disk (ignored if logger is provided)
+            write_every: Every how many steps the json data should be flushed to disk (ignored if
+                logger is provided)
+            step_size: Every how many steps should observables be logged to disk (default=1)
+            show_progress: If true displays a progress bar (default=True)
+            callback: Callable or list of callable callback functions to stop training given a condition
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -280,7 +281,7 @@ class AbstractVariationalDriver(abc.ABC):
         Updates the parameters of the machine using the optimizer in this driver
 
         Args:
-            :param dp: the gradient
+            dp: the pytree containing the updates to the parameters
         """
         self._optimizer_state, self.state.parameters = apply_gradient(
             self._optimizer.update, self._optimizer_state, dp, self.state.parameters

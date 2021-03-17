@@ -174,7 +174,7 @@ use an arbitrary flax optimiser, or define your own.
 .. code-block:: python
 
     # Variational monte carlo driver
-    gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=100)
+    gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100)
 
     gs.run(n_iter=300, out=None)
 

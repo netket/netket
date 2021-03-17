@@ -40,7 +40,7 @@ sr = nk.optimizer.SR(diag_shift=0.01)
 vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
 
 # Variational monte carlo driver with a variational state
-gs = nk.Vmc(ha, op, variational_state=vs, sr=sr)
+gs = nk.VMC(ha, op, variational_state=vs, sr=sr)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out=None)
