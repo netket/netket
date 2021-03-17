@@ -1551,6 +1551,10 @@ html .tabbed-set > label:hover {
   border-bottom-right-radius: 0px !important;
 }
 
-ul {
+ul, ol {
+   list-style-position: inside;
+}
+
+ol.arabic {
    list-style-position: inside;
 }

@@ -143,7 +143,7 @@ Transition Rules
 
 Those are the transition rules that can be used with the Metropolis
 Sampler. Rules with `Numpy` in their name can only be used with 
-:ref:`MetropolisSamplerNumpy`.
+:class:`netket.sampler.MetropolisSamplerNumpy`.
 
 .. autosummary::
   :toctree: _generated/samplers

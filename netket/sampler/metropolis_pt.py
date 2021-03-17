@@ -97,11 +97,11 @@ class MetropolisPtSampler(MetropolisSampler):
         The move is accepted with probability
 
         .. math::
-        A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
+            A(s\\rightarrow s^\\prime) = \\mathrm{min}\\left (1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)})\\right),
 
         where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
         user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-        and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
+        and :math:`L(s,s^\\prime)` is a suitable correcting factor computed by the transition kernel.
 
 
         Args:

@@ -381,16 +381,18 @@ def MetropolisExchange(
     The transition probability associated to this sampler can
     be decomposed into two steps:
 
-    1. A pair of indices :math:`i,j = 1\dots N`, and such
-       that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
+    1. A pair of indices :math:`i,j = 1\dots N`, and such that
+       :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
        is chosen with uniform probability.
+
     2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
+
 
     Notice that this sampling method generates random permutations of the quantum
     numbers, thus global quantities such as the sum of the local quantum numbers
     are conserved during the sampling.
     This scheme should be used then only when sampling in a
-    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
+    region where :math:`\sum_i s_i = \mathrm{constant} ` is needed,
     otherwise the sampling would be strongly not ergodic.
 
     Args:
