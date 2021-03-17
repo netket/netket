@@ -38,10 +38,10 @@ class ExactSamplerState(SamplerState):
 @struct.dataclass
 class ExactSampler(Sampler):
     """
-    This sampler generates i.i.d. samples from $|\Psi(s)|^2$.
+    This sampler generates i.i.d. samples from :math:`|\\Psi(\\sigma)|^2`.
 
-    In order to perform exact sampling, $|\Psi(s)|^2$ is precomputed an all
-    the possible values of the quantum numbers $$s$$. This sampler has thus an
+    In order to perform exact sampling, :math:`|\\Psi(\\sigma)|^2` is precomputed an all
+    the possible values of the quantum numbers :math:`\\sigma`. This sampler has thus an
     exponential cost with the number of degrees of freedom, and cannot be used
     for large systems, where Metropolis-based sampling are instead a viable
     option.

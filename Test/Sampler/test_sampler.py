@@ -63,6 +63,12 @@ samplers["Metropolis(Hamiltonian): Spin"] = nk.sampler.MetropolisHamiltonian(
     reset_chain=True,
 )
 
+samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisSampler(
+    hi,
+    rule=nk.sampler.rules.HamiltonianRule(ha.to_local_operator()),
+    reset_chain=True,
+)
+
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )

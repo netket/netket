@@ -29,7 +29,9 @@ from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,
     MetropolisExchange,
-    #    MetropolisHamiltonian,
+    MetropolisRule,
+    MetropolisSamplerState,
+    MetropolisHamiltonian,
 )
 
 from .metropolis_numpy import (
@@ -53,7 +55,7 @@ MetropolisPt = MetropolisPtSampler
 MetropolisNumpy = MetropolisSamplerNumpy
 
 # Replacements for effficiency
-MetropolisHamiltonian = MetropolisHamiltonianNumpy
+# MetropolisHamiltonian = MetropolisHamiltonianNumpy
 MetropolisCustom = MetropolisCustomNumpy
 
 from netket.utils import _hide_submodules

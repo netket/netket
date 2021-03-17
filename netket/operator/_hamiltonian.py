@@ -320,6 +320,17 @@ class Ising(SpecialHamiltonian):
             self._J,
         )
 
+    def _get_conn_flattened_closure(self):
+        _edges = self._edges
+        _h = self._h
+        _J = self._J
+        fun = self._flattened_kernel
+
+        def gccf_fun(x, sections):
+            return fun(x, sections, _edges, _h, _J)
+
+        return jit(nopython=True)(gccf_fun)
+
     def __repr__(self):
         return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
 
@@ -704,3 +715,32 @@ class BoseHubbard(SpecialHamiltonian):
             self._n_max,
             self._max_conn,
         )
+
+    def _get_conn_flattened_closure(self):
+        _edges = (self._edges,)
+        _max_mels = (self._max_mels,)
+        _max_xprime = (self._max_xprime,)
+        _U = (self._U,)
+        _V = (self._V,)
+        _J = (self._J,)
+        _mu = (self._mu,)
+        _n_max = (self._n_max,)
+        _max_conn = (self._max_conn,)
+        fun = self._flattened_kernel
+
+        def gccf_fun(x, sections):
+            return fun(
+                x,
+                sections,
+                _edges,
+                _max_mels,
+                _max_xprime,
+                _U,
+                _V,
+                _J,
+                _mu,
+                _n_max,
+                _max_conn,
+            )
+
+        return jit(nopython=True)(gccf_fun)

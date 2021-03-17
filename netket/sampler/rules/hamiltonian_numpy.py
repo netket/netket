@@ -41,10 +41,14 @@ class HamiltonianRuleNumpy(MetropolisRule):
     In this case, the transition matrix is taken to be:
 
     .. math::
-       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+
+    Attributes:
+        Ô: The (hermitian) operator giving the transition amplitudes.
+
     """
 
-    Ô: Any = struct.field(pytree_node=False)
+    Ô: AbstractOperator = struct.field(pytree_node=False)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert

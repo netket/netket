@@ -447,6 +447,9 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
     Notice that this sampler preserves by construction all the symmetries
     of the Hamiltonian. This is in generally not true for the local samplers instead.
 
+    This sampler only works on the CPU. To use the Hamiltonian smapler with GPUs,
+    you should use :class:`netket.sampler.MetropolisHamiltonianNumpy`
+
     Args:
        machine: A machine :math:`\Psi(s)` used for the sampling.
                 The probability distribution being sampled
