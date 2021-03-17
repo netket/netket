@@ -39,10 +39,19 @@ class HamiltonianRule(MetropolisRule):
     In this case, the transition matrix is taken to be:
 
     .. math::
-       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+
+    This rule only works on CPU! If you want to use it on GPU, you
+    must use the numpy variant :class:`netket.sampler.rules.HamiltonianRuleNumpy`
+    together with the numpy metropolis sampler
+    :class:`netket.sampler.MetropolisSamplerNumpy`.
+
+    Attributes:
+        Ô: The (hermitian) operator giving the transition amplitudes.
+
     """
 
-    Ô: Any = struct.field(pytree_node=False)
+    Ô: AbstractOperator = struct.field(pytree_node=False)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
