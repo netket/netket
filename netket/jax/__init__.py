@@ -33,7 +33,7 @@ from ._grad import grad, value_and_grad
 
 from ._expect import expect
 
-from .jambax import numba_to_jax, njit4jax
+from .numba4jax import numba_to_jax, njit4jax
 
 from netket.utils import _hide_submodules
 
