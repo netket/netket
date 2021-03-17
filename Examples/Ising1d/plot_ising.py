@@ -16,10 +16,10 @@ while True:
     plt.xlabel("Iteration #")
 
     data = json.load(open("test.log"))
-    iters = data["Energy"]["Mean"]["iters"]
-    energy = data["Energy"]["Mean"]["values"]
-    sigma = data["Energy"]["Sigma"]["values"]
-    evar = data["Energy"]["Variance"]["values"]
+    iters = data["Energy"]["iters"]
+    energy = data["Energy"]["Mean"]
+    sigma = data["Energy"]["Sigma"]
+    evar = data["Energy"]["Variance"]
 
     nres = len(iters)
     cut = 60
