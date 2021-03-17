@@ -33,17 +33,6 @@ class MetropolisRule:
     """
     Base class for Transition rules of Metropolis, such as Local, Exchange, Hamiltonian
     and several others.
-
-    Methods:
-        - init_state(rule, sampler, machine, params), constructing the state of the rule.
-        By default the state is None.
-
-        - reset(rule, sampler, machine, parameters, state), resets the state of the rule,
-        by default returns None.
-        - transition(rule, sampler, machine, parameters, state, key, σ), which returns a
-        new configuration given the configuration σ and rng key key.
-        - random_state(rule, sampler, machine, parameters, state, key), which returns a
-        new random configuration. By default this uses standard hilbert random_state.
     """
 
     def init_state(
@@ -55,12 +44,15 @@ class MetropolisRule:
     ) -> Optional[Any]:
         """
         Initialises the optional internal state of the Metropolis Sampler Transition
-        Rule. The provided key is unique and does not need to be splitted
+        Rule.
+
+        The provided key is unique and does not need to be splitted.
         It should return an immutable datastructure.
 
         Arguments:
             sampler: The Metropolis sampler
             machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
+            params: The dict of variables needed to evaluate the model.
             key: A Jax PRNGKey rng state.
 
         Returns:
@@ -81,7 +73,7 @@ class MetropolisRule:
         Arguments:
             sampler: The Metropolis sampler
             machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
-            key: A Jax PRNGKey rng state.
+            params: The dict of variables needed to evaluate the model.
             sampler_state: The current state of the sampler. Should not modify it.
 
         Returns:
@@ -109,6 +101,18 @@ class MetropolisRule:
         state: SamplerState,
         key: PRNGKey,
     ):
+        """
+        Generates a random state compatible with this rule.
+
+        By default this calls :func:`netket.hilbert.random.random_state`.
+
+        Arguments:
+            sampler: the sampler
+            machine: the function to evaluate the model
+            parameters: the parameters of the model
+            state: the current sampler state
+            key: the PRNGKey to use to generate the random state
+        """
         return sampler.hilbert.random_state(
             key, size=sampler.n_batches, dtype=sampler.dtype
         )
