@@ -43,4 +43,4 @@ Also note that several keyword arguments of the samplers have changed, and new o
 
 * The :ref:`SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be optained by calling :ref:`MCState.quantum_geometric_tensor(sr)`. Depending on the settings, this can be a lazy object.
 
-
+* :ref:`netket.Vmc` hasa been renamed to :ref:`netkt.VMC`

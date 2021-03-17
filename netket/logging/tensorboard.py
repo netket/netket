@@ -3,8 +3,6 @@ from os import path as _path
 from netket.legacy.vmc_common import tree_map as _tree_map
 from netket.stats.mc_stats import Stats
 
-from tensorboardX import SummaryWriter
-
 
 def tree_log(tree, root, data):
     """
@@ -46,6 +44,8 @@ class TBLog:
 
     https://tensorboardx.readthedocs.io/en/latest/tensorboard.html
 
+    TensorBoardX must be installed.
+
     Args:
         logdir (string): Save directory location. Default is
           runs/**CURRENT_DATETIME_HOSTNAME**, which changes after each run.
@@ -69,17 +69,19 @@ class TBLog:
           tensorboard.summary.writer.event_file_writer.EventFileWriter.
         write_to_disk (boolean):
           If pass `False`, TBLog will not write to disk.
-    Examples::
-        import netket as nk
-        # create a summary writer with automatically generated folder name.
-        writer = nk.logging.TBLog()
-        # folder location: runs/May04_22-14-54_s-MacBook-Pro.local/
-        # create a summary writer using the specified folder name.
-        writer = nk.logging.TBLog("my_experiment")
-        # folder location: my_experiment
-        # create a summary writer with comment appended.
-        writer = nk.logging.TBLog(comment="LR_0.1_BATCH_16")
-        # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
+    Examples:
+        Logging optimisation to tensorboard.
+
+        >>> import netket as nk
+        >>> # create a summary writer with automatically generated folder name.
+        >>> writer = nk.logging.TBLog()
+        >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.local/
+        >>> # create a summary writer using the specified folder name.
+        >>> writer = nk.logging.TBLog("my_experiment")
+        >>> # folder location: my_experiment
+        >>> # create a summary writer with comment appended.
+        >>> writer = nk.logging.TBLog(comment="LR_0.1_BATCH_16")
+        >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
     def __init__(
@@ -87,6 +89,7 @@ class TBLog:
         *args,
         **kwargs,
     ):
+        from tensorboardX import SummaryWriter
 
         self._writer = SummaryWriter(*args, **kwargs)
 

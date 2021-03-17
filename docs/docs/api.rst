@@ -304,3 +304,19 @@ Those are the optimization drivers already implmented in Netket:
    netket.drivers.VMC
    netket.drivers.SteadyState
 
+
+.. _logging-api:
+
+Logging output
+--------------
+
+Those are the optimization drivers already implmented in Netket:
+
+.. autosummary::
+   :toctree: _generated/driver
+   :nosignatures:
+
+   netket.logging.JsonLog
+   netket.logging.RuntimeLog
+   netket.logging.TBLog
+

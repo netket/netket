@@ -71,6 +71,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         message: |
           Hello and thanks for your Contribution!
-          I will be building previews of the updated documentation.
-          You can access them at this link:
+          I will be building previews of the updated documentation at the following link:
           https://netket.github.io/netket/preview/${{ steps.determine-branch.outputs.branch }}
+
+          Once the PR is closed or merged, the preview will be automatically deleted.
