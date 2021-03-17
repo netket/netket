@@ -310,7 +310,7 @@ Those are the optimization drivers already implmented in Netket:
 Logging output
 --------------
 
-Those are the optimization drivers already implmented in Netket:
+Those are the loggers that can be used with the optimization drivers.
 
 .. autosummary::
    :toctree: _generated/driver
