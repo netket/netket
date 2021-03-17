@@ -143,7 +143,7 @@ Transition Rules
 
 Those are the transition rules that can be used with the Metropolis
 Sampler. Rules with `Numpy` in their name can only be used with 
-:ref:`MetropolisSamplerNumpy`.
+:class:`netket.sampler.MetropolisSamplerNumpy`.
 
 .. autosummary::
   :toctree: _generated/samplers
@@ -288,4 +288,35 @@ Check it out for up-to-date informations on available optimisers.
    netket.optimizer.Sgd
    netket.optimizer.Momentum
    netket.optimizer.RmsProp
+
+
+.. _drivers-api:
+
+Optimization drivers
+---------------------
+
+Those are the optimization drivers already implmented in Netket:
+
+.. autosummary::
+   :toctree: _generated/driver
+   :nosignatures:
+
+   netket.drivers.VMC
+   netket.drivers.SteadyState
+
+
+.. _logging-api:
+
+Logging output
+--------------
+
+Those are the loggers that can be used with the optimization drivers.
+
+.. autosummary::
+   :toctree: _generated/driver
+   :nosignatures:
+
+   netket.logging.JsonLog
+   netket.logging.RuntimeLog
+   netket.logging.TBLog
 

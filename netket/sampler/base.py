@@ -89,7 +89,7 @@ class Sampler(abc.ABC):
         """
         The batch size of the configuration $\sigma$ used by this sampler.
 
-        In general, it is equivalent to :ref:`n_chains`.
+        In general, it is equivalent to :attr:`~Sampler.n_chains`.
         """
         return self.n_chains
 

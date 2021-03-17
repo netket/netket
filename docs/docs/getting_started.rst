@@ -165,16 +165,16 @@ you must provide the constructor the hilbert space to be sampled and some option
 .. code-block:: python
 
     # Optimizer
-    op = nk.optim.GradientDescent(learning_rate=0.01)
+    op = nk.optimizer.Sgd(learning_rate=0.01)
 
 
-You can then chose an optimizer from the :ref:`optim` submodule. You can also 
+You can then chose an optimizer from the :ref:`optimizer` submodule. You can also 
 use an arbitrary flax optimiser, or define your own.  
 
 .. code-block:: python
 
     # Variational monte carlo driver
-    gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=100)
+    gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100)
 
     gs.run(n_iter=300, out=None)
 
@@ -186,4 +186,3 @@ sampler, mahcine and various options.
 Once that is done, you can run the simulation by calling the :ref:`run` method
 in the driver, specifying the output loggers and the number of iterations in
 the optimisation.
-

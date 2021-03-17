@@ -44,27 +44,29 @@ def default(obj):
 
 class JsonLog(RuntimeLog):
     """
-    Creates a Json Logger sink object, that can be passed with keyword argument `logger` to Monte
+    Json Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the outpit data of the simulation.
 
     If the model state is serialized, then it is serialized using the msgpack protocol of flax.
     For more information on how to de-serialize the output, see
-    `here <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_
-
-    Args:
-        output_prefix: the name of the output files before the extension
-        save_params_every: every how many iterations should machine parameters be flushed to file
-        write_every: every how many iterations should data be flushed to file
-        mode: Specify the behaviour in case the file already exists at this output_prefix. Options
-        are
-        - `[w]rite`: (default) overwrites file if it already exists;
-        - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
-        - `[x]` or `fail`: fails if file already exists;
+    `here <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_.
     """
 
     def __init__(
         self, output_prefix, mode="write", save_params_every=50, write_every=50
     ):
+        """
+        Construct a Json Logger.
+
+        Args:
+            output_prefix: the name of the output files before the extension
+            save_params_every: every how many iterations should machine parameters be flushed to file
+            write_every: every how many iterations should data be flushed to file
+            mode: Specify the behaviour in case the file already exists at this output_prefix. Options are
+                - `[w]rite`: (default) overwrites file if it already exists;
+                - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
+                - `[x]` or `fail`: fails if file already exists;
+        """
         super().__init__()
 
         # Shorthands for mode
@@ -145,7 +147,8 @@ class JsonLog(RuntimeLog):
         """
         Writes to file the content of this logger.
 
-        :param machine: optionally also writes the parameters of the machine.
+        Args:
+            variational_state: optionally also writes the parameters of the machine.
         """
         self._flush_log()
 

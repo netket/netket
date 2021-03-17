@@ -50,6 +50,27 @@ def warn_deprecation(message):
     warnings.warn(message, category=FutureWarning, stacklevel=2)
 
 
+def deprecated_new_name(message):
+    def deprecated_decorator(func):
+        @functools.wraps(func)
+        def deprecated_func(*args, **kwargs):
+            warnings.warn(
+                """{} has been renamed to {}. The old name is 
+                now deprecated and will be removed in the next minor version.
+                
+                Please updaate your code.
+                """.format(
+                    func.__name__, message
+                ),
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+
+        return deprecated_func
+
+    return deprecated_decorator
+
+
 from functools import wraps
 
 

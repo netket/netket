@@ -20,8 +20,7 @@ config.update("jax_enable_x64", True)
 del config
 
 from . import utils
-from .utils import config
-
+from .utils import config, deprecated_new_name as _deprecated
 
 __all__ = [
     "exact",
@@ -56,10 +55,16 @@ from . import (
 )
 
 # Main applications
-from .drivers import Vmc
+from .drivers import VMC
 from .drivers import SteadyState
 
 # from .drivers import Qsr
+
+
+@_deprecated("VMC")
+def Vmc(*args, **kwarags):
+    return VMC(*args, **kwarags)
+
 
 # deprecations
 optim = optimizer

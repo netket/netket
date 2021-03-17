@@ -44,16 +44,13 @@ class VMC(AbstractVariationalDriver):
             Optimizing a 1D wavefunction with Variational Monte Carlo.
 
             >>> import netket as nk
-            >>> SEED = 3141592
-            >>> g = nk.graph.Hypercube(length=8, n_dim=1)
-            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-            >>> ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-            >>> ma.init_random_parameters(seed=SEED, sigma=0.01)
-            >>> ha = nk.operator.Ising(hi, h=1.0)
-            >>> sa = nk.sampler.MetropolisLocal(machine=ma)
+            >>> hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+            >>> ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+            >>> ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
+            >>> sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
             >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> vmc = nk.Vmc(ha, sa, op, 200)
-
+            >>> gs = nk.drivers.VMC(ha, op, sa, ma, n_samples=1000, n_discard=50)
+            >>> gs.run(n_iter=300, out="test")
         """
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
