@@ -63,3 +63,14 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: docs/_build/html/
         destination_dir: preview/${{ steps.determine-branch.outputs.branch }}
+
+    - name: Comment on PR 
+      if: success() && github.ref != 'refs/heads/master'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        message: |
+          Hello and thanks for your Contribution!
+          I will be building previews of the updated documentation.
+          You can access them at this link:
+          https://netket.github.io/netket/preview/${{ steps.determine-branch.outputs.branch }}
