@@ -463,6 +463,7 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
 
     1. One of the site indices :math:`i = 1\dots N` is chosen
     with uniform probability.
+
     2. Among all the possible (:math:`m`) values that :math:`s_i` can take,
     one of them is chosen with uniform probability.
 
@@ -507,6 +508,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
     1. A pair of indices :math:`i,j = 1\dots N`, and such
        that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
        is chosen with uniform probability.
+
     2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
 
     Notice that this sampling method generates random permutations of the quantum

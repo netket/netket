@@ -25,6 +25,7 @@ from jax.util import as_hashable_function
 
 import flax
 from flax import linen as nn
+from flax import serialization
 
 import netket
 from netket import jax as nkjax
@@ -115,7 +116,7 @@ class MCMixedState(VariationalMixedState, MCState):
                 nkjax.PRNGKey(sampler_seed)
             )
 
-        self.diagonal = None
+        self._diagonal = None
 
         hilbert_physical = sampler.hilbert.physical
 
@@ -140,7 +141,7 @@ class MCMixedState(VariationalMixedState, MCState):
             if kw in kwargs:
                 kwargs.pop(kw)
 
-        self.diagonal = MCState(
+        self._diagonal = MCState(
             sampler_diag,
             apply_fun=diagonal_apply_fun,
             n_samples=n_samples_diag,
@@ -155,6 +156,10 @@ class MCMixedState(VariationalMixedState, MCState):
 
     # def init(self, *args, **kwargs):
     #    super().init(*args, **kwargs)
+
+    @property
+    def diagonal(self):
+        return self._diagonal
 
     @property
     def sampler_diag(self) -> Sampler:
@@ -273,3 +278,47 @@ class MCMixedState(VariationalMixedState, MCState):
             + "sampler = {}, ".format(self.sampler)
             + "n_samples = {})".format(self.n_samples)
         )
+
+
+# serialization
+
+
+def serialize_MCMixedState(vstate):
+    state_dict = {
+        "variables": serialization.to_state_dict(vstate.variables),
+        "sampler_state": serialization.to_state_dict(vstate.sampler_state),
+        "diagonal": serialization.to_state_dict(vstate.diagonal),
+        "n_samples": vstate.n_samples,
+        "n_discard": vstate.n_discard,
+    }
+    return state_dict
+
+
+def deserialize_MCMixedState(vstate, state_dict):
+    import copy
+
+    new_vstate = copy.copy(vstate)
+    new_vstate.reset()
+
+    # restore the diagonal first so we can relink the samples
+    new_vstate._diagonal = serialization.from_state_dict(
+        vstate._diagonal, state_dict["diagonal"]
+    )
+
+    new_vstate.variables = serialization.from_state_dict(
+        vstate.variables, state_dict["variables"]
+    )
+    new_vstate.sampler_state = serialization.from_state_dict(
+        vstate.sampler_state, state_dict["sampler_state"]
+    )
+    new_vstate.n_samples = state_dict["n_samples"]
+    new_vstate.n_discard = state_dict["n_discard"]
+
+    return new_vstate
+
+
+serialization.register_serialization_state(
+    MCMixedState,
+    serialize_MCMixedState,
+    deserialize_MCMixedState,
+)

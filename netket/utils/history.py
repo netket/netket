@@ -54,7 +54,10 @@ class History:
             self.iters = np.resize(self.iters, (len(self.iters) + 1))
 
         if it is None:
-            it = self.iters[-1] - self.iters[-2]
+            if len(self.iters) > 2:
+                it = self.iters[-1] - self.iters[-2]
+            else:
+                it = len(self.iters)  # 0, 1...
 
         self.values[-1] = val
         self.iters[-1] = it
@@ -110,6 +113,7 @@ class MVHistory:
             _value_dict["value"] = values
             _single_value = True
             _keys.append("value")
+            _len = 1
 
         elif hasattr(values, "to_compound"):
             _value_name, value_dict = values.to_compound()
@@ -230,6 +234,24 @@ class MVHistory:
         """
         """ Returns the Iterator object """
         return iter(zip(self.iters, self.values))
+
+    def __getattr__(self, attr):
+        # Allow users to access fields with . accessor patterns
+        if attr in self._value_dict:
+            return self._value_dict[attr]
+
+        raise AttributeError
+
+    def __repr__(self):
+        return (
+            "MVHistory("
+            + f"\n   keys  = {self.keys()}, "
+            + f"\n   iters = {self.iters},"
+            + f"\n)"
+        )
+
+    def __str__(self):
+        return f"MVHistory(keys={self.keys()}, n_iters={len(self.iters)})"
 
 
 from functools import partial

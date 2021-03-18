@@ -112,6 +112,8 @@
 
    docs/getting_started
    docs/whats_new
+   docs/varstate
+   docs/drivers
    docs/api
    docs/sharp-bits
 ..
