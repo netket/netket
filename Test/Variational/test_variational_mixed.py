@@ -140,7 +140,7 @@ def test_n_samples_diag_api(vstate):
 
     vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
     vstate.n_discard_diag = None
-    assert vstate.n_discard_diag == vstate.chain_length_diag // 10
+    assert vstate.n_discard_diag == vstate.n_samples_diag // 10
 
 
 def test_serialization(vstate):
