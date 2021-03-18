@@ -96,7 +96,7 @@ def test_n_samples_api(vstate):
         hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16
     )
     vstate.n_discard = None
-    assert vstate.n_discard == vstate.chain_length // 10
+    assert vstate.n_discard == vstate.n_samples // 10
 
 
 def test_n_samples_diag_api(vstate):
