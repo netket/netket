@@ -1,10 +1,11 @@
 include LICENSE
 include README.md
 
-prune docs
+prune .github
 prune conf
-prune Tutorials
+prune docs
 prune Notes
+prune Tutorials
 
 exclude codecov.yml
 exclude postBuild
