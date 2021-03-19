@@ -96,7 +96,7 @@ def test_n_samples_api(vstate):
         hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16
     )
     vstate.n_discard = None
-    assert vstate.n_discard == vstate.chain_length // 10
+    assert vstate.n_discard == vstate.n_samples // 10
 
 
 def test_n_samples_diag_api(vstate):
@@ -140,4 +140,26 @@ def test_n_samples_diag_api(vstate):
 
     vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
     vstate.n_discard_diag = None
-    assert vstate.n_discard_diag == vstate.chain_length_diag // 10
+    assert vstate.n_discard_diag == vstate.n_samples_diag // 10
+
+
+def test_serialization(vstate):
+    from flax import serialization
+
+    bdata = serialization.to_bytes(vstate)
+
+    vstate_new = nk.variational.MCMixedState(
+        vstate.sampler, vstate.model, n_samples=10, seed=SEED + 313
+    )
+
+    vstate_new = serialization.from_bytes(vstate_new, bdata)
+
+    jax.tree_multimap(
+        np.testing.assert_allclose, vstate.parameters, vstate_new.parameters
+    )
+    np.testing.assert_allclose(vstate.samples, vstate_new.samples)
+    np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
+    assert vstate.n_samples == vstate_new.n_samples
+    assert vstate.n_discard == vstate_new.n_discard
+    assert vstate.n_samples_diag == vstate_new.n_samples_diag
+    assert vstate.n_discard_diag == vstate_new.n_discard_diag

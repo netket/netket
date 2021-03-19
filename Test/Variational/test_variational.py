@@ -112,7 +112,29 @@ def test_n_samples_api(vstate):
 
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
     vstate.n_discard = None
-    assert vstate.n_discard == vstate.chain_length // 10
+    assert vstate.n_discard == vstate.n_samples // 10
+
+
+def test_serialization(vstate):
+    from flax import serialization
+
+    bdata = serialization.to_bytes(vstate)
+
+    old_params = vstate.parameters
+    old_samples = vstate.samples
+    old_nsamples = vstate.n_samples
+    old_ndiscard = vstate.n_discard
+
+    vstate = nk.variational.MCState(
+        vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
+    )
+
+    vstate = serialization.from_bytes(vstate, bdata)
+
+    jax.tree_multimap(np.testing.assert_allclose, vstate.parameters, old_params)
+    np.testing.assert_allclose(vstate.samples, old_samples)
+    assert vstate.n_samples == old_nsamples
+    assert vstate.n_discard == old_ndiscard
 
 
 def test_init_parameters(vstate):

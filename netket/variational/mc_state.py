@@ -300,7 +300,7 @@ class MCState(VariationalState):
             n_discard = 0
 
         self._n_discard = (
-            int(n_discard) if n_discard is not None else self.chain_length // 10
+            int(n_discard) if n_discard is not None else self.n_samples // 10
         )
 
     def reset(self):
@@ -780,23 +780,28 @@ def grad_expect_operator_Lrho2(
 # serialization
 
 
-def serialize_classical_variational_state(vstate):
+def serialize_MCState(vstate):
     state_dict = {
-        "variables": vstate.variables,
-        "sampler_state": vstate.sampler_state,
+        "variables": serialization.to_state_dict(vstate.variables),
+        "sampler_state": serialization.to_state_dict(vstate.sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard": vstate.n_discard,
     }
     return state_dict
 
 
-def deserialize_classical_variational_state(vstate, state_dict):
+def deserialize_MCState(vstate, state_dict):
     import copy
 
     new_vstate = copy.copy(vstate)
+    new_vstate.reset()
 
-    new_vstate.variables = state_dict["variables"]
-    new_vstate.sampler_state = state_dict["sampler_state"]
+    new_vstate.variables = serialization.from_state_dict(
+        vstate.variables, state_dict["variables"]
+    )
+    new_vstate.sampler_state = serialization.from_state_dict(
+        vstate.sampler_state, state_dict["sampler_state"]
+    )
     new_vstate.n_samples = state_dict["n_samples"]
     new_vstate.n_discard = state_dict["n_discard"]
 
@@ -805,6 +810,6 @@ def deserialize_classical_variational_state(vstate, state_dict):
 
 serialization.register_serialization_state(
     MCState,
-    serialize_classical_variational_state,
-    deserialize_classical_variational_state,
+    serialize_MCState,
+    deserialize_MCState,
 )

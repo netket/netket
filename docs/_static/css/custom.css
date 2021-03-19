@@ -1551,10 +1551,10 @@ html .tabbed-set > label:hover {
   border-bottom-right-radius: 0px !important;
 }
 
-ul, ol {
-   list-style-position: inside;
-}
 
-ol.arabic {
-   list-style-position: inside;
+dl.nav,
+ol.nav,
+ul.nav {
+  list-style-position: inherit;
+  margin-left: 0;
 }

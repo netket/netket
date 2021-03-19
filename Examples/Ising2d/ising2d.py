@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
 
 import netket as nk
 
-# 1D Lattice
-L = 20  # 10
-
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+# 2D Lattice
+g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 
-# Ising spin hamiltonian
-ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
+# Ising spin hamiltonian at the critical point
+ha = nk.operator.Ising(hilbert=hi, graph=g, h=3.0)
 
 # RBM Spin Machine
 ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
@@ -31,11 +29,21 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
+# The variational state
+vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
+vs.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=1234)
+
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
-# Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000)
+# Stochastic Reconfiguration
+sr = nk.optimizer.SR(diag_shift=0.1)
 
-# Run the optimization for 300 iterations
-gs.run(n_iter=300, out="test")
+# Variational monte carlo driver
+gs = nk.VMC(ha, op, variational_state=vs, sr=sr)
+
+# Create a JSON output file, and overwrite if file exists
+logger = nk.logging.JsonLog("test", "w")
+
+# Run the optimization
+gs.run(n_iter=1000, out=logger)

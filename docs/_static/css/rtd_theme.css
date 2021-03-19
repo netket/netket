@@ -112,8 +112,11 @@ sub {
 dl,
 ol,
 ul {
+  list-style-position: outside;
   margin: 0;
   padding: 0;
+  list-style-position: outside;
+  margin-left: 1em;
   /*list-style: none;
   list-style-image: none;*/
 }

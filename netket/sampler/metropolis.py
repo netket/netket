@@ -340,8 +340,8 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
     The transition probability associated to this
     sampler can be decomposed into two steps:
 
-    1. One of the site indices :math:`i = 1\dots N` is chosen
-    with uniform probability.
+    1. One of the site indices :math:`i = 1\dots N` is chosen with uniform probability.
+
     2. Among all the possible (:math:`m`) values that :math:`s_i` can take,
     one of them is chosen with uniform probability.
 

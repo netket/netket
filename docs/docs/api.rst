@@ -49,6 +49,7 @@ Operators
    :toctree: _generated/operator
    :nosignatures:
 
+   netket.operator.AbstractOperator
    netket.operator.BoseHubbard
    netket.operator.GraphOperator
    netket.operator.LocalOperator
@@ -301,6 +302,7 @@ Those are the optimization drivers already implmented in Netket:
    :toctree: _generated/driver
    :nosignatures:
 
+   netket.drivers.AbstractVariationalDriver
    netket.drivers.VMC
    netket.drivers.SteadyState
 
@@ -319,4 +321,19 @@ Those are the loggers that can be used with the optimization drivers.
    netket.logging.JsonLog
    netket.logging.RuntimeLog
    netket.logging.TBLog
+
+
+.. _callbacks-api:
+
+Callbacks
+--------------
+
+Those callbacks can be used with the optimisation drivers.
+
+.. autosummary::
+   :toctree: _generated/callbacks
+   :nosignatures:
+
+   netket.callbacks.EarlyStopping
+   netket.callbacks.Timeout
 

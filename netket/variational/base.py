@@ -132,7 +132,7 @@ class VariationalState(abc.ABC):
             otherwise for a mixed state $\rho$, this is $<O> = \Tr[\rho \hat{O}/\Tr[\rho]$.
 
         Args:
-            Ô (netket.operator.AbstractOperator): the operator O.
+            Ô: the operator O.
 
         Returns:
             An estimation of the quantum expectation value <O>.
@@ -164,9 +164,16 @@ class VariationalState(abc.ABC):
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
         Args:
-            Ô: the operator O
+            Ô: the operator Ô for which we compute the expectation value and it's gradient
+            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                     single mutable  collection. list: A list of names of mutable collections.
+                     This is used to mutate the state of the model while you train it (for example
+                     to implement BatchNorm. Consult
+                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                     for a more in-depth exaplanation).
             is_hermitian: optional override for whever to use or not the hermitian logic. By default
-                it's automatically detected.
+                          it's automatically detected.
 
         Returns:
             An estimation of the quantum expectation value <O>.
