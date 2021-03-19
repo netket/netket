@@ -1,2 +1,10 @@
 include LICENSE
 include README.md
+
+prune docs
+prune conf
+prune Tutorials
+prune Notes
+
+exclude codecov.yml
+exclude postBuild
