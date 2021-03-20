@@ -608,8 +608,8 @@ class LocalOperator(AbstractOperator):
 
         self._is_hermitian = isherm
 
-    # @jit(nopython=True)
     @staticmethod
+    @jit(nopython=True)
     def _append_matrix(
         operator,
         diag_mels,
