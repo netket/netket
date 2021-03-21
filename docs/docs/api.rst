@@ -55,6 +55,7 @@ Operators
    netket.operator.LocalOperator
    netket.operator.Ising
    netket.operator.Heisenberg
+   netket.operator.LocalLiouvillian
 
 
 Pre-defined operators

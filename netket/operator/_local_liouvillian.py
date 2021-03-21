@@ -1,62 +1,97 @@
 import numbers
+from typing import List as PyList
 
 import numpy as np
+import numba
 from numba import jit
 from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
 from ._abstract_operator import AbstractOperator
-from netket.hilbert import DoubledHilbert
-
-
-class AbstractSuperOperator(AbstractOperator):
-    def __init__(self, hilbert):
-        super().__init__(DoubledHilbert(hilbert))
-
-    @property
-    def hilbert_physical(self):
-        return self.hilbert.physical
+from ._local_operator import LocalOperator
+from ._abstract_super_operator import AbstractSuperOperator
 
 
 class LocalLiouvillian(AbstractSuperOperator):
-    def __init__(self, ham, jump_ops=[]):
+    """
+    LocalLiouvillian super-operator, acting on the DoubledHilbert (tensor product) space
+    ℋ⊗ℋ.
+
+    Internally it uses :ref:`nk.operator.LocalOperator` everywhere.
+
+
+    The Liouvillian is defined according to the definition:
+
+    .. math ::
+
+        \\mathcal{L} = -i \\left[ \\hat{H}, \\hat{\\rho}\\right] + \\sum_i \\left[ \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger -
+            \\left\\{ \\hat{L}_i^\\dagger\\hat{L}_i, \\hat{\\rho} \\right\\} \\right]
+
+    which generates the dynamics according to the equation
+
+    .. math ::
+
+        \\frac{d\\hat{\\rho}}{dt} = \\mathcal{L}\\hat{\\rho}
+
+    Internally, it stores the non-hermitian hamiltonian
+
+    .. math ::
+
+        \\hat{H}_{nh} = \\hat{H} - \\sum_i \\frac{i}{2}\\hat{L}_i^\\dagger\\hat{L}_i
+
+    That is then composed with the jump operators in the inner kernel with the formula:
+
+    .. math ::
+
+        \\mathcal{L} = -i \\hat{H}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger
+
+    """
+
+    def __init__(
+        self,
+        ham: AbstractOperator,
+        jump_ops: PyList[AbstractOperator] = [],
+        dtype=complex,
+    ):
         super().__init__(ham.hilbert)
 
         self._H = ham
-        self._jump_ops = [op for op in jump_ops]  # to accept dicts
+        self._jump_ops = [op.copy(dtype=dtype) for op in jump_ops]  # to accept dicts
         self._Hnh = ham
         self._Hnh_dag = ham.H
         self._max_dissipator_conn_size = 0
         self._max_conn_size = 0
 
+        self._dtype = dtype
+
         self._compute_hnh()
 
     @property
-    def size(self):
-        return self._size
-
-    @property
     def dtype(self):
-        return self._Hnh.dtype
+        return self._dtype
 
     @property
     def is_hermitian(self):
         return False
 
     @property
-    def ham(self):
+    def hamiltonian(self) -> LocalOperator:
+        """The hamiltonian of this Liouvillian"""
         return self._H
 
     @property
-    def ham_nh(self):
+    def hamiltonian_nh(self) -> LocalOperator:
+        """The non hermitian Local Operator part of the Liouvillian"""
         return self._Hnh
 
     @property
-    def jump_ops(self):
+    def jump_operators(self) -> PyList[LocalOperator]:
+        """The list of local operators in this Liouvillian"""
         return self._jump_ops
 
     def _compute_hnh(self):
+        # There is no i here because it's inserted in the kernel
         Hnh = 1.0 * self._H
         max_conn_size = 0
         for L in self._jump_ops:
