@@ -6,7 +6,8 @@ from ._pauli_strings import PauliStrings
 from ._lazy import Adjoint, Transpose, Squared
 from ._hamiltonian import Ising, Heisenberg, BoseHubbard
 
-from ._local_liouvillian import AbstractSuperOperator, LocalLiouvillian
+from ._abstract_super_operator import AbstractSuperOperator
+from ._local_liouvillian import LocalLiouvillian
 
 from . import spin, boson
 
