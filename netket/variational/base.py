@@ -99,6 +99,10 @@ class VariationalState(abc.ABC):
         Re-initializes all the parameters with the provided initialization function, defaulting to
         the normal distribution of standard deviation 0.01.
 
+        .. warn::
+            The init function will not change the dtype of the parameters, which is determined by the
+            model.
+
         Args:
             init_fun: a jax initializer such as :ref:`netket.nn.initializers.normal`. Must be a Callable
                 taking 3 inputs, the jax PRNG key, the shape and the dtype, and outputting an array with

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
 
 # 1D Lattice
 L = 20  # 10
@@ -26,7 +27,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
+ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=np.float64)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
