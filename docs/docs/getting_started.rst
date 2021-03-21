@@ -14,14 +14,9 @@ Installation and requirements
 Netket v3.0 requires `python>= 3.8` and optionally a recent MPI install.
 To install, run one of the two following commands
 
-.. code-block:: 
+.. code:: bash 
 
    pip install --pre netket
-   pip install --pre netket[mpi]
-
-The latter enables MPI-related functionalities.
-Additionally, if you don't have it installed (yet) you must install `libjax`
-with one of the following commands.
 
 The flag :code:`--pre` tells pip to also install pre-release versions. As NetKet 3 is in beta, this is necessary.
 
@@ -29,7 +24,7 @@ If you want to run NetKet on a GPU, you must install a GPU-compatible :code:`jax
 look at the instructions on `jax repository <https://github.com/google/jax#pip-installation>`_, however at the time
 of writing, this means you should run the following command: 
 
-.. code-block:: 
+.. code:: bash 
 
     pip install -U jax jaxlib==X.XX.XX+cudaYYY -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
@@ -38,7 +33,7 @@ At the time of writing, Netket was tested with X=0.1.62 and cuda=111
 
 To query the installed `netket` version you can run the following command in your shell
 
-.. code-block:: 
+.. code:: bash 
 
    python -e "import netket; print(netket.version)"
 
@@ -46,8 +41,15 @@ To query the installed `netket` version you can run the following command in you
 MPI
 ***
 
-If you want to use MPI, you will need to have a working MPI compiler
+If you want to use MPI, you will need to have a working MPI compiler. You can install the
+dependencies necessary to run with MPI with the following command:
 
+.. code:: bash
+
+   pip install --pre netket[mpi]
+
+Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
+See :ref:`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
 
 Introduction 
 ------------
@@ -80,8 +82,7 @@ As such, netket exports a module, `netket.nn` which re-exports the functionality
 with the additional support of complex numbers.
 Also `netket.optim` is a re-export of `flax.optim` with few added functionalities.
 
-Lastly, in `netket.jax` there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with
-arbitrary real or complex functions, and/or with MPI. 
+Lastly, in `netket.jax` there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with arbitrary real or complex functions, and/or with MPI. 
 
 
 Legacy API support (API before 2021)
