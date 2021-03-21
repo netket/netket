@@ -193,10 +193,13 @@ class LocalLiouvillian(AbstractSuperOperator):
                 max_conns_c = sections_c[0]
             max_conns_Lrc = 0
 
-        L_xrps = List()
-        L_xcps = List()
-        L_mel_rs = List()
-        L_mel_cs = List()
+        #  Must type those lists otherwise, if they are empty, numba
+        # cannot infer their type
+        L_xrps = List.empty_list(numba.typeof(x.dtype)[:, :])
+        L_xcps = List.empty_list(numba.typeof(x.dtype)[:, :])
+        L_mel_rs = List.empty_list(numba.typeof(self.dtype())[:])
+        L_mel_cs = List.empty_list(numba.typeof(self.dtype())[:])
+
         sections_Lr = np.empty(batch_size * n_jops, dtype=np.int32)
         sections_Lc = np.empty(batch_size * n_jops, dtype=np.int32)
         for (i, L) in enumerate(self._jump_ops):
@@ -370,15 +373,19 @@ class LocalLiouvillian(AbstractSuperOperator):
         """
         M = self.hilbert.physical.n_states
 
-        iHnh = -1j * self.ham_nh
+        iHnh = -1j * self.hamiltonian_nh
         if sparse:
             iHnh = iHnh.to_sparse()
-            J_ops = [j.to_sparse() for j in self.jump_ops]
-            J_ops_c = [j.conjugate().transpose().to_sparse() for j in self.jump_ops]
+            J_ops = [j.to_sparse() for j in self.jump_operators]
+            J_ops_c = [
+                j.conjugate().transpose().to_sparse() for j in self.jump_operators
+            ]
         else:
             iHnh = iHnh.to_dense()
-            J_ops = [j.to_dense() for j in self.jump_ops]
-            J_ops_c = [j.conjugate().transpose().to_dense() for j in self.jump_ops]
+            J_ops = [j.to_dense() for j in self.jump_operators]
+            J_ops_c = [
+                j.conjugate().transpose().to_dense() for j in self.jump_operators
+            ]
 
         if not append_trace:
             op_size = M ** 2
