@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import netket.legacy as nk
+import netket as nk
 import numpy as np
 import networkx as nx
 from scipy import sparse
@@ -68,7 +68,19 @@ def test_lindblad_form():
         j_mat = j_op.to_sparse()
         lind_mat += sparse.kron(j_mat.conj(), j_mat)
 
-    assert (lind_mat.todense() == lind.to_dense()).all()
+    np.testing.assert_allclose(lind_mat.todense(), lind.to_dense())
+
+
+def test_liouvillian_no_dissipators():
+    lind = nk.operator.LocalLiouvillian(ha)
+
+    ## Construct the lindbladian by hand:
+    idmat = sparse.eye(2 ** L)
+    h_mat = ha.to_sparse()
+
+    lind_mat = -1j * sparse.kron(idmat, h_mat) + 1j * sparse.kron(h_mat, idmat)
+
+    np.testing.assert_allclose(lind.to_dense(), lind_mat.todense())
 
 
 def test_lindblad_zero_eigenvalue():
