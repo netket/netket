@@ -169,7 +169,7 @@ class LocalLiouvillian(AbstractSuperOperator):
     def get_conn_flattened(self, x, sections, pad=False):
         batch_size = x.shape[0]
         N = x.shape[1] // 2
-        n_jops = len(self.jump_ops)
+        n_jops = len(self.jump_operators)
         assert sections.shape[0] == batch_size
 
         # Separate row and column inputs
