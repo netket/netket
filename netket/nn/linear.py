@@ -35,7 +35,7 @@ Dtype = Any  # this could be a real type?
 Array = Any
 
 
-default_kernel_init = normal()
+default_kernel_init = normal(stddev=0.01)
 # complex_kernel_init = lecun_normal()
 
 
