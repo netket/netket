@@ -110,6 +110,10 @@ probably be of poor quality.
 
 For more information on new features and API changes, please consult :ref:`Whats New`.
 
+.. warn:: 
+    If you were using the previous version of NetKet, we strongly advise you to read
+    :ref:`Whats New` as it lists several changes that might otherwise pass unnoticed.
+
 
 Commented Example
 ----------------
@@ -117,6 +121,7 @@ Commented Example
 .. code-block:: python
 
     import netket as nk
+    import numpy as np
 
 The first thing to do is import NetKet. We usually shorten it to `nk`.
 
@@ -150,18 +155,26 @@ for more informations.
 
 .. code-block:: python
 
-    ma = nk.models.RBM(alpha=1)
+    ma = nk.models.RBM(alpha=1, dtype=np.float64)
 
-    sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16, dtype=np.float32)
 
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
 a few pre-built models in the :ref:`Models` sub-module. 
 Netket models are simply `Flax`_ modules: check out the :ref:`define-your-model` 
 section for more informations on how to define or use custom models. 
+We specify :code:`dtype=np.float64` (which is the default, but we want to show
+it to you) so that any lower-precision input gets converted to double precision
+when entering the model.
 
 Hilbert space samplers are defined in the :ref:`Sampler` submodule. In general 
-you must provide the constructor the hilbert space to be sampled and some options.  
+you must provide the constructor the hilbert space to be sampled and some options. 
+In this case we aask for 16 markov chains and to use single-precision (the default,
+anyhow). 
+Samples don't need double precision at all, so it makes sense to use the lower 
+precision, but you have to be careful with the dtype of your model in order
+not to reduce the precision.
 
 .. code-block:: python
 

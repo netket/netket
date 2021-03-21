@@ -101,7 +101,7 @@ class VariationalState(abc.ABC):
 
         .. warn::
             The init function will not change the dtype of the parameters, which is determined by the
-            model.
+            model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 
         Args:
             init_fun: a jax initializer such as :ref:`netket.nn.initializers.normal`. Must be a Callable

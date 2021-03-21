@@ -60,3 +60,25 @@ Jax supports GPUs, so your calculations should run fine on GPU, however there ar
 Eventually we would like the selection to be automatic, but this has not yet been implemented. 
 
 Please open tickets if you find issues!
+
+
+
+.. _nan:
+
+NaNs in training and loss of precision
+--------------------------------------
+
+If you find NaNs while training, especially if you are using your own model, there might be a few reasons:
+ 
+* It might simply be a precision issue, as you might be using single precision (:code:`np.float32`, :code:`np.complex64`) instead of double precision (:code:`np.float64`, :code:`np.complex128`). Be careful that if you use :code:`float` and :code:`complex` as dtype, they will not always behave as you expect! 
+  They are known as `weak dtypes <https://jax.readthedocs.io/en/latest/type_promotion.html?highlight=type-promotion>`_, and when multiplied by a single-precision number they will be converted to single precision. 
+  This issue might manifest especially when using Flax, which respects type promotion, as opposed to `jax.experimental.stax`, which does not.
+
+* Check the initial parameters. In the NetKet 2 models were always initialized with weights normally distributed.
+  In Netket 3, `netket.nn` layers use the same default (normal distribution with standard deviation 0.01) but
+  if you use general flax layers they might use different initializers.
+  different initialisation distributions have particoularly strong effects when working with complex-valued models. 
+  A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use :py:meth:`~netket.variational.VariationalState.init_parameters`.
+
+
+
