@@ -28,6 +28,7 @@
   }
   .bs-sidenav.affix {
     position: fixed; /* Undo the static from mobile first approach */
+    width: 150px;
   }
   .bs-sidenav.affix-bottom {
     position: absolute; /* Undo the static from mobile first approach */
@@ -36,6 +37,11 @@
   .bs-sidenav.affix .bs-sidenav {
     margin-top: 0;
     margin-bottom: 0;
+  }
+}
+@media screen and (min-width: 992px) {
+  .bs-sidenav.affix {
+    width: 210px;
   }
 }
 @media screen and (min-width: 1200px) {
