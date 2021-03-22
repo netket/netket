@@ -45,7 +45,7 @@ op = nk.optim.Sgd(learning_rate=0.01)
 sr = nk.optim.SR(0.1)
 
 # Variational monte carlo driver
-gs = nk.Vmc(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
+gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
 
 # Print parameter structure
 print(f"parameter shape: {jax.tree_map(np.shape, gs.state.variables['params'])}")
