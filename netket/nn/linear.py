@@ -242,10 +242,11 @@ class DenseSymm(Module):
                 symmetrizer_ijkl,
                 shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
                 dtype=int,
-            )
+            ),
+            dtype=self.dtype,
         )
 
-    def matmul(self, inputs: Array, kernel: Array) -> Array:
+    def _matmul(self, inputs: Array, kernel: Array) -> Array:
         return lax.dot_general(
             inputs,
             kernel,
@@ -270,7 +271,7 @@ class DenseSymm(Module):
         kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
         kernel = jnp.asarray(kernel, dtype)
 
-        y = self.matmul(inputs, kernel)
+        y = self._matmul(inputs, kernel)
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
