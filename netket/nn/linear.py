@@ -23,6 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
+from netket.graph import AbstractGraph
 
 from jax import lax
 import jax.numpy as jnp
@@ -208,20 +209,7 @@ class Dense(Module):
 
 
 class DenseSymm(Module):
-    """A symmetrized linear transformation applied over the last dimension of the input.
-
-    Attributes:
-      permutations: TODO
-      alpha: The hidden unit density
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
-      precision: numerical precision of the computation see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer function for the weight matrix.
-      bias_init: initializer function for the bias.
-    """
-
-    permutations: Callable
+    permutations: Any
     alpha: Union[float, int]
     use_bias: bool = True
     dtype: Any = jnp.float64
@@ -290,6 +278,27 @@ class DenseSymm(Module):
             y += bias
 
         return y
+
+
+def create_DenseSymm(
+    permutations: Union[Callable, AbstractGraph, Array], *args, **kwargs
+):
+    if isinstance(permutations, Callable):
+        perm_fn = permutations
+    elif isinstance(permutations, AbstractGraph):
+        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    else:
+        permutations = jnp.asarray(permutations)
+        if not permutations.ndim == 2:
+            raise ValueError(
+                "permutations must be an array of shape (#permutations, #sites)."
+            )
+        perm_fn = lambda: permutations
+
+    return DenseSymm(permutations=perm_fn, *args, **kwargs)
+
+
+create_DenseSymm.__doc__ = DenseSymm.__doc__
 
 
 class Conv(Module):

@@ -20,9 +20,8 @@ import pytest
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
-@pytest.mark.parametrize("impl", ["scan", "expand", "symmetrizer"])
 @pytest.mark.parametrize("permutations", ["trans", "autom"])
-def test_RBMSymm(use_hidden_bias, use_visible_bias, impl, permutations):
+def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
     N = 8
     hi = nk.hilbert.Spin(1 / 2, N)
 
@@ -41,7 +40,6 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, impl, permutations):
         use_bias=use_hidden_bias,
         bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
-        implementation=impl,
     )
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
 
@@ -52,3 +50,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, impl, permutations):
 
     for val in vals:
         assert jnp.allclose(val, vals[0])
+
+    vmc = nk.VMC(
+        nk.operator.Ising(hi, g, h=1.0),
+        nk.optim.Sgd(0.1),
+        nk.sampler.MetropolisLocal(hi),
+        ma,
+    )
+    vmc.advance(1)

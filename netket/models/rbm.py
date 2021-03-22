@@ -129,177 +129,7 @@ class RBMModPhase(nn.Module):
         return re + 1j * im
 
 
-class RBMSymm_Scan(nn.Module):
-    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
-    nonlinear activation function in between
-
-    Attributes:
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
-        use_visible_bias: if True adds a bias to the input
-        kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
-        visible_bias_init: initializer function for the visible_bias.
-    """
-
-    permutations: Callable
-    dtype: Any = np.float64
-    activation: Any = nknn.logcosh
-    alpha: Union[float, int] = 1
-    use_bias: bool = True
-    use_visible_bias: bool = True
-
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-
-    def setup(self):
-        self.perms = self.permutations()
-        self._n_symm, self._n_sites = self.perms.shape
-        self._alpha_symm = int(self.alpha * self._n_sites / self._n_symm)
-        self._n_hidden = int(self.alpha * self._n_symm)
-
-        if self.alpha > 0 and self._alpha_symm == 0:
-            raise ValueError(
-                f"RBMSymm: alpha={self.alpha} is too small for {self._n_symm} permutations,"
-                f" alpha ≥ {self._n_symm / self._n_sites} is needed."
-            )
-
-    @nn.compact
-    def __call__(self, x_in):
-        Wsymm = self.param(
-            "kernel",
-            self.kernel_init,
-            (self._n_sites, self._alpha_symm),
-            self.dtype,
-        )
-        if self.use_bias:
-            bsymm = self.param(
-                "bias",
-                self.bias_init,
-                (self._alpha_symm,),
-                self.dtype,
-            )
-
-            def f(carry, perm):
-                # jnp.asarray needed as workaround for https://github.com/google/jax/issues/620
-                y = jnp.asarray(x_in)[..., perm] @ Wsymm + bsymm
-                return carry + jnp.sum(self.activation(y), axis=-1), None
-
-        else:
-
-            def f(carry, perm):
-                # jnp.asarray needed as workaround, as above
-                y = jnp.asarray(x_in)[..., perm] @ Wsymm
-                return carry + jnp.sum(self.activation(y), axis=-1), None
-
-        y_out, _ = jax.lax.scan(
-            f,
-            jnp.zeros(shape=x_in.shape[:-1], dtype=self.dtype),
-            self.perms,
-        )
-
-        if self.use_visible_bias:
-            v_bias = self.param(
-                "visible_bias",
-                self.visible_bias_init,
-                (1,),
-                self.dtype,
-            )
-            y_out += v_bias[0] * jnp.sum(x_in, axis=-1)
-
-        return y_out
-
-
-class RBMSymm_Expand(nn.Module):
-    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
-    nonlinear activation function in between
-
-    Attributes:
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
-        use_visible_bias: if True adds a bias to the input
-        kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
-        visible_bias_init: initializer function for the visible_bias.
-    """
-
-    permutations: Callable
-    dtype: Any = np.float64
-    activation: Any = nknn.logcosh
-    alpha: Union[float, int] = 1
-    use_bias: bool = True
-    use_visible_bias: bool = True
-
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-
-    def setup(self):
-        self.perms = self.permutations()
-        self._n_symm, self._n_sites = self.perms.shape
-
-        self._alpha_symm = int(self.alpha * self._n_sites / self._n_symm)
-        self._n_hidden = int(self.alpha * self._n_symm)
-
-        if self.alpha > 0 and self._alpha_symm == 0:
-            raise ValueError(
-                f"RBMSymm: alpha={self.alpha} is too small for {self._n_symm} permutations,"
-                f" alpha ≥ {self._n_symm / self._n_sites} is needed."
-            )
-
-    def expand_kernel(self, Wsymm):
-        return jnp.array(
-            [
-                jnp.concatenate([Wsymm[perm, j] for j in range(self._alpha_symm)])
-                for perm in self.perms
-            ]
-        )
-
-    def expand_bias(self, bsymm):
-        return jnp.repeat(bsymm, self._n_symm)
-
-    @nn.compact
-    def __call__(self, x_in):
-        Wsymm = self.param(
-            "kernel",
-            self.kernel_init,
-            (self._n_sites, self._alpha_symm),
-            self.dtype,
-        )
-        kernel = self.expand_kernel(Wsymm)
-
-        if self.use_bias:
-            bsymm = self.param(
-                "bias",
-                self.bias_init,
-                (self._alpha_symm,),
-                self.dtype,
-            )
-            bias = self.expand_bias(bsymm)
-            y_out = x_in @ kernel + bias
-        else:
-            y_out = x_in @ kernel
-
-        y_out = jnp.sum(self.activation(y_out), axis=-1)
-
-        if self.use_visible_bias:
-            v_bias = self.param(
-                "visible_bias",
-                self.visible_bias_init,
-                (1,),
-                self.dtype,
-            )
-            y_out += v_bias[0] * jnp.sum(x_in, axis=-1)
-
-        return y_out
-
-
-class RBMSymm_Layer(nn.Module):
+class RBMSymm(nn.Module):
     """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
     nonlinear activation function in between
 
@@ -347,19 +177,12 @@ class RBMSymm_Layer(nn.Module):
             return x
 
 
-def RBMSymm(permutations, implementation="expand", *args, **kwargs):
-    RBMSymm_impls = {
-        "scan": RBMSymm_Scan,
-        "expand": RBMSymm_Expand,
-        "symmetrizer": RBMSymm_Layer,
-    }
-
-    if implementation not in RBMSymm_impls.keys():
-        raise ValueError(
-            f"Unknown implementation={implementation}, must be one of {list(RBMSymm_impls.keys())}"
-        )
-
-    if isinstance(permutations, AbstractGraph):
+def create_RBMSymm(
+    permutations: Union[Callable, AbstractGraph, Array], *args, **kwargs
+):
+    if isinstance(permutations, Callable):
+        perm_fn = permutations
+    elif isinstance(permutations, AbstractGraph):
         perm_fn = lambda: jnp.asarray(permutations.automorphisms())
     else:
         permutations = jnp.asarray(permutations)
@@ -369,4 +192,7 @@ def RBMSymm(permutations, implementation="expand", *args, **kwargs):
             )
         perm_fn = lambda: permutations
 
-    return RBMSymm_impls[implementation](perm_fn, *args, **kwargs)
+    return RBMSymm(permutations=perm_fn, *args, **kwargs)
+
+
+create_RBMSymm.__doc__ = RBMSymm.__doc__
