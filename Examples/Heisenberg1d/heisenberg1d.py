@@ -48,7 +48,7 @@ sr = nk.optim.SR(0.1)
 gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
 
 # Print parameter structure
-print(f"parameter shape: {jax.tree_map(np.shape, gs.state.variables['params'])}")
+print(f"# variational parameters: {gs.state.n_parameters}")
 
 
 # Run the optimization for 300 iterations
