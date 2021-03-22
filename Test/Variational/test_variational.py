@@ -23,7 +23,9 @@ SEED = 2148364
 machines = {}
 
 standard_init = flax.linen.initializers.normal()
-RBM = partial(nk.models.RBM, hidden_bias_init=standard_init, visible_bias_init=standard_init)
+RBM = partial(
+    nk.models.RBM, hidden_bias_init=standard_init, visible_bias_init=standard_init
+)
 RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 
 nk.models.RBM(

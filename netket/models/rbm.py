@@ -178,8 +178,10 @@ class RBMSymm(nn.Module):
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:
-            v_bias = self.param("visible_bias", self.visible_bias_init, (), self.dtype)
-            out_bias = v_bias * jnp.sum(x_in, axis=-1)
+            v_bias = self.param(
+                "visible_bias", self.visible_bias_init, (1,), self.dtype
+            )
+            out_bias = v_bias[0] * jnp.sum(x_in, axis=-1)
             return x + out_bias
         else:
             return x
