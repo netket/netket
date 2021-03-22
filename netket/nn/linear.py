@@ -207,6 +207,91 @@ class Dense(Module):
         return y
 
 
+class DenseSymm(Module):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+
+    Attributes:
+      permutations: TODO
+      alpha: The hidden unit density
+      use_bias: whether to add a bias to the output (default: True).
+      dtype: the dtype of the computation (default: float32).
+      precision: numerical precision of the computation see `jax.lax.Precision`
+        for details.
+      kernel_init: initializer function for the weight matrix.
+      bias_init: initializer function for the bias.
+    """
+
+    permutations: Callable
+    alpha: Union[float, int]
+    use_bias: bool = True
+    dtype: Any = jnp.float32
+    precision: Any = None
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+
+    def setup(self):
+        perms = self.permutations()
+
+        self.n_symm, self.n_sites = perms.shape
+        self.features = int(self.alpha * self.n_sites / self.n_symm)
+        self.n_hidden = self.features * self.n_symm
+        if self.alpha > 0 and self.features == 0:
+            raise ValueError(
+                f"RBMSymm: alpha={self.alpha} is too small "
+                f"for {self.n_symm} permutations, alpha ≥ {self.n_symm / self.n_sites} is needed."
+            )
+
+        # symmetrization tensor, maps Wsymm to full W
+        # note that this should be a sparse object, once jax supports them
+        def symmetrizer_ijkl(i, j, k, l):
+            jsymm = np.floor_divide(j, self.n_symm)
+            cond_k = k == jnp.asarray(perms)[j % self.n_symm, i]
+            cond_l = l == jsymm
+            return jnp.asarray(jnp.logical_and(cond_k, cond_l), dtype=int)
+
+        self.symmetrizer = jnp.array(
+            np.fromfunction(
+                symmetrizer_ijkl,
+                shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
+                dtype=int,
+            )
+        )
+
+    def matmul(self, inputs: Array, kernel: Array) -> Array:
+        return lax.dot_general(
+            inputs,
+            kernel,
+            (((inputs.ndim - 1,), (0,)), ((), ())),
+            precision=self.precision,
+        )
+
+    @compact
+    def __call__(self, inputs: Array) -> Array:
+        """Applies a linear transformation to the inputs along the last dimension.
+        Args:
+          inputs: The nd-array to be transformed.
+        Returns:
+          The transformed input.
+        """
+        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
+        inputs = jnp.asarray(inputs, dtype)
+
+        kernel = self.param(
+            "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
+        )
+        kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
+        kernel = jnp.asarray(kernel, dtype)
+
+        y = self.matmul(inputs, kernel)
+
+        if self.use_bias:
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(jnp.repeat(bias, self.n_symm), dtype)
+            y += bias
+
+        return y
+
+
 class Conv(Module):
     """Convolution Module wrapping lax.conv_general_dilated.
 

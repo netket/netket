@@ -30,7 +30,7 @@ from flax.linen import (
     make_causal_mask,
     combine_masks,
 )
-from .linear import Conv, ConvTranspose, Dense, DenseGeneral
+from .linear import Conv, ConvTranspose, Dense, DenseGeneral, DenseSymm
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
 

@@ -299,10 +299,59 @@ class RBMSymm_Expand(nn.Module):
         return y_out
 
 
+class RBMSymm_Layer(nn.Module):
+    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
+    nonlinear activation function in between
+
+    Attributes:
+        dtype: dtype of the weights.
+        activation: The nonlinear activation function
+        alpha: feature density. Number of features equal to alpha * input.shape[-1]
+        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_visible_bias: if True adds a bias to the input
+        kernel_init: initializer function for the weight matrix.
+        bias_init: initializer function for the bias.
+        visible_bias_init: initializer function for the visible_bias.
+    """
+
+    permutations: Callable
+    dtype: Any = np.float64
+    activation: Any = nknn.logcosh
+    alpha: Union[float, int] = 1
+    use_bias: bool = True
+    use_visible_bias: bool = True
+
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+
+    @nn.compact
+    def __call__(self, x_in):
+        x = nknn.DenseSymm(
+            name="Dense",
+            permutations=self.permutations,
+            alpha=self.alpha,
+            dtype=self.dtype,
+            use_bias=self.use_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
+        )(x_in)
+        x = self.activation(x)
+        x = jnp.sum(x, axis=-1)
+
+        if self.use_visible_bias:
+            v_bias = self.param("visible_bias", self.visible_bias_init, (), self.dtype)
+            out_bias = v_bias * jnp.sum(x_in, axis=-1)
+            return x + out_bias
+        else:
+            return x
+
+
 def RBMSymm(permutations, implementation="expand", *args, **kwargs):
     RBMSymm_impls = {
         "scan": RBMSymm_Scan,
         "expand": RBMSymm_Expand,
+        "symmetrizer": RBMSymm_Layer,
     }
 
     if implementation not in RBMSymm_impls.keys():
@@ -310,14 +359,14 @@ def RBMSymm(permutations, implementation="expand", *args, **kwargs):
             f"Unknown implementation={implementation}, must be one of {list(RBMSymm_impls.keys())}"
         )
 
-    if not isinstance(permutations, jnp.ndarray):
-        if isinstance(permutations, AbstractGraph):
-            permutations = permutations.automorphisms()
+    if isinstance(permutations, AbstractGraph):
+        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    else:
         permutations = jnp.asarray(permutations)
+        if not permutations.ndim == 2:
+            raise ValueError(
+                "permutations must be an array of shape (#permutations, #sites)."
+            )
+        perm_fn = lambda: permutations
 
-    if not permutations.ndim == 2:
-        raise ValueError(
-            "permutations must be an array of shape (#permutations, #sites)."
-        )
-
-    return RBMSymm_impls[implementation](lambda: permutations, *args, **kwargs)
+    return RBMSymm_impls[implementation](perm_fn, *args, **kwargs)

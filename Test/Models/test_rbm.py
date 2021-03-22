@@ -20,7 +20,7 @@ import pytest
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
-@pytest.mark.parametrize("impl", ["scan", "expand"])
+@pytest.mark.parametrize("impl", ["scan", "expand", "symmetrizer"])
 @pytest.mark.parametrize("permutations", ["trans", "autom"])
 def test_RBMSymm(use_hidden_bias, use_visible_bias, impl, permutations):
     N = 8

@@ -35,6 +35,7 @@ ma = nk.models.RBMSymm(
     use_visible_bias=False,
     use_bias=True,
     dtype=float,
+    implementation="symmetrizer",
 )
 
 # Metropolis Local Sampling
