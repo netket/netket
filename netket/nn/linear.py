@@ -224,7 +224,7 @@ class DenseSymm(Module):
     permutations: Callable
     alpha: Union[float, int]
     use_bias: bool = True
-    dtype: Any = jnp.float32
+    dtype: Any = jnp.float64
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
@@ -273,7 +273,7 @@ class DenseSymm(Module):
         Returns:
           The transformed input.
         """
-        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
         inputs = jnp.asarray(inputs, dtype)
 
         kernel = self.param(
