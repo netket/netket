@@ -35,7 +35,7 @@ API Changes
 * :ref:`Samplers <Sampler>` now require the hilbert space upon which they sample to be passed in to the constructor.
 Also note that several keyword arguments of the samplers have changed, and new one are available.
 
-* :ref:`Samplers <Sampler>` now give by default single-precision samples (`np.float32`). Be wary of type promotion issues with your models.
+* It's now possible to change :ref:`Samplers <Sampler>` dtype, which controls the type of the output. By default they use double-precision samples (`np.float64`). Be wary of type promotion issues with your models.
 	
 * :ref:`Samplers <Sampler>` no longer take a machine as an argument.
 

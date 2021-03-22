@@ -155,18 +155,22 @@ for more informations.
 
 .. code-block:: python
 
-    ma = nk.models.RBM(alpha=1, dtype=np.float64)
+    ma = nk.models.RBM(alpha=1, dtype=float)
 
-    sa = nk.sampler.MetropolisLocal(hi, n_chains=16, dtype=np.float32)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
 a few pre-built models in the :ref:`Models` sub-module. 
 Netket models are simply `Flax`_ modules: check out the :ref:`define-your-model` 
 section for more informations on how to define or use custom models. 
-We specify :code:`dtype=np.float64` (which is the default, but we want to show
-it to you) so that any lower-precision input gets converted to double precision
-when entering the model.
+We specify :code:`dtype=float` (which is the default, but we want to show
+it to you) which means that weights will be stored as double-precision.
+We advise you that Jax (and therefore netket) does not follow completely the standard NumPy
+promotion rules, instead treating :code:`float` as a weak double-precision type
+which can _loose_ precision in some cases. 
+This can happen if you mix single and double precision in your models and the sampler and
+is described in `Jax:Type promotion semantics <https://jax.readthedocs.io/en/latest/type_promotion.html>`_.
 
 Hilbert space samplers are defined in the :ref:`Sampler` submodule. In general 
 you must provide the constructor the hilbert space to be sampled and some options. 
