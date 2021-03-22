@@ -43,21 +43,21 @@ class RBM(nn.Module):
         dtype: dtype of the weights.
         activation: The nonlinear activation function
         alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
         use_visible_bias: if True adds a bias to the input
         kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
+        hidden_bias_init: initializer function for the bias.
         visible_bias_init: initializer function for the visible_bias.
     """
 
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
     use_visible_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
 
     @nn.compact
@@ -66,9 +66,9 @@ class RBM(nn.Module):
             name="Dense",
             features=int(self.alpha * input.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(input)
         x = self.activation(x)
         x = jnp.sum(x, axis=-1)
@@ -91,27 +91,27 @@ class RBMModPhase(nn.Module):
         dtype: dtype of the weights.
         activation: The nonlinear activation function
         alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
         kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
+        hidden_bias_init: initializer function for the bias.
     """
 
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
 
     @nn.compact
     def __call__(self, x):
         re = nknn.Dense(
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(x)
         re = self.activation(re)
         re = jnp.sum(re, axis=-1)
@@ -119,9 +119,9 @@ class RBMModPhase(nn.Module):
         im = nknn.Dense(
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(x)
         im = self.activation(im)
         im = jnp.sum(im, axis=-1)
@@ -136,10 +136,10 @@ class RBMSymm(nn.Module):
         dtype: dtype of the weights.
         activation: The nonlinear activation function
         alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
         use_visible_bias: if True adds a bias to the input
         kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
+        hidden_bias_init: initializer function for the bias.
         visible_bias_init: initializer function for the visible_bias.
     """
 
@@ -147,11 +147,11 @@ class RBMSymm(nn.Module):
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
     use_visible_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
 
     def setup(self):
@@ -170,9 +170,9 @@ class RBMSymm(nn.Module):
             permutations=self.permutations,
             features=self.features,
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(x_in)
         x = self.activation(x)
         x = jnp.sum(x, axis=-1)

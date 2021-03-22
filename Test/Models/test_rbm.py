@@ -37,8 +37,8 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
         permutations=perms,
         alpha=4,
         use_visible_bias=use_visible_bias,
-        use_bias=use_hidden_bias,
-        bias_init=nk.nn.initializers.uniform(),
+        use_hidden_bias=use_hidden_bias,
+        hidden_bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
     )
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
