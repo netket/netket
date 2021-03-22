@@ -209,7 +209,7 @@ class Dense(Module):
 
 
 class DenseSymm(Module):
-    permutations: Any
+    permutations: Callable[[], Array]
     alpha: Union[float, int]
     use_bias: bool = True
     dtype: Any = jnp.float64
@@ -282,7 +282,7 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[Callable, AbstractGraph, Array], *args, **kwargs
+    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
 ):
     if isinstance(permutations, Callable):
         perm_fn = permutations

@@ -144,7 +144,7 @@ class RBMSymm(nn.Module):
         visible_bias_init: initializer function for the visible_bias.
     """
 
-    permutations: Callable
+    permutations: Callable[[], Array]
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
@@ -178,7 +178,7 @@ class RBMSymm(nn.Module):
 
 
 def create_RBMSymm(
-    permutations: Union[Callable, AbstractGraph, Array], *args, **kwargs
+    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
 ):
     if isinstance(permutations, Callable):
         perm_fn = permutations
