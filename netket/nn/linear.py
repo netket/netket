@@ -35,7 +35,7 @@ Dtype = Any  # this could be a real type?
 Array = Any
 
 
-default_kernel_init = normal()
+default_kernel_init = normal(stddev=0.01)
 # complex_kernel_init = lecun_normal()
 
 
@@ -71,7 +71,7 @@ class DenseGeneral(Module):
     axis: Union[int, Iterable[int]] = -1
     batch_dims: Iterable[int] = ()
     use_bias: bool = True
-    dtype: Dtype = jnp.float32
+    dtype: Dtype = jnp.float64
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
     precision: Any = None
@@ -95,7 +95,7 @@ class DenseGeneral(Module):
                     "dimensions starting from 0." % str(batch_dims)
                 )
 
-        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 
@@ -174,7 +174,7 @@ class Dense(Module):
 
     features: int
     use_bias: bool = True
-    dtype: Any = jnp.float32
+    dtype: Any = jnp.float64
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
@@ -187,7 +187,7 @@ class Dense(Module):
         Returns:
           The transformed input.
         """
-        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
         kernel = self.param(
@@ -246,7 +246,7 @@ class Conv(Module):
     kernel_dilation: Optional[Iterable[int]] = None
     feature_group_count: int = 1
     use_bias: bool = True
-    dtype: Dtype = jnp.float32
+    dtype: Dtype = jnp.float64
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
@@ -259,7 +259,7 @@ class Conv(Module):
         Returns:
           The convolved data.
         """
-        dtype = nkjax.maybe_promote_to_complex(inputs.dtype, self.dtype)
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 
@@ -299,6 +299,7 @@ class Conv(Module):
 
         if is_single_input:
             y = jnp.squeeze(y, axis=0)
+
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
@@ -337,7 +338,7 @@ class ConvTranspose(Module):
     padding: Union[str, Iterable[Tuple[int, int]]] = "SAME"
     kernel_dilation: Optional[Iterable[int]] = None
     use_bias: bool = True
-    dtype: Dtype = jnp.float32
+    dtype: Dtype = jnp.float64
     precision: Any = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
@@ -351,7 +352,7 @@ class ConvTranspose(Module):
         Returns:
           The convolved data.
         """
-        dtype = nkjax.maybe_promote_to_complex(self.dtype, inputs.dtype)
+        dtype = jnp.promote_types(self.dtype, inputs.dtype)
 
         inputs = jnp.asarray(inputs, dtype)
 

@@ -30,8 +30,12 @@ API Changes
 
   * Serialization and deserialization functionality has now been moved to :ref:`variational.MCState`, which support the standard Flax interface through MsgPack. See `Flax docs <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_ for more information  
 
+  * :code:`AbstractMachine.init_random_parameters` functionality has now been absorbed into :py:meth:`netket.variational.VariationalState.init_parameters`, which however has a different syntax.
+
 * :ref:`Samplers <Sampler>` now require the hilbert space upon which they sample to be passed in to the constructor.
 Also note that several keyword arguments of the samplers have changed, and new one are available.
+
+* It's now possible to change :ref:`Samplers <Sampler>` dtype, which controls the type of the output. By default they use double-precision samples (`np.float64`). Be wary of type promotion issues with your models.
 	
 * :ref:`Samplers <Sampler>` no longer take a machine as an argument.
 
@@ -39,8 +43,12 @@ Also note that several keyword arguments of the samplers have changed, and new o
 
 * :ref:`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object :ref:`sampler.init_state`, which can be passed to sampling functions such as :ref:`sampler.sample`, which now return also the updated state. However, unless you have particoular use-cases we advise you use the variational state :ref:`MCState` instead.
 
-* The :ref:`Optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use `optax <https://github.com/deepmind/optax>`_ or `flax.optim <https://flax.readthedocs.io/en/latest/flax.optim.html>`_ directly. 
+* The :ref:`Optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use `optax <https://github.com/deepmind/optax>`_ .
 
 * The :ref:`SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be optained by calling :ref:`MCState.quantum_geometric_tensor(sr)`. Depending on the settings, this can be a lazy object.
 
-* :ref:`netket.Vmc` hasa been renamed to :ref:`netkt.VMC`
+* :ref:`netket.Vmc` has been renamed to :ref:`netkt.VMC`
+
+* :ref:`netket.models.RBM` replaces the old :code:`RBM` machine, but has real parameters by default.
+
+* As we rely on Jax, using :code:`dtype=float` or :code:`dtype=complex`, which are weak types, will sometimes lead to loss of precision because they might be converted to `float32`. Use :code:`np.float64` or :code:`np.complex128` instead if you want double precision when defining your models.

@@ -32,7 +32,7 @@ Shape = Tuple[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
-default_kernel_init = normal(stddev=0.1)
+default_kernel_init = normal(stddev=0.01)
 
 
 class RBM(nn.Module):

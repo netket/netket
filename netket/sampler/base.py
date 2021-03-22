@@ -67,7 +67,7 @@ class Sampler(abc.ABC):
     machine_pow: int = struct.field(default=2)
     """Exponent of the pdf sampled"""
 
-    dtype: type = struct.field(pytree_node=False, default=np.float32)
+    dtype: type = struct.field(pytree_node=False, default=np.float64)
     """Dtype of the states returned."""
 
     def __post_init__(self):

@@ -201,6 +201,7 @@ n_discard gives the number of discarded steps taken in the markov chain before a
 them, so the Markov Chains are actually :code:`chain_length + n_discard` long. The default
 n_discard is 10% of the total samples, but you can change that to any number.
 
+.. _warn-mpi-sampling:
 
 .. warning:: 
 

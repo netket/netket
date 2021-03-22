@@ -14,14 +14,9 @@ Installation and requirements
 Netket v3.0 requires `python>= 3.8` and optionally a recent MPI install.
 To install, run one of the two following commands
 
-.. code-block:: 
+.. code:: bash 
 
    pip install --pre netket
-   pip install --pre netket[mpi]
-
-The latter enables MPI-related functionalities.
-Additionally, if you don't have it installed (yet) you must install `libjax`
-with one of the following commands.
 
 The flag :code:`--pre` tells pip to also install pre-release versions. As NetKet 3 is in beta, this is necessary.
 
@@ -29,7 +24,7 @@ If you want to run NetKet on a GPU, you must install a GPU-compatible :code:`jax
 look at the instructions on `jax repository <https://github.com/google/jax#pip-installation>`_, however at the time
 of writing, this means you should run the following command: 
 
-.. code-block:: 
+.. code:: bash 
 
     pip install -U jax jaxlib==X.XX.XX+cudaYYY -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
@@ -38,7 +33,7 @@ At the time of writing, Netket was tested with X=0.1.62 and cuda=111
 
 To query the installed `netket` version you can run the following command in your shell
 
-.. code-block:: 
+.. code:: bash 
 
    python -e "import netket; print(netket.version)"
 
@@ -46,8 +41,15 @@ To query the installed `netket` version you can run the following command in you
 MPI
 ***
 
-If you want to use MPI, you will need to have a working MPI compiler
+If you want to use MPI, you will need to have a working MPI compiler. You can install the
+dependencies necessary to run with MPI with the following command:
 
+.. code:: bash
+
+   pip install --pre netket[mpi]
+
+Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
+See :ref:`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
 
 Introduction 
 ------------
@@ -80,8 +82,7 @@ As such, netket exports a module, `netket.nn` which re-exports the functionality
 with the additional support of complex numbers.
 Also `netket.optim` is a re-export of `flax.optim` with few added functionalities.
 
-Lastly, in `netket.jax` there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with
-arbitrary real or complex functions, and/or with MPI. 
+Lastly, in `netket.jax` there are a few functions, notably `jax.grad` and `jax.vjp` adapted to work with arbitrary real or complex functions, and/or with MPI. 
 
 
 Legacy API support (API before 2021)
@@ -109,6 +110,10 @@ probably be of poor quality.
 
 For more information on new features and API changes, please consult :ref:`Whats New`.
 
+.. warn:: 
+    If you were using the previous version of NetKet, we strongly advise you to read
+    :ref:`Whats New` as it lists several changes that might otherwise pass unnoticed.
+
 
 Commented Example
 ----------------
@@ -116,6 +121,7 @@ Commented Example
 .. code-block:: python
 
     import netket as nk
+    import numpy as np
 
 The first thing to do is import NetKet. We usually shorten it to `nk`.
 
@@ -149,7 +155,7 @@ for more informations.
 
 .. code-block:: python
 
-    ma = nk.models.RBM(alpha=1)
+    ma = nk.models.RBM(alpha=1, dtype=float)
 
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
@@ -158,9 +164,21 @@ Then, one must chose the model to use as a Neural Quantum State. Netket provides
 a few pre-built models in the :ref:`Models` sub-module. 
 Netket models are simply `Flax`_ modules: check out the :ref:`define-your-model` 
 section for more informations on how to define or use custom models. 
+We specify :code:`dtype=float` (which is the default, but we want to show
+it to you) which means that weights will be stored as double-precision.
+We advise you that Jax (and therefore netket) does not follow completely the standard NumPy
+promotion rules, instead treating :code:`float` as a weak double-precision type
+which can _loose_ precision in some cases. 
+This can happen if you mix single and double precision in your models and the sampler and
+is described in `Jax:Type promotion semantics <https://jax.readthedocs.io/en/latest/type_promotion.html>`_.
 
 Hilbert space samplers are defined in the :ref:`Sampler` submodule. In general 
-you must provide the constructor the hilbert space to be sampled and some options.  
+you must provide the constructor the hilbert space to be sampled and some options. 
+In this case we aask for 16 markov chains and to use single-precision (the default,
+anyhow). 
+Samples don't need double precision at all, so it makes sense to use the lower 
+precision, but you have to be careful with the dtype of your model in order
+not to reduce the precision.
 
 .. code-block:: python
 
