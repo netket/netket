@@ -55,8 +55,8 @@ from . import (
 )
 
 # Main applications
-from .drivers import VMC
-from .drivers import SteadyState
+from .driver import VMC
+from .driver import SteadyState
 
 # from .drivers import Qsr
 
