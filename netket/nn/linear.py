@@ -209,8 +209,27 @@ class Dense(Module):
 
 
 class DenseSymm(Module):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
+
+    Attributes:
+      permutations: Sequence of permutations over which the layer will be invariant.
+        Should be either an array-like object of shape (n_permutations, input_size),
+        an argument-less callable returning such an array, or `AbstractGraph`, in which
+        case the graph automorphisms are used.
+      features: The number of symmetry-reduced features. The full output size is
+        len(permutations) * features.
+      use_bias: whether to add a bias to the output (default: True).
+      dtype: the dtype of the computation (default: float32).
+      precision: numerical precision of the computation see `jax.lax.Precision`
+        for details.
+      kernel_init: initializer function for the weight matrix.
+      bias_init: initializer function for the bias.
+    """
+
     permutations: Callable[[], Array]
-    alpha: Union[float, int]
+    features: int
     use_bias: bool = True
     dtype: Any = jnp.float64
     precision: Any = None
@@ -221,13 +240,7 @@ class DenseSymm(Module):
         perms = self.permutations()
 
         self.n_symm, self.n_sites = perms.shape
-        self.features = int(self.alpha * self.n_sites / self.n_symm)
         self.n_hidden = self.features * self.n_symm
-        if self.alpha > 0 and self.features == 0:
-            raise ValueError(
-                f"RBMSymm: alpha={self.alpha} is too small "
-                f"for {self.n_symm} permutations, alpha ≥ {self.n_symm / self.n_sites} is needed."
-            )
 
         # symmetrization tensor, maps Wsymm to full W
         # note that this should be a sparse object, once jax supports them
@@ -244,19 +257,28 @@ class DenseSymm(Module):
                 dtype=int,
             ),
             dtype=self.dtype,
-        )
+        ).reshape(-1, self.features * self.n_sites)
 
-    def _matmul(self, inputs: Array, kernel: Array) -> Array:
-        return lax.dot_general(
-            inputs,
-            kernel,
-            (((inputs.ndim - 1,), (0,)), ((), ())),
-            precision=self.precision,
-        )
+    def full_kernel(self, kernel):
+        """
+        Converts the symmetry-reduced kernel of shape (n_sites, features) to
+        the full Dense kernel of shape (n_sites, features * n_symm).
+        """
+        # equivalent to: kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
+        # for appropriately shaped symmetrizer
+        kvec = kernel.reshape(-1)
+        return jnp.matmul(self.symmetrizer, kvec).reshape(self.n_sites, -1)
+
+    def full_bias(self, bias):
+        """
+        Convert symmetry-reduced bias of shape (features,) to the full bias of
+        shape (n_symm * features,).
+        """
+        return jnp.repeat(bias, self.n_symm)
 
     @compact
     def __call__(self, inputs: Array) -> Array:
-        """Applies a linear transformation to the inputs along the last dimension.
+        """Applies the symmetrized linear transformation to the inputs along the last dimension.
         Args:
           inputs: The nd-array to be transformed.
         Returns:
@@ -268,14 +290,19 @@ class DenseSymm(Module):
         kernel = self.param(
             "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
         )
-        kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
+        kernel = self.full_kernel(kernel)
         kernel = jnp.asarray(kernel, dtype)
 
-        y = self._matmul(inputs, kernel)
+        y = lax.dot_general(
+            inputs,
+            kernel,
+            (((inputs.ndim - 1,), (0,)), ((), ())),
+            precision=self.precision,
+        )
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(jnp.repeat(bias, self.n_symm), dtype)
+            bias = jnp.asarray(self.full_bias(bias), dtype)
             y += bias
 
         return y

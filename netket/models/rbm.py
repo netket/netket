@@ -130,8 +130,7 @@ class RBMModPhase(nn.Module):
 
 
 class RBMSymm(nn.Module):
-    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
-    nonlinear activation function in between
+    """A symmetrized RBM using the `DenseSymm` layer internally.
 
     Attributes:
         dtype: dtype of the weights.
@@ -155,12 +154,21 @@ class RBMSymm(nn.Module):
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
 
+    def setup(self):
+        self.n_symm, self.n_sites = self.permutations().shape
+        self.features = int(self.alpha * self.n_sites / self.n_symm)
+        if self.alpha > 0 and self.features == 0:
+            raise ValueError(
+                f"RBMSymm: alpha={self.alpha} is too small "
+                f"for {self.n_symm} permutations, alpha ≥ {self.n_symm / self.n_sites} is needed."
+            )
+
     @nn.compact
     def __call__(self, x_in):
         x = nknn.DenseSymm(
             name="Dense",
             permutations=self.permutations,
-            alpha=self.alpha,
+            features=self.features,
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
