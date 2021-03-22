@@ -302,9 +302,9 @@ Those are the optimization drivers already implmented in Netket:
    :toctree: _generated/driver
    :nosignatures:
 
-   netket.drivers.AbstractVariationalDriver
-   netket.drivers.VMC
-   netket.drivers.SteadyState
+   netket.driver.AbstractVariationalDriver
+   netket.driver.VMC
+   netket.driver.SteadyState
 
 
 .. _logging-api:

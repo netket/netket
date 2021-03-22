@@ -8,9 +8,9 @@ State interface <variational_state>`.
 
 In Netket there are two drivers, even though you can define your own; those are:
  
-1. :class:`~netket.drivers.VMC`, to find the ground state of an Hamiltonian
+1. :class:`~netket.driver.VMC`, to find the ground state of an Hamiltonian
  
-2. :class:`~netket.drivers.SteadyState`, to find the steady-state of a liouvillian
+2. :class:`~netket.driver.SteadyState`, to find the steady-state of a liouvillian
 
 
 A driver, will run your optimisation loop, computing the loss function and the gradient,
@@ -42,7 +42,7 @@ The resulting code looks a bit like this:
 
     vstate = nk.variational.MCState(sampler, model, n_samples=1000)
 
-    gs = nk.drivers.VMC(hamiltonian, optimizer, variational_state=vstate)
+    gs = nk.driver.VMC(hamiltonian, optimizer, variational_state=vstate)
 
 
 There also exist an alternative syntax, where instead of passing the variational state you pass the arguments needed to construct the variational state to the driver itself.
@@ -53,7 +53,7 @@ There also exist an alternative syntax, where instead of passing the variational
 
     optimizer = nk.optimizer.SGD(learning_rate=0.1)
 
-    gs = nk.drivers.VMC(hamiltonian, optimizer, sampler, model, n_samples=1000)
+    gs = nk.driver.VMC(hamiltonian, optimizer, sampler, model, n_samples=1000)
 
 And you can then access the variational state contructed like that through the attribute `gs.state`.
 The latter is there to guarantee better compatibility with legacy codebases, therefore we suggest to
@@ -63,7 +63,7 @@ use the more first API, where the variational state is built explicitly.
 Running the optimisation 
 ------------------------
 
-The simplest way to use optimization drivers to perform the optimisation is to use their :py:meth:`~netket.drivers.AbstractVariationalDriver.run` method.
+The simplest way to use optimization drivers to perform the optimisation is to use their :py:meth:`~netket.driver.AbstractVariationalDriver.run` method.
 
 This method will run the optimisation for the desired number of steps, while logging data to the 
 desired output. 
