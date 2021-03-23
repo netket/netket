@@ -23,6 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
+from netket.graph import AbstractGraph
 
 from jax import lax
 import jax.numpy as jnp
@@ -205,6 +206,134 @@ class Dense(Module):
             bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
+
+
+class DenseSymm(Module):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
+
+    See :ref:`netket.nn.create_DenseSymm` for a more convenient constructor.
+    """
+
+    permutations: Callable[[], Array]
+    """Callable returning a sequence of permutations over which the layer should be invariant."""
+    features: int
+    """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
+    use_bias: bool = True
+    """Whether to add a bias to the output (default: True)."""
+    dtype: Any = jnp.float64
+    """The dtype of the weights."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    """Initializer for the bias."""
+
+    def setup(self):
+        perms = self.permutations()
+
+        self.n_symm, self.n_sites = perms.shape
+        self.n_hidden = self.features * self.n_symm
+
+        # symmetrization tensor, maps Wsymm to full W
+        # note that this should be a sparse object, once jax supports them
+        def symmetrizer_ijkl(i, j, k, l):
+            jsymm = np.floor_divide(j, self.n_symm)
+            cond_k = k == jnp.asarray(perms)[j % self.n_symm, i]
+            cond_l = l == jsymm
+            return jnp.asarray(jnp.logical_and(cond_k, cond_l), dtype=int)
+
+        self.symmetrizer = jnp.array(
+            np.fromfunction(
+                symmetrizer_ijkl,
+                shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
+                dtype=int,
+            ),
+            dtype=self.dtype,
+        ).reshape(-1, self.features * self.n_sites)
+
+    def full_kernel(self, kernel):
+        """
+        Converts the symmetry-reduced kernel of shape (n_sites, features) to
+        the full Dense kernel of shape (n_sites, features * n_symm).
+        """
+        # equivalent to: kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
+        # for appropriately shaped symmetrizer
+        kvec = kernel.reshape(-1)
+        return jnp.matmul(self.symmetrizer, kvec).reshape(self.n_sites, -1)
+
+    def full_bias(self, bias):
+        """
+        Convert symmetry-reduced bias of shape (features,) to the full bias of
+        shape (n_symm * features,).
+        """
+        return jnp.repeat(bias, self.n_symm)
+
+    @compact
+    def __call__(self, inputs: Array) -> Array:
+        """Applies the symmetrized linear transformation to the inputs along the last dimension.
+        Args:
+          inputs: The nd-array to be transformed.
+        Returns:
+          The transformed input.
+        """
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
+        inputs = jnp.asarray(inputs, dtype)
+
+        kernel = self.param(
+            "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
+        )
+        kernel = self.full_kernel(kernel)
+        kernel = jnp.asarray(kernel, dtype)
+
+        y = lax.dot_general(
+            inputs,
+            kernel,
+            (((inputs.ndim - 1,), (0,)), ((), ())),
+            precision=self.precision,
+        )
+
+        if self.use_bias:
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(self.full_bias(bias), dtype)
+            y += bias
+
+        return y
+
+
+def create_DenseSymm(
+    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
+
+    This is a convenienence wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
+
+    Arguments:
+      permutations: Sequence of permutations over which the layer should be invariant.
+        Should be either an array-like object of shape (n_permutations, input_size),
+        an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
+        case the graph automorphisms are used.
+
+    See :ref:`netket.nn.DenseSymm` for the remaining arguments.
+    """
+    if isinstance(permutations, Callable):
+        perm_fn = permutations
+    elif isinstance(permutations, AbstractGraph):
+        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    else:
+        permutations = jnp.asarray(permutations)
+        if not permutations.ndim == 2:
+            raise ValueError(
+                "permutations must be an array of shape (#permutations, #sites)."
+            )
+        perm_fn = lambda: permutations
+
+    return DenseSymm(permutations=perm_fn, *args, **kwargs)
 
 
 class Conv(Module):

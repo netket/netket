@@ -45,7 +45,7 @@ class PureRBM(nn.Module):
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
     use_visible_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
@@ -58,7 +58,7 @@ class PureRBM(nn.Module):
             name="Dense",
             features=int(self.alpha * σr.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
         )
@@ -93,7 +93,7 @@ class MixedRBM(nn.Module):
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
@@ -116,7 +116,7 @@ class MixedRBM(nn.Module):
         )
         y = U_S(0.5 * (σr + σc)) + 1j * U_A(0.5 * (σr - σc))
 
-        if self.use_bias:
+        if self.use_hidden_bias:
             bias = self.param(
                 "bias",
                 self.bias_init,
@@ -153,7 +153,7 @@ class NDM(nn.Module):
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
     beta: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
     use_visible_bias: bool = True
     dtype: Any = np.float64
 
@@ -170,7 +170,7 @@ class NDM(nn.Module):
             alpha=self.alpha,
             activation=self.activation,
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_hidden_bias=self.use_hidden_bias,
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
@@ -182,7 +182,7 @@ class NDM(nn.Module):
             alpha=self.alpha,
             activation=self.activation,
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_hidden_bias=self.use_hidden_bias,
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
@@ -193,7 +193,7 @@ class NDM(nn.Module):
             name="Mixed",
             alpha=self.beta,
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_hidden_bias=self.use_hidden_bias,
             activation=self.activation,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,

@@ -58,10 +58,11 @@ def deprecated_new_name(message):
                 """{} has been renamed to {}. The old name is 
                 now deprecated and will be removed in the next minor version.
                 
-                Please updaate your code.
+                Please update your code.
                 """.format(
                     func.__name__, message
                 ),
+                category=FutureWarning,
                 stacklevel=2,
             )
             return func(*args, **kwargs)

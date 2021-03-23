@@ -255,6 +255,31 @@ def test_automorphisms():
                 assert autom_g[i] in autom
 
 
+def test_grid_translations():
+    for ndim in 1, 2:
+        g = Grid([4] * ndim, pbc=True)
+        translations = g.periodic_translations()
+
+        assert len(translations) == g.n_nodes
+
+        autom = g.automorphisms()
+        for t in translations:
+            assert t in autom
+
+        g = Grid([4] * ndim, pbc=False)
+        translations = g.periodic_translations()
+        assert len(translations) == 1  # only identity
+
+    g = Grid([8, 4, 3], pbc=[True, False, False])
+    assert len(g.periodic_translations()) == 8
+
+    g = Grid([8, 4, 3], pbc=[True, True, False])
+    assert len(g.periodic_translations()) == 8 * 4
+
+    g = Grid([8, 4, 3], pbc=[True, True, True])
+    assert len(g.periodic_translations()) == 8 * 4 * 3
+
+
 def test_duplicate_atoms():
     lattice = Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],

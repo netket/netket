@@ -182,6 +182,7 @@ neural quantum states.
    :nosignatures:
 
    netket.models.RBM
+   netket.models.RBMSymm
    netket.models.RBMModPhase
    netket.models.MPSPeriodic
    netket.models.NDM
@@ -208,6 +209,7 @@ Linear Modules
 
    netket.nn.Dense
    netket.nn.DenseGeneral
+   netket.nn.DenseSymm
    netket.nn.Conv
    netket.nn.Embed
 

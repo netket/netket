@@ -43,21 +43,21 @@ class RBM(nn.Module):
         dtype: dtype of the weights.
         activation: The nonlinear activation function
         alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
         use_visible_bias: if True adds a bias to the input
         kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
+        hidden_bias_init: initializer function for the bias.
         visible_bias_init: initializer function for the visible_bias.
     """
 
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
     use_visible_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
 
     @nn.compact
@@ -66,9 +66,9 @@ class RBM(nn.Module):
             name="Dense",
             features=int(self.alpha * input.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(input)
         x = self.activation(x)
         x = jnp.sum(x, axis=-1)
@@ -91,27 +91,27 @@ class RBMModPhase(nn.Module):
         dtype: dtype of the weights.
         activation: The nonlinear activation function
         alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_bias: if True uses a bias in the dense layer (hidden layer bias)
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
         kernel_init: initializer function for the weight matrix.
-        bias_init: initializer function for the bias.
+        hidden_bias_init: initializer function for the bias.
     """
 
     dtype: Any = np.float64
     activation: Any = nknn.logcosh
     alpha: Union[float, int] = 1
-    use_bias: bool = True
+    use_hidden_bias: bool = True
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
 
     @nn.compact
     def __call__(self, x):
         re = nknn.Dense(
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(x)
         re = self.activation(re)
         re = jnp.sum(re, axis=-1)
@@ -119,11 +119,98 @@ class RBMModPhase(nn.Module):
         im = nknn.Dense(
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
         )(x)
         im = self.activation(im)
         im = jnp.sum(im, axis=-1)
 
         return re + 1j * im
+
+
+class RBMSymm(nn.Module):
+    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
+
+    See :ref:`netket.models.create_RBMSymm` for a more convenient constructor.
+    """
+
+    permutations: Callable[[], Array]
+    """See documentstion of :ref:`netket.nn.DenseSymm`."""
+    dtype: Any = np.float64
+    """The dtype of the weights."""
+    activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
+    alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
+    use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the Dense layer matrix."""
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the hidden bias."""
+    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the visible bias."""
+
+    def setup(self):
+        self.n_symm, self.n_sites = self.permutations().shape
+        self.features = int(self.alpha * self.n_sites / self.n_symm)
+        if self.alpha > 0 and self.features == 0:
+            raise ValueError(
+                f"RBMSymm: alpha={self.alpha} is too small "
+                f"for {self.n_symm} permutations, alpha ≥ {self.n_symm / self.n_sites} is needed."
+            )
+
+    @nn.compact
+    def __call__(self, x_in):
+        x = nknn.DenseSymm(
+            name="Dense",
+            permutations=self.permutations,
+            features=self.features,
+            dtype=self.dtype,
+            use_bias=self.use_hidden_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.hidden_bias_init,
+            precision=self.precision,
+        )(x_in)
+        x = self.activation(x)
+        x = jnp.sum(x, axis=-1)
+
+        if self.use_visible_bias:
+            v_bias = self.param(
+                "visible_bias", self.visible_bias_init, (1,), self.dtype
+            )
+            out_bias = v_bias[0] * jnp.sum(x_in, axis=-1)
+            return x + out_bias
+        else:
+            return x
+
+
+def create_RBMSymm(
+    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+):
+    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
+
+    Arguments:
+        permutations: See documentstion of :ref:`netket.nn.create_DenseSymm`.
+
+    See :ref:`netket.machine.RBMSymm` for the remaining arguments.
+    """
+    if isinstance(permutations, Callable):
+        perm_fn = permutations
+    elif isinstance(permutations, AbstractGraph):
+        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    else:
+        permutations = jnp.asarray(permutations)
+        if not permutations.ndim == 2:
+            raise ValueError(
+                "permutations must be an array of shape (#permutations, #sites)."
+            )
+        perm_fn = lambda: permutations
+
+    return RBMSymm(permutations=perm_fn, *args, **kwargs)

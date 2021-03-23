@@ -85,7 +85,7 @@ def rbm_and_weights(request):
             alpha=1,
             dtype=complex,
             kernel_init=nk.nn.initializers.normal(stddev=0.1),
-            bias_init=nk.nn.initializers.normal(stddev=0.1),
+            hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
         )
         # init network
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
