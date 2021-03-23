@@ -33,7 +33,14 @@ coverage = ">= 5"
 pytest-cov = ">= 2.10.1"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=50", 
+            "wheel", 
+            "toml",
+            "setuptools_scm[toml]>=3.4", 
+            "setuptools_scm_git_archive"]
+
+[tool.setuptools_scm]
+write_to = "netket/_version.py"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes --verbose --durations=0 -n auto"

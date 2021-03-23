@@ -1,5 +1,6 @@
 #
 docs/tutorials/*.ipynb
+netket/_version.py
 
 # Compiled source #
 ###################
@@ -16,6 +17,8 @@ __pycache__/
 netket.egg-info/
 pip-wheel-metadata
 .ipynb_checkpoints
+.pytest_cache
+.mypy_cache
 
 # Packages #
 ############
@@ -74,3 +77,4 @@ build/
 ##
 _build
 _generated
+dist

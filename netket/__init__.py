@@ -69,4 +69,4 @@ def Vmc(*args, **kwarags):
 # deprecations
 optim = optimizer
 
-from .version import __version__
+from ._version import version as __version__  # noqa: F401

@@ -26,7 +26,6 @@ BASE_DEPENDENCIES = [
 
 setup(
     name="netket",
-    version="3.0",
     author="Giuseppe Carleo et al.",
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
