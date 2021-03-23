@@ -58,3 +58,31 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
         ma,
     )
     vmc.advance(1)
+
+
+def test_RBMSymm_creation():
+    hi = nk.hilbert.Spin(1 / 2, N=8)
+
+    def check_init(creator):
+        ma = creator()
+        p = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+
+    perms = [[0, 1, 2, 3, 4, 5, 6, 7]]
+
+    # Test different permutation argument types
+    check_init(lambda: nk.models.RBMSymm(permutations=perms))
+    check_init(lambda: nk.models.RBMSymm(permutations=jnp.array(perms)))
+    check_init(lambda: nk.models.RBMSymm(permutations=lambda: jnp.array(perms)))
+
+    # wrong shape
+    with pytest.raises(ValueError):
+        check_init(lambda: nk.models.RBMSymm(permutations=perms[0]))
+
+    # init with graph
+    check_init(lambda: nk.models.RBMSymm(permutations=nk.graph.Chain(8), alpha=2))
+
+    # alpha too small
+    with pytest.raises(ValueError):
+        check_init(
+            lambda: nk.models.RBMSymm(permutations=nk.graph.Hypercube(8, 2), alpha=1)
+        )
