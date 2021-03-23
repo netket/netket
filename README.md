@@ -8,14 +8,14 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/installer/conda.svg)](https://conda.anaconda.org/conda-forge)
 [![Build Status](https://travis-ci.org/netket/netket.svg?branch=master)](https://travis-ci.org/netket/netket)
 [![GitHub Issues](https://img.shields.io/github/issues/netket/netket.svg)](http://github.com/netket/netket/issues)
-[![Paper](https://img.shields.io/badge/paper-arXiv%3A1904.00031-B31B1B.svg)](https://arxiv.org/abs/1904.00031)
+[![Paper](https://img.shields.io/badge/paper-SoftwareX%2010%2C%20100311%20(2019)-B31B1B)](https://doi.org/10.1016/j.softx.2019.100311)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/v.2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
-It is a Python library built on C++ primitives.
+It is a Python library built on [JAX](https://github.com/google/jax).
 
 - **Homepage:** <https://netket.org>
 - **Citing:** <https://www.netket.org/citing>
@@ -117,24 +117,20 @@ True
   * RMSProp
   * Momentum
 
-* Machines
+* Models
   * Restricted Boltzmann Machines
     * Standard
     * For Custom Local Hilbert Spaces
     * With Permutation Symmetry Using Graph Isomorphisms
   * Feed-Forward Networks
     * For Custom Local Hilbert Spaces
-    * Fully connected layer
-    * Convnet layer for arbitrary underlying graph
-    * Any Layer Satisfying Prototypes in `AbstractLayer` [extending C++ code]
   * Jastrow States
     * Standard
     * With Permutation Symmetry Using Graph Isomorphisms
   * Matrix Product States
     * MPS
-    * Periodic MPS  
-  * Custom Machines
-    * Any Machine Satisfying Prototypes in `AbstractMachine` [extending C++ code]
+    * Periodic MPS
+  * Custom Models
 
 * Observables
   * Custom Observables
@@ -153,8 +149,8 @@ True
   * Automatic Estimate of Correlation Times
 
 * Interface
-  * Python Library
-  * JSON output  
+  * Python module
+  * JSON output
 
 ## License
 
