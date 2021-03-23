@@ -628,7 +628,7 @@ class BoseHubbard(SpecialHamiltonian):
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(
-        x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn
+        x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn, pad
     ):
 
         batch_size = x.shape[0]
@@ -637,6 +637,10 @@ class BoseHubbard(SpecialHamiltonian):
         if mels.size < batch_size * max_conn:
             mels = np.empty(batch_size * max_conn, dtype=type(U))
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
+
+        if pad:
+            x_prime[:, :] = 0
+            mels[:] = 0
 
         sqrt = math.sqrt
         Uh = 0.5 * U
@@ -675,13 +679,16 @@ class BoseHubbard(SpecialHamiltonian):
                     x_prime[odiag_ind, i] += 1.0
                     odiag_ind += 1
 
+            if pad:
+                odiag_ind = (b + 1) * max_conn
+
             diag_ind = odiag_ind
 
             sections[b] = odiag_ind
 
         return np.copy(x_prime[:odiag_ind]), np.copy(mels[:odiag_ind])
 
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -714,6 +721,7 @@ class BoseHubbard(SpecialHamiltonian):
             self._mu,
             self._n_max,
             self._max_conn,
+            pad,
         )
 
     def _get_conn_flattened_closure(self):
