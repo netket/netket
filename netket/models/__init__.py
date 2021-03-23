@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rbm import RBM, RBMModPhase, RBMSymm, create_RBMSymm
+from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm, create_RBMSymm
 from .mps import MPSPeriodic
 
 from .ndm import NDM
