@@ -213,11 +213,11 @@ class DenseSymm(Module):
     This layer uses a reduced number of parameters, which are arranged so that the full
     affine transformation is invariant under all of the given permutations when applied to s.
 
+    See :ref:`netket.nn.create_DenseSymm` for a more convenient constructor.
+
     Attributes:
-      permutations: Sequence of permutations over which the layer will be invariant.
-        Should be either an array-like object of shape (n_permutations, input_size),
-        an argument-less callable returning such an array, or `AbstractGraph`, in which
-        case the graph automorphisms are used.
+      permutations: Callable returning a sequence of permutations over which the layer
+        should be invariant.
       features: The number of symmetry-reduced features. The full output size is
         len(permutations) * features.
       use_bias: whether to add a bias to the output (default: True).
@@ -311,6 +311,26 @@ class DenseSymm(Module):
 def create_DenseSymm(
     permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
 ):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
+
+    This is a convenienence wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
+
+    Attributes:
+      permutations: Sequence of permutations over which the layer should be invariant.
+        Should be either an array-like object of shape (n_permutations, input_size),
+        an argument-less callable returning such an array, or `AbstractGraph`, in which
+        case the graph automorphisms are used.
+      features: The number of symmetry-reduced features. The full output size is
+        len(permutations) * features.
+      use_bias: whether to add a bias to the output (default: True).
+      dtype: the dtype of the computation (default: float32).
+      precision: numerical precision of the computation see `jax.lax.Precision`
+        for details.
+      kernel_init: initializer function for the weight matrix.
+      bias_init: initializer function for the bias.
+    """
     if isinstance(permutations, Callable):
         perm_fn = permutations
     elif isinstance(permutations, AbstractGraph):
@@ -324,9 +344,6 @@ def create_DenseSymm(
         perm_fn = lambda: permutations
 
     return DenseSymm(permutations=perm_fn, *args, **kwargs)
-
-
-create_DenseSymm.__doc__ = DenseSymm.__doc__
 
 
 class Conv(Module):

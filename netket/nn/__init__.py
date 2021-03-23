@@ -35,7 +35,8 @@ from .linear import (
     ConvTranspose,
     Dense,
     DenseGeneral,
-    create_DenseSymm as DenseSymm,
+    DenseSymm,
+    create_DenseSymm,
 )
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
