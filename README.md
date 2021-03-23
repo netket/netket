@@ -51,23 +51,15 @@ We don't reccomend to install from conda as the jaxlib there is not very perform
 When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
  - '[dev]': installs development-related dependencies such as black, pytest and testing dependencies
  - '[mpi]': Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
- - '[all]': Installs `mpi`, and `dev`.
+ - '[tensorboard]': Installs `tensorboardx` to enable logging to tensorboard.
+ - '[all]': Installs all extra dependencies
 
 ### MPI Support
-Depending on the library you use to define your machines, distributed computing through MPI might
-or might not be supported. Please see below:
-  - **netket** : distributed computing through MPI support can be enabled by installing the package `mpi4py` through pip or conda.
-  - **jax**    : distributed computing through MPI is supported natively only if you don't use Stochastic Reconfiguration (SR). If you need SR, you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you installed netket.
-  - **pytorch** : distributed computing through MPI is enabled if the package `mpi4py` is isntalled. Stochastic Reconfiguration (SR) cannot be used when MPI is enabled. 
+To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you install it's dependency `mpi4py`.
 
 To check whever MPI support is enabled, check the flags 
 ```python
-# For standard MPI support
 >>> netket.utils.mpi_available
-True
-
-# For faster MPI support with jax and to enable SR + MPI with Jax machines
->>> netket.utils.mpi4jax_available
 True
 
 ```
