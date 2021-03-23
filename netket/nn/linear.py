@@ -214,27 +214,23 @@ class DenseSymm(Module):
     affine transformation is invariant under all of the given permutations when applied to s.
 
     See :ref:`netket.nn.create_DenseSymm` for a more convenient constructor.
-
-    Attributes:
-      permutations: Callable returning a sequence of permutations over which the layer
-        should be invariant.
-      features: The number of symmetry-reduced features. The full output size is
-        len(permutations) * features.
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
-      precision: numerical precision of the computation see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer function for the weight matrix.
-      bias_init: initializer function for the bias.
     """
 
     permutations: Callable[[], Array]
+    """Callable returning a sequence of permutations over which the layer should be invariant."""
     features: int
+    """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
     use_bias: bool = True
+    """Whether to add a bias to the output (default: True)."""
     dtype: Any = jnp.float64
+    """The dtype of the weights."""
     precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
     bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    """Initializer for the bias."""
 
     def setup(self):
         perms = self.permutations()
@@ -317,19 +313,13 @@ def create_DenseSymm(
 
     This is a convenienence wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
 
-    Attributes:
+    Arguments:
       permutations: Sequence of permutations over which the layer should be invariant.
         Should be either an array-like object of shape (n_permutations, input_size),
-        an argument-less callable returning such an array, or `AbstractGraph`, in which
+        an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
         case the graph automorphisms are used.
-      features: The number of symmetry-reduced features. The full output size is
-        len(permutations) * features.
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
-      precision: numerical precision of the computation see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer function for the weight matrix.
-      bias_init: initializer function for the bias.
+
+    See :ref:`netket.nn.DenseSymm` for the remaining arguments.
     """
     if isinstance(permutations, Callable):
         perm_fn = permutations

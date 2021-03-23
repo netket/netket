@@ -132,28 +132,30 @@ class RBMModPhase(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
-    Attributes:
-        permutations: See documentstion of :ref:`netket.nn.DenseSymm`.
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
-        use_visible_bias: if True adds a bias to the input
-        kernel_init: initializer function for the weight matrix.
-        hidden_bias_init: initializer function for the bias.
-        visible_bias_init: initializer function for the visible_bias.
+    See :ref:`netket.models.create_RBMSymm` for a more convenient constructor.
     """
 
     permutations: Callable[[], Array]
+    """See documentstion of :ref:`netket.nn.DenseSymm`."""
     dtype: Any = np.float64
+    """The dtype of the weights."""
     activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
     alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
     use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the Dense layer matrix."""
     hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the hidden bias."""
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    """Initializer for the visible bias."""
 
     def setup(self):
         self.n_symm, self.n_sites = self.permutations().shape
@@ -174,6 +176,7 @@ class RBMSymm(nn.Module):
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
+            precision=self.precision,
         )(x_in)
         x = self.activation(x)
         x = jnp.sum(x, axis=-1)
@@ -193,16 +196,10 @@ def create_RBMSymm(
 ):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
-    Attributes:
+    Arguments:
         permutations: See documentstion of :ref:`netket.nn.create_DenseSymm`.
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
-        use_visible_bias: if True adds a bias to the input
-        kernel_init: initializer function for the weight matrix.
-        hidden_bias_init: initializer function for the bias.
-        visible_bias_init: initializer function for the visible_bias.
+
+    See :ref:`netket.machine.RBMSymm` for the remaining arguments.
     """
     if isinstance(permutations, Callable):
         perm_fn = permutations
