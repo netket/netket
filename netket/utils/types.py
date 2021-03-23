@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Tuple, Callable
+from typing import Any, Sequence, Callable
 
 PRNGKey = Any
-Shape = Tuple[int]
+Shape = Sequence[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
