@@ -48,7 +48,7 @@ class EarlyStopping:
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = np.real(log_data[driver._loss_name].__getattr__(self.monitor))
+        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
         if loss <= self._best_val:
             self._best_val = loss
             self._best_iter = step
