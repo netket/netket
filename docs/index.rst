@@ -114,8 +114,9 @@
    docs/whats_new
    docs/varstate
    docs/drivers
-   docs/api
+   docs/custom_models
    docs/sharp-bits
+   docs/api
 ..
   hidden from toctree
    tutorials/tutorials

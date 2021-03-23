@@ -96,3 +96,30 @@ def test_RBMSymm_creation():
         check_init(
             lambda: nk.models.RBMSymm(permutations=nk.graph.Hypercube(8, 2), alpha=1)
         )
+
+
+@pytest.mark.parametrize("use_hidden_bias", [True, False])
+@pytest.mark.parametrize("use_visible_bias", [True, False])
+def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
+    N = 8
+    M = 3
+    hi = nk.hilbert.Fock(M, N)
+    g = nk.graph.Chain(N)
+
+    ma = nk.models.RBMMultiVal(
+        alpha=2,
+        n_classes=M + 1,
+        use_visible_bias=use_visible_bias,
+        use_hidden_bias=use_hidden_bias,
+        hidden_bias_init=nk.nn.initializers.uniform(),
+        visible_bias_init=nk.nn.initializers.uniform(),
+    )
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+
+    vmc = nk.VMC(
+        nk.operator.BoseHubbard(hi, g, U=1.0),
+        nk.optim.Sgd(0.1),
+        nk.sampler.MetropolisLocal(hi),
+        ma,
+    )
+    vmc.advance(1)

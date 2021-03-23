@@ -58,18 +58,6 @@ more complicated examples.
     If you don't find something from Flax in :code:`netket.nn`, please `open an issue <https://github.com/netket/netket/issues>`_ in GitHub.
 
 
-Defining models: init and apply functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Internally, variational states don't need a Flax model to work with, but only two functions: an initialization 
-function, used to initialize the parameters and the state of the model, and an apply function, used to evaluate
-the model.
-
-If you don't want to use Flax, Haiku or other supported methods, you can define your own tuple of functions and
-pass it to the Variational State constructor. Keep in mind, however, that those two functions will be executed 
-inside :code:`jax.jit` blocks, so they must be jit-compatible.
-
-
 MCState
 ^^^^^^^
 
@@ -223,6 +211,31 @@ which by defaults normalises the :math:`L_2` norm of the vector to 1 (but can be
 Mixed state ansatzes can be converted to their matrix representation with 
 :py:meth:`~netket.variational.MCMixedState.to_matrix`. In this case, the default
 normalisation sets the trace to 1.
+
+
+Manipulating the parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can access the parameters of a variational state through the :py:attr:`~netket.variational.VariationalState.parameters` attribute.
+Similarly, if your model has also a mutable state, you can access it through
+the :py:attr:`~netket.variational.VariationalState.model_state` attribute.
+
+Parameters are stored as a Flax :code:`FrozenDict`, which behaves like a standard python dictionary but cannot be modified. 
+In Jax jargon, Parameters are a PyTree (see `PyTree documentation <https://jax.readthedocs.io/en/latest/pytrees.html>`_) and they
+can be operated upon with functions like `jax.tree_map <https://jax.readthedocs.io/en/latest/jax.tree_util.html?highlight=tree_map#jax.tree_util.tree_map>`_.
+
+You can also modify the parameters by _unfreezing_ them, using the command `flax.core.unfreeze`.
+
+.. code:: python
+    import flax
+
+    pars = flax.core.unfreeze(varstate.parameters)
+
+    pars['Dense']['kernel'] = pars['Dense']['kernel'] +1
+
+    varstate.parameters = pars
+
+The parameter dict will be automatically frozen upon assignment.
 
 
 Saving and Loading a Variational State

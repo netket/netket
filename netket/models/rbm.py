@@ -37,28 +37,28 @@ default_kernel_init = normal(stddev=0.01)
 
 class RBM(nn.Module):
     """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
-    nonlinear activation function in between
-
-    Attributes:
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
-        use_visible_bias: if True adds a bias to the input
-        kernel_init: initializer function for the weight matrix.
-        hidden_bias_init: initializer function for the bias.
-        visible_bias_init: initializer function for the visible_bias.
+    nonlinear activation function in between.
     """
 
     dtype: Any = np.float64
+    """The dtype of the weights."""
     activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
     alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
     use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
     hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the hidden bias."""
     visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the visible bias."""
 
     @nn.compact
     def __call__(self, input):
@@ -66,6 +66,7 @@ class RBM(nn.Module):
             name="Dense",
             features=int(self.alpha * input.shape[-1]),
             dtype=self.dtype,
+            precision=self.precision,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
@@ -84,25 +85,36 @@ class RBM(nn.Module):
 
 
 class RBMModPhase(nn.Module):
-    """Two restricted boltzman machines, one encoding the real part and one
-    encoding the imaginary part of the output
+    """
+    A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
 
-    Attributes:
-        dtype: dtype of the weights.
-        activation: The nonlinear activation function
-        alpha: feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias)
-        kernel_init: initializer function for the weight matrix.
-        hidden_bias_init: initializer function for the bias.
+    In this case, two RBMs are taken to parameterize, respectively, the real
+    and imaginary part of the log-wave-function, as introduced in Torlai et al.,
+    Nature Physics 14, 447–450(2018).
+
+    This type of RBM has spin 1/2 hidden units and is defined by:
+
+    .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+            \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
+
+    for arbitrary local quantum numbers :math:`s_i`.
     """
 
     dtype: Any = np.float64
+    """The dtype of the weights."""
     activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
     alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
     hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the hidden bias."""
 
     @nn.compact
     def __call__(self, x):
@@ -110,6 +122,7 @@ class RBMModPhase(nn.Module):
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
+            precision=self.precision,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
         )(x)
@@ -120,6 +133,7 @@ class RBMModPhase(nn.Module):
             features=int(self.alpha * x.shape[-1]),
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
+            precision=self.precision,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
         )(x)
@@ -129,10 +143,64 @@ class RBMModPhase(nn.Module):
         return re + 1j * im
 
 
+class RBMMultiVal(nn.Module):
+    """
+    A fully connected Restricted Boltzmann Machine (see :ref:`netket.models.RBM`) suitable for large local hilbert spaces.
+    Local quantum numbers are passed through a one hot encoding that maps them onto
+    an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
+    standard :class:`~netket.models.RBM` wave function.
+    """
+
+    n_classes: int
+    """The number of classes in the one-hot encoding"""
+    dtype: Any = np.float64
+    """The dtype of the weights."""
+    activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
+    alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
+    use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the hidden bias."""
+    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the visible bias."""
+
+    def setup(self):
+        self.RBM = RBM(
+            dtype=self.dtype,
+            activation=self.activation,
+            alpha=self.alpha,
+            use_hidden_bias=self.use_hidden_bias,
+            use_visible_bias=self.use_visible_bias,
+            kernel_init=self.kernel_init,
+            hidden_bias_init=self.hidden_bias_init,
+            visible_bias_init=self.visible_bias_init,
+        )
+
+    def __call__(self, x):
+        batches = x.shape[:-1]
+        N = x.shape[-1]
+
+        # do the one hot encoding: output x.shape +(n_classes,)
+        x_oh = jax.nn.one_hot(x, self.n_classes)
+        # vectorizee the last two dimensions
+        x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
+        # apply the rbm to this output
+        return self.RBM(x_oh)
+
+
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
-    See :ref:`netket.models.create_RBMSymm` for a more convenient constructor.
+    See :func:`~netket.models.create_RBMSymm` for a more convenient constructor.
     """
 
     permutations: Callable[[], Array]
@@ -196,10 +264,10 @@ def create_RBMSymm(
 ):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
+    See :ref:`netket.models.RBMSymm` for the remaining arguments.
+
     Arguments:
         permutations: See documentstion of :ref:`netket.nn.create_DenseSymm`.
-
-    See :ref:`netket.machine.RBMSymm` for the remaining arguments.
     """
     if isinstance(permutations, Callable):
         perm_fn = permutations
