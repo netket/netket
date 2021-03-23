@@ -148,7 +148,7 @@ class RBMMultiVal(nn.Module):
     A fully connected Restricted Boltzmann Machine (see :ref:`netket.models.RBM`) suitable for large local hilbert spaces.
     Local quantum numbers are passed through a one hot encoding that maps them onto
     an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
-    standard RbmSpin wave function.
+    standard :class:`~netket.models.RBM` wave function.
     """
 
     n_classes: int
