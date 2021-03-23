@@ -174,8 +174,7 @@ class RBMMultiVal(nn.Module):
     """Initializer for the visible bias."""
 
     def setup(self):
-        self.rbm = RBM(
-            name="RBM",
+        self.RBM = RBM(
             dtype=self.dtype,
             activation=self.activation,
             alpha=self.alpha,
@@ -195,7 +194,7 @@ class RBMMultiVal(nn.Module):
         # vectorizee the last two dimensions
         x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
         # apply the rbm to this output
-        return self.rbm(x_oh)
+        return self.RBM(x_oh)
 
 
 class RBMSymm(nn.Module):
