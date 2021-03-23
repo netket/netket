@@ -21,7 +21,7 @@ from netket.utils.types import Dtype, Array, NNInitFunc
 
 
 class Jastrow(nn.Module):
-    """Jastrow wave function :math:`\Psi(s) = exp(\sum_{ij} s_i W_{ij} s_j)`."""
+    """Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`."""
 
     dtype: Dtype = jnp.complex128
     """The dtype of the weights."""
