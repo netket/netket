@@ -186,6 +186,7 @@ neural quantum states.
    netket.models.RBMMultiVal
    netket.models.RBMSymm
    netket.models.create_RBMSymm
+   netket.models.Jastrow
    netket.models.MPSPeriodic
    netket.models.NDM
 
@@ -329,6 +330,7 @@ Those are the loggers that can be used with the optimization drivers.
 
 
 .. _callbacks-api:
+   netket.callbacks.EarlyStopping
 
 Callbacks
 --------------
