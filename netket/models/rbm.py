@@ -67,7 +67,7 @@ class RBM(nn.Module):
             features=int(self.alpha * input.shape[-1]),
             dtype=self.dtype,
             precision=self.precision,
-            use_bias=self.use_bias,
+            use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
         )(input)
