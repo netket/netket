@@ -330,7 +330,6 @@ Those are the loggers that can be used with the optimization drivers.
 
 
 .. _callbacks-api:
-   netket.callbacks.EarlyStopping
 
 Callbacks
 --------------
