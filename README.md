@@ -25,27 +25,24 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 - **Source code:** <https://github.com/netket/netket>
 
 ## Installation and Usage
-Netket supports MacOS and Linux. The reccomended way to install it in a non-conda python environment is: 
+
+Netket supports MacOS and Linux. We reccomend to install NetKet using `pip`
+For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/website/get_started.html) section of our website.
+
+If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional
+dependencies, you can run the following command:
+
 ```
-pip install netket[mpi]
+pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
 ``` 
-The `[mpi]` after netket will install mpi related dependencies of netket. 
-We reccomend to install netket with all it's extra dependencies, which are documented below. 
+
+You can also install the MPI-related dependencies by using `[dev,mpi]` between the square brackets.
+We recommend to install NetKet with all it's extra dependencies, which are documented below. 
 However, if you do not have a working MPI compiler in your PATH this installation will most likely fail because
 it will attempt to install `mpi4py`, which enables MPI support in netket.
-If you are only starting to discover netket and won't be running extended simulations, you can forego MPI by 
-installing netket with the command
-```
-pip install netket 
-```
 
-Netket is also available on conda-forge. To install netket in a conda-environment you can use:
-```
-conda install conda-forge::netket
-```
-The conda library is linked to anaconda's `mpi4py`, therefore we do not reccomend to use this installation
-method on computer clusters with a custom MPI distribution. 
-We don't reccomend to install from conda as the jaxlib there is not very performant.
+The latest release of Netket is not currently available on conda-forge. 
+However, you can still install NetKet with pip inside conda environments.
 
 ### Extra dependencies
 When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
