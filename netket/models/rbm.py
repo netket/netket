@@ -94,8 +94,8 @@ class RBMModPhase(nn.Module):
 
     This type of RBM has spin 1/2 hidden units and is defined by:
 
-    .. math:: \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
-            \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
+    .. math:: \\Psi(s_1,\\dots s_N) = e^{\\sum_i^N a_i s_i} \\times \\Pi_{j=1}^M
+            \\cosh \\left(\\sum_i^N W_{ij} s_i + b_j \\right)
 
     for arbitrary local quantum numbers :math:`s_i`.
     """

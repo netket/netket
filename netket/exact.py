@@ -1,11 +1,11 @@
-# Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
-#
+# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#
+
 #    http://www.apache.org/licenses/LICENSE-2.0
-#
+
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -165,7 +165,7 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
                 matrix results in very low precision of the resulting steady-state
                 since the update to numpy 1.9.
                 We suggest using sparse=True, however, if you wish not to, you have
-                been warned. 
+                been warned.
                 Your digits are your reponsability now."""
             )
 
