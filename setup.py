@@ -30,8 +30,9 @@ setup(
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    long_description="""NetKet is an open - source project delivering cutting - edge
-         methods for the study of many - body quantum systems with artificial
+    summmary="Netket : Machine Learning techniques for many-body quantum systems.",
+    long_description="""NetKet is an open-source project delivering cutting-edge
+         methods for the study of many-body quantum systems with artificial
          neural networks and machine learning techniques.""",
     classifiers=[
         "Programming Language :: Python :: 3",
