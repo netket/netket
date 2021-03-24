@@ -186,6 +186,7 @@ neural quantum states.
    netket.models.RBMMultiVal
    netket.models.RBMSymm
    netket.models.create_RBMSymm
+   netket.models.Jastrow
    netket.models.MPSPeriodic
    netket.models.NDM
 

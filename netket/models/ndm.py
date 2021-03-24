@@ -22,16 +22,12 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
+from netket.utils.types import PRNGKey, Shape, Dtype, Array
 
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
 
 from .rbm import RBM
-
-PRNGKey = Any
-Shape = Tuple[int]
-Dtype = Any  # this could be a real type?
-Array = Any
 
 default_kernel_init = normal(stddev=0.001)
 
