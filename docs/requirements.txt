@@ -6,6 +6,7 @@ sphinxcontrib-fulltoc>=1.2.0
 sphinxcontrib-jsmath>=1.0.1
 sphinxcontrib-napoleon>=0.7
 recommonmark>=0.7 
+sphinx_reredirects
 nbsphinx>=0.8
 -e .
 jaxlib>=0.1.59

@@ -36,7 +36,7 @@
             <div class="row">
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/carleo.jpg" class="img-rounded" />
+                    <img src="_static/team/carleo.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a
@@ -67,7 +67,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/filippo.jpg"
+                      src="_static/team/filippo.jpg"
                       class="img-rounded"
                     />
 
@@ -95,7 +95,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/choo.jpg" class="img-rounded" />
+                    <img src="_static/team/choo.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a
@@ -122,7 +122,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/dhofmann.jpg"
+                      src="_static/team/dhofmann.jpg"
                       class="img-rounded"
                     />
 
@@ -150,7 +150,7 @@
               <div class="row">
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/jsmith.jpg" class="img-rounded" />
+                    <img src="_static/team/jsmith.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a
@@ -176,7 +176,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/logo_rect.jpg" class="img-rounded" />
+                    <img src="_static/logo_rect.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -200,7 +200,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/alet.jpg" class="img-rounded" />
+                    <img src="_static/team/alet.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a
@@ -226,7 +226,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/davis.jpg" class="img-rounded" />
+                    <img src="_static/team/davis.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="https://sites.stanford.edu/sslab/people">
@@ -253,7 +253,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/alex_netket.png"
+                      src="_static/team/alex_netket.png"
                       class="img-rounded"
                     />
 
@@ -280,7 +280,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/shenghsuan.jpg"
+                      src="_static/team/shenghsuan.jpg"
                       class="img-rounded"
                     />
 
@@ -306,7 +306,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/logo_rect.jpg" class="img-rounded" />
+                    <img src="_static/logo_rect.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -330,7 +330,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/marta.png" class="img-rounded" />
+                    <img src="_static/team/marta.png" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -357,7 +357,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/stavros.jpg"
+                      src="_static/team/stavros.jpg"
                       class="img-rounded"
                     />
 
@@ -384,7 +384,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/mazzola.jpg"
+                      src="_static/team/mazzola.jpg"
                       class="img-rounded"
                     />
 
@@ -412,7 +412,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/team/evert.jpg" class="img-rounded" />
+                    <img src="_static/team/evert.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -437,7 +437,7 @@
                 <div class="col-sm-3">
                   <div class="thumbnail">
                     <img
-                      src="../_static/team/theveniaut.jpg"
+                      src="_static/team/theveniaut.jpg"
                       class="img-rounded"
                     />
 
@@ -464,7 +464,7 @@
               <div class="row">
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/logo_rect.jpg" class="img-rounded" />
+                    <img src="_static/logo_rect.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -488,7 +488,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/logo_rect.jpg" class="img-rounded" />
+                    <img src="_static/logo_rect.jpg" class="img-rounded" />
 
                     <div class="caption">
                       <a href="">
@@ -512,7 +512,7 @@
 
                 <div class="col-sm-3">
                   <div class="thumbnail">
-                    <img src="../_static/logo_rect.jpg" class="img-rounded" />
+                    <img src="_static/logo_rect.jpg" class="img-rounded" />
                     <div class="caption">
                       <h2 class="text-center">Join the NetKet team now!</h2>
                       <div class="text-muted">

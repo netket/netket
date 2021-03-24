@@ -25,6 +25,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "sphinx_reredirects",
     "sphinx_panels",
     "nbsphinx",
     "recommonmark",
@@ -100,11 +101,11 @@ html_theme_options = {
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
     "navbar_links": [
-        ("Get Started", "website/get_started"),
+        ("Get Started", "getting_started"),
         ("Documentation", "docs/getting_started"),
-        ("Tutorials", "tutorials/tutorials"),
-        ("Citing NetKet", "website/citing"),
-        ("About", "website/about"),
+        ("Tutorials", "tutorials"),
+        ("Citing NetKet", "citing"),
+        ("About", "about"),
         (
             '<i class="fab fa-github" aria-hidden="true"></i>',
             "https://github.com/netket/netket",
@@ -163,4 +164,9 @@ html_sidebars = {
     "docs/*": ["custom_localtoc.html"],
     "docs/_generated/**/*": ["custom_localtoc.html"],
     "modules/*": ["custom_localtoc.html"],
+}
+
+## redirects
+redirects = {
+    "documentation": "docs/getting_started.html",
 }

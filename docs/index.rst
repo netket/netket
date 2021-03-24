@@ -31,7 +31,7 @@
       <div class="btn-group">
         <a class="btn btn-primary btn-lg" href="https://www.sciencedirect.com/science/article/pii/S2352711019300974" role="button">Paper</a>
         <div class="btn-group">
-          <a class="btn btn-info btn-lg" href="website/get_started.html" role="button">pip install --pre netket</a>
+          <a class="btn btn-info btn-lg" href="get_started.html" role="button">pip install --pre netket</a>
         </div>
       </div>
 
@@ -119,7 +119,7 @@
    docs/api
 ..
   hidden from toctree
-   tutorials/tutorials
-   website/citing
+   tutorials
+   citing
 
 
