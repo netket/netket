@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from typing import List, Union
+from netket.utils.types import Dtype
 
 import numpy as np
 from numba import jit
@@ -25,7 +27,13 @@ from ._abstract_operator import AbstractOperator
 class PauliStrings(AbstractOperator):
     """A Hamiltonian consisiting of the sum of products of Pauli operators."""
 
-    def __init__(self, operators, weights, cutoff=1.0e-10, dtype=complex):
+    def __init__(
+        self,
+        operators: List[str],
+        weights: List[Union[float, complex]],
+        cutoff: float = 1.0e-10,
+        dtype: Dtype = complex,
+    ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
 
@@ -154,7 +162,8 @@ class PauliStrings(AbstractOperator):
         self._is_hermitian = np.allclose(self._weights.imag, 0.0)
 
     @property
-    def dtype(self):
+    def dtype(self) -> Dtype:
+        """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
 
     @property
