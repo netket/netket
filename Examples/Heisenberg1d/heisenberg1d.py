@@ -29,7 +29,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, total_sz=0)
 ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # RBM Spin Machine
-ma = nk.models.create_RBMSymm(
+ma = nk.models.RBMSymm(
     permutations=g.periodic_translations(),
     alpha=4,
     use_visible_bias=False,

@@ -33,7 +33,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
 
-    ma = nk.models.create_RBMSymm(
+    ma = nk.models.RBMSymm(
         permutations=perms,
         alpha=4,
         use_visible_bias=use_visible_bias,
@@ -70,29 +70,19 @@ def test_RBMSymm_creation():
     perms = [[0, 1, 2, 3, 4, 5, 6, 7]]
 
     # Test different permutation argument types
-    check_init(lambda: nk.models.create_RBMSymm(permutations=perms))
-    check_init(lambda: nk.models.create_RBMSymm(permutations=jnp.array(perms)))
-    check_init(lambda: nk.models.create_RBMSymm(permutations=lambda: jnp.array(perms)))
+    check_init(lambda: nk.models.RBMSymm(permutations=perms))
+    check_init(lambda: nk.models.RBMSymm(permutations=jnp.array(perms)))
     check_init(lambda: nk.models.RBMSymm(permutations=lambda: jnp.array(perms)))
 
     # wrong shape
     with pytest.raises(ValueError):
-        check_init(lambda: nk.models.create_RBMSymm(permutations=perms[0]))
+        check_init(lambda: nk.models.RBMSymm(permutations=perms[0]))
 
     # init with graph
-    check_init(
-        lambda: nk.models.create_RBMSymm(permutations=nk.graph.Chain(8), alpha=2)
-    )
+    check_init(lambda: nk.models.RBMSymm(permutations=nk.graph.Chain(8), alpha=2))
 
     # alpha too small
     with pytest.raises(ValueError):
-        check_init(
-            lambda: nk.models.create_RBMSymm(
-                permutations=nk.graph.Hypercube(8, 2), alpha=1
-            )
-        )
-
-    with pytest.raises(TypeError):
         check_init(
             lambda: nk.models.RBMSymm(permutations=nk.graph.Hypercube(8, 2), alpha=1)
         )

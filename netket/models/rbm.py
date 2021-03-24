@@ -193,10 +193,7 @@ class RBMMultiVal(nn.Module):
 
 
 class RBMSymm(nn.Module):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
-
-    See :func:`~netket.models.create_RBMSymm` for a more convenient constructor.
-    """
+    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
     permutations: Callable[[], Array]
     """See documentstion of :ref:`netket.nn.DenseSymm`."""
@@ -257,13 +254,6 @@ class RBMSymm(nn.Module):
 def create_RBMSymm(
     permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
 ):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
-
-    See :ref:`netket.models.RBMSymm` for the remaining arguments.
-
-    Arguments:
-        permutations: See documentstion of :ref:`netket.nn.create_DenseSymm`.
-    """
     if isinstance(permutations, Callable):
         perm_fn = permutations
     elif isinstance(permutations, AbstractGraph):
@@ -277,3 +267,6 @@ def create_RBMSymm(
         perm_fn = lambda: permutations
 
     return RBMSymm(permutations=perm_fn, *args, **kwargs)
+
+
+create_RBMSymm.__doc__ = RBMSymm.__doc__
