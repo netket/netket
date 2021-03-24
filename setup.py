@@ -30,10 +30,20 @@ setup(
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    packages=find_packages(),
     long_description="""NetKet is an open - source project delivering cutting - edge
          methods for the study of many - body quantum systems with artificial
          neural networks and machine learning techniques.""",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: Unix",
+        "Topic :: Scientific/Engineering :: Physics",
+    ],
+    packages=find_packages(),
     install_requires=BASE_DEPENDENCIES,
     python_requires=">=3.7",
     extras_require={

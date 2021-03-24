@@ -1,4 +1,4 @@
-# Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ from jax.config import config
 
 config.update("jax_enable_x64", True)
 del config
+
+from ._version import version as __version__  # noqa: F401
 
 from . import utils
 from .utils import config, deprecated_new_name as _deprecated
@@ -68,5 +70,3 @@ def Vmc(*args, **kwarags):
 
 # deprecations
 optim = optimizer
-
-from ._version import version as __version__  # noqa: F401
