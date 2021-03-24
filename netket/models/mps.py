@@ -25,12 +25,7 @@ from netket.nn.initializers import lecun_normal, variance_scaling, zeros
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-
-
-PRNGKey = Any
-Shape = Tuple[int]
-Dtype = Any  # this could be a real type?
-Array = Any
+from netket.utils.types import PRNGKey, Shape, Dtype, Array
 
 default_kernel_init = lecun_normal()
 

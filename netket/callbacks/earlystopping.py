@@ -12,28 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numpy import infty
+from dataclasses import dataclass
+from typing import Union
+
+import numpy as np
 
 
+@dataclass
 class EarlyStopping:
-    """A simple callback to stop NetKet if there are no improvements in the training"""
+    """A simple callback to stop NetKet if there are no more improvements in the training.
+    based on `driver._loss_name`."""
 
-    def __init__(self, min_delta=0, patience=0, baseline=None):
-        """
-        Constructs a new EarlyStopping object that monitors whether a driver is improving
-        over optimisation epochs based on `driver._loss_name`.
+    min_delta: float = 0.0
+    """Minimum change in the monitored quantity to qualify as an improvement."""
+    patience: Union[int, float] = 0
+    """Number of epochs with no improvement after which training will be stopped."""
+    baseline: float = None
+    """Baseline value for the monitored quantity. Training will stop if the driver hits the baseline."""
+    monitor: str = "mean"
+    """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
 
-        Args:
-            min_delta: Minimum change in the monitored quantity to qualify as an improvement.
-            patience: Number of epochs with no improvement after which training will be stopped.
-            baseline: Baseline value for the monitored quantity. Training will stop if the driver
-                hits the baseline.
-        """
-        self.__min_delta = min_delta
-        self.__patience = patience
-        self.__baseline = baseline
-        self._best_val = infty
-        self.__best_iter = 0
+    def __post_init__(self):
+        self._best_val = np.infty
+        self._best_iter = 0
 
     def __call__(self, step, log_data, driver):
         """
@@ -47,16 +48,16 @@ class EarlyStopping:
         Returns:
             A boolean. If True, training continues, else, it does not.
         """
-        loss = log_data[driver._loss_name].mean.real
+        loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
         if loss <= self._best_val:
             self._best_val = loss
-            self.__best_iter = step
-        if self.__baseline is not None:
-            if loss <= self.__baseline:
+            self._best_iter = step
+        if self.baseline is not None:
+            if loss <= self.baseline:
                 return False
         if (
-            step - self.__best_iter >= self.__patience
-            and loss > self._best_val - self.__min_delta
+            step - self._best_iter >= self.patience
+            and loss > self._best_val - self.min_delta
         ):
             return False
         else:

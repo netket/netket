@@ -1,5 +1,5 @@
 # Copyright 2021 The NetKet Authors - All rights reserved.
-#
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm, create_RBMSymm
-from .jastrow import Jastrow
-from .mps import MPSPeriodic
+from typing import Any, Sequence, Callable
 
-from .ndm import NDM
+PRNGKey = Any
+Shape = Sequence[int]
+Dtype = Any  # this could be a real type?
+Array = Any
 
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+NNInitFunc = Callable[[PRNGKey, Shape, Dtype], Array]

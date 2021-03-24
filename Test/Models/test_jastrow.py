@@ -1,23 +1,36 @@
 # Copyright 2021 The NetKet Authors - All rights reserved.
-#
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#
+
 #    http://www.apache.org/licenses/LICENSE-2.0
-#
+
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm, create_RBMSymm
-from .jastrow import Jastrow
-from .mps import MPSPeriodic
+import netket as nk
+import jax.numpy as jnp
 
-from .ndm import NDM
+import pytest
 
-from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
+def test_Jastrow(dtype):
+    N = 8
+    hi = nk.hilbert.Spin(1 / 2, N)
+    g = nk.graph.Chain(N)
+
+    ma = nk.models.Jastrow(dtype=dtype)
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+
+    vmc = nk.VMC(
+        nk.operator.Ising(hi, g, h=1.0),
+        nk.optim.Sgd(0.1),
+        nk.sampler.MetropolisLocal(hi),
+        ma,
+    )
+    vmc.advance(1)
