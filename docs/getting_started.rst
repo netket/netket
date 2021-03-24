@@ -1,10 +1,10 @@
-.. title:: Get Started 
+.. title:: Getting Started 
 
 .. container:: jumbotron jumbotron-fluid landing-page-box landing-page-box-logo
 
     .. rst-class:: h1 
 
-      **Get Started!**
+      **Getting Started!**
 
     .. rst-class:: h2 
 
@@ -24,8 +24,8 @@
 
         When using MPI, we recommend not to use Anaconda unless it's for small experimentation on a laptop. This is due to a dependency of netket, mpi4jax. You can read more about the limitations on the `mpi4jax documentation <https://mpi4jax.readthedocs.io/en/latest/installation.html>`_. 
 
-    .. dropdown:: :code:`pip install --pre netket`, or :code:`conda install netket`. 
-       Choose between pip or conda. We recommend pip.
+    .. dropdown:: :code:`pip install --pre netket`
+       Conda is not currently supported. However you can use a conda environment and install netket with pip inside this environment.
         
        Be mindfull that this will install the latest 3.0 beta version. If you prefer to keep using the old stable versions, remove the :code:`--pre` directive.  Eventually we will release the stable 3.0, but we need your help in order to test it!
 
@@ -33,7 +33,7 @@
 
        If you want to develop netket, extra development dependencies are installed by running :code:`pip install --pre netket[all,dev]`
 
-    .. dropdown:: Explore our `Tutorials <../tutorials/tutorials.html>`_ and check out our `Examples <https://github.com/netket/netket/tree/master/Examples>`_ 
+    .. dropdown:: Explore our `Tutorials <tutorials.html>`_ and check out our `Examples <https://github.com/netket/netket/tree/master/Examples>`_ 
 
        Tutorials are commented python notebooks. Examples are sample python files that can be run.
        If you want to experiment with mpi, try running some examples with :code:`mpirun -np2 python path/to/example.py`

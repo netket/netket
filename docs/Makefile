@@ -15,6 +15,7 @@ help:
 .PHONY: help Makefile
 
 copy-tutorials:
+	mkdir -p tutorials
 	cp ../Tutorials/*.ipynb tutorials/
 
 # Catch-all target: route all unknown targets to Sphinx using the new

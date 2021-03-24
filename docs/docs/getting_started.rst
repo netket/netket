@@ -176,8 +176,10 @@ is described in `Jax:Type promotion semantics <https://jax.readthedocs.io/en/lat
 
 Hilbert space samplers are defined in the :ref:`Sampler` submodule. In general 
 you must provide the constructor the hilbert space to be sampled and some options. 
-In this case we aask for 16 markov chains and to use single-precision (the default,
-anyhow). 
+In this case we ask for 16 markov chains. 
+The default behaviour for samplers is to output states with double precision, but
+this can be configured by specifying the :code:`dtype` argument when constructing the
+sampler.
 Samples don't need double precision at all, so it makes sense to use the lower 
 precision, but you have to be careful with the dtype of your model in order
 not to reduce the precision.

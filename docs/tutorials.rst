@@ -16,21 +16,21 @@
     :header: text-center text-bold h2
     :container: p-2
 
-    :doc:`Using Jax: Netket 3 preview <jax>`
+    :doc:`Using Jax: Netket 3 preview <tutorials/jax>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     Learn how to define a simple model in bare jax.
 
     ---
 
-    :doc:`Variational Monte Carlo with Neural Networks <j1j2>`
+    :doc:`Variational Monte Carlo with Neural Networks <tutorials/j1j2>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     Learn how to train a Neural-Network quantum state to find the ground state of a spin Hamiltonian.
 
     ---
 
-    :doc:`Heisenberg model with different variational states <Heisenberg1d>`
+    :doc:`Heisenberg model with different variational states <tutorials/Heisenberg1d>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     Learning the ground-state of a spin model with different Neural Networks available in NetKet.
