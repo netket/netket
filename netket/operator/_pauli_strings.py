@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from typing import List, Union
+from netket.utils.types import Dtype
 
 import numpy as np
 from numba import jit
@@ -25,7 +27,13 @@ from ._abstract_operator import AbstractOperator
 class PauliStrings(AbstractOperator):
     """A Hamiltonian consisiting of the sum of products of Pauli operators."""
 
-    def __init__(self, operators, weights, cutoff=1.0e-10, dtype=complex):
+    def __init__(
+        self,
+        operators: List[str],
+        weights: List[Union[float, complex]],
+        cutoff: float = 1.0e-10,
+        dtype: Dtype = complex,
+    ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
 
@@ -72,7 +80,7 @@ class PauliStrings(AbstractOperator):
         n_operators = len(operators)
 
         self._cutoff = cutoff
-        b_weights = np.asarray(weights, dtype=np.complex128)
+        b_weights = np.asarray(weights, dtype=dtype)
 
         b_to_change = [] * n_operators
         b_z_check = [] * n_operators
@@ -124,7 +132,7 @@ class PauliStrings(AbstractOperator):
         _sites = np.empty((n_operators, _n_qubits), dtype=np.intp)
         _ns = np.empty((n_operators), dtype=np.intp)
         _n_op = np.empty(n_operators, dtype=np.intp)
-        _weights = np.empty((n_operators, _n_op_max), dtype=np.complex128)
+        _weights = np.empty((n_operators, _n_op_max), dtype=dtype)
         _nz_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
         _z_check = np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=np.intp)
 
@@ -151,10 +159,17 @@ class PauliStrings(AbstractOperator):
         self._mels_max = np.empty((n_operators), dtype=dtype)
         self._n_operators = n_operators
         self._dtype = dtype
+        self._is_hermitian = np.allclose(self._weights.imag, 0.0)
 
     @property
-    def dtype(self):
+    def dtype(self) -> Dtype:
+        """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
+
+    @property
+    def is_hermitian(self) -> bool:
+        """Returns true if this operator is hermitian."""
+        return self._is_hermitian
 
     @staticmethod
     @jit(nopython=True)
@@ -171,10 +186,11 @@ class PauliStrings(AbstractOperator):
         z_check,
         cutoff,
         max_conn,
+        pad=False,
     ):
 
-        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]))
-        mels = np.empty((x.shape[0] * max_conn), dtype=mels.dtype)
+        x_prime = np.zeros((x.shape[0] * max_conn, x_prime.shape[1]))
+        mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
 
         n_c = 0
         for b in range(x.shape[0]):
@@ -196,10 +212,14 @@ class PauliStrings(AbstractOperator):
                         x_prime[n_c, site] = 1 - x_prime[n_c, site]
                     mels[n_c] = mel
                     n_c += 1
+
+            if pad:
+                n_c = (b + 1) * max_conn
+
             sections[b] = n_c
         return x_prime[:n_c], mels[:n_c]
 
-    def get_conn_flattened(self, x, sections):
+    def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -234,6 +254,7 @@ class PauliStrings(AbstractOperator):
             self._z_check,
             self._cutoff,
             self._n_operators,
+            pad,
         )
 
     def _get_conn_flattened_closure(self):
@@ -247,7 +268,7 @@ class PauliStrings(AbstractOperator):
         _z_check = self._z_check
         _cutoff = self._cutoff
         _n_operators = self._n_operators
-        fun = self._get_conn_flattened_kernel
+        fun = self._flattened_kernel
 
         def gccf_fun(x, sections):
             return fun(
