@@ -213,7 +213,7 @@ class DenseSymm(Module):
     This layer uses a reduced number of parameters, which are arranged so that the full
     affine transformation is invariant under all of the given permutations when applied to s.
 
-    See :ref:`netket.nn.create_DenseSymm` for a more convenient constructor.
+    See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
     permutations: Callable[[], Array]
@@ -311,7 +311,7 @@ def create_DenseSymm(
     This layer uses a reduced number of parameters, which are arranged so that the full
     affine transformation is invariant under all of the given permutations when applied to s.
 
-    This is a convenienence wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
+    This is a convenience wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
 
     Arguments:
       permutations: Sequence of permutations over which the layer should be invariant.
@@ -319,7 +319,7 @@ def create_DenseSymm(
         an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
         case the graph automorphisms are used.
 
-    See :ref:`netket.nn.DenseSymm` for the remaining arguments.
+    See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
     if isinstance(permutations, Callable):
         perm_fn = permutations
