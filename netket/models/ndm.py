@@ -197,7 +197,7 @@ class NDM(nn.Module):
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            hidden_bias_init=self.bias_init,
             precision=self.precision,
         )
 
@@ -210,7 +210,7 @@ class NDM(nn.Module):
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            hidden_bias_init=self.bias_init,
             precision=self.precision,
         )
 
